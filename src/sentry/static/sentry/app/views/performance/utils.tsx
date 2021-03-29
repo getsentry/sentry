@@ -1,6 +1,9 @@
+import React from 'react';
 import {Location, LocationDescriptor, Query} from 'history';
 
+import Duration from 'app/components/duration';
 import {GlobalSelection, OrganizationSummary} from 'app/types';
+import {defined} from 'app/utils';
 import {statsPeriodToDays} from 'app/utils/dates';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
@@ -83,4 +86,21 @@ export function getTransactionName(location: Location): string | undefined {
   const {transaction} = location.query;
 
   return decodeScalar(transaction);
+}
+
+type SecondsProps = {seconds: number};
+type MillisecondsProps = {milliseconds: number};
+type PerformanceDurationProps = SecondsProps | MillisecondsProps;
+const hasMilliseconds = (props: PerformanceDurationProps): props is MillisecondsProps => {
+  return defined((props as MillisecondsProps).milliseconds);
+};
+export function PerformanceDuration(props: SecondsProps);
+export function PerformanceDuration(props: MillisecondsProps);
+export function PerformanceDuration(props: PerformanceDurationProps) {
+  const normalizedSeconds = hasMilliseconds(props)
+    ? props.milliseconds / 1000
+    : props.seconds;
+  return (
+    <Duration seconds={normalizedSeconds} fixedDigits={normalizedSeconds > 1 ? 2 : 0} />
+  );
 }
