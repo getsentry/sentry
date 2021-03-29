@@ -35,9 +35,17 @@ type Props = {
    * Any errors that need to be rendered.
    */
   errors?: Record<string, any>;
+  style?: React.CSSProperties;
 };
 
-function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}: Props) {
+function WidgetQueryFields({
+  displayType,
+  errors,
+  fields,
+  fieldOptions,
+  onChange,
+  style,
+}: Props) {
   // Handle new fields being added.
   function handleAdd(event: React.MouseEvent) {
     event.preventDefault();
@@ -71,10 +79,10 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
         data-test-id="columns"
         label={t('Columns')}
         inline={false}
-        style={{padding: `8px 0`}}
+        style={{padding: `8px 0`, ...(style ?? {})}}
+        error={errors?.fields}
         flexibleControlStateSize
         stacked
-        error={errors?.fields}
         required
       >
         <StyledColumnEditCollection
@@ -96,11 +104,11 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
       data-test-id="y-axis"
       label={t('Y-Axis')}
       inline={false}
-      style={{padding: `16px 0 24px 0`}}
+      style={{padding: `16px 0 24px 0`, ...(style ?? {})}}
       flexibleControlStateSize
-      stacked
       error={errors?.fields}
       required
+      stacked
     >
       {fields.map((field, i) => (
         <QueryFieldWrapper key={`${field}:${i}`}>
