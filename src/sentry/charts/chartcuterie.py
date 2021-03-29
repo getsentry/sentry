@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import Any, Union
+from typing import Any, Optional, Union
 from urllib.parse import urljoin
 from uuid import uuid4
 
@@ -25,10 +25,10 @@ class Chartcuterie(ChartRenderer):
     """
 
     @property
-    def service_url(self) -> str:
+    def service_url(self) -> Optional[str]:
         return options.get("chart-rendering.chartcuterie", {}).get("url")
 
-    def validate(self):
+    def validate(self) -> None:
         if not self.is_enabled():
             return
 
