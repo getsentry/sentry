@@ -12,9 +12,45 @@ const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
   ${p => {
     switch (p.displayType) {
       case 'big_number':
-        return 'grid-area: span 1 / span 1;';
+        return `
+          /* 2 cols */
+          grid-area: span 1 / span 2;
+
+          @media (min-width: ${p.theme.breakpoints[1]}) {
+            /* 4 cols */
+            grid-area: span 1 / span 2;
+          }
+
+          @media (min-width: ${p.theme.breakpoints[3]}) {
+            /* 6 cols */
+            grid-area: span 1 / span 3;
+          }
+
+          @media (min-width: ${p.theme.breakpoints[4]}) {
+            /* 8 cols */
+            grid-area: span 1 / span 2;
+          }
+        `;
       default:
-        return 'grid-area: span 2 / span 2;';
+        return `
+          /* 2 cols */
+          grid-area: span 2 / span 2;
+
+          @media (min-width: ${p.theme.breakpoints[1]}) {
+            /* 4 cols */
+            grid-area: span 2 / span 4;
+          }
+
+          @media (min-width: ${p.theme.breakpoints[3]}) {
+            /* 6 cols */
+            grid-area: span 2 / span 3;
+          }
+
+          @media (min-width: ${p.theme.breakpoints[4]}) {
+            /* 8 cols */
+            grid-area: span 2 / span 2;
+          }
+        `;
     }
   }};
 `;
