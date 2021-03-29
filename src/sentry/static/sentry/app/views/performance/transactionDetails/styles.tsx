@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'app/components/charts/styles';
+import FeatureBadge from 'app/components/featureBadge';
 import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
 
@@ -10,13 +11,21 @@ type MetaDataProps = {
   tooltipText: string;
   bodyText: React.ReactNode;
   subtext: React.ReactNode;
+  beta?: boolean;
 };
 
-export function MetaData({headingText, tooltipText, bodyText, subtext}: MetaDataProps) {
+export function MetaData({
+  headingText,
+  tooltipText,
+  bodyText,
+  subtext,
+  beta,
+}: MetaDataProps) {
   return (
     <HeaderInfo>
       <StyledSectionHeading>
         {headingText}
+        {beta && <StyledFeatureBadge type="beta" />}
         <QuestionTooltip
           position="top"
           size="sm"
@@ -42,6 +51,10 @@ const SectionBody = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   padding: ${space(0.5)} 0;
   max-height: 32px;
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin: 0;
 `;
 
 export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
