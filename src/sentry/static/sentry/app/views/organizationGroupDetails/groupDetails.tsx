@@ -172,11 +172,9 @@ class GroupDetails extends React.Component<Props, State> {
 
   updateReprocessingProgress() {
     const hasReprocessingV2Feature = this.hasReprocessingV2Feature();
-
     if (!hasReprocessingV2Feature) {
       return;
     }
-
     this.interval = setInterval(this.refetchGroup, 30000);
   }
 
@@ -230,7 +228,8 @@ class GroupDetails extends React.Component<Props, State> {
 
       if (
         reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-        (currentTab !== TAB.ACTIVITY || currentTab !== TAB.USER_FEEDBACK)
+        currentTab !== TAB.ACTIVITY &&
+        currentTab !== TAB.USER_FEEDBACK
       ) {
         return {
           pathname: `${baseUrl}${TAB.ACTIVITY}/`,
@@ -298,6 +297,7 @@ class GroupDetails extends React.Component<Props, State> {
     }
 
     const {api} = this.props;
+
     this.setState({loadingGroup: true});
 
     try {
