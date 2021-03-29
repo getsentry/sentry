@@ -80,7 +80,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
     if (
       nextLocation?.pathname ===
-      `/organizations/${organization.slug}/dashboards/widgetBuilder/`
+      `/organizations/${organization.slug}/dashboards/widget/new/`
     ) {
       return undefined;
     }

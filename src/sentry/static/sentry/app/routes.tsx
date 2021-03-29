@@ -1185,10 +1185,10 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
-              path="widgetBuilder"
+              path="widget/new/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "WidgetBuilder" */ 'app/views/dashboardsV2/widgetBuilder'
+                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget/new'
                 )
               }
               component={errorHandler(LazyLoad)}

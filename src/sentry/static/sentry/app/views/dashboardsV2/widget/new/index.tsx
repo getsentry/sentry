@@ -8,7 +8,7 @@ import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
-import WidgetBuilder from './widgetBuilder';
+import WidgetNew from './widgetNew';
 
 type RouteParams = {
   orgId: string;
@@ -19,7 +19,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   children: React.ReactNode;
 };
 
-function WidgetBuilderContainer({organization, ...props}: Props) {
+function WidgetNewContainer({organization, ...props}: Props) {
   return (
     <Feature
       features={['metrics']}
@@ -30,9 +30,9 @@ function WidgetBuilderContainer({organization, ...props}: Props) {
         </PageContent>
       )}
     >
-      <WidgetBuilder {...props} />
+      <WidgetNew {...props} />
     </Feature>
   );
 }
 
-export default withOrganization(WidgetBuilderContainer);
+export default withOrganization(WidgetNewContainer);
