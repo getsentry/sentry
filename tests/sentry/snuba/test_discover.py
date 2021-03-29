@@ -854,6 +854,36 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_count_miserable_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "count_miserable_user_300"}],
+            "data": [{"transaction": "api.do_things", "count_miserable_user_300": 15}],
+        }
+        discover.query(
+            selected_columns=["transaction", "count_miserable(user, 300)"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                ["uniqIf", ["user", ["greater", ["duration", 1200.0]]], "count_miserable_user_300"]
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_percentile_range_function(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "firstPercentile"}],

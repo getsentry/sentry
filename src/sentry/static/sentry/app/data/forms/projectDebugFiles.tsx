@@ -61,13 +61,14 @@ export const fields: Record<string, Field> = {
           }
         });
       });
-      return rv.join(', ');
+      return rv.length ? rv.join(', ') : '\u2014';
     },
     choices: ({builtinSymbolSources}) => {
       return (builtinSymbolSources as BuiltinSymbolSource[])
         ?.filter(source => !source.hidden)
         .map(source => [source.sentry_key, t(source.name)]) as Choices;
     },
+    getValue: value => (value === null ? [] : value),
   },
   symbolSources: {
     name: 'symbolSources',
