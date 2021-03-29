@@ -14,7 +14,7 @@ from django.http import (
 
 
 CONFIG_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(sentry.__file__), "../../config/chartcuterie")
+    os.path.join(os.path.dirname(sentry.__file__), "..", "..", "config", "chartcuterie")
 )
 
 
