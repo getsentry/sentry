@@ -86,6 +86,14 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.status_code == 400
         assert response.data == {"codeMappingId": ["This code mapping does not exist."]}
 
+    def test_no_duplicates_code_mappings(self):
+        new_code_mapping = self.create_code_mapping(project=self.project, stack_root="blah")
+        self.create_codeowners(project=self.project, code_mapping=new_code_mapping)
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.put(self.url, {"codeMappingId": new_code_mapping.id})
+            assert response.status_code == 400
+            assert response.data == {"codeMappingId": ["This code mapping is already in use."]}
+
     def test_codeowners_email_update(self):
         data = {"raw": f"\n# cool stuff comment\n*.js {self.user.email}\n# good comment\n\n\n"}
         with self.feature({"organizations:import-codeowners": True}):

@@ -116,6 +116,14 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         return []
 
     def validate_code_mapping_id(self, code_mapping_id):
+        if ProjectCodeOwners.objects.filter(
+            repository_project_path_config=code_mapping_id
+        ).exists() and (
+            not self.instance
+            or (self.instance.repository_project_path_config_id != code_mapping_id)
+        ):
+            raise serializers.ValidationError("This code mapping is already in use.")
+
         try:
             return RepositoryProjectPathConfig.objects.get(
                 id=code_mapping_id, project=self.context["project"]
