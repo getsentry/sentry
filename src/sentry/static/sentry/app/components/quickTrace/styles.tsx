@@ -86,6 +86,12 @@ export function DropdownItem({children, first, onSelect, to}: DropdownItemProps)
   );
 }
 
+export const DisabledDropdownItem = styled(StyledMenuItem)`
+  span {
+    cursor: not-allowed;
+  }
+`;
+
 export const DropdownItemSubContainer = styled('div')`
   display: flex;
   flex-direction: row;
