@@ -1,9 +1,8 @@
 import logging
-from urllib.error import HTTPError as UrllibHTTPError
-from urllib.parse import urlparse, urlencode, urlunparse, parse_qs
-
 from django import forms
 from requests.exceptions import SSLError, HTTPError
+from urllib.error import HTTPError as UrllibHTTPError
+from urllib.parse import urlparse, urlencode, urlunparse, parse_qs
 
 from sentry import digests, ratelimits
 from sentry.exceptions import PluginError

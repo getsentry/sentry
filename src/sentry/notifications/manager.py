@@ -1,6 +1,9 @@
 from django.db import transaction
+from django.db.models.query import QuerySet
+from typing import Iterable, Optional
 
 from sentry.db.models import BaseManager
+from sentry.models.actor import ACTOR_TYPES
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -26,6 +29,7 @@ def _get_scope(user_id, project=None, organization=None):
     """
     Figure out the scope from parameters and return it as a tuple,
     TODO(mgaeta): Make sure user_id is in the project or organization.
+    TODO(mgaeta): Add Team scope.
     :param user_id: The user's ID
     :param project: (Optional) Project object
     :param organization: (Optional) Organization object
@@ -63,28 +67,6 @@ class NotificationsManager(BaseManager):
     """
     TODO(mgaeta): Add a caching layer for notification settings
     """
-
-    @staticmethod
-    def notify(
-        provider: ExternalProviders,
-        type: NotificationSettingTypes,
-        user_id=None,
-        team_id=None,
-        data=None,
-    ):
-        """
-        Something noteworthy has happened. Let the targets know about what
-        happened on their own terms. For each target, check their notification
-        preferences and send them a message (or potentially do nothing and
-        return False if this kind of correspondence is muted.)
-        :param provider: ExternalProviders enum
-        :param type: NotificationSettingTypes enum
-        :param user_id: (optional) User object's ID
-        :param team_id: (optional) Team object's ID
-        :param data: The payload depends on the notification type.
-        :return: Boolean. Was a notification sent?
-        """
-        return False
 
     def get_settings(
         self,
@@ -199,9 +181,10 @@ class NotificationsManager(BaseManager):
             if not created and setting.value != value.value:
                 setting.update(value=value.value)
 
-            UserOption.objects.set_value(
-                user, key=key, value=legacy_value, project=project, organization=organization
-            )
+            if target.type == ACTOR_TYPES["user"]:
+                UserOption.objects.set_value(
+                    user, key=key, value=legacy_value, project=project, organization=organization
+                )
 
     def remove_settings(
         self,
@@ -240,26 +223,72 @@ class NotificationsManager(BaseManager):
 
             UserOption.objects.unset_value(user, project, get_legacy_key(type))
 
-    def remove_settings_for_user(self, user, type: NotificationSettingTypes = None):
+    def _filter(
+        self,
+        provider: Optional[ExternalProviders] = None,
+        type: Optional[NotificationSettingTypes] = None,
+        scope_type: Optional[NotificationScopeType] = None,
+        scope_identifier: Optional[int] = None,
+        targets: Optional[Iterable] = None,
+    ) -> QuerySet:
+        """ Wrapper for .filter that translates types to actual attributes to column types. """
+        filters = {}
+        if provider:
+            filters["provider"] = provider.value
+
         if type:
-            # We don't need a transaction because this is only used in tests.
-            UserOption.objects.filter(user=user, key=get_legacy_key(type)).delete()
-            self.filter(target=user.actor, type=type.value).delete()
+            filters["type"] = type.value
+
+        if scope_type:
+            filters["scope_type"] = scope_type.value
+
+        if scope_identifier:
+            filters["scope_identifier"] = scope_identifier
+
+        if targets:
+            filters["target__in"] = targets
+
+        return self.filter(**filters)
+
+    @staticmethod
+    def _get_legacy_filters(type: Optional[NotificationSettingTypes] = None, **kwargs) -> dict:
+        if type:
+            kwargs["key"] = get_legacy_key(type)
         else:
-            UserOption.objects.filter(user=user, key__in=KEYS_TO_LEGACY_KEYS.values()).delete()
-            self.filter(target=user.actor).delete()
+            kwargs["key__in"] = KEYS_TO_LEGACY_KEYS.values()
+        return kwargs
 
-    @staticmethod
-    def remove_settings_for_team():
-        pass
+    def remove_for_user(self, user, type: Optional[NotificationSettingTypes] = None) -> None:
+        """ Bulk delete all Notification Settings for a USER, optionally by type. """
+        # We don't need a transaction because this is only used in tests.
+        UserOption.objects.filter(**self._get_legacy_filters(type, user=user)).delete()
+        self._filter(targets=[user.actor], type=type).delete()
 
-    @staticmethod
-    def remove_settings_for_project():
-        pass
+    def remove_for_team(self, team, type: Optional[NotificationSettingTypes] = None) -> None:
+        """ Bulk delete all Notification Settings for a TEAM, optionally by type. """
+        self._filter(targets=[team.actor], type=type).delete()
 
-    @staticmethod
-    def remove_settings_for_organization():
-        pass
+    def remove_for_project(self, project, type: Optional[NotificationSettingTypes] = None) -> None:
+        """ Bulk delete all Notification Settings for a PROJECT, optionally by type. """
+        UserOption.objects.filter(**self._get_legacy_filters(type, project=project)).delete()
+        self._filter(
+            scope_type=NotificationScopeType.PROJECT,
+            scope_identifier=project.id,
+            type=type,
+        ).delete()
+
+    def remove_for_organization(
+        self, organization, type: Optional[NotificationSettingTypes] = None
+    ) -> None:
+        """ Bulk delete all Notification Settings for an ENTIRE ORGANIZATION, optionally by type. """
+        UserOption.objects.filter(
+            **self._get_legacy_filters(type, organization=organization)
+        ).delete()
+        self._filter(
+            scope_type=NotificationScopeType.ORGANIZATION,
+            scope_identifier=organization.id,
+            type=type,
+        ).delete()
 
     def get_settings_for_users(
         self, provider: ExternalProviders, type: NotificationSettingTypes, users, project

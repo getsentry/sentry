@@ -8,6 +8,7 @@ from email.utils import parseaddr
 from functools import partial
 from operator import attrgetter
 from random import randrange
+from typing import Iterable, Mapping
 
 import lxml
 import toronado
@@ -21,7 +22,14 @@ from django.utils.encoding import force_bytes, force_str, force_text
 
 from sentry import options
 from sentry.logging import LoggingFormat
-from sentry.models import Activity, Group, GroupEmailThread, Project, User, UserOption
+from sentry.models import (
+    Activity,
+    Group,
+    GroupEmailThread,
+    Project,
+    User,
+    UserOption,
+)
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
@@ -157,7 +165,11 @@ def is_fake_email(email):
     return email.endswith(FAKE_EMAIL_TLD)
 
 
-def get_email_addresses(user_ids, project=None):
+def get_email_addresses(user_ids: Iterable[int], project: Project = None) -> Mapping[int, str]:
+    """
+    Find the best email addresses for a collection of users. If a project is
+    provided, prefer their project-specific notification preferences.
+    """
     pending = set(user_ids)
     results = {}
 
@@ -190,7 +202,7 @@ class ListResolver:
 
     class UnregisteredTypeError(Exception):
         """
-        Error raised when attempting to build a list-id from an unregisted object type.
+        Error raised when attempting to build a list-id from an unregistered object type.
         """
 
     def __init__(self, namespace, type_handlers):

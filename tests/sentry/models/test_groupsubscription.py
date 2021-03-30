@@ -14,7 +14,7 @@ from sentry.testutils import TestCase
 
 
 def clear_workflow_options(user):
-    NotificationSetting.objects.remove_settings_for_user(user, NotificationSettingTypes.WORKFLOW)
+    NotificationSetting.objects.remove_for_user(user, NotificationSettingTypes.WORKFLOW)
 
 
 class SubscribeTest(TestCase):
