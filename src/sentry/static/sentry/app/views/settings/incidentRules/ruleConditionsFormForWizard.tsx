@@ -5,7 +5,6 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import SearchBar from 'app/components/events/searchBar';
 import SelectControl from 'app/components/forms/selectControl';
-import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {Panel, PanelBody} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
@@ -141,180 +140,178 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
     };
 
     return (
-      <Panel>
-        <StyledPanelBody>
-          <StyledList symbol="colored-numeric">
-            <ListItem>{t('Select events')}</ListItem>
-            <FormRow>
-              <SelectField
-                name="environment"
-                placeholder={t('All')}
-                style={{
-                  ...formElemBaseStyle,
-                  minWidth: 250,
-                  flex: 1,
-                }}
-                styles={{
-                  singleValue: (base: any) => ({
-                    ...base,
-                    '.all-environment-note': {display: 'none'},
-                  }),
-                  option: (base: any, state: any) => ({
-                    ...base,
-                    '.all-environment-note': {
-                      ...(!state.isSelected && !state.isFocused
-                        ? {color: theme.gray400}
-                        : {}),
-                      fontSize: theme.fontSizeSmall,
-                    },
-                  }),
-                }}
-                options={environmentOptions}
-                isDisabled={disabled || this.state.environments === null}
-                isClearable
-                inline={false}
-                flexibleControlStateSize
-                inFieldLabel={t('Environment: ')}
-              />
-              <FormField
-                name="datasource"
-                inline={false}
-                style={{
-                  ...formElemBaseStyle,
-                  minWidth: 300,
-                  flex: 2,
-                }}
-                flexibleControlStateSize
-              >
-                {({onChange, onBlur, model}) => {
-                  const formDataset = model.getValue('dataset');
-                  const formEventTypes = model.getValue('eventTypes');
-                  const mappedValue = convertDatasetEventTypesToSource(
-                    formDataset,
-                    formEventTypes
-                  );
-                  return (
-                    <SelectControl
-                      value={mappedValue}
-                      inFieldLabel={t('Data Source: ')}
-                      onChange={optionObj => {
-                        const optionValue = optionObj.value;
-                        onChange(optionValue, {});
-                        onBlur(optionValue, {});
-                        // Reset the aggregate to the default (which works across
-                        // datatypes), otherwise we may send snuba an invalid query
-                        // (transaction aggregate on events datasource = bad).
-                        optionValue === 'transaction'
-                          ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
-                          : model.setValue('aggregate', DEFAULT_AGGREGATE);
+      <React.Fragment>
+        <Panel>
+          <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
+        </Panel>
+        <StyledListItem>{t('Select events')}</StyledListItem>
+        <FormRow>
+          <SelectField
+            name="environment"
+            placeholder={t('All')}
+            style={{
+              ...formElemBaseStyle,
+              minWidth: 180,
+              flex: 1,
+            }}
+            styles={{
+              singleValue: (base: any) => ({
+                ...base,
+                '.all-environment-note': {display: 'none'},
+              }),
+              option: (base: any, state: any) => ({
+                ...base,
+                '.all-environment-note': {
+                  ...(!state.isSelected && !state.isFocused
+                    ? {color: theme.gray400}
+                    : {}),
+                  fontSize: theme.fontSizeSmall,
+                },
+              }),
+            }}
+            options={environmentOptions}
+            isDisabled={disabled || this.state.environments === null}
+            isClearable
+            inline={false}
+            flexibleControlStateSize
+            inFieldLabel={t('Env: ')}
+          />
+          <FormField
+            name="datasource"
+            inline={false}
+            style={{
+              ...formElemBaseStyle,
+              minWidth: 300,
+              flex: 2,
+            }}
+            flexibleControlStateSize
+          >
+            {({onChange, onBlur, model}) => {
+              const formDataset = model.getValue('dataset');
+              const formEventTypes = model.getValue('eventTypes');
+              const mappedValue = convertDatasetEventTypesToSource(
+                formDataset,
+                formEventTypes
+              );
+              return (
+                <SelectControl
+                  value={mappedValue}
+                  inFieldLabel={t('Events: ')}
+                  onChange={optionObj => {
+                    const optionValue = optionObj.value;
+                    onChange(optionValue, {});
+                    onBlur(optionValue, {});
+                    // Reset the aggregate to the default (which works across
+                    // datatypes), otherwise we may send snuba an invalid query
+                    // (transaction aggregate on events datasource = bad).
+                    optionValue === 'transaction'
+                      ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
+                      : model.setValue('aggregate', DEFAULT_AGGREGATE);
 
-                        // set the value of the dataset and event type from data source
-                        const {dataset, eventTypes} =
-                          DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
-                        model.setValue('dataset', dataset);
-                        model.setValue('eventTypes', eventTypes);
-                      }}
-                      options={dataSourceOptions}
-                      isDisabled={disabled}
-                      required
-                    />
-                  );
-                }}
-              </FormField>
-              <FormField
-                name="query"
-                inline={false}
-                style={{
-                  ...formElemBaseStyle,
-                  flex: '6 0 700px',
-                }}
-                flexibleControlStateSize
-              >
-                {({onChange, onBlur, onKeyDown, initialData, model}) => (
-                  <SearchContainer>
-                    <StyledSearchBar
-                      defaultQuery={initialData?.query ?? ''}
-                      omitTags={['event.type']}
-                      disabled={disabled}
-                      useFormWrapper={false}
-                      organization={organization}
-                      placeholder={
-                        model.getValue('dataset') === 'events'
-                          ? t('Filter events by level, message, or other properties...')
-                          : t('Filter transactions by URL, tags, and other properties...')
-                      }
-                      onChange={onChange}
-                      onKeyDown={e => {
-                        /**
-                         * Do not allow enter key to submit the alerts form since it is unlikely
-                         * users will be ready to create the rule as this sits above required fields.
-                         */
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }
-
-                        onKeyDown?.(e);
-                      }}
-                      onBlur={query => {
-                        onFilterSearch(query);
-                        onBlur(query);
-                      }}
-                      onSearch={query => {
-                        onFilterSearch(query);
-                        onChange(query, {});
-                      }}
-                    />
-                  </SearchContainer>
-                )}
-              </FormField>
-            </FormRow>
-            <ListItem>{t('Choose a metric')}</ListItem>
-            <FormRow>
-              <MetricField
-                name="aggregate"
-                help={null}
-                organization={organization}
-                disabled={disabled}
-                style={{
-                  ...formElemBaseStyle,
-                }}
-                inline={false}
-                flexibleControlStateSize
-                columnWidth={250}
-                inFieldLabels
-                required
-              />
-              <FormRowText>{t('over a')}</FormRowText>
-              <Tooltip
-                title={t('Triggers are evaluated every minute regardless of this value.')}
-              >
-                <SelectField
-                  name="timeWindow"
-                  style={{
-                    ...formElemBaseStyle,
-                    flex: 1,
-                    minWidth: 180,
+                    // set the value of the dataset and event type from data source
+                    const {dataset, eventTypes} =
+                      DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
+                    model.setValue('dataset', dataset);
+                    model.setValue('eventTypes', eventTypes);
                   }}
-                  choices={Object.entries(TIME_WINDOW_MAP)}
-                  required
+                  options={dataSourceOptions}
                   isDisabled={disabled}
-                  getValue={value => Number(value)}
-                  setValue={value => `${value}`}
-                  inline={false}
-                  flexibleControlStateSize
+                  required
                 />
-              </Tooltip>
-            </FormRow>
-          </StyledList>
-          {this.props.thresholdChart}
-        </StyledPanelBody>
-      </Panel>
+              );
+            }}
+          </FormField>
+          <FormField
+            name="query"
+            inline={false}
+            style={{
+              ...formElemBaseStyle,
+              flex: '6 0 500px',
+            }}
+            flexibleControlStateSize
+          >
+            {({onChange, onBlur, onKeyDown, initialData, model}) => (
+              <SearchContainer>
+                <StyledSearchBar
+                  defaultQuery={initialData?.query ?? ''}
+                  omitTags={['event.type']}
+                  disabled={disabled}
+                  useFormWrapper={false}
+                  organization={organization}
+                  placeholder={
+                    model.getValue('dataset') === 'events'
+                      ? t('Filter events by level, message, or other properties...')
+                      : t('Filter transactions by URL, tags, and other properties...')
+                  }
+                  onChange={onChange}
+                  onKeyDown={e => {
+                    /**
+                     * Do not allow enter key to submit the alerts form since it is unlikely
+                     * users will be ready to create the rule as this sits above required fields.
+                     */
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+
+                    onKeyDown?.(e);
+                  }}
+                  onBlur={query => {
+                    onFilterSearch(query);
+                    onBlur(query);
+                  }}
+                  onSearch={query => {
+                    onFilterSearch(query);
+                    onChange(query, {});
+                  }}
+                />
+              </SearchContainer>
+            )}
+          </FormField>
+        </FormRow>
+        <FormRow>
+          <MetricField
+            name="aggregate"
+            help={null}
+            organization={organization}
+            disabled={disabled}
+            style={{
+              ...formElemBaseStyle,
+            }}
+            inline={false}
+            flexibleControlStateSize
+            columnWidth={250}
+            inFieldLabels
+            required
+          />
+          <FormRowText>{t('over a')}</FormRowText>
+          <Tooltip
+            title={t('Triggers are evaluated every minute regardless of this value.')}
+          >
+            <SelectField
+              name="timeWindow"
+              style={{
+                ...formElemBaseStyle,
+                flex: 1,
+                minWidth: 180,
+              }}
+              choices={Object.entries(TIME_WINDOW_MAP)}
+              required
+              isDisabled={disabled}
+              getValue={value => Number(value)}
+              setValue={value => `${value}`}
+              inline={false}
+              flexibleControlStateSize
+            />
+          </Tooltip>
+        </FormRow>
+      </React.Fragment>
     );
   }
 }
 
 const StyledPanelBody = styled(PanelBody)`
+  padding-top: ${space(1)};
   ol,
   h4 {
     margin-bottom: ${space(1)};
@@ -329,8 +326,8 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
-const StyledList = styled(List)`
-  padding: ${space(3)} ${space(3)} 0 ${space(3)};
+const StyledListItem = styled(ListItem)`
+  margin-bottom: ${space(1)};
 `;
 
 const FormRow = styled('div')`
