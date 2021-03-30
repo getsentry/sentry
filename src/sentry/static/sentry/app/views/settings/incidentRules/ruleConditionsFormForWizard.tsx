@@ -42,7 +42,7 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
-  thresholdChart: React.ReactElement;
+  thresholdChart: (props: {footer: React.ReactNode}) => React.ReactElement;
   onFilterSearch: (query: string) => void;
 };
 
@@ -142,7 +142,50 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
     return (
       <React.Fragment>
         <Panel>
-          <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
+          <StyledPanelBody>
+            {this.props.thresholdChart({
+              footer: (
+                <ChartFooter>
+                  <MetricField
+                    name="aggregate"
+                    help={null}
+                    organization={organization}
+                    disabled={disabled}
+                    style={{
+                      ...formElemBaseStyle,
+                    }}
+                    inline={false}
+                    flexibleControlStateSize
+                    columnWidth={250}
+                    inFieldLabels
+                    required
+                  />
+                  <FormRowText>{t('over a')}</FormRowText>
+                  <Tooltip
+                    title={t(
+                      'Triggers are evaluated every minute regardless of this value.'
+                    )}
+                  >
+                    <SelectField
+                      name="timeWindow"
+                      style={{
+                        ...formElemBaseStyle,
+                        flex: 1,
+                        minWidth: 180,
+                      }}
+                      choices={Object.entries(TIME_WINDOW_MAP)}
+                      required
+                      isDisabled={disabled}
+                      getValue={value => Number(value)}
+                      setValue={value => `${value}`}
+                      inline={false}
+                      flexibleControlStateSize
+                    />
+                  </Tooltip>
+                </ChartFooter>
+              ),
+            })}
+          </StyledPanelBody>
         </Panel>
         <StyledListItem>{t('Select events')}</StyledListItem>
         <FormRow>
@@ -269,49 +312,12 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
             )}
           </FormField>
         </FormRow>
-        <FormRow>
-          <MetricField
-            name="aggregate"
-            help={null}
-            organization={organization}
-            disabled={disabled}
-            style={{
-              ...formElemBaseStyle,
-            }}
-            inline={false}
-            flexibleControlStateSize
-            columnWidth={250}
-            inFieldLabels
-            required
-          />
-          <FormRowText>{t('over a')}</FormRowText>
-          <Tooltip
-            title={t('Triggers are evaluated every minute regardless of this value.')}
-          >
-            <SelectField
-              name="timeWindow"
-              style={{
-                ...formElemBaseStyle,
-                flex: 1,
-                minWidth: 180,
-              }}
-              choices={Object.entries(TIME_WINDOW_MAP)}
-              required
-              isDisabled={disabled}
-              getValue={value => Number(value)}
-              setValue={value => `${value}`}
-              inline={false}
-              flexibleControlStateSize
-            />
-          </Tooltip>
-        </FormRow>
       </React.Fragment>
     );
   }
 }
 
 const StyledPanelBody = styled(PanelBody)`
-  padding-top: ${space(1)};
   ol,
   h4 {
     margin-bottom: ${space(1)};
@@ -336,6 +342,10 @@ const FormRow = styled('div')`
   align-items: flex-end;
   flex-wrap: wrap;
   margin-bottom: ${space(2)};
+`;
+
+const ChartFooter = styled(FormRow)`
+  margin: 0;
 `;
 
 const FormRowText = styled('div')`
