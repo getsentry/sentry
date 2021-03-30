@@ -17,7 +17,7 @@ configure-sentry-cli() {
 }
 
 # I'm assuming sw_vers is only available on Mac
-query_mac() {
+query-mac() {
     require sw_vers && return 0
     return 1
 }
@@ -29,8 +29,8 @@ query_big_sur() {
     return 1
 }
 
-sudo_askpass() {
-  if [ -z "${SUDO_ASKPASS-x}" ]; then
+sudo-askpass() {
+  if [ -z "${sudo-askpass-x}" ]; then
     sudo --askpass "$@"
   else
     sudo "$@"
@@ -39,27 +39,27 @@ sudo_askpass() {
 
 # After using homebrew to install docker, we need to do some magic to remove the need to interact with the GUI
 # See: https://github.com/docker/for-mac/issues/2359#issuecomment-607154849 for why we need to do things below
-init_docker() {
+init-docker() {
   # Need to start docker if it was freshly installed (docker server is not running)
-  if query_mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
+  if query-mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
     echo "Making some changes to complete Docker initialization"
     # allow the app to run without confirmation
     xattr -d -r com.apple.quarantine /Applications/Docker.app
 
     # preemptively do docker.app's setup to avoid any gui prompts
-    sudo_askpass /bin/mkdir -p /Library/PrivilegedHelperTools
-    sudo_askpass /bin/chmod 754 /Library/PrivilegedHelperTools
-    sudo_askpass /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools/
-    sudo_askpass /bin/cp /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist /Library/LaunchDaemons/
-    sudo_askpass /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
-    sudo_askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
-    sudo_askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
+    sudo-askpass /bin/mkdir -p /Library/PrivilegedHelperTools
+    sudo-askpass /bin/chmod 754 /Library/PrivilegedHelperTools
+    sudo-askpass /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools/
+    sudo-askpass /bin/cp /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist /Library/LaunchDaemons/
+    sudo-askpass /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
+    sudo-askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
+    sudo-askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
   fi
-  start_docker
+  start-docker
 }
 
-start_docker() {
-  if query_mac && ! docker system info &>/dev/null; then
+start-docker() {
+  if query-mac && ! docker system info &>/dev/null; then
     echo "About to open Docker.app"
     # At a later stage in the script, we're going to execute
     # ensure_docker_server which waits for it to be ready
