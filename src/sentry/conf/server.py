@@ -862,8 +862,10 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
-    # Enable the quick trace view on event details and errors
+    # Enable the quick trace view on event details
     "organizations:trace-view-quick": False,
+    # Enable the errors in the quick trace
+    "organizations:trace-view-errors": False,
     # Enable the trace view summary
     "organizations:trace-view-summary": False,
     # Enable multi project selection

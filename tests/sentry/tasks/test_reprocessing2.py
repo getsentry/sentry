@@ -202,6 +202,7 @@ def test_concurrent_events_go_into_new_group(
 @pytest.mark.django_db
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["delete", "keep"])
+@pytest.mark.parametrize("max_events", [2, None])
 def test_max_events(
     default_project,
     reset_snuba,
@@ -210,6 +211,7 @@ def test_max_events(
     burst_task_runner,
     monkeypatch,
     remaining_events,
+    max_events,
 ):
     @register_event_preprocessor
     def event_preprocessor(data):
@@ -232,7 +234,7 @@ def test_max_events(
         reprocess_group(
             default_project.id,
             group_id,
-            max_events=len(event_ids) // 2,
+            max_events=max_events,
             remaining_events=remaining_events,
         )
 
@@ -240,7 +242,7 @@ def test_max_events(
 
     for i, event_id in enumerate(event_ids):
         event = eventstore.get_event_by_id(default_project.id, event_id)
-        if i < len(event_ids) / 2:
+        if max_events is not None and i < (len(event_ids) - max_events):
             if remaining_events == "delete":
                 assert event is None
             elif remaining_events == "keep":
@@ -254,9 +256,9 @@ def test_max_events(
             assert dict(event.data) != dict(old_events[event_id].data)
 
     if remaining_events == "delete":
-        assert event.group.times_seen == len(event_ids) // 2
+        assert event.group.times_seen == (max_events or 5)
     elif remaining_events == "keep":
-        assert event.group.times_seen == len(event_ids)
+        assert event.group.times_seen == 5
     else:
         raise ValueError(remaining_events)
 

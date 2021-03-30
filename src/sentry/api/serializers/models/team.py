@@ -1,12 +1,13 @@
 from collections import defaultdict
+
 from django.db.models import Count
 
-
 from sentry import roles
-from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
+    ExternalTeam,
     InviteStatus,
     OrganizationAccessRequest,
     OrganizationMember,
@@ -15,7 +16,6 @@ from sentry.models import (
     ProjectTeam,
     Team,
     TeamAvatar,
-    ExternalTeam,
 )
 from sentry.utils.compat import zip
 

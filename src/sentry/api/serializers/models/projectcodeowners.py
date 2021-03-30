@@ -1,9 +1,9 @@
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import ProjectCodeOwners
-from sentry.utils.db import attach_foreignkey
 from sentry.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
 )
+from sentry.models import ProjectCodeOwners
+from sentry.utils.db import attach_foreignkey
 
 
 @register(ProjectCodeOwners)

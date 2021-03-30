@@ -1,43 +1,42 @@
 import re
+
 from django.db import IntegrityError
 from django.db.models import Q
 from django.db.models.functions import Coalesce
-from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
 from sentry import analytics
-
-from sentry.api.bases import NoProjects
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
+from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import InvalidRepository, ConflictError
-from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
+from sentry.api.exceptions import ConflictError, InvalidRepository
+from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
+    ListField,
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseWithVersionSerializer,
-    ListField,
 )
 from sentry.models import (
     Activity,
+    Project,
     Release,
     ReleaseCommitError,
     ReleaseProject,
     ReleaseStatus,
-    Project,
 )
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
-    get_changed_project_release_model_adoptions,
-    get_project_releases_by_stability,
-    get_oldest_health_data_for_releases,
     STATS_PERIODS,
+    get_changed_project_release_model_adoptions,
+    get_oldest_health_data_for_releases,
+    get_project_releases_by_stability,
 )
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
-from sentry.utils.sdk import configure_scope, bind_organization_context
-
+from sentry.utils.sdk import bind_organization_context, configure_scope
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
