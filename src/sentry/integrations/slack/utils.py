@@ -409,7 +409,7 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
     if not stripped_channel_name == results["channel"]["name"]:
         channel_name = results["channel"]["name"]
         raise ValidationError(
-            f"Received channel name {channel_name} does not match inputted channel name {stripped_channel_name}"
+            f"Received channel name {channel_name} does not match inputted channel name {stripped_channel_name}."
         )
 
 
