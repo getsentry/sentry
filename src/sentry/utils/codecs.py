@@ -19,6 +19,17 @@ class Codec(ABC, Generic[TDecoded, TEncoded]):
         raise NotImplementedError
 
 
+class BytesCodec(Codec[str, bytes]):
+    def __init__(self, encoding: str = "utf8"):
+        self.encoding = encoding
+
+    def encode(self, value: str) -> bytes:
+        return value.encode(self.encoding)
+
+    def decode(self, value: bytes) -> str:
+        return value.decode(self.encoding)
+
+
 class JSONCodec(Codec[JSONData, str]):
     def encode(self, value: JSONData) -> str:
         return json.dumps(value)
