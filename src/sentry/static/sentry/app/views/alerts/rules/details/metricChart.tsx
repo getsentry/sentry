@@ -69,7 +69,7 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
 function createStatusAreaSeries(
   lineColor: string,
   startTime: number,
-  endTime: number,
+  endTime: number
 ): LineChartSeries {
   return {
     seriesName: 'Status Area',
@@ -77,12 +77,7 @@ function createStatusAreaSeries(
     markLine: MarkLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'solid', width: 4},
-      data: [
-        [
-          {coord: [startTime, 0]},
-          {coord: [endTime, 0]},
-        ] as any,
-      ],
+      data: [[{coord: [startTime, 0]}, {coord: [endTime, 0]}] as any],
     }),
     data: [],
   };
@@ -450,7 +445,10 @@ class MetricChart extends React.PureComponent<Props, State> {
                     series[0].seriesName
                   )
                 );
-                const areaStart = Math.max(moment(incident.dateStarted).valueOf(), firstPoint);
+                const areaStart = Math.max(
+                  moment(incident.dateStarted).valueOf(),
+                  firstPoint
+                );
                 const areaEnd = Math.min(
                   statusChanges?.length && statusChanges[0].dateCreated
                     ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
@@ -481,7 +479,13 @@ class MetricChart extends React.PureComponent<Props, State> {
                     activity.value === `${IncidentStatus.CRITICAL}`
                       ? theme.red300
                       : theme.yellow300;
-                  series.push(createStatusAreaSeries(statusAreaColor, statusAreaStart, statusAreaEnd));
+                  series.push(
+                    createStatusAreaSeries(
+                      statusAreaColor,
+                      statusAreaStart,
+                      statusAreaEnd
+                    )
+                  );
                   if (statusAreaColor === theme.yellow300) {
                     warningDuration += statusAreaEnd - statusAreaStart;
                   } else {
