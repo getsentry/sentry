@@ -221,7 +221,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Stack Trace Preview'),
           target: 'issue_stream_title',
           description: t(
-            `Hover on the issue title to see the stack trace of the latest event.`
+            `Hover over the issue title to see the stack trace of the latest event.`
           ),
         },
       ],
