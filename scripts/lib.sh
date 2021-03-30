@@ -16,6 +16,12 @@ configure-sentry-cli() {
     fi
 }
 
+# I'm assuming sw_vers is only available on Mac
+query_mac() {
+    require sw_vers && return 0
+    return 1
+}
+
 query_big_sur() {
     if require sw_vers && sw_vers -productVersion | grep -E "11\." > /dev/null; then
         return 0
@@ -35,7 +41,7 @@ sudo_askpass() {
 # See: https://github.com/docker/for-mac/issues/2359#issuecomment-607154849 for why we need to do things below
 init_docker() {
   # Need to start docker if it was freshly installed (docker server is not running)
-  if query_big_sur && ! require docker && [ -d "/Applications/Docker.app" ]; then
+  if query_mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
     echo "Making some changes to complete Docker initialization"
     # allow the app to run without confirmation
     xattr -d -r com.apple.quarantine /Applications/Docker.app
@@ -53,7 +59,7 @@ init_docker() {
 }
 
 start_docker() {
-  if ! docker system info &>/dev/null; then
+  if query_mac && ! docker system info &>/dev/null; then
     echo "About to open Docker.app"
     # At a later stage in the script, we're going to execute
     # ensure_docker_server which waits for it to be ready
