@@ -1,6 +1,6 @@
-from django.forms.widgets import TextInput, Widget
+from django.forms import CharField, EmailField, Field, TypedChoiceField, ValidationError
 from django.forms.utils import flatatt
-from django.forms import Field, CharField, EmailField, TypedChoiceField, ValidationError
+from django.forms.widgets import TextInput, Widget
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _

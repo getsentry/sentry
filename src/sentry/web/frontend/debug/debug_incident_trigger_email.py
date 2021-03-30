@@ -1,16 +1,15 @@
 from django.views.generic import View
 
-from sentry.models import Organization, Project
-from sentry.snuba.models import SnubaQuery
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
 from sentry.incidents.models import (
-    Incident,
     AlertRule,
     AlertRuleTrigger,
-    TriggerStatus,
+    Incident,
     IncidentStatus,
+    TriggerStatus,
 )
-
+from sentry.models import Organization, Project
+from sentry.snuba.models import SnubaQuery
 
 from .mail import MailPreview
 

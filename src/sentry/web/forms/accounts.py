@@ -1,6 +1,6 @@
-import pytz
-
 from datetime import datetime
+
+import pytz
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
@@ -8,11 +8,11 @@ from django.utils.text import capfirst, mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import newsletter, options
-from sentry.auth import password_validation
 from sentry.app import ratelimiter
-from sentry.utils.auth import find_users, logger
+from sentry.auth import password_validation
 from sentry.models import User
-from sentry.web.forms.fields import CustomTypedChoiceField, AllowedEmailField
+from sentry.utils.auth import find_users, logger
+from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
 
 
 def _get_timezone_choices():

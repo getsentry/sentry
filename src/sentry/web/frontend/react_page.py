@@ -3,8 +3,8 @@ from django.middleware.csrf import get_token as get_csrf_token
 
 from sentry.models import Project
 from sentry.signals import first_event_pending
-from sentry.web.helpers import render_to_response
 from sentry.web.frontend.base import BaseView, OrganizationView
+from sentry.web.helpers import render_to_response
 
 
 class ReactMixin:

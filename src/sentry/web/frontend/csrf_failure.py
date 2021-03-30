@@ -1,7 +1,7 @@
 from django.middleware.csrf import REASON_NO_REFERER
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from django.utils.decorators import method_decorator
 
 from sentry.web.helpers import render_to_response
 

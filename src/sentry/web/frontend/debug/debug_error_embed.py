@@ -1,6 +1,7 @@
+from urllib.parse import urlencode
+
 from django.conf import settings
 from django.views.generic import View
-from urllib.parse import urlencode
 
 from sentry.models import ProjectKey
 from sentry.web.helpers import render_to_response

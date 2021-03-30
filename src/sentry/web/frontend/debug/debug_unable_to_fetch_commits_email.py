@@ -1,6 +1,6 @@
 from django.views.generic import View
 
-from sentry.models import Release, Repository, Organization
+from sentry.models import Organization, Release, Repository
 from sentry.tasks.commits import generate_fetch_commits_error_email
 
 from .mail import MailPreview

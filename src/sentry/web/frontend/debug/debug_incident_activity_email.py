@@ -1,9 +1,9 @@
-from sentry.models import User
 from django.views.generic import View
 
 from sentry.incidents.models import Incident, IncidentActivity, IncidentActivityType
-from sentry.models.organization import Organization
 from sentry.incidents.tasks import generate_incident_activity_email
+from sentry.models import User
+from sentry.models.organization import Organization
 
 from .mail import MailPreview
 

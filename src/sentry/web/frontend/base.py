@@ -1,6 +1,5 @@
 import logging
 
-from django.template.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponse,
@@ -9,8 +8,9 @@ from django.http import (
     HttpResponseRedirect,
 )
 from django.middleware.csrf import CsrfViewMiddleware
-from django.views.generic import View
+from django.template.context_processors import csrf
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import View
 from sudo.views import redirect_to_sudo
 
 from sentry import roles
@@ -29,9 +29,8 @@ from sentry.models import (
 )
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
-from sentry.web.helpers import render_to_response
 from sentry.web.frontend.generic import FOREVER_CACHE
-
+from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.ui")

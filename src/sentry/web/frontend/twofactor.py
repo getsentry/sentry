@@ -1,15 +1,15 @@
 import time
 
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.translation import ugettext as _
 
 from sentry import options
 from sentry.app import ratelimiter
-from sentry.web.frontend.base import BaseView
-from sentry.web.forms.accounts import TwoFactorForm
-from sentry.web.helpers import render_to_response
-from sentry.utils import auth, json
 from sentry.models import Authenticator
+from sentry.utils import auth, json
+from sentry.web.forms.accounts import TwoFactorForm
+from sentry.web.frontend.base import BaseView
+from sentry.web.helpers import render_to_response
 
 COOKIE_NAME = "s2fai"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 31

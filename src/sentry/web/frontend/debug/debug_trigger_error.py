@@ -1,7 +1,7 @@
 from django.views.generic import View
 
-from sentry.web.frontend.error_500 import Error500View
 from sentry.utils.sdk import capture_exception
+from sentry.web.frontend.error_500 import Error500View
 
 
 class DebugTriggerErrorView(View):

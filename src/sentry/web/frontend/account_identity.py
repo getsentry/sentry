@@ -1,8 +1,8 @@
 from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
 
-from sentry.models import IdentityProvider
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.models import IdentityProvider
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.helpers import render_to_response
 
