@@ -11,7 +11,7 @@ from sentry.utils.compat import filter
 ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
 
 
-def absolute_uri(url=None):
+def absolute_uri(url=None) -> str:
     if not url:
         return options.get("system.url-prefix")
     return urljoin(options.get("system.url-prefix").rstrip("/") + "/", url.lstrip("/"))

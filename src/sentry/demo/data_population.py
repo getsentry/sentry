@@ -109,21 +109,47 @@ def distribution_v3(hour: int) -> int:
 distrubtion_fns = [distribution_v1, distribution_v2, distribution_v3]
 
 
-def gen_measurements(day):
+def gen_measurements(full_duration):
+    duration_ms = full_duration * 1000.0
     """
-    Generate measurements that are random but distribution changs based on the day
+    Generate measurements that are random but based on the full duration
     """
     return {
-        "fp": {"value": random_normal(1250 - 50 * day, 200, 500)},
-        "fcp": {"value": random_normal(1250 - 50 * day, 200, 500)},
-        "lcp": {"value": random_normal(2800 - 50 * day, 400, 2000)},
-        "fid": {"value": random_normal(5 - 0.125 * day, 2, 1)},
+        "fp": {"value": duration_ms - random_normal(400, 100, 100)},
+        "fcp": {"value": duration_ms - random_normal(400, 100, 100)},
+        "lcp": {"value": duration_ms + random_normal(400, 100, 100)},
+        "fid": {"value": random_normal(5, 2, 1)},
     }
+
+
+def gen_frontend_duration(day, quick):
+    """
+    Generates the length of the front-end transaction based on our config,
+    the day, and some randomness
+    """
+    config = get_config(quick)
+    DAY_DURATION_IMPACT = config["DAY_DURATION_IMPACT"]
+    MAX_DAYS = config["MAX_DAYS"]
+    BASE_FRONTEND_DURATION = config["BASE_FRONTEND_DURATION"]
+    MIN_FRONTEND_DURATION = config["MIN_FRONTEND_DURATION"]
+    DURATION_SIGMA = config["DURATION_SIGMA"]
+    day_weight = DAY_DURATION_IMPACT * day / MAX_DAYS
+    return (
+        random_normal(BASE_FRONTEND_DURATION - day_weight, DURATION_SIGMA, MIN_FRONTEND_DURATION)
+        / 1000.0
+    )
 
 
 @functools.lru_cache(maxsize=None)
 def get_list_of_names() -> List[str]:
     file_path = get_data_file_path("names.json")
+    with open(file_path) as f:
+        return json.load(f)
+
+
+@functools.lru_cache(maxsize=None)
+def get_list_of_base_contexts():
+    file_path = get_data_file_path("contexts.json")
     with open(file_path) as f:
         return json.load(f)
 
@@ -159,6 +185,14 @@ def gen_random_author():
         author,
         "{}@example.com".format(author.replace(" ", ".")),
     )
+
+
+def gen_base_context():
+    """
+    Generates a base context from pure randomness
+    """
+    contexts = get_list_of_base_contexts()
+    return random.choice(contexts)
 
 
 def get_release_from_time(org_id, timestamp):
@@ -294,6 +328,7 @@ def clean_event(event_json):
         "title",
         "event_id",
         "project",
+        "tags",
     ]
     for field in fields_to_delete:
         if field in event_json:
@@ -496,6 +531,19 @@ def iter_timestamps(disribution_fn_num: int, quick: bool):
                 yield (timestamp, day)
 
 
+def update_context(event, trace):
+    context = event["contexts"]
+    # delete device since we aren't mocking it (yet)
+    if "device" in context:
+        del context["device"]
+    # generate ranndom browser and os
+    context.update(**gen_base_context())
+    # add our trace info
+    base_trace = context.get("trace", {})
+    base_trace.update(**trace)
+    context["trace"] = base_trace
+
+
 def populate_connected_event_scenario_1(
     react_project: Project, python_project: Project, quick=False
 ):
@@ -526,14 +574,11 @@ def populate_connected_event_scenario_1(
 
         old_span_id = react_transaction["contexts"]["trace"]["span_id"]
         frontend_root_span_id = uuid4().hex[:16]
-        frontend_duration = random_normal(2000 - 50 * day, 250, 1000) / 1000.0
+        frontend_duration = gen_frontend_duration(day, quick)
 
-        frontend_context = {
-            "trace": {
-                "type": "trace",
-                "trace_id": trace_id,
-                "span_id": frontend_root_span_id,
-            }
+        frontend_trace = {
+            "trace_id": trace_id,
+            "span_id": frontend_root_span_id,
         }
 
         # React transaction
@@ -547,10 +592,9 @@ def populate_connected_event_scenario_1(
             timestamp=timestamp,
             # start_timestamp decreases based on day so that there's a trend
             start_timestamp=timestamp - timedelta(seconds=frontend_duration),
-            measurements=gen_measurements(day),
-            contexts=frontend_context,
+            measurements=gen_measurements(frontend_duration),
         )
-
+        update_context(local_event, frontend_trace)
         fix_transaction_event(local_event, old_span_id)
         safe_send_event(local_event, quick)
 
@@ -565,22 +609,19 @@ def populate_connected_event_scenario_1(
             timestamp=timestamp,
             user=transaction_user,
             release=release_sha,
-            contexts=frontend_context,
         )
+        update_context(local_event, frontend_trace)
         fix_error_event(local_event, quick)
         safe_send_event(local_event, quick)
 
         # python transaction
         old_span_id = python_transaction["contexts"]["trace"]["span_id"]
-        backend_duration = random_normal(1500 + 50 * day, 250, 500)
+        backend_duration = frontend_duration - random_normal(0.3, 0.1, 0.1)
 
-        backend_context = {
-            "trace": {
-                "type": "trace",
-                "trace_id": trace_id,
-                "span_id": uuid4().hex[:16],
-                "parent_span_id": backend_parent_id,
-            }
+        backend_trace = {
+            "trace_id": trace_id,
+            "span_id": uuid4().hex[:16],
+            "parent_span_id": backend_parent_id,
         }
 
         local_event = copy.deepcopy(python_transaction)
@@ -588,11 +629,11 @@ def populate_connected_event_scenario_1(
             project=python_project,
             platform=python_project.platform,
             timestamp=timestamp,
-            start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
+            start_timestamp=timestamp - timedelta(seconds=backend_duration),
             user=transaction_user,
             release=release_sha,
-            contexts=backend_context,
         )
+        update_context(local_event, backend_trace)
         fix_transaction_event(local_event, old_span_id)
         safe_send_event(local_event, quick)
 
@@ -604,8 +645,8 @@ def populate_connected_event_scenario_1(
             timestamp=timestamp,
             user=transaction_user,
             release=release_sha,
-            contexts=backend_context,
         )
+        update_context(local_event, backend_trace)
         fix_error_event(local_event, quick)
         safe_send_event(local_event, quick)
     logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)
@@ -637,14 +678,11 @@ def populate_connected_event_scenario_2(
 
         old_span_id = react_transaction["contexts"]["trace"]["span_id"]
         frontend_root_span_id = uuid4().hex[:16]
-        frontend_duration = random_normal(2000 - 50 * day, 250, 1000) / 1000.0
+        frontend_duration = gen_frontend_duration(day, quick)
 
-        frontend_context = {
-            "trace": {
-                "type": "trace",
-                "trace_id": trace_id,
-                "span_id": frontend_root_span_id,
-            }
+        frontend_trace = {
+            "trace_id": trace_id,
+            "span_id": frontend_root_span_id,
         }
 
         # React transaction
@@ -658,9 +696,9 @@ def populate_connected_event_scenario_2(
             timestamp=timestamp,
             # start_timestamp decreases based on day so that there's a trend
             start_timestamp=timestamp - timedelta(seconds=frontend_duration),
-            measurements=gen_measurements(day),
-            contexts=frontend_context,
+            measurements=gen_measurements(frontend_duration),
         )
+        update_context(local_event, frontend_trace)
 
         fix_transaction_event(local_event, old_span_id)
         safe_send_event(local_event, quick)
@@ -670,15 +708,12 @@ def populate_connected_event_scenario_2(
 
         # python transaction
         old_span_id = python_transaction["contexts"]["trace"]["span_id"]
-        backend_duration = random_normal(1500 + 50 * day, 250, 500)
+        backend_duration = frontend_duration - random_normal(0.3, 0.1, 0.1)
 
-        backend_context = {
-            "trace": {
-                "type": "trace",
-                "trace_id": trace_id,
-                "span_id": uuid4().hex[:16],
-                "parent_span_id": backend_parent_id,
-            }
+        backend_trace = {
+            "trace_id": trace_id,
+            "span_id": uuid4().hex[:16],
+            "parent_span_id": backend_parent_id,
         }
 
         local_event = copy.deepcopy(python_transaction)
@@ -686,11 +721,11 @@ def populate_connected_event_scenario_2(
             project=python_project,
             platform=python_project.platform,
             timestamp=timestamp,
-            start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
+            start_timestamp=timestamp - timedelta(seconds=backend_duration),
             user=transaction_user,
             release=release_sha,
-            contexts=backend_context,
         )
+        update_context(local_event, backend_trace)
         fix_transaction_event(local_event, old_span_id)
         safe_send_event(local_event, quick)
 
@@ -715,12 +750,9 @@ def populate_connected_event_scenario_3(python_project: Project, quick=False):
         release = get_release_from_time(python_project.organization_id, timestamp)
         release_sha = release.version
 
-        backend_context = {
-            "trace": {
-                "type": "trace",
-                "trace_id": trace_id,
-                "span_id": uuid4().hex[:16],
-            }
+        backend_trace = {
+            "trace_id": trace_id,
+            "span_id": uuid4().hex[:16],
         }
 
         # python error
@@ -731,8 +763,8 @@ def populate_connected_event_scenario_3(python_project: Project, quick=False):
             timestamp=timestamp,
             user=transaction_user,
             release=release_sha,
-            contexts=backend_context,
         )
+        update_context(local_event, backend_trace)
         fix_error_event(local_event, quick)
         safe_send_event(local_event, quick)
     logger.info("populate_connected_event_scenario_3.finished", extra=log_extra)

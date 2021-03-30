@@ -948,7 +948,7 @@
     "trace": {
       "trace_id": "39ecb9f463bb4982a6d76e426915d3ab",
       "span_id": "ac7e3ef6047fd004",
-      "op": "default",
+      "op": "pageload",
       "type": "trace"
     }
   },

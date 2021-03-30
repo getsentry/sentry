@@ -16,7 +16,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     # repository_project_path_config ⇒ use this to transform CODEOWNERS paths to stacktrace paths
     repository_project_path_config = FlexibleForeignKey(
-        "sentry.RepositoryProjectPathConfig", on_delete=models.PROTECT
+        "sentry.RepositoryProjectPathConfig", unique=True, on_delete=models.PROTECT
     )
     # raw ⇒ original CODEOWNERS file.
     raw = models.TextField(null=True)

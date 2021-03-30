@@ -104,6 +104,11 @@ class BuildIncidentAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Resolved: {alert_rule.name}"
+        incident_footer_ts = (
+            "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
+                to_timestamp(incident.date_started), "{date_pretty}", "{time}"
+            )
+        )
         assert build_incident_attachment(action, incident) == {
             "fallback": title,
             "title": title,
@@ -120,8 +125,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
-            "footer": "Sentry Incident",
-            "ts": to_timestamp(incident.date_started),
+            "footer": incident_footer_ts,
             "color": RESOLVED_COLOR,
             "actions": [],
         }
@@ -135,6 +139,11 @@ class BuildIncidentAttachmentTest(TestCase):
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        incident_footer_ts = (
+            "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
+                to_timestamp(incident.date_started), "{date_pretty}", "{time}"
+            )
         )
         # This should fail because it pulls status from `action` instead of `incident`
         assert build_incident_attachment(
@@ -155,8 +164,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
-            "footer": "Sentry Incident",
-            "ts": to_timestamp(incident.date_started),
+            "footer": incident_footer_ts,
             "color": LEVEL_TO_COLOR["fatal"],
             "actions": [],
         }
