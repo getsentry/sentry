@@ -240,7 +240,7 @@ type EventNodeSelectorProps = {
   extrasTarget?: LocationDescriptor;
   numEvents?: number;
   anchor: 'left' | 'right';
-  nodeKey: 'root' | 'ancestors' | 'parent' | 'current' | 'children' | 'descendants';
+  nodeKey: keyof typeof TOOLTIP_PREFIX;
   errorDest: ErrorDestination;
   transactionDest: TransactionDestination;
 };
