@@ -21,11 +21,12 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger_action,
 )
 from sentry.interfaces.user import User as UserInterface
+from sentry.mediators import project_rules
 from sentry.models import (
-    File,
     Commit,
     CommitAuthor,
     CommitFileChange,
+    File,
     Project,
     Release,
     ReleaseFile,
@@ -314,6 +315,11 @@ def generate_releases(projects, quick):
 
 
 def generate_alerts(project):
+    generate_metric_alert(project)
+    generate_issue_alert(project)
+
+
+def generate_metric_alert(project):
     org = project.organization
     team = Team.objects.filter(organization=org).first()
     alert_rule = create_alert_rule(
@@ -335,6 +341,34 @@ def generate_alerts(project):
             AlertRuleTriggerAction.TargetType.TEAM,
             target_identifier=str(team.id),
         )
+
+
+def generate_issue_alert(project):
+    org = project.organization
+    team = Team.objects.filter(organization=org).first()
+
+    data = {
+        "name": "New Sentry Issue",
+        "actions": [
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "name": "Send an email to Team",
+                "targetIdentifier": str(team.id),
+                "targetType": "Team",
+            }
+        ],
+        "conditions": [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ],
+        "action_match": "all",
+        "filter_match": "all",
+        "project": project,
+        "frequency": 30,
+    }
+    project_rules.Creator.run(**data)
 
 
 def safe_send_event(data, quick):
