@@ -2731,7 +2731,6 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
             }
         ):
             result = discover.get_performance_facets("", params)
-            self.wait_for_event_count(self.project.id, 2)
 
             assert len(result) == 12
             for r in result:
