@@ -842,5 +842,5 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     generate_releases([react_project, python_project], quick=quick)
     generate_alerts(python_project)
     populate_connected_event_scenario_1(react_project, python_project, quick=quick)
-    # populate_connected_event_scenario_2(react_project, python_project, quick=quick)
-    # populate_connected_event_scenario_3(python_project, quick=quick)
+    populate_connected_event_scenario_2(react_project, python_project, quick=quick)
+    populate_connected_event_scenario_3(python_project, quick=quick)
