@@ -8,7 +8,9 @@ def dump_obj(obj):
         return obj
     rv = {}
     for (key, value) in obj.__dict__.items():
-        if isinstance(value, list):
+        if key.startswith("_"):
+            continue
+        elif isinstance(value, list):
             rv[key] = [dump_obj(x) for x in value]
         elif isinstance(value, dict):
             rv[key] = {k: dump_obj(v) for k, v in value.items()}
