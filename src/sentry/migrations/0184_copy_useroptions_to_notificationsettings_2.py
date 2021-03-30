@@ -94,7 +94,7 @@ class Migration(migrations.Migration):
     # transaction.
     atomic = False
     dependencies = [
-        ("sentry", "0182_update_user_misery_on_saved_queries"),
+        ("sentry", "0183_make_codemapping_unique_on_projectcodeowners"),
     ]
     operations = [
         migrations.RunPython(
