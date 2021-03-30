@@ -1,10 +1,14 @@
+from copy import copy
 import logging
 
 from datetime import datetime
-
 from pytz import UTC
 from rest_framework import serializers, status
 from uuid import uuid4
+
+from bitfield.types import BitHandler
+from django.db import models
+from django.db.models.query_utils import DeferredAttribute
 
 from sentry import roles
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -325,6 +329,7 @@ class OrganizationSerializer(serializers.Serializer):
                 continue
             try:
                 option_inst = OrganizationOption.objects.get(organization=org, key=option)
+                update_tracked_data(option_inst)
             except OrganizationOption.DoesNotExist:
                 OrganizationOption.objects.set_value(
                     organization=org, key=option, value=type_(self.initial_data[key])
@@ -335,8 +340,9 @@ class OrganizationSerializer(serializers.Serializer):
             else:
                 option_inst.value = self.initial_data[key]
                 # check if ORG_OPTIONS changed
-                if option_inst.has_changed("value"):
-                    old_val = option_inst.old_value("value")
+                if has_changed(option_inst, "value"):
+                    # if option_inst.has_changed("value"):
+                    old_val = old_value(option_inst, "value")
                     changed_data[key] = f"from {old_val} to {option_inst.value}"
                 option_inst.save()
 
@@ -375,13 +381,15 @@ class OrganizationSerializer(serializers.Serializer):
         # check if fields changed
         for f, v in org_tracked_field.items():
             if f != "flag_field":
-                if org.has_changed(f):
-                    old_val = org.old_value(f)
+                if has_changed(org, f):
+                    # if org.has_changed(f):
+                    old_val = old_value(org, f)
                     changed_data[f] = f"from {old_val} to {v}"
             else:
                 # check if flag fields changed
                 for f, v in org_tracked_field["flag_field"].items():
-                    if org.flag_has_changed(f):
+                    if flag_has_changed(org, f):
+                        # if org.flag_has_changed(f):
                         changed_data[f] = f"to {v}"
 
         org.save()
@@ -404,6 +412,7 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
 
     def save(self, *args, **kwargs):
         org = self.context["organization"]
+        update_tracked_data(org)
         cancel_deletion = "cancelDeletion" in self.initial_data and org.status in DELETION_STATUSES
         if "defaultRole" in self.initial_data:
             org.default_role = self.initial_data["defaultRole"]
@@ -561,3 +570,70 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :auth: required, user-context-needed
         """
         return self.handle_delete(request, organization)
+
+
+UNSAVED = object()
+
+DEFERRED = object()
+
+
+def flag_has_changed(org, flag_name):
+    "Returns ``True`` if ``flag`` has changed since initialization."
+    return getattr(old_value(org, "flags"), flag_name, None) != getattr(org.flags, flag_name)
+
+
+def update_tracked_data(model):
+    # def copy_model_data(model):
+    "Updates a local copy of attributes values"
+    if model.id:
+        data = {}
+        for f in model._meta.fields:
+            # XXX(dcramer): this is how Django determines this (copypasta from Model)
+            if isinstance(type(f).__dict__.get(f.attname), DeferredAttribute) or f.column is None:
+                continue
+            try:
+                v = get_field_value(model, f)
+            except AttributeError as e:
+                # this case can come up from pickling
+                logging.exception(str(e))
+            else:
+                if isinstance(v, BitHandler):
+                    v = copy(v)
+                data[f.column] = v
+        model.__data = data
+    else:
+        model.__data = UNSAVED
+
+
+def get_field_value(model, field):
+    if isinstance(type(field).__dict__.get(field.attname), DeferredAttribute):
+        return DEFERRED
+    if isinstance(field, models.ForeignKey):
+        return getattr(model, field.column, None)
+    return getattr(model, field.attname, None)
+
+
+def has_changed(model, field_name):
+    "Returns ``True`` if ``field`` has changed since initialization."
+    if model.__data is UNSAVED:
+        return False
+    field = model._meta.get_field(field_name)
+    value = get_field_value(model, field)
+    if value is DEFERRED:
+        return False
+    return model.__data.get(field_name) != value
+
+
+def old_value(model, field_name):
+    "Returns the previous value of ``field``"
+    if model.__data is UNSAVED:
+        return None
+    value = model.__data.get(field_name)
+    if value is DEFERRED:
+        return None
+    return model.__data.get(field_name)
+
+
+# def tracking_data_post_save(instance, **kwargs):
+# instance._update_tracked_data()
+# post_save.connect(tracking_data_post_save, sender=Organization)
