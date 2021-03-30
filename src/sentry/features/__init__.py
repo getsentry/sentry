@@ -121,6 +121,7 @@ default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:stacktrace-hover-preview", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:team-alerts-ownership", OrganizationFeature)  # NOQA
+default_manager.add("organizations:trace-view-errors", OrganizationFeature)  # NOQA
 default_manager.add("organizations:trace-view-quick", OrganizationFeature)  # NOQA
 default_manager.add("organizations:trace-view-summary", OrganizationFeature)  # NOQA
 default_manager.add("organizations:transaction-comparison", OrganizationFeature)  # NOQA
