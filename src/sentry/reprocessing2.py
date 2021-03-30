@@ -89,7 +89,7 @@ from sentry.eventstore.models import Event
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.utils import snuba
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.safe import set_path, get_path, safe_execute
+from sentry.utils.safe import set_path, get_path
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
@@ -151,7 +151,7 @@ def reprocess_event(project_id, event_id, start_time):
 
     from sentry.tasks.store import preprocess_event_from_reprocessing
     from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
-    from sentry.plugins.base import plugins
+    from sentry.lang.native.processing import get_required_attachment_types
 
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
         node_id = Event.generate_node_id(project_id, event_id)
@@ -174,16 +174,9 @@ def reprocess_event(project_id, event_id, start_time):
     )
     files = {f.id: f for f in models.File.objects.filter(id__in=[ea.file_id for ea in attachments])}
 
-    missing_attachment_types = set()
-
-    for plugin in plugins.all(version=2):
-        for ty in (
-            safe_execute(plugin.get_required_attachment_types, data, _with_transaction=False) or ()
-        ):
-            missing_attachment_types.add(ty)
-
-    for ea in attachments:
-        missing_attachment_types.discard(ea.type)
+    missing_attachment_types = set(get_required_attachment_types(data)) - {
+        ea.type for ea in attachments
+    }
 
     if missing_attachment_types:
         raise CannotReprocess(
