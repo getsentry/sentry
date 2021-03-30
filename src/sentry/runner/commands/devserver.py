@@ -234,7 +234,6 @@ def devserver(
         daemons += [_get_daemon("ingest")]
 
     if needs_https and has_https:
-        print('needs https')
         https_port = str(parsed_url.port)
         https_host = parsed_url.hostname
 
@@ -303,7 +302,6 @@ def devserver(
         honcho_printer.write = types.MethodType(monkeypatch_honcho_write, honcho_printer)
 
     manager = Manager(honcho_printer)
-    print(daemons)
     for name, cmd in daemons:
         manager.add_process(name, list2cmdline(cmd), quiet=False, cwd=cwd)
 
