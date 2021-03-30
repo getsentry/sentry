@@ -1,5 +1,5 @@
-from django.http import HttpResponseRedirect, Http404
 from django.core.urlresolvers import reverse
+from django.http import Http404, HttpResponseRedirect
 
 from sentry import eventstore
 from sentry.web.frontend.base import ProjectView
