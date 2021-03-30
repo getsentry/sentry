@@ -11,4 +11,4 @@ class DefaultEventProcessingStore(BaseEventProcessingStore):
     """
 
     def __init__(self, **options) -> None:
-        super().__init__(store=CacheKVStorage(default_cache), **options)
+        super().__init__(inner=CacheKVStorage(default_cache), **options)

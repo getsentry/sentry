@@ -24,8 +24,8 @@ class BaseEventProcessingStore:
     implementations.
     """
 
-    def __init__(self, store: KVStorage[str, Event], timeout: int = DEFAULT_TIMEOUT):
-        self.store = store
+    def __init__(self, inner: KVStorage[str, Event], timeout: int = DEFAULT_TIMEOUT):
+        self.inner = inner
         self.timeout = timedelta(seconds=timeout)
 
     def __get_unprocessed_key(self, key: str) -> str:
@@ -35,17 +35,17 @@ class BaseEventProcessingStore:
         key = cache_key_for_event(event)
         if unprocessed:
             key = self.__get_unprocessed_key(key)
-        self.store.set(key, event, self.timeout)
+        self.inner.set(key, event, self.timeout)
         return key
 
     def get(self, key: str, unprocessed: bool = False) -> Optional[Event]:
         if unprocessed:
             key = self.__get_unprocessed_key(key)
-        return self.store.get(key)
+        return self.inner.get(key)
 
     def delete_by_key(self, key: str) -> None:
-        self.store.delete(key)
-        self.store.delete(self.__get_unprocessed_key(key))
+        self.inner.delete(key)
+        self.inner.delete(self.__get_unprocessed_key(key))
 
     def delete(self, event: Event) -> None:
         key = cache_key_for_event(event)
