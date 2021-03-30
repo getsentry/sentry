@@ -115,6 +115,9 @@ DELETION_STATUSES = frozenset(
     [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
 )
 
+UNSAVED = object()
+DEFERRED = object()
+
 
 class OrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
@@ -338,7 +341,6 @@ class OrganizationSerializer(serializers.Serializer):
                 option_inst.value = self.initial_data[key]
                 # check if ORG_OPTIONS changed
                 if has_changed(option_inst, "value"):
-                    # if option_inst.has_changed("value"):
                     old_val = old_value(option_inst, "value")
                     changed_data[key] = f"from {old_val} to {option_inst.value}"
                 option_inst.save()
@@ -379,14 +381,12 @@ class OrganizationSerializer(serializers.Serializer):
         for f, v in org_tracked_field.items():
             if f != "flag_field":
                 if has_changed(org, f):
-                    # if org.has_changed(f):
                     old_val = old_value(org, f)
                     changed_data[f] = f"from {old_val} to {v}"
             else:
                 # check if flag fields changed
                 for f, v in org_tracked_field["flag_field"].items():
                     if flag_has_changed(org, f):
-                        # if org.flag_has_changed(f):
                         changed_data[f] = f"to {v}"
 
         org.save()
@@ -569,11 +569,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.handle_delete(request, organization)
 
 
-UNSAVED = object()
-
-DEFERRED = object()
-
-
 def flag_has_changed(org, flag_name):
     "Returns ``True`` if ``flag`` has changed since initialization."
     return getattr(old_value(org, "flags"), flag_name, None) != getattr(org.flags, flag_name)
@@ -629,8 +624,3 @@ def old_value(model, field_name):
     if value is DEFERRED:
         return None
     return model.__data.get(field_name)
-
-
-# def tracking_data_post_save(instance, **kwargs):
-# instance._update_tracked_data()
-# post_save.connect(tracking_data_post_save, sender=Organization)
