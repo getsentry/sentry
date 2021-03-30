@@ -21,13 +21,8 @@ const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
         `;
       default:
         return `
-          /* 2 cols */
-          grid-area: span 1 / span 2;
-
-          @media (min-width: ${p.theme.breakpoints[1]}) {
-            /* 4, 6 and 8 cols */
-            grid-area: span 2 / span 2;
-          }
+          /* 2, 4, 6 and 8 cols */
+          grid-area: span 2 / span 2;
         `;
     }
   }};
