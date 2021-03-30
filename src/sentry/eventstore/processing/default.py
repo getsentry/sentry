@@ -1,4 +1,5 @@
 from sentry.cache import default_cache
+from sentry.utils.kvstore.cache import CacheKVStorage
 
 from .base import BaseEventProcessingStore
 
@@ -9,5 +10,5 @@ class DefaultEventProcessingStore(BaseEventProcessingStore):
     as backend.
     """
 
-    def __init__(self, **options):
-        super().__init__(inner=default_cache, **options)
+    def __init__(self, **options) -> None:
+        super().__init__(store=CacheKVStorage(default_cache), **options)
