@@ -14,7 +14,6 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         "organizations:trace-view-quick",
         "organizations:trace-view-errors",
         "organizations:trace-view-summary",
-        "organizations:global-views",
     ]
 
     def get_start_end(self, duration):
