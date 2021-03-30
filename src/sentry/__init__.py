@@ -1,6 +1,5 @@
 import os
 import os.path
-
 from subprocess import check_output
 
 try:
