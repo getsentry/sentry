@@ -37,6 +37,7 @@ from sentry.models import (
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp, outside_retention_with_modified_start
+from sentry.utils.snql import should_use_snql
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
 from sentry.utils.compat import map
@@ -639,6 +640,10 @@ def raw_query(
         is_grouprelease=is_grouprelease,
         **kwargs,
     )
+
+    if should_use_snql(referrer):
+        use_snql = True
+
     return bulk_raw_query(
         [snuba_params], referrer=referrer, use_cache=use_cache, use_snql=use_snql
     )[0]
