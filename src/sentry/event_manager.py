@@ -1,35 +1,38 @@
-import logging
-from io import BytesIO
 import ipaddress
-
+import logging
 from datetime import datetime, timedelta
+from io import BytesIO
+
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from django.db import connection, IntegrityError, router, transaction
+from django.db import IntegrityError, connection, router, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
-import sentry_sdk
 
-from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb, options
+from sentry import buffer, eventstore, eventstream, eventtypes, features, options, quotas, tsdb
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
-    DataCategory,
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
+    DataCategory,
 )
+from sentry.culprit import generate_culprit
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
-    get_grouping_config_dict_for_project,
-    get_grouping_config_dict_for_event_data,
-    load_grouping_config,
+    GroupingConfigNotFound,
     apply_server_fingerprinting,
     get_fingerprinting_config_for_project,
-    GroupingConfigNotFound,
+    get_grouping_config_dict_for_event_data,
+    get_grouping_config_dict_for_project,
+    load_grouping_config,
 )
+from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models import (
+    CRASH_REPORT_TYPES,
     Activity,
     Environment,
     EventAttachment,
@@ -43,6 +46,7 @@ from sentry.models import (
     GroupRelease,
     GroupResolution,
     GroupStatus,
+    Organization,
     Project,
     ProjectKey,
     Release,
@@ -51,28 +55,23 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
     UserReport,
-    Organization,
-    CRASH_REPORT_TYPES,
     get_crashreport_key,
 )
 from sentry.plugins.base import plugins
-from sentry import quotas
+from sentry.reprocessing2 import (
+    delete_old_primary_hash,
+    is_reprocessed_event,
+    save_unprocessed_event,
+)
 from sentry.signals import first_event_received, issue_unresolved
-from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.dates import to_timestamp, to_datetime
+from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
-from sentry.culprit import generate_culprit
-from sentry.reprocessing2 import (
-    save_unprocessed_event,
-    is_reprocessed_event,
-    delete_old_primary_hash,
-)
+from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 logger = logging.getLogger("sentry.events")
 
@@ -1104,6 +1103,9 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
         # when we queried for the release and now, so
         # make sure it still exists
         first_release = kwargs.pop("first_release", None)
+
+        if project.id in (options.get("store.load-shed-group-creation-projects") or ()):
+            raise HashDiscarded("Load shedding group creation")
 
         short_id = project.next_short_id()
 

@@ -5,6 +5,7 @@ from django.conf.urls import include, url
 from django.http import HttpResponse
 from django.views.generic import RedirectView
 
+from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.web import api
 from sentry.web.frontend import accounts, generic
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -562,6 +563,12 @@ urlpatterns += [
         r"^team-avatar/(?P<avatar_id>[^\/]+)/$",
         TeamAvatarPhotoView.as_view(),
         name="sentry-team-avatar-url",
+    ),
+    # Serve chartcuterie configuration module
+    url(
+        r"^_chartcuterie-config.js$",
+        serve_chartcuterie_config,
+        name="sentry-chartcuterie-config",
     ),
     # Generic
     url(r"^$", HomeView.as_view(), name="sentry"),

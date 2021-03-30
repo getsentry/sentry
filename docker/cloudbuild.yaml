@@ -1,5 +1,5 @@
 steps:
-  - name: 'gcr.io/kaniko-project/executor:v1.3.0'
+  - name: 'gcr.io/kaniko-project/executor:v1.5.1'
     id: builder-image
     args:
       [
@@ -17,7 +17,7 @@ steps:
     env:
       - 'SOURCE_COMMIT=$COMMIT_SHA'
     timeout: 600s
-  - name: 'gcr.io/kaniko-project/executor:v1.3.0'
+  - name: 'gcr.io/kaniko-project/executor:v1.5.1'
     id: runtime-image
     waitFor:
       - builder-run
