@@ -58,6 +58,10 @@ type Props = {
    */
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   /**
+   * Function to filter the options that are used as parameters for function/aggregate.
+   */
+  filterAggregateParameters?: (option: FieldValueOption) => boolean;
+  /**
    * Whether or not to add labels inside of the input fields, currently only
    * used for the metric alert builder.
    */
@@ -299,15 +303,19 @@ class QueryField extends React.Component<Props> {
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
-    const {disabled, inFieldLabels} = this.props;
+    const {disabled, inFieldLabels, filterAggregateParameters} = this.props;
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
+        const aggregateParameters = filterAggregateParameters
+          ? descriptor.options.filter(filterAggregateParameters)
+          : descriptor.options;
+
         return (
           <SelectControl
             key="select"
             name="parameter"
             placeholder={t('Select value')}
-            options={descriptor.options}
+            options={aggregateParameters}
             value={descriptor.value}
             required={descriptor.required}
             onChange={this.handleFieldParameterChange}
