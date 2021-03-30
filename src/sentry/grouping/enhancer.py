@@ -264,7 +264,7 @@ class RangeMatch(Match):
         sn = "| " if self.start_neighbouring else ""
         en = " |" if self.end_neighbouring else ""
         start = f" {self.start.description}" if self.start else ""
-        end = f"{self.end.description }" if self.end else ""
+        end = f"{self.end.description} " if self.end else ""
         return f"[{start} {sn}..{en} {end}]"
 
     def _to_config_structure(self, version):
