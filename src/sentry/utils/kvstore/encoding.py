@@ -5,7 +5,7 @@ from sentry.utils.codecs import Codec, TDecoded, TEncoded
 from sentry.utils.kvstore.abstract import K, KVStorage
 
 
-class KVStorageCodecWrapper(KVStorage[K, TDecoded]):
+class CodecWrapper(KVStorage[K, TDecoded]):
     def __init__(
         self, store: KVStorage[K, TEncoded], value_codec: Codec[TDecoded, TEncoded]
     ) -> None:
