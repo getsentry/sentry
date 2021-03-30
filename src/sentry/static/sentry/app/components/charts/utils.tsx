@@ -54,46 +54,26 @@ export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
 
   if (diffInMinutes >= SIXTY_DAYS) {
     // Greater than or equal to 60 days
-    if (highFidelity) {
-      return '4h';
-    } else {
-      return '1d';
-    }
+    return highFidelity ? '4h' : '1d';
   }
 
   if (diffInMinutes >= THIRTY_DAYS) {
     // Greater than or equal to 30 days
-    if (highFidelity) {
-      return '1h';
-    } else {
-      return '4h';
-    }
+    return highFidelity ? '1h' : '4h';
   }
 
   if (diffInMinutes > TWENTY_FOUR_HOURS) {
     // Greater than 24 hours
-    if (highFidelity) {
-      return '30m';
-    } else {
-      return '1h';
-    }
+    return highFidelity ? '30m' : '1h';
   }
 
   if (diffInMinutes <= ONE_HOUR) {
     // Less than or equal to 1 hour
-    if (highFidelity) {
-      return '1m';
-    } else {
-      return '5m';
-    }
+    return highFidelity ? '1m' : '5m';
   }
 
   // Between 1 hour and 24 hours
-  if (highFidelity) {
-    return '5m';
-  } else {
-    return '15m';
-  }
+  return highFidelity ? '5m' : '15m';
 }
 
 export function getDiffInMinutes(datetimeObj: DateTimeObject): number {
