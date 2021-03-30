@@ -225,6 +225,20 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'stack_trace_preview',
+      requiredTargets: ['issue_stream_title'],
+      dateThreshold: new Date(2021, 2, 15),
+      steps: [
+        {
+          title: t('Stack Trace Preview'),
+          target: 'issue_stream_title',
+          description: t(
+            `Hover over the issue title to see the stack trace of the latest event.`
+          ),
+        },
+      ],
+    },
   ];
 }
 
