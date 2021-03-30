@@ -22,7 +22,7 @@ export function getSortTooltip(key: IssueSortOptions) {
     case IssueSortOptions.INBOX:
       return t('When the issue was flagged for review.');
     case IssueSortOptions.NEW:
-      return t('When the issue was first seen.');
+      return t('When the issue was first seen in the selected time period.');
     case IssueSortOptions.PRIORITY:
       return t('Issues trending upward recently.');
     case IssueSortOptions.FREQ:
@@ -33,7 +33,7 @@ export function getSortTooltip(key: IssueSortOptions) {
       return t('% change in event count over the time selected.');
     case IssueSortOptions.DATE:
     default:
-      return t('When an event was last seen in the issue.');
+      return t('When the issue was last seen in the selected time period.');
   }
 }
 
