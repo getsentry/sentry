@@ -1070,7 +1070,7 @@ class EventView {
           return {
             ...item,
             disabled: true,
-            tooltip: t('At least one aggregate function is required to use this view.'),
+            tooltip: t('Add a function that groups events to use this view.'),
           };
         }
       }
@@ -1080,7 +1080,7 @@ class EventView {
           return {
             ...item,
             disabled: true,
-            tooltip: t('Date range must be at least 1 day to use this view.'),
+            tooltip: t('Change the date rage to at least 1 day to use this view.'),
           };
         }
       }
