@@ -1,8 +1,8 @@
 from rest_framework.response import Response
-from social_auth.models import UserSocialAuth
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
+from social_auth.models import UserSocialAuth
 
 
 class UserSocialIdentitiesIndexEndpoint(UserEndpoint):

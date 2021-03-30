@@ -2,8 +2,8 @@ from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.api.event_search import get_filter
-from sentry.utils.validators import normalize_event_id
 from sentry.api.serializers import serialize
+from sentry.utils.validators import normalize_event_id
 
 
 def get_direct_hit_response(request, query, snuba_params, referrer):

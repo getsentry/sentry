@@ -1,4 +1,4 @@
-from rest_framework import status, serializers
+from rest_framework import serializers, status
 
 from sentry import integrations
 from sentry.api.bases.project import ProjectEndpoint

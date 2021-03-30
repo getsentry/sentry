@@ -1,9 +1,8 @@
-from urllib.parse import urlencode, parse_qsl
-from django.utils.crypto import constant_time_compare
-from django.core.urlresolvers import reverse
+from urllib.parse import parse_qsl, urlencode
 
-from sentry.utils import metrics
-from sentry.utils.audit import create_audit_entry
+from django.core.urlresolvers import reverse
+from django.utils.crypto import constant_time_compare
+
 from sentry.models import (
     AuditLogEntryEvent,
     Authenticator,
@@ -12,6 +11,8 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.signals import member_joined
+from sentry.utils import metrics
+from sentry.utils.audit import create_audit_entry
 
 INVITE_COOKIE = "pending-invite"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days

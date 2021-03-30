@@ -1,11 +1,11 @@
-import sentry_sdk
-
 from collections import defaultdict
+
+import sentry_sdk
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
-from sentry.snuba import discover
 from sentry import tagstore
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.snuba import discover
 
 
 class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):

@@ -1,10 +1,9 @@
 import logging
-
 from datetime import datetime
+from uuid import uuid4
 
 from pytz import UTC
 from rest_framework import serializers, status
-from uuid import uuid4
 
 from sentry import roles
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -15,10 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import (
-    LEGACY_RATE_LIMIT_OPTIONS,
-    RESERVED_ORGANIZATION_SLUGS,
-)
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_DEFAULT, convert_crashreport_count
 from sentry.models import (

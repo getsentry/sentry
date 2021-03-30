@@ -1,8 +1,8 @@
 from collections import defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.release import CommitAuthor, get_users_for_authors
 from sentry.models import Commit, Repository
-from sentry.api.serializers.models.release import get_users_for_authors, CommitAuthor
 
 
 def get_users_for_commits(item_list, user=None):

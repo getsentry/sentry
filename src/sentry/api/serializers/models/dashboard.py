@@ -2,8 +2,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import (
     Dashboard,
     DashboardWidget,
-    DashboardWidgetQuery,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
 )
 
 

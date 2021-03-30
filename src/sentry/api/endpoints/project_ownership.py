@@ -1,13 +1,12 @@
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
-from django.utils import timezone
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProjectOwnership, resolve_actors
+from sentry.ownership.grammar import ParseError, dump_schema, parse_rules
 from sentry.signals import ownership_rule_created
-
-from sentry.ownership.grammar import parse_rules, dump_schema, ParseError
 
 
 class ProjectOwnershipSerializer(serializers.Serializer):

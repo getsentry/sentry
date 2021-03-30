@@ -2,8 +2,8 @@ from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.utils import get_date_range_from_params
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_date_range_from_params
 from sentry.models import Environment
 
 

@@ -3,12 +3,11 @@ import logging
 from rest_framework.response import Response
 
 from sentry import features as feature_flags
-from sentry.utils.compat import zip
+from sentry import similarity
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Group
-from sentry import similarity
-
+from sentry.utils.compat import zip
 
 logger = logging.getLogger(__name__)
 

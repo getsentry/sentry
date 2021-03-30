@@ -1,25 +1,21 @@
 from contextlib import contextmanager
+
 import sentry_sdk
 from django.utils.http import urlquote
 from rest_framework.exceptions import APIException, ParseError
-
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry import features
-from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry.api.base import LINK_HEADER
-from sentry.api.bases import OrganizationEndpoint, NoProjects
-from sentry.api.event_search import (
-    get_filter,
-    InvalidSearchQuery,
-    get_function_alias,
-)
+from sentry.api.bases import NoProjects, OrganizationEndpoint
+from sentry.api.event_search import InvalidSearchQuery, get_filter, get_function_alias
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.group import Group
 from sentry.snuba import discover
-from sentry.utils.snuba import MAX_FIELDS
+from sentry.utils import snuba
 from sentry.utils.dates import get_rollup_from_request
 from sentry.utils.http import absolute_uri
-from sentry.utils import snuba
+from sentry.utils.snuba import MAX_FIELDS
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):

@@ -1,9 +1,9 @@
 from django.core.cache import cache
+from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.models import Group, ReleaseCommit, Repository, Deploy
+from sentry.models import Deploy, Group, ReleaseCommit, Repository
 from sentry.utils.hashlib import hash_values
-from rest_framework.response import Response
 
 
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):

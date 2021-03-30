@@ -1,13 +1,13 @@
 import re
-from collections import namedtuple, defaultdict
+from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
 
 from django.utils.functional import cached_property
-from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
-from parsimonious.nodes import Node, RegexNode
+from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.nodes import Node, RegexNode
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
@@ -15,29 +15,28 @@ from sentry.discover.models import KeyTransaction
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.search.utils import (
-    parse_duration,
-    parse_percentage,
+    InvalidQuery,
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
+    parse_duration,
     parse_numeric_value,
+    parse_percentage,
     parse_release,
-    InvalidQuery,
 )
 from sentry.snuba.dataset import Dataset
+from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
     FUNCTION_TO_OPERATOR,
-    get_json_type,
-    is_measurement,
-    is_duration_measurement,
     OPERATOR_TO_FUNCTION,
     SNUBA_AND,
     SNUBA_OR,
+    get_json_type,
+    is_duration_measurement,
+    is_measurement,
 )
-from sentry.utils.compat import filter, map, zip
-
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 NEGATION_MAP = {

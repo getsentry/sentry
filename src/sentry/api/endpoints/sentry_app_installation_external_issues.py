@@ -1,11 +1,11 @@
 from rest_framework import serializers
 from rest_framework.response import Response
-from sentry.api.serializers.rest_framework import URLField
 
 from sentry.api.bases import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import URLField
 from sentry.mediators.external_issues import Creator
 from sentry.models import Group, Project
 

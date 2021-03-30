@@ -1,13 +1,13 @@
 from django.db import IntegrityError, transaction
+from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
 from sentry.models import Dashboard
-from sentry import features
-from rest_framework.response import Response
 
 
 class OrganizationDashboardsPermission(OrganizationPermission):

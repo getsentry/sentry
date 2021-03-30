@@ -1,12 +1,12 @@
 import itertools
 
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from sentry import status_checks
-from sentry.status_checks import sort_by_severity
 from sentry.api.base import Endpoint
 from sentry.auth.superuser import is_active_superuser
+from sentry.status_checks import sort_by_severity
 from sentry.utils.hashlib import md5_text
 
 

@@ -1,9 +1,9 @@
+from django.db.models import Count
 from rest_framework.response import Response
 
-from django.db.models import Count
 from sentry.api.bases import SentryAppsBaseEndpoint
-from sentry.models import SentryApp
 from sentry.api.permissions import SuperuserPermission
+from sentry.models import SentryApp
 
 
 class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):

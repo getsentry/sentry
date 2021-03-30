@@ -2,21 +2,21 @@ from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
-    event_search_grammar,
+    AggregateFilter,
     InvalidSearchQuery,
     SearchFilter,
-    AggregateFilter,
     SearchKey,
     SearchValue,
     SearchVisitor,
+    event_search_grammar,
 )
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.utils import (
-    parse_actor_value,
     parse_actor_or_none_value,
-    parse_user_value,
+    parse_actor_value,
     parse_release,
     parse_status_value,
+    parse_user_value,
 )
 from sentry.utils.compat import map
 

@@ -1,14 +1,13 @@
 from django.http import Http404
-
 from rest_framework import status
 
-from sentry.api.bases.organization import OrganizationIntegrationsPermission, OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
 from sentry.models import RepositoryProjectPathConfig
 
 from .organization_integration_repository_project_path_configs import (
-    RepositoryProjectPathConfigSerializer,
     NullableOrganizationIntegrationMixin,
+    RepositoryProjectPathConfigSerializer,
 )
 
 

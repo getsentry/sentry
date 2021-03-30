@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.api.bases.project import ProjectEndpoint, ProjectAlertRulePermission
+from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer

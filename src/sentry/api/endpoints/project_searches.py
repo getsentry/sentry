@@ -1,7 +1,7 @@
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
-from django.db.models import Q
 
 from sentry.api.bases.project import ProjectEndpoint, RelaxedSearchPermission
 from sentry.api.serializers import serialize

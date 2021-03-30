@@ -1,6 +1,5 @@
-from rest_framework.response import Response
-
 import sentry_sdk
+from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint

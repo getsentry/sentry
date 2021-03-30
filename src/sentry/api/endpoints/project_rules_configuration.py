@@ -1,8 +1,9 @@
+from rest_framework.response import Response
+
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
 from sentry.rules import rules
-from rest_framework.response import Response
 
 
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):

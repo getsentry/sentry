@@ -7,9 +7,9 @@ from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
 from sentry.models import ApiScopes
 from sentry.models.sentryapp import (
-    VALID_EVENT_RESOURCES,
     REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
+    VALID_EVENT_RESOURCES,
 )
 
 

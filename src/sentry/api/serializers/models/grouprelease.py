@@ -1,9 +1,10 @@
 from collections import namedtuple
 from datetime import timedelta
+
 from django.utils import timezone
 
-from sentry.app import tsdb
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.app import tsdb
 from sentry.models import GroupRelease, Release
 from sentry.utils.compat import zip
 

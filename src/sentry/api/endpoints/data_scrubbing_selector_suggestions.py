@@ -1,9 +1,8 @@
 from rest_framework.response import Response
+from sentry_relay import pii_selector_suggestions_from_event
 
 from sentry import eventstore
 from sentry.api.bases.organization import OrganizationEndpoint
-
-from sentry_relay import pii_selector_suggestions_from_event
 
 
 class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):

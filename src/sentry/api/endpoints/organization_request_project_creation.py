@@ -1,9 +1,8 @@
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from django.utils.translation import ugettext_lazy as _
-
-from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases import OrganizationPermission
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri

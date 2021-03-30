@@ -1,11 +1,11 @@
 from rest_framework.response import Response
 
-from sentry.app import ratelimiter
-from sentry.utils import auth, metrics
-from sentry.utils.hashlib import md5_text
 from sentry.api.base import Endpoint
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
+from sentry.app import ratelimiter
+from sentry.utils import auth, metrics
+from sentry.utils.hashlib import md5_text
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.frontend.base import OrganizationMixin
 

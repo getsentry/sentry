@@ -4,11 +4,11 @@ from collections import defaultdict
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import (
     ExternalIssue,
+    ExternalTeam,
+    ExternalUser,
     GroupLink,
     Integration,
     OrganizationIntegration,
-    ExternalTeam,
-    ExternalUser,
 )
 from sentry.shared_integrations.exceptions import ApiError
 

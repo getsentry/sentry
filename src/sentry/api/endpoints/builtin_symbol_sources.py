@@ -1,6 +1,6 @@
+from django.conf import settings
 from rest_framework.response import Response
 
-from django.conf import settings
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 

@@ -1,11 +1,11 @@
 from rest_framework.response import Response
 
-from sentry.plugins.base import plugins
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_plugin import OrganizationPluginSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import ProjectOption
+from sentry.plugins.base import plugins
 
 
 class OrganizationPluginsEndpoint(OrganizationEndpoint):

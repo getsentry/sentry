@@ -1,11 +1,11 @@
+from django.core.urlresolvers import reverse
 from rest_framework import status
 from rest_framework.response import Response
-from django.core.urlresolvers import reverse
 
-from sentry.utils import auth
 from sentry.api.base import Endpoint
-from sentry.models import OrganizationMember, AuthProvider
 from sentry.api.invite_helper import ApiInviteHelper, add_invite_cookie, remove_invite_cookie
+from sentry.models import AuthProvider, OrganizationMember
+from sentry.utils import auth
 
 
 class AcceptOrganizationInvite(Endpoint):

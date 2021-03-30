@@ -2,7 +2,7 @@ from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.api.bases.user import UserEndpoint, OrganizationUserPermission
+from sentry.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import Authenticator

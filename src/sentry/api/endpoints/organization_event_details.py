@@ -1,9 +1,9 @@
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry import eventstore
-from sentry.models.project import Project, ProjectStatus
+from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
+from sentry.models.project import Project, ProjectStatus
 
 
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):

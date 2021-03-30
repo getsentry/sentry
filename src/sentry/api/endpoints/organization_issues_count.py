@@ -4,14 +4,13 @@ from rest_framework.response import Response
 from sentry import features, search
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.group_index import (
+    ValidationError,
     rate_limit_endpoint,
     validate_search_filter_permissions,
-    ValidationError,
 )
 from sentry.api.issue_search import convert_query_values, parse_search_query
-from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.snuba import discover
-
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 

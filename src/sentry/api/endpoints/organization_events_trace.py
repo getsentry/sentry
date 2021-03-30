@@ -1,18 +1,16 @@
 import logging
+from collections import OrderedDict, defaultdict, deque
+
 import sentry_sdk
-
-from collections import defaultdict, deque, OrderedDict
-
 from django.http import Http404
 from rest_framework.response import Response
-
-from sentry import features, eventstore
-from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
-from sentry.api.serializers.models.event import get_tags_with_meta
-from sentry.snuba import discover
-from sentry.models import Group
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
+from sentry import eventstore, features
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.serializers.models.event import get_tags_with_meta
+from sentry.models import Group
+from sentry.snuba import discover
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100

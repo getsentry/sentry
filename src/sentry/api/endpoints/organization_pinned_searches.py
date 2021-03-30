@@ -1,12 +1,11 @@
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
-from django.db.models import Q
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinnedSearchPermission
 from sentry.api.serializers import serialize
 from sentry.models import SavedSearch, SortOptions
 from sentry.models.search_common import SearchType
-
 
 PINNED_SEARCH_NAME = "My Pinned Search"
 

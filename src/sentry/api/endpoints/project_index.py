@@ -5,7 +5,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import DateTimePaginator
-from sentry.api.serializers import serialize, ProjectWithOrganizationSerializer
+from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.models import Project, ProjectPlatform, ProjectStatus, SentryAppInstallationToken

@@ -1,5 +1,7 @@
 from collections import defaultdict
-from sentry.api.serializers import register, serialize, Serializer
+
+from sentry.api.serializers import Serializer, register, serialize
+from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
@@ -7,14 +9,8 @@ from sentry.incidents.models import (
     AlertRuleExcludedProjects,
     AlertRuleTrigger,
 )
-from sentry.incidents.logic import translate_aggregate_field
+from sentry.models import ACTOR_TYPES, Rule, actor_type_to_class, actor_type_to_string
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.models import (
-    ACTOR_TYPES,
-    actor_type_to_class,
-    actor_type_to_string,
-    Rule,
-)
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 

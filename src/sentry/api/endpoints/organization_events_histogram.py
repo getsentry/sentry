@@ -1,10 +1,9 @@
 import sentry_sdk
-
-from sentry import features
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
+from sentry import features
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
 from sentry.utils.snuba import is_measurement
 

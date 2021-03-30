@@ -1,8 +1,8 @@
 from rest_framework.response import Response
 
-from sentry import integrations, features
+from sentry import features, integrations
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.serializers import serialize, IntegrationProviderSerializer
+from sentry.api.serializers import IntegrationProviderSerializer, serialize
 from sentry.utils.compat import filter
 
 

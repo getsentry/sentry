@@ -7,8 +7,8 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ProjectKeySerializer
-from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
+from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 
 
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):

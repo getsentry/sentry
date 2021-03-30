@@ -1,8 +1,7 @@
 import logging
-
+from datetime import timedelta
 
 from django.core.cache import cache
-from datetime import timedelta
 from django.utils import timezone
 
 from sentry.api.bases import OrganizationEventsEndpointBase

@@ -1,12 +1,12 @@
 import logging
 
+from django.utils.crypto import get_random_string
 from rest_framework.response import Response
 
 from sentry import ratelimits
-from sentry.cache import default_cache
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
-from django.utils.crypto import get_random_string
+from sentry.cache import default_cache
 
 logger = logging.getLogger("sentry.api")
 SETUP_WIZARD_CACHE_KEY = "setup-wizard-keys:v1:"

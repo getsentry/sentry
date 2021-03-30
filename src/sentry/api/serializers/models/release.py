@@ -6,19 +6,19 @@ from django.db.models import Sum
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
-from sentry.snuba.sessions import get_release_health_data_overview
 from sentry.models import (
     Commit,
     CommitAuthor,
     Deploy,
     ProjectPlatform,
     Release,
-    ReleaseStatus,
     ReleaseProject,
     ReleaseProjectEnvironment,
+    ReleaseStatus,
     User,
     UserEmail,
 )
+from sentry.snuba.sessions import get_release_health_data_overview
 from sentry.utils import metrics
 from sentry.utils.compat import zip
 from sentry.utils.hashlib import md5_text

@@ -1,6 +1,6 @@
+import sentry_sdk
 from rest_framework.response import Response
 
-import sentry_sdk
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments

@@ -1,6 +1,5 @@
-from django.contrib.auth.models import AnonymousUser
-
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 
 registry = {}
 

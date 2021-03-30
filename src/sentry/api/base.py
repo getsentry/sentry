@@ -1,12 +1,12 @@
 import functools
 import logging
 import time
-import sentry_sdk
-
 from datetime import datetime, timedelta
+
+import sentry_sdk
 from django.conf import settings
-from django.utils.http import urlquote
 from django.http import HttpResponse
+from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
@@ -14,21 +14,19 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import tsdb, analytics
+from sentry import analytics, tsdb
 from sentry.auth import access
 from sentry.models import Environment
+from sentry.utils import json
+from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
-from sentry.utils.audit import create_audit_entry
 from sentry.utils.sdk import capture_exception
-from sentry.utils import json
-
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
-
 
 __all__ = ["Endpoint", "EnvironmentMixin", "StatsMixin"]
 

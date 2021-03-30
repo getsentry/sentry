@@ -1,11 +1,12 @@
 from datetime import timedelta
+
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry.app import tsdb
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.app import tsdb
 from sentry.models import Environment
 
 

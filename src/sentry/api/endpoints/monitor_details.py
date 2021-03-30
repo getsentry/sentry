@@ -1,13 +1,13 @@
 import logging
+from uuid import uuid4
 
 from django.db import transaction
-from uuid import uuid4
 
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
-from sentry.tasks.deletion import generic_delete
 from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus
+from sentry.tasks.deletion import generic_delete
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 

@@ -1,8 +1,9 @@
+from django.utils.text import slugify
+
 from sentry.api.serializers import Serializer
+from sentry.models import ProjectOption
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
-from sentry.models import ProjectOption
-from django.utils.text import slugify
 
 
 class PluginSerializer(Serializer):

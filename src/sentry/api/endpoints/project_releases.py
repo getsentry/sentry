@@ -1,10 +1,8 @@
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-
 from rest_framework.response import Response
 
 from sentry import analytics
-
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
@@ -13,7 +11,7 @@ from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
 from sentry.models import Activity, Environment, Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.signals import release_created
-from sentry.utils.sdk import configure_scope, bind_organization_context
+from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):

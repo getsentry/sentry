@@ -1,7 +1,7 @@
-from sentry.api.serializers import Serializer, serialize, register
-from sentry.models import User
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
+from sentry.models import User
 
 
 @register(ExportedData)

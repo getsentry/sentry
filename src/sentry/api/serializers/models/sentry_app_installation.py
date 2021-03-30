@@ -1,6 +1,6 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import SentryAppInstallation
 from sentry.constants import SentryAppInstallationStatus
+from sentry.models import SentryAppInstallation
 
 
 @register(SentryAppInstallation)

@@ -2,7 +2,7 @@ from functools import partial
 
 from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
+from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 
 
 class ProjectEventsEndpoint(ProjectEndpoint):
