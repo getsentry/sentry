@@ -35,11 +35,9 @@ def is_root(item):
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
-        return (
-            features.has("organizations:trace-view-quick", organization, actor=request.user)
-            or features.has("organizations:trace-view-summary", organization, actor=request.user)
-            or features.has("organizations:trace-view-errors", organization, actor=request.user)
-        )
+        return features.has(
+            "organizations:trace-view-quick", organization, actor=request.user
+        ) or features.has("organizations:trace-view-summary", organization, actor=request.user)
 
     def serialize_event(self, event, parent, generation=None):
         return {
@@ -159,25 +157,21 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 {"extra_roots": extra_roots, **warning_extra},
             )
 
-        errors = []
-        if features.has(
-            "organizations:trace-view-errors", organization, actor=request.user
-        ) or features.has("organizations:trace-view-summary", organization, actor=request.user):
-            current_transaction = find_event(result["data"], lambda t: t["id"] == event_id)
-            errors = self.get_errors(organization, trace_id, params, current_transaction, event_id)
-            if errors:
-                groups = {
-                    group.id: group
-                    for group in Group.objects.filter(
-                        id__in=[row["issue.id"] for row in errors],
-                        project_id__in=params.get("project_id", []),
-                        project__organization=organization,
-                    )
-                }
-                for row in errors:
-                    row["url"] = groups[row["issue.id"]].get_absolute_url(
-                        organization_slug=organization.slug
-                    )
+        current_transaction = find_event(result["data"], lambda t: t["id"] == event_id)
+        errors = self.get_errors(organization, trace_id, params, current_transaction, event_id)
+        if errors:
+            groups = {
+                group.id: group
+                for group in Group.objects.filter(
+                    id__in=[row["issue.id"] for row in errors],
+                    project_id__in=params.get("project_id", []),
+                    project__organization=organization,
+                )
+            }
+            for row in errors:
+                row["url"] = groups[row["issue.id"]].get_absolute_url(
+                    organization_slug=organization.slug
+                )
 
         return Response(
             self.serialize(result["data"], errors, root, warning_extra, event_id, detailed)
