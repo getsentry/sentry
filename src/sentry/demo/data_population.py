@@ -14,17 +14,24 @@ from hashlib import sha1
 from uuid import uuid4
 from typing import List
 
+from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.logic import (
+    create_alert_rule,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
 from sentry.interfaces.user import User as UserInterface
 from sentry.models import (
     File,
+    Commit,
+    CommitAuthor,
+    CommitFileChange,
     Project,
     Release,
-    Repository,
-    CommitAuthor,
-    Commit,
     ReleaseFile,
-    CommitFileChange,
     ReleaseCommit,
+    Repository,
+    Team,
 )
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_timestamp
@@ -304,6 +311,30 @@ def generate_releases(projects, quick):
             )
 
         release_time += timedelta(hours=hourly_release_cadence)
+
+
+def generate_alerts(project):
+    org = project.organization
+    team = Team.objects.filter(organization=org).first()
+    alert_rule = create_alert_rule(
+        org,
+        [project],
+        "High Error Rate",
+        "level:error",
+        "count()",
+        10,
+        AlertRuleThresholdType.ABOVE,
+        1,
+    )
+    critical_trigger = create_alert_rule_trigger(alert_rule, "critical", 10)
+    warning_trigger = create_alert_rule_trigger(alert_rule, "warning", 7)
+    for trigger in [critical_trigger, warning_trigger]:
+        create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(team.id),
+        )
 
 
 def safe_send_event(data, quick):
@@ -775,6 +806,7 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     Handles all data population for the React + Python scenario
     """
     generate_releases([react_project, python_project], quick=quick)
+    generate_alerts(python_project)
     populate_connected_event_scenario_1(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_2(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_3(python_project, quick=quick)
+    # populate_connected_event_scenario_2(react_project, python_project, quick=quick)
+    # populate_connected_event_scenario_3(python_project, quick=quick)
