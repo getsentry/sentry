@@ -744,6 +744,31 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             kwargs={"organization_slug": self.project.organization.slug},
         )
 
+    def test_no_top_events_with_project_field(self):
+        project = self.create_project()
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    # make sure to query the project with 0 events
+                    "project": project.id,
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "project"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        # When there are no top events, we do not return an empty dict.
+        # Instead, we return a single zero-filled series for an empty graph.
+        data = response.data["data"]
+        assert [attrs for time, attrs in data] == [[{"count": 0}], [{"count": 0}]]
+
     def test_no_top_events(self):
         project = self.create_project()
         with self.feature(self.enabled_features):
