@@ -214,7 +214,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const hasQuickTraceView =
       organization.features.includes('trace-view-quick') ||
-      organization.features.includes('trace-view-errors') ||
       organization.features.includes('trace-view-summary');
 
     if (hasQuickTraceView) {

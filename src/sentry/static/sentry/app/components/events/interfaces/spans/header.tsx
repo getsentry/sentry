@@ -396,7 +396,6 @@ class TraceViewHeader extends React.Component<PropType, State> {
   render() {
     const hasQuickTraceView =
       this.props.organization.features.includes('trace-view-quick') ||
-      this.props.organization.features.includes('trace-view-errors') ||
       this.props.organization.features.includes('trace-view-summary');
 
     return (
