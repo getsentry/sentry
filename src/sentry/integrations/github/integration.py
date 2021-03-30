@@ -85,7 +85,11 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     repo_search = True
 
     def get_client(self):
-        return GitHubAppsClient(integration=self.model)
+        return GitHubAppsClient(
+            integration=self.model,
+            private_key=self.model.metadata["installation"]["private_key"],
+            app_id=self.model.metadata["installation"]["id"],
+            verify_ssl=self.model.metadata["installation"]["verify_ssl"],)
 
     def get_repositories(self, query=None):
         if not query:
@@ -149,6 +153,98 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         return True
 
 
+class InstallationForm(forms.Form):
+    id = forms.CharField(
+        label="GitHub App ID",
+        help_text=_(
+            "The App ID of your Sentry app. This can be " "found on your apps configuration page."
+        ),
+        widget=forms.TextInput(attrs={"placeholder": "1"}),
+    )
+    name = forms.CharField(
+        label="GitHub App Name",
+        help_text=_(
+            "The GitHub App name of your Sentry app. "
+            "This can be found on the apps configuration "
+            "page."
+        ),
+        widget=forms.TextInput(attrs={"placeholder": "our-sentry-app"}),
+    )
+    verify_ssl = forms.BooleanField(
+        label=_("Verify SSL"),
+        help_text=_(
+            "By default, we verify SSL certificates "
+            "when delivering payloads to your GitHub "
+            "Enterprise instance"
+        ),
+        widget=forms.CheckboxInput(),
+        required=False,
+    )
+    webhook_secret = forms.CharField(
+        label="GitHub App Webhook Secret",
+        help_text=_(
+            "We require a webhook secret to be "
+            "configured. This can be generated as any "
+            "random string value of your choice and "
+            "should match your GitHub app "
+            "configuration."
+        ),
+        widget=forms.TextInput(attrs={"placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXX"}),
+    )
+    private_key = forms.CharField(
+        label="GitHub App Private Key",
+        help_text=_("The Private Key generated for your Sentry " "GitHub App."),
+        widget=forms.Textarea(
+            attrs={
+                "rows": "60",
+                "placeholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+            }
+        ),
+    )
+    client_id = forms.CharField(
+        label="GitHub App OAuth Client ID", widget=forms.TextInput(attrs={"placeholder": "1"})
+    )
+    client_secret = forms.CharField(
+        label="GitHub App OAuth Client Secret",
+        widget=forms.TextInput(attrs={"placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXX"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["verify_ssl"].initial = True
+
+
+class InstallationConfigView(PipelineView):
+    def dispatch(self, request, pipeline):
+        if request.method == "POST":
+            form = InstallationForm(request.POST)
+            if form.is_valid():
+                form_data = form.cleaned_data
+
+                pipeline.bind_state("installation_data", form_data)
+
+                pipeline.bind_state(
+                    "oauth_config_information",
+                    {
+                        "access_token_url": "https://github.com/login/oauth/access_token",
+                        "authorize_url": "https://github.com/login/oauth/authorize",
+                        "client_id": form_data.get("client_id"),
+                        "client_secret": form_data.get("client_secret"),
+                        "verify_ssl": form_data.get("verify_ssl"),
+                    },
+                )
+
+                return pipeline.next_step()
+        else:
+            form = InstallationForm()
+
+        return render_to_response(
+            template="sentry/integrations/github-config.html",
+            context={"form": form},
+            request=request,
+        )
+
+
 class GitHubIntegrationProvider(IntegrationProvider):
     key = "github"
     name = "GitHub"
@@ -181,14 +277,20 @@ class GitHubIntegrationProvider(IntegrationProvider):
             )
 
     def get_pipeline_views(self):
-        return [GitHubInstallationRedirect()]
+        return [
+            InstallationConfigView(),
+            GitHubInstallationRedirect()
+        ]
 
-    def get_installation_info(self, installation_id):
+    def get_installation_info(self, installation_id, installation_data):
         session = http.build_session()
         resp = session.get(
             "https://api.github.com/app/installations/%s" % installation_id,
             headers={
-                "Authorization": b"Bearer %s" % get_jwt(),
+                "Authorization": b"Bearer %s" % get_jwt(
+                    github_id=installation_data["id"],
+                    github_private_key=installation_data["private_key"],
+                ),
                 "Accept": "application/vnd.github.machine-man-preview+json",
             },
         )
@@ -198,7 +300,8 @@ class GitHubIntegrationProvider(IntegrationProvider):
         return installation_resp
 
     def build_integration(self, state):
-        installation = self.get_installation_info(state["installation_id"])
+        installation_data = state["installation_data"]
+        installation = self.get_installation_info(state["installation_id"], installation_data)
 
         integration = {
             "name": installation["account"]["login"],
@@ -214,6 +317,8 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "icon": installation["account"]["avatar_url"],
                 "domain_name": installation["account"]["html_url"].replace("https://", ""),
                 "account_type": installation["account"]["type"],
+                "installation_id": state["installation_id"],
+                "installation": installation_data,
             },
         }
 

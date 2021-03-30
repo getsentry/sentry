@@ -11,7 +11,7 @@ class GitHubClientMixin(ApiClient):
     integration_name = "github"
 
     def get_jwt(self):
-        return get_jwt()
+        return get_jwt(github_id=self.app_id, github_private_key=self.private_key)
 
     def get_last_commits(self, repo, end_sha):
         # return api request that fetches last ~30 commits
@@ -116,6 +116,8 @@ class GitHubClientMixin(ApiClient):
 
 
 class GitHubAppsClient(GitHubClientMixin):
-    def __init__(self, integration):
+    def __init__(self, integration, app_id, private_key, verify_ssl):
         self.integration = integration
-        super().__init__()
+        self.app_id = app_id
+        self.private_key = private_key
+        super().__init__(verify_ssl=verify_ssl)
