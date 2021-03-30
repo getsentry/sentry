@@ -37,9 +37,11 @@ def is_root(item):
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
-        return features.has(
-            "organizations:trace-view-quick", organization, actor=request.user
-        ) or features.has("organizations:trace-view-summary", organization, actor=request.user)
+        return (
+            features.has("organizations:trace-view-quick", organization, actor=request.user)
+            or features.has("organizations:trace-view-summary", organization, actor=request.user)
+            or features.has("organizations:trace-view-errors", organization, actor=request.user)
+        )
 
     def serialize_event(self, event, parent, generation=None):
         return {
@@ -159,10 +161,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 {"extra_roots": extra_roots, **warning_extra},
             )
 
-        # Temporarily feature flagging this out, since errors will impact performance
-        if not features.has("organizations:trace-view-summary", organization, actor=request.user):
-            errors = []
-        else:
+        errors = []
+        if features.has(
+            "organizations:trace-view-errors", organization, actor=request.user
+        ) or features.has("organizations:trace-view-summary", organization, actor=request.user):
             current_transaction = find_event(result["data"], lambda t: t["id"] == event_id)
             errors = self.get_errors(organization, trace_id, params, current_transaction, event_id)
             if errors:
