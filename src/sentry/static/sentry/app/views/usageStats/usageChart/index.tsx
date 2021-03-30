@@ -55,12 +55,12 @@ export enum ChartDataTransform {
 
 export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
   {
-    label: 'Cumulative',
+    label: t('Cumulative'),
     value: ChartDataTransform.CUMULATIVE,
     disabled: false,
   },
   {
-    label: 'Day-to-Day',
+    label: t('Day-to-Day'),
     value: ChartDataTransform.DAILY,
     disabled: false,
   },
@@ -72,7 +72,20 @@ export enum SeriesTypes {
   PROJECTED = 'Projected',
 }
 
-type Props = {
+type DefaultProps = {
+  /**
+   * Modify the usageStats using the transformation method selected.
+   * 1. This must be a pure function!
+   * 2. If the parent component will handle the data transformation, you should
+   *    replace this prop with "(s) => {return s}"
+   */
+  handleDataTransformation: (
+    stats: ChartStats,
+    transform: ChartDataTransform
+  ) => ChartStats;
+};
+
+type Props = DefaultProps & {
   theme: Theme;
 
   title?: React.ReactNode;
@@ -80,12 +93,6 @@ type Props = {
 
   dataCategory: DataCategory;
   dataTransform: ChartDataTransform;
-
-  /**
-   * If the parent component will handle data rolling up between cumulative
-   * or daily, then UsageChart will skip the transformation
-   */
-  skipDataTransform: boolean;
 
   usageDateStart: string;
   usageDateEnd: string;
@@ -113,8 +120,31 @@ export type ChartStats = {
 };
 
 export class UsageChart extends React.Component<Props, State> {
-  static defaultProps: Partial<Props> = {
-    skipDataTransform: false,
+  static defaultProps: DefaultProps = {
+    handleDataTransformation: (stats, transform) => {
+      const chartData: ChartStats = {
+        accepted: [],
+        dropped: [],
+        projected: [],
+      };
+      const isCumulative = transform === ChartDataTransform.CUMULATIVE;
+
+      Object.keys(stats).forEach(k => {
+        let count = 0;
+
+        chartData[k] = stats[k].map(stat => {
+          const [x, y] = stat.value;
+          count = isCumulative ? count + y : y;
+
+          return {
+            ...stat,
+            value: [x, count],
+          };
+        });
+      });
+
+      return chartData;
+    },
   };
 
   state: State = {
@@ -146,41 +176,40 @@ export class UsageChart extends React.Component<Props, State> {
   }
 
   get chartMetadata() {
-    const {usageStats, dataCategory, dataTransform, skipDataTransform} = this.props;
+    const {
+      usageStats,
+      dataCategory,
+      dataTransform,
+      handleDataTransformation,
+    } = this.props;
     const {xAxisDates} = this.state;
 
-    const display = CHART_OPTIONS_DATACATEGORY.find(o => o.value === dataCategory);
-    if (!display) {
+    const selectDataCategory = CHART_OPTIONS_DATACATEGORY.find(
+      o => o.value === dataCategory
+    );
+    if (!selectDataCategory) {
       throw new Error('Selected item is not supported');
     }
 
+    // Do not assume that handleDataTransformation is a pure function
     const chartData: ChartStats = {
-      accepted: [],
-      dropped: [],
-      projected: [],
+      ...handleDataTransformation(usageStats, dataTransform),
     };
 
-    const isCumulative =
-      !skipDataTransform && dataTransform === ChartDataTransform.CUMULATIVE;
-
-    Object.keys(usageStats).forEach(k => {
+    Object.keys(chartData).forEach(k => {
       const isProjected = k === SeriesTypes.PROJECTED;
-      let count = 0;
 
-      chartData[k] = usageStats[k].map(stat => {
-        const [x, y] = stat.value;
-        count = isCumulative ? count + y : y;
-
+      // Map the array and destructure elements to avoid side-effects
+      chartData[k] = chartData[k].map(stat => {
         return {
           ...stat,
-          value: [x, count],
           tooltip: {show: false},
           itemStyle: {opacity: isProjected ? 0.6 : 1},
         };
       });
     });
 
-    const {label, value} = display;
+    const {label, value} = selectDataCategory;
 
     if (value === DataCategory.ERRORS || value === DataCategory.TRANSACTIONS) {
       return {

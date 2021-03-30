@@ -228,7 +228,6 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         footer={this.renderChartFooter()}
         dataCategory={dataCategory}
         dataTransform={chartDataTransform}
-        skipDataTransform={false}
         usageDateStart={usageDateStart}
         usageDateEnd={usageDateEnd}
         usageStats={chartData}
@@ -237,8 +236,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   renderChartFooter = () => {
-    const {onChangeDataCategory} = this.props;
-    const {chartDataCategory, chartDataTransform} = this.state;
+    const {dataCategory, onChangeDataCategory} = this.props;
+    const {chartDataTransform} = this.state;
 
     return (
       <ChartControls>
@@ -260,7 +259,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
           <OptionSelector
             title={t('Display')}
             menuWidth="135px"
-            selected={chartDataCategory}
+            selected={dataCategory}
             options={CHART_OPTIONS_DATACATEGORY}
             onChange={(val: string) => onChangeDataCategory(val as DataCategory)}
           />
