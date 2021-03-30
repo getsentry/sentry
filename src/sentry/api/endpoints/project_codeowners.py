@@ -1,27 +1,23 @@
 import logging
 
 from rest_framework import serializers, status
-from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin, ProjectOwnershipSerializer
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
+from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import (
-    ProjectCodeOwners,
-    ExternalUser,
     ExternalTeam,
+    ExternalUser,
+    ProjectCodeOwners,
     RepositoryProjectPathConfig,
     UserEmail,
 )
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.ownership.grammar import (
-    parse_code_owners,
-    convert_codeowners_syntax,
-)
-
-from sentry.api.endpoints.project_ownership import ProjectOwnershipSerializer, ProjectOwnershipMixin
-from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
+from sentry.ownership.grammar import convert_codeowners_syntax, parse_code_owners
 
 logger = logging.getLogger(__name__)
 

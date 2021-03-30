@@ -1,7 +1,6 @@
 from rest_framework.response import Response
 
 from sentry import analytics
-
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize

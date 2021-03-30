@@ -1,12 +1,12 @@
-from django.db.models import Q
 from django.conf import settings
+from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry import roles, features
+from sentry import features, roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers import serialize, OrganizationMemberWithTeamsSerializer
+from sentry.api.serializers import OrganizationMemberWithTeamsSerializer, serialize
 from sentry.models import AuditLogEntryEvent, InviteStatus, OrganizationMember
 from sentry.signals import member_invited
 

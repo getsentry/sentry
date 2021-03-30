@@ -1,21 +1,22 @@
 from collections import defaultdict
+
 from django.conf import settings
 
 from sentry import experiments
-from sentry.app import env
 from sentry.api.serializers import Serializer, register
+from sentry.app import env
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuthIdentity,
     Authenticator,
+    AuthIdentity,
     OrganizationMember,
     OrganizationStatus,
     User,
     UserAvatar,
-    UserOption,
     UserEmail,
+    UserOption,
     UserPermission,
 )
-from sentry.auth.superuser import is_active_superuser
 from sentry.utils.avatar import get_gravatar_url
 
 

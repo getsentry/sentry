@@ -1,7 +1,7 @@
 from rest_framework.response import Response
 
-from sentry.ingest import inbound_filters
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.ingest import inbound_filters
 
 
 class ProjectFiltersEndpoint(ProjectEndpoint):
