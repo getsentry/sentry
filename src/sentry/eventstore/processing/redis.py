@@ -1,10 +1,10 @@
 from sentry.cache.redis import RedisClusterCache
 from sentry.utils.kvstore.cache import CacheKVStorage
 
-from .base import BaseEventProcessingStore
+from .base import EventProcessingStore
 
 
-class RedisClusterEventProcessingStore(BaseEventProcessingStore):
+class RedisClusterEventProcessingStore(EventProcessingStore):
     """
     Processing store implementation using the redis cluster cache as a backend.
     """

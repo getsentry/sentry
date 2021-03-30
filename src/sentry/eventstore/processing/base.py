@@ -10,7 +10,7 @@ DEFAULT_TIMEOUT = 60 * 60 * 24
 Event = Any
 
 
-class BaseEventProcessingStore:
+class EventProcessingStore:
     """
     Store for event blobs during processing
 

@@ -1,10 +1,10 @@
 from sentry.cache import default_cache
 from sentry.utils.kvstore.cache import CacheKVStorage
 
-from .base import BaseEventProcessingStore
+from .base import EventProcessingStore
 
 
-class DefaultEventProcessingStore(BaseEventProcessingStore):
+class DefaultEventProcessingStore(EventProcessingStore):
     """
     Default implementation of processing store which uses the `default_cache`
     as backend.
