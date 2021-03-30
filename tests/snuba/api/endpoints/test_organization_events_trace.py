@@ -12,7 +12,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
     FEATURES = [
         "organizations:trace-view-quick",
-        "organizations:trace-view-errors",
         "organizations:trace-view-summary",
         "organizations:global-views",
     ]

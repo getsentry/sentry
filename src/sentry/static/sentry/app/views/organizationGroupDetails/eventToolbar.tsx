@@ -145,7 +145,7 @@ class GroupEventToolbar extends React.Component<Props> {
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
     const hasQuickTraceView =
       (organization.features.includes('trace-view-summary') ||
-        organization.features.includes('trace-view-errors')) &&
+        organization.features.includes('trace-view-quick')) &&
       evt.contexts?.trace?.trace_id;
 
     return (
