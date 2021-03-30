@@ -1,40 +1,37 @@
-import re
-import jsonschema
 import logging
 import posixpath
+import re
 
+import jsonschema
 from django.db import transaction
-from django.db.models import Q, Count
-from django.http import StreamingHttpResponse, HttpResponse, Http404
+from django.db.models import Count, Q
+from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.response import Response
-from symbolic import normalize_debug_id, SymbolicError
+from symbolic import SymbolicError, normalize_debug_id
 
 from sentry import ratelimits, roles
-
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.models import (
-    FileBlobOwner,
-    ProjectDebugFile,
-    create_files_from_dif_zip,
-    Release,
-    ReleaseFile,
-    OrganizationMember,
-)
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.tasks.assemble import (
-    get_assemble_status,
-    set_assemble_status,
-    AssembleTask,
-    ChunkFileState,
-)
-from sentry.utils import json
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
-from sentry.constants import DEBUG_FILES_ROLE_DEFAULT
-
+from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
+from sentry.models import (
+    FileBlobOwner,
+    OrganizationMember,
+    ProjectDebugFile,
+    Release,
+    ReleaseFile,
+    create_files_from_dif_zip,
+)
+from sentry.tasks.assemble import (
+    AssembleTask,
+    ChunkFileState,
+    get_assemble_status,
+    set_assemble_status,
+)
+from sentry.utils import json
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"

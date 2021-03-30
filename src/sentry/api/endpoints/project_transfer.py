@@ -1,12 +1,12 @@
 import logging
-from uuid import uuid4
 from urllib.parse import urlencode
+from uuid import uuid4
 
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry import roles, options
+from sentry import options, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.models import AuditLogEntryEvent, OrganizationMember
