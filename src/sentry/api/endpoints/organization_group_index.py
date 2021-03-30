@@ -32,7 +32,7 @@ from sentry.models import (
     GroupInbox,
     GroupStatus,
     Project,
-}
+)
 from sentry.search.snuba.backend import (
     EventsDatasetSnubaSearchBackend,
     assigned_or_suggested_filter,

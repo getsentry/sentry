@@ -3,6 +3,7 @@ from django.db.models.query import QuerySet
 from typing import Iterable, Optional
 
 from sentry.db.models import BaseManager
+from sentry.models.actor import ACTOR_TYPES
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -180,7 +181,7 @@ class NotificationsManager(BaseManager):
             if not created and setting.value != value.value:
                 setting.update(value=value.value)
 
-            if target.type == 1:
+            if target.type == ACTOR_TYPES["user"]:
                 UserOption.objects.set_value(
                     user, key=key, value=legacy_value, project=project, organization=organization
                 )
@@ -279,7 +280,7 @@ class NotificationsManager(BaseManager):
     def remove_for_organization(
         self, organization, type: Optional[NotificationSettingTypes] = None
     ) -> None:
-        """ Bulk delete all Notification Settings for a ENTIRE ORGANIZATION, optionally by type. """
+        """ Bulk delete all Notification Settings for an ENTIRE ORGANIZATION, optionally by type. """
         UserOption.objects.filter(
             **self._get_legacy_filters(type, organization=organization)
         ).delete()
