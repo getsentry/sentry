@@ -156,7 +156,7 @@ apply-migrations() {
     sentry upgrade  --noinput
 }
 
-create_user() {
+create-user() {
   if [[ -n ${GITHUB_ACTIONS} ]]; then
     sentry createuser --superuser --email foo@tbd.com --no-password
   else
