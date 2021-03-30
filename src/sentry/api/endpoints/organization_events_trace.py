@@ -264,13 +264,16 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                             0,
                         )
                     )
+                    current_generation = 1
             else:
-                is_root_child = None
+                is_root_child = False
+                if root is not None and root["id"] == snuba_event["id"]:
+                    current_generation = 0
+                else:
+                    current_generation = None
 
             current_event = self.serialize_event(
-                snuba_event,
-                root["id"] if is_root_child else None,
-                1 if is_root_child else 0 if root and root["id"] == snuba_event["id"] else None,
+                snuba_event, root["id"] if is_root_child else None, current_generation
             )
             trace_results.append(current_event)
 
