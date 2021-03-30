@@ -1,24 +1,24 @@
-from io import BytesIO
-import warnings
-import time
 import logging
-
-from sentry import options
-from django.core.exceptions import SuspiciousOperation
+import time
+import warnings
 from collections import namedtuple
-from django.conf import settings
-from requests.exceptions import RequestException, Timeout, ReadTimeout
+from io import BytesIO
 from urllib.parse import urlparse
 
-from sentry.models import EventError
+from django.conf import settings
+from django.core.exceptions import SuspiciousOperation
+from requests.exceptions import ReadTimeout, RequestException, Timeout
+
+from sentry import options
 from sentry.exceptions import RestrictedIPAddress
+from sentry.models import EventError
+from sentry.net.http import SafeSession
+
+# Importing for backwards compatible API
+from sentry.net.socket import is_safe_hostname, is_valid_url, safe_socket_connect  # NOQA
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.strings import truncatechars
-
-# Importing for backwards compatible API
-from sentry.net.socket import safe_socket_connect, is_valid_url, is_safe_hostname  # NOQA
-from sentry.net.http import SafeSession
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,8 @@ UrlResult = namedtuple("UrlResult", ["url", "headers", "body", "status", "encodi
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
-    from OpenSSL.SSL import ZeroReturnError, Error as OpenSSLError
+    from OpenSSL.SSL import Error as OpenSSLError
+    from OpenSSL.SSL import ZeroReturnError
 except ImportError:
 
     class ZeroReturnError(Exception):

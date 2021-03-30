@@ -79,20 +79,19 @@ instead of group deletion is:
 
 import hashlib
 import logging
-import sentry_sdk
-from sentry.utils import json
 
+import sentry_sdk
 from django.conf import settings
 
-from sentry import nodestore, eventstore, models, options
-from sentry.eventstore.models import Event
+from sentry import eventstore, models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.utils import snuba
-from sentry.utils.cache import cache_key_for_event
-from sentry.utils.safe import set_path, get_path
-from sentry.utils.redis import redis_clusters
-from sentry.eventstore.processing import event_processing_store
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
+from sentry.eventstore.models import Event
+from sentry.eventstore.processing import event_processing_store
+from sentry.utils import json, snuba
+from sentry.utils.cache import cache_key_for_event
+from sentry.utils.redis import redis_clusters
+from sentry.utils.safe import get_path, set_path
 
 logger = logging.getLogger("sentry.reprocessing")
 
@@ -145,8 +144,8 @@ def backup_unprocessed_event(project, data):
 
 def reprocess_event(project_id, event_id, start_time):
 
-    from sentry.tasks.store import preprocess_event_from_reprocessing
     from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
+    from sentry.tasks.store import preprocess_event_from_reprocessing
 
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
         node_id = Event.generate_node_id(project_id, event_id)

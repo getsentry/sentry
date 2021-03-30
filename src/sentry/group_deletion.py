@@ -1,7 +1,6 @@
 from uuid import uuid4
 
 from sentry import eventstream
-
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox

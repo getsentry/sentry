@@ -1,8 +1,7 @@
-from django.conf import settings
-
 from celery import Celery
-from celery.worker.request import Request
 from celery.app.task import Task
+from celery.worker.request import Request
+from django.conf import settings
 
 from sentry.utils import metrics
 
