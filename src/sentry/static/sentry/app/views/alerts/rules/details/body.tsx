@@ -408,7 +408,7 @@ const HeaderContainer = styled('div')`
 
 const StyledAlert = styled(Alert)`
   margin: ${space(3)} ${space(4)} 0;
-`
+`;
 
 const ActivityWrapper = styled('div')`
   display: flex;
