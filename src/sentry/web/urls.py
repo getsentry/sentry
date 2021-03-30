@@ -77,7 +77,7 @@ if settings.DEBUG:
     # Special favicon in debug mode
     urlpatterns += [
         url(
-            r"^_static/[^/]+/[^/]+/images/favicon\.(ico|png)$",
+            r"^_assets/[^/]+/[^/]+/images/favicon\.(ico|png)$",
             generic.dev_favicon,
             name="sentry-dev-favicon",
         ),
@@ -92,12 +92,12 @@ urlpatterns += [
     # Frontend client config
     url(r"^api/client-config/?$", api.ClientConfigView.as_view(), name="sentry-api-client-config"),
     url(
-        r"^_static/(?P<module>[^/]+)/dist/(?P<path>.*)$",
+        r"^_assets/(?P<module>[^/]+)/dist/(?P<path>.*)$",
         generic.static_media_with_manifest,
         name="sentry-webpack-media",
     ),
     url(
-        r"^_static/(?P<module>[^/]+)/(?P<path>.*)$",
+        r"^_assets/(?P<module>[^/]+)/(?P<path>.*)$",
         generic.static_media,
         name="sentry-media",
     ),

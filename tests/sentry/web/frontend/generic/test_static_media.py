@@ -10,7 +10,7 @@ from sentry.web.frontend.generic import FOREVER_CACHE, NEVER_CACHE
 class StaticMediaTest(TestCase):
     @override_settings(DEBUG=False)
     def test_basic(self):
-        url = "/_static/sentry/js/ads.js"
+        url = "/_assets/sentry/js/ads.js"
         response = self.client.get(url)
         assert response.status_code == 200, response
         assert response["Cache-Control"] == NEVER_CACHE
@@ -40,7 +40,7 @@ class StaticMediaTest(TestCase):
             "Content-Encoding" not in response
 
             # non-existant dist file
-            response = self.client.get("/_static/sentry/dist/invalid.js")
+            response = self.client.get("/_assets/sentry/dist/invalid.js")
             assert response.status_code == 404, response
 
             with override_settings(DEBUG=True):
@@ -52,7 +52,7 @@ class StaticMediaTest(TestCase):
 
     @override_settings(DEBUG=False)
     def test_no_cors(self):
-        url = "/_static/sentry/images/favicon.ico"
+        url = "/_assets/sentry/images/favicon.ico"
         response = self.client.get(url)
         assert response.status_code == 200, response
         assert response["Cache-Control"] == NEVER_CACHE
@@ -61,12 +61,12 @@ class StaticMediaTest(TestCase):
         "Content-Encoding" not in response
 
     def test_404(self):
-        url = "/_static/sentry/app/thisfiledoesnotexistlol.js"
+        url = "/_assets/sentry/app/thisfiledoesnotexistlol.js"
         response = self.client.get(url)
         assert response.status_code == 404, response
 
     def test_gzip(self):
-        url = "/_static/sentry/js/ads.js"
+        url = "/_assets/sentry/js/ads.js"
         response = self.client.get(url, HTTP_ACCEPT_ENCODING="gzip,deflate")
         assert response.status_code == 200, response
         assert response["Vary"] == "Accept-Encoding"
@@ -92,20 +92,20 @@ class StaticMediaTest(TestCase):
                 pass
 
     def test_file_not_found(self):
-        url = "/_static/sentry/app/xxxxxxxxxxxxxxxxxxxxxxxx.js"
+        url = "/_assets/sentry/app/xxxxxxxxxxxxxxxxxxxxxxxx.js"
         response = self.client.get(url)
         assert response.status_code == 404, response
 
     def test_bad_access(self):
-        url = "/_static/sentry/images/../../../../../etc/passwd"
+        url = "/_assets/sentry/images/../../../../../etc/passwd"
         response = self.client.get(url)
         assert response.status_code == 404, response
 
     def test_directory(self):
-        url = "/_static/sentry/images/"
+        url = "/_assets/sentry/images/"
         response = self.client.get(url)
         assert response.status_code == 404, response
 
-        url = "/_static/sentry/images"
+        url = "/_assets/sentry/images"
         response = self.client.get(url)
         assert response.status_code == 404, response
