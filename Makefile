@@ -1,52 +1,25 @@
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
 
-bootstrap: develop init-config run-dependent-services create-db apply-migrations create-user build-platform-assets
+bootstrap \
+develop \
+clean \
+init-config \
+run-dependent-services \
+drop-db \
+create-db \
+apply-migrations \
+reset-db \
+setup-git \
+node-version-check \
+install-js-dev \
+install-py-dev :
+	@./scripts/do.sh $@
 
-develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
-
-clean:
-	@echo "--> Cleaning static cache"
-	rm -rf dist/* static/dist/*
-	@echo "--> Cleaning integration docs cache"
-	rm -rf src/sentry/integration-docs
-	@echo "--> Cleaning pyc files"
-	find . -name "*.pyc" -delete
-	@echo "--> Cleaning python build artifacts"
-	rm -rf build/ dist/ src/sentry/assets.json
-	@echo ""
-
-init-config: ensure-venv
-	sentry init --dev
-
-run-dependent-services: ensure-venv
-	sentry devservices up
-
-DROPDB := $(shell command -v dropdb 2> /dev/null)
-ifndef DROPDB
-	DROPDB = docker exec sentry_postgres dropdb
-endif
-CREATEDB := $(shell command -v createdb 2> /dev/null)
-ifndef CREATEDB
-	CREATEDB = docker exec sentry_postgres createdb
-endif
-
-drop-db:
-	@echo "--> Dropping existing 'sentry' database"
-	$(DROPDB) -h 127.0.0.1 -U postgres sentry || true
-
-create-db:
-	@echo "--> Creating 'sentry' database"
-	$(CREATEDB) -h 127.0.0.1 -U postgres -E utf-8 sentry || true
-
-apply-migrations: ensure-venv
-	@echo "--> Applying migrations"
-	sentry upgrade --noinput
-
-create-user:
-	@./scripts/do.sh create_user
-
-reset-db: drop-db create-db apply-migrations
+build-platform-assets \
+upgrade-pip \
+setup-git-config :
+	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
 
 # This only needs to be called once after Docker gets installed
 init-docker:
@@ -56,46 +29,7 @@ start-docker:
 	@./scripts/do.sh start_docker
 
 setup-pyenv:
-	./scripts/pyenv_setup.sh
-
-ensure-venv:
-	./scripts/ensure-venv.sh
-
-ensure-pinned-pip: ensure-venv upgrade-pip
-
-upgrade-pip:
-	./scripts/python.sh upgrade-pip
-
-setup-git-config:
-	@git config --local branch.autosetuprebase always
-	@git config --local core.ignorecase false
-	@git config --local blame.ignoreRevsFile .git-blame-ignore-revs
-
-setup-git: ensure-venv setup-git-config
-	@echo "--> Installing git hooks"
-	mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./
-	@python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
-	$(PIP) install -r requirements-pre-commit.txt
-	@pre-commit install --install-hooks
-	@echo ""
-
-node-version-check:
-	@# Checks to see if node's version matches the one specified in package.json for Volta.
-	@node -pe "process.exit(Number(!(process.version == 'v' + require('./package.json').volta.node )))" || \
-	(echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'; exit 1)
-
-install-js-dev: node-version-check
-	@echo "--> Installing Yarn packages (for development)"
-	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
-	NODE_ENV=development yarn install --frozen-lockfile
-	# A common problem is with node packages not existing in `node_modules` even though `yarn install`
-	# says everything is up to date. Even though `yarn install` is run already, it doesn't take into
-	# account the state of the current filesystem (it only checks .yarn-integrity).
-	# Add an additional check against `node_modules`
-	yarn check --verify-tree || yarn install --check-files
-
-install-py-dev:
-	./scripts/python.sh install-py-dev
+	@./scripts/pyenv_setup.sh
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -121,9 +55,9 @@ sync-transifex: merge-locale-catalogs
 
 update-transifex: sync-transifex compile-locale
 
-build-platform-assets:
-	@echo "--> Building platform assets"
-	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+build-chartcuterie-config:
+	@echo "--> Building chartcuterie config module"
+	yarn build-chartcuterie-config
 
 fetch-release-registry:
 	@echo "--> Fetching release registry"
@@ -177,9 +111,19 @@ test-snuba:
 	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
+backend-typing:
+	@echo "--> Running Python typing checks"
+	mypy --strict --warn-unreachable --config-file mypy.ini
+	@echo ""
+
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
+	@echo ""
+
+test-chartcuterie:
+	@echo "--> Running chartcuterie tests"
+	pytest tests/chartcuterie -vv --cov . --cov-report="xml:.artifacts/chartcuterie.coverage.xml" --junit-xml=".artifacts/chartcuterie.junit.xml"
 	@echo ""
 
 test-acceptance: node-version-check
@@ -223,4 +167,4 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop bootstrap build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
+.PHONY: build

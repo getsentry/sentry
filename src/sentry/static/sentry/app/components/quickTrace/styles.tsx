@@ -18,6 +18,7 @@ export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
 export const QuickTraceContainer = styled('div')`
   display: flex;
   align-items: center;
+  height: 24px;
 `;
 
 const nodeColors = (theme: Theme) => ({
@@ -28,7 +29,7 @@ const nodeColors = (theme: Theme) => ({
   },
   warning: {
     color: theme.red300,
-    background: theme.white,
+    background: theme.background,
     border: theme.red300,
   },
   white: {
@@ -45,6 +46,7 @@ const nodeColors = (theme: Theme) => ({
 
 export const EventNode = styled(Tag)<{pad?: 'left' | 'right'}>`
   span {
+    display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
   }
   & ${/* sc-selector */ Background} {
@@ -95,6 +97,13 @@ export const DropdownItemSubContainer = styled('div')`
 
 export const StyledTruncate = styled(Truncate)`
   white-space: nowrap;
+`;
+
+export const ErrorNodeContent = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  grid-gap: ${space(0.25)};
+  align-items: center;
 `;
 
 export function SingleEventHoverText({event}: {event: QuickTraceEvent}) {

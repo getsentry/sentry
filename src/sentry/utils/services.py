@@ -3,14 +3,14 @@ import inspect
 import itertools
 import logging
 import threading
+from typing import Tuple
 
-from django.utils.functional import empty, LazyObject
+from django.utils.functional import LazyObject, empty
 
-from sentry.utils import warnings, metrics
+from sentry.utils import metrics, warnings
 from sentry.utils.concurrent import FutureSet, ThreadedExecutor
 
 from .imports import import_string
-
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ def raises(exceptions):
 
 
 class Service:
-    __all__ = ()
+    __all__: Tuple[str, ...] = ()
 
     def validate(self):
         """

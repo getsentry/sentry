@@ -12,6 +12,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
+import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 import IssueRuleEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
 
@@ -33,6 +34,7 @@ type AlertType = 'metric' | 'issue' | null;
 type State = {
   alertType: AlertType;
   eventView: EventView | undefined;
+  wizardTemplate?: WizardRuleTemplate;
 };
 
 class Create extends React.Component<Props, State> {
@@ -56,10 +58,28 @@ class Create extends React.Component<Props, State> {
       session_id: this.sessionId,
     });
 
-    if (location?.query?.createFromDiscover) {
-      const eventView = EventView.fromLocation(location);
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({alertType: 'metric', eventView});
+    if (location?.query) {
+      const {query} = location;
+      const {createFromDiscover, createFromWizard} = query;
+      if (createFromDiscover) {
+        const eventView = EventView.fromLocation(location);
+        // eslint-disable-next-line react/no-did-mount-set-state
+        this.setState({alertType: 'metric', eventView});
+      } else if (createFromWizard) {
+        const {aggregate, dataset, eventTypes} = query;
+        if (aggregate && dataset && eventTypes) {
+          // eslint-disable-next-line react/no-did-mount-set-state
+          this.setState({
+            alertType: 'metric',
+            wizardTemplate: {aggregate, dataset, eventTypes},
+          });
+        } else {
+          // eslint-disable-next-line react/no-did-mount-set-state
+          this.setState({
+            alertType: 'issue',
+          });
+        }
+      }
     }
   }
 
@@ -78,9 +98,10 @@ class Create extends React.Component<Props, State> {
       project,
       params: {projectId},
     } = this.props;
-    const {alertType, eventView} = this.state;
+    const {alertType, eventView, wizardTemplate} = this.state;
 
-    const shouldShowAlertTypeChooser = hasMetricAlerts;
+    const hasWizard = organization.features.includes('alert-wizard');
+    const shouldShowAlertTypeChooser = hasMetricAlerts && !hasWizard;
     const title = t('New Alert Rule');
 
     return (
@@ -111,6 +132,7 @@ class Create extends React.Component<Props, State> {
             <IncidentRulesCreate
               {...this.props}
               eventView={eventView}
+              wizardTemplate={wizardTemplate}
               sessionId={this.sessionId}
               project={project}
             />

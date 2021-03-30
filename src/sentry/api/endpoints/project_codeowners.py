@@ -1,7 +1,5 @@
 import logging
 
-from django.utils import timezone
-
 from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -23,6 +21,7 @@ from sentry.ownership.grammar import (
 )
 
 from sentry.api.endpoints.project_ownership import ProjectOwnershipSerializer, ProjectOwnershipMixin
+from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +116,14 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         return []
 
     def validate_code_mapping_id(self, code_mapping_id):
+        if ProjectCodeOwners.objects.filter(
+            repository_project_path_config=code_mapping_id
+        ).exists() and (
+            not self.instance
+            or (self.instance.repository_project_path_config_id != code_mapping_id)
+        ):
+            raise serializers.ValidationError("This code mapping is already in use.")
+
         try:
             return RepositoryProjectPathConfig.objects.get(
                 id=code_mapping_id, project=self.context["project"]
@@ -125,14 +132,6 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError("This code mapping does not exist.")
 
     def create(self, validated_data):
-        # Create a project_ownership record with default values if none exists.
-        ownership = self.context["ownership"]
-        if ownership.id is None:
-            now = timezone.now()
-            ownership.date_created = now
-            ownership.last_updated = now
-            ownership.save()
-
         # Save projectcodeowners record
         repository_project_path_config = validated_data.pop("code_mapping_id", None)
         project = self.context["project"]
@@ -172,9 +171,17 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         if not self.has_feature(request, project):
             raise PermissionDenied
 
+        expand = request.GET.getlist("expand", [])
         codeowners = list(ProjectCodeOwners.objects.filter(project=project))
 
-        return Response(serialize(codeowners, request.user), status.HTTP_200_OK)
+        return Response(
+            serialize(
+                codeowners,
+                request.user,
+                serializer=projectcodeowners_serializers.ProjectCodeOwnersSerializer(expand=expand),
+            ),
+            status.HTTP_200_OK,
+        )
 
     def post(self, request, project):
         """

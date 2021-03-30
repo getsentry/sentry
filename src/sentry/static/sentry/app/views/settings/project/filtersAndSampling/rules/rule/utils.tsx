@@ -11,9 +11,12 @@ export function getInnerNameLabel(name: DynamicSamplingInnerName) {
     case DynamicSamplingInnerName.TRACE_RELEASE:
     case DynamicSamplingInnerName.EVENT_RELEASE:
       return t('Release');
-    case DynamicSamplingInnerName.EVENT_USER:
-    case DynamicSamplingInnerName.TRACE_USER:
-      return t('User');
+    case DynamicSamplingInnerName.EVENT_USER_ID:
+    case DynamicSamplingInnerName.TRACE_USER_ID:
+      return t('User Id');
+    case DynamicSamplingInnerName.EVENT_USER_SEGMENT:
+    case DynamicSamplingInnerName.TRACE_USER_SEGMENT:
+      return t('User Segment');
     case DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS:
       return t('Browser Extensions');
     case DynamicSamplingInnerName.EVENT_LOCALHOST:

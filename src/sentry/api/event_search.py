@@ -266,7 +266,9 @@ class SearchKey(namedtuple("SearchKey", "name")):
     @cached_property
     def is_tag(self):
         return TAG_KEY_RE.match(self.name) or (
-            self.name not in SEARCH_MAP and not self.is_measurement
+            self.name not in SEARCH_MAP
+            and self.name not in FIELD_ALIASES
+            and not self.is_measurement
         )
 
     @cached_property
@@ -315,6 +317,7 @@ class SearchVisitor(NodeVisitor):
         "p95",
         "p99",
         "failure_rate",
+        "count_miserable",
         "user_misery",
     }
     date_keys = {
@@ -324,6 +327,8 @@ class SearchVisitor(NodeVisitor):
         "last_seen",
         "time",
         "timestamp",
+        "timestamp.to_hour",
+        "timestamp.to_day",
         "transaction.start_time",
         "transaction.end_time",
     }
@@ -932,11 +937,20 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
         return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
     else:
-        value = (
-            int(to_timestamp(value)) * 1000
-            if isinstance(value, datetime) and name != "timestamp"
-            else value
-        )
+        # timestamp{,.to_{hour,day}} need a datetime string
+        # last_seen needs an integer
+        if isinstance(value, datetime) and name not in {
+            "timestamp",
+            "timestamp.to_hour",
+            "timestamp.to_day",
+        }:
+            value = int(to_timestamp(value)) * 1000
+
+        # most field aliases are handled above but timestamp.to_{hour,day} are
+        # handled here
+        if name in FIELD_ALIASES:
+            name = FIELD_ALIASES[name].get_expression(params)
+
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
@@ -952,7 +966,8 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
                 return [["isNull", [name]], search_filter.operator, 1]
 
         is_null_condition = None
-        if search_filter.operator == "!=" and not search_filter.key.is_tag:
+        # TODO(wmak): Skip this for all non-nullable keys not just event.type
+        if search_filter.operator == "!=" and not search_filter.key.is_tag and name != "event.type":
             # Handle null columns on inequality comparisons. Any comparison
             # between a value and a null will result to null, so we need to
             # explicitly check for whether the condition is null, and OR it
@@ -1396,9 +1411,9 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     ]
 
 
-# When adding aliases to this list please also update
-# static/app/utils/discover/fields.tsx so that
-# the UI builder stays in sync.
+# When updating this list, also check if the following need to be updated:
+# - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
+# - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
 FIELD_ALIASES = {
     field.name: field
     for field in [
@@ -1958,9 +1973,9 @@ def reflective_result_type(index=0):
     return result_type_fn
 
 
-# When adding functions to this list please also update
-# static/sentry/app/utils/discover/fields.tsx so that
-# the UI builder stays in sync.
+# When updating this list, also check if the following need to be updated:
+# - convert_search_filter_to_snuba_query
+# - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
 FUNCTIONS = {
     function.name: function
     for function in [
@@ -2042,10 +2057,34 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
+            "count_miserable",
+            required_args=[CountColumn("column"), NumberRange("satisfaction", 0, None)],
+            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+            aggregate=[
+                "uniqIf",
+                [ArgValue("column"), ["greater", ["transaction.duration", ArgValue("tolerated")]]],
+                None,
+            ],
+            default_result_type="number",
+        ),
+        Function(
             "user_misery",
             required_args=[NumberRange("satisfaction", 0, None)],
-            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-            transform="uniqIf(user, greater(duration, {tolerated:g}))",
+            # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
+            # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
+            # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
+            # with the user misery being adjusted for each fast/slow unique transaction. See:
+            # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
+            # for an intuitive explanation of the Beta Distribution Function.
+            optional_args=[
+                with_default(5.8875, NumberRange("alpha", 0, None)),
+                with_default(111.8625, NumberRange("beta", 0, None)),
+            ],
+            calculated_args=[
+                {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
+                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+            ],
+            transform="ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
             default_result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),
