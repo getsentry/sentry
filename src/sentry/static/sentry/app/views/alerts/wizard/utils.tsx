@@ -2,6 +2,7 @@ import {Dataset} from 'app/views/settings/incidentRules/types';
 
 import {AlertType, WizardRuleTemplate} from './options';
 
+// A set of unique identifiers to be able to tie aggregate and dataset back to a wizard alert type
 const alertTypeIdentifiers: Record<Dataset, Partial<Record<AlertType, string>>> = {
   [Dataset.ERRORS]: {
     num_errors: 'count()',
@@ -14,6 +15,11 @@ const alertTypeIdentifiers: Record<Dataset, Partial<Record<AlertType, string>>> 
   },
 };
 
+/**
+ * Given an aggregate and dataset object, will return the corresponding wizard alert type
+ * e.g. {aggregate: 'count()', dataset: 'events'} will yield 'num_errors'
+ * @param template
+ */
 export function getAlertTypeFromAggregateDataset({
   aggregate,
   dataset,
