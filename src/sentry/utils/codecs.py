@@ -11,6 +11,11 @@ TEncoded = TypeVar("TEncoded")
 
 
 class Codec(ABC, Generic[TDecoded, TEncoded]):
+    """
+    Codes provides bidirectional encoding/decoding (mapping) from one type
+    to another.
+    """
+
     @abstractmethod
     def encode(self, value: TDecoded) -> TEncoded:
         raise NotImplementedError
@@ -20,6 +25,13 @@ class Codec(ABC, Generic[TDecoded, TEncoded]):
         raise NotImplementedError
 
     def __or__(self, codec: "Codec[TEncoded, T]") -> "Codec[TDecoded, T]":
+        """
+        Create a new codec by pipelining it with another codec.
+
+        When encoding, the output of this codec is provided as the input to
+        the provided codec. When decoding, the output of the provided codec
+        is used as the input to this codec.
+        """
         return ChainedCodec(self, codec)
 
 
@@ -36,6 +48,11 @@ class ChainedCodec(Codec[TDecoded, TEncoded]):
 
 
 class BytesCodec(Codec[str, bytes]):
+    """
+    Encode/decode strings to/from bytes using the encoding provided to the
+    constructor.
+    """
+
     def __init__(self, encoding: str = "utf8"):
         self.encoding = encoding
 
@@ -47,6 +64,10 @@ class BytesCodec(Codec[str, bytes]):
 
 
 class JSONCodec(Codec[JSONData, str]):
+    """
+    Encode/decode Python data structures to/from JSON-encoded strings.
+    """
+
     def encode(self, value: JSONData) -> str:
         return json.dumps(value)
 

@@ -6,6 +6,14 @@ from sentry.utils.kvstore.abstract import K, KVStorage
 
 
 class CodecWrapper(KVStorage[K, TDecoded]):
+    """
+    This class provides a wrapper that can be used to transparently
+    encode/decode values in the provided key/value storage to another type on
+    reading and writing by using the provided codec. This allows key/value
+    storages that have different value types to be used interchangably by
+    wrapping one or both storages so that they expect a common type.
+    """
+
     def __init__(
         self, store: KVStorage[K, TEncoded], value_codec: Codec[TDecoded, TEncoded]
     ) -> None:

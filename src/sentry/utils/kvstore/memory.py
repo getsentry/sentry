@@ -12,6 +12,11 @@ class Record(Generic[V]):
 
 
 class MemoryKVStorage(KVStorage[K, V]):
+    """
+    This class provides an in-memory key/value store. It is intended for use
+    in testing as a lightweight substitute for other backends.
+    """
+
     def __init__(self) -> None:
         self.__records: MutableMapping[K, Record[V]] = {}
 
