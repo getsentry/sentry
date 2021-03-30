@@ -21,13 +21,6 @@ upgrade-pip \
 setup-git-config :
 	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
 
-# This only needs to be called once after Docker gets installed
-init-docker:
-	@./scripts/do.sh init_docker
-
-start-docker:
-	@./scripts/do.sh start_docker
-
 setup-pyenv:
 	@./scripts/pyenv_setup.sh
 
