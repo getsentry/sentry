@@ -936,7 +936,7 @@ export type GroupStats = GroupFiltered & {
   id: string;
 };
 
-type BaseGroupStatusReprocessing = {
+export type BaseGroupStatusReprocessing = {
   status: 'reprocessing';
   statusDetails: {
     pendingEvents: number;
