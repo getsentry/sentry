@@ -11,6 +11,7 @@ import {EventQuery} from 'app/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {DEFAULT_PER_PAGE} from 'app/constants';
+import {t} from 'app/locale';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
 import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
@@ -1066,13 +1067,21 @@ class EventView {
 
       if (item.value === DisplayModes.TOP5 || item.value === DisplayModes.DAILYTOP5) {
         if (this.getAggregateFields().length === 0) {
-          return {...item, disabled: true};
+          return {
+            ...item,
+            disabled: true,
+            tooltip: t('At least one aggregate function is required to use this view.'),
+          };
         }
       }
 
       if (item.value === DisplayModes.DAILY || item.value === DisplayModes.DAILYTOP5) {
         if (this.getDays() < 1) {
-          return {...item, disabled: true};
+          return {
+            ...item,
+            disabled: true,
+            tooltip: t('Date range must be at least 1 day to use this view.'),
+          };
         }
       }
 
