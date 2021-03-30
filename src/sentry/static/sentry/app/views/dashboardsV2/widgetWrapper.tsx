@@ -11,21 +11,11 @@ const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
     switch (p.displayType) {
       case 'big_number':
         return `
-          /* 2 cols */
+          /* 2 and 4 cols */
           grid-area: span 1 / span 1;
 
-          @media (min-width: ${p.theme.breakpoints[1]}) {
-            /* 4 cols */
-            grid-area: span 1 / span 1;
-          }
-
           @media (min-width: ${p.theme.breakpoints[3]}) {
-            /* 6 cols */
-            grid-area: span 1 / span 2;
-          }
-
-          @media (min-width: ${p.theme.breakpoints[4]}) {
-            /* 8 cols */
+            /* 6 and 8 cols */
             grid-area: span 1 / span 2;
           }
         `;
@@ -35,17 +25,7 @@ const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
           grid-area: span 1 / span 2;
 
           @media (min-width: ${p.theme.breakpoints[1]}) {
-            /* 4 cols */
-            grid-area: span 2 / span 2;
-          }
-
-          @media (min-width: ${p.theme.breakpoints[3]}) {
-            /* 6 cols */
-            grid-area: span 2 / span 2;
-          }
-
-          @media (min-width: ${p.theme.breakpoints[4]}) {
-            /* 8 cols */
+            /* 4, 6 and 8 cols */
             grid-area: span 2 / span 2;
           }
         `;
