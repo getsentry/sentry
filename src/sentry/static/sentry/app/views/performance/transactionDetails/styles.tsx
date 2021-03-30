@@ -25,13 +25,13 @@ export function MetaData({
     <HeaderInfo>
       <StyledSectionHeading>
         {headingText}
-        {beta && <StyledFeatureBadge type="beta" />}
         <QuestionTooltip
           position="top"
           size="sm"
           containerDisplayMode="block"
           title={tooltipText}
         />
+        {beta && <StyledFeatureBadge type="beta" />}
       </StyledSectionHeading>
       <SectionBody>{bodyText}</SectionBody>
       <SectionSubtext>{subtext}</SectionSubtext>
