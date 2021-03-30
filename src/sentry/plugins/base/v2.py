@@ -469,6 +469,15 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     def handle_signal(self, name, payload, **kwargs):
         pass
 
+    def get_required_attachment_types(self, data):
+        """
+        For a given event, determine the required attachment type. This is
+        only used by reprocessing to check if we can even theoretically
+        reprocess this event.
+        """
+
+        return []
+
 
 class Plugin2(IPlugin2, metaclass=PluginMount):
     """

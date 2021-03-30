@@ -1,6 +1,8 @@
 import time
 import logging
 
+import sentry_sdk
+
 from django.db import transaction
 
 from sentry import eventstore, eventstream, models, nodestore
@@ -8,7 +10,7 @@ from sentry.eventstore.models import Event
 from sentry.utils.query import celery_run_batch_query
 from sentry.tasks.base import instrumented_task, retry
 
-GROUP_REPROCESSING_CHUNK_SIZE = 100
+GROUP_REPROCESSING_CHUNK_SIZE = 10
 
 nodestore_stats_logger = logging.getLogger("sentry.nodestore.stats")
 
@@ -29,7 +31,13 @@ def reprocess_group(
     max_events=None,
     acting_user_id=None,
 ):
-    from sentry.reprocessing2 import start_group_reprocessing
+    sentry_sdk.set_tag("project", project_id)
+    from sentry.reprocessing2 import (
+        start_group_reprocessing,
+        reprocess_event,
+        CannotReprocess,
+        logger,
+    )
 
     if start_time is None:
         assert new_group_id is None
@@ -58,15 +66,26 @@ def reprocess_group(
 
     for event in events:
         if max_events is None or max_events > 0:
-            reprocess_event.delay(
-                project_id=project_id,
-                event_id=event.event_id,
-                start_time=start_time,
-            )
-            if max_events is not None:
-                max_events -= 1
-        else:
-            remaining_event_ids.append(event.event_id)
+            with sentry_sdk.start_span(op="reprocess_event"):
+                try:
+                    reprocess_event(
+                        project_id=project_id,
+                        event_id=event.event_id,
+                        start_time=start_time,
+                    )
+                except CannotReprocess as e:
+                    logger.error(f"reprocessing2.{e}")
+                except Exception:
+                    sentry_sdk.capture_exception()
+                else:
+                    if max_events is not None:
+                        max_events -= 1
+
+                    continue
+
+        # In case of errors while kicking of reprocessing or if max_events has
+        # been exceeded, do the default action.
+        remaining_event_ids.append(event.event_id)
 
     # len(remaining_event_ids) is upper-bounded by GROUP_REPROCESSING_CHUNK_SIZE
     if remaining_event_ids:
@@ -126,18 +145,6 @@ def handle_remaining_events(project_id, new_group_id, event_ids, remaining_event
         eventstream.replace_group_unsafe(project_id, event_ids, new_group_id=new_group_id)
     else:
         raise ValueError(f"Invalid value for remaining_events: {remaining_events}")
-
-
-@instrumented_task(
-    name="sentry.tasks.reprocessing2.reprocess_event",
-    queue="events.reprocessing.process_event",
-    time_limit=30,
-    soft_time_limit=20,
-)
-def reprocess_event(project_id, event_id, start_time):
-    from sentry.reprocessing2 import reprocess_event as reprocess_event_impl
-
-    reprocess_event_impl(project_id=project_id, event_id=event_id, start_time=start_time)
 
 
 @instrumented_task(

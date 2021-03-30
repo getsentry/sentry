@@ -89,7 +89,7 @@ from sentry.eventstore.models import Event
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.utils import snuba
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.safe import set_path, get_path
+from sentry.utils.safe import set_path, get_path, safe_execute
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
@@ -106,6 +106,10 @@ GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 # empty, unactionable group while it is reprocessing. Let post-process take
 # care of assigning GroupInbox like normally.
 GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE if x != models.GroupInbox)
+
+
+class CannotReprocess(Exception):
+    pass
 
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
@@ -147,6 +151,7 @@ def reprocess_event(project_id, event_id, start_time):
 
     from sentry.tasks.store import preprocess_event_from_reprocessing
     from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
+    from sentry.plugins.base import plugins
 
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
         node_id = Event.generate_node_id(project_id, event_id)
@@ -155,27 +160,35 @@ def reprocess_event(project_id, event_id, start_time):
             node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
             data = nodestore.get(node_id)
 
+    if data is None:
+        raise CannotReprocess("reprocessing_nodestore.not_found")
+
     with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
         event = eventstore.get_event_by_id(project_id, event_id)
 
     if event is None:
-        logger.error(
-            "reprocessing2.event.not_found", extra={"project_id": project_id, "event_id": event_id}
-        )
-        return
+        raise CannotReprocess("event.not_found")
 
-    if data is None:
-        logger.error(
-            "reprocessing2.reprocessing_nodestore.not_found",
-            extra={"project_id": project_id, "event_id": event_id},
+    attachments = list(
+        models.EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
+    )
+    files = {f.id: f for f in models.File.objects.filter(id__in=[ea.file_id for ea in attachments])}
+
+    missing_attachment_types = set()
+
+    for plugin in plugins.all(version=2):
+        for ty in (
+            safe_execute(plugin.get_required_attachment_types, data, _with_transaction=False) or ()
+        ):
+            missing_attachment_types.add(ty)
+
+    for ea in attachments:
+        missing_attachment_types.discard(ea.type)
+
+    if missing_attachment_types:
+        raise CannotReprocess(
+            f"attachment.not_found.{'_and_'.join(sorted(missing_attachment_types))}"
         )
-        # We have no real data for reprocessing. We assume this event goes
-        # straight to save_event, and hope that the event data can be
-        # reingested like that. It's better than data loss.
-        #
-        # XXX: Ideally we would run a "save-lite" for this that only updates
-        # the group ID in-place. Like a snuba merge message.
-        data = dict(event.data)
 
     # Step 1: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
@@ -186,12 +199,9 @@ def reprocess_event(project_id, event_id, start_time):
     cache_key = event_processing_store.store(data)
 
     # Step 2: Copy attachments into attachment cache
-    queryset = models.EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
-    files = {f.id: f for f in models.File.objects.filter(id__in=[ea.file_id for ea in queryset])}
-
     attachment_objects = []
 
-    for attachment_id, attachment in enumerate(queryset):
+    for attachment_id, attachment in enumerate(attachments):
         with sentry_sdk.start_span(op="reprocess_event._copy_attachment_into_cache") as span:
             span.set_data("attachment_id", attachment.id)
             attachment_objects.append(
@@ -208,7 +218,7 @@ def reprocess_event(project_id, event_id, start_time):
         with sentry_sdk.start_span(op="reprocess_event.set_attachment_meta"):
             attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
 
-    preprocess_event_from_reprocessing(
+    preprocess_event_from_reprocessing.delay(
         cache_key=cache_key, start_time=start_time, event_id=event_id
     )
 
