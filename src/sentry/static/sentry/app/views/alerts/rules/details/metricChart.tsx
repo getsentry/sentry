@@ -19,7 +19,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
-import {getFormattedDate} from 'app/utils/dates';
+import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
@@ -27,7 +27,7 @@ import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
 
-const X_AXIS_BOUNDARY_GAP = 15;
+const X_AXIS_BOUNDARY_GAP = 20;
 const VERTICAL_PADDING = 22;
 
 type Props = WithRouterProps & {
@@ -69,9 +69,7 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
 function createStatusAreaSeries(
   lineColor: string,
   startTime: number,
-  endTime: number,
-  startLimit?: number,
-  endLimit?: number
+  endTime: number
 ): LineChartSeries {
   return {
     seriesName: 'Status Area',
@@ -79,12 +77,7 @@ function createStatusAreaSeries(
     markLine: MarkLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'solid', width: 4},
-      data: [
-        [
-          {coord: [startLimit ? Math.max(startTime, startLimit) : startTime, 0]},
-          {coord: [endLimit ? Math.min(endLimit, endTime) : endTime, 0]},
-        ] as any,
-      ],
+      data: [[{coord: [startTime, 0]}, {coord: [endTime, 0]}] as any],
     }),
     data: [],
   };
@@ -358,6 +351,15 @@ class MetricChart extends React.PureComponent<Props, State> {
     const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
     const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
 
+    // If the chart duration isn't as long as the rollup duration the events-stats
+    // endpoint will return an invalid timeseriesData data set
+    const viableStartDate = getUtcDateString(
+      moment.min(
+        moment.utc(timePeriod.start),
+        moment.utc(timePeriod.end).subtract(rule.timeWindow, 'minutes')
+      )
+    );
+
     return (
       <EventsRequest
         api={api}
@@ -366,7 +368,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         environment={rule.environment ? [rule.environment] : undefined}
         project={(projects as Project[]).map(project => Number(project.id))}
         interval={interval}
-        start={timePeriod.start}
+        start={viableStartDate}
         end={timePeriod.end}
         yAxis={rule.aggregate}
         includePrevious={false}
@@ -422,8 +424,10 @@ class MetricChart extends React.PureComponent<Props, State> {
 
                 const timeWindowMs = rule.timeWindow * 60 * 1000;
 
-                const areaStart = moment(incident.dateStarted).valueOf();
-                const incidentStartValue = dataArr.find(point => point.name >= areaStart);
+                const incidentStartDate = moment(incident.dateStarted).valueOf();
+                const incidentStartValue = dataArr.find(
+                  point => point.name >= incidentStartDate
+                );
                 series.push(
                   createIncidentSeries(
                     router,
@@ -435,26 +439,24 @@ class MetricChart extends React.PureComponent<Props, State> {
                       )
                       ? theme.yellow300
                       : theme.red300,
-                    areaStart,
+                    incidentStartDate,
                     incident.identifier,
                     incidentStartValue,
                     series[0].seriesName
                   )
                 );
-                const areaEnd =
+                const areaStart = Math.max(
+                  moment(incident.dateStarted).valueOf(),
+                  firstPoint
+                );
+                const areaEnd = Math.min(
                   statusChanges?.length && statusChanges[0].dateCreated
                     ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
-                    : moment(incidentEnd).valueOf();
-                const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
-                series.push(
-                  createStatusAreaSeries(
-                    areaColor,
-                    areaStart,
-                    areaEnd,
-                    firstPoint,
-                    lastPoint
-                  )
+                    : moment(incidentEnd).valueOf(),
+                  lastPoint
                 );
+                const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
+                series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
                 if (areaColor === theme.yellow300) {
                   warningDuration += areaEnd - areaStart;
                 } else {
@@ -462,24 +464,26 @@ class MetricChart extends React.PureComponent<Props, State> {
                 }
 
                 statusChanges?.forEach((activity, idx) => {
-                  const statusAreaStart =
-                    moment(activity.dateCreated).valueOf() - timeWindowMs;
+                  const statusAreaStart = Math.max(
+                    moment(activity.dateCreated).valueOf() - timeWindowMs,
+                    firstPoint
+                  );
+                  const statusAreaEnd = Math.min(
+                    idx === statusChanges.length - 1
+                      ? moment(incidentEnd).valueOf()
+                      : moment(statusChanges[idx + 1].dateCreated).valueOf() -
+                          timeWindowMs,
+                    lastPoint
+                  );
                   const statusAreaColor =
                     activity.value === `${IncidentStatus.CRITICAL}`
                       ? theme.red300
                       : theme.yellow300;
-                  const statusAreaEnd =
-                    idx === statusChanges.length - 1
-                      ? moment(incidentEnd).valueOf()
-                      : moment(statusChanges[idx + 1].dateCreated).valueOf() -
-                        timeWindowMs;
                   series.push(
                     createStatusAreaSeries(
                       statusAreaColor,
-                      areaStart,
-                      statusAreaEnd,
-                      firstPoint,
-                      lastPoint
+                      statusAreaStart,
+                      statusAreaEnd
                     )
                   );
                   if (statusAreaColor === theme.yellow300) {
