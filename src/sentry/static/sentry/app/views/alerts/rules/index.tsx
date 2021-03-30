@@ -92,10 +92,11 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
   handleChangeFilter = (activeFilters: Set<string>) => {
     const {router, location} = this.props;
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
     router.push({
       pathname: location.pathname,
       query: {
-        ...location.query,
+        ...currentQuery,
         team: [...activeFilters],
       },
     });
@@ -103,10 +104,11 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
   handleChangeSearch = (name: string) => {
     const {router, location} = this.props;
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
     router.push({
       pathname: location.pathname,
       query: {
-        ...location.query,
+        ...currentQuery,
         name,
       },
     });

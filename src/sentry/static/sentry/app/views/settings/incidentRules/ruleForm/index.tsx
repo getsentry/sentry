@@ -1,6 +1,7 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import {PlainRoute} from 'react-router/lib/Route';
+import styled from '@emotion/styled';
 
 import {
   addErrorMessage,
@@ -14,8 +15,11 @@ import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
 import IndicatorStore from 'app/stores/indicatorStore';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -594,6 +598,33 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const ownerId = rule.owner?.split(':')[1];
     const canEdit = ownerId ? userTeamIds.has(ownerId) : true;
 
+    const triggerForm = (hasAccess: boolean) => (
+      <Triggers
+        disabled={!hasAccess || !canEdit}
+        projects={this.state.projects}
+        errors={this.state.triggerErrors}
+        triggers={triggers}
+        resolveThreshold={resolveThreshold}
+        thresholdType={thresholdType}
+        currentProject={params.projectId}
+        organization={organization}
+        ruleId={ruleId}
+        availableActions={this.state.availableActions}
+        onChange={this.handleChangeTriggers}
+        onThresholdTypeChange={this.handleThresholdTypeChange}
+        onResolveThresholdChange={this.handleResolveThresholdChange}
+      />
+    );
+
+    const ruleNameOwnerForm = (hasAccess: boolean) => (
+      <RuleNameOwnerForm
+        disabled={!hasAccess || !canEdit}
+        organization={organization}
+        project={project}
+        userTeamIds={userTeamIds}
+      />
+    );
+
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => (
@@ -639,54 +670,48 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             <Feature organization={organization} features={['alert-wizard']}>
               {({hasFeature}) =>
                 hasFeature ? (
-                  <RuleConditionsFormForWizard
-                    api={this.api}
-                    projectSlug={params.projectId}
-                    organization={organization}
-                    disabled={!hasAccess || !canEdit}
-                    thresholdChart={chart}
-                    onFilterSearch={this.handleFilterUpdate}
-                  />
+                  <List symbol="colored-numeric">
+                    <RuleConditionsFormForWizard
+                      api={this.api}
+                      projectSlug={params.projectId}
+                      organization={organization}
+                      disabled={!hasAccess || !canEdit}
+                      thresholdChart={chart}
+                      onFilterSearch={this.handleFilterUpdate}
+                    />
+                    <StyledListItem>
+                      {t('Set actions for when a threshold is met')}
+                    </StyledListItem>
+                    {triggerForm(hasAccess)}
+                    <StyledListItem>{t('Add a name and team')}</StyledListItem>
+                    {ruleNameOwnerForm(hasAccess)}
+                  </List>
                 ) : (
-                  <RuleConditionsForm
-                    api={this.api}
-                    projectSlug={params.projectId}
-                    organization={organization}
-                    disabled={!hasAccess || !canEdit}
-                    thresholdChart={chart}
-                    onFilterSearch={this.handleFilterUpdate}
-                  />
+                  <React.Fragment>
+                    <RuleConditionsForm
+                      api={this.api}
+                      projectSlug={params.projectId}
+                      organization={organization}
+                      disabled={!hasAccess || !canEdit}
+                      thresholdChart={chart}
+                      onFilterSearch={this.handleFilterUpdate}
+                    />
+                    {triggerForm(hasAccess)}
+                    {ruleNameOwnerForm(hasAccess)}
+                  </React.Fragment>
                 )
               }
             </Feature>
-            <Triggers
-              disabled={!hasAccess || !canEdit}
-              projects={this.state.projects}
-              errors={this.state.triggerErrors}
-              triggers={triggers}
-              resolveThreshold={resolveThreshold}
-              thresholdType={thresholdType}
-              currentProject={params.projectId}
-              organization={organization}
-              ruleId={ruleId}
-              availableActions={this.state.availableActions}
-              onChange={this.handleChangeTriggers}
-              onThresholdTypeChange={this.handleThresholdTypeChange}
-              onResolveThresholdChange={this.handleResolveThresholdChange}
-            />
-
-            <RuleNameOwnerForm
-              disabled={!hasAccess || !canEdit}
-              organization={organization}
-              project={project}
-              userTeamIds={userTeamIds}
-            />
           </Form>
         )}
       </Access>
     );
   }
 }
+
+const StyledListItem = styled(ListItem)`
+  margin-bottom: ${space(1)};
+`;
 
 export {RuleFormContainer};
 export default RuleFormContainer;

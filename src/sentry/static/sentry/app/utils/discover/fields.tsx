@@ -286,7 +286,7 @@ export const AGGREGATIONS = {
       },
     ],
     outputType: 'number',
-    isSortable: false,
+    isSortable: true,
     multiPlotType: 'area',
   },
   eps: {
@@ -297,6 +297,31 @@ export const AGGREGATIONS = {
   },
   epm: {
     parameters: [],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  count_miserable: {
+    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+      if (parameter.kind === 'column') {
+        return 'user';
+      }
+      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    },
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateAllowedColumns(['user']),
+        defaultValue: 'user',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
@@ -541,8 +566,8 @@ export const TRACING_FIELDS = [
   'percentile',
   'failure_rate',
   'apdex',
+  'count_miserable',
   'user_misery',
-  'user_misery_prototype',
   'eps',
   'epm',
   ...Object.keys(MEASUREMENTS),
@@ -754,6 +779,12 @@ function validateForNumericAggregate(
     }
 
     return validColumnTypes.includes(dataType);
+  };
+}
+
+function validateAllowedColumns(validColumns: string[]): ValidateColumnValueFunction {
+  return function ({name}): boolean {
+    return validColumns.includes(name);
   };
 }
 
