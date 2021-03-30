@@ -131,7 +131,8 @@ class BuildAssetsCommand(BaseBuildCommand):
         # TODO: Our JS builds should not require 4GB heap space
         env["NODE_OPTIONS"] = (env.get("NODE_OPTIONS", "") + " --max-old-space-size=4096").lstrip()
         self._run_command(["yarn", "tsc", "-p", "config/tsconfig.build.json"], env=env)
-        self._run_command(["yarn", "webpack", "--bail"], env=env)
+        self._run_command(["yarn", "build-production", "--bail"], env=env)
+        self._run_command(["yarn", "build-chartcuterie-config", "--bail"], env=env)
 
     def _write_version_file(self, version_info):
         manifest = {
