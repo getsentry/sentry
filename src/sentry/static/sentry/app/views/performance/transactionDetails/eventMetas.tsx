@@ -67,9 +67,9 @@ function EventMetas({
       />
       {isTransaction(event) ? (
         <MetaData
-          headingText={t('Total Duration')}
+          headingText={t('Event Duration')}
           tooltipText={t(
-            'The total time elapsed between the start and end of this transaction.'
+            'The time elapsed between the start and end of this transaction.'
           )}
           bodyText={getDuration(event.endTimestamp - event.startTimestamp, 2, true)}
           subtext={timestamp}
