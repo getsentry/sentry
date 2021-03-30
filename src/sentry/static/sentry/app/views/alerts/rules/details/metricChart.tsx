@@ -129,7 +129,8 @@ function createIncidentSeries(
         `<div class="tooltip-series"><div>`,
         `<span class="tooltip-label">${marker} <strong>${t(
           'Alert'
-        )} #${identifier}</strong></span>${seriesName} ${dataPoint?.value}</div></div>`,
+        )} #${identifier}</strong></span>${seriesName} ${dataPoint?.value}`,
+        `</div></div>`,
         `<div class="tooltip-date">${time}</div>`,
         `<div class="tooltip-arrow"></div>`,
       ].join('');
@@ -334,7 +335,8 @@ class MetricChart extends React.PureComponent<Props, State> {
 
             return [
               `<div class="tooltip-series"><div>`,
-              `<span class="tooltip-label">${title}</span>${value}</div></div>`,
+              `<span class="tooltip-label">${title}</span>${value}`,
+              `</div></div>`,
               `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
               `<div class="tooltip-arrow"></div>`,
             ].join('');
