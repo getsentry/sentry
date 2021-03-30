@@ -74,7 +74,7 @@ class GroupEventToolbar extends React.Component<Props> {
           <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
             {results =>
               results.isLoading ? (
-                <Placeholder height="27px" />
+                <Placeholder height="24px" />
               ) : results.error || results.trace === null ? (
                 '\u2014'
               ) : (

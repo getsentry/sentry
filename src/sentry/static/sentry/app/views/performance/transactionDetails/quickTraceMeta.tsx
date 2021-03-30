@@ -46,7 +46,7 @@ export default function QuickTraceMeta({
   const traceTarget = generateTraceTarget(event, organization);
 
   const body = isLoading ? (
-    <Placeholder height="27px" />
+    <Placeholder height="24px" />
   ) : error || trace === null ? (
     '\u2014'
   ) : (
