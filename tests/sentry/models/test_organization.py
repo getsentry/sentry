@@ -1,6 +1,8 @@
 import copy
 from sentry.utils.compat import mock
 
+from django.db import models
+
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     ApiKey,
@@ -9,6 +11,7 @@ from sentry.models import (
     Commit,
     File,
     Integration,
+    Organization,
     OrganizationAvatar,
     OrganizationMember,
     OrganizationIntegration,
@@ -196,6 +199,24 @@ class OrganizationTest(TestCase):
         p = OrganizationOption.objects.get(organization=org, key="sentry:store_crash_reports")
         p.value = 10
         assert p.has_changed("value") is True
+
+    def test_name_hasnt_changed_on_init(self):
+        inst = Organization(id=1, name="bar")
+        self.assertFalse(inst.has_changed("name"))
+
+    def test_name_has_changes_before_save(self):
+        inst = Organization(id=1, name="bar")
+        inst.name = "baz"
+        self.assertTrue(inst.has_changed("name"))
+        self.assertEquals(inst.old_value("name"), "bar")
+
+    def test_name_hasnt_changed_after_save(self):
+        inst = Organization(id=1, name="bar")
+        inst.name = "baz"
+        self.assertTrue(inst.has_changed("name"))
+        self.assertEquals(inst.old_value("name"), "bar")
+        models.signals.post_save.send(instance=inst, sender=type(inst), created=False)
+        self.assertFalse(inst.has_changed("name"))
 
 
 class Require2fa(TestCase):

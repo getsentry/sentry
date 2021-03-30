@@ -1,12 +1,16 @@
+from copy import copy
 import logging
 
 from datetime import timedelta
 from enum import IntEnum
 
 from bitfield import BitField
+from bitfield.types import BitHandler
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
+from django.db.models.query_utils import DeferredAttribute
+from django.db.models.signals import post_save
 from django.utils import timezone
 from django.utils.functional import cached_property
 
@@ -17,6 +21,10 @@ from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sa
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
+
+UNSAVED = object()
+
+DEFERRED = object()
 
 
 class OrganizationStatus(IntEnum):
@@ -85,13 +93,72 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
-class Organization(Model):
+class TrackingModelMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._update_tracked_data()
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        self._update_tracked_data()
+
+    def _update_tracked_data(self):
+        "Updates a local copy of attributes values"
+        if self.id:
+            data = {}
+            for f in self._meta.fields:
+                # XXX(dcramer): this is how Django determines this (copypasta from Model)
+                if (
+                    isinstance(type(f).__dict__.get(f.attname), DeferredAttribute)
+                    or f.column is None
+                ):
+                    continue
+                try:
+                    v = self.__get_field_value(f)
+                except AttributeError as e:
+                    # this case can come up from pickling
+                    logging.exception(str(e))
+                else:
+                    if isinstance(v, BitHandler):
+                        v = copy(v)
+                    data[f.column] = v
+            self.__data = data
+        else:
+            self.__data = UNSAVED
+
+    def __get_field_value(self, field):
+        if isinstance(type(field).__dict__.get(field.attname), DeferredAttribute):
+            return DEFERRED
+        if isinstance(field, models.ForeignKey):
+            return getattr(self, field.column, None)
+        return getattr(self, field.attname, None)
+
+    def has_changed(self, field_name):
+        "Returns ``True`` if ``field`` has changed since initialization."
+        if self.__data is UNSAVED:
+            return False
+        field = self._meta.get_field(field_name)
+        value = self.__get_field_value(field)
+        if value is DEFERRED:
+            return False
+        return self.__data.get(field_name) != value
+
+    def old_value(self, field_name):
+        "Returns the previous value of ``field``"
+        if self.__data is UNSAVED:
+            return None
+        value = self.__data.get(field_name)
+        if value is DEFERRED:
+            return None
+        return self.__data.get(field_name)
+
+
+class Organization(Model, TrackingModelMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
 
     __core__ = True
-
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
@@ -437,3 +504,10 @@ class Organization(Model):
 
     def get_url(self):
         return reverse(self.get_url_viewname(), args=[self.slug])
+
+
+def tracking_data_post_save(instance, **kwargs):
+    instance._update_tracked_data()
+
+
+post_save.connect(tracking_data_post_save, sender=Organization)

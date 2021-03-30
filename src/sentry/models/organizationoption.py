@@ -3,6 +3,8 @@ from django.db import models
 from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
+from django.db.models.signals import post_save
+from sentry.models.organization import TrackingModelMixin, tracking_data_post_save
 from sentry.utils.cache import cache
 from sentry.tasks.relay import schedule_update_config_cache
 
@@ -66,7 +68,7 @@ class OrganizationOptionManager(OptionManager):
         self.reload_cache(instance.organization_id, "organizationoption.post_delete")
 
 
-class OrganizationOption(Model):
+class OrganizationOption(Model, TrackingModelMixin):
     """
     Organization options apply only to an instance of a organization.
 
@@ -91,3 +93,6 @@ class OrganizationOption(Model):
         unique_together = (("organization", "key"),)
 
     __repr__ = sane_repr("organization_id", "key", "value")
+
+
+post_save.connect(tracking_data_post_save, sender=OrganizationOption)
