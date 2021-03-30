@@ -28,6 +28,12 @@ type BaseGuide = {
    * level takes precedent.
    */
   priority?: number;
+  /**
+   * When dismissing a guide on the same page, all subsequent guides
+   * will be marked as seen.
+   * Note that on a page refresh, the subseqeuent guides will be visible still.
+   */
+  markOthersAsSeen?: boolean;
 };
 
 export type Guide = BaseGuide & {
