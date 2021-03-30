@@ -242,6 +242,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         parent_map = self.construct_span_map(transactions, "trace.parent_span")
         error_map = self.construct_span_map(errors, "trace.span")
         trace_results = []
+        current_generation = None
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
             # We might not be necessarily connected to the root if we're on an orphan event
@@ -269,8 +270,6 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                 is_root_child = False
                 if root is not None and root["id"] == snuba_event["id"]:
                     current_generation = 0
-                else:
-                    current_generation = None
 
             current_event = self.serialize_event(
                 snuba_event, root["id"] if is_root_child else None, current_generation
