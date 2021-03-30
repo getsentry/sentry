@@ -24,8 +24,8 @@ export function getAlertTypeFromAggregateDataset({
   aggregate,
   dataset,
 }: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'>): AlertType {
-  const identifiersForDataset = alertTypeIdentifiers[dataset];
-  const matchingAlertTypeEntry = Object.entries(identifiersForDataset).find(
+  const identifierForDataset = alertTypeIdentifiers[dataset];
+  const matchingAlertTypeEntry = Object.entries(identifierForDataset).find(
     ([_alertType, identifier]) => identifier && aggregate.includes(identifier)
   );
   const alertType = matchingAlertTypeEntry && (matchingAlertTypeEntry[0] as AlertType);
