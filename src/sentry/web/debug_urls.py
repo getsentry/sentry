@@ -2,28 +2,36 @@ from django.conf.urls import url
 from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
-
+from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_assigned_email import (
     DebugAssignedEmailView,
     DebugSelfAssignedEmailView,
     DebugSelfAssignedTeamEmailView,
 )
-from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
+from sentry.web.frontend.debug.debug_chart_renderer import DebugChartRendererView
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
 from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncidentTriggerEmailView
 from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
+from sentry.web.frontend.debug.debug_mfa_added_email import DebugMfaAddedEmailView
+from sentry.web.frontend.debug.debug_mfa_removed_email import DebugMfaRemovedEmailView
+from sentry.web.frontend.debug.debug_new_processing_issues_email import (
+    DebugNewProcessingIssuesEmailView,
+    DebugNewProcessingIssuesNoReprocessingEmailView,
+)
+from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
+from sentry.web.frontend.debug.debug_new_user_feedback_email import DebugNewUserFeedbackEmailView
+from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
+from sentry.web.frontend.debug.debug_oauth_authorize import (
+    DebugOAuthAuthorizeErrorView,
+    DebugOAuthAuthorizeView,
+)
 from sentry.web.frontend.debug.debug_organization_invite_request import (
     DebugOrganizationInviteRequestEmailView,
 )
 from sentry.web.frontend.debug.debug_organization_join_request import (
     DebugOrganizationJoinRequestEmailView,
 )
-from sentry.web.frontend.debug.debug_mfa_added_email import DebugMfaAddedEmailView
-from sentry.web.frontend.debug.debug_mfa_removed_email import DebugMfaRemovedEmailView
-from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
-from sentry.web.frontend.debug.debug_new_user_feedback_email import DebugNewUserFeedbackEmailView
-from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
 from sentry.web.frontend.debug.debug_password_changed_email import DebugPasswordChangedEmailView
 from sentry.web.frontend.debug.debug_recovery_codes_regenerated_email import (
     DebugRecoveryCodesRegeneratedEmailView,
@@ -37,6 +45,13 @@ from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView,
     DebugResolvedInReleaseUpcomingEmailView,
 )
+from sentry.web.frontend.debug.debug_setup_2fa_email import DebugSetup2faEmailView
+from sentry.web.frontend.debug.debug_sso_link_email import (
+    DebugSsoLinkedEmailView,
+    DebugSsoUnlinkedEmailView,
+    DebugSsoUnlinkedNoPasswordEmailView,
+)
+from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
 from sentry.web.frontend.debug.debug_unable_to_delete_repository import (
     DebugUnableToDeleteRepository,
 )
@@ -44,22 +59,6 @@ from sentry.web.frontend.debug.debug_unable_to_fetch_commits_email import (
     DebugUnableToFetchCommitsEmailView,
 )
 from sentry.web.frontend.debug.debug_unassigned_email import DebugUnassignedEmailView
-from sentry.web.frontend.debug.debug_new_processing_issues_email import (
-    DebugNewProcessingIssuesEmailView,
-    DebugNewProcessingIssuesNoReprocessingEmailView,
-)
-from sentry.web.frontend.debug.debug_sso_link_email import (
-    DebugSsoLinkedEmailView,
-    DebugSsoUnlinkedEmailView,
-    DebugSsoUnlinkedNoPasswordEmailView,
-)
-from sentry.web.frontend.debug.debug_setup_2fa_email import DebugSetup2faEmailView
-from sentry.web.frontend.debug import debug_auth_views
-from sentry.web.frontend.debug.debug_chart_renderer import DebugChartRendererView
-from sentry.web.frontend.debug.debug_oauth_authorize import (
-    DebugOAuthAuthorizeView,
-    DebugOAuthAuthorizeErrorView,
-)
 
 urlpatterns = [
     url(r"^debug/mail/alert/$", sentry.web.frontend.debug.mail.alert),
