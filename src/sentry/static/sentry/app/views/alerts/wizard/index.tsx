@@ -16,6 +16,7 @@ import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup'
 
 import {
   AlertType,
+  AlertWizardAlertNames,
   AlertWizardDescriptions,
   AlertWizardOptions,
   AlertWizardRuleTemplates,
@@ -94,7 +95,10 @@ class AlertWizard extends React.Component<Props, State> {
                   <OptionsWrapper key={categoryHeading}>
                     <Heading>{categoryHeading}</Heading>
                     <RadioGroup
-                      choices={options}
+                      choices={options.map(alertType => [
+                        alertType,
+                        AlertWizardAlertNames[alertType],
+                      ])}
                       onChange={this.handleChangeAlertOption}
                       value={alertOption}
                       label="alert-option"
