@@ -1,3 +1,5 @@
+import responses
+
 from exam import fixture
 from sentry.utils.compat.mock import patch
 from rest_framework import serializers
@@ -16,6 +18,7 @@ from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRule
 from sentry.models import ACTOR_TYPES, Integration, Environment
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 class TestAlertRuleSerializer(TestCase):
@@ -704,3 +707,134 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         assert serializer.is_valid()
         with self.assertRaises(serializers.ValidationError):
             serializer.save()
+
+    @responses.activate
+    def test_valid_slack_channel_id(self):
+        """
+        Test that when a valid Slack channel ID is provided, we look up the channel name and validate it against the targetIdentifier.
+        """
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(self.organization, self.user)
+
+        base_params = self.valid_params.copy()
+        base_params.update(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SLACK
+                ).slug,
+                "targetType": action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "targetIdentifier": "merp",
+                "integration": str(integration.id),
+            }
+        )
+        context = self.context.copy()
+        context.update({"input_channel_id": "CSVK0921"})
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channel": {"name": "merp", "id": "CSVK0921"}}),
+        )
+        serializer = AlertRuleTriggerActionSerializer(context=context, data=base_params)
+        assert serializer.is_valid()
+
+        serializer.save()
+
+        # # Make sure the action was created.
+        alert_rule_trigger_actions = list(
+            AlertRuleTriggerAction.objects.filter(integration=integration)
+        )
+        assert len(alert_rule_trigger_actions) == 1
+
+    @responses.activate
+    def test_invalid_slack_channel_id(self):
+        """
+        Test that an invalid Slack channel ID is detected and blocks the action from being saved.
+        """
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(self.organization, self.user)
+
+        base_params = self.valid_params.copy()
+        base_params.update(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SLACK
+                ).slug,
+                "targetType": action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "targetIdentifier": "merp",
+                "integration": str(integration.id),
+            }
+        )
+        context = self.context.copy()
+        context.update({"input_channel_id": "M40W931"})
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+        )
+        serializer = AlertRuleTriggerActionSerializer(context=context, data=base_params)
+        assert not serializer.is_valid()
+
+        # # Make sure the action was not created.
+        alert_rule_trigger_actions = list(
+            AlertRuleTriggerAction.objects.filter(integration=integration)
+        )
+        assert len(alert_rule_trigger_actions) == 0
+
+    @responses.activate
+    def test_invalid_slack_channel_name(self):
+        """
+        Test that an invalid Slack channel name is detected and blocks the action from being saved.
+        """
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(self.organization, self.user)
+
+        base_params = self.valid_params.copy()
+        base_params.update(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SLACK
+                ).slug,
+                "targetType": action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "targetIdentifier": "123",
+                "integration": str(integration.id),
+            }
+        )
+        context = self.context.copy()
+        context.update({"input_channel_id": "CSVK0921"})
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channel": {"name": "merp", "id": "CSVK0921"}}),
+        )
+        serializer = AlertRuleTriggerActionSerializer(context=context, data=base_params)
+        assert not serializer.is_valid()
+
+        # # Make sure the action was not created.
+        alert_rule_trigger_actions = list(
+            AlertRuleTriggerAction.objects.filter(integration=integration)
+        )
+        assert len(alert_rule_trigger_actions) == 0

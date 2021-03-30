@@ -53,6 +53,7 @@ from sentry.shared_integrations.exceptions import (
     DuplicateDisplayNameError,
 )
 
+
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
 # after the incident started to display the correct start date.
@@ -1468,6 +1469,7 @@ def get_slack_actions_with_async_lookups(organization, user, data):
                         "organization": organization,
                         "access": SystemAccess(),
                         "user": user,
+                        "input_channel_id": action.get("inputChannelId"),
                     },
                     data=action,
                 )

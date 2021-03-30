@@ -38,6 +38,7 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.integrations.slack.utils import validate_channel_id
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -168,6 +169,10 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 )
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")
+        should_validate_channel_id = self.context.get("validate_channel_id", True)
+        # validate_channel_id is assumed to be true unless explicitly passed as false
+        if attrs["input_channel_id"] and should_validate_channel_id:
+            validate_channel_id(identifier, attrs["integration"].id, attrs["input_channel_id"])
         return attrs
 
     def create(self, validated_data):
@@ -257,6 +262,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                         "organization": self.context["organization"],
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
+                        "validate_channel_id": self.context.get("validate_channel_id"),
                         "input_channel_id": action_data.pop("input_channel_id", None),
                     },
                     instance=action_instance,
@@ -579,6 +585,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
                         "input_channel_id": self.context.get("input_channel_id"),
+                        "validate_channel_id": self.context.get("validate_channel_id"),
                     },
                     instance=trigger_instance,
                     data=trigger_data,
