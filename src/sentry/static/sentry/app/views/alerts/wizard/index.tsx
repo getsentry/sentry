@@ -14,7 +14,13 @@ import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 
-import {AlertType, AlertWizardDescriptions, AlertWizardOptions} from './options';
+import {
+  AlertType,
+  AlertWizardAlertNames,
+  AlertWizardDescriptions,
+  AlertWizardOptions,
+  AlertWizardRuleTemplates,
+} from './options';
 
 type RouteParams = {
   orgId: string;
@@ -38,6 +44,28 @@ class AlertWizard extends React.Component<Props, State> {
   handleChangeAlertOption = (alertOption: AlertType) => {
     this.setState({alertOption});
   };
+
+  renderCreateAlertButton() {
+    const {organization, project, location} = this.props;
+    const {alertOption} = this.state;
+    const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
+    const to = {
+      pathname: `/organizations/${organization.slug}/alerts/${project.slug}/new/`,
+      query: {
+        ...(metricRuleTemplate && metricRuleTemplate),
+        createFromWizard: true,
+        referrer: location?.query?.referrer,
+      },
+    };
+    return (
+      <CreateAlertButton
+        organization={organization}
+        projectSlug={project.slug}
+        priority="primary"
+        to={to}
+      />
+    );
+  }
 
   render() {
     const {
@@ -67,7 +95,10 @@ class AlertWizard extends React.Component<Props, State> {
                   <OptionsWrapper key={categoryHeading}>
                     <Heading>{categoryHeading}</Heading>
                     <RadioGroup
-                      choices={options}
+                      choices={options.map(alertType => [
+                        alertType,
+                        AlertWizardAlertNames[alertType],
+                      ])}
                       onChange={this.handleChangeAlertOption}
                       value={alertOption}
                       label="alert-option"
@@ -77,13 +108,7 @@ class AlertWizard extends React.Component<Props, State> {
               </WizardOptions>
               <WizardPanel>
                 <WizardPanelBody>{AlertWizardDescriptions[alertOption]}</WizardPanelBody>
-                <CreateAlertButton
-                  organization={organization}
-                  priority="primary"
-                  projectSlug={projectId}
-                >
-                  {t('Create Alert')}
-                </CreateAlertButton>
+                {this.renderCreateAlertButton()}
               </WizardPanel>
             </WizardBody>
           </Feature>

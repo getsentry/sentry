@@ -81,19 +81,12 @@ jobs:
           restore-keys: |
             ${{ matrix.os }}-yarn-
 
-      - name: Set up development environment (as per docs)
+      # We cannot call make bootstrap directly since run-dependent-services requires some Docker magic.
+      # We have the magic in the getsentry/bootstrap-develop. We will handle this situation in the next pass of this.
+      # make init-config will *not* prompt about overwriting ~/.sentry/config.yml' since we're on a pristine state
+      - name: Set up development environment (mostly as per docs)
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          make install-py-dev
-          make setup-git
           curl https://get.volta.sh | bash
-
-      - name: Set up Sentry and others
-        # We cannot call make bootstrap directly since run-dependent-services requires some Docker magic.
-        # We have the magic in the getsentry/bootstrap-develop. We will handle this situation in the next pass of this.
-        # make init-config will *not* prompt about overwriting ~/.sentry/config.yml' since we're on a pristine state
-        # We cannot test the git hooks until the `sentry.lint.engine` gets installed
-        run: |
-          source .venv/bin/activate
           make develop init-config

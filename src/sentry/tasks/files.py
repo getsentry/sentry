@@ -1,4 +1,4 @@
-from django.db import IntegrityError, transaction
+from django.db import DatabaseError, IntegrityError, transaction
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.deletion import MAX_RETRIES
 
@@ -8,6 +8,8 @@ from sentry.tasks.deletion import MAX_RETRIES
     queue="files.delete",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    autoretry_for=(DatabaseError, IntegrityError),
+    acks_late=True,
 )
 def delete_file(path, checksum, **kwargs):
     from sentry.models.file import get_storage, FileBlob

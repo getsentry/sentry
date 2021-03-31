@@ -38,7 +38,7 @@ export function getTabs(organization: Organization) {
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
-        tooltipTitle: t(`All unresolved issues, including those that need review.`),
+        tooltipTitle: t(`All unresolved issues.`),
       },
     ],
     [

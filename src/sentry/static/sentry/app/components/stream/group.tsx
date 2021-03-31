@@ -78,7 +78,9 @@ type Props = {
   hasGuideAnchor?: boolean;
   memberList?: User[];
   onMarkReviewed?: (itemIds: string[]) => void;
+  onDelete?: () => void;
   showInboxTime?: boolean;
+  index?: number;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -332,6 +334,7 @@ class StreamGroup extends React.Component<Props, State> {
   render() {
     const {data, reviewed} = this.state;
     const {
+      index,
       query,
       hasGuideAnchor,
       canSelect,
@@ -344,6 +347,7 @@ class StreamGroup extends React.Component<Props, State> {
       showInboxTime,
       onMarkReviewed,
       useFilteredStats,
+      onDelete,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -385,6 +389,7 @@ class StreamGroup extends React.Component<Props, State> {
           flex="1"
         >
           <EventOrGroupHeader
+            index={index}
             organization={organization}
             includeLink
             data={data}
@@ -558,6 +563,7 @@ class StreamGroup extends React.Component<Props, State> {
                   group={data}
                   orgSlug={organization.slug}
                   selection={selection}
+                  onDelete={onDelete}
                   onMarkReviewed={onMarkReviewed}
                   query={query}
                 />

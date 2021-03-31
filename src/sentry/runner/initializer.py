@@ -1,20 +1,21 @@
-import click
 import logging
 import os
 import sys
 
+import click
 from django.conf import settings
 
 from sentry.utils import metrics, warnings
+from sentry.utils.compat import map
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
-from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.runner.initializer")
 
 
 def register_plugins(settings, raise_on_plugin_load_failure=False):
     from pkg_resources import iter_entry_points
+
     from sentry.plugins.base import plugins
 
     # entry_points={
@@ -153,9 +154,10 @@ def bootstrap_options(settings, config=None):
     options = {}
     if config is not None:
         # Attempt to load our config yaml file
-        from sentry.utils.yaml import safe_load
         from yaml.parser import ParserError
         from yaml.scanner import ScannerError
+
+        from sentry.utils.yaml import safe_load
 
         try:
             with open(config, "rb") as fp:
@@ -210,9 +212,11 @@ def configure_structlog():
     """
     Make structlog comply with all of our options.
     """
-    from django.conf import settings
     import logging.config
+
     import structlog
+    from django.conf import settings
+
     from sentry import options
     from sentry.logging import LoggingFormat
 
@@ -367,6 +371,7 @@ def initialize_app(config, skip_service_validation=False):
     setup_services(validate=not skip_service_validation)
 
     from django.utils import timezone
+
     from sentry.app import env
     from sentry.runner.settings import get_sentry_conf
 
@@ -387,8 +392,9 @@ def setup_services(validate=True):
         tagstore,
         tsdb,
     )
-    from .importer import ConfigurationError
     from sentry.utils.settings import reraise_as
+
+    from .importer import ConfigurationError
 
     service_list = (
         analytics,
@@ -473,6 +479,7 @@ def bind_cache_to_option_store():
     # loaded at this point, so we can plug in the cache backend before
     # continuing to initialize the remainder of the application.
     from django.core.cache import cache as default_cache
+
     from sentry.options import default_store
 
     default_store.cache = default_cache

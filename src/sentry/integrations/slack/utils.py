@@ -2,6 +2,7 @@ import logging
 import time
 
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.http import Http404
 from urllib.parse import urlparse, urlencode, parse_qs
 
@@ -28,6 +29,7 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import (
     ApiError,
     DuplicateDisplayNameError,
+    IntegrationError,
 )
 from sentry.integrations.metric_alerts import incident_attachment_info
 
@@ -326,6 +328,12 @@ def build_incident_attachment(action, incident, metric_value=None, method=None):
         "Critical": LEVEL_TO_COLOR["fatal"],
     }
 
+    incident_footer_ts = (
+        "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
+            to_timestamp(data["ts"]), "{date_pretty}", "{time}"
+        )
+    )
+
     return {
         "fallback": data["title"],
         "title": data["title"],
@@ -334,8 +342,7 @@ def build_incident_attachment(action, incident, metric_value=None, method=None):
         "fields": [],
         "mrkdwn_in": ["text"],
         "footer_icon": data["logo_url"],
-        "footer": "Sentry Incident",
-        "ts": to_timestamp(data["ts"]),
+        "footer": incident_footer_ts,
         "color": colors[data["status"]],
         "actions": [],
     }
@@ -376,6 +383,34 @@ def get_channel_id(organization, integration, name, use_async_lookup=False):
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
     return get_channel_id_with_timeout(integration, name, timeout)
+
+
+def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
+    """
+    In the case that the user is creating an alert via the API and providing the channel ID and name
+    themselves, we want to make sure both values are correct.
+    """
+    try:
+        integration = Integration.objects.get(id=integration_id)
+    except Integration.DoesNotExist:
+        raise Http404
+    token = integration.metadata["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    payload = {"channel": input_channel_id}
+    client = SlackClient()
+    try:
+        results = client.get("/conversations.info", headers=headers, params=payload)
+    except ApiError as e:
+        if e.text == "channel_not_found":
+            raise ValidationError("Channel not found. Invalid ID provided.")
+        logger.info("rule.slack.conversation_info_failed", extra={"error": str(e)})
+        raise IntegrationError("Could not retrieve Slack channel information.")
+    stripped_channel_name = strip_channel_name(name)
+    if not stripped_channel_name == results["channel"]["name"]:
+        channel_name = results["channel"]["name"]
+        raise ValidationError(
+            f"Received channel name {channel_name} does not match inputted channel name {stripped_channel_name}."
+        )
 
 
 def get_channel_id_with_timeout(integration, name, timeout):

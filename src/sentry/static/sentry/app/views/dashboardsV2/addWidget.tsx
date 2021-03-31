@@ -2,7 +2,11 @@ import React from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
+import {Organization} from 'app/types';
 
 import WidgetWrapper from './widgetWrapper';
 
@@ -15,9 +19,13 @@ const initialStyles = {
   scaleY: 1,
 };
 
-function AddWidget(props: {onClick: () => void}) {
-  const {onClick} = props;
+type Props = {
+  onClick: () => void;
+  orgFeatures: Organization['features'];
+  orgSlug: Organization['slug'];
+};
 
+function AddWidget({onClick, orgFeatures, orgSlug}: Props) {
   const {setNodeRef, transform} = useSortable({
     disabled: true,
     id: ADD_WIDGET_BUTTON_DRAG_ID,
@@ -45,14 +53,42 @@ function AddWidget(props: {onClick: () => void}) {
         duration: 0.25,
       }}
     >
-      <AddWidgetWrapper key="add" data-test-id="widget-add" onClick={onClick}>
-        <IconAdd size="lg" isCircled color="inactive" />
-      </AddWidgetWrapper>
+      {orgFeatures.includes('metrics') ? (
+        <InnerWrapper>
+          <ButtonBar gap={1}>
+            <Button to={`/organizations/${orgSlug}/dashboards/widget/new/`}>
+              {t('Add metrics widget')}
+            </Button>
+            <Button onClick={onClick}>{t('Add events widget')}</Button>
+          </ButtonBar>
+        </InnerWrapper>
+      ) : (
+        <InnerWrapper onClick={onClick}>
+          <AddButton
+            data-test-id="widget-add"
+            onClick={onClick}
+            icon={<IconAdd size="lg" isCircled color="inactive" />}
+          />
+        </InnerWrapper>
+      )}
     </WidgetWrapper>
   );
 }
 
-const AddWidgetWrapper = styled('a')`
+export default AddWidget;
+
+const AddButton = styled(Button)`
+  border: none;
+  &,
+  &:focus,
+  &:active,
+  &:hover {
+    background: transparent;
+    box-shadow: none;
+  }
+`;
+
+const InnerWrapper = styled('div')<{onClick?: () => void}>`
   width: 100%;
   height: 110px;
   border: 2px dashed ${p => p.theme.border};
@@ -60,6 +96,5 @@ const AddWidgetWrapper = styled('a')`
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: ${p => (p.onClick ? 'pointer' : '')};
 `;
-
-export default AddWidget;

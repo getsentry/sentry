@@ -92,6 +92,7 @@ describe('Performance > TransactionSummary', function () {
           meta: {
             count: 'number',
             apdex_400: 'number',
+            count_miserable_user_400: 'number',
             user_misery_400: 'number',
             count_unique_user: 'number',
             p95: 'number',
@@ -102,7 +103,8 @@ describe('Performance > TransactionSummary', function () {
             {
               count: 2,
               apdex_400: 0.6,
-              user_misery_400: 122,
+              count_miserable_user_400: 122,
+              user_misery_400: 0.114,
               count_unique_user: 1,
               p95: 750.123,
               failure_rate: 1,

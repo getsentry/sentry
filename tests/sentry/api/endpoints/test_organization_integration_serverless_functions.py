@@ -91,6 +91,74 @@ class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
             },
         ]
 
+    @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
+    def test_basic_python_functions(self, mock_gen_aws_client, mock_get_supported_functions):
+        mock_get_supported_functions.return_value = [
+            {
+                "FunctionName": "lambdaA",
+                "Runtime": "python3.6",
+                "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaA",
+                "Layers": [
+                    {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
+                    {"Arn": "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34"},
+                ],
+                "Environment": {"Variables": {"SENTRY_INITIAL_HANDLER": "handler_string"}},
+            },
+            {
+                "FunctionName": "lambdaD",
+                "Runtime": "python3.8",
+                "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaD",
+                "Layers": [{"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"}],
+            },
+            {
+                "FunctionName": "lambdaB",
+                "Runtime": "python3.8",
+                "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaB",
+                "Layers": [{"Arn": "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34"}],
+            },
+            {
+                "FunctionName": "lambdaC",
+                "Runtime": "python3.6",
+                "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaC",
+                "Layers": [
+                    {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
+                    {"Arn": "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:22"},
+                ],
+                "Environment": {"Variables": {"SENTRY_INITIAL_HANDLER": "handler_string"}},
+            },
+        ]
+        assert self.get_response().data == [
+            {
+                "name": "lambdaA",
+                "runtime": "python3.6",
+                "version": 34,
+                "outOfDate": False,
+                "enabled": True,
+            },
+            {
+                "name": "lambdaB",
+                "runtime": "python3.8",
+                "version": -1,
+                "outOfDate": False,
+                "enabled": False,
+            },
+            {
+                "name": "lambdaC",
+                "runtime": "python3.6",
+                "version": 22,
+                "outOfDate": True,
+                "enabled": True,
+            },
+            {
+                "name": "lambdaD",
+                "runtime": "python3.8",
+                "version": -1,
+                "outOfDate": False,
+                "enabled": False,
+            },
+        ]
+
 
 class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest):
     method = "post"
