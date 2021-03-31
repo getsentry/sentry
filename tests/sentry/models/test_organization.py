@@ -3,7 +3,12 @@ from sentry.utils.compat import mock
 
 from django.db import models
 
-from sentry.api.endpoints.organization_details import flag_has_changed
+from sentry.api.endpoints.organization_details import (
+    flag_has_changed,
+    has_changed,
+    old_value,
+    update_tracked_data,
+)
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     ApiKey,
@@ -149,6 +154,7 @@ class OrganizationTest(TestCase):
 
     def test_flags_have_changed(self):
         org = self.create_organization()
+        update_tracked_data(org)
         org.flags.early_adopter = True
         org.flags.require_2fa = True
         assert flag_has_changed(org, "early_adopter")
@@ -157,67 +163,78 @@ class OrganizationTest(TestCase):
 
     def test_has_changed(self):
         org = self.create_organization()
+        update_tracked_data(org)
 
         org.name = "Bizzy"
-        assert org.has_changed("name") is True
+        assert has_changed(org, "name") is True
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:require_scrub_ip_address", value=False
         )
         o = OrganizationOption.objects.get(organization=org, key="sentry:require_scrub_ip_address")
+        update_tracked_data(o)
         o.value = True
-        assert o.has_changed("value") is True
+        assert has_changed(o, "value") is True
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:account-rate-limit", value=0
         )
         p = OrganizationOption.objects.get(organization=org, key="sentry:account-rate-limit")
+        update_tracked_data(p)
         p.value = 50000
-        assert p.has_changed("value") is True
+        assert has_changed(p, "value") is True
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:project-rate-limit", value=85
         )
         r = OrganizationOption.objects.get(organization=org, key="sentry:project-rate-limit")
+        update_tracked_data(r)
         r.value = 85
-        assert r.has_changed("value") is False
+        assert has_changed(r, "value") is False
 
         OrganizationOption.objects.create(organization=org, key="sentry:sensitive_fields", value=[])
         s = OrganizationOption.objects.get(organization=org, key="sentry:sensitive_fields")
+        update_tracked_data(s)
         s.value = ["email"]
-        assert s.has_changed("value") is True
+        assert has_changed(s, "value") is True
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:safe_fields", value=["email"]
         )
         f = OrganizationOption.objects.get(organization=org, key="sentry:safe_fields")
+        update_tracked_data(f)
         f.value = ["email"]
-        assert f.has_changed("value") is False
+        assert has_changed(f, "value") is False
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:store_crash_reports", value=0
         )
         p = OrganizationOption.objects.get(organization=org, key="sentry:store_crash_reports")
+        update_tracked_data(p)
         p.value = 10
-        assert p.has_changed("value") is True
+        assert has_changed(p, "value") is True
 
     def test_name_hasnt_changed_on_init(self):
         inst = Organization(id=1, name="bar")
-        self.assertFalse(inst.has_changed("name"))
+        update_tracked_data(inst)
+        self.assertFalse(has_changed(inst, "name"))
 
     def test_name_has_changes_before_save(self):
         inst = Organization(id=1, name="bar")
+        update_tracked_data(inst)
         inst.name = "baz"
-        self.assertTrue(inst.has_changed("name"))
-        self.assertEquals(inst.old_value("name"), "bar")
+        self.assertTrue(has_changed(inst, "name"))
+        self.assertEquals(old_value(inst, "name"), "bar")
 
     def test_name_hasnt_changed_after_save(self):
         inst = Organization(id=1, name="bar")
+        update_tracked_data(inst)
         inst.name = "baz"
-        self.assertTrue(inst.has_changed("name"))
-        self.assertEquals(inst.old_value("name"), "bar")
+        self.assertTrue(has_changed(inst, "name"))
+        self.assertEquals(old_value(inst, "name"), "bar")
+        update_tracked_data(inst)
         models.signals.post_save.send(instance=inst, sender=type(inst), created=False)
-        self.assertFalse(inst.has_changed("name"))
+        self.assertFalse(has_changed(inst, "name"))
 
 
 class Require2fa(TestCase):
