@@ -59,7 +59,6 @@ from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
-from .endpoints.grouping_enhancements import GroupingEnhancementsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_environment import InternalEnvironmentEndpoint
 from .endpoints.internal_mail import InternalMailEndpoint
@@ -1823,11 +1822,6 @@ urlpatterns = [
         r"^grouping-configs/$",
         GroupingConfigsEndpoint.as_view(),
         name="sentry-api-0-grouping-configs",
-    ),
-    url(
-        r"^grouping-enhancements/$",
-        GroupingEnhancementsEndpoint.as_view(),
-        name="sentry-api-0-grouping-enhancements",
     ),
     # Symbolicator Builtin Sources
     url(
