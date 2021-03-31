@@ -1,5 +1,6 @@
 import itertools
 import logging
+from typing import Set
 
 from django.utils import dateformat
 from django.utils.encoding import force_text
@@ -16,6 +17,7 @@ from sentry.models import (
     GroupSubscription,
     GroupSubscriptionReason,
     Integration,
+    Project,
     ProjectOption,
     ProjectOwnership,
     Release,
@@ -218,7 +220,8 @@ class MailAdapter:
             )
             return self.get_send_to_all_in_project(project)
 
-    def disabled_users_from_project(self, project):
+    def disabled_users_from_project(self, project: Project) -> Set[User]:
+        """ Get a set of users that have disabled Issue Alert notifications for a given project. """
         alert_settings = project.get_member_alert_settings(self.alert_option_key)
         disabled_users = {user for user, setting in alert_settings.items() if setting == 0}
         return disabled_users

@@ -9,25 +9,26 @@ export type AlertType =
   | 'trans_duration'
   | 'lcp';
 
+export const AlertWizardAlertNames: Record<AlertType, string> = {
+  issues: t('Issues'),
+  num_errors: t('Number of Errors'),
+  users_experiencing_errors: t('Users Experiencing Errors'),
+  throughput: t('Throughput'),
+  trans_duration: t('Transaction Duration'),
+  lcp: t('Longest Contentful Paint'),
+};
+
 export const AlertWizardOptions: {
   categoryHeading: string;
-  options: [AlertType, string][];
+  options: AlertType[];
 }[] = [
   {
     categoryHeading: t('Errors'),
-    options: [
-      ['issues', t('Issues')],
-      ['num_errors', t('Number of Errors')],
-      ['users_experiencing_errors', t('Users Experiencing Errors')],
-    ],
+    options: ['issues', 'num_errors', 'users_experiencing_errors'],
   },
   {
     categoryHeading: t('Performance'),
-    options: [
-      ['throughput', t('Throughput')],
-      ['trans_duration', t('Transaction Duration')],
-      ['lcp', t('Longest Contentful Paint')],
-    ],
+    options: ['throughput', 'trans_duration', 'lcp'],
   },
 ];
 

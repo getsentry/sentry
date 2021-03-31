@@ -1,10 +1,10 @@
 from rest_framework.response import Response
 
-from sentry.models import Team, TeamStatus
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.auth.superuser import is_active_superuser
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.auth.superuser import is_active_superuser
+from sentry.models import Team, TeamStatus
 
 
 class OrganizationUserTeamsEndpoint(OrganizationEndpoint):

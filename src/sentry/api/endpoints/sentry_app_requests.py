@@ -1,15 +1,13 @@
-from rest_framework.response import Response
 from django.core.urlresolvers import reverse
+from rest_framework.response import Response
 
-from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
-
-from sentry.utils.sentryappwebhookrequests import (
-    SentryAppWebhookRequestsBuffer,
-    EXTENDED_VALID_EVENTS,
-)
-
-from sentry.models import Organization, Project
 from sentry import eventstore
+from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
+from sentry.models import Organization, Project
+from sentry.utils.sentryappwebhookrequests import (
+    EXTENDED_VALID_EVENTS,
+    SentryAppWebhookRequestsBuffer,
+)
 
 
 class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):

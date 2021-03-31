@@ -1,9 +1,8 @@
 import sentry_sdk
-
-from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import get_function_alias
 from sentry.snuba import discover
 

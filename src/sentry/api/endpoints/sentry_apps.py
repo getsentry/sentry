@@ -3,17 +3,16 @@ import logging
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
-from sentry import features, analytics
-from sentry.auth.superuser import is_active_superuser
+from sentry import analytics, features
 from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
+from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Creator, InternalCreator
 from sentry.models import SentryApp
 from sentry.utils import json
-
 
 logger = logging.getLogger(__name__)
 

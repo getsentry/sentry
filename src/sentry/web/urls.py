@@ -5,46 +5,45 @@ from django.conf.urls import include, url
 from django.http import HttpResponse
 from django.views.generic import RedirectView
 
+from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.web import api
 from sentry.web.frontend import accounts, generic
+from sentry.web.frontend.account_identity import AccountIdentityAssociateView
+from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthLoginView
-from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
-from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
-from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
+from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
-from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
-from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
+from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
 from sentry.web.frontend.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
+from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
 from sentry.web.frontend.project_avatar import ProjectAvatarPhotoView
+from sentry.web.frontend.project_event import ProjectEventRedirect
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
-from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
-from sentry.web.frontend.account_identity import AccountIdentityAssociateView
+from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.sudo import SudoView
-from sentry.web.frontend.unsubscribe_issue_notifications import UnsubscribeIssueNotificationsView
+from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
+from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 from sentry.web.frontend.unsubscribe_incident_notifications import (
     UnsubscribeIncidentNotificationsView,
 )
+from sentry.web.frontend.unsubscribe_issue_notifications import UnsubscribeIssueNotificationsView
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
-from sentry.web.frontend.setup_wizard import SetupWizardView
-from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
-from sentry.web.frontend.project_event import ProjectEventRedirect
-
 
 __all__ = ("urlpatterns",)
 
