@@ -53,7 +53,7 @@ def create_demo_org(quick=False) -> Organization:
         )
         react_project.add_team(team)
         # delete all DSNs for the org so people don't send events
-        ProjectKey.objects.filter(project__organization=org).delete()
+        # ProjectKey.objects.filter(project__organization=org).delete()
 
         # we'll be adding transactions later
         Project.objects.filter(organization=org).update(

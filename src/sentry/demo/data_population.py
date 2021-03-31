@@ -3,6 +3,7 @@ import logging
 import functools
 import os
 import random
+import requests
 import pytz
 import time
 
@@ -28,6 +29,7 @@ from sentry.models import (
     CommitFileChange,
     File,
     Project,
+    ProjectKey,
     Release,
     ReleaseFile,
     ReleaseCommit,
@@ -56,6 +58,10 @@ base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "ro
 
 
 logger = logging.getLogger(__name__)
+
+session_payload = """{"sent_at":"2021-03-31T15:02:57.190Z","sdk":{"name":"sentry.javascript.react","version":"6.3.0-beta.4"}}
+{"type":"session"}
+{"sid":"b1b7db8800b84f0db0d586cf2ec48988","init":false,"started":"2021-03-31T15:02:51.997Z","timestamp":"2021-03-31T15:02:57.190Z","status":"exited","errors":0,"did":"454307","duration":5193,"attrs":{"release":"b357f87d8b1c2580033cda4591e46925787e8cc8","environment":"prod","ip_address":"136.24.53.109"}}"""
 
 
 def get_config(quick):
@@ -371,6 +377,40 @@ def generate_issue_alert(project):
     project_rules.Creator.run(**data)
 
 
+def send_session(sid, dsn, time, release):
+    formated_time = time.isoformat()
+    envelope_headers = json.dumps(
+        {
+            "sent_at": formated_time,
+            "sdk": {"name": "sentry.javascript.react", "version": "6.3.0-beta.4"},
+        }
+    )
+    item_headers = json.dumps({"type": "session"})
+    core = json.dumps(
+        {
+            "sid": sid,
+            "init": False,
+            "started": formated_time,
+            "status": "ok",
+            "errors": 0,
+            "duration": 60,
+            "attrs": {
+                "release": release,
+                "environment": "prod",
+            },
+        }
+    )
+
+    body = f"{envelope_headers}\n{item_headers}\n{core}"
+    print("send_session body", body)
+
+    endpoint = dsn.get_endpoint()
+    url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
+    resp = requests.post(url=url, data=body)
+    resp.raise_for_status()
+    print("send_session resp", resp)
+
+
 def safe_send_event(data, quick):
     project = data.pop("project")
     config = get_config(quick)
@@ -631,11 +671,14 @@ def populate_connected_event_scenario_1(
     }
     logger.info("populate_connected_event_scenario_1.start", extra=log_extra)
 
+    dsn = ProjectKey.objects.get(project=react_project)
+
     for (timestamp, day) in iter_timestamps(1, quick):
         transaction_user = generate_user(quick)
         trace_id = uuid4().hex
         release = get_release_from_time(react_project.organization_id, timestamp)
         release_sha = release.version
+        sid = uuid4().hex[:16]
 
         old_span_id = react_transaction["contexts"]["trace"]["span_id"]
         frontend_root_span_id = uuid4().hex[:16]
@@ -658,6 +701,7 @@ def populate_connected_event_scenario_1(
             # start_timestamp decreases based on day so that there's a trend
             start_timestamp=timestamp - timedelta(seconds=frontend_duration),
             measurements=gen_measurements(frontend_duration),
+            tags=["session_id", sid],
         )
         update_context(local_event, frontend_trace)
         fix_transaction_event(local_event, old_span_id)
@@ -674,6 +718,7 @@ def populate_connected_event_scenario_1(
             timestamp=timestamp,
             user=transaction_user,
             release=release_sha,
+            tags=["session_id", sid],
         )
         update_context(local_event, frontend_trace)
         fix_error_event(local_event, quick)
@@ -714,6 +759,9 @@ def populate_connected_event_scenario_1(
         update_context(local_event, backend_trace)
         fix_error_event(local_event, quick)
         safe_send_event(local_event, quick)
+
+        send_session(sid, dsn, timestamp, release_sha)
+
     logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)
 
 
@@ -842,5 +890,5 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     generate_releases([react_project, python_project], quick=quick)
     generate_alerts(python_project)
     populate_connected_event_scenario_1(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_2(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_3(python_project, quick=quick)
+    # populate_connected_event_scenario_2(react_project, python_project, quick=quick)
+    # populate_connected_event_scenario_3(python_project, quick=quick)
