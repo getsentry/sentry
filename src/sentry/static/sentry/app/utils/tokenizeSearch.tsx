@@ -299,27 +299,34 @@ function splitSearchIntoTokens(query: string) {
   const tokens: string[] = [];
 
   let token = '';
-  let quoted = false;
+  let endOfPrevWord = '';
+  let quoteType = '';
+  let quoteEnclosed = false;
 
   for (let idx = 0; idx < queryChars.length; idx++) {
     const char = queryChars[idx];
-    const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1] : '';
-
-    if (char === '"') {
-      quoted = !quoted;
-    }
-
-    // consume the current character
+    const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1] : null;
     token += char;
 
-    if (!quoted && isSpace(nextChar)) {
-      // reached the end of a token
+    if (nextChar !== null && !isSpace(char) && isSpace(nextChar)) {
+      endOfPrevWord = char;
+    }
+
+    if (isSpace(char) && !quoteEnclosed && endOfPrevWord !== ':' && !isSpace(token)) {
       tokens.push(token.trim());
       token = '';
-    } else if (char === '\\' && nextChar === '"') {
-      // consume the escaped quote
-      idx += 1;
+    }
+
+    if (["'", '"'].includes(char) && (!quoteEnclosed || quoteType === char)) {
+      quoteEnclosed = !quoteEnclosed;
+      if (quoteEnclosed) {
+        quoteType = char;
+      }
+    }
+
+    if (quoteEnclosed && char === '\\' && nextChar === quoteType) {
       token += nextChar;
+      idx++;
     }
   }
 
@@ -344,18 +351,10 @@ function isSpace(s: string) {
  */
 function formatTag(tag: string) {
   const idx = tag.indexOf(':');
-  const key = stripSurroundingQuotes(tag.slice(0, idx));
-  const value = stripSurroundingQuotes(tag.slice(idx + 1));
+  const key = tag.slice(0, idx).replace(/^"+|(?<!\\)"+$/g, '');
+  const value = tag.slice(idx + 1).replace(/^"+|(?<!\\)"+$/g, '');
 
   return [key, value];
-}
-
-function stripSurroundingQuotes(value) {
-  const length = value.length;
-  if (length > 1 && value.charAt(0) === '"' && value.charAt(length - 1) === '"') {
-    return value.slice(1, length - 1);
-  }
-  return value;
 }
 
 /**

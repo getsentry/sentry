@@ -416,7 +416,9 @@ def split_query_into_tokens(query):
     quote_enclosed = False
     quote_type = None
     end_of_prev_word = None
-    for idx, char in enumerate(query):
+    idx = 0
+    while idx < len(query):
+        char = query[idx]
         next_char = query[idx + 1] if idx < len(query) - 1 else None
         token += char
         if next_char and not char.isspace() and next_char.isspace():
@@ -430,6 +432,10 @@ def split_query_into_tokens(query):
                 quote_enclosed = not quote_enclosed
                 if quote_enclosed:
                     quote_type = char
+        if quote_enclosed and char == "\\" and next_char == quote_type:
+            token += next_char
+            idx += 1
+        idx += 1
     if not token.isspace():
         tokens.append(token.strip(" "))
     return tokens
