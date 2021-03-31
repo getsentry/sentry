@@ -19,6 +19,11 @@ CELERYBEAT_SCHEDULE["demo_delete_users_orgs"] = {
     "schedule": timedelta(hours=1),
     "options": {"expires": 3600, "queue": "cleanup"},
 }
+CELERYBEAT_SCHEDULE["demo_delete_initializing_orgs"] = {
+    "task": "sentry.demo.tasks.delete_initializing_orgs",
+    "schedule": timedelta(hours=1),
+    "options": {"expires": 3600, "queue": "cleanup"},
+}
 MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + ("sentry.demo.middleware.DemoMiddleware",)
 INSTALLED_APPS = INSTALLED_APPS + ("sentry.demo.apps.Config",)
 ROOT_URLCONF = "sentry.demo.urls"
@@ -37,6 +42,7 @@ DEMO_DATA_GEN_PARAMS = {
     "DURATION_SIGMA": 600,  # the variability in durations
     "BASE_FRONTEND_DURATION": 2000,  # the average front end duration discounting the day impact
     "MIN_FRONTEND_DURATION": 600,  # absolute minimum duration of a FE transaction
+    "MAX_INITIALIZATION_TIME": 60,  # number of minutes to give an organization to initialize
 }
 
 # parameters for an org when quickly generating them synchronously
