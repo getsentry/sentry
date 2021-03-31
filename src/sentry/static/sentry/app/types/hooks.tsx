@@ -107,6 +107,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
   'feature-disabled:performance-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:project-performance-score-card': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
