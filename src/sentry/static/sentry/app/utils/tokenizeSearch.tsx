@@ -353,10 +353,33 @@ function isSpace(s: string) {
  */
 function formatTag(tag: string) {
   const idx = tag.indexOf(':');
-  const key = tag.slice(0, idx).replace(/^"+|(?<!\\)"+$/g, '');
-  const value = tag.slice(idx + 1).replace(/^"+|(?<!\\)"+$/g, '');
+  const key = removeSurroundingQuotes(tag.slice(0, idx));
+  const value = removeSurroundingQuotes(tag.slice(idx + 1));
 
   return [key, value];
+}
+
+function removeSurroundingQuotes(text: string) {
+  const length = text.length;
+  if (length <= 1) {
+    return text;
+  }
+
+  let left = 0;
+  for (; left <= length / 2; left++) {
+    if (text.charAt(left) !== '"') {
+      break;
+    }
+  }
+
+  let right = length - 1;
+  for (; right >= length / 2; right--) {
+    if (text.charAt(right) !== '"' || text.charAt(right - 1) === '\\') {
+      break;
+    }
+  }
+
+  return text.slice(left, right + 1);
 }
 
 /**
