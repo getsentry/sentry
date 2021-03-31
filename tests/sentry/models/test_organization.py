@@ -3,6 +3,7 @@ from sentry.utils.compat import mock
 
 from django.db import models
 
+from sentry.api.endpoints.organization_details import flag_has_changed
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     ApiKey,
@@ -150,9 +151,9 @@ class OrganizationTest(TestCase):
         org = self.create_organization()
         org.flags.early_adopter = True
         org.flags.require_2fa = True
-        assert org.flag_has_changed("early_adopter")
-        assert org.flag_has_changed("allow_joinleave") is False
-        assert org.flag_has_changed("require_2fa") is True
+        assert flag_has_changed(org, "early_adopter")
+        assert flag_has_changed(org, "allow_joinleave") is False
+        assert flag_has_changed(org, "require_2fa") is True
 
     def test_has_changed(self):
         org = self.create_organization()
