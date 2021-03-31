@@ -79,9 +79,7 @@ class AlertWizard extends React.Component<Props, State> {
     } = this.props;
     const {alertOption} = this.state;
     const title = t('Alert Creation Wizard');
-
     const {description, examples, docsLink} = AlertWizardPanelContent[alertOption];
-
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
