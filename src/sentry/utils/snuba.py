@@ -1,11 +1,10 @@
-from typing import Dict, Any
 from collections import namedtuple, OrderedDict
 from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from hashlib import sha1
 from operator import itemgetter
-from typing import Any, Callable, List, MutableMapping, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, List, Dict, MutableMapping, Mapping, Optional, Sequence, Tuple
 
 from dateutil.parser import parse as parse_datetime
 import logging
