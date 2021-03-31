@@ -49,18 +49,17 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               traceFullResults.error === null &&
               traceFullResults.traces !== null
             ) {
-              try {
-                // TODO: consume the entire array for quick trace
-                const trace = flattenRelevantPaths(
-                  event,
-                  traceFullResults.traces?.[0] ?? null
-                );
-                return children({
-                  ...traceFullResults,
-                  trace,
-                });
-              } catch {
-                // let this fall through and use the lite results
+              for (const subtrace of traceFullResults.traces) {
+                try {
+                  const trace = flattenRelevantPaths(event, subtrace);
+                  return children({
+                    ...traceFullResults,
+                    trace,
+                  });
+                } catch {
+                  // let this fall through and check the next subtrace
+                  // or use the trace lite results
+                }
               }
             }
 
