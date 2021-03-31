@@ -18,12 +18,7 @@ type Props = {
   title?: React.ReactNode;
 };
 
-const TagsTable = ({
-  event,
-  query,
-  generateUrl,
-  title = t('Event Tag Details'),
-}: Props) => {
+const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props) => {
   const tags = event.tags;
 
   return (

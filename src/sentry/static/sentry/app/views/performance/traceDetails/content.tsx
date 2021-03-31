@@ -404,7 +404,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
               traceSlug={traceSlug}
             />
             <Layout.Title data-test-id="trace-header">
-              {t('Trace Id: %s', traceSlug)}
+              {t('Trace ID: %s', traceSlug)}
               <FeatureBadge type="beta" />
             </Layout.Title>
           </Layout.HeaderContent>
