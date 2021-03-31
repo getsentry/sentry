@@ -11,7 +11,14 @@ const alertTypeIdentifiers: Record<Dataset, Partial<Record<AlertType, string>>> 
   [Dataset.TRANSACTIONS]: {
     throughput: 'count()',
     trans_duration: 'transaction.duration',
+    apdex: 'apdex',
+    failure_rate: 'failure_rate()',
     lcp: 'measurements.lcp',
+    fid: 'measurements.fid',
+    cls: 'measurements.cls',
+    fp: 'measurements.fp',
+    fcp: 'measurements.fcp',
+    ttfb: 'measurements.ttfb',
   },
 };
 
