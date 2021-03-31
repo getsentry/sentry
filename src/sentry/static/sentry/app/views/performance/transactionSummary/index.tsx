@@ -200,7 +200,7 @@ class TransactionSummary extends React.Component<Props, State> {
                 eventView={totalsView}
                 orgSlug={organization.slug}
                 location={location}
-                referrer="api.performance.events-v2"
+                referrer="api.performance.transaction-summary"
               >
                 {({isLoading, error, tableData}) => {
                   const totals: TotalValues | null = tableData?.data?.[0] ?? null;

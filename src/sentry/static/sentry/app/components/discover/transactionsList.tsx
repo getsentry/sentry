@@ -283,7 +283,7 @@ class TransactionsList extends React.Component<Props> {
         orgSlug={organization.slug}
         limit={limit}
         cursor={cursor}
-        referrer="api.discover.events-v2"
+        referrer="api.discover.transactions-list"
       >
         {tableRenderer}
       </DiscoverQuery>

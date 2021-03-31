@@ -14,6 +14,23 @@ from sentry.snuba import discover
 
 logger = logging.getLogger(__name__)
 
+ALLOWED_REFERRERS = {
+    "api.organization-events-v2",
+    "api.dashboards.tablewidget",
+    "api.dashboards.bignumberwidget",
+    "api.discover.transactions-list",
+    "api.discover.query-table",
+    "api.performance.vitals-cards",
+    "api.performance.landing-table",
+    "api.performance.transaction-summary",
+    "api.performance.status-breakdown",
+    "api.performance.vital-detail",
+    "api.performance.durationpercentilechart",
+    "api.trace.span-detail",
+    "api.trace.errors-view",
+    "api.trace.hover-card",
+}
+
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
     def get(self, request, organization):
@@ -25,6 +42,9 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response([])
 
+        referrer = request.GET.get("referrer")
+        referrer = referrer if referrer in ALLOWED_REFERRERS else "api.organization-events-v2"
+
         def data_fn(offset, limit):
             return discover.query(
                 selected_columns=request.GET.getlist("field")[:],
@@ -33,7 +53,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 orderby=self.get_orderby(request),
                 offset=offset,
                 limit=limit,
-                referrer=request.GET.get("referrer", "api.organization-events-v2"),
+                referrer=referrer,
                 auto_fields=True,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,

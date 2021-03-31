@@ -16,8 +16,6 @@ export type GenericChildrenProps<T> = {
   pageLinks: null | string;
 };
 
-export type DiscoverReferrer = 'api.discover.events-v2' | 'api.performance.events-v2';
-
 export type DiscoverQueryProps = {
   api: Client;
   /**
@@ -47,7 +45,7 @@ export type DiscoverQueryProps = {
   /**
    * Sets referrer parameter in the API Payload.
    */
-  referrer?: DiscoverReferrer;
+  referrer?: string;
 };
 
 type RequestProps<P> = DiscoverQueryProps & P;

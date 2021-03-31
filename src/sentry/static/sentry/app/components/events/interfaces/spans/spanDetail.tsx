@@ -128,6 +128,7 @@ class SpanDetail extends React.Component<Props, State> {
       project: organization.features.includes('global-views')
         ? [ALL_ACCESS_PROJECTS]
         : [Number(event.projectID)],
+      referrer: 'api.trace.span-detail',
       start,
       end,
     };
