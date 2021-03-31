@@ -3,7 +3,6 @@ from datetime import datetime
 
 from base64 import b64encode
 from django.core import mail
-from pprint import pprint
 from pytz import UTC
 
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
@@ -90,10 +89,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         # TODO(dcramer): we need to pare this down -- lots of duplicate queries
         # for membership data
         with self.assertNumQueries(36, using="default"):
-            from django.db import connections
-
             response = self.get_success_response(self.organization.slug)
-            pprint(connections["default"].queries)
 
         project_slugs = [p["slug"] for p in response.data["projects"]]
         assert len(project_slugs) == 4
@@ -691,12 +687,6 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         assert len(outbox) == len(expected)
         assert sorted([email.to[0] for email in outbox]) == sorted(expected)
 
-    def assert_can_access_org_details(self):
-        self.get_success_response(self.org_2fa.slug)
-
-    def assert_cannot_access_org_details(self):
-        self.get_error_response(self.org_2fa.slug, status_code=401)
-
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         assert not Authenticator.objects.user_has_2fa(self.owner)
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
@@ -762,33 +752,33 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_preexisting_members_must_enable_2fa(self):
         self.login_as(self.no_2fa_user)
-        self.assert_cannot_access_org_details()
+        self.get_error_response(self.org_2fa.slug, status_code=401)
 
         TotpInterface().enroll(self.no_2fa_user)
-        self.assert_can_access_org_details()
+        self.get_success_response(self.org_2fa.slug)
 
     def test_new_member_must_enable_2fa(self):
         new_user = self.create_user()
         self.create_member(organization=self.org_2fa, user=new_user, role="member")
         self.login_as(new_user)
-        self.assert_cannot_access_org_details()
+        self.get_error_response(self.org_2fa.slug, status_code=401)
 
         TotpInterface().enroll(new_user)
-        self.assert_can_access_org_details()
+        self.get_success_response(self.org_2fa.slug)
 
     def test_member_disable_all_2fa_blocked(self):
         TotpInterface().enroll(self.no_2fa_user)
         self.login_as(self.no_2fa_user)
 
-        self.assert_can_access_org_details()
+        self.get_success_response(self.org_2fa.slug)
 
         Authenticator.objects.get(user=self.no_2fa_user).delete()
-        self.assert_cannot_access_org_details()
+        self.get_error_response(self.org_2fa.slug, status_code=401)
 
     def test_superuser_can_access_org_details(self):
         user = self.create_user(is_superuser=True)
         self.login_as(user, superuser=True)
-        self.assert_can_access_org_details()
+        self.get_success_response(self.org_2fa.slug)
 
 
 from sentry.api.endpoints.organization_details import TrustedRelaySerializer

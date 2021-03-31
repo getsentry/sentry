@@ -1012,6 +1012,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/monitors/$",
                     OrganizationMonitorsEndpoint.as_view(),
+                    name="sentry-api-0-organization-monitors",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/pinned-searches/$",
