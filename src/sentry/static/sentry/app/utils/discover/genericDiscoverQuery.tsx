@@ -5,7 +5,6 @@ import {EventQuery} from 'app/actionCreators/events';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import EventView, {
-  EventsReferrer,
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'app/utils/discover/eventView';
@@ -17,7 +16,7 @@ export type GenericChildrenProps<T> = {
   pageLinks: null | string;
 };
 
-export type EventsReferrer = 'api.discover.events-v2' | 'api.performance.events-v2';
+export type DiscoverReferrer = 'api.discover.events-v2' | 'api.performance.events-v2';
 
 export type DiscoverQueryProps = {
   api: Client;
@@ -48,7 +47,7 @@ export type DiscoverQueryProps = {
   /**
    * Sets referrer parameter in the API Payload.
    */
-  referrer?: EventsReferrer;
+  referrer?: DiscoverReferrer;
 };
 
 type RequestProps<P> = DiscoverQueryProps & P;
