@@ -144,9 +144,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     scrubIPAddresses = serializers.BooleanField(required=False)
     groupingConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     groupingEnhancements = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    groupingEnhancementsBase = serializers.CharField(
-        required=False, allow_blank=True, allow_null=True
-    )
     fingerprintingRules = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
@@ -462,13 +459,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:grouping_enhancements"] = result[
                     "groupingEnhancements"
-                ]
-        if result.get("groupingEnhancementsBase") is not None:
-            if project.update_option(
-                "sentry:grouping_enhancements_base", result["groupingEnhancementsBase"]
-            ):
-                changed_proj_settings["sentry:grouping_enhancements_base"] = result[
-                    "groupingEnhancementsBase"
                 ]
         if result.get("fingerprintingRules") is not None:
             if project.update_option("sentry:fingerprinting_rules", result["fingerprintingRules"]):

@@ -135,40 +135,6 @@ stack.function:mylibrary_* +app`}
     help: t('Sets the grouping algorithm to be used for new events.'),
     visible: ({features}) => features.has('set-grouping-config'),
   },
-  groupingEnhancementsBase: {
-    name: 'groupingEnhancementsBase',
-    type: 'select',
-    deprecatedSelectControl: false,
-    label: t('Stack Trace Rules Base'),
-    saveOnBlur: false,
-    saveMessageAlertType: 'info',
-    saveMessage: t(
-      'Changing base will apply to future events only (can take up to a minute).'
-    ),
-    selectionInfoFunction: args => {
-      const {groupingEnhancementBases, value} = args;
-      const selection = groupingEnhancementBases.find(({id}) => id === value);
-      const changelog = selection?.changelog || '';
-      if (!changelog) {
-        return null;
-      }
-      return (
-        <Changelog>
-          <ChangelogTitle>
-            {tct('New in version [version]', {version: selection.id})}:
-          </ChangelogTitle>
-          <div dangerouslySetInnerHTML={{__html: marked(changelog)}} />
-        </Changelog>
-      );
-    },
-    choices: ({groupingEnhancementBases}) =>
-      groupingEnhancementBases.map(({id}) => [
-        id.toString(),
-        <GroupingConfigItem key={id}>{id}</GroupingConfigItem>,
-      ]),
-    help: t('The built-in base version of stack trace rules.'),
-    visible: ({features}) => features.has('set-grouping-config'),
-  },
 };
 
 const RuleDescription = styled('div')`

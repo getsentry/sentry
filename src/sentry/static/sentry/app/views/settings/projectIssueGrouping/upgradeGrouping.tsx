@@ -8,12 +8,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import {
-  EventGroupingConfig,
-  GroupingEnhancementBase,
-  Organization,
-  Project,
-} from 'app/types';
+import {EventGroupingConfig, Organization, Project} from 'app/types';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import marked from 'app/utils/marked';
 import Field from 'app/views/settings/components/forms/field';
@@ -23,7 +18,6 @@ import {getGroupingChanges, getGroupingRisk} from './utils';
 
 type Props = {
   groupingConfigs: EventGroupingConfig[];
-  groupingEnhancementBases: GroupingEnhancementBase[];
   organization: Organization;
   projectId: string;
   project: Project;
@@ -33,7 +27,6 @@ type Props = {
 
 function UpgradeGrouping({
   groupingConfigs,
-  groupingEnhancementBases,
   organization,
   projectId,
   project,
@@ -41,21 +34,16 @@ function UpgradeGrouping({
   api,
 }: Props) {
   const hasAccess = organization.access.includes('project:write');
-  const {
-    updateNotes,
-    riskLevel,
-    latestGroupingConfig,
-    latestEnhancementsBase,
-  } = getGroupingChanges(project, groupingConfigs, groupingEnhancementBases);
+  const {updateNotes, riskLevel, latestGroupingConfig} = getGroupingChanges(
+    project,
+    groupingConfigs
+  );
   const {riskNote, alertType} = getGroupingRisk(riskLevel);
-  const noUpdates = !latestGroupingConfig && !latestEnhancementsBase;
+  const noUpdates = !latestGroupingConfig;
 
   const newData: Record<string, string> = {};
   if (latestGroupingConfig) {
     newData.groupingConfig = latestGroupingConfig.id;
-  }
-  if (latestEnhancementsBase) {
-    newData.groupingEnhancementsBase = latestEnhancementsBase.id;
   }
 
   const handleUpgrade = async () => {
@@ -76,7 +64,7 @@ function UpgradeGrouping({
     }
   };
 
-  if (!groupingConfigs || !groupingEnhancementBases) {
+  if (!groupingConfigs) {
     return null;
   }
 

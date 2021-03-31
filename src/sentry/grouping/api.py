@@ -1,6 +1,6 @@
 import re
 
-from sentry.grouping.strategies.base import GroupingContext
+from sentry.grouping.strategies.base import GroupingContext, DEFAULT_GROUPING_ENHANCEMENTS_BASE
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.variants import (
@@ -11,7 +11,7 @@ from sentry.grouping.variants import (
     SaltedComponentVariant,
     HIERARCHICAL_VARIANTS,
 )
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, ENHANCEMENT_BASES
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.utils import (
     is_default_fingerprint_var,
     hash_from_values,
@@ -49,9 +49,9 @@ def get_grouping_config_dict_for_event_data(data, project):
 
 def _get_project_enhancements_config(project):
     enhancements = project.get_option("sentry:grouping_enhancements")
-    enhancements_base = project.get_option(
-        "sentry:grouping_enhancements_base", validate=lambda x: x in ENHANCEMENT_BASES
-    )
+
+    config_id = project.get_option("sentry:grouping_config", validate=lambda x: x in CONFIGURATIONS)
+    enhancements_base = CONFIGURATIONS[config_id].enhancements_base
 
     # Instead of parsing and dumping out config here, we can make a
     # shortcut
@@ -73,10 +73,12 @@ def _get_project_enhancements_config(project):
     return rv
 
 
-def get_default_enhancements():
-    from sentry.projectoptions.defaults import DEFAULT_GROUPING_ENHANCEMENTS_BASE
+def get_default_enhancements(config_id=None):
+    base = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    if config_id is not None:
+        base = CONFIGURATIONS[config_id].enhancements_base
 
-    return Enhancements(rules=[], bases=[DEFAULT_GROUPING_ENHANCEMENTS_BASE]).dumps()
+    return Enhancements(rules=[], bases=[base]).dumps()
 
 
 def get_default_grouping_config_dict(id=None):
@@ -85,7 +87,7 @@ def get_default_grouping_config_dict(id=None):
         from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 
         id = DEFAULT_GROUPING_CONFIG
-    return {"id": id, "enhancements": get_default_enhancements()}
+    return {"id": id, "enhancements": get_default_enhancements(id)}
 
 
 def load_grouping_config(config_dict=None):
