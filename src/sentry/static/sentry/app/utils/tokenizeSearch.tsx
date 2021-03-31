@@ -293,6 +293,8 @@ export function stringifyQueryObject(results: QueryResults) {
 
 /**
  * Splits search strings into tokens for parsing by tokenizeSearch.
+ *
+ * Should stay in sync with src.sentry.search.utils:split_query_into_tokens
  */
 function splitSearchIntoTokens(query: string) {
   const queryChars = Array.from(query);

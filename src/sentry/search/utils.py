@@ -410,6 +410,8 @@ def split_query_into_tokens(query):
     Example:
     >>> split_query_into_tokens('user:foo user: bar  user"foo bar' foo  bar) =>
     ['user:foo', 'user: bar', 'user"foo bar"', 'foo',  'bar']
+
+    Has a companion implementation in static/app/utils/tokenizeSearch.tsx
     """
     tokens = []
     token = ""
