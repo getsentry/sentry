@@ -1,6 +1,5 @@
-import uuid
 import logging
-
+import uuid
 
 REPROCESSING_OPTION = "sentry:processing-rev"
 
@@ -10,8 +9,8 @@ logger = logging.getLogger("sentry.events")
 
 def event_supports_reprocessing(data):
     """Only events of a certain format support reprocessing."""
+    from sentry.stacktraces.platform import JAVASCRIPT_PLATFORMS, NATIVE_PLATFORMS
     from sentry.stacktraces.processing import find_stacktraces_in_data
-    from sentry.stacktraces.platform import NATIVE_PLATFORMS, JAVASCRIPT_PLATFORMS
 
     platform = data.get("platform")
     if platform in NATIVE_PLATFORMS:
@@ -28,7 +27,7 @@ def event_supports_reprocessing(data):
 
 def get_reprocessing_revision(project, cached=True):
     """Returns the current revision of the projects reprocessing config set."""
-    from sentry.models import ProjectOption, Project
+    from sentry.models import Project, ProjectOption
 
     if cached:
         return ProjectOption.objects.get_value(project, REPROCESSING_OPTION)

@@ -1,13 +1,12 @@
 from rest_framework.response import Response
+from sentry_sdk import configure_scope
 
 from sentry import analytics
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, RepositoryProjectPathConfig
-from sentry.api.serializers import serialize
 from sentry.utils.compat import filter
-
-from sentry_sdk import configure_scope
 
 
 def get_link(config, filepath, default, version=None):

@@ -1,18 +1,16 @@
 import logging
+from collections import OrderedDict, defaultdict, deque
+
 import sentry_sdk
-
-from collections import defaultdict, deque, OrderedDict
-
 from django.http import Http404
 from rest_framework.response import Response
-
-from sentry import features, eventstore
-from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
-from sentry.api.serializers.models.event import get_tags_with_meta
-from sentry.snuba import discover
-from sentry.models import Group
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
+from sentry import eventstore, features
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.serializers.models.event import get_tags_with_meta
+from sentry.models import Group
+from sentry.snuba import discover
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
@@ -159,25 +157,21 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 {"extra_roots": extra_roots, **warning_extra},
             )
 
-        # Temporarily feature flagging this out, since errors will impact performance
-        if not features.has("organizations:trace-view-summary", organization, actor=request.user):
-            errors = []
-        else:
-            current_transaction = find_event(result["data"], lambda t: t["id"] == event_id)
-            errors = self.get_errors(organization, trace_id, params, current_transaction, event_id)
-            if errors:
-                groups = {
-                    group.id: group
-                    for group in Group.objects.filter(
-                        id__in=[row["issue.id"] for row in errors],
-                        project_id__in=params.get("project_id", []),
-                        project__organization=organization,
-                    )
-                }
-                for row in errors:
-                    row["url"] = groups[row["issue.id"]].get_absolute_url(
-                        organization_slug=organization.slug
-                    )
+        current_transaction = find_event(result["data"], lambda t: t["id"] == event_id)
+        errors = self.get_errors(organization, trace_id, params, current_transaction, event_id)
+        if errors:
+            groups = {
+                group.id: group
+                for group in Group.objects.filter(
+                    id__in=[row["issue.id"] for row in errors],
+                    project_id__in=params.get("project_id", []),
+                    project__organization=organization,
+                )
+            }
+            for row in errors:
+                row["url"] = groups[row["issue.id"]].get_absolute_url(
+                    organization_slug=organization.slug
+                )
 
         return Response(
             self.serialize(result["data"], errors, root, warning_extra, event_id, detailed)

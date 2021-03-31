@@ -1,7 +1,7 @@
 from django.conf import settings
-from social_auth.models import UserSocialAuth
 
 from sentry.api.serializers import Serializer, register
+from social_auth.models import UserSocialAuth
 
 
 @register(UserSocialAuth)

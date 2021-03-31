@@ -1,19 +1,18 @@
 import logging
-
-from io import BytesIO
 from gzip import GzipFile
-from rest_framework import status
+from io import BytesIO
 from urllib.parse import urljoin
-from rest_framework.response import Response
-from django.core.urlresolvers import reverse
+
 from django.conf import settings
+from django.core.urlresolvers import reverse
+from rest_framework import status
+from rest_framework.response import Response
 
 from sentry import options
-from sentry.models import FileBlob
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
-from sentry.utils.files import get_max_file_size
+from sentry.models import FileBlob
 from sentry.utils.compat import zip
-
+from sentry.utils.files import get_max_file_size
 
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
