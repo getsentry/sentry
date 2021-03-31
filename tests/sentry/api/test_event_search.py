@@ -1832,26 +1832,22 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_has_issue(self):
         has_issue_filter = get_filter("has:issue")
         assert has_issue_filter.group_ids == []
-        assert has_issue_filter.conditions == [["issue.id", "!=", 0]]
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "!=", 0]]
 
     def test_not_has_issue(self):
         has_issue_filter = get_filter("!has:issue")
         assert has_issue_filter.group_ids == []
-        assert has_issue_filter.conditions == [
-            [[["isNull", ["issue.id"]], "=", 1], ["issue.id", "=", 0]]
-        ]
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "=", 0]]
 
     def test_has_issue_id(self):
         has_issue_filter = get_filter("has:issue.id")
         assert has_issue_filter.group_ids == []
-        assert has_issue_filter.conditions == [["issue.id", "!=", 0]]
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "!=", 0]]
 
     def test_not_has_issue_id(self):
         has_issue_filter = get_filter("!has:issue.id")
         assert has_issue_filter.group_ids == []
-        assert has_issue_filter.conditions == [
-            [[["isNull", ["issue.id"]], "=", 1], ["issue.id", "=", 0]]
-        ]
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "=", 0]]
 
     def test_message_empty(self):
         assert get_filter("has:message").conditions == [[["equals", ["message", ""]], "!=", 1]]
@@ -1922,12 +1918,12 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_unknown_issue_filter(self):
         _filter = get_filter("issue:unknown", {"organization_id": self.organization.id})
-        assert _filter.conditions == [[[["isNull", ["issue.id"]], "=", 1], ["issue.id", "=", 0]]]
+        assert _filter.conditions == [[["coalesce", ["issue.id", 0]], "=", 0]]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
 
         _filter = get_filter("!issue:unknown", {"organization_id": self.organization.id})
-        assert _filter.conditions == [["issue.id", "!=", 0]]
+        assert _filter.conditions == [[["coalesce", ["issue.id", 0]], "!=", 0]]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
 
