@@ -29,6 +29,7 @@ class SentryHTTPServer(Service):
         self, host=None, port=None, debug=False, workers=None, validate=True, extra_options=None
     ):
         from django.conf import settings
+
         from sentry import options as sentry_options
         from sentry.logging import LoggingFormat
 
@@ -123,6 +124,7 @@ class SentryHTTPServer(Service):
 
     def validate_settings(self):
         from django.conf import settings as django_settings
+
         from sentry.utils.settings import validate_settings
 
         validate_settings(django_settings)
@@ -157,6 +159,7 @@ class SentryHTTPServer(Service):
         self.prepare_environment()
         if self.debug or os.environ.get("SENTRY_RUNNING_UWSGI") == "0":
             from wsgiref.simple_server import make_server
+
             from sentry.wsgi import application
 
             assert os.environ.get("UWSGI_MODULE") == "sentry.wsgi:application"
