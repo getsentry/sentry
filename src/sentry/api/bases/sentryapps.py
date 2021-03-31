@@ -1,5 +1,6 @@
-from django.http import Http404
 from functools import wraps
+
+from django.http import Http404
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -10,7 +11,7 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
-from sentry.models import SentryApp, SentryAppInstallation, Organization
+from sentry.models import Organization, SentryApp, SentryAppInstallation
 from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
 

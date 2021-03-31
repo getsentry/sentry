@@ -1,8 +1,8 @@
-from sentry.constants import ObjectStatus
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.constants import ObjectStatus
 from sentry.integrations.repositories import RepositoryMixin
+from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):

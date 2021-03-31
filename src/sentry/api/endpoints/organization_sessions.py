@@ -1,18 +1,17 @@
 from contextlib import contextmanager
 
-from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
-
 import sentry_sdk
+from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.snuba.sessions_v2 import (
     InvalidField,
     InvalidParams,
     QueryDefinition,
-    run_sessions_query,
     massage_sessions_result,
+    run_sessions_query,
 )
 
 

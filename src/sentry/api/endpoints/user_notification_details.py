@@ -1,19 +1,21 @@
 from collections import defaultdict
+
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.api.serializers import serialize, Serializer
+from sentry.api.serializers import Serializer, serialize
 from sentry.models import UserOption
 from sentry.models.integration import ExternalProviders
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.legacy_mappings import (
+    USER_OPTION_SETTINGS,
     get_option_value_from_int,
     get_type_from_user_option_settings_key,
-    USER_OPTION_SETTINGS,
+    map_notification_settings_to_legacy,
 )
-from sentry.notifications.types import UserOptionsSettingsKey
+from sentry.notifications.types import NotificationScopeType, UserOptionsSettingsKey
 
 
 class UserNotificationsSerializer(Serializer):
@@ -24,11 +26,17 @@ class UserNotificationsSerializer(Serializer):
             ).select_related("user")
         )
 
-        results = defaultdict(list)
+        actor_mapping = {user.actor_id: user for user in item_list}
+        notification_settings = NotificationSetting.objects._filter(
+            ExternalProviders.EMAIL,
+            scope_type=NotificationScopeType.USER,
+            target_ids=actor_mapping.keys(),
+        )
+        data += map_notification_settings_to_legacy(notification_settings, actor_mapping)
 
+        results = defaultdict(list)
         for uo in data:
             results[uo.user].append(uo)
-
         return results
 
     def serialize(self, obj, attrs, user, *args, **kwargs):

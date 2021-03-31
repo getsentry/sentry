@@ -13,9 +13,11 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import {Dataset} from 'app/views/settings/incidentRules/types';
 
 import {
   AlertType,
+  AlertWizardAlertNames,
   AlertWizardDescriptions,
   AlertWizardOptions,
   AlertWizardRuleTemplates,
@@ -48,6 +50,10 @@ class AlertWizard extends React.Component<Props, State> {
     const {organization, project, location} = this.props;
     const {alertOption} = this.state;
     const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
+    const disabled =
+      !organization.features.includes('performance-view') &&
+      metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
+
     const to = {
       pathname: `/organizations/${organization.slug}/alerts/${project.slug}/new/`,
       query: {
@@ -62,6 +68,7 @@ class AlertWizard extends React.Component<Props, State> {
         projectSlug={project.slug}
         priority="primary"
         to={to}
+        disabled={disabled}
       />
     );
   }
@@ -94,7 +101,10 @@ class AlertWizard extends React.Component<Props, State> {
                   <OptionsWrapper key={categoryHeading}>
                     <Heading>{categoryHeading}</Heading>
                     <RadioGroup
-                      choices={options}
+                      choices={options.map(alertType => [
+                        alertType,
+                        AlertWizardAlertNames[alertType],
+                      ])}
                       onChange={this.handleChangeAlertOption}
                       value={alertOption}
                       label="alert-option"

@@ -1,9 +1,9 @@
-from django.contrib.auth import logout, REDIRECT_FIELD_NAME
+from django.contrib.auth import REDIRECT_FIELD_NAME, logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import is_safe_url
 
-from sentry.web.frontend.base import BaseView
 from sentry.utils import auth
+from sentry.web.frontend.base import BaseView
 
 
 class AuthLogoutView(BaseView):

@@ -674,6 +674,38 @@ class GetIncidentStatsTest(TestCase, BaseIncidentsTest):
             {"time": time, "count": count} for time, count in time_series_values
         ]
 
+    def test_count_with_none(self):
+        alert_rule = self.create_alert_rule(
+            self.organization, dataset=QueryDatasets.TRANSACTIONS, aggregate="p75()"
+        )
+        incident = self.create_incident(
+            self.organization,
+            title="Hi",
+            date_started=timezone.now() - timedelta(days=30),
+            alert_rule=alert_rule,
+        )
+        update_incident_status(
+            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.RULE_TRIGGERED
+        )
+        time_series_values = [[0, 1], [1, None], [2, 5.5]]
+        time_series_snapshot = TimeSeriesSnapshot.objects.create(
+            start=timezone.now() - timedelta(days=120),
+            end=timezone.now() - timedelta(days=110),
+            values=time_series_values,
+            period=3000,
+        )
+        IncidentSnapshot.objects.create(
+            incident=incident,
+            event_stats_snapshot=time_series_snapshot,
+            unique_users=1234,
+            total_events=4567,
+        )
+
+        incident_stats = get_incident_stats(incident, windowed_stats=True)
+        assert incident_stats["event_stats"].data["data"] == [
+            {"time": time, "count": count} for time, count in time_series_values
+        ]
+
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test(self):
@@ -1369,46 +1401,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 target_identifier=channel_name,
                 integration=integration,
             )
-
-    @responses.activate
-    def test_slack_channel_id_provided(self):
-        integration = Integration.objects.create(
-            external_id="2",
-            provider="slack",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        integration.add_organization(self.organization, self.user)
-        type = AlertRuleTriggerAction.Type.SLACK
-        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        channel_name = "#some_channel"
-        channel_id = "s_c"
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(
-                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
-            ),
-        )
-
-        action = create_alert_rule_trigger_action(
-            self.trigger,
-            type,
-            target_type,
-            target_identifier=channel_name,
-            integration=integration,
-            input_channel_id=channel_id,
-        )
-        assert action.alert_rule_trigger == self.trigger
-        assert action.type == type.value
-        assert action.target_type == target_type.value
-        assert action.target_identifier == channel_id
-        assert action.target_display == channel_name
-        assert action.integration == integration
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):
