@@ -5,7 +5,7 @@ from sentry.utils.codecs import Codec, TDecoded, TEncoded
 from sentry.utils.kvstore.abstract import K, KVStorage
 
 
-class CodecWrapper(KVStorage[K, TDecoded]):
+class KVStorageCodecWrapper(KVStorage[K, TDecoded]):
     """
     This class provides a wrapper that can be used to transparently
     encode/decode values in the provided key/value storage to another type on

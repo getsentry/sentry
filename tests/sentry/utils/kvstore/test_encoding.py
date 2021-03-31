@@ -3,7 +3,7 @@ from typing import Iterator
 import pytest
 from sentry.utils.codecs import BytesCodec, JSONCodec
 from sentry.utils.kvstore.abstract import KVStorage
-from sentry.utils.kvstore.encoding import CodecWrapper
+from sentry.utils.kvstore.encoding import KVStorageCodecWrapper
 from sentry.utils.kvstore.memory import MemoryKVStorage
 
 
@@ -14,8 +14,8 @@ def store() -> Iterator[KVStorage[str, bytes]]:
     store.destroy()
 
 
-def test_encoding(store: KVStorage[str, bytes]) -> None:
-    wrapper = CodecWrapper(store, JSONCodec() | BytesCodec())
+def test_encoding_wrapper(store: KVStorage[str, bytes]) -> None:
+    wrapper = KVStorageCodecWrapper(store, JSONCodec() | BytesCodec())
 
     wrapper.set("key", [1, 2, 3])
     assert store.get("key") == b"[1,2,3]"
