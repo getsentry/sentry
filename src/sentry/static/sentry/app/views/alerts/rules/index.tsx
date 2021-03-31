@@ -32,6 +32,10 @@ import {isIssueAlert} from '../utils';
 import Filter from './filter';
 import RuleListRow from './row';
 
+const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {
+  asc: false,
+  field: 'date_added',
+};
 const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
 const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 
@@ -206,9 +210,10 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       flatten(ruleList?.map(({projects}) => projects))
     );
 
-    const sort: {asc: boolean; field: 'date_added' | 'name'} = {
+    const sort = {
+      ...DEFAULT_SORT,
       asc: query.asc === '1',
-      field: query.sort || 'date_added',
+      // Currently only supported sorting field is 'date_added'
     };
 
     const userTeams = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
@@ -225,48 +230,26 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                 <StyledPanelTable
                   headers={[
                     t('Type'),
-                    // eslint-disable-next-line react/jsx-key
-                    <StyledSortLink
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...query,
-                          asc: sort.field === 'name' && sort.asc ? undefined : '1',
-                          sort: 'name',
-                        },
-                      }}
-                    >
-                      {t('Alert Name')}{' '}
-                      {sort.field === 'name' && (
-                        <IconArrow
-                          color="gray300"
-                          size="xs"
-                          direction={sort.asc ? 'up' : 'down'}
-                        />
-                      )}
-                    </StyledSortLink>,
+                    t('Alert Name'),
                     t('Project'),
                     ...(hasFeature ? [t('Team')] : []),
                     t('Created By'),
                     // eslint-disable-next-line react/jsx-key
                     <StyledSortLink
                       to={{
-                        pathname: location.pathname,
+                        pathname: `/organizations/${orgId}/alerts/rules/`,
                         query: {
                           ...query,
-                          asc: sort.field === 'date_added' && sort.asc ? undefined : '1',
-                          sort: 'date_added',
+                          asc: sort.asc ? undefined : '1',
                         },
                       }}
                     >
                       {t('Created')}{' '}
-                      {sort.field === 'date_added' && (
-                        <IconArrow
-                          color="gray300"
-                          size="xs"
-                          direction={sort.asc ? 'up' : 'down'}
-                        />
-                      )}
+                      <IconArrow
+                        color="gray300"
+                        size="xs"
+                        direction={sort.asc ? 'up' : 'down'}
+                      />
                     </StyledSortLink>,
                     t('Actions'),
                   ]}
