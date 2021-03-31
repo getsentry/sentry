@@ -17,8 +17,7 @@ class OrganizationApiKeyDetailsBase(APITestCase):
 
 class OrganizationApiKeyDetails(OrganizationApiKeyDetailsBase):
     def test_api_key_no_exist(self):
-        invalid_key = self.api_key.id + 10
-        self.get_error_response(self.organization.slug, invalid_key, status_code=404)
+        self.get_error_response(self.organization.slug, 123456, status_code=404)
 
     def test_get_api_details(self):
         response = self.get_success_response(self.organization.slug, self.api_key.id)
