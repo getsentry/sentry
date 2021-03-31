@@ -84,23 +84,26 @@ _default_escaped_encoder = JSONEncoderForHTML(
 )
 
 
-def dump(value, fp, **kwargs):
+JSONData = Any  # https://github.com/python/typing/issues/182
+
+
+def dump(value: JSONData, fp, **kwargs):
     for chunk in _default_encoder.iterencode(value):
         fp.write(chunk)
 
 
-def dumps(value, escape=False, **kwargs):
+def dumps(value: JSONData, escape: bool = False, **kwargs) -> str:
     # Legacy use. Do not use. Use dumps_htmlsafe
     if escape:
         return _default_escaped_encoder.encode(value)
     return _default_encoder.encode(value)
 
 
-def load(fp, **kwargs):
+def load(fp, **kwargs) -> str:
     return loads(fp.read())
 
 
-def loads(value: str, **kwargs) -> Any:
+def loads(value: str, **kwargs) -> JSONData:
     return _default_decoder.decode(value)
 
 
