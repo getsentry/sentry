@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
@@ -292,7 +293,12 @@ class GroupHeader extends React.Component<Props, State> {
             disabled={disabledTabs.includes(TAB.ACTIVITY)}
           >
             {t('Activity')}
-            <Badge>
+
+            <Badge
+              css={css`
+                padding: 0 ${space(1)};
+              `}
+            >
               <TabCount>{group.numComments}</TabCount>
               <IconChat size="xs" color="white" />
             </Badge>
