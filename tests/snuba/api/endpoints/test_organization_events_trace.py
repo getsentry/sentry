@@ -13,7 +13,6 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
     FEATURES = [
         "organizations:trace-view-quick",
         "organizations:trace-view-summary",
-        "organizations:global-views",
     ]
 
     def get_start_end(self, duration):
