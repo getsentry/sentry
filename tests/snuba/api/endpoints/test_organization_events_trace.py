@@ -3,7 +3,6 @@ from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Group
 from sentry.utils.samples import load_data
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -50,9 +49,6 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         if tags is not None:
             data["tags"] = tags
         return self.store_event(data, project_id=project_id, **kwargs)
-
-    def get_error_url(self, error):
-        return Group.objects.get(id=error.group_id).get_absolute_url()
 
     def setUp(self):
         """
@@ -452,7 +448,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             assert event["parent_span_id"] == self.root_span_ids[0]
             assert len(event["errors"]) == 1
             assert event["errors"][0]["event_id"] == error.event_id
-            assert event["errors"][0]["url"] == self.get_error_url(error)
+            assert event["errors"][0]["issue_id"] == error.group_id
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -829,17 +825,17 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(gen1_event["errors"]) == 2
         assert {
             "event_id": error.event_id,
+            "issue_id": error.group_id,
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
-            "url": self.get_error_url(error),
         } in gen1_event["errors"]
         assert {
             "event_id": error1.event_id,
+            "issue_id": error1.group_id,
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
-            "url": self.get_error_url(error1),
         } in gen1_event["errors"]
 
     def test_with_default(self):
@@ -870,8 +866,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(root_event["errors"]) == 1
         assert {
             "event_id": default_event.event_id,
+            "issue_id": default_event.group_id,
             "span": self.root_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
-            "url": self.get_error_url(default_event),
         } in root_event["errors"]
