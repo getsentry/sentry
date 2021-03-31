@@ -23,6 +23,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -448,7 +449,10 @@ class Group(Model):
 
     def get_first_release(self):
         if self.first_release_id is None:
-            return tagstore.get_first_release(self.project_id, self.id)
+            first_release = tagstore.get_first_release(self.project_id, self.id)
+            found = "hit" if first_release is not None else "miss"
+            metrics.incr(f"group.get_first_release.tagstore.{found}")
+            return first_release
 
         return self.first_release.version
 
