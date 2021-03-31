@@ -15,8 +15,6 @@ import space from 'app/styles/space';
 import {Organization, Project, ResolutionStatus} from 'app/types';
 import Projects from 'app/utils/projects';
 
-import {isForReviewQuery} from '../utils';
-
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
@@ -77,11 +75,7 @@ function ActionSet({
           position="bottom"
         >
           <div className="hidden-sm hidden-xs">
-            <ReviewAction
-              primary={isForReviewQuery(query)}
-              disabled={!anySelected}
-              onUpdate={onUpdate}
-            />
+            <ReviewAction disabled={!anySelected} onUpdate={onUpdate} />
           </div>
         </GuideAnchor>
       )}
