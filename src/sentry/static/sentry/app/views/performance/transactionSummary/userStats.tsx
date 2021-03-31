@@ -22,6 +22,7 @@ import VitalInfo from '../vitalDetail/vitalInfo';
 type Props = {
   eventView: EventView;
   isLoading: boolean;
+  hasWebVitals: boolean;
   error: string | null;
   totals: Record<string, number> | null;
   location: Location;
@@ -32,6 +33,7 @@ type Props = {
 function UserStats({
   eventView,
   isLoading,
+  hasWebVitals,
   error,
   totals,
   location,
@@ -66,30 +68,34 @@ function UserStats({
 
   return (
     <React.Fragment>
-      <VitalsHeading>
-        <SectionHeading>
-          {t('Web Vitals')}
-          <QuestionTooltip
-            position="top"
-            title={t(
-              'Web Vitals with p75 better than the "poor" threshold, as defined by Google Web Vitals.'
-            )}
-            size="sm"
+      {hasWebVitals && (
+        <React.Fragment>
+          <VitalsHeading>
+            <SectionHeading>
+              {t('Web Vitals')}
+              <QuestionTooltip
+                position="top"
+                title={t(
+                  'Web Vitals with p75 better than the "poor" threshold, as defined by Google Web Vitals.'
+                )}
+                size="sm"
+              />
+            </SectionHeading>
+            <Link to={webVitalsTarget}>
+              <IconOpen />
+            </Link>
+          </VitalsHeading>
+          <VitalInfo
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            vital={[WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]}
+            hideVitalPercentNames
+            hideDurationDetail
           />
-        </SectionHeading>
-        <Link to={webVitalsTarget}>
-          <IconOpen />
-        </Link>
-      </VitalsHeading>
-      <VitalInfo
-        eventView={eventView}
-        organization={organization}
-        location={location}
-        vital={[WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]}
-        hideVitalPercentNames
-        hideDurationDetail
-      />
-      <SidebarSpacer />
+          <SidebarSpacer />
+        </React.Fragment>
+      )}
       <SectionHeading>
         {t('User Misery')}
         <QuestionTooltip
