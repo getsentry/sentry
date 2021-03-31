@@ -1,27 +1,33 @@
 import React from 'react';
 import {css} from '@emotion/core';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {growIn} from 'app/styles/animations';
 import {Theme} from 'app/utils/theme';
 
-type CheckedProps = React.HTMLProps<HTMLInputElement> & {theme: Theme};
+type CheckedProps = React.HTMLProps<HTMLInputElement> & {
+  theme: Theme;
+  radioSize?: 'small';
+};
 
 const checkedCss = (p: CheckedProps) => css`
   display: block;
-  width: 1rem;
-  height: 1rem;
+  width: ${p.radioSize === 'small' ? '8px' : '1rem'};
+  height: ${p.radioSize === 'small' ? '8px' : '1rem'};
   border-radius: 50%;
   background-color: ${p.theme.active};
   animation: 0.2s ${growIn} ease;
   opacity: ${p.disabled ? 0.4 : null};
 `;
 
-const Radio = styled('input')`
+const shouldForwardProp = p => p !== 'radioSize' && isPropValid(p);
+
+const Radio = styled('input', {shouldForwardProp})<{radioSize?: 'small'}>`
   display: flex;
   padding: 0;
-  width: 1.5em;
-  height: 1.5em;
+  width: ${p => (p.radioSize === 'small' ? '16px' : '1.5em')};
+  height: ${p => (p.radioSize === 'small' ? '16px' : '1.5em')};
   position: relative;
   border-radius: 50%;
   align-items: center;
