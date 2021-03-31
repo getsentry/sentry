@@ -26,7 +26,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         """
         stats_period = request.GET.get("statsPeriod")
         collapse = request.GET.getlist("collapse", [])
-        if stats_period not in (None, "", "24h", "14d", "30d"):
+        if stats_period not in (None, "", "1h", "24h", "7d", "14d", "30d"):
             return Response(
                 {"error": {"params": {"stats_period": {"message": ERR_INVALID_STATS_PERIOD}}}},
                 status=400,

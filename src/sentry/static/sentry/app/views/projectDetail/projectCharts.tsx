@@ -26,6 +26,7 @@ import withApi from 'app/utils/withApi';
 import {getTermHelp, PERFORMANCE_TERM} from '../performance/data';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
+import ProjectErrorsBasicChart from './charts/projectErrorsBasicChart';
 import ProjectStabilityChart from './charts/projectStabilityChart';
 
 enum DisplayModes {
@@ -47,6 +48,7 @@ type Props = {
   router: ReactRouter.InjectedRouter;
   index: number;
   theme: Theme;
+  projectId?: string;
 };
 
 type State = {
@@ -85,9 +87,7 @@ class ProjectCharts extends React.Component<Props, State> {
   get displayModes(): SelectValue<string>[] {
     const {organization} = this.props;
     const hasPerformance = organization.features.includes('performance-view');
-    const hasDiscover = organization.features.includes('discover-basic');
     const noPerformanceTooltip = NOT_AVAILABLE_MESSAGES.performance;
-    const noDiscoverTooltip = NOT_AVAILABLE_MESSAGES.discover;
 
     return [
       {
@@ -126,9 +126,7 @@ class ProjectCharts extends React.Component<Props, State> {
       {
         value: DisplayModes.ERRORS,
         label: t('Daily Errors'),
-        disabled:
-          this.otherActiveDisplayModes.includes(DisplayModes.ERRORS) || !hasDiscover,
-        tooltip: hasDiscover ? undefined : noDiscoverTooltip,
+        disabled: this.otherActiveDisplayModes.includes(DisplayModes.ERRORS),
       },
       {
         value: DisplayModes.TRANSACTIONS,
@@ -179,8 +177,9 @@ class ProjectCharts extends React.Component<Props, State> {
   };
 
   render() {
-    const {api, router, organization, theme} = this.props;
+    const {api, router, location, organization, theme, projectId} = this.props;
     const {totalValues} = this.state;
+    const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
 
     return (
@@ -229,21 +228,29 @@ class ProjectCharts extends React.Component<Props, State> {
               disablePrevious
             />
           )}
-          {displayMode === DisplayModes.ERRORS && (
-            <ProjectBaseEventsChart
-              title={t('Daily Errors')}
-              query="event.type:error"
-              yAxis="count()"
-              field={[`count()`]}
-              api={api}
-              router={router}
-              organization={organization}
-              onTotalValuesChange={this.handleTotalValuesChange}
-              colors={[theme.purple300, theme.purple200]}
-              showDaily
-              disableReleases
-            />
-          )}
+          {displayMode === DisplayModes.ERRORS &&
+            (hasDiscover ? (
+              <ProjectBaseEventsChart
+                title={t('Daily Errors')}
+                query="event.type:error"
+                yAxis="count()"
+                field={[`count()`]}
+                api={api}
+                router={router}
+                organization={organization}
+                onTotalValuesChange={this.handleTotalValuesChange}
+                colors={[theme.purple300, theme.purple200]}
+                showDaily
+                disableReleases
+              />
+            ) : (
+              <ProjectErrorsBasicChart
+                organization={organization}
+                projectId={projectId}
+                location={location}
+                onTotalValuesChange={this.handleTotalValuesChange}
+              />
+            ))}
           {displayMode === DisplayModes.TRANSACTIONS && (
             <ProjectBaseEventsChart
               title={t('Daily Transactions')}
