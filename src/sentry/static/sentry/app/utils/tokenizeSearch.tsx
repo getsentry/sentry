@@ -344,10 +344,18 @@ function isSpace(s: string) {
  */
 function formatTag(tag: string) {
   const idx = tag.indexOf(':');
-  const key = tag.slice(0, idx).replace(/^"|"$/g, '');
-  const value = tag.slice(idx + 1).replace(/^"|"$/g, '');
+  const key = stripSurroundingQuotes(tag.slice(0, idx));
+  const value = stripSurroundingQuotes(tag.slice(idx + 1));
 
   return [key, value];
+}
+
+function stripSurroundingQuotes(value) {
+  const length = value.length;
+  if (length > 1 && value.charAt(0) === '"' && value.charAt(length - 1) === '"') {
+    return value.slice(1, length - 1);
+  }
+  return value;
 }
 
 /**
