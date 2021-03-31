@@ -11,6 +11,7 @@ from sentry.models import (
     Group,
     GroupLink,
     GroupSubscriptionReason,
+    NotificationSetting,
     ProjectTeam,
     Release,
     ReleaseCommit,
@@ -18,9 +19,13 @@ from sentry.models import (
     Team,
     User,
     UserEmail,
-    UserOption,
 )
-from sentry.notifications.legacy_mappings import UserOptionValue
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.types import (
+    NotificationSettingOptionValues,
+    NotificationScopeType,
+    NotificationSettingTypes,
+)
 from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
@@ -123,16 +128,24 @@ class ReleaseActivityEmail(ActivityEmail):
 
         # get all the involved users' settings for deploy-emails (user default
         # saved without org set)
-        user_options = UserOption.objects.filter(
-            Q(organization=self.organization) | Q(organization=None),
-            user__in=users,
-            key="deploy-emails",
+        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            users=users,
+            parent=self.organization,
         )
 
+        actor_mapping = {user.actor: user for user in users}
+
         options_by_user_id = defaultdict(dict)
-        for uoption in user_options:
-            key = "default" if uoption.organization is None else "org"
-            options_by_user_id[uoption.user_id][key] = uoption.value
+        for notification_setting in notification_settings:
+            key = (
+                "default"
+                if notification_setting.scope_type == NotificationScopeType.USER
+                else "org"
+            )
+            user_id = getattr(actor_mapping.get(notification_setting.target), "id", None)
+            options_by_user_id[user_id][key] = notification_setting.value
 
         # and couple them with the the users' setting value for deploy-emails
         # prioritize user/org specific, then user default, then product default
@@ -143,7 +156,8 @@ class ReleaseActivityEmail(ActivityEmail):
                 (
                     user,
                     options.get(
-                        "org", options.get("default", UserOptionValue.committed_deploys_only)
+                        "org",
+                        options.get("default", NotificationSettingOptionValues.COMMITTED_ONLY),
                     ),
                 )
             )
@@ -152,14 +166,14 @@ class ReleaseActivityEmail(ActivityEmail):
         participants_committed = {
             user: GroupSubscriptionReason.committed
             for user, option in users_with_options
-            if option == UserOptionValue.committed_deploys_only and user.id in self.user_ids
+            if option == NotificationSettingOptionValues.COMMITTED_ONLY and user.id in self.user_ids
         }
 
         # or who opt into all deploy emails:
         participants_opted = {
             user: GroupSubscriptionReason.deploy_setting
             for user, option in users_with_options
-            if option == UserOptionValue.all_deploys
+            if option == NotificationSettingOptionValues.ALWAYS
         }
 
         # merge the two type of participants

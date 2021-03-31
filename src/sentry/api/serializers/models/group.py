@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import pytz
 import sentry_sdk
 from django.conf import settings
-from django.db.models import Min, Q
+from django.db.models import Min
 from django.utils import timezone
 
 from sentry import tagstore, tsdb
@@ -36,14 +36,19 @@ from sentry.models import (
     GroupSubscription,
     GroupSubscriptionReason,
     Integration,
+    NotificationSetting,
     SentryAppInstallationToken,
     User,
-    UserOption,
 )
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
-from sentry.notifications.legacy_mappings import UserOptionValue
+from sentry.models.integration import ExternalProviders
 from sentry.reprocessing2 import get_progress
+from sentry.notifications.types import (
+    NotificationScopeType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils import snuba
@@ -196,16 +201,17 @@ class GroupSerializerBase(Serializer):
 
         # Fetch the options for each project -- we'll need this to identify if
         # a user has totally disabled workflow notifications for a project.
-        # NOTE: This doesn't use `values_list` because that bypasses field
-        # value decoding, so the `value` field would not be unpickled.
-        options = {
-            option.project_id: option.value
-            for option in UserOption.objects.filter(
-                Q(project__in=projects.keys()) | Q(project__isnull=True),
-                user=user,
-                key="workflow:notifications",
+        options = {}
+        notification_settings = NotificationSetting.objects.get_for_user_by_projects(
+            ExternalProviders.EMAIL, NotificationSettingTypes.WORKFLOW, user, projects
+        )
+        for notification_setting in notification_settings:
+            key = (
+                notification_setting.scope_identifier
+                if notification_setting.scope_type == NotificationScopeType.PROJECT
+                else None
             )
-        }
+            options[key] = notification_setting.value
 
         # If there is a subscription record associated with the group, we can
         # just use that to know if a user is subscribed or not, as long as
@@ -217,8 +223,10 @@ class GroupSerializerBase(Serializer):
                     itertools.chain.from_iterable(
                         map(
                             lambda project__groups: project__groups[1]
-                            if not options.get(project__groups[0].id, options.get(None))
-                            == UserOptionValue.no_conversations
+                            if not (
+                                options.get(project__groups[0].id, options.get(None))
+                                == NotificationSettingOptionValues.NEVER
+                            )
                             else [],
                             projects.items(),
                         )
@@ -231,7 +239,9 @@ class GroupSerializerBase(Serializer):
         # This is the user's default value for any projects that don't have
         # the option value specifically recorded. (The default
         # "participating_only" value is convention.)
-        global_default_workflow_option = options.get(None, UserOptionValue.participating_only)
+        global_default_workflow_option = options.get(
+            None, NotificationSettingOptionValues.SUBSCRIBE_ONLY
+        )
 
         results = {}
         for project, groups in projects.items():
@@ -244,8 +254,12 @@ class GroupSerializerBase(Serializer):
                     results[group.id] = (subscription.is_active, subscription)
                 else:
                     results[group.id] = (
-                        (project_default_workflow_option == UserOptionValue.all_conversations, None)
-                        if project_default_workflow_option != UserOptionValue.no_conversations
+                        (
+                            project_default_workflow_option
+                            == NotificationSettingOptionValues.ALWAYS,
+                            None,
+                        )
+                        if project_default_workflow_option != NotificationSettingOptionValues.NEVER
                         else disabled
                     )
 

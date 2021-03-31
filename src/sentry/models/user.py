@@ -18,6 +18,14 @@ audit_logger = logging.getLogger("sentry.audit.user")
 
 
 class UserManager(BaseManager, DjangoUserManager):
+    def get_from_group(self, group):
+        """
+        Get a queryset of all users in all teams in a given Group's project.
+        """
+        return self.filter(
+            sentry_orgmember_set__teams__in=group.project.teams.all(), is_active=True
+        )
+
     def get_from_teams(self, organization_id, teams):
         return self.filter(
             sentry_orgmember_set__organization_id=organization_id,
