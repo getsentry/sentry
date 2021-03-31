@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from hashlib import sha1
 from operator import itemgetter
-from typing import Any, Callable, List, MutableMapping, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, List, Dict, MutableMapping, Mapping, Optional, Sequence, Tuple
 
 from dateutil.parser import parse as parse_datetime
 import logging
@@ -622,7 +622,7 @@ def raw_query(
     use_cache=False,
     use_snql=False,
     **kwargs,
-):
+) -> [Dict[str, Any]]:
     """
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.

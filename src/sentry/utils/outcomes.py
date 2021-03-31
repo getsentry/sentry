@@ -18,6 +18,13 @@ class Outcome(IntEnum):
     INVALID = 3
     ABUSE = 4
 
+    def api_name(self) -> str:
+        return self.name.lower()
+
+    @classmethod
+    def parse(cls, name: str) -> "Outcome":
+        return Outcome[name.upper()]
+
 
 outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
 outcomes_publisher = None

@@ -1,3 +1,4 @@
+from typing import List, Tuple, Optional, Dict, Any
 from datetime import datetime, timedelta
 import itertools
 import math
@@ -173,17 +174,17 @@ COLUMN_MAP = {
 
 
 class SimpleGroupBy:
-    def __init__(self, row_name, name=None):
+    def __init__(self, row_name: str, name: Optional[str] = None):
         self.row_name = row_name
         self.name = name or row_name
 
-    def get_snuba_columns(self):
+    def get_snuba_columns(self) -> List[str]:
         return [self.row_name]
 
-    def get_snuba_groupby(self):
+    def get_snuba_groupby(self) -> List[str]:
         return [self.row_name]
 
-    def get_keys_for_row(self, row):
+    def get_keys_for_row(self, row) -> List[Tuple[str, str]]:
         return [(self.name, row[self.row_name])]
 
 
@@ -247,7 +248,7 @@ class QueryDefinition:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        start, end, rollup = _get_constrained_date_range(query, allow_minute_resolution)
+        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -288,7 +289,9 @@ class InvalidParams(Exception):
     pass
 
 
-def _get_constrained_date_range(params, allow_minute_resolution=False):
+def get_constrained_date_range(
+    params, allow_minute_resolution=False
+) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
 
@@ -401,7 +404,9 @@ def run_sessions_query(query):
     return result_totals["data"], result_timeseries["data"]
 
 
-def massage_sessions_result(query, result_totals, result_timeseries):
+def massage_sessions_result(
+    query, result_totals, result_timeseries, ts_col=TS_COL
+) -> Dict[str, List[Any]]:
     """
     Post-processes the query result.
 
@@ -439,22 +444,22 @@ def massage_sessions_result(query, result_totals, result_timeseries):
 
     def make_timeseries(rows, group):
         for row in rows:
-            row[TS_COL] = row[TS_COL][:19] + "Z"
+            row[ts_col] = row[ts_col][:19] + "Z"
 
-        rows.sort(key=lambda row: row[TS_COL])
+        rows.sort(key=lambda row: row[ts_col])
         fields = [(name, field, list()) for name, field in query.fields.items()]
         group_index = 0
 
         while group_index < len(rows):
             row = rows[group_index]
-            if row[TS_COL] < timestamps[0]:
+            if row[ts_col] < timestamps[0]:
                 group_index += 1
             else:
                 break
 
         for ts in timestamps:
             row = rows[group_index] if group_index < len(rows) else None
-            if row is not None and row[TS_COL] == ts:
+            if row is not None and row[ts_col] == ts:
                 group_index += 1
             else:
                 row = None
@@ -473,7 +478,6 @@ def massage_sessions_result(query, result_totals, result_timeseries):
     keys = set(total_groups.keys()) | set(timeseries_groups.keys())
     for key in keys:
         by = dict(key)
-
         group = {
             "by": by,
             "totals": make_totals(total_groups.get(key, [None]), by),
