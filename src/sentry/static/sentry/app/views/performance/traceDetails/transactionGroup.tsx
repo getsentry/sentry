@@ -5,14 +5,15 @@ import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 
 import TransactionBar from './transactionBar';
-import {TraceInfo} from './types';
+import {TraceInfo, TraceRoot, TreeDepth} from './types';
 
 type Props = {
   location: Location;
   organization: Organization;
-  transaction: TraceFullDetailed;
+  transaction: TraceRoot | TraceFullDetailed;
   traceInfo: TraceInfo;
-  continuingDepths: Array<number>;
+  continuingDepths: TreeDepth[];
+  isOrphan: boolean;
   isLast: boolean;
   index: number;
   isVisible: boolean;
@@ -39,6 +40,7 @@ class TransactionGroup extends React.Component<Props, State> {
       transaction,
       traceInfo,
       continuingDepths,
+      isOrphan,
       isLast,
       index,
       isVisible,
@@ -55,6 +57,7 @@ class TransactionGroup extends React.Component<Props, State> {
           transaction={transaction}
           traceInfo={traceInfo}
           continuingDepths={continuingDepths}
+          isOrphan={isOrphan}
           isLast={isLast}
           isExpanded={isExpanded}
           toggleExpandedState={this.toggleExpandedState}
