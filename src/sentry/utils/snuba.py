@@ -621,7 +621,7 @@ def raw_query(
     referrer=None,
     is_grouprelease=False,
     use_cache=False,
-    use_snql=False,
+    use_snql=None,
     **kwargs,
 ):
     """
@@ -641,8 +641,8 @@ def raw_query(
         **kwargs,
     )
 
-    if should_use_snql(referrer):
-        use_snql = True
+    if use_snql is None:
+        use_snql = should_use_snql(referrer)
 
     return bulk_raw_query(
         [snuba_params], referrer=referrer, use_cache=use_cache, use_snql=use_snql
@@ -658,7 +658,7 @@ def bulk_raw_query(
     snuba_param_list: Sequence[SnubaQueryParams],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    use_snql: Optional[bool] = False,
+    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     headers = {}
     if referrer:
@@ -705,7 +705,7 @@ def bulk_raw_query(
 
 
 def _bulk_snuba_query(
-    snuba_param_list: List[SnubaQuery], headers: Mapping[str, str], use_snql: Optional[bool] = False
+    snuba_param_list: List[SnubaQuery], headers: Mapping[str, str], use_snql: Optional[bool] = None
 ) -> ResultSet:
     with sentry_sdk.start_span(
         op="start_snuba_query",
@@ -899,7 +899,7 @@ def query(
     selected_columns=None,
     totals=None,
     use_cache=False,
-    use_snql=False,
+    use_snql=None,
     **kwargs,
 ):
 
@@ -1092,7 +1092,7 @@ def _aliased_query_impl(
     dataset=None,
     orderby=None,
     condition_resolver=None,
-    use_snql=False,
+    use_snql=None,
     **kwargs,
 ):
     if dataset is None:
