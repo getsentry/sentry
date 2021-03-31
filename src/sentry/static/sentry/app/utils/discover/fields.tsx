@@ -286,7 +286,7 @@ export const AGGREGATIONS = {
       },
     ],
     outputType: 'number',
-    isSortable: false,
+    isSortable: true,
     multiPlotType: 'area',
   },
   eps: {
@@ -566,9 +566,8 @@ export const TRACING_FIELDS = [
   'percentile',
   'failure_rate',
   'apdex',
-  'user_misery',
-  'user_misery_prototype',
   'count_miserable',
+  'user_misery',
   'eps',
   'epm',
   ...Object.keys(MEASUREMENTS),
@@ -809,4 +808,11 @@ export function fieldAlignment(
     }
   }
   return align;
+}
+
+/**
+ * Match on types that are legal to show on a timeseries chart.
+ */
+export function isLegalYAxisType(match: ColumnType) {
+  return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }

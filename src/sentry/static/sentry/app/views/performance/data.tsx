@@ -39,7 +39,7 @@ export enum PERFORMANCE_TERM {
   P95 = 'p95',
   P99 = 'p99',
   LCP = 'lcp',
-  USER_MISERY = 'userMiseryPrototype',
+  USER_MISERY = 'userMisery',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
 }
@@ -231,7 +231,7 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   p99: () => t('p99 indicates the duration that 99% of transactions are faster than.'),
   lcp: () =>
     t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
-  userMiseryPrototype: organization =>
+  userMisery: organization =>
     t(
       "User Misery is a score that represents the number of unique users who have experienced load times 4x your organization's apdex threshold of %sms.",
       organization.apdexThreshold
@@ -278,8 +278,8 @@ function generateGenericPerformanceEventView(
       'failure_rate()',
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
+      `count_miserable(user,${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
-      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -333,8 +333,8 @@ function generateBackendPerformanceEventView(
       'failure_rate()',
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
+      `count_miserable(user,${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
-      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -387,8 +387,8 @@ function generateFrontendPageloadPerformanceEventView(
       'p75(measurements.fid)',
       'p75(measurements.cls)',
       'count_unique(user)',
+      `count_miserable(user,${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
-      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -438,8 +438,8 @@ function generateFrontendOtherPerformanceEventView(
       'p75(transaction.duration)',
       'p95(transaction.duration)',
       'count_unique(user)',
+      `count_miserable(user,${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
-      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };

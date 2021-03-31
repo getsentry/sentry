@@ -1,8 +1,8 @@
 from rest_framework.response import Response
 
-from sentry.models import Project
-from sentry.api.serializers import serialize
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.serializers import serialize
+from sentry.models import Project
 from sentry.utils.compat import map
 
 

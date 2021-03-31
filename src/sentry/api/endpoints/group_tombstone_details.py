@@ -2,7 +2,6 @@ from rest_framework.response import Response
 
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-
 from sentry.models import GroupHash, GroupTombstone
 
 
