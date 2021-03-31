@@ -1,79 +1,49 @@
-from exam import fixture
-
 from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import APITestCase
 
 
-class ListOrganizationMonitorsTest(APITestCase):
-    @fixture
-    def org(self):
-        return self.create_organization(owner=self.user, name="baz")
+class OrganizationMonitorsTestBase(APITestCase):
+    endpoint = "sentry-api-0-organization-monitors"
 
-    @fixture
-    def team(self):
-        return self.create_team(organization=self.org, members=[self.user])
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
 
-    @fixture
-    def project(self):
-        return self.create_project(teams=[self.team])
 
-    @fixture
-    def path(self):
-        return f"/api/0/organizations/{self.org.slug}/monitors/"
-
+class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
     def check_valid_response(self, response, expected_monitors):
-        assert response.status_code == 200, response.content
         assert [str(monitor.guid) for monitor in expected_monitors] == [
             str(monitor_resp["id"]) for monitor_resp in response.data
         ]
 
     def test_simple(self):
-        self.login_as(user=self.user)
-
         monitor = Monitor.objects.create(
-            project_id=self.project.id, organization_id=self.org.id, name="My Monitor"
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            name="My Monitor",
         )
         with self.feature({"organizations:monitors": True}):
-            response = self.client.get(self.path)
+            response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [monitor])
 
 
-class CreateOrganizationMonitorTest(APITestCase):
-    @fixture
-    def org(self):
-        return self.create_organization(owner=self.user, name="baz")
-
-    @fixture
-    def team(self):
-        return self.create_team(organization=self.org, members=[self.user])
-
-    @fixture
-    def project(self):
-        return self.create_project(teams=[self.team])
-
-    @fixture
-    def path(self):
-        return f"/api/0/organizations/{self.org.slug}/monitors/"
+class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
+    method = "post"
 
     def test_simple(self):
-        self.login_as(user=self.user)
-
         with self.feature({"organizations:monitors": True}):
-            response = self.client.post(
-                self.path,
-                {
-                    "project": self.project.slug,
-                    "name": "My Monitor",
-                    "type": "cron_job",
-                    "config": {"schedule_type": "crontab", "schedule": "@daily"},
-                },
-            )
+            data = {
+                "project": self.project.slug,
+                "name": "My Monitor",
+                "type": "cron_job",
+                "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            }
+            response = self.get_success_response(self.organization.slug, **data)
 
-        assert response.status_code == 201
         assert response.data["id"]
 
         monitor = Monitor.objects.get(guid=response.data["id"])
-        assert monitor.organization_id == self.org.id
+        assert monitor.organization_id == self.organization.id
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
         assert monitor.status == MonitorStatus.ACTIVE

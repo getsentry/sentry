@@ -1,46 +1,26 @@
-from django.core.urlresolvers import reverse
-
 from sentry.testutils import APITestCase
 
 
 class OrganizationApiKeyIndex(APITestCase):
+    endpoint = "sentry-api-0-organization-api-key-index"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+
     def test_org_admin_can_access(self):
-        self.login_as(user=self.user)
-
-        organization = self.create_organization(name="foo", owner=self.user)
-
-        path = reverse("sentry-api-0-organization-api-key-index", args=[organization.slug])
-
-        resp = self.client.get(path)
-
-        assert resp.status_code == 200
+        self.get_success_response(self.organization.slug)
 
     def test_member_no_access(self):
-        self.login_as(user=self.user)
-        organization = self.create_organization(name="foo", owner=self.user)
-
         user = self.create_user("bar@example.com")
-        self.create_member(organization=organization, user=user, role="member")
-
-        path = reverse("sentry-api-0-organization-api-key-index", args=[organization.slug])
+        self.create_member(organization=self.organization, user=user, role="member")
 
         self.login_as(user)
-
-        resp = self.client.get(path)
-
-        assert resp.status_code == 403
+        self.get_error_response(self.organization.slug, status_code=403)
 
     def test_superuser_can_access(self):
-        self.login_as(user=self.user)
-        organization = self.create_organization(name="foo", owner=self.user)
-
         admin_user = self.create_user("admin@example.com", is_superuser=True)
-        self.create_member(organization=organization, user=admin_user, role="admin")
-
-        path = reverse("sentry-api-0-organization-api-key-index", args=[organization.slug])
+        self.create_member(organization=self.organization, user=admin_user, role="admin")
 
         self.login_as(admin_user, superuser=True)
-
-        resp = self.client.get(path)
-
-        assert resp.status_code == 200
+        self.get_success_response(self.organization.slug)
