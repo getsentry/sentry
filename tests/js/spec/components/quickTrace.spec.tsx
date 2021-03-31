@@ -4,29 +4,38 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import QuickTrace from 'app/components/quickTrace';
+import {Event} from 'app/types/event';
+import {QuickTraceEvent} from 'app/utils/performance/quickTrace/types';
 
 describe('Quick Trace', function () {
   let location;
   let organization;
 
-  const initialize = (config = {}) => {
-    const context = initializeOrg(config);
+  const initialize = () => {
+    const context = initializeOrg();
     organization = context.organization;
   };
 
   function makeQuickTraceEvents(generation, {n = 1, parentId = null} = {}) {
-    const events = [];
+    const events: QuickTraceEvent[] = [];
     for (let i = 0; i < n; i++) {
       const suffix = n > 1 ? `-${i}` : '';
       events.push({
-        generation,
         event_id: `e${generation}${suffix}`,
+        generation,
+        span_id: `s${generation}${suffix}`,
         transaction: `t${generation}${suffix}`,
-        parent_event_id:
-          generation === 0 ? null : parentId === null ? `e${generation - 1}` : parentId,
+        'transaction.duration': 1234,
         project_id: generation,
         project_slug: `p${generation}`,
-        'transaction.duration': 1234,
+        parent_event_id:
+          generation === 0 ? null : parentId === null ? `e${generation - 1}` : parentId,
+        parent_span_id:
+          generation === 0
+            ? null
+            : parentId === null
+            ? `s${generation - 1}${parentId}`
+            : `s${parentId}`,
       });
     }
     return events;
@@ -60,11 +69,14 @@ describe('Quick Trace', function () {
     it('renders nothing for empty trace', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(1)}
+          event={makeTransactionEvent(1) as Event}
           quickTrace={{
             type: 'empty',
-            trace: null,
+            trace: [],
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -77,11 +89,14 @@ describe('Quick Trace', function () {
     it('renders nothing when partial trace is empty', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(1)}
+          event={makeTransactionEvent(1) as Event}
           quickTrace={{
             type: 'partial',
             trace: null,
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -92,11 +107,14 @@ describe('Quick Trace', function () {
     it('renders nothing when partial trace missing current event', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent('not-1')}
+          event={makeTransactionEvent('not-1') as Event}
           quickTrace={{
             type: 'partial',
             trace: makeQuickTraceEvents(1),
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -107,11 +125,14 @@ describe('Quick Trace', function () {
     it('renders partial trace with no children', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(4)}
+          event={makeTransactionEvent(4) as Event}
           quickTrace={{
             type: 'partial',
             trace: makeQuickTraceEvents(4),
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -124,11 +145,14 @@ describe('Quick Trace', function () {
     it('renders partial trace with single child', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(4)}
+          event={makeTransactionEvent(4) as Event}
           quickTrace={{
             type: 'partial',
             trace: [...makeQuickTraceEvents(4), ...makeQuickTraceEvents(5)],
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -143,11 +167,14 @@ describe('Quick Trace', function () {
     it('renders partial trace with multiple children', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(4)}
+          event={makeTransactionEvent(4) as Event}
           quickTrace={{
             type: 'partial',
             trace: [...makeQuickTraceEvents(4), ...makeQuickTraceEvents(5, {n: 3})],
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -162,11 +189,14 @@ describe('Quick Trace', function () {
     it('renders full trace with root as parent', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(1)}
+          event={makeTransactionEvent(1) as Event}
           quickTrace={{
             type: 'partial',
             trace: [...makeQuickTraceEvents(0), ...makeQuickTraceEvents(1)],
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -183,7 +213,7 @@ describe('Quick Trace', function () {
     it('renders full trace with single ancestor', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(3)}
+          event={makeTransactionEvent(3) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -193,6 +223,9 @@ describe('Quick Trace', function () {
               ...makeQuickTraceEvents(3),
             ],
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -207,7 +240,7 @@ describe('Quick Trace', function () {
     it('renders full trace with multiple ancestors', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(5)}
+          event={makeTransactionEvent(5) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -219,6 +252,9 @@ describe('Quick Trace', function () {
               ...makeQuickTraceEvents(5),
             ],
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -233,7 +269,7 @@ describe('Quick Trace', function () {
     it('renders full trace with single descendant', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(0)}
+          event={makeTransactionEvent(0) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -242,6 +278,9 @@ describe('Quick Trace', function () {
               ...makeQuickTraceEvents(2),
             ],
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -256,7 +295,7 @@ describe('Quick Trace', function () {
     it('renders full trace with multiple descendants', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(0)}
+          event={makeTransactionEvent(0) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -267,6 +306,9 @@ describe('Quick Trace', function () {
               ...makeQuickTraceEvents(4),
             ],
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -281,7 +323,7 @@ describe('Quick Trace', function () {
     it('renders full trace', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(5)}
+          event={makeTransactionEvent(5) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -297,6 +339,9 @@ describe('Quick Trace', function () {
               ...makeQuickTraceEvents(9),
             ],
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -318,7 +363,7 @@ describe('Quick Trace', function () {
     it('renders single event targets', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(3)}
+          event={makeTransactionEvent(3) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -330,7 +375,8 @@ describe('Quick Trace', function () {
               ...makeQuickTraceEvents(5),
             ],
           }}
-          issuesDest="issue"
+          anchor="left"
+          errorDest="issue"
           transactionDest="performance"
           location={location}
           organization={organization}
@@ -351,11 +397,14 @@ describe('Quick Trace', function () {
     it('renders multiple event targets', function () {
       const quickTrace = mountWithTheme(
         <QuickTrace
-          event={makeTransactionEvent(0)}
+          event={makeTransactionEvent(0) as Event}
           quickTrace={{
             type: 'full',
             trace: [...makeQuickTraceEvents(0), ...makeQuickTraceEvents(1, {n: 10})],
           }}
+          anchor="left"
+          errorDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />

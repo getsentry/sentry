@@ -10,7 +10,7 @@ import {getDuration} from 'app/utils/formatters';
 import {QuickTraceEvent} from 'app/utils/performance/quickTrace/types';
 import {Theme} from 'app/utils/theme';
 
-export const SectionSubtext = styled('div')<{type?: 'error' | 'transaction'}>`
+export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
   color: ${p => (p.type === 'error' ? p.theme.error : p.theme.subText)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
