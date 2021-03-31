@@ -222,7 +222,12 @@ class ProjectDetail extends AsyncView<Props, State> {
                         index={id}
                       />
                     ))}
-                    <ProjectIssues organization={organization} location={location} />
+                    <ProjectIssues
+                      organization={organization}
+                      location={location}
+                      projectId={selection.projects[0]}
+                      api={this.api}
+                    />
                   </React.Fragment>
                 )}
               </Layout.Main>
