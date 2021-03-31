@@ -1,13 +1,13 @@
 from django.core.signing import SignatureExpired
 from django.core.urlresolvers import reverse
-from django.utils.http import urlencode
 from django.http import HttpResponseRedirect
+from django.utils.http import urlencode
 
-from sentry import integrations, features
+from sentry import features, integrations
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.web.frontend.base import BaseView
 from sentry.models import Organization, OrganizationMember
+from sentry.web.frontend.base import BaseView
 
 
 class ExternalIntegrationPipeline(IntegrationPipeline):

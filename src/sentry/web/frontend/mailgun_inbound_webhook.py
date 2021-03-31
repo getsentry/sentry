@@ -1,12 +1,12 @@
-from hashlib import sha256
 import hmac
 import logging
+from hashlib import sha256
 
 from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import View
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import View
 from email_reply_parser import EmailReplyParser
 
 from sentry import options

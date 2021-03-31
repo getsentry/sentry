@@ -17,7 +17,7 @@ class Properties:
         return zip(self.keys, self.values)
 
 
-@pytest.fixture(params=["bigtable", "cache/default"])
+@pytest.fixture(params=["bigtable", "cache/default", "memory"])
 def properties(request) -> Properties:
     if request.param == "bigtable":
         from tests.sentry.utils.kvstore.test_bigtable import create_store, get_credentials
@@ -42,6 +42,14 @@ def properties(request) -> Properties:
         return Properties(
             CacheKVStorage(cache),
             keys=(f"kvstore/{i}" for i in itertools.count()),
+            values=itertools.count(),
+        )
+    elif request.param == "memory":
+        from sentry.utils.kvstore.memory import MemoryKVStorage
+
+        return Properties(
+            MemoryKVStorage(),
+            keys=itertools.count(),
             values=itertools.count(),
         )
     else:

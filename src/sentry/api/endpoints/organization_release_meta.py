@@ -4,16 +4,15 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import (
-    Release,
-    CommitFileChange,
-    ReleaseFile,
-    ReleaseCommit,
-    ReleaseProject,
-    ProjectPlatform,
-)
-
 from sentry.api.serializers.models.release import expose_version_info
+from sentry.models import (
+    CommitFileChange,
+    ProjectPlatform,
+    Release,
+    ReleaseCommit,
+    ReleaseFile,
+    ReleaseProject,
+)
 from sentry.snuba.sessions import get_release_sessions_time_bounds
 
 

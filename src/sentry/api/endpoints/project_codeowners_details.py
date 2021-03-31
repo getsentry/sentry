@@ -1,17 +1,16 @@
 import logging
 
 from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import ProjectCodeOwners
-from sentry.api.exceptions import ResourceDoesNotExist
 
 from .project_codeowners import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
-
-from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,8 @@
 from rest_framework.response import Response
 
-from sentry.celery import app
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
+from sentry.celery import app
 
 
 class InternalQueueTasksEndpoint(Endpoint):
