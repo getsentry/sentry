@@ -1,13 +1,13 @@
-from hashlib import sha256
 import hmac
+from hashlib import sha256
 from uuid import uuid1
-from rest_framework.response import Response
 
 from django.core.urlresolvers import reverse
-from sentry.utils.http import absolute_uri
+from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.models import ProjectOption
+from sentry.utils.http import absolute_uri
 
 
 def _get_webhook_url(project, plugin_id, token):

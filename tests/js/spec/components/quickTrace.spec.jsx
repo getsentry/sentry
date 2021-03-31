@@ -330,6 +330,8 @@ describe('Quick Trace', function () {
               ...makeQuickTraceEvents(5),
             ],
           }}
+          issuesDest="issue"
+          transactionDest="performance"
           location={location}
           organization={organization}
         />

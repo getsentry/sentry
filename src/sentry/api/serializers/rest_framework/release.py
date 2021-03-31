@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.api.fields.user import UserField
+from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.constants import COMMIT_RANGE_DELIMITER, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.models import Release, ReleaseStatus
 

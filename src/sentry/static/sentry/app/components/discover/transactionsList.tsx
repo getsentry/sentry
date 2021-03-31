@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
@@ -180,16 +181,18 @@ class TransactionsList extends React.Component<Props> {
         </DropdownControl>
         {!this.isTrend() && (
           <HeaderButtonContainer>
-            <DiscoverButton
-              onClick={handleOpenInDiscoverClick}
-              to={eventView
-                .withSorts([selected.sort])
-                .getResultsViewUrlTarget(organization.slug)}
-              size="small"
-              data-test-id="discover-open"
-            >
-              {t('Open in Discover')}
-            </DiscoverButton>
+            <GuideAnchor target="release_transactions_open_in_discover">
+              <DiscoverButton
+                onClick={handleOpenInDiscoverClick}
+                to={eventView
+                  .withSorts([selected.sort])
+                  .getResultsViewUrlTarget(organization.slug)}
+                size="small"
+                data-test-id="discover-open"
+              >
+                {t('Open in Discover')}
+              </DiscoverButton>
+            </GuideAnchor>
           </HeaderButtonContainer>
         )}
       </Header>

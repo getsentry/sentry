@@ -63,7 +63,9 @@ function reduceTimeSeriesGroups(
   group: SessionApiResponse['groups'][number],
   field: 'count_unique(user)' | 'sum(session)'
 ) {
-  group.series[field].forEach((value, index) => (acc[index] = (acc[index] ?? 0) + value));
+  group.series[field]?.forEach(
+    (value, index) => (acc[index] = (acc[index] ?? 0) + value)
+  );
 
   return acc;
 }

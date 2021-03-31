@@ -85,12 +85,17 @@ const SidebarItem = ({
   onClick,
   ...props
 }: Props) => {
+  // label might be wrapped in a guideAnchor
+  let labelString = label;
+  if (React.isValidElement(label)) {
+    labelString = label?.props?.children ?? label;
+  }
   // If there is no active panel open and if path is active according to react-router
   const isActiveRouter =
     (!hasPanel && router && to && location.pathname.startsWith(to)) ||
-    (label === 'Discover' && location.pathname.includes('/discover/')) ||
+    (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
     // TODO: this won't be necessary once we remove settingsHome
-    (label === 'Settings' && location.pathname.startsWith('/settings/'));
+    (labelString === 'Settings' && location.pathname.startsWith('/settings/'));
 
   const isActive = active || isActiveRouter;
   const isTop = orientation === 'top';

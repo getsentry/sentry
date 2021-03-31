@@ -1,11 +1,11 @@
-import sentry_sdk
-
 from collections import defaultdict
+
+import sentry_sdk
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
-from sentry.snuba import discover
 from sentry import features, tagstore
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.snuba import discover
 
 
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBase):
@@ -46,7 +46,8 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
                     {
                         "name": tagstore.get_tag_value_label(row.key, row.value),
                         "value": row.value,
-                        f"avg_{aggregate_column}": row.count,
+                        "count": row.count,
+                        "aggregate": row.performance,
                     }
                 )
         return Response(list(resp.values()))

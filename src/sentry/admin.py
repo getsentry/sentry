@@ -1,23 +1,26 @@
+from pprint import saferepr
+
 from django import forms
 from django.conf import settings
 from django.conf.urls import url
 from django.contrib import admin, messages
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AdminPasswordChangeForm
+from django.contrib.auth.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import Http404, HttpResponseRedirect
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.debug import sensitive_post_parameters
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
-from django.utils.translation import ugettext, ugettext_lazy as _
-from pprint import saferepr
+from django.utils.decorators import method_decorator
+from django.utils.translation import ugettext
+from django.utils.translation import ugettext_lazy as _
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.debug import sensitive_post_parameters
+
 from sentry.models import (
     ApiKey,
+    AuditLogEntry,
     AuthIdentity,
     AuthProvider,
-    AuditLogEntry,
     Option,
     Organization,
     OrganizationMember,

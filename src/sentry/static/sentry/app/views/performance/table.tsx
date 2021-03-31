@@ -2,6 +2,7 @@ import React from 'react';
 import * as ReactRouter from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
+import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
@@ -136,8 +137,8 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    if (field.startsWith('key_transaction') || field.startsWith('user_misery')) {
-      // don't display per cell actions for key_transaction or user_misery
+    if (field.startsWith('key_transaction')) {
+      // don't display per cell actions for key_transaction
       return rendered;
     }
 
@@ -186,7 +187,7 @@ class Table extends React.Component<Props, State> {
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort =
       isFieldSortable(field, tableMeta) && field.field !== 'key_transaction';
-    return (
+    const sortLink = (
       <SortLink
         align={align}
         title={title || field.field}
@@ -195,6 +196,14 @@ class Table extends React.Component<Props, State> {
         generateSortLink={generateSortLink}
       />
     );
+    if (field.field.startsWith('user_misery')) {
+      return (
+        <GuideAnchor target="user_misery" position="top">
+          {sortLink}
+        </GuideAnchor>
+      );
+    }
+    return sortLink;
   }
 
   renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
@@ -259,14 +268,17 @@ class Table extends React.Component<Props, State> {
   }
 
   render() {
-    const {eventView, organization, location} = this.props;
+    const {eventView, organization, location, setError} = this.props;
 
     const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
-      .filter((col: TableColumn<React.ReactText>) => col.name !== 'key_transaction')
+      .filter(
+        (col: TableColumn<React.ReactText>) =>
+          col.name !== 'key_transaction' && !col.name.startsWith('count_miserable')
+      )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
@@ -285,6 +297,7 @@ class Table extends React.Component<Props, State> {
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
+          setError={setError}
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>

@@ -62,3 +62,16 @@ register(key="filters:localhost", epoch_defaults={1: "0"})
 
 # Default dynamic sampling rules
 register(key="sentry:dynamicSampling", epoch_defaults={1: []})
+
+# Default breakdowns config
+register(
+    key="sentry:breakdowns",
+    epoch_defaults={
+        1: {
+            "span_ops": {
+                "type": "span_operations",
+                "matches": ["http", "db", "browser", "resource"],
+            }
+        },
+    },
+)

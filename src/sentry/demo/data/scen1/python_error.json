@@ -1,0 +1,579 @@
+{
+  "event_id": "0208a36e051c4b5d8c12357972bcc1e3",
+  "project": 5641789,
+  "release": "52f7c8a62a97cecf029f6a68adb411c1714c4836",
+  "dist": null,
+  "platform": "python",
+  "message": "",
+  "datetime": "2021-03-12T15:44:24.353082Z",
+  "tags": [
+    ["browser", "Chrome 89.0.4389"],
+    ["browser.name", "Chrome"],
+    ["client_os", "Mac OS X 10.11.6"],
+    ["client_os.name", "Mac OS X"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["environment", "prod"],
+    ["handled", "no"],
+    ["level", "error"],
+    ["mechanism", "flask"],
+    ["runtime", "CPython 2.7.18"],
+    ["runtime.name", "CPython"],
+    ["release", "52f7c8a62a97cecf029f6a68adb411c1714c4836"],
+    ["user", "email:m0u9@yahoo.com"],
+    ["server_name", "localhost"],
+    ["transaction", "checkout"],
+    ["url", "https://app.example.com/checkout"]
+  ],
+  "_meta": {
+    "exception": {
+      "values": {
+        "0": {
+          "stacktrace": {
+            "frames": {
+              "0": {"vars": {"environ": {"": {"len": 40}}}},
+              "6": {
+                "vars": {"rows": {"": {"rem": [["!limit", "x", 509, 512]], "len": 9421}}}
+              }
+            }
+          }
+        }
+      }
+    },
+    "request": {"headers": {"17": {"1": {"": {"rem": [["!config", "x", 0, 11]]}}}}}
+  },
+  "_metrics": {"bytes.ingested.event": 13043, "bytes.stored.event": 16049},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1615563859.638164,
+        "type": "default",
+        "category": "query",
+        "level": "info",
+        "message": "SELECT * FROM inventory"
+      }
+    ]
+  },
+  "contexts": {
+    "browser": {"name": "Chrome", "version": "89.0.4389", "type": "browser"},
+    "client_os": {"name": "Mac OS X", "version": "10.11.6", "type": "os"},
+    "device": {"family": "Mac", "model": "Mac", "brand": "Apple", "type": "device"},
+    "runtime": {
+      "name": "CPython",
+      "version": "2.7.18",
+      "build": "2.7.18 (default, Apr 20 2020, 19:34:11) \n[GCC 8.3.0]",
+      "type": "runtime"
+    },
+    "trace": {
+      "trace_id": "9ceac54f47204338bf5b756083a9e2da",
+      "span_id": "8f10905c4d91caf6",
+      "parent_span_id": "b7444ff805237677",
+      "op": "http.server",
+      "type": "trace"
+    }
+  },
+  "culprit": "checkout",
+  "environment": "prod",
+  "exception": {
+    "values": [
+      {
+        "type": "Exception",
+        "value": "Not enough inventory for wrench",
+        "module": "exceptions",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "wsgi_app",
+              "module": "flask.app",
+              "filename": "flask/app.py",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/flask/app.py",
+              "lineno": 2292,
+              "pre_context": [
+                "        ctx = self.request_context(environ)",
+                "        error = None",
+                "        try:",
+                "            try:",
+                "                ctx.push()"
+              ],
+              "context_line": "                response = self.full_dispatch_request()",
+              "post_context": [
+                "            except Exception as e:",
+                "                error = e",
+                "                response = self.handle_exception(e)",
+                "            except:",
+                "                error = sys.exc_info()[1]"
+              ],
+              "in_app": true,
+              "vars": {
+                "ctx": "<RequestContext 'https://app.example.com/checkout' [POST] of app>",
+                "e": "Exception(u'Not enough inventory for wrench',)",
+                "environ": {
+                  "HTTP_ORIGIN": "'https://app.example.com'",
+                  "HTTP_REFERER": "'https://app.example.com/'",
+                  "PATH_INFO": "'/checkout'",
+                  "QUERY_STRING": "''",
+                  "REMOTE_ADDR": "'169.254.8.129'",
+                  "REQUEST_METHOD": "'POST'",
+                  "SCRIPT_NAME": "''",
+                  "SERVER_PROTOCOL": "'HTTP/1.1'",
+                  "SERVER_SOFTWARE": "'Werkzeug/1.0.1'",
+                  "werkzeug.server.shutdown": "<function shutdown_server at 0x3e8b9d4f7c50>"
+                },
+                "error": "Exception(u'Not enough inventory for wrench',)",
+                "self": "<Flask 'app'>",
+                "start_response": "<functools.partial object at 0x3e8b9d4bc710>"
+              }
+            },
+            {
+              "function": "full_dispatch_request",
+              "module": "flask.app",
+              "filename": "flask/app.py",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/flask/app.py",
+              "lineno": 1815,
+              "pre_context": [
+                "            request_started.send(self)",
+                "            rv = self.preprocess_request()",
+                "            if rv is None:",
+                "                rv = self.dispatch_request()",
+                "        except Exception as e:"
+              ],
+              "context_line": "            rv = self.handle_user_exception(e)",
+              "post_context": [
+                "        return self.finalize_request(rv)",
+                "",
+                "    def finalize_request(self, rv, from_error_handler=False):",
+                "        \"\"\"Given the return value from a view function this finalizes",
+                "        the request by converting it into a response and invoking the"
+              ],
+              "in_app": true,
+              "vars": {
+                "e": "Exception(u'Not enough inventory for wrench',)",
+                "rv": "None",
+                "self": "<Flask 'app'>"
+              }
+            },
+            {
+              "function": "wrapped_function",
+              "module": "flask_cors.extension",
+              "filename": "flask_cors/extension.py",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/flask_cors/extension.py",
+              "lineno": 161,
+              "pre_context": [
+                "        # Wrap exception handlers with cross_origin",
+                "        # These error handlers will still respect the behavior of the route",
+                "        if options.get('intercept_exceptions', True):",
+                "            def _after_request_decorator(f):",
+                "                def wrapped_function(*args, **kwargs):"
+              ],
+              "context_line": "                    return cors_after_request(app.make_response(f(*args, **kwargs)))",
+              "post_context": [
+                "                return wrapped_function",
+                "",
+                "            if hasattr(app, 'handle_exception'):",
+                "                app.handle_exception = _after_request_decorator(",
+                "                    app.handle_exception)"
+              ],
+              "in_app": true,
+              "vars": {
+                "app": "<Flask 'app'>",
+                "args": ["Exception(u'Not enough inventory for wrench',)"],
+                "cors_after_request": "<function cors_after_request at 0x3e8b9d5cfd50>",
+                "f": "<bound method Flask.handle_user_exception of <Flask 'app'>>",
+                "kwargs": {}
+              }
+            },
+            {
+              "function": "handle_user_exception",
+              "module": "flask.app",
+              "filename": "flask/app.py",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/flask/app.py",
+              "lineno": 1718,
+              "pre_context": [
+                "            return self.handle_http_exception(e)",
+                "",
+                "        handler = self._find_error_handler(e)",
+                "",
+                "        if handler is None:"
+              ],
+              "context_line": "            reraise(exc_type, exc_value, tb)",
+              "post_context": [
+                "        return handler(e)",
+                "",
+                "    def handle_exception(self, e):",
+                "        \"\"\"Default exception handling that kicks in when an exception",
+                "        occurs that is not caught.  In debug mode the exception will"
+              ],
+              "in_app": true,
+              "vars": {
+                "e": "Exception(u'Not enough inventory for wrench',)",
+                "exc_type": "<type 'exceptions.Exception'>",
+                "exc_value": "Exception(u'Not enough inventory for wrench',)",
+                "handler": "None",
+                "self": "<Flask 'app'>",
+                "tb": "<traceback object at 0x3e8b9d52afa0>"
+              }
+            },
+            {
+              "function": "full_dispatch_request",
+              "module": "flask.app",
+              "filename": "flask/app.py",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/flask/app.py",
+              "lineno": 1813,
+              "pre_context": [
+                "        self.try_trigger_before_first_request_functions()",
+                "        try:",
+                "            request_started.send(self)",
+                "            rv = self.preprocess_request()",
+                "            if rv is None:"
+              ],
+              "context_line": "                rv = self.dispatch_request()",
+              "post_context": [
+                "        except Exception as e:",
+                "            rv = self.handle_user_exception(e)",
+                "        return self.finalize_request(rv)",
+                "",
+                "    def finalize_request(self, rv, from_error_handler=False):"
+              ],
+              "in_app": true,
+              "vars": {
+                "e": "Exception(u'Not enough inventory for wrench',)",
+                "rv": "None",
+                "self": "<Flask 'app'>"
+              }
+            },
+            {
+              "function": "dispatch_request",
+              "module": "flask.app",
+              "filename": "flask/app.py",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/flask/app.py",
+              "lineno": 1799,
+              "pre_context": [
+                "        # request came with the OPTIONS method, reply automatically",
+                "        if getattr(rule, 'provide_automatic_options', False) \\",
+                "           and req.method == 'OPTIONS':",
+                "            return self.make_default_options_response()",
+                "        # otherwise dispatch to the handler for that endpoint"
+              ],
+              "context_line": "        return self.view_functions[rule.endpoint](**req.view_args)",
+              "post_context": [
+                "",
+                "    def full_dispatch_request(self):",
+                "        \"\"\"Dispatches the request and on top of that performs request",
+                "        pre and postprocessing as well as HTTP exception catching and",
+                "        error handling."
+              ],
+              "in_app": true,
+              "vars": {
+                "req": "<Request 'https://app.example.com/checkout' [POST]>",
+                "rule": "<Rule '/checkout' (POST, OPTIONS) -> checkout>",
+                "self": "<Flask 'app'>"
+              }
+            },
+            {
+              "function": "checkout",
+              "module": "app",
+              "filename": "app.py",
+              "abs_path": "/app/app.py",
+              "lineno": 96,
+              "pre_context": [
+                "        except Exception as err:",
+                "            sentry_sdk.capture_exception(err)",
+                "            raise(err)",
+                "",
+                "    with sentry_sdk.start_span(op=\"process order\"):"
+              ],
+              "context_line": "        process_order(cart)",
+              "post_context": [
+                "",
+                "    with sentry_sdk.start_span(op=\"db function: update inventory\"):",
+                "        try:",
+                "            rows = update_inventory()",
+                "        except Exception as err:"
+              ],
+              "in_app": true,
+              "vars": {
+                "cart": [
+                  {
+                    "id": "1",
+                    "image": "u'/static/media/wrench.0371ec11.png'",
+                    "name": "u'allen wrench'",
+                    "price": "5672",
+                    "sku": "u'asyqtzmrhsabqxri'",
+                    "type": "u'wrench'"
+                  },
+                  {
+                    "id": "1",
+                    "image": "u'/static/media/wrench.0371ec11.png'",
+                    "name": "u'allen wrench'",
+                    "price": "5672",
+                    "sku": "u'asyqtzmrhsabqxri'",
+                    "type": "u'wrench'"
+                  },
+                  {
+                    "id": "1",
+                    "image": "u'/static/media/wrench.0371ec11.png'",
+                    "name": "u'allen wrench'",
+                    "price": "5672",
+                    "sku": "u'asyqtzmrhsabqxri'",
+                    "type": "u'wrench'"
+                  },
+                  {
+                    "id": "1",
+                    "image": "u'/static/media/wrench.0371ec11.png'",
+                    "name": "u'allen wrench'",
+                    "price": "5672",
+                    "sku": "u'asyqtzmrhsabqxri'",
+                    "type": "u'wrench'"
+                  }
+                ],
+                "order": {
+                  "cart": [
+                    {
+                      "id": "1",
+                      "image": "u'/static/media/wrench.0371ec11.png'",
+                      "name": "u'allen wrench'",
+                      "price": "5672",
+                      "sku": "u'asyqtzmrhsabqxri'",
+                      "type": "u'wrench'"
+                    },
+                    {
+                      "id": "1",
+                      "image": "u'/static/media/wrench.0371ec11.png'",
+                      "name": "u'allen wrench'",
+                      "price": "5672",
+                      "sku": "u'asyqtzmrhsabqxri'",
+                      "type": "u'wrench'"
+                    },
+                    {
+                      "id": "1",
+                      "image": "u'/static/media/wrench.0371ec11.png'",
+                      "name": "u'allen wrench'",
+                      "price": "5672",
+                      "sku": "u'asyqtzmrhsabqxri'",
+                      "type": "u'wrench'"
+                    },
+                    {
+                      "id": "1",
+                      "image": "u'/static/media/wrench.0371ec11.png'",
+                      "name": "u'allen wrench'",
+                      "price": "5672",
+                      "sku": "u'asyqtzmrhsabqxri'",
+                      "type": "u'wrench'"
+                    }
+                  ]
+                },
+                "rows": "'[{\"sku\": \"asyqtzmrhsabqxri\", \"count\": 12, \"id\": 1}, {\"sku\": \"vkvnmvpnkagfnrkr\", \"count\": 6, \"id\": 2}, {\"sku\": \"wlzfznigebfrharg\", \"count\": 6, \"id\": 3}, {\"sku\": \"zkvsixjthreumjut\", \"count\": 4, \"id\": 4}, {\"sku\": \"irfpkztydpfeueye\", \"count\": 17, \"id\": 5}, {\"sku\": \"kxljbwggsrtujclc\", \"count\": 25, \"id\": 6}, {\"sku\": \"bpiplgewiwnbvqfi\", \"count\": 12, \"id\": 7}, {\"sku\": \"rztpqcgnltqnjaso\", \"count\": 25, \"id\": 8}, {\"sku\": \"ygwzoznsauarvomp\", \"count\": 6, \"id\": 9}, {\"sku\": \"lmgcqxgahidfnejm\", \"count\": 5, \"id\": 10}, {..."
+              }
+            },
+            {
+              "function": "process_order",
+              "module": "app",
+              "filename": "app.py",
+              "abs_path": "/app/app.py",
+              "lineno": 66,
+              "pre_context": [
+                "    global Inventory",
+                "    tempInventory = Inventory",
+                "    wait(operator.ge, 14, .5)",
+                "    for item in cart:",
+                "        if Inventory[item['type']] <= 0:"
+              ],
+              "context_line": "            raise Exception(\"Not enough inventory for \" + item['type'])",
+              "post_context": [
+                "        else:",
+                "            tempInventory[item['type']] -= 1",
+                "            print 'Success: ' + item['type'] + ' was purchased, remaining stock is ' + str(tempInventory[item['type']])",
+                "    Inventory = tempInventory",
+                ""
+              ],
+              "in_app": true,
+              "vars": {
+                "cart": [
+                  {
+                    "id": "1",
+                    "image": "u'/static/media/wrench.0371ec11.png'",
+                    "name": "u'allen wrench'",
+                    "price": "5672",
+                    "sku": "u'asyqtzmrhsabqxri'",
+                    "type": "u'wrench'"
+                  },
+                  {
+                    "id": "1",
+                    "image": "u'/static/media/wrench.0371ec11.png'",
+                    "name": "u'allen wrench'",
+                    "price": "5672",
+                    "sku": "u'asyqtzmrhsabqxri'",
+                    "type": "u'wrench'"
+                  },
+                  {
+                    "id": "1",
+                    "image": "u'/static/media/wrench.0371ec11.png'",
+                    "name": "u'allen wrench'",
+                    "price": "5672",
+                    "sku": "u'asyqtzmrhsabqxri'",
+                    "type": "u'wrench'"
+                  },
+                  {
+                    "id": "1",
+                    "image": "u'/static/media/wrench.0371ec11.png'",
+                    "name": "u'allen wrench'",
+                    "price": "5672",
+                    "sku": "u'asyqtzmrhsabqxri'",
+                    "type": "u'wrench'"
+                  }
+                ],
+                "item": {
+                  "id": "1",
+                  "image": "u'/static/media/wrench.0371ec11.png'",
+                  "name": "u'allen wrench'",
+                  "price": "5672",
+                  "sku": "u'asyqtzmrhsabqxri'",
+                  "type": "u'wrench'"
+                },
+                "tempInventory": {"hammer": "1", "nails": "1", "wrench": "0"}
+              }
+            }
+          ]
+        },
+        "mechanism": {"type": "flask", "handled": false}
+      }
+    ]
+  },
+  "extra": {
+    "inventory": {"hammer": 1, "nails": 1, "wrench": 0},
+    "sys.argv": ["/usr/local/bin/flask", "run", "--host=0.0.0.0", "-p", "8080"]
+  },
+  "fingerprint": ["{{ default }}"],
+  "grouping_config": {
+    "enhancements": "eJybzDhxY3J-bm5-npWRgaGlroGxrpHxBABcTQcY",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": ["f85d11e671ea2e70d4502326d277511a"],
+  "key_id": "1512188",
+  "level": "error",
+  "location": "app.py",
+  "logger": "",
+  "metadata": {
+    "filename": "app.py",
+    "function": "process_order",
+    "type": "Exception",
+    "value": "Not enough inventory for wrench"
+  },
+  "modules": {
+    "blinker": "1.4",
+    "certifi": "2020.12.5",
+    "click": "7.1.2",
+    "flask": "1.0.2",
+    "flask-cors": "3.0.7",
+    "gunicorn": "0.14.2",
+    "itsdangerous": "1.1.0",
+    "jinja2": "2.11.3",
+    "markupsafe": "1.1.1",
+    "numpy": "1.16.6",
+    "pg8000": "1.12.5",
+    "pip": "20.0.2",
+    "psycopg2-binary": "2.8.4",
+    "python": "2.7.18",
+    "python-dotenv": "0.12.0",
+    "pytz": "2020.4",
+    "sentry-sdk": "0.19.2",
+    "setuptools": "44.1.0",
+    "six": "1.15.0",
+    "sqlalchemy": "1.3.15",
+    "typing": "3.7.4.3",
+    "urllib3": "1.26.3",
+    "werkzeug": "1.0.1",
+    "wheel": "0.34.2",
+    "wsgiref": "0.1.2"
+  },
+  "received": 1615563864.388874,
+  "request": {
+    "url": "https://app.example.com/checkout",
+    "method": "POST",
+    "data": {
+      "cart": [
+        {
+          "id": 1,
+          "image": "/static/media/wrench.0371ec11.png",
+          "name": "allen wrench",
+          "price": 5672,
+          "sku": "asyqtzmrhsabqxri",
+          "type": "wrench"
+        },
+        {
+          "id": 1,
+          "image": "/static/media/wrench.0371ec11.png",
+          "name": "allen wrench",
+          "price": 5672,
+          "sku": "asyqtzmrhsabqxri",
+          "type": "wrench"
+        },
+        {
+          "id": 1,
+          "image": "/static/media/wrench.0371ec11.png",
+          "name": "allen wrench",
+          "price": 5672,
+          "sku": "asyqtzmrhsabqxri",
+          "type": "wrench"
+        },
+        {
+          "id": 1,
+          "image": "/static/media/wrench.0371ec11.png",
+          "name": "allen wrench",
+          "price": 5672,
+          "sku": "asyqtzmrhsabqxri",
+          "type": "wrench"
+        }
+      ]
+    },
+    "headers": [
+      ["Accept", "*/*"],
+      ["Accept-Encoding", "gzip, deflate, br"],
+      ["Accept-Language", "en-US,en;q=0.9"],
+      ["Content-Length", "526"],
+      ["Content-Type", "application/json"],
+      ["Email", "m0u9@yahoo.com"],
+      ["Forwarded", "for=\"66.85.48.72\";proto=https"],
+      ["Host", "aj-flask-m3uuizd7iq-uc.a.run.app"],
+      ["Origin", "https://app.example.com"],
+      ["Referer", "https://app.example.com/"],
+      ["Sec-Fetch-Dest", "empty"],
+      ["Sec-Fetch-Mode", "cors"],
+      ["Sec-Fetch-Site", "cross-site"],
+      ["Sentry-Trace", "9ceac54f47204338bf5b756083a9e2da-b7444ff805237677-1"],
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36"
+      ],
+      ["X-Client-Data", "CgSM6ZsV"],
+      ["X-Cloud-Trace-Context", "f10043b163a6eb332f2b7ad7c63808b0/592331498954335927"],
+      ["X-Forwarded-For", ""],
+      ["X-Forwarded-Proto", "https"]
+    ],
+    "env": {"SERVER_NAME": "0.0.0.0", "SERVER_PORT": "8080"},
+    "inferred_content_type": "application/json"
+  },
+  "sdk": {
+    "name": "sentry.python",
+    "version": "0.19.2",
+    "integrations": [
+      "argv",
+      "atexit",
+      "dedupe",
+      "excepthook",
+      "flask",
+      "logging",
+      "modules",
+      "sqlalchemy",
+      "stdlib",
+      "threading"
+    ],
+    "packages": [{"name": "pypi:sentry-sdk", "version": "0.19.2"}]
+  },
+  "timestamp": 1615563864.353082,
+  "title": "Exception: Not enough inventory for wrench",
+  "transaction": "checkout",
+  "type": "error",
+  "user": {"email": "m0u9@yahoo.com"},
+  "version": "7"
+}

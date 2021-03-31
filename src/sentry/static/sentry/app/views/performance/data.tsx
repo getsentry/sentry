@@ -233,7 +233,7 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
   userMisery: organization =>
     t(
-      "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold of %sms.",
+      "User Misery is a score that represents the number of unique users who have experienced load times 4x your organization's apdex threshold of %sms.",
       organization.apdexThreshold
     ),
   statusBreakdown: () =>
@@ -278,6 +278,7 @@ function generateGenericPerformanceEventView(
       'failure_rate()',
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
+      `count_miserable(user,${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
     ],
     version: 2,
@@ -332,6 +333,7 @@ function generateBackendPerformanceEventView(
       'failure_rate()',
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
+      `count_miserable(user,${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
     ],
     version: 2,
@@ -385,6 +387,7 @@ function generateFrontendPageloadPerformanceEventView(
       'p75(measurements.fid)',
       'p75(measurements.cls)',
       'count_unique(user)',
+      `count_miserable(user,${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
     ],
     version: 2,
@@ -435,6 +438,7 @@ function generateFrontendOtherPerformanceEventView(
       'p75(transaction.duration)',
       'p95(transaction.duration)',
       'count_unique(user)',
+      `count_miserable(user,${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
     ],
     version: 2,

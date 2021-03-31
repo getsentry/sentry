@@ -50,19 +50,19 @@ function UserStats({
   let vitalsPassRate: React.ReactNode = null;
 
   if (!isLoading && error === null && totals) {
-    const miserableUsers = Number(totals[`user_misery_${threshold}`]);
-    const totalUsers = Number(totals.count_unique_user);
-    if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
-      userMisery = (
-        <UserMisery
-          bars={40}
-          barHeight={30}
-          miseryLimit={threshold}
-          totalUsers={totalUsers}
-          miserableUsers={miserableUsers}
-        />
-      );
-    }
+    const miserableUsers = totals[`count_miserable_user_${threshold}`];
+    const userMiseryScore = totals[`user_misery_${threshold}`];
+    const totalUsers = totals.count_unique_user;
+    userMisery = (
+      <UserMisery
+        bars={40}
+        barHeight={30}
+        userMisery={userMiseryScore}
+        miseryLimit={threshold}
+        totalUsers={totalUsers}
+        miserableUsers={miserableUsers}
+      />
+    );
 
     const [vitalsPassed, vitalsTotal] = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce(
       ([passed, total], vs) => {

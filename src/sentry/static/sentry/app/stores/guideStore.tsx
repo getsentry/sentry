@@ -9,6 +9,16 @@ import {Guide, GuidesContent, GuidesServerData} from 'app/components/assistant/t
 import ConfigStore from 'app/stores/configStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
+function guidePrioritySort(a: Guide, b: Guide) {
+  const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
+  const b_priority = b.priority ?? Number.MAX_SAFE_INTEGER;
+  if (a_priority === b_priority) {
+    return a.guide.localeCompare(b.guide);
+  }
+  // lower number takes priority
+  return a_priority - b_priority;
+}
+
 export type GuideStoreState = {
   /**
    * All tooltip guides
@@ -121,12 +131,13 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   },
 
   onCloseGuide() {
-    const {currentGuide} = this.state;
-    this.state.guides.map(guide => {
-      if (guide.guide === currentGuide?.guide) {
-        guide.seen = true;
-      }
-    });
+    const {currentGuide, guides} = this.state;
+    //update the current guide seen to true or all guides if markOthersAsSeen is true
+    guides
+      .filter(
+        guide => guide.guide === currentGuide?.guide || currentGuide?.markOthersAsSeen
+      )
+      .forEach(guide => (guide.seen = true));
     this.state.forceShow = false;
     this.updateCurrentGuide();
   },
@@ -191,7 +202,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     const {anchors, guides, forceShow} = this.state;
 
     let guideOptions = guides
-      .sort((a, b) => a.guide.localeCompare(b.guide))
+      .sort(guidePrioritySort)
       .filter(guide => guide.requiredTargets.every(target => anchors.has(target)));
 
     const user = ConfigStore.get('user');

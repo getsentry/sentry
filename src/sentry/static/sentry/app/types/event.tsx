@@ -152,7 +152,7 @@ type EventContexts = {
   client_os?: OSContext;
 };
 
-type Measurement = {value: number};
+export type Measurement = {value: number};
 
 export type EventTag = {key: string; value: string};
 

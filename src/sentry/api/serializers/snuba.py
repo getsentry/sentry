@@ -1,10 +1,10 @@
 import itertools
-from functools import reduce, partial
+from functools import partial, reduce
 from operator import or_
 
 from django.db.models import Q
 
-from sentry.models import Release, Project, ProjectStatus, EventUser
+from sentry.models import EventUser, Project, ProjectStatus, Release
 from sentry.utils.dates import to_timestamp
 from sentry.utils.geo import geo_by_addr as _geo_by_addr
 

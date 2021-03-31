@@ -6,8 +6,10 @@ import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
+  aggregateFunctionOutputType,
   explodeField,
   generateFieldAsString,
+  isLegalYAxisType,
   QueryFieldValue,
 } from 'app/utils/discover/fields';
 import {Widget} from 'app/views/dashboardsV2/types';
@@ -35,9 +37,17 @@ type Props = {
    * Any errors that need to be rendered.
    */
   errors?: Record<string, any>;
+  style?: React.CSSProperties;
 };
 
-function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}: Props) {
+function WidgetQueryFields({
+  displayType,
+  errors,
+  fields,
+  fieldOptions,
+  onChange,
+  style,
+}: Props) {
   // Handle new fields being added.
   function handleAdd(event: React.MouseEvent) {
     event.preventDefault();
@@ -71,10 +81,10 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
         data-test-id="columns"
         label={t('Columns')}
         inline={false}
-        style={{padding: `8px 0`}}
+        style={{padding: `8px 0`, ...(style ?? {})}}
+        error={errors?.fields}
         flexibleControlStateSize
         stacked
-        error={errors?.fields}
         required
       >
         <StyledColumnEditCollection
@@ -96,11 +106,11 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
       data-test-id="y-axis"
       label={t('Y-Axis')}
       inline={false}
-      style={{padding: `16px 0 24px 0`}}
+      style={{padding: `16px 0 24px 0`, ...(style ?? {})}}
       flexibleControlStateSize
-      stacked
       error={errors?.fields}
       required
+      stacked
     >
       {fields.map((field, i) => (
         <QueryFieldWrapper key={`${field}:${i}`}>
@@ -109,7 +119,26 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
             fieldOptions={fieldOptions}
             onChange={value => handleChangeField(value, i)}
             filterPrimaryOptions={option => {
+              if (option.value.kind === FieldValueKind.FUNCTION) {
+                const primaryOutput = aggregateFunctionOutputType(
+                  option.value.meta.name,
+                  undefined
+                );
+                if (primaryOutput) {
+                  // If a function returns a specific type, then validate it.
+                  return isLegalYAxisType(primaryOutput);
+                }
+              }
+
               return option.value.kind === FieldValueKind.FUNCTION;
+            }}
+            filterAggregateParameters={option => {
+              if (option.value.kind === FieldValueKind.FUNCTION) {
+                // Functions are not legal options as an aggregate/function parameter.
+                return false;
+              }
+
+              return isLegalYAxisType(option.value.meta.dataType);
             }}
           />
           {fields.length > 1 && (

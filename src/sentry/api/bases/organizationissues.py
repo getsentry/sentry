@@ -1,8 +1,8 @@
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
-from sentry.api.serializers import serialize, StreamGroupSerializer
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import StreamGroupSerializer, serialize
 from sentry.models import Group, GroupStatus, OrganizationMemberTeam, Project, ProjectStatus
 
 from .organizationmember import OrganizationMemberEndpoint
