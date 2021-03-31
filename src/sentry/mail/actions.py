@@ -6,7 +6,6 @@ from sentry.models import Project, User
 from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics
 
-
 CHOICES = [
     (ActionTargetType.ISSUE_OWNERS.value, "Issue Owners"),
     (ActionTargetType.TEAM.value, "Team"),

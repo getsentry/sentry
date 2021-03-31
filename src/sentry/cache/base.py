@@ -1,6 +1,6 @@
-from django.conf import settings
-
 from threading import local
+
+from django.conf import settings
 
 
 class BaseCache(local):

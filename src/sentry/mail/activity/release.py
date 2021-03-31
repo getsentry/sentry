@@ -1,6 +1,7 @@
 from collections import defaultdict
-from django.db.models import Count, Q
 from itertools import chain
+
+from django.db.models import Count, Q
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -8,8 +9,8 @@ from sentry.models import (
     Deploy,
     Environment,
     Group,
-    GroupSubscriptionReason,
     GroupLink,
+    GroupSubscriptionReason,
     ProjectTeam,
     Release,
     ReleaseCommit,
