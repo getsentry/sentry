@@ -40,9 +40,10 @@ jobs:
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         # Sometimes, brew needs to be updated before brew bundle would work
-        # If you want to speed up the CI for your PR, you can use --no-upgrade and HOMEBREW_NO_AUTO_UPDATE=1
+        # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
-          brew bundle || brew update && brew bundle
+          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle -q --no-upgrade || brew update && brew bundle
+          SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
 
       - name: Install Python (via Pyenv)
         id: python-version
@@ -81,12 +82,12 @@ jobs:
           restore-keys: |
             ${{ matrix.os }}-yarn-
 
-      # We cannot call make bootstrap directly since run-dependent-services requires some Docker magic.
-      # We have the magic in the getsentry/bootstrap-develop. We will handle this situation in the next pass of this.
-      # make init-config will *not* prompt about overwriting ~/.sentry/config.yml' since we're on a pristine state
+      # make develop calls "ensure-venv", thus, needing to be within a venv
+      # TODO: We need to streamline the installation of the wheel package
       - name: Set up development environment (mostly as per docs)
         run: |
           python -m venv .venv
           source .venv/bin/activate
+          pip install wheel
           curl https://get.volta.sh | bash
-          make develop init-config
+          make bootstrap
