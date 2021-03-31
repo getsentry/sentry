@@ -208,7 +208,7 @@ class GroupSerializerBase(Serializer):
         for notification_setting in notification_settings:
             key = (
                 notification_setting.scope_identifier
-                if notification_setting.scope_type == NotificationScopeType.PROJECT
+                if notification_setting.scope_type == NotificationScopeType.PROJECT.value
                 else None
             )
             options[key] = notification_setting.value
@@ -225,7 +225,7 @@ class GroupSerializerBase(Serializer):
                             lambda project__groups: project__groups[1]
                             if not (
                                 options.get(project__groups[0].id, options.get(None))
-                                == NotificationSettingOptionValues.NEVER
+                                == NotificationSettingOptionValues.NEVER.value
                             )
                             else [],
                             projects.items(),
@@ -240,7 +240,7 @@ class GroupSerializerBase(Serializer):
         # the option value specifically recorded. (The default
         # "participating_only" value is convention.)
         global_default_workflow_option = options.get(
-            None, NotificationSettingOptionValues.SUBSCRIBE_ONLY
+            None, NotificationSettingOptionValues.SUBSCRIBE_ONLY.value
         )
 
         results = {}
@@ -256,10 +256,11 @@ class GroupSerializerBase(Serializer):
                     results[group.id] = (
                         (
                             project_default_workflow_option
-                            == NotificationSettingOptionValues.ALWAYS,
+                            == NotificationSettingOptionValues.ALWAYS.value,
                             None,
                         )
-                        if project_default_workflow_option != NotificationSettingOptionValues.NEVER
+                        if project_default_workflow_option
+                        != NotificationSettingOptionValues.NEVER.value
                         else disabled
                     )
 

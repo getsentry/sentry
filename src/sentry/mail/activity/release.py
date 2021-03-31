@@ -1,7 +1,7 @@
 from collections import defaultdict
 from itertools import chain
 
-from django.db.models import Count, Q
+from django.db.models import Count
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -141,39 +141,39 @@ class ReleaseActivityEmail(ActivityEmail):
         for notification_setting in notification_settings:
             key = (
                 "default"
-                if notification_setting.scope_type == NotificationScopeType.USER
+                if notification_setting.scope_type == NotificationScopeType.USER.value
                 else "org"
             )
-            user_id = getattr(actor_mapping.get(notification_setting.target), "id", None)
-            options_by_user_id[user_id][key] = notification_setting.value
+            user_option = actor_mapping.get(notification_setting.target)
+            if user_option:
+                options_by_user_id[user_option.id][key] = notification_setting.value
 
         # and couple them with the the users' setting value for deploy-emails
         # prioritize user/org specific, then user default, then product default
-        users_with_options = []
+        users_with_options = {}
         for user in users:
             options = options_by_user_id.get(user.id, {})
-            users_with_options.append(
-                (
-                    user,
-                    options.get(
-                        "org",
-                        options.get("default", NotificationSettingOptionValues.COMMITTED_ONLY),
-                    ),
-                )
+            users_with_options[user] = (
+                options.get("org")  # org-specific
+                or options.get("default")  # user default
+                or NotificationSettingOptionValues.COMMITTED_ONLY.value  # product default
             )
 
         # filter down to members which have been seen in the commit log:
         participants_committed = {
             user: GroupSubscriptionReason.committed
-            for user, option in users_with_options
-            if option == NotificationSettingOptionValues.COMMITTED_ONLY and user.id in self.user_ids
+            for user, option in users_with_options.items()
+            if (
+                option == NotificationSettingOptionValues.COMMITTED_ONLY.value
+                and user.id in self.user_ids
+            )
         }
 
         # or who opt into all deploy emails:
         participants_opted = {
             user: GroupSubscriptionReason.deploy_setting
-            for user, option in users_with_options
-            if option == NotificationSettingOptionValues.ALWAYS
+            for user, option in users_with_options.items()
+            if option == NotificationSettingOptionValues.ALWAYS.value
         }
 
         # merge the two type of participants
