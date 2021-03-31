@@ -17,6 +17,8 @@ export type GenericChildrenProps<T> = {
   pageLinks: null | string;
 };
 
+export type EventsReferrer = 'api.discover.events-v2' | 'api.performance.events-v2';
+
 export type DiscoverQueryProps = {
   api: Client;
   /**

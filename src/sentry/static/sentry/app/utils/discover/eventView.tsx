@@ -51,8 +51,6 @@ export type LocationQuery = {
   cursor?: string | string[];
 };
 
-export type EventsReferrer = 'api.discover.events-v2' | 'api.performance.events-v2';
-
 const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
 
 const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
