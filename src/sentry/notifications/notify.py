@@ -1,19 +1,15 @@
-from typing import Optional
+from typing import Any, Optional
 
 from sentry.models.integration import ExternalProviders
-from sentry.models import (
-    Team,
-    User,
-)
 from sentry.notifications.types import NotificationSettingTypes
 
 
 def notify(
     provider: ExternalProviders,
     type: NotificationSettingTypes,
-    user: Optional[User] = None,
-    team: Optional[Team] = None,
-    data: Optional[object] = None,
+    user: Optional[Any] = None,
+    team: Optional[Any] = None,
+    data: Optional[Any] = None,
 ) -> bool:
     """
     Something noteworthy has happened. Let the targets know about what

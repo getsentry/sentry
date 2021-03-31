@@ -32,13 +32,14 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             )
 
         notifications = UserNotificationsSerializer()
-        serialized = serialize(
-            user,
-            request.user,
-            notifications,
-            notification_type=notification_type,
+        return Response(
+            serialize(
+                user,
+                request.user,
+                notifications,
+                notification_type=notification_type,
+            )
         )
-        return Response(serialized)
 
     def put(self, request, user, notification_type):
         """

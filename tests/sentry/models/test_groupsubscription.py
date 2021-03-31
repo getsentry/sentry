@@ -13,10 +13,6 @@ from sentry.notifications.types import (
 from sentry.testutils import TestCase
 
 
-def clear_workflow_options(user):
-    NotificationSetting.objects.remove_for_user(user, NotificationSettingTypes.WORKFLOW)
-
-
 class SubscribeTest(TestCase):
     def test_simple(self):
         group = self.create_group()
@@ -180,7 +176,7 @@ class GetParticipantsTest(TestCase):
                 project=project,
             )
 
-        clear_workflow_options(user)
+        NotificationSetting.objects.remove_for_user(user, NotificationSettingTypes.WORKFLOW)
 
         # Implicit subscription, ensure the project setting overrides the
         # explicit global option.
@@ -203,7 +199,7 @@ class GetParticipantsTest(TestCase):
                 project=project,
             )
 
-        clear_workflow_options(user)
+        NotificationSetting.objects.remove_for_user(user, NotificationSettingTypes.WORKFLOW)
 
         # Explicit subscription, overridden by the global option.
 
@@ -225,7 +221,7 @@ class GetParticipantsTest(TestCase):
                 user=user,
             )
 
-        clear_workflow_options(user)
+        NotificationSetting.objects.remove_for_user(user, NotificationSettingTypes.WORKFLOW)
 
         # Explicit subscription, overridden by the project option.
 
@@ -247,7 +243,7 @@ class GetParticipantsTest(TestCase):
                 project=project,
             )
 
-        clear_workflow_options(user)
+        NotificationSetting.objects.remove_for_user(user, NotificationSettingTypes.WORKFLOW)
 
         # Explicit subscription, overridden by the project option which also
         # overrides the default option.
@@ -293,7 +289,7 @@ class GetParticipantsTest(TestCase):
                 project=project,
             )
 
-        clear_workflow_options(user)
+        NotificationSetting.objects.remove_for_user(user, NotificationSettingTypes.WORKFLOW)
 
         # Implicit subscription, ensure the project setting overrides the
         # explicit global option.
@@ -316,7 +312,7 @@ class GetParticipantsTest(TestCase):
                 project=project,
             )
 
-        clear_workflow_options(user)
+        NotificationSetting.objects.remove_for_user(user, NotificationSettingTypes.WORKFLOW)
 
         # Ensure the global default is applied.
 
@@ -339,7 +335,7 @@ class GetParticipantsTest(TestCase):
             )
 
         subscription.delete()
-        clear_workflow_options(user)
+        NotificationSetting.objects.remove_for_user(user, NotificationSettingTypes.WORKFLOW)
 
         # Ensure the project setting overrides the global default.
 
@@ -363,7 +359,7 @@ class GetParticipantsTest(TestCase):
             )
 
         subscription.delete()
-        clear_workflow_options(user)
+        NotificationSetting.objects.remove_for_user(user, NotificationSettingTypes.WORKFLOW)
 
         # Ensure the project setting overrides the global setting.
 
@@ -394,7 +390,7 @@ class GetParticipantsTest(TestCase):
             )
 
         subscription.delete()
-        clear_workflow_options(user)
+        NotificationSetting.objects.remove_for_user(user, NotificationSettingTypes.WORKFLOW)
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
