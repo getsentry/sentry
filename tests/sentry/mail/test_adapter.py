@@ -169,7 +169,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
         self.create_member(user=user2, organization=organization, teams=[team])
 
         # all members
-        assert sorted({user.pk, user2.pk}) == sorted(self.adapter.get_sendable_users(project))
+        assert sorted({user, user2}) == sorted(self.adapter.get_sendable_users(project))
 
         # disabled user2
         NotificationSetting.objects.update_settings(
@@ -180,11 +180,11 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
             project=project,
         )
 
-        assert user2.pk not in self.adapter.get_sendable_users(project)
+        assert user2 not in self.adapter.get_sendable_users(project)
 
         user4 = User.objects.create(username="baz4", email="bar@example.com", is_active=True)
         self.create_member(user=user4, organization=organization, teams=[team])
-        assert user4.pk in self.adapter.get_sendable_users(project)
+        assert user4 in self.adapter.get_sendable_users(project)
 
         # disabled by default user4
         NotificationSetting.objects.update_settings(
@@ -194,7 +194,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
             user=user4,
         )
 
-        assert user4.pk not in self.adapter.get_sendable_users(project)
+        assert user4 not in self.adapter.get_sendable_users(project)
 
         NotificationSetting.objects.remove_settings(
             ExternalProviders.EMAIL,
@@ -209,7 +209,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
             user=user4,
         )
 
-        assert user4.pk not in self.adapter.get_sendable_users(project)
+        assert user4 not in self.adapter.get_sendable_users(project)
 
 
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest, TestCase):

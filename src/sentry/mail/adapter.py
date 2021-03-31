@@ -151,10 +151,12 @@ class MailAdapter:
 
     def get_sendable_users(self, project):
         """
-        Return a collection of user IDs that are eligible to receive
+        Return a collection of USERS that are eligible to receive
         notifications for the provided project.
         """
-        return project.get_notification_recipients(self.alert_option_key)
+        return NotificationSetting.objects.get_notification_recipients(
+            ExternalProviders.EMAIL, project
+        )
 
     def should_notify(self, target_type, group):
         metrics.incr("mail_adapter.should_notify")
@@ -277,7 +279,8 @@ class MailAdapter:
         cache_key = f"mail:send_to:{project.pk}"
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
-            send_to_list = [s for s in self.get_sendable_users(project) if s]
+            users = self.get_sendable_users(project)
+            send_to_list = [user.id for user in users if user]
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache
 
         return send_to_list
