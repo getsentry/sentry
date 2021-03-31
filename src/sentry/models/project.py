@@ -249,12 +249,19 @@ class Project(Model, PendingDeletionMixin):
         :param user_option: alert option key, typically 'mail:alert'
         :return: A dictionary in format {<user_id>: <int_alert_value>}
         """
-        from sentry.models import UserOption
+        from sentry.models import UserOption, User
 
-        return {
-            o.user_id: int(o.value)
-            for o in UserOption.objects.filter(project=self, key=user_option)
-        }
+        member_alert_disabled = {}
+        for user in User.objects.get_from_projects(self.organization.id, [self]):
+            is_disabled = {
+                o.user_id: int(o.value)
+                for o in UserOption.objects.filter(user=user)
+                if str(o.value) == "0"
+            }
+
+            member_alert_disabled.update(is_disabled)
+
+        return member_alert_disabled
 
     def get_notification_recipients(self, user_option):
         from sentry.models import UserOption
