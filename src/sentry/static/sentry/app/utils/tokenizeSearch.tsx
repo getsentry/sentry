@@ -299,30 +299,29 @@ function splitSearchIntoTokens(query: string) {
   const tokens: string[] = [];
 
   let token = '';
-  let endOfPrevWord = '';
-  let quoteType = '';
-  let quoteEnclosed = false;
+  let quoted = false;
 
-  queryChars.forEach((char, idx) => {
-    const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1] : null;
+  for (let idx = 0; idx < queryChars.length; idx++) {
+    const char = queryChars[idx];
+    const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1] : '';
+
+    if (char === '"') {
+      quoted = !quoted;
+    }
+
+    // consume the current character
     token += char;
 
-    if (nextChar !== null && !isSpace(char) && isSpace(nextChar)) {
-      endOfPrevWord = char;
-    }
-
-    if (isSpace(char) && !quoteEnclosed && endOfPrevWord !== ':' && !isSpace(token)) {
+    if (!quoted && isSpace(nextChar)) {
+      // reached the end of a token
       tokens.push(token.trim());
       token = '';
+    } else if (char === '\\' && nextChar === '"') {
+      // consume the escaped quote
+      idx += 1;
+      token += nextChar;
     }
-
-    if (["'", '"'].includes(char) && (!quoteEnclosed || quoteType === char)) {
-      quoteEnclosed = !quoteEnclosed;
-      if (quoteEnclosed) {
-        quoteType = char;
-      }
-    }
-  });
+  }
 
   const trimmedToken = token.trim();
   if (trimmedToken !== '') {
@@ -345,8 +344,8 @@ function isSpace(s: string) {
  */
 function formatTag(tag: string) {
   const idx = tag.indexOf(':');
-  const key = tag.slice(0, idx).replace(/^"+|"+$/g, '');
-  const value = tag.slice(idx + 1).replace(/^"+|"+$/g, '');
+  const key = tag.slice(0, idx).replace(/^"|"$/g, '');
+  const value = tag.slice(idx + 1).replace(/^"|"$/g, '');
 
   return [key, value];
 }
