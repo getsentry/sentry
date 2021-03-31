@@ -55,7 +55,6 @@ class MailAdapter:
     """
 
     mail_option_key = "mail:subject_prefix"
-    alert_option_key = "mail:alert"
 
     def rule_notify(self, event, futures, target_type, target_identifier=None):
         metrics.incr("mail_adapter.rule_notify")
