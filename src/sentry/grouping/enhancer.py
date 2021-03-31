@@ -10,7 +10,7 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
 from sentry import projectoptions
-from sentry.stacktraces.functions import set_in_app
+from sentry.stacktraces.functions import get_function_name_for_frame, set_in_app
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.utils import get_rule_bool
@@ -156,12 +156,31 @@ class Match:
         key = SHORT_MATCH_KEYS[val[0]]
         if key == "family":
             arg = ",".join([_f for _f in [REVERSE_FAMILIES.get(x) for x in val[1:]] if _f])
+            return FamilyMatch(key, arg, negated)
         else:
             arg = val[1:]
-        return FrameMatch(key, arg, negated)
+
+            return FrameMatch.from_key(key, arg, negated)
 
 
 class FrameMatch(Match):
+    @classmethod
+    def from_key(cls, key, pattern, negated):
+        subclass = {
+            "package": PackageMatch,
+            "path": PathMatch,
+            "family": FamilyMatch,
+            "app": InAppMatch,
+            "function": FunctionMatch,
+            "module": ModuleMatch,
+            "category": CategoryMatch,
+            "type": ExceptionTypeMatch,
+            "value": ExceptionValueMatch,
+            "mechanism": ExceptionMechanismMatch,
+        }[MATCHERS[key]]
+
+        return subclass(key, pattern, negated)
+
     def __init__(self, key, pattern, negated=False):
         try:
             self.key = MATCHERS[key]
@@ -185,56 +204,8 @@ class FrameMatch(Match):
         return rv
 
     def _positive_frame_match(self, frame_data, platform, exception_data):
-        # Path matches are always case insensitive
-        if self.key in ("path", "package"):
-            if self.key == "package":
-                value = frame_data.get("package") or ""
-            else:
-                value = frame_data.get("abs_path") or frame_data.get("filename") or ""
-            if glob_match(
-                value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True
-            ):
-                return True
-            if not value.startswith("/") and glob_match(
-                "/" + value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True
-            ):
-                return True
-
-            return False
-
-        # families need custom handling as well
-        if self.key == "family":
-            flags = self.pattern.split(",")
-            if "all" in flags:
-                return True
-            family = get_behavior_family_for_platform(frame_data.get("platform") or platform)
-            return family in flags
-
-        # in-app matching is just a bool
-        if self.key == "app":
-            ref_val = get_rule_bool(self.pattern)
-            return ref_val is not None and ref_val == frame_data.get("in_app")
-
-        # all other matches are case sensitive
-        if self.key == "function":
-            from sentry.stacktraces.functions import get_function_name_for_frame
-
-            value = get_function_name_for_frame(frame_data, platform) or "<unknown>"
-        elif self.key == "module":
-            value = frame_data.get("module") or "<unknown>"
-        elif self.key == "type":
-            value = get_path(exception_data, "type") or "<unknown>"
-        elif self.key == "value":
-            value = get_path(exception_data, "value") or "<unknown>"
-        elif self.key == "mechanism":
-            value = get_path(exception_data, "mechanism", "type") or "<unknown>"
-        elif self.key == "category":
-            value = get_path(frame_data, "data", "category") or "<unknown>"
-        else:
-            # should not happen :)
-            value = "<unknown>"
-
-        return glob_match(value, self.pattern)
+        # Implement is subclasses
+        raise NotImplementedError
 
     def _to_config_structure(self, version):
         if self.key == "family":
@@ -244,6 +215,98 @@ class FrameMatch(Match):
         else:
             arg = self.pattern
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
+
+
+class PathLikeMatch(FrameMatch):
+    def _positive_frame_match(self, frame_data, platform, exception_data):
+        return self._match(self._value(frame_data))
+
+    def _match(self, value):
+        if glob_match(value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True):
+            return True
+        if not value.startswith("/") and glob_match(
+            "/" + value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True
+        ):
+            return True
+
+        return False
+
+
+class PackageMatch(PathLikeMatch):
+    @staticmethod
+    def _value(frame_data):
+        return frame_data.get("package") or ""
+
+
+class PathMatch(PathLikeMatch):
+    @staticmethod
+    def _value(frame_data):
+        return frame_data.get("abs_path") or frame_data.get("filename") or ""
+
+
+class FamilyMatch(FrameMatch):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._flags = self.pattern.split(",")
+
+    def _positive_frame_match(self, frame_data, platform, exception_data):
+        if "all" in self._flags:
+            return True
+        family = get_behavior_family_for_platform(frame_data.get("platform") or platform)
+        return family in self._flags
+
+
+class InAppMatch(FrameMatch):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._ref_val = get_rule_bool(self.pattern)
+
+    def _positive_frame_match(self, frame_data, platform, exception_data):
+        ref_val = self._ref_val
+        return ref_val is not None and ref_val == frame_data.get("in_app")
+
+
+class FunctionMatch(FrameMatch):
+    def _positive_frame_match(self, frame_data, platform, exception_data):
+        value = get_function_name_for_frame(frame_data, platform) or "<unknown>"
+        return glob_match(value, self.pattern)
+
+
+class FrameFieldMatch(FrameMatch):
+    def _positive_frame_match(self, frame_data, platform, exception_data):
+        field = get_path(frame_data, *self.field_path)
+        return glob_match(field, self.pattern)
+
+
+class ModuleMatch(FrameFieldMatch):
+
+    field_path = ["module"]
+
+
+class CategoryMatch(FrameFieldMatch):
+
+    field_path = ["data", "category"]
+
+
+class ExceptionFieldMatch(FrameMatch):
+    def _positive_frame_match(self, frame_data, platform, exception_data):
+        field = get_path(exception_data, *self.field_path) or "<unknown>"
+        return glob_match(field, self.pattern)
+
+
+class ExceptionTypeMatch(ExceptionFieldMatch):
+
+    field_path = ["type"]
+
+
+class ExceptionValueMatch(ExceptionFieldMatch):
+
+    field_path = ["value"]
+
+
+class ExceptionMechanismMatch(ExceptionFieldMatch):
+
+    field_path = ["mechanism", "type"]
 
 
 class RangeMatch(Match):
@@ -720,7 +783,7 @@ class EnhancmentsVisitor(NodeVisitor):
 
     def visit_frame_matcher(self, node, children):
         _, negation, ty, _, argument = children
-        return FrameMatch(ty, argument, bool(negation))
+        return FrameMatch.from_key(ty, argument, bool(negation))
 
     def visit_matcher_type(self, node, children):
         return node.text
