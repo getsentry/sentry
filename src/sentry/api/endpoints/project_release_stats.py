@@ -1,15 +1,15 @@
 from rest_framework.response import Response
 
+from sentry.api.bases.project import ProjectEndpoint, ProjectEventsError, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission, ProjectEventsError
 from sentry.api.serializers import serialize
-from sentry.utils.dates import get_rollup_from_request
+from sentry.models import Release, ReleaseProject
 from sentry.snuba.sessions import (
-    get_project_release_stats,
     get_crash_free_breakdown,
     get_oldest_health_data_for_releases,
+    get_project_release_stats,
 )
-from sentry.models import Release, ReleaseProject
+from sentry.utils.dates import get_rollup_from_request
 
 
 def upsert_missing_release(project, version):

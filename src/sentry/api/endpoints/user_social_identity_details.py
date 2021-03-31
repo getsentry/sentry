@@ -1,10 +1,10 @@
 import logging
 
 from rest_framework.response import Response
-from social_auth.backends import get_backend
-from social_auth.models import UserSocialAuth
 
 from sentry.api.bases.user import UserEndpoint
+from social_auth.backends import get_backend
+from social_auth.models import UserSocialAuth
 
 logger = logging.getLogger("sentry.accounts")
 

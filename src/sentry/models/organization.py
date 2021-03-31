@@ -164,10 +164,16 @@ class Organization(Model):
         else:
             super().save(*args, **kwargs)
 
-    def delete(self):
+    def delete(self, **kwargs):
+        from sentry.models import NotificationSetting
+
         if self.is_default:
             raise Exception("You cannot delete the the default organization.")
-        return super().delete()
+
+        # There is no foreign key relationship so we have to manually cascade.
+        NotificationSetting.objects.remove_for_organization(self)
+
+        return super().delete(**kwargs)
 
     @cached_property
     def is_default(self):

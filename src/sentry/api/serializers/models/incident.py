@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.models import (
     Incident,

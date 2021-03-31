@@ -1,22 +1,20 @@
 import functools
 import itertools
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
 import pytz
-import logging
-
+import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, Q
 from django.utils import timezone
 
-import sentry_sdk
-
 from sentry import tagstore, tsdb
-from sentry.app import env
 from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
@@ -32,8 +30,8 @@ from sentry.models import (
     GroupMeta,
     GroupResolution,
     GroupSeen,
-    GroupSnooze,
     GroupShare,
+    GroupSnooze,
     GroupStatus,
     GroupSubscription,
     GroupSubscriptionReason,
@@ -45,15 +43,15 @@ from sentry.models import (
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.notifications.legacy_mappings import UserOptionValue
+from sentry.reprocessing2 import get_progress
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils import snuba
 from sentry.utils.cache import cache
+from sentry.utils.compat import map, zip
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
-from sentry.utils.compat import map, zip
 from sentry.utils.snuba import Dataset, raw_query
-from sentry.reprocessing2 import get_progress
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",
@@ -254,9 +252,9 @@ class GroupSerializerBase(Serializer):
         return results
 
     def get_attrs(self, item_list, user):
-        from sentry.plugins.base import plugins
         from sentry.integrations import IntegrationFeatures
         from sentry.models import PlatformExternalIssue
+        from sentry.plugins.base import plugins
 
         GroupMeta.objects.populate_cache(item_list)
 

@@ -1,15 +1,15 @@
 import logging
-from django.http import Http404
 
+from django.http import Http404
 from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ExternalTeam
 
-from .external_team import ExternalTeamSerializer, ExternalTeamMixin
+from .external_team import ExternalTeamMixin, ExternalTeamSerializer
 
 logger = logging.getLogger(__name__)
 

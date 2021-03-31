@@ -1,13 +1,12 @@
 import sentry_sdk
-
-from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
 from sentry import eventstore
-from sentry.constants import MAX_TOP_EVENTS
-from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
-from sentry.api.event_search import resolve_field_list, InvalidSearchQuery
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.event_search import InvalidSearchQuery, resolve_field_list
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.constants import MAX_TOP_EVENTS
 from sentry.discover.utils import transform_aliases_and_query
 from sentry.snuba import discover
 from sentry.utils import snuba
