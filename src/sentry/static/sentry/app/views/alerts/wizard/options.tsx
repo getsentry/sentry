@@ -64,7 +64,6 @@ type PanelContent = {
   illustration?: string;
 };
 
-// TODO(davidenwang): Once the copy is finalized for the wizard fill this in with real content
 export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   issues: {
     description: t(
