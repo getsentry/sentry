@@ -4,10 +4,9 @@ from sentry.snuba.outcomes import (
     QueryDefinition,
     massage_outcomes_result,
 )
-from sentry.snuba.sessions_v2 import InvalidField
+from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
 from rest_framework.exceptions import ParseError
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
-from sentry.api.utils import InvalidParams
 from sentry.search.utils import InvalidQuery
 from contextlib import contextmanager
 import sentry_sdk
@@ -23,7 +22,9 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
                 )
             with sentry_sdk.start_span(op="outcomes.endpoint", description="run_outcomes_query"):
                 result_totals, result_timeseries = run_outcomes_query(query)
-            with sentry_sdk.start_span(op="sessions.endpoint", description="run_sessions_query"):
+            with sentry_sdk.start_span(
+                op="outcomes.endpoint", description="massage_outcomes_result"
+            ):
                 result = massage_outcomes_result(query, result_totals, result_timeseries)
             return Response(result, status=200)
 
