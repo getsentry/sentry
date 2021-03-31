@@ -140,7 +140,7 @@ class TraceHoverCard extends React.Component<Props> {
         location={location}
         eventView={numTransactionsEventView}
         orgSlug={orgSlug}
-        referrer="api.trace.hover-card"
+        referrer="api.trace-view.hover-card"
       >
         {({isLoading, error, tableData}) => {
           return (

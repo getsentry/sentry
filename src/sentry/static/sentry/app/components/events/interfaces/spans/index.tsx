@@ -157,7 +157,7 @@ class SpansInterface extends React.Component<Props, State> {
           location={location}
           eventView={traceErrorsEventView}
           orgSlug={orgSlug}
-          referrer="api.trace.errors-view"
+          referrer="api.trace-view.errors-view"
         >
           {({isLoading, tableData}) => {
             const spansWithErrors = filterSpansWithErrors(parsedTrace, tableData);

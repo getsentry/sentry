@@ -26,9 +26,9 @@ ALLOWED_REFERRERS = {
     "api.performance.status-breakdown",
     "api.performance.vital-detail",
     "api.performance.durationpercentilechart",
-    "api.trace.span-detail",
-    "api.trace.errors-view",
-    "api.trace.hover-card",
+    "api.trace-view.span-detail",
+    "api.trace-view.errors-view",
+    "api.trace-view.hover-card",
 }
 
 
