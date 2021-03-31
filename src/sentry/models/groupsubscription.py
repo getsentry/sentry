@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models import Q
 from django.utils import timezone
-from typing import Mapping
+from typing import Any, Mapping
 
 from sentry.db.models import (
     BaseManager,
@@ -124,7 +124,7 @@ class GroupSubscriptionManager(BaseManager):
                     raise e
 
     @staticmethod
-    def get_participants(group) -> Mapping[any, GroupSubscriptionReason]:
+    def get_participants(group) -> Mapping[Any, GroupSubscriptionReason]:
         """
         Identify all users who are participating with a given issue.
         :param group: Group object
