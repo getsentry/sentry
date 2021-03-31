@@ -16,7 +16,6 @@ configure-sentry-cli() {
     fi
 }
 
-# I'm assuming sw_vers is only available on Mac
 query-mac() {
     [[ $(uname -s) = 'Darwin' ]]
 }
