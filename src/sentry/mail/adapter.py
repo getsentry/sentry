@@ -17,12 +17,18 @@ from sentry.models import (
     GroupSubscription,
     GroupSubscriptionReason,
     Integration,
+    NotificationSetting,
     Project,
     ProjectOption,
     ProjectOwnership,
     Release,
     Team,
     User,
+)
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.types import (
+    NotificationSettingTypes,
+    NotificationSettingOptionValues,
 )
 from sentry.plugins.base import plugins
 from sentry.plugins.base.structs import Notification
@@ -222,9 +228,17 @@ class MailAdapter:
 
     def disabled_users_from_project(self, project: Project) -> Set[User]:
         """ Get a set of users that have disabled Issue Alert notifications for a given project. """
-        alert_settings = project.get_member_alert_settings(self.alert_option_key)
-        disabled_users = {user for user, setting in alert_settings.items() if setting == 0}
-        return disabled_users
+        notification_settings = NotificationSetting.objects.find_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            project=project,
+        )
+
+        return {
+            notification_setting.user
+            for notification_setting in notification_settings
+            if notification_setting.value == NotificationSettingOptionValues.NEVER
+        }
 
     def get_send_to_team(self, project, target_identifier):
         if target_identifier is None:
