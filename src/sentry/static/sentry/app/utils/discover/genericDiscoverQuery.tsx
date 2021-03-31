@@ -5,6 +5,7 @@ import {EventQuery} from 'app/actionCreators/events';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import EventView, {
+  EventsReferrer,
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'app/utils/discover/eventView';
@@ -42,6 +43,10 @@ export type DiscoverQueryProps = {
    * A callback to set an error so that the error can be rendered in parent components
    */
   setError?: (msg: string | undefined) => void;
+  /**
+   * Sets referrer parameter in the API Payload.
+   */
+  referrer?: EventsReferrer;
 };
 
 type RequestProps<P> = DiscoverQueryProps & P;
@@ -143,6 +148,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       cursor,
       setError,
       noPagination,
+      referrer,
     } = this.props;
 
     if (!eventView.isValid()) {
@@ -165,6 +171,9 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     }
     if (cursor) {
       apiPayload.cursor = cursor;
+    }
+    if (referrer) {
+      apiPayload.referrer = referrer;
     }
 
     beforeFetch?.(api);

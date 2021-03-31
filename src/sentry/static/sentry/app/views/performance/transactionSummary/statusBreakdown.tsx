@@ -43,6 +43,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
         eventView={breakdownView}
         location={location}
         orgSlug={organization.slug}
+        referrer="api.performance.events-v2"
       >
         {({isLoading, error, tableData}) => {
           if (isLoading) {

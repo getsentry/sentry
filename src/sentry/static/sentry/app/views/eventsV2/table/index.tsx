@@ -91,6 +91,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
+    apiPayload.referrer = 'api.discover.events-v2';
 
     setError('', 200);
 
