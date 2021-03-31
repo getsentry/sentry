@@ -60,6 +60,12 @@ def reprocess_group(
     )
 
     if not events:
+        # Need to delay this until we have enqueued all events and stopped
+        # iterating over the batch query, if we take care of this in
+        # finish_reprocessing it won't work, as for small max_events
+        # finish_reprocessing may execute sooner than the last reprocess_group
+        # iteration.
+        eventstream.exclude_groups(project_id, [group_id])
         return
 
     remaining_event_ids = []
@@ -178,9 +184,6 @@ def finish_reprocessing(project_id, group_id):
         # All the associated models (groupassignee and eventattachments) should
         # have moved to a successor group that may be deleted independently.
         group.delete()
-
-    # Need to delay this until we have enqueued all events.
-    eventstream.exclude_groups(project_id, [group_id])
 
     from sentry import similarity
 
