@@ -3,6 +3,8 @@ import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import {Panel} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
@@ -23,7 +25,7 @@ import Filter, {
   toggleFilter,
 } from './filter';
 import TraceView from './traceView';
-import {ParsedTraceType} from './types';
+import {ParsedTraceType, SpanErrorMap} from './types';
 import {getTraceDateTimeRange, parseTrace} from './utils';
 
 type Props = {
@@ -59,29 +61,41 @@ class SpansInterface extends React.Component<Props, State> {
 
   renderTraceErrorsAlert({
     isLoading,
-    numOfErrors,
+    spanErrorMap,
   }: {
     isLoading: boolean;
-    numOfErrors: number;
+    spanErrorMap: SpanErrorMap | null;
   }) {
-    if (isLoading) {
+    if (isLoading || spanErrorMap === null) {
       return null;
     }
 
-    if (numOfErrors === 0) {
+    const spanErrorsList = Object.entries(spanErrorMap);
+
+    if (spanErrorsList.length <= 0) {
       return null;
     }
 
     const label = tn(
       'There is an error event associated with this transaction event.',
       `There are %s error events associated with this transaction event.`,
-      numOfErrors
+      spanErrorsList
+        .map(([, spanErrors]) => spanErrors.errors.length)
+        .reduce((a, b) => a + b, 0)
     );
 
     return (
       <AlertContainer>
         <Alert type="error" icon={<IconWarning size="md" />}>
-          {label}
+          <ErrorLabel>{label}</ErrorLabel>
+          <List symbol="bullet">
+            {spanErrorsList.map(([spanId, spanErrors]) => (
+              <ListItem key={spanId}>
+                {tn('%s error in', '%s errors in', spanErrors.errors.length)}
+                {` ${spanErrors.op} \u2014 ${spanErrors.description}`}
+              </ListItem>
+            ))}
+          </List>
         </Alert>
       </AlertContainer>
     );
@@ -132,12 +146,14 @@ class SpansInterface extends React.Component<Props, State> {
       id: undefined,
       name: `Errors related to transaction ${parsedTrace.rootSpanID}`,
       fields: [
+        'id',
         'title',
         'project',
         'timestamp',
         'trace',
         'trace.span',
         'trace.parent_span',
+        'level',
       ],
       orderby: '-timestamp',
       query: stringifyQueryObject(conditions),
@@ -159,15 +175,13 @@ class SpansInterface extends React.Component<Props, State> {
           orgSlug={orgSlug}
         >
           {({isLoading, tableData}) => {
-            const spansWithErrors = filterSpansWithErrors(parsedTrace, tableData);
-
-            const numOfErrors = spansWithErrors?.data.length || 0;
+            const spanErrorMap = createSpanErrorMap(parsedTrace, tableData);
 
             return (
               <React.Fragment>
                 {this.renderTraceErrorsAlert({
                   isLoading,
-                  numOfErrors,
+                  spanErrorMap,
                 })}
                 <Search>
                   <Filter
@@ -190,7 +204,7 @@ class SpansInterface extends React.Component<Props, State> {
                     orgId={orgSlug}
                     organization={organization}
                     parsedTrace={parsedTrace}
-                    spansWithErrors={spansWithErrors}
+                    spanErrorMap={spanErrorMap}
                     operationNameFilters={this.state.operationNameFilters}
                   />
                 </Panel>
@@ -202,6 +216,10 @@ class SpansInterface extends React.Component<Props, State> {
     );
   }
 }
+
+const ErrorLabel = styled('div')`
+  margin-bottom: ${space(1)};
+`;
 
 const Search = styled('div')`
   display: flex;
@@ -217,39 +235,55 @@ const AlertContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-function filterSpansWithErrors(
+function createSpanErrorMap(
   parsedTrace: ParsedTraceType,
   tableData: TableData | null | undefined
-): TableData | null | undefined {
+): SpanErrorMap | null {
   if (!tableData) {
-    return undefined;
+    return null;
   }
 
   const data = tableData?.data ?? [];
 
-  const filtered = data.filter(row => {
-    const spanId = row['trace.span'] || '';
+  const mapping = {};
 
+  data.forEach(row => {
+    const spanId = row['trace.span'] || '';
     if (!spanId) {
-      return false;
+      return;
     }
 
     if (spanId === parsedTrace.rootSpanID) {
-      return true;
+      if (!mapping[spanId]) {
+        mapping[spanId] = {
+          op: parsedTrace.op,
+          description: parsedTrace.rootSpanID,
+          errors: [],
+        };
+      }
+
+      mapping[spanId].errors.push(row);
+
+      return;
     }
 
-    const hasSpan =
-      parsedTrace.spans.findIndex(span => {
-        return spanId === span.span_id;
-      }) >= 0;
+    const span = parsedTrace.spans.find(({span_id}) => span_id === spanId);
+    if (span) {
+      if (!mapping[spanId]) {
+        mapping[spanId] = {
+          op: span.op,
+          description: span.description,
+          errors: [],
+        };
+      }
 
-    return hasSpan;
+      mapping[spanId].errors.push(row);
+
+      return;
+    }
   });
 
-  return {
-    ...tableData,
-    data: filtered,
-  };
+  return mapping;
 }
 
 export default ReactRouter.withRouter(withOrganization(SpansInterface));

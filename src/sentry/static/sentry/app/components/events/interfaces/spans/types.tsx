@@ -1,3 +1,5 @@
+import {TableData} from 'app/utils/discover/discoverQuery';
+
 export type GapSpanType = {
   type: 'gap';
   start_timestamp: number;
@@ -90,3 +92,11 @@ export type OrphanTreeDepth = {
 };
 
 export type TreeDepthType = SpanTreeDepth | OrphanTreeDepth;
+
+export type SpanErrors = {
+  op: string;
+  description: string;
+  errors: TableData['data'];
+};
+
+export type SpanErrorMap = Record<string, SpanErrors>;

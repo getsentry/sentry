@@ -6,7 +6,6 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import {TableData} from 'app/utils/discover/discoverQuery';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -15,7 +14,7 @@ import {ActiveOperationFilter} from './filter';
 import TraceViewHeader from './header';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanTree from './spanTree';
-import {ParsedTraceType, RawSpanType} from './types';
+import {ParsedTraceType, RawSpanType, SpanErrorMap} from './types';
 import {generateRootSpan, getSpanID, getTraceContext} from './utils';
 
 type IndexedFusedSpan = {
@@ -43,7 +42,7 @@ type Props = {
   event: Readonly<EventTransaction>;
   parsedTrace: ParsedTraceType;
   searchQuery: string | undefined;
-  spansWithErrors: TableData | null | undefined;
+  spanErrorMap: SpanErrorMap | null;
   operationNameFilters: ActiveOperationFilter;
 };
 
@@ -193,7 +192,7 @@ class TraceView extends React.PureComponent<Props, State> {
       );
     }
 
-    const {orgId, organization, spansWithErrors, operationNameFilters} = this.props;
+    const {orgId, organization, spanErrorMap, operationNameFilters} = this.props;
 
     return (
       <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
@@ -221,7 +220,7 @@ class TraceView extends React.PureComponent<Props, State> {
                         filterSpans={this.state.filterSpans}
                         orgId={orgId}
                         organization={organization}
-                        spansWithErrors={spansWithErrors}
+                        spanErrorMap={spanErrorMap}
                         operationNameFilters={operationNameFilters}
                       />
                     </ScrollbarManager.Provider>

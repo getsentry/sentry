@@ -5,7 +5,6 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
-import {TableData} from 'app/utils/discover/discoverQuery';
 
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
@@ -21,6 +20,7 @@ import {
   ProcessedSpanType,
   RawSpanType,
   SpanChildrenLookupType,
+  SpanErrorMap,
   TreeDepthType,
 } from './types';
 import {
@@ -51,7 +51,7 @@ type PropType = {
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
   event: EventTransaction;
-  spansWithErrors: TableData | null | undefined;
+  spanErrorMap: SpanErrorMap | null;
   operationNameFilters: ActiveOperationFilter;
   traceViewRef: React.RefObject<HTMLDivElement>;
 };
@@ -184,7 +184,7 @@ class SpanTree extends React.Component<PropType> {
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
-    const {orgId, event, spansWithErrors, organization} = this.props;
+    const {orgId, event, spanErrorMap, organization} = this.props;
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
@@ -312,7 +312,7 @@ class SpanTree extends React.Component<PropType> {
           numOfSpanChildren={0}
           renderedSpanChildren={[]}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
-          spansWithErrors={spansWithErrors}
+          spanErrorMap={spanErrorMap}
           spanBarHatch
         />
       ) : null;
@@ -342,7 +342,7 @@ class SpanTree extends React.Component<PropType> {
             spanBarColour={spanBarColour}
             isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
             spanBarHatch={false}
-            spansWithErrors={spansWithErrors}
+            spanErrorMap={spanErrorMap}
           />
         </React.Fragment>
       ),

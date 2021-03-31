@@ -17,15 +17,18 @@ import Pills from 'app/components/pills';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {assert} from 'app/types/utils';
+import {toTitleCase} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
 import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 import * as SpanEntryContext from './context';
@@ -386,7 +389,16 @@ class SpanDetail extends React.Component<Props, State> {
 
     return (
       <Alert system type="error" icon={<IconWarning size="md" />}>
-        {message}
+        <ErrorsTitle>{message}</ErrorsTitle>
+        <ErrorsContainer>
+          {spanErrors.map(error => (
+            <React.Fragment key={error.id}>
+              <ErrorDot level={(error.level ?? 'error') as keyof Theme['level']} />
+              <ErrorLevel>{toTitleCase(error.level as string)}</ErrorLevel>
+              <ErrorNameContainer>{error.title}</ErrorNameContainer>
+            </React.Fragment>
+          ))}
+        </ErrorsContainer>
       </Alert>
     );
   }
@@ -639,5 +651,35 @@ function generateSlug(result: TransactionResult): string {
     'project.name': result['project.name'],
   });
 }
+
+const ErrorsTitle = styled('div')`
+  margin-bottom: ${space(0.75)};
+`;
+
+const ErrorsContainer = styled('div')`
+  display: grid;
+  align-items: center;
+  grid-template-columns: 16px 72px auto;
+  grid-gap: ${space(0.75)};
+`;
+
+const ErrorNameContainer = styled('span')`
+  ${overflowEllipsis};
+`;
+
+const ErrorDot = styled('div')<{level: keyof Theme['level']}>`
+  background-color: ${p => p.theme.level[p.level]};
+  content: '';
+  width: ${space(1)};
+  min-width: ${space(1)};
+  height: ${space(1)};
+  margin-right: ${space(1)};
+  border-radius: 100%;
+  flex: 1;
+`;
+
+const ErrorLevel = styled('span')`
+  width: 72px;
+`;
 
 export default withApi(SpanDetail);

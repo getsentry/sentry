@@ -2,11 +2,11 @@ import React from 'react';
 
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
-import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
 
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
+import {ParsedTraceType, ProcessedSpanType, SpanErrorMap, TreeDepthType} from './types';
 import {getSpanID, isGapSpan, SpanBoundsType, SpanGeneratedBoundsType} from './utils';
 
 type PropType = ScrollbarManagerChildrenProps & {
@@ -26,7 +26,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   isLast: boolean;
   isRoot?: boolean;
   isCurrentSpanFilteredOut: boolean;
-  spansWithErrors: TableData | null | undefined;
+  spanErrorMap: SpanErrorMap | null;
 };
 
 type State = {
@@ -61,29 +61,27 @@ class SpanGroup extends React.Component<PropType, State> {
   };
 
   getSpanErrors(): TableDataRow[] {
-    const {span, spansWithErrors} = this.props;
+    const {span, spanErrorMap} = this.props;
 
     const spanID = getSpanID(span);
 
-    if (isGapSpan(span) || !spansWithErrors?.data || !spanID) {
+    if (isGapSpan(span) || !spanID || !spanErrorMap?.[spanID]?.errors?.length) {
       return [];
     }
 
-    return spansWithErrors.data.filter(row => {
-      return row['trace.span'] === spanID;
-    });
+    return spanErrorMap[spanID].errors;
   }
 
   getTotalNumberOfErrors(): number {
-    const {spansWithErrors} = this.props;
+    const {spanErrorMap} = this.props;
 
-    const data = spansWithErrors?.data;
-
-    if (Array.isArray(data)) {
-      return data.length;
+    if (!spanErrorMap) {
+      return 0;
     }
 
-    return 0;
+    return Object.values(spanErrorMap)
+      .map(({errors}) => errors.length)
+      .reduce((a, b) => a + b, 0);
   }
 
   render() {
