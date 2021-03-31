@@ -91,7 +91,6 @@ class Organization(Model):
     """
 
     __core__ = True
-
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
@@ -417,10 +416,6 @@ class Organization(Model):
             type="org.confirm_delete",
             context=context,
         ).send_async([o.email for o in owners])
-
-    def flag_has_changed(self, flag_name):
-        "Returns ``True`` if ``flag`` has changed since initialization."
-        return getattr(self.old_value("flags"), flag_name, None) != getattr(self.flags, flag_name)
 
     def handle_2fa_required(self, request):
         from sentry.models import ApiKey
