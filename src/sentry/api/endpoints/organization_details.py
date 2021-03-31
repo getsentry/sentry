@@ -577,7 +577,6 @@ def flag_has_changed(org, flag_name):
 
 
 def update_tracked_data(model):
-    # def copy_model_data(model):
     "Updates a local copy of attributes values"
     if model.id:
         data = {}
