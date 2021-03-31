@@ -85,7 +85,6 @@ function GenericTraceFullQuery<T>({
           // the client returns a empty string when the response
           // is 204. And we want the empty string, undefined and
           // null to be converted to null.
-          // TODO(tonyx): update to return the entire array
           traces: tableData || null,
           type: 'full',
           ...rest,
