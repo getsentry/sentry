@@ -698,6 +698,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       disabled={!hasAccess || !canEdit}
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
+                      allowChangeEventTypes={dataset === Dataset.ERRORS}
                     />
                     <StyledListItem>
                       {t('Set actions for when a threshold is met')}
