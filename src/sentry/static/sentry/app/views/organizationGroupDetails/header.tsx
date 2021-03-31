@@ -22,7 +22,6 @@ import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import SeenByList from 'app/components/seenByList';
 import ShortId from 'app/components/shortId';
-import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {IconChat} from 'app/icons';
 import {t} from 'app/locale';
@@ -293,10 +292,10 @@ class GroupHeader extends React.Component<Props, State> {
             disabled={disabledTabs.includes(TAB.ACTIVITY)}
           >
             {t('Activity')}
-            <StyledTag>
+            <Badge>
               <TabCount>{group.numComments}</TabCount>
               <IconChat size="xs" color="white" />
-            </StyledTag>
+            </Badge>
           </StyledListLink>
           <StyledListLink
             to={`${baseUrl}feedback/${location.search}`}
@@ -381,13 +380,6 @@ const StyledListLink = styled(ListLink)`
     margin-bottom: ${space(0.25)};
     vertical-align: middle;
   }
-`;
-
-const StyledTag = styled(Tag)`
-  div {
-    background-color: ${p => p.theme.badge.default.background};
-  }
-  margin-left: ${space(0.75)};
 `;
 
 const TabCount = styled('span')`

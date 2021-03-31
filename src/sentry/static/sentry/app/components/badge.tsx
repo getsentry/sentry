@@ -4,11 +4,14 @@ import styled from '@emotion/styled';
 import space from 'app/styles/space';
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
+  children?: React.ReactNode;
   text?: string | number | null;
   className?: string;
 };
 
-const Badge = styled(({text, ...props}: Props) => <span {...props}>{text}</span>)<Props>`
+const Badge = styled(({text, children, ...props}: Props) => (
+  <span {...props}>{text ?? children}</span>
+))<Props>`
   display: inline-block;
   height: 20px;
   min-width: 20px;
