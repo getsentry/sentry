@@ -23,13 +23,6 @@ register(
     },
 )
 
-# Grouping enhancements defaults
-LEGACY_GROUPING_ENHANCEMENTS_BASE = "legacy:2019-03-12"
-DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
-register(
-    key="sentry:grouping_enhancements_base",
-    epoch_defaults={1: LEGACY_GROUPING_ENHANCEMENTS_BASE, 3: DEFAULT_GROUPING_ENHANCEMENTS_BASE},
-)
 register(key="sentry:grouping_enhancements", default="")
 
 # server side fingerprinting defaults.
