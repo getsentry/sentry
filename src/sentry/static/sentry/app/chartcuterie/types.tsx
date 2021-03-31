@@ -1,10 +1,24 @@
+import {EChartOption} from 'echarts';
+
+/**
+ * Defines the keys which may be passed into the chartcuterie chart rendering
+ * service.
+ *
+ * When adding or removing from this list, please also update the
+ * sentry/charts/types.py file
+ */
+export enum ChartType {
+  SLACK_DISCOVER_TOTAL_PERIOD = 'slack:discover.totalPeriod',
+  SLACK_DISCOVER_TOTAL_DAILY = 'slack:discover.totalDaily',
+  SLACK_DISCOVER_TOP5_PERIOD = 'slack:discover.top5Period',
+  SLACK_DISCOVER_TOP5_DAILY = 'slack:discover.top5Daily',
+}
+
 /**
  * XXX(epurkhiser): These are copied directly over from chartucterie to avoid
  * installing the package, which has some system-level dependencies we would
  * prefer not to install with sentry.
  */
-
-import {EChartOption} from 'echarts';
 
 export type RenderOption = Omit<EChartOption, 'animation' | 'tooltip' | 'toolbox'>;
 

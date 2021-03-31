@@ -12,7 +12,7 @@ class TestChartRenderer(AcceptanceTestCase):
             self.browser.get("debug/chart-renderer/")
 
         images = self.browser.elements(selector="img")
-        assert len(images) == 1
+        assert len(images) > 0
 
         for image in images:
             src = image.get_attribute("src")
