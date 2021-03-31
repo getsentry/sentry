@@ -1,7 +1,8 @@
 from rest_framework.response import Response
+
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import ProjectPlatform
 from sentry.api.serializers import serialize
+from sentry.models import ProjectPlatform
 
 
 class ProjectPlatformsEndpoint(ProjectEndpoint):

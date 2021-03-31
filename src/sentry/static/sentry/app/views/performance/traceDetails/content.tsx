@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
+import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -399,6 +400,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             />
             <Layout.Title data-test-id="trace-header">
               {t('Trace Id: %s', traceSlug)}
+              <FeatureBadge type="beta" />
             </Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>

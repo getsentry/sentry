@@ -196,6 +196,7 @@ class Project(Model, PendingDeletionMixin):
 
     @property
     def member_set(self):
+        """ :returns a QuerySet of all Users that belong to this Project """
         from sentry.models import OrganizationMember
 
         return self.organization.member_set.filter(
@@ -469,6 +470,14 @@ class Project(Model, PendingDeletionMixin):
         if not value or value == "other":
             return True
         return integration_doc_exists(value)
+
+    def delete(self, **kwargs):
+        from sentry.models import NotificationSetting
+
+        # There is no foreign key relationship so we have to manually cascade.
+        NotificationSetting.objects.remove_for_project(self)
+
+        return super().delete(**kwargs)
 
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)

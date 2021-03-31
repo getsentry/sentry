@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
+
 from sentry.constants import SentryAppInstallationStatus
 
 

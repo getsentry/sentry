@@ -10,15 +10,15 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.models import (
+    CheckInStatus,
     Monitor,
     MonitorCheckIn,
-    CheckInStatus,
     MonitorStatus,
     Project,
     ProjectKey,
     ProjectStatus,
 )
-from sentry.utils.sdk import configure_scope, bind_organization_context
+from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
 class CheckInSerializer(serializers.Serializer):

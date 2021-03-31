@@ -1,7 +1,6 @@
 from rest_framework import permissions
 
-from sentry.api.exceptions import SuperuserRequired
-from sentry.api.exceptions import SsoRequired, TwoFactorRequired
+from sentry.api.exceptions import SsoRequired, SuperuserRequired, TwoFactorRequired
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth

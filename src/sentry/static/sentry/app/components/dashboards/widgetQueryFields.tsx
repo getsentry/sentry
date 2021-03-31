@@ -6,8 +6,10 @@ import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
+  aggregateFunctionOutputType,
   explodeField,
   generateFieldAsString,
+  isLegalYAxisType,
   QueryFieldValue,
 } from 'app/utils/discover/fields';
 import {Widget} from 'app/views/dashboardsV2/types';
@@ -117,7 +119,26 @@ function WidgetQueryFields({
             fieldOptions={fieldOptions}
             onChange={value => handleChangeField(value, i)}
             filterPrimaryOptions={option => {
+              if (option.value.kind === FieldValueKind.FUNCTION) {
+                const primaryOutput = aggregateFunctionOutputType(
+                  option.value.meta.name,
+                  undefined
+                );
+                if (primaryOutput) {
+                  // If a function returns a specific type, then validate it.
+                  return isLegalYAxisType(primaryOutput);
+                }
+              }
+
               return option.value.kind === FieldValueKind.FUNCTION;
+            }}
+            filterAggregateParameters={option => {
+              if (option.value.kind === FieldValueKind.FUNCTION) {
+                // Functions are not legal options as an aggregate/function parameter.
+                return false;
+              }
+
+              return isLegalYAxisType(option.value.meta.dataType);
             }}
           />
           {fields.length > 1 && (

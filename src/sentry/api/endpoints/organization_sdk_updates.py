@@ -1,12 +1,12 @@
-from itertools import groupby, chain
 from datetime import timedelta
-
 from distutils.version import LooseVersion
+from itertools import chain, groupby
+
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
 from sentry.api.bases import OrganizationEventsEndpointBase
+from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
 from sentry.snuba import discover
 
 

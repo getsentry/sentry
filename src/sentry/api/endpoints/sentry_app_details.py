@@ -1,13 +1,13 @@
-from rest_framework.response import Response
-
 import logging
 
-from sentry import features, analytics
+from rest_framework.response import Response
+
+from sentry import analytics, features
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint, catch_raised_errors
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
-from sentry.mediators.sentry_apps import Updater, Destroyer
 from sentry.constants import SentryAppStatus
+from sentry.mediators.sentry_apps import Destroyer, Updater
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
