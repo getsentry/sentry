@@ -59,7 +59,7 @@ function Information({
       return (
         <Tooltip title={getSourceTooltipDescription(source, builtinSymbolSources)}>
           <strong>{`${t('Source')}: `}</strong>
-          {source_name ?? t('Unknown')}
+          <span data-test-id="source">{source_name ?? t('Unknown')}</span>
         </Tooltip>
       );
     }
@@ -117,9 +117,11 @@ function Information({
     );
   }
 
+  const mainInfo = getMainInfo();
+
   return (
     <Wrapper>
-      {getMainInfo()}
+      {mainInfo && <div data-test-id="main-info">{mainInfo}</div>}
       <Details>{getDetails()}</Details>
       <Features download={download} />
     </Wrapper>
