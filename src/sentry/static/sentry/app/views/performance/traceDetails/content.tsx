@@ -25,7 +25,7 @@ import {
   TransactionRowMessage,
 } from './styles';
 import TransactionGroup from './transactionGroup';
-import {TraceInfo} from './types';
+import {TraceInfo, TreeDepth} from './types';
 import {getTraceInfo} from './utils';
 
 type AccType = {
@@ -203,7 +203,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       numberOfHiddenTransactionsAbove,
       traceInfo,
     }: {
-      continuingDepths: number[];
+      continuingDepths: TreeDepth[];
       isOrphan: boolean;
       isLast: boolean;
       index: number;
@@ -226,7 +226,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
         const result = this.renderTransaction(child, {
           continuingDepths:
             !isLastChild && hasChildren
-              ? [...continuingDepths, generation]
+              ? [...continuingDepths, {depth: generation, isOrphanDepth: false}]
               : continuingDepths,
           isOrphan,
           isLast: isLastChild,
@@ -308,13 +308,18 @@ class TraceDetailsContent extends React.Component<Props, State> {
       (acc, trace, index) => {
         const isLastTransaction = index === traces.length - 1;
         const hasChildren = trace.children.length > 0;
+        const isNextChildOrphaned =
+          !isLastTransaction && traces[index + 1].parent_span_id !== null;
 
         const result = this.renderTransaction(trace, {
           ...acc,
           // if the root of a subtrace has a parent_span_idk, then it must be an orphan
           isOrphan: trace.parent_span_id !== null,
           isLast: isLastTransaction,
-          continuingDepths: !isLastTransaction && hasChildren ? [0] : [],
+          continuingDepths:
+            !isLastTransaction && hasChildren
+              ? [{depth: 0, isOrphanDepth: isNextChildOrphaned}]
+              : [],
         });
 
         acc.index = result.lastIndex + 1;

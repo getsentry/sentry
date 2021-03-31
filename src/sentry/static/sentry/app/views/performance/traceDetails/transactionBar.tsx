@@ -30,7 +30,7 @@ import {
   TransactionTreeToggleContainer,
 } from './styles';
 import TransactionDetail from './transactionDetail';
-import {TraceInfo, TraceRoot} from './types';
+import {TraceInfo, TraceRoot, TreeDepth} from './types';
 import {
   getDurationDisplay,
   getHumanDuration,
@@ -51,7 +51,7 @@ type Props = {
   traceInfo: TraceInfo;
   isOrphan: boolean;
   isLast: boolean;
-  continuingDepths: Array<number>;
+  continuingDepths: TreeDepth[];
   isExpanded: boolean;
   isVisible: boolean;
   toggleExpandedState: () => void;
@@ -96,33 +96,33 @@ class TransactionBar extends React.Component<Props, State> {
         return (
           <ConnectorBar
             style={{right: '16px', height: '10px', bottom: '-5px', top: 'auto'}}
-            orphanBranch={isOrphan}
+            orphanBranch={false}
           />
         );
       }
       return null;
     }
 
-    const connectorBars: Array<React.ReactNode> = continuingDepths.map(depth => {
-      if (generation - depth <= 1) {
-        // If the difference is less than or equal to 1, then it means that the continued
-        // bar is from its direct parent. In this case, do not render a connector bar
-        // because the tree connector below will suffice.
-        return null;
+    const connectorBars: Array<React.ReactNode> = continuingDepths.map(
+      ({depth, isOrphanDepth}) => {
+        if (generation - depth <= 1) {
+          // If the difference is less than or equal to 1, then it means that the continued
+          // bar is from its direct parent. In this case, do not render a connector bar
+          // because the tree connector below will suffice.
+          return null;
+        }
+
+        const left = -1 * getOffset(generation - depth - 1) - 1;
+
+        return (
+          <ConnectorBar
+            style={{left}}
+            key={`${eventId}-${depth}`}
+            orphanBranch={isOrphanDepth}
+          />
+        );
       }
-
-      const left = -1 * getOffset(generation - depth - 1) - 1;
-
-      return (
-        <ConnectorBar
-          style={{left}}
-          key={`${eventId}-${depth}`}
-          // continuingDepths of 0 is only added when there are orphan
-          // transactions in the trace
-          orphanBranch={depth === 0}
-        />
-      );
-    });
+    );
 
     if (hasToggle && isExpanded) {
       connectorBars.push(
@@ -134,7 +134,7 @@ class TransactionBar extends React.Component<Props, State> {
             top: 'auto',
           }}
           key={`${eventId}-last`}
-          orphanBranch={isOrphan}
+          orphanBranch={false}
         />
       );
     }

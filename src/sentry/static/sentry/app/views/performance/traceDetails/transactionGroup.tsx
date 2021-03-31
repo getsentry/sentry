@@ -5,14 +5,14 @@ import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 
 import TransactionBar from './transactionBar';
-import {TraceInfo, TraceRoot} from './types';
+import {TraceInfo, TraceRoot, TreeDepth} from './types';
 
 type Props = {
   location: Location;
   organization: Organization;
   transaction: TraceRoot | TraceFullDetailed;
   traceInfo: TraceInfo;
-  continuingDepths: Array<number>;
+  continuingDepths: TreeDepth[];
   isOrphan: boolean;
   isLast: boolean;
   index: number;

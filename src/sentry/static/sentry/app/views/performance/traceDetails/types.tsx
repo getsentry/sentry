@@ -45,3 +45,8 @@ export type TraceRoot = Pick<
 > & {
   traceSlug: string;
 };
+
+export type TreeDepth = {
+  depth: number;
+  isOrphanDepth: boolean;
+};
