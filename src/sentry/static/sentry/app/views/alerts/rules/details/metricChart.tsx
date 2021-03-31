@@ -129,7 +129,7 @@ function createIncidentSeries(
         `<div class="tooltip-series"><div>`,
         `<span class="tooltip-label">${marker} <strong>${t(
           'Alert'
-        )} #${identifier}</strong></span>${seriesName} ${dataPoint?.value}`,
+        )} #${identifier}</strong></span>${seriesName} ${dataPoint?.value?.toLocaleString()}`,
         `</div></div>`,
         `<div class="tooltip-date">${time}</div>`,
         `<div class="tooltip-arrow"></div>`,
@@ -320,7 +320,7 @@ class MetricChart extends React.PureComponent<Props, State> {
               ? seriesParams
               : [seriesParams];
             const {marker, data: pointData, seriesName} = pointSeries[0];
-            const [pointX, pointY] = pointData;
+            const [pointX, pointY] = pointData as [number, number];
             const isModified = dateModified && pointX <= new Date(dateModified).getTime();
 
             const startTime = getFormattedDate(new Date(pointX), 'MMM D LT');
@@ -331,7 +331,9 @@ class MetricChart extends React.PureComponent<Props, State> {
             const title = isModified
               ? `<strong>${t('Alert Rule Modified')}</strong>`
               : `${marker} <strong>${seriesName}</strong>`;
-            const value = isModified ? `${seriesName} ${pointY}` : pointY;
+            const value = isModified
+              ? `${seriesName} ${pointY.toLocaleString()}`
+              : pointY.toLocaleString();
 
             return [
               `<div class="tooltip-series"><div>`,
