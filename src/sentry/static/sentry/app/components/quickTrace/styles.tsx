@@ -101,6 +101,10 @@ export const DropdownItemSubContainer = styled('div')`
   }
 `;
 
+export const DisabledLink = styled('a')`
+  cursor: not-allowed;
+`;
+
 export const StyledTruncate = styled(Truncate)`
   white-space: nowrap;
 `;

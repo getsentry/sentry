@@ -12,6 +12,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
 import Placeholder from 'app/components/placeholder';
 import QuickTrace from 'app/components/quickTrace';
+import {DisabledLink} from 'app/components/quickTrace/styles';
 import {
   generateTraceTarget,
   renderDisabledHoverCard,
@@ -193,11 +194,10 @@ class GroupEventToolbar extends React.Component<Props> {
                     to={generateTraceTarget(evt, organization)}
                     onClick={() => this.handleTraceLink(organization)}
                   >
-                    {' '}
                     View Full Trace
                   </Link>
                 ) : (
-                  <DisabledLink> View Full Trace</DisabledLink>
+                  <DisabledLink>View Full Trace</DisabledLink>
                 )
               }
             </Feature>
@@ -273,10 +273,6 @@ const DescriptionList = styled('dl')`
 
 const QuickTraceWrapper = styled('div')`
   margin-top: ${space(0.5)};
-`;
-
-const DisabledLink = styled('a')`
-  cursor: not-allowed;
 `;
 
 export default GroupEventToolbar;

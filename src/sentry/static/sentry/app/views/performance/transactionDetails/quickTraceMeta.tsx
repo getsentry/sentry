@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
@@ -7,6 +6,7 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import QuickTrace from 'app/components/quickTrace';
+import {DisabledLink} from 'app/components/quickTrace/styles';
 import {
   generateTraceTarget,
   renderDisabledHoverCard,
@@ -99,7 +99,3 @@ export default function QuickTraceMeta({
     />
   );
 }
-
-const DisabledLink = styled('a')`
-  cursor: not-allowed;
-`;
