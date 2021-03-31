@@ -57,6 +57,9 @@ init-docker() {
     start-docker
 }
 
+# This is mainly to be used by CI
+# We need this for Mac since the executable docker won't work properly
+# until the app is opened once
 start-docker() {
     if query-mac && ! docker system info &>/dev/null; then
         echo "About to open Docker.app"
