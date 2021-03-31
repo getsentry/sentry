@@ -1796,6 +1796,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         # because we're ordering by `user.display`, we expect the results in sorted order
         assert result == ["catherine", "cathy@example.com"]
 
+    @pytest.mark.skip(
+        """
+        For some reason ClickHouse errors when there are two of the same string literals
+        (in this case the empty string "") in a query and one is in the prewhere clause.
+        Does not affect production or ClickHouse versions > 20.4.
+        """
+    )
     def test_has_message(self):
         project = self.create_project()
         event = self.store_event(
