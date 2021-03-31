@@ -393,7 +393,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         """
         status_code = params.pop("status_code", None)
 
-        if status_code >= 400:
+        if status_code and status_code >= 400:
             raise Exception("status_code must be < 400")
 
         response = self.get_response(*args, **params)
@@ -417,7 +417,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         """
         status_code = params.pop("status_code", None)
 
-        if status_code < 400:
+        if status_code and status_code < 400:
             raise Exception("status_code must be >= 400 (an error status code)")
 
         response = self.get_response(*args, **params)
@@ -465,7 +465,7 @@ class TwoFactorAPITestCase(APITestCase):
             assert err_msg.encode("utf-8") in response.content
         organization = Organization.objects.get(id=organization.id)
 
-        if status_code >= 200 and status_code < 300:
+        if 200 <= status_code < 300:
             assert organization.flags.require_2fa
         else:
             assert not organization.flags.require_2fa
