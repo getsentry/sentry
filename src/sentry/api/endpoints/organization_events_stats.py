@@ -86,8 +86,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         rollup = get_rollup_from_request(
             request,
             snuba_args,
-            "1h",
-            InvalidSearchQuery(
+            default_interval=None,
+            error=InvalidSearchQuery(
                 "Your interval and date range would create too many results. "
                 "Use a larger interval, or a smaller date range."
             ),
