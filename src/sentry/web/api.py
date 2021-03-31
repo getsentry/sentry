@@ -5,8 +5,8 @@ from django.views.generic.base import View as BaseView
 from sentry.models import Project
 from sentry.utils import json
 from sentry.utils.http import get_origins
-from sentry.web.helpers import render_to_response
 from sentry.web.client_config import get_client_config
+from sentry.web.helpers import render_to_response
 
 
 class ClientConfigView(BaseView):

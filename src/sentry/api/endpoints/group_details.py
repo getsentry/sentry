@@ -1,33 +1,26 @@
-from datetime import timedelta
 import functools
 import logging
+from datetime import timedelta
 
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import tsdb, tagstore, features
+from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
-from sentry.api.serializers import serialize, GroupSerializer, GroupSerializerSnuba
-from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.models import (
-    Activity,
-    Group,
-    GroupSeen,
-    Release,
-    User,
-    UserReport,
-)
 from sentry.api.helpers.group_index import prep_search, rate_limit_endpoint, update_groups
+from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
+from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.models import Activity, Group, GroupSeen, Release, User, UserReport
+from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
 from sentry.utils import metrics
-from sentry.utils.safe import safe_execute
 from sentry.utils.compat import zip
-from sentry.models.groupinbox import get_inbox_details
+from sentry.utils.safe import safe_execute
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -355,8 +348,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
-            from sentry.utils import snuba
             from sentry.group_deletion import delete_group
+            from sentry.utils import snuba
 
             transaction_id = delete_group(group)
 

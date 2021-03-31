@@ -1,5 +1,4 @@
-from rest_framework import status
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.fields import AvatarField

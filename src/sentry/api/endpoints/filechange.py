@@ -1,8 +1,8 @@
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import CommitFileChange, Release, ReleaseCommit, Repository
-from sentry.api.paginator import OffsetPaginator
 
 
 class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):

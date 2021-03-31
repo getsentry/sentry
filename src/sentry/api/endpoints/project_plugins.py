@@ -1,9 +1,9 @@
 from rest_framework.response import Response
 
-from sentry.plugins.base import plugins
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.plugins.base import plugins
 
 
 class ProjectPluginsEndpoint(ProjectEndpoint):
