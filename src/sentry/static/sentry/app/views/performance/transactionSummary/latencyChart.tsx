@@ -8,7 +8,7 @@ import LoadingPanel from 'app/components/charts/loadingPanel';
 import {HeaderTitleLegend} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
@@ -17,6 +17,13 @@ import {HistogramData} from 'app/utils/performance/histogram/types';
 import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
+
+import {
+  filterToColour,
+  filterToField,
+  filterToString,
+  SpanOperationBreakdownFilter,
+} from './filter';
 
 const NUM_BUCKETS = 50;
 const QUERY_KEYS = [
@@ -33,6 +40,7 @@ type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 type Props = ViewProps & {
   organization: OrganizationSummary;
   location: Location;
+  currentFilter: SpanOperationBreakdownFilter;
 };
 
 type State = {
@@ -94,7 +102,7 @@ class LatencyChart extends React.Component<Props, State> {
   }
 
   renderChart(data: HistogramData) {
-    const {location} = this.props;
+    const {location, currentFilter} = this.props;
     const {zoomError} = this.state;
 
     const xAxis = {
@@ -106,7 +114,10 @@ class LatencyChart extends React.Component<Props, State> {
       },
     };
 
-    const colors = [...theme.charts.getColorPalette(1)];
+    const colors =
+      currentFilter === SpanOperationBreakdownFilter.None
+        ? [...theme.charts.getColorPalette(1)]
+        : [filterToColour(currentFilter)];
 
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.
@@ -180,6 +191,7 @@ class LatencyChart extends React.Component<Props, State> {
       environment,
       project,
       location,
+      currentFilter,
     } = this.props;
     const eventView = EventView.fromNewQueryWithLocation(
       {
@@ -199,10 +211,19 @@ class LatencyChart extends React.Component<Props, State> {
 
     const min = parseInt(decodeScalar(location.query.startDuration, '0'), 10);
 
+    const field = filterToField(currentFilter) ?? 'transaction.duration';
+
+    const headerTitle =
+      currentFilter === SpanOperationBreakdownFilter.None
+        ? t('Duration Distribution')
+        : tct('Span Operation Distribution - [operationName]', {
+            operationName: filterToString(currentFilter) as string,
+          });
+
     return (
       <React.Fragment>
         <HeaderTitleLegend>
-          {t('Duration Distribution')}
+          {headerTitle}
           <QuestionTooltip
             position="top"
             size="sm"
@@ -216,7 +237,7 @@ class LatencyChart extends React.Component<Props, State> {
           orgSlug={organization.slug}
           eventView={eventView}
           numBuckets={NUM_BUCKETS}
-          fields={['transaction.duration']}
+          fields={[field]}
           min={min}
           dataFilter="exclude_outliers"
         >
@@ -227,7 +248,7 @@ class LatencyChart extends React.Component<Props, State> {
               return this.renderError();
             }
 
-            const data = histograms?.['transaction.duration'] ?? [];
+            const data = histograms?.[field] ?? [];
             return this.renderChart(data);
           }}
         </HistogramQuery>

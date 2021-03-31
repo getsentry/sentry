@@ -11,12 +11,19 @@ import LoadingPanel from 'app/components/charts/loadingPanel';
 import {HeaderTitleLegend} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
 import {Theme} from 'app/utils/theme';
+
+import {
+  filterToColour,
+  filterToField,
+  filterToString,
+  SpanOperationBreakdownFilter,
+} from './filter';
 
 const QUERY_KEYS = [
   'environment',
@@ -38,6 +45,7 @@ type Props = AsyncComponent['props'] &
     theme: Theme;
     organization: OrganizationSummary;
     location: Location;
+    currentFilter: SpanOperationBreakdownFilter;
   };
 
 type State = AsyncComponent['state'] & {
@@ -53,22 +61,11 @@ type State = AsyncComponent['state'] & {
  * at each duration bucket, showing the modality of the transaction.
  */
 class DurationPercentileChart extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {
-      organization,
-      query,
-      start,
-      end,
-      statsPeriod,
-      environment,
-      project,
-      location,
-    } = this.props;
-    const eventView = EventView.fromSavedQuery({
-      id: '',
-      name: '',
-      version: 2,
-      fields: [
+  generateFields = () => {
+    const {currentFilter} = this.props;
+
+    if (currentFilter === SpanOperationBreakdownFilter.None) {
+      return [
         'percentile(transaction.duration, 0.10)',
         'percentile(transaction.duration, 0.25)',
         'percentile(transaction.duration, 0.50)',
@@ -79,7 +76,42 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
         'percentile(transaction.duration, 0.995)',
         'percentile(transaction.duration, 0.999)',
         'p100()',
-      ],
+      ];
+    }
+
+    const field = filterToField(currentFilter);
+
+    return [
+      `percentile(${field}, 0.10)`,
+      `percentile(${field}, 0.25)`,
+      `percentile(${field}, 0.50)`,
+      `percentile(${field}, 0.75)`,
+      `percentile(${field}, 0.90)`,
+      `percentile(${field}, 0.95)`,
+      `percentile(${field}, 0.99)`,
+      `percentile(${field}, 0.995)`,
+      `percentile(${field}, 0.999)`,
+      `p100(${field})`,
+    ];
+  };
+
+  getEndpoints = (): ReturnType<AsyncComponent['getEndpoints']> => {
+    const {
+      organization,
+      query,
+      start,
+      end,
+      statsPeriod,
+      environment,
+      project,
+      location,
+    } = this.props;
+
+    const eventView = EventView.fromSavedQuery({
+      id: '',
+      name: '',
+      version: 2,
+      fields: this.generateFields(),
       orderby: '',
       projects: project,
       range: statsPeriod,
@@ -94,7 +126,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
     return [
       ['chartData', `/organizations/${organization.slug}/eventsv2/`, {query: apiPayload}],
     ];
-  }
+  };
 
   componentDidUpdate(prevProps: Props) {
     if (this.shouldRefetchData(prevProps)) {
@@ -123,7 +155,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {theme} = this.props;
+    const {theme, currentFilter} = this.props;
     const {chartData} = this.state;
     if (chartData === null) {
       return null;
@@ -153,7 +185,11 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
         return getDuration(value / 1000, 2);
       },
     };
-    const colors = theme.charts.getColorPalette(1);
+
+    const colors =
+      currentFilter === SpanOperationBreakdownFilter.None
+        ? theme.charts.getColorPalette(1)
+        : [filterToColour(currentFilter)];
 
     return (
       <AreaChart
@@ -168,10 +204,19 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   }
 
   render() {
+    const {currentFilter} = this.props;
+
+    const headerTitle =
+      currentFilter === SpanOperationBreakdownFilter.None
+        ? t('Duration Percentiles')
+        : tct('Span Operation Percentiles - [operationName]', {
+            operationName: filterToString(currentFilter) as string,
+          });
+
     return (
       <React.Fragment>
         <HeaderTitleLegend>
-          {t('Duration Percentiles')}
+          {headerTitle}
           <QuestionTooltip
             position="top"
             size="sm"
