@@ -323,6 +323,8 @@ class OrganizationSerializer(serializers.Serializer):
     def save(self):
         org = self.context["organization"]
         changed_data = {}
+        if not hasattr(org, "__data"):
+            update_tracked_data(org)
 
         for key, option, type_, default_value in ORG_OPTIONS:
             if key not in self.initial_data:
