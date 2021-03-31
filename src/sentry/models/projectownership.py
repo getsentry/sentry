@@ -169,9 +169,11 @@ class ProjectOwnership(Model):
                 return ownership.auto_assignment, [], assigned_by_codeowners
 
             # Ownership rules take precedence over codeowner rules.
-            actors = [*ownership_actors]
-            if len(actors) < limit and codeowners_actors:
-                actors = [*ownership_actors, *codeowners_actors][:limit]
+            actors = [*ownership_actors, *codeowners_actors][:limit]
+
+            # Only the first item in the list is used for assignment, the rest are just used to suggest suspect owners.
+            # So if ownership_actors is empty, it will be assigned by codeowners_actors
+            if len(ownership_actors) == 0:
                 assigned_by_codeowners = True
 
             from sentry.models import ActorTuple
