@@ -3,7 +3,6 @@ from django.db.models import Q, QuerySet
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 from sentry.db.models import BaseManager
-from sentry.models.actor import ACTOR_TYPES
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.helpers import (
     get_scope,
