@@ -35,6 +35,7 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:performance-new-project',
   'feature-disabled:performance-page',
   'feature-disabled:performance-sidebar-item',
+  'feature-disabled:project-performance-score-card',
   'feature-disabled:project-selector-checkbox',
   'feature-disabled:rate-limits',
   'feature-disabled:sso-basic',

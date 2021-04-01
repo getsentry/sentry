@@ -131,7 +131,13 @@ class ProjectDetail extends AsyncView<Props, State> {
       selection,
     } = this.props;
     const project = this.project;
+    const hasPerformance = organization.features.includes('performance-view');
     const isProjectStabilized = this.isProjectStabilized();
+    const displayedChartIds = [0];
+
+    if (hasPerformance) {
+      displayedChartIds.push(1);
+    }
 
     if (!loadingProjects && !project) {
       return this.renderProjectNotFound();
@@ -213,16 +219,22 @@ class ProjectDetail extends AsyncView<Props, State> {
                 />
                 {isProjectStabilized && (
                   <React.Fragment>
-                    {[0, 1].map(id => (
+                    {displayedChartIds.map(id => (
                       <ProjectCharts
                         location={location}
                         organization={organization}
                         router={router}
                         key={`project-charts-${id}`}
                         index={id}
+                        projectId={project?.id}
                       />
                     ))}
-                    <ProjectIssues organization={organization} location={location} />
+                    <ProjectIssues
+                      organization={organization}
+                      location={location}
+                      projectId={selection.projects[0]}
+                      api={this.api}
+                    />
                   </React.Fragment>
                 )}
               </Layout.Main>

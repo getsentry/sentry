@@ -16,6 +16,7 @@ type Props = {
   query: string;
   selectedProjectIds?: number[];
   groupIds: string[];
+  emptyMessage?: React.ReactNode;
 };
 
 type State = {
@@ -132,9 +133,10 @@ class NoGroupsHandler extends React.Component<Props, State> {
   }
 
   renderEmpty() {
+    const {emptyMessage} = this.props;
     return (
       <EmptyStateWarning>
-        <p>{t('Sorry, no issues match your filters.')}</p>
+        <p>{emptyMessage ?? t('Sorry, no issues match your filters.')}</p>
       </EmptyStateWarning>
     );
   }
