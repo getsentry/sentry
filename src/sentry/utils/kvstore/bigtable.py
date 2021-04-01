@@ -59,9 +59,9 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
     def __init__(
         self,
+        instance: str,
+        table_name: str,
         project: Optional[str] = None,
-        instance: str = "sentry",
-        table_name: str = "nodestore",
         client_options: Optional[Mapping[Any, Any]] = None,
         default_ttl: Optional[timedelta] = None,
         compression: Optional[str] = None,

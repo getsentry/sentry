@@ -28,6 +28,8 @@ def create_store(
 ) -> BigtableKVStorage:
     store = BigtableKVStorage(
         project="test",
+        instance="test",
+        table_name="test",
         compression=compression,
         client_options={"credentials": credentials},
     )
