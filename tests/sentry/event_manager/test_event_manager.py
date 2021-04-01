@@ -151,9 +151,7 @@ class EventManagerTest(TestCase):
         # Switching to newstyle grouping changes hashes as 123 will be removed
 
         manager = EventManager(
-            make_event(
-                message="foo 123", event_id="b" * 32, timestamp=timestamp + 2.0
-            )
+            make_event(message="foo 123", event_id="b" * 32, timestamp=timestamp + 2.0)
         )
         manager.normalize()
 
