@@ -87,6 +87,30 @@ def test_get_json_meta_type():
         )
         == "number"
     )
+    assert (
+        get_json_meta_type(
+            "percentile_span_op_breakdowns_fp_0_5",
+            "Nullable(Float64)",
+            FunctionDetails(
+                "percentile(span_op_breakdowns.fp, 0.5)",
+                FUNCTIONS["percentile"],
+                {"column": "span_op_breakdowns.fp", "percentile": 0.5},
+            ),
+        )
+        == "duration"
+    )
+    assert (
+        get_json_meta_type(
+            "percentile_span_op_breakdowns_foo_0_5",
+            "Nullable(Float64)",
+            FunctionDetails(
+                "percentile(span_op_breakdowns.foo, 0.5)",
+                FUNCTIONS["percentile"],
+                {"column": "span_op_breakdowns.foo", "percentile": 0.5},
+            ),
+        )
+        == "number"
+    )
 
 
 def test_parse_function():

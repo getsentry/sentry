@@ -553,7 +553,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_reflective_types(self):
         results = discover.query(
-            selected_columns=["p50(measurements.lcp)", "p50(measurements.foo)"],
+            selected_columns=[
+                "p50(measurements.lcp)",
+                "p50(measurements.foo)",
+                "p50(span_op_breakdowns.foo)",
+            ],
             query="event.type:transaction",
             params={"project_id": [self.project.id]},
             use_aggregate_conditions=True,
@@ -562,6 +566,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert results["meta"] == {
             "p50_measurements_lcp": "duration",
             "p50_measurements_foo": "number",
+            "p50_span_op_breakdowns_foo": "duration",
         }
 
 
