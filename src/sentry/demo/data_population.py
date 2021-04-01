@@ -59,12 +59,9 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
+crash_free_rate_by_release = {"3.0": 1.0, "3.1": 0.99, "3.2": 0.9}
 
 logger = logging.getLogger(__name__)
-
-session_payload = """{"sent_at":"2021-03-31T15:02:57.190Z","sdk":{"name":"sentry.javascript.react","version":"6.3.0-beta.4"}}
-{"type":"session"}
-{"sid":"b1b7db8800b84f0db0d586cf2ec48988","init":false,"started":"2021-03-31T15:02:51.997Z","timestamp":"2021-03-31T15:02:57.190Z","status":"exited","errors":0,"did":"454307","duration":5193,"attrs":{"release":"b357f87d8b1c2580033cda4591e46925787e8cc8","environment":"prod","ip_address":"136.24.53.109"}}"""
 
 
 def get_config(quick):
@@ -105,7 +102,7 @@ def distribution_v1(hour: int) -> int:
 
 def distribution_v2(hour: int) -> int:
     if hour > 18 and hour < 20:
-        return 22
+        return 14
     if hour > 9 and hour < 14:
         return 7
     if hour > 3 and hour < 22:
@@ -123,7 +120,17 @@ def distribution_v3(hour: int) -> int:
     return 1
 
 
-distrubtion_fns = [distribution_v1, distribution_v2, distribution_v3]
+def distribution_v4(hour: int) -> int:
+    if hour > 13 and hour < 20:
+        return 11
+    if hour > 5 and hour < 12:
+        return 7
+    if hour > 3 and hour < 22:
+        return 4
+    return 2
+
+
+distrubtion_fns = [distribution_v1, distribution_v2, distribution_v3, distribution_v4]
 
 
 def gen_measurements(full_duration):
@@ -264,7 +271,7 @@ def generate_releases(projects, quick):
     org_id = org.id
     for i in range(NUM_RELEASES):
         release = Release.objects.create(
-            version=f"V{i + 1}",
+            version=f"3.{i}",
             organization_id=org_id,
             date_added=release_time,
         )
@@ -380,38 +387,34 @@ def generate_issue_alert(project):
     project_rules.Creator.run(**data)
 
 
-def send_session(sid, dsn, time, release):
+def send_session(sid, user_id, dsn, time, release, **kwargs):
     formated_time = time.isoformat()
     envelope_headers = json.dumps(
         {
-            "sent_at": formated_time,
-            "sdk": {"name": "sentry.javascript.react", "version": "6.3.0-beta.4"},
+            # "sdk": {"name": "sentry.javascript.react", "version": "6.3.0-beta.4"},
         }
     )
     item_headers = json.dumps({"type": "session"})
-    core = json.dumps(
-        {
-            "sid": sid,
-            "init": False,
-            "started": formated_time,
-            "status": "ok",
-            "errors": 0,
-            "duration": 60,
-            "attrs": {
-                "release": release,
-                "environment": "prod",
-            },
-        }
-    )
+    data = {
+        "sid": sid,
+        "did": str(user_id),
+        "started": formated_time,
+        "duration": random.randrange(2, 60),
+        "attrs": {
+            "release": release,
+            "environment": "prod",
+        },
+    }
+    data.update(**kwargs)
+    core = json.dumps(data)
 
     body = f"{envelope_headers}\n{item_headers}\n{core}"
-    print("send_session body", body)
 
     endpoint = dsn.get_endpoint()
     url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
     resp = requests.post(url=url, data=body)
+    logger.info("send_session.send")
     resp.raise_for_status()
-    print("send_session resp", resp)
 
 
 def generate_saved_query(project, transaction_title, name):
@@ -719,7 +722,7 @@ def populate_connected_event_scenario_1(
         trace_id = uuid4().hex
         release = get_release_from_time(react_project.organization_id, timestamp)
         release_sha = release.version
-        sid = uuid4().hex[:16]
+        sid = uuid4().hex
 
         old_span_id = react_transaction["contexts"]["trace"]["span_id"]
         frontend_root_span_id = uuid4().hex[:16]
@@ -742,7 +745,10 @@ def populate_connected_event_scenario_1(
             # start_timestamp decreases based on day so that there's a trend
             start_timestamp=timestamp - timedelta(seconds=frontend_duration),
             measurements=gen_measurements(frontend_duration),
-            tags=["session_id", sid],
+            tags=[
+                ["session_id", sid],
+                ["mechanism", "onunhandledrejection"],
+            ],
         )
         update_context(local_event, frontend_trace)
         fix_transaction_event(local_event, old_span_id)
@@ -759,7 +765,10 @@ def populate_connected_event_scenario_1(
             timestamp=timestamp,
             user=transaction_user,
             release=release_sha,
-            tags=["session_id", sid],
+            tags=[
+                ["session_id", sid],
+                ["mechanism", "onunhandledrejection"],
+            ],
         )
         update_context(local_event, frontend_trace)
         fix_error_event(local_event, quick)
@@ -801,7 +810,13 @@ def populate_connected_event_scenario_1(
         fix_error_event(local_event, quick)
         safe_send_event(local_event, quick)
 
-        send_session(sid, dsn, timestamp, release_sha)
+        session_data = {
+            "init": True,
+        }
+        send_session(sid, transaction_user["id"], dsn, timestamp, release_sha, **session_data)
+
+        session_data = {"errors": 1, "status": "exited"}
+        send_session(sid, transaction_user["id"], dsn, timestamp, release_sha, **session_data)
 
     logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)
 
@@ -924,6 +939,35 @@ def populate_connected_event_scenario_3(python_project: Project, quick=False):
     logger.info("populate_connected_event_scenario_3.finished", extra=log_extra)
 
 
+def populate_healthy_sessions(project, quick=False):
+    dsn = ProjectKey.objects.get(project=project)
+
+    for (timestamp, day) in iter_timestamps(4, quick):
+        transaction_user = generate_user(quick)
+        sid = uuid4().hex
+        release = get_release_from_time(project.organization_id, timestamp)
+        version = release.version
+        threshold = crash_free_rate_by_release[version]
+
+        session_data = {
+            "init": True,
+        }
+        send_session(sid, transaction_user["id"], dsn, timestamp, version, **session_data)
+
+        outcome = random.random()
+        print("threshold", threshold, outcome)
+        if outcome > threshold:
+            data = {
+                "status": "crashed",
+            }
+        else:
+            data = {
+                "status": "exited",
+            }
+
+        send_session(sid, transaction_user["id"], dsn, timestamp, version, **data)
+
+
 def handle_react_python_scenario(react_project: Project, python_project: Project, quick=False):
     """
     Handles all data population for the React + Python scenario
@@ -931,6 +975,8 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     generate_releases([react_project, python_project], quick=quick)
     generate_alerts(python_project)
     generate_saved_query(react_project, "/productstore", "Product Store")
+    populate_healthy_sessions(react_project, quick=quick)
+    # populate_healthy_sessions(python_project, quick=quick)
     populate_connected_event_scenario_1(react_project, python_project, quick=quick)
     # populate_connected_event_scenario_2(react_project, python_project, quick=quick)
     # populate_connected_event_scenario_3(python_project, quick=quick)
