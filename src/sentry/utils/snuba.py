@@ -58,6 +58,7 @@ SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 QUOTED_LITERAL_RE = re.compile(r"^'[\s\S]*'$")
 
 MEASUREMENTS_KEY_RE = re.compile(r"^measurements\.([a-zA-Z0-9-_.]+)$")
+SPAN_OP_BREAKDOWNS_KEY_RE = re.compile(r"^span_op_breakdowns\.([a-zA-Z0-9-_.]+)$")
 
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
@@ -349,8 +350,11 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
         return name
 
     measurement_name = get_measurement_name(name)
+    span_op_breakdown_name = get_span_op_breakdown_name(name)
     if "measurements_key" in DATASETS[dataset] and measurement_name:
         default = f"measurements[{measurement_name}]"
+    elif "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
+        default = f"span_op_breakdowns[{span_op_breakdown_name}]"
     else:
         default = f"tags[{name}]"
 
@@ -988,6 +992,10 @@ def resolve_column(dataset):
         if "measurements_key" in DATASETS[dataset] and measurement_name:
             return f"measurements[{measurement_name}]"
 
+        span_op_breakdown_name = get_span_op_breakdown_name(col)
+        if "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
+            return f"span_op_breakdowns[{span_op_breakdown_name}]"
+
         return f"tags[{col}]"
 
     return _resolve_column
@@ -1489,6 +1497,15 @@ def is_duration_measurement(key):
     ]
 
 
+def is_span_op_breakdown(key):
+    return isinstance(key, str) and SPAN_OP_BREAKDOWNS_KEY_RE.match(key)
+
+
 def get_measurement_name(measurement):
     match = MEASUREMENTS_KEY_RE.match(measurement)
+    return match.group(1).lower() if match else None
+
+
+def get_span_op_breakdown_name(breakdown):
+    match = SPAN_OP_BREAKDOWNS_KEY_RE.match(breakdown)
     return match.group(1).lower() if match else None

@@ -36,6 +36,7 @@ from sentry.utils.snuba import (
     get_json_type,
     is_duration_measurement,
     is_measurement,
+    is_span_op_breakdown,
 )
 
 WILDCARD_CHARS = re.compile(r"[\*]")
@@ -268,11 +269,16 @@ class SearchKey(namedtuple("SearchKey", "name")):
             self.name not in SEARCH_MAP
             and self.name not in FIELD_ALIASES
             and not self.is_measurement
+            and not self.is_span_op_breakdown
         )
 
     @cached_property
     def is_measurement(self):
         return is_measurement(self.name) and self.name not in SEARCH_MAP
+
+    @cached_property
+    def is_span_op_breakdown(self):
+        return is_span_op_breakdown(self.name) and self.name not in SEARCH_MAP
 
 
 class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
@@ -382,7 +388,9 @@ class SearchVisitor(NodeVisitor):
         return key in self.numeric_keys or is_measurement(key)
 
     def is_duration_key(self, key):
-        return key in self.duration_keys or is_duration_measurement(key)
+        return (
+            key in self.duration_keys or is_duration_measurement(key) or is_span_op_breakdown(key)
+        )
 
     def is_percentage_key(self, key):
         return key in self.percentage_keys
@@ -1458,7 +1466,11 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
                 if result_type is not None:
                     return result_type
 
-    if "duration" in field_alias or is_duration_measurement(field_alias):
+    if (
+        "duration" in field_alias
+        or is_duration_measurement(field_alias)
+        or is_span_op_breakdown(field_alias)
+    ):
         return "duration"
     if is_measurement(field_alias):
         return "number"
@@ -1560,7 +1572,7 @@ class FieldColumn(CountColumn):
     """ Allow any field column, of any type """
 
     def get_type(self, value):
-        if is_duration_measurement(value):
+        if is_duration_measurement(value) or is_span_op_breakdown(value):
             return "duration"
         elif value == "transaction.duration":
             return "duration"
@@ -1653,6 +1665,8 @@ class NumericColumn(FunctionArg):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
             return value
+        if not snuba_column and is_span_op_breakdown(value):
+            return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
         elif snuba_column not in ["time", "timestamp", "duration"]:
@@ -1664,7 +1678,7 @@ class NumericColumn(FunctionArg):
 
     def get_type(self, value):
         snuba_column = self._normalize(value)
-        if is_duration_measurement(snuba_column):
+        if is_duration_measurement(snuba_column) or is_span_op_breakdown(snuba_column):
             return "duration"
         elif snuba_column == "duration":
             return "duration"
@@ -1693,6 +1707,8 @@ class DurationColumn(FunctionArg):
     def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_duration_measurement(value):
+            return value
+        if not snuba_column and is_span_op_breakdown(value):
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
