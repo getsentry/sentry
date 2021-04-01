@@ -551,6 +551,19 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["any_user_id"] is None
         assert data[0]["count"] == 1
 
+    def test_reflective_types(self):
+        results = discover.query(
+            selected_columns=["p50(measurements.lcp)", "p50(measurements.foo)"],
+            query="event.type:transaction",
+            params={"project_id": [self.project.id]},
+            use_aggregate_conditions=True,
+        )
+
+        assert results["meta"] == {
+            "p50_measurements_lcp": "duration",
+            "p50_measurements_foo": "number",
+        }
+
 
 class QueryTransformTest(TestCase):
     """

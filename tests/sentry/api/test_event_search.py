@@ -13,6 +13,8 @@ from sentry.api.event_search import (
     event_search_grammar,
     Function,
     FunctionArg,
+    FUNCTIONS,
+    FunctionDetails,
     with_default,
     get_filter,
     resolve_field_list,
@@ -61,6 +63,30 @@ def test_get_json_meta_type():
     assert get_json_meta_type("measurements.fp", "Float64") == "duration"
     assert get_json_meta_type("span_op_breakdowns.ops.browser", "Float64") == "duration"
     assert get_json_meta_type("span_op_breakdowns.total.time", "Float64") == "duration"
+    assert (
+        get_json_meta_type(
+            "percentile_measurements_fp_0_5",
+            "Nullable(Float64)",
+            FunctionDetails(
+                "percentile(measurements.fp, 0.5)",
+                FUNCTIONS["percentile"],
+                {"column": "measurements.fp", "percentile": 0.5},
+            ),
+        )
+        == "duration"
+    )
+    assert (
+        get_json_meta_type(
+            "percentile_measurements_foo_0_5",
+            "Nullable(Float64)",
+            FunctionDetails(
+                "percentile(measurements.foo, 0.5)",
+                FUNCTIONS["percentile"],
+                {"column": "measurements.foo", "percentile": 0.5},
+            ),
+        )
+        == "number"
+    )
 
 
 def test_parse_function():
