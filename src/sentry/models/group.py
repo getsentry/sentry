@@ -451,7 +451,22 @@ class Group(Model):
         if self.first_release_id is None:
             first_release = tagstore.get_first_release(self.project_id, self.id)
             found = "hit" if first_release is not None else "miss"
-            metrics.incr(f"group.get_first_release.tagstore.{found}")
+            metric_prefix = "group.get_first_release.tagstore"
+            metrics.incr(f"{metric_prefix}.{found}")
+            if first_release:
+                # Attempt to repair the first_release for this `Group`
+                from sentry.models.release import Release
+
+                try:
+                    release = Release.objects.get(
+                        organization_id=self.project.organization_id,
+                        projects=self.project,
+                        version=first_release,
+                    )
+                    self.update(first_release=release)
+                    metrics.incr(f"{metric_prefix}.repair.ok")
+                except Release.DoesNotExist:
+                    metrics.incr(f"{metric_prefix}.repair.failed")
             return first_release
 
         return self.first_release.version

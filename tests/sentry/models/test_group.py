@@ -193,6 +193,40 @@ class GroupTest(TestCase, SnubaTestCase):
         assert group.get_first_release() == "a"
         assert group.get_last_release() == "a"
 
+    def test_first_release_repair(self):
+        project = self.create_project()
+        event = self.store_event(
+            data={"release": "a", "timestamp": self.min_ago}, project_id=project.id
+        )
+
+        group = event.group
+        group.update(first_release=None)
+
+        assert group.get_first_release() == "a"
+        group.refresh_from_db()
+        assert group.first_release.version == "a"
+
+    def test_first_release_repair_fail(self):
+        project = self.create_project()
+        version = "a"
+        event = self.store_event(
+            data={"release": version, "timestamp": self.min_ago}, project_id=project.id
+        )
+
+        # Create a release on another org to verify we don't get any bleed over
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        self.create_release(other_project, version=version)
+
+        group = event.group
+        first_release = group.first_release
+        group.update(first_release=None)
+        first_release.delete()
+
+        assert group.get_first_release() == version
+        group.refresh_from_db()
+        assert group.first_release is None
+
     def test_first_last_release_miss(self):
         project = self.create_project()
         release = Release.objects.create(version="a", organization_id=project.organization_id)
