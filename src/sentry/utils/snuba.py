@@ -37,6 +37,7 @@ from sentry.models import (
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp, outside_retention_with_modified_start
+from sentry.utils.snql import should_use_snql
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
 from sentry.utils.compat import map
@@ -620,7 +621,7 @@ def raw_query(
     referrer=None,
     is_grouprelease=False,
     use_cache=False,
-    use_snql=False,
+    use_snql=None,
     **kwargs,
 ) -> [Dict[str, Any]]:
     """
@@ -639,6 +640,10 @@ def raw_query(
         is_grouprelease=is_grouprelease,
         **kwargs,
     )
+
+    if use_snql is None:
+        use_snql = should_use_snql(referrer)
+
     return bulk_raw_query(
         [snuba_params], referrer=referrer, use_cache=use_cache, use_snql=use_snql
     )[0]
@@ -653,7 +658,7 @@ def bulk_raw_query(
     snuba_param_list: Sequence[SnubaQueryParams],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    use_snql: Optional[bool] = False,
+    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     headers = {}
     if referrer:
@@ -700,7 +705,7 @@ def bulk_raw_query(
 
 
 def _bulk_snuba_query(
-    snuba_param_list: List[SnubaQuery], headers: Mapping[str, str], use_snql: Optional[bool] = False
+    snuba_param_list: List[SnubaQuery], headers: Mapping[str, str], use_snql: Optional[bool] = None
 ) -> ResultSet:
     with sentry_sdk.start_span(
         op="start_snuba_query",
@@ -894,7 +899,7 @@ def query(
     selected_columns=None,
     totals=None,
     use_cache=False,
-    use_snql=False,
+    use_snql=None,
     **kwargs,
 ):
 
@@ -1087,7 +1092,7 @@ def _aliased_query_impl(
     dataset=None,
     orderby=None,
     condition_resolver=None,
-    use_snql=False,
+    use_snql=None,
     **kwargs,
 ):
     if dataset is None:
