@@ -57,6 +57,7 @@ type CandidateDownloadNotFoundStatus = {
 
 type CandidateDownloadUnAppliedStatus = {
   status: CandidateDownloadStatus.UNAPPLIED;
+  features: CandidateFeatures;
 };
 
 type CandidateDownloadOtherStatus = {
@@ -84,20 +85,36 @@ export type ImageCandidateOk = ImageCandidateBase & {
   download: CandidateDownloadOkStatus;
   unwind?: CandidateProcessingInfo;
   debug?: CandidateProcessingInfo;
+  filename?: string;
+};
+
+export type ImageCandidateUnApplied = ImageCandidateBase & {
+  download: CandidateDownloadUnAppliedStatus;
+  filename: string;
+  symbolType: string;
+  fileType: string | null;
+  cpuName: string;
+  size: number;
+  dateCreated: string;
+  source: string;
+  source_name?: string;
+  location?: string;
 };
 
 type ImageCandidateOthers = ImageCandidateBase & {
   download:
     | CandidateDownloadNotFoundStatus
     | CandidateDownloadDeletedStatus
-    | CandidateDownloadUnAppliedStatus
     | CandidateDownloadOtherStatus;
   source: string;
   source_name?: string;
   location?: string;
 };
 
-export type ImageCandidate = ImageCandidateOk | ImageCandidateOthers;
+export type ImageCandidate =
+  | ImageCandidateOk
+  | ImageCandidateUnApplied
+  | ImageCandidateOthers;
 
 // Debug Status
 export enum ImageStatus {
