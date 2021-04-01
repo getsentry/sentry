@@ -69,7 +69,7 @@ class ProjectTeams extends AsyncView<Props, State> {
 
   handleAddedTeam = (team: Team) => {
     this.setState(prevState => ({
-      projectTeams: [...prevState.projectTeams, team],
+      projectTeams: [...(prevState.projectTeams || []), team],
     }));
   };
 

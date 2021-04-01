@@ -5,8 +5,9 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {ImageCandidate} from 'app/types/debugImage';
 
-import Status from './status';
-import {getStatusTooltipDescription} from './utils';
+import {getStatusTooltipDescription} from '../utils';
+
+import Status from '.';
 
 type Props = {
   candidate: ImageCandidate;

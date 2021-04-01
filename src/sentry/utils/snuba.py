@@ -37,6 +37,7 @@ from sentry.models import (
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp, outside_retention_with_modified_start
+from sentry.utils.snql import should_use_snql
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
 from sentry.utils.compat import map
@@ -58,6 +59,7 @@ SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 QUOTED_LITERAL_RE = re.compile(r"^'[\s\S]*'$")
 
 MEASUREMENTS_KEY_RE = re.compile(r"^measurements\.([a-zA-Z0-9-_.]+)$")
+SPAN_OP_BREAKDOWNS_KEY_RE = re.compile(r"^span_op_breakdowns\.([a-zA-Z0-9-_.]+)$")
 
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
@@ -349,8 +351,11 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
         return name
 
     measurement_name = get_measurement_name(name)
+    span_op_breakdown_name = get_span_op_breakdown_name(name)
     if "measurements_key" in DATASETS[dataset] and measurement_name:
         default = f"measurements[{measurement_name}]"
+    elif "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
+        default = f"span_op_breakdowns[{span_op_breakdown_name}]"
     else:
         default = f"tags[{name}]"
 
@@ -620,7 +625,7 @@ def raw_query(
     referrer=None,
     is_grouprelease=False,
     use_cache=False,
-    use_snql=False,
+    use_snql=None,
     **kwargs,
 ) -> [Dict[str, Any]]:
     """
@@ -639,6 +644,10 @@ def raw_query(
         is_grouprelease=is_grouprelease,
         **kwargs,
     )
+
+    if use_snql is None:
+        use_snql = should_use_snql(referrer)
+
     return bulk_raw_query(
         [snuba_params], referrer=referrer, use_cache=use_cache, use_snql=use_snql
     )[0]
@@ -653,7 +662,7 @@ def bulk_raw_query(
     snuba_param_list: Sequence[SnubaQueryParams],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    use_snql: Optional[bool] = False,
+    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     headers = {}
     if referrer:
@@ -700,7 +709,7 @@ def bulk_raw_query(
 
 
 def _bulk_snuba_query(
-    snuba_param_list: List[SnubaQuery], headers: Mapping[str, str], use_snql: Optional[bool] = False
+    snuba_param_list: List[SnubaQuery], headers: Mapping[str, str], use_snql: Optional[bool] = None
 ) -> ResultSet:
     with sentry_sdk.start_span(
         op="start_snuba_query",
@@ -894,7 +903,7 @@ def query(
     selected_columns=None,
     totals=None,
     use_cache=False,
-    use_snql=False,
+    use_snql=None,
     **kwargs,
 ):
 
@@ -987,6 +996,10 @@ def resolve_column(dataset):
         measurement_name = get_measurement_name(col)
         if "measurements_key" in DATASETS[dataset] and measurement_name:
             return f"measurements[{measurement_name}]"
+
+        span_op_breakdown_name = get_span_op_breakdown_name(col)
+        if "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
+            return f"span_op_breakdowns[{span_op_breakdown_name}]"
 
         return f"tags[{col}]"
 
@@ -1087,7 +1100,7 @@ def _aliased_query_impl(
     dataset=None,
     orderby=None,
     condition_resolver=None,
-    use_snql=False,
+    use_snql=None,
     **kwargs,
 ):
     if dataset is None:
@@ -1489,6 +1502,15 @@ def is_duration_measurement(key):
     ]
 
 
+def is_span_op_breakdown(key):
+    return isinstance(key, str) and SPAN_OP_BREAKDOWNS_KEY_RE.match(key)
+
+
 def get_measurement_name(measurement):
     match = MEASUREMENTS_KEY_RE.match(measurement)
+    return match.group(1).lower() if match else None
+
+
+def get_span_op_breakdown_name(breakdown):
+    match = SPAN_OP_BREAKDOWNS_KEY_RE.match(breakdown)
     return match.group(1).lower() if match else None
