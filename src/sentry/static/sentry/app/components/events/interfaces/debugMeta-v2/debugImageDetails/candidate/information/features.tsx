@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import NotAvailable from 'app/components/notAvailable';
 import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
 import {
@@ -10,7 +9,7 @@ import {
   CandidateFeatures,
 } from 'app/types/debugImage';
 
-import {getFeatureLabel} from './utils';
+import {getFeatureLabel} from '../utils';
 
 type Props = {
   download: CandidateDownload;
@@ -19,15 +18,16 @@ type Props = {
 function Features({download}: Props) {
   if (
     download.status !== CandidateDownloadStatus.OK &&
-    download.status !== CandidateDownloadStatus.DELETED
+    download.status !== CandidateDownloadStatus.DELETED &&
+    download.status !== CandidateDownloadStatus.UNAPPLIED
   ) {
-    return <NotAvailable />;
+    return null;
   }
 
   const features = Object.entries(download.features).filter(([_key, value]) => value);
 
   if (!features.length) {
-    return <NotAvailable />;
+    return null;
   }
 
   return (
@@ -48,9 +48,9 @@ function Features({download}: Props) {
 export default Features;
 
 const Wrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-column-gap: ${space(1.5)};
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
 `;
@@ -60,4 +60,5 @@ const Feature = styled('div')`
   grid-auto-flow: column;
   grid-column-gap: ${space(0.5)};
   align-items: center;
+  padding-right: ${space(1.5)};
 `;
