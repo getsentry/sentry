@@ -2,8 +2,17 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptor} from 'history';
 
+import Feature from 'app/components/acl/feature';
 import DropdownLink from 'app/components/dropdownLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import {
+  ErrorDestination,
+  generateMultiTransactionsTarget,
+  generateSingleErrorTarget,
+  generateSingleTransactionTarget,
+  renderDisabledHoverCard,
+  TransactionDestination,
+} from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
 import {IconFire} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
@@ -22,6 +31,7 @@ import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
 import {
+  DisabledDropdownItem,
   DropdownItem,
   DropdownItemSubContainer,
   ErrorNodeContent,
@@ -32,13 +42,6 @@ import {
   StyledTruncate,
   TraceConnector,
 } from './styles';
-import {
-  ErrorDestination,
-  generateMultiTransactionsTarget,
-  generateSingleErrorTarget,
-  generateSingleTransactionTarget,
-  TransactionDestination,
-} from './utils';
 
 const TOOLTIP_PREFIX = {
   root: 'root',
@@ -370,11 +373,25 @@ function EventNodeSelector({
           );
         })}
         {events.length > numEvents && hoverText && extrasTarget && (
-          <DropdownItem
-            onSelect={() => handleDropdownItem(extrasTarget, nodeKey, organization, true)}
+          <Feature
+            features={['trace-view-summary']}
+            hookName="feature-disabled:trace-view-link"
+            renderDisabled={renderDisabledHoverCard}
           >
-            {hoverText}
-          </DropdownItem>
+            {({hasFeature}) =>
+              hasFeature ? (
+                <DropdownItem
+                  onSelect={() =>
+                    handleDropdownItem(extrasTarget, nodeKey, organization, true)
+                  }
+                >
+                  {hoverText}
+                </DropdownItem>
+              ) : (
+                <DisabledDropdownItem>{hoverText}</DisabledDropdownItem>
+              )
+            }
+          </Feature>
         )}
       </DropdownLink>
     );
