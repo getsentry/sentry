@@ -400,7 +400,7 @@ describe('Quick Trace', function () {
           event={makeTransactionEvent(0) as Event}
           quickTrace={{
             type: 'full',
-            trace: [...makeQuickTraceEvents(0), ...makeQuickTraceEvents(1, {n: 10})],
+            trace: [...makeQuickTraceEvents(0), ...makeQuickTraceEvents(1, {n: 3})],
           }}
           anchor="left"
           errorDest="issue"
@@ -410,7 +410,7 @@ describe('Quick Trace', function () {
         />
       );
       const items = quickTrace.find('DropdownItem');
-      expect(items.length).toEqual(6);
+      expect(items.length).toEqual(3);
       // can't easily assert the target is correct since it uses an onClick handler
     });
   });
