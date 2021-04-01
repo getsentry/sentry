@@ -262,6 +262,7 @@ class SummaryContent extends React.Component<Props, State> {
               organization={organization}
               location={location}
               isLoading={isLoading}
+              hasWebVitals={hasWebVitals}
               error={error}
               totals={totalValues}
               transactionName={transactionName}

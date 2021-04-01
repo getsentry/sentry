@@ -194,6 +194,39 @@ describe('Performance > TransactionSummary', function () {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-vitals/',
+      body: {
+        'measurements.fcp': {
+          poor: 3,
+          meh: 100,
+          good: 47,
+          total: 150,
+          p75: 1500,
+        },
+        'measurements.lcp': {
+          poor: 2,
+          meh: 38,
+          good: 40,
+          total: 80,
+          p75: 2750,
+        },
+        'measurements.fid': {
+          poor: 2,
+          meh: 53,
+          good: 5,
+          total: 60,
+          p75: 1000,
+        },
+        'measurements.cls': {
+          poor: 3,
+          meh: 10,
+          good: 4,
+          total: 17,
+          p75: 0.2,
+        },
+      },
+    });
   });
 
   afterEach(function () {
