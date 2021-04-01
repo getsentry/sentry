@@ -933,14 +933,19 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
 
             # make message search case insensitive
             return [["positionCaseInsensitive", ["message", f"'{value}'"]], operator, 0]
-    elif (
-        name.startswith("stack.") or name.startswith("error.")
-    ) and search_filter.value.is_wildcard():
+    elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():
         # Escape and convert meta characters for LIKE expressions.
         raw_value = search_filter.value.raw_value
         like_value = raw_value.replace("%", "\\%").replace("_", "\\_").replace("*", "%")
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
+    elif name in ARRAY_FIELDS and search_filter.is_in_filter:
+        operator = "=" if search_filter.operator == "IN" else "!="
+        return [
+            ["hasAny", [["arrayConcat", [name]], ["array", [f"'{v}'" for v in value]]]],
+            operator,
+            1,
+        ]
     elif name == "transaction.status":
         # Handle "has" queries
         if search_filter.value.raw_value == "":
