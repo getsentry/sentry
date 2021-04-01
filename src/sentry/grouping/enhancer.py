@@ -4,6 +4,7 @@ import base64
 import msgpack
 import inspect
 
+from collections import defaultdict
 from typing import Optional
 
 from parsimonious.grammar import Grammar, NodeVisitor
@@ -156,16 +157,29 @@ class Match:
         key = SHORT_MATCH_KEYS[val[0]]
         if key == "family":
             arg = ",".join([_f for _f in [REVERSE_FAMILIES.get(x) for x in val[1:]] if _f])
-            return FamilyMatch(key, arg, negated)
         else:
             arg = val[1:]
 
-            return FrameMatch.from_key(key, arg, negated)
+        return FrameMatch.from_key(key, arg, negated)
 
 
 class FrameMatch(Match):
+
+    # Global registry of matchers
+    instances = {}
+
     @classmethod
     def from_key(cls, key, pattern, negated):
+        instance_key = (key, pattern, negated)
+        if instance_key in cls.instances:
+            instance = cls.instances[instance_key]
+        else:
+            instance = cls.instances[instance_key] = cls._from_key(key, pattern, negated)
+
+        return instance
+
+    @classmethod
+    def _from_key(cls, key, pattern, negated):
         subclass = {
             "package": PackageMatch,
             "path": PathMatch,
@@ -182,6 +196,7 @@ class FrameMatch(Match):
         return subclass(key, pattern, negated)
 
     def __init__(self, key, pattern, negated=False):
+        super().__init__()
         try:
             self.key = MATCHERS[key]
         except KeyError:
@@ -317,6 +332,7 @@ class RangeMatch(Match):
         start_neighbouring: bool,
         end_neighbouring: bool,
     ):
+        super().__init__()
         self.start = start
         self.end = end
         self.start_neighbouring = start_neighbouring
@@ -528,20 +544,57 @@ class Enhancements:
             bases = []
         self.bases = bases
 
+        self._matchers, self._rules_by_matcher = self._populate_matchers()
+
+    def _populate_matchers(self):
+        matchers = {}
+        rules_by_matcher = defaultdict(list)
+        for rule in self.iter_rules():
+            for matcher in rule.matchers:
+                rules_by_matcher[id(matcher)].append(rule)
+                matchers[id(matcher)] = matcher
+
+        matchers = sorted(matchers.values(), key=lambda m: 0 if isinstance(m, FrameMatch) else 1)
+
+        return matchers, rules_by_matcher
+
+    def _iter_matching_rules(self, frames, idx, platform, exception_data):
+        unmatched_rules = set()
+        rules_by_matcher = self._rules_by_matcher
+        remaining_rules_per_matcher = {
+            id(matcher): len(rules_by_matcher[id(matcher)]) for matcher in self._matchers
+        }
+        for matcher in self._matchers:
+
+            if remaining_rules_per_matcher[id(matcher)] <= 0:
+                continue
+
+            if not matcher.matches_frame(frames, idx, platform, exception_data):
+                # Can put all rules which use this matcher on the blocklist:
+                for rule in rules_by_matcher[id(matcher)]:
+                    unmatched_rules.add(id(rule))
+                    for matcher in rule.matchers:
+                        remaining_rules_per_matcher[id(matcher)] -= 1
+
+        for rule in self.iter_rules():
+            if rule.matchers and id(rule) not in unmatched_rules:
+                for action in rule.actions:
+                    yield action, rule
+
     def apply_modifications_to_frame(self, frames, platform, exception_data):
         """This applies the frame modifications to the frames itself.  This
         does not affect grouping.
         """
-        for rule in self.iter_rules():
-            for idx, action in rule.get_matching_frame_actions(frames, platform, exception_data):
+        for idx, _ in enumerate(frames):
+            for action, rule in self._iter_matching_rules(frames, idx, platform, exception_data):
                 action.apply_modifications_to_frame(frames, idx, rule=rule)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         stacktrace_state = StacktraceState()
 
         # Apply direct frame actions and update the stack state alongside
-        for rule in self.iter_rules():
-            for idx, action in rule.get_matching_frame_actions(frames, platform, exception_data):
+        for idx, _ in enumerate(frames):
+            for action, rule in self._iter_matching_rules(frames, idx, platform, exception_data):
                 action.update_frame_components_contributions(components, frames, idx, rule=rule)
                 action.modify_stacktrace_state(stacktrace_state, rule)
 

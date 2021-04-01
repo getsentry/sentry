@@ -37,7 +37,6 @@ family:native                                   max-frames=3
 """,
         bases=["common:v1"],
     )
-
     enhancement.version = version
 
     dumped = enhancement.dumps()
