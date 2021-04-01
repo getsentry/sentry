@@ -210,6 +210,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       asc: query.asc === '1',
       field: query.sort || 'date_added',
     };
+    const {cursor: _cursor, page: _page, ...currentQuery} = query;
 
     const userTeams = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
     return (
@@ -230,7 +231,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                       to={{
                         pathname: location.pathname,
                         query: {
-                          ...query,
+                          ...currentQuery,
                           asc: sort.field === 'name' && sort.asc ? undefined : '1',
                           sort: 'name',
                         },
@@ -253,7 +254,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                       to={{
                         pathname: location.pathname,
                         query: {
-                          ...query,
+                          ...currentQuery,
                           asc: sort.field === 'date_added' && sort.asc ? undefined : '1',
                           sort: 'date_added',
                         },
