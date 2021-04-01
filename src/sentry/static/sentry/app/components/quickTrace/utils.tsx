@@ -1,5 +1,8 @@
+import React from 'react';
 import {Location, LocationDescriptor} from 'history';
 
+import FeatureDisabled from 'app/components/acl/featureDisabled';
+import Hovercard from 'app/components/hovercard';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
@@ -138,4 +141,21 @@ export function generateTraceTarget(
     ...dateSelection,
   });
   return eventView.getResultsViewUrlTarget(organization.slug);
+}
+
+export function renderDisabledHoverCard(p: any) {
+  return (
+    <Hovercard
+      body={
+        <FeatureDisabled
+          features={['trace-view-summary']}
+          hideHelpToggle
+          message="The Trace View is disabled"
+          featureName="Trace View"
+        />
+      }
+    >
+      {p.children(p)}
+    </Hovercard>
+  );
 }

@@ -1,13 +1,13 @@
 import re
-from collections import namedtuple, defaultdict
+from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
 
 from django.utils.functional import cached_property
-from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
-from parsimonious.nodes import Node, RegexNode
+from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.nodes import Node, RegexNode
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
@@ -15,29 +15,28 @@ from sentry.discover.models import KeyTransaction
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.search.utils import (
-    parse_duration,
-    parse_percentage,
+    InvalidQuery,
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
+    parse_duration,
     parse_numeric_value,
+    parse_percentage,
     parse_release,
-    InvalidQuery,
 )
 from sentry.snuba.dataset import Dataset
+from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
     FUNCTION_TO_OPERATOR,
-    get_json_type,
-    is_measurement,
-    is_duration_measurement,
     OPERATOR_TO_FUNCTION,
     SNUBA_AND,
     SNUBA_OR,
+    get_json_type,
+    is_duration_measurement,
+    is_measurement,
 )
-from sentry.utils.compat import filter, map, zip
-
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 NEGATION_MAP = {
@@ -862,20 +861,12 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     elif name == "issue.id":
         # Handle "has" queries
         if search_filter.value.raw_value == "":
-            if search_filter.operator == "=":
-                # The state of having no issues is represented differently on transactions vs
-                # other events. On the transactions table, it is represented by 0 whereas it is
-                # represented by NULL everywhere else. This means we have to check for both 0
-                # or NULL.
-                return [
-                    [["isNull", [name]], search_filter.operator, 1],
-                    [name, search_filter.operator, 0],
-                ]
-            else:
-                # Based the reasoning above, we should be checking that it is not 0 and not NULL.
-                # However, because NULL != 0 evaluates to NULL in Clickhouse, we can simplify it
-                # to check just not 0.
-                return [name, search_filter.operator, 0]
+            # The state of having no issues is represented differently on transactions vs
+            # other events. On the transactions table, it is represented by 0 whereas it is
+            # represented by NULL everywhere else. We use coalesce here so we can treat this
+            # consistently
+            name = ["coalesce", [name, 0]]
+            value = 0
 
         # Skip isNull check on group_id value as we want to
         # allow snuba's prewhere optimizer to find this condition.

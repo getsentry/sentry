@@ -14,17 +14,28 @@ from hashlib import sha1
 from uuid import uuid4
 from typing import List
 
+from sentry.api.utils import get_date_range_from_params
+from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
+from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.logic import (
+    create_alert_rule,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
 from sentry.interfaces.user import User as UserInterface
+from sentry.mediators import project_rules
 from sentry.models import (
+    Commit,
+    CommitAuthor,
+    CommitFileChange,
     File,
     Project,
     Release,
-    Repository,
-    CommitAuthor,
-    Commit,
     ReleaseFile,
-    CommitFileChange,
     ReleaseCommit,
+    Repository,
+    Team,
 )
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_timestamp
@@ -304,6 +315,101 @@ def generate_releases(projects, quick):
             )
 
         release_time += timedelta(hours=hourly_release_cadence)
+
+
+def generate_alerts(project):
+    generate_metric_alert(project)
+    generate_issue_alert(project)
+
+
+def generate_metric_alert(project):
+    org = project.organization
+    team = Team.objects.filter(organization=org).first()
+    alert_rule = create_alert_rule(
+        org,
+        [project],
+        "High Error Rate",
+        "level:error",
+        "count()",
+        10,
+        AlertRuleThresholdType.ABOVE,
+        1,
+    )
+    critical_trigger = create_alert_rule_trigger(alert_rule, "critical", 10)
+    warning_trigger = create_alert_rule_trigger(alert_rule, "warning", 7)
+    for trigger in [critical_trigger, warning_trigger]:
+        create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(team.id),
+        )
+
+
+def generate_issue_alert(project):
+    org = project.organization
+    team = Team.objects.filter(organization=org).first()
+
+    data = {
+        "name": "New Sentry Issue",
+        "actions": [
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "name": "Send an email to Team",
+                "targetIdentifier": str(team.id),
+                "targetType": "Team",
+            }
+        ],
+        "conditions": [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ],
+        "action_match": "all",
+        "filter_match": "all",
+        "project": project,
+        "frequency": 30,
+    }
+    project_rules.Creator.run(**data)
+
+
+def generate_saved_query(project, transaction_title, name):
+    org = project.organization
+    start, end = get_date_range_from_params({})
+    params = {"start": start, "end": end, "project_id": [project.id], "organization_id": org.id}
+    data = {
+        "version": 2,
+        "name": name,
+        "fields": [
+            "title",
+            "browser.name",
+            "count()",
+            "p75(transaction.duration)",
+            "p95(transaction.duration)",
+            "p99(transaction.duration)",
+        ],
+        "widths": ["-1", "-1", "-1", "-1", "-1", "-1"],
+        "orderby": "-count",
+        "query": f"title:{transaction_title}",
+        "projects": [project.id],
+        "range": "7d",
+        "environment": [],
+        "yAxis": "p75(transaction.duration)",
+        "display": "daily",
+    }
+
+    serializer = DiscoverSavedQuerySerializer(data=data, context={"params": params})
+    if not serializer.is_valid():
+        raise Exception(serializer.errors)
+
+    data = serializer.validated_data
+    DiscoverSavedQuery.objects.create(
+        organization=org,
+        name=data["name"],
+        query=data["query"],
+        version=data["version"],
+    )
 
 
 def safe_send_event(data, quick):
@@ -775,6 +881,8 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     Handles all data population for the React + Python scenario
     """
     generate_releases([react_project, python_project], quick=quick)
+    generate_alerts(python_project)
+    generate_saved_query(react_project, "/productstore", "Product Store")
     populate_connected_event_scenario_1(react_project, python_project, quick=quick)
     populate_connected_event_scenario_2(react_project, python_project, quick=quick)
     populate_connected_event_scenario_3(python_project, quick=quick)

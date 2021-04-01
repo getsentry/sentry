@@ -1,8 +1,8 @@
 from rest_framework.response import Response
 
+from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
-from sentry.api.authentication import RelayAuthentication
 from sentry.models import ProjectKey
 
 

@@ -1,7 +1,7 @@
 import asyncore
 import email
 import logging
-from smtpd import SMTPServer, SMTPChannel
+from smtpd import SMTPChannel, SMTPServer
 
 from email_reply_parser import EmailReplyParser
 

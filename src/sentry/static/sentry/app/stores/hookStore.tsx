@@ -40,6 +40,7 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
+  'feature-disabled:trace-view-link',
   'footer',
   'help-modal:footer',
   'integrations:feature-gates',

@@ -1,9 +1,9 @@
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEndpoint
-from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
-from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry import features
+from sentry.api.bases import OrganizationEndpoint
+from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
+from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
 
 
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
