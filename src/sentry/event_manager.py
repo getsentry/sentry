@@ -1068,8 +1068,6 @@ def _find_existing_group_id(
 def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
     project = event.project
 
-    print(f"searching hashes: {flat_hashes}")
-
     # attempt to find a matching hash
     flat_grouphashes = [
         GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in flat_hashes
@@ -1582,7 +1580,7 @@ def _calculate_event_grouping(project, event, grouping_config):
     """
 
     with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
-        normalize_stacktraces_for_grouping(event.data.data, load_(grouping_config))
+        normalize_stacktraces_for_grouping(event.data.data, load_grouping_config(grouping_config))
 
     with metrics.timer("event_manager.apply_server_fingerprinting"):
         # The active grouping config was put into the event in the
