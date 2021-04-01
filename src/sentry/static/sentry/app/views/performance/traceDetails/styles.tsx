@@ -57,6 +57,7 @@ export const TraceDetailHeader = styled('div')`
   grid-template-columns: repeat(3, 1fr);
   grid-gap: ${space(2)};
   margin-top: ${space(2)};
+  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;
