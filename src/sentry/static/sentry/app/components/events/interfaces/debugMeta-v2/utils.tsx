@@ -1,6 +1,11 @@
+import React from 'react';
+
+import {DebugImage} from 'app/components/events/interfaces/debugMeta/types';
+import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
 import {Image, ImageStatus} from 'app/types/debugImage';
 import {defined} from 'app/utils';
 
+const IMAGE_ADDR_LEN = 12;
 export const IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT = 400;
 
 export function getStatusWeight(status?: ImageStatus | null) {
@@ -59,4 +64,20 @@ export function shouldSkipSection(
   }
 
   return false;
+}
+
+export function getImageAddress(image: Image) {
+  const [startAddress, endAddress] = getImageRange(image as DebugImage);
+
+  if (startAddress && endAddress) {
+    return (
+      <React.Fragment>
+        <span>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</span>
+        {' \u2013 '}
+        <span>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</span>
+      </React.Fragment>
+    );
+  }
+
+  return undefined;
 }

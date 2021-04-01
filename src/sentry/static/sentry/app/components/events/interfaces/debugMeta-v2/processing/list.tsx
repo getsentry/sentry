@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import NotAvailable from 'app/components/notAvailable';
-import space from 'app/styles/space';
+import {t} from 'app/locale';
 
 type Props = {
   items: Array<React.ReactElement>;
@@ -11,7 +11,7 @@ type Props = {
 
 function List({items, className}: Props) {
   if (!items.length) {
-    return <NotAvailable />;
+    return <NotAvailable tooltip={t('Processing info not available')} />;
   }
 
   return <Wrapper className={className}>{items}</Wrapper>;
@@ -20,8 +20,7 @@ function List({items, className}: Props) {
 export default List;
 
 const Wrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(2)};
+  display: flex;
+  flex-wrap: wrap;
   font-size: ${p => p.theme.fontSizeSmall};
 `;

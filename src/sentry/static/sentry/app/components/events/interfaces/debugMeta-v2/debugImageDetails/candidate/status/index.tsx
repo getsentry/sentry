@@ -9,7 +9,7 @@ type Props = {
   status: CandidateDownloadStatus;
 };
 
-function StatusTag({status}: Props) {
+function Status({status}: Props) {
   switch (status) {
     case CandidateDownloadStatus.OK: {
       return <Tag type="success">{t('Ok')}</Tag>;
@@ -22,13 +22,13 @@ function StatusTag({status}: Props) {
       return <Tag>{t('Not Found')}</Tag>;
     }
     case CandidateDownloadStatus.NO_PERMISSION: {
-      return <Tag type="warning">{t('Permissions')}</Tag>;
+      return <Tag type="highlight">{t('Permissions')}</Tag>;
     }
     case CandidateDownloadStatus.DELETED: {
       return <Tag type="success">{t('Deleted')}</Tag>;
     }
     case CandidateDownloadStatus.UNAPPLIED: {
-      return <Tag type="highlight">{t('Unapplied')}</Tag>;
+      return <Tag type="warning">{t('Unapplied')}</Tag>;
     }
     default: {
       Sentry.withScope(scope => {
@@ -40,4 +40,4 @@ function StatusTag({status}: Props) {
   }
 }
 
-export default StatusTag;
+export default Status;
