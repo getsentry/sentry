@@ -19,8 +19,11 @@ export type ErrorDestination = 'discover' | 'issue';
 
 export type TransactionDestination = 'discover' | 'performance';
 
-function generateIssueEventTarget(event: TraceError): LocationDescriptor {
-  return `${event.url}events/${event.event_id}/`;
+function generateIssueEventTarget(
+  event: TraceError,
+  organization: OrganizationSummary
+): LocationDescriptor {
+  return `/organizations/${organization.slug}/issues/${event.issue_id}/events/${event.event_id}`;
 }
 
 function generatePerformanceEventTarget(
@@ -64,7 +67,7 @@ export function generateSingleErrorTarget(
 ): LocationDescriptor {
   switch (destination) {
     case 'issue':
-      return generateIssueEventTarget(event);
+      return generateIssueEventTarget(event, organization);
     case 'discover':
     default:
       return generateDiscoverEventTarget(event, organization, location);

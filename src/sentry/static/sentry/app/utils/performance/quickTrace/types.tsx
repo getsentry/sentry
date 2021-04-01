@@ -22,12 +22,12 @@ export type EventLite = {
 
 export type TraceError = {
   issue: string;
+  issue_id: number;
   event_id: string;
   span: string;
   transaction: string;
   project_id: number;
   project_slug: string;
-  url: string;
 };
 
 export type TraceLite = EventLite[];
