@@ -118,7 +118,8 @@ class GroupSubscriptionManager(BaseManager):
         from sentry.models import NotificationSetting, User
 
         users = User.objects.get_from_group(group)
-        subscriptions = self.filter(group=group, user__in=users)
+        user_ids = [user.id for user in users]
+        subscriptions = self.filter(group=group, user_id__in=user_ids)
         notification_settings = NotificationSetting.objects.get_for_users_by_parent(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
