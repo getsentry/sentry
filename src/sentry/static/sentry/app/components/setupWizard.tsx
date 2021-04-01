@@ -28,7 +28,7 @@ class SetupWizard extends React.Component<Props, State> {
   }
 
   pollFinished() {
-    return new Promise(resolve => {
+    return new Promise<void>(resolve => {
       this.props.api.request(`/wizard/${this.props.hash}/`, {
         method: 'GET',
         success: () => {

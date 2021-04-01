@@ -802,9 +802,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       (terms.length === 1 && terms[0] === this.props.defaultQuery) || // default term
       /^\s+$/.test(query.slice(cursor - 1, cursor + 1))
     ) {
-      const {
-        defaultSearchItems: [defaultSearchItems, defaultRecentItems],
-      } = this.props;
+      const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
 
       if (!defaultSearchItems.length) {
         // Update searchTerm, otherwise <SearchDropdown> will have wrong state

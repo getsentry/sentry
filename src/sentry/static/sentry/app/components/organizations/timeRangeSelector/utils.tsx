@@ -33,7 +33,7 @@ export function parseStatsPeriod(
     h: 'hours',
     s: 'seconds',
     m: 'minutes',
-  }[result[2]];
+  }[result[2]] as 'days' | 'hours' | 'seconds' | 'minutes';
 
   const format = outputFormat === null ? undefined : outputFormat;
   return {

@@ -197,35 +197,37 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       // (or when they will be considered as resolved)
       //
       // Resolution is considered "off" if it is -1
-      ...(position !== null && [
-        {
-          type: 'rect',
-          draggable: false,
+      ...(position !== null
+        ? [
+            {
+              type: 'rect',
+              draggable: false,
 
-          position:
-            isResolution !== isInverted
-              ? [yAxisSize, position + 1]
-              : [yAxisSize, legendPadding],
-          shape: {
-            width: graphAreaWidth,
-            height:
-              isResolution !== isInverted
-                ? yAxisPosition - position
-                : position - legendPadding,
-          },
+              position:
+                isResolution !== isInverted
+                  ? [yAxisSize, position + 1]
+                  : [yAxisSize, legendPadding],
+              shape: {
+                width: graphAreaWidth,
+                height:
+                  isResolution !== isInverted
+                    ? yAxisPosition - position
+                    : position - legendPadding,
+              },
 
-          style: {
-            fill: isResolution
-              ? COLOR.RESOLUTION_FILL
-              : isCritical
-              ? COLOR.CRITICAL_FILL
-              : COLOR.WARNING_FILL,
-          },
+              style: {
+                fill: isResolution
+                  ? COLOR.RESOLUTION_FILL
+                  : isCritical
+                  ? COLOR.CRITICAL_FILL
+                  : COLOR.WARNING_FILL,
+              },
 
-          // This needs to be below the draggable line
-          z: 100,
-        },
-      ]),
+              // This needs to be below the draggable line
+              z: 100,
+            },
+          ]
+        : []),
     ];
   };
 
