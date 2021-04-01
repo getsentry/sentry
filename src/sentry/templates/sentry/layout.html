@@ -31,11 +31,13 @@
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
-  {% script %}
-  <script>
-    window.__initialData = {% get_react_config %};
-  </script>
-  {% endscript %}
+  {% block initial-data %}
+    {% script %}
+    <script>
+      window.__initialData = {% get_react_config %};
+    </script>
+    {% endscript %}
+  {% endblock %}
 
   {% script %}
     {% include "sentry/partial/preload-data.html" %}
