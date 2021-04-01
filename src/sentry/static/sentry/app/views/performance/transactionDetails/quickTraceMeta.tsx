@@ -28,6 +28,7 @@ type Props = Pick<
   location: Location;
   organization: OrganizationSummary;
   quickTrace: QuickTraceQueryChildrenProps;
+  traceSize: string;
 };
 
 function handleTraceLink(organization: OrganizationSummary) {
@@ -44,12 +45,16 @@ export default function QuickTraceMeta({
   location,
   organization,
   quickTrace: {isLoading, error, trace, type},
+  traceSize,
   errorDest,
   transactionDest,
 }: Props) {
   const traceId = event.contexts?.trace?.trace_id ?? null;
   const traceTarget = generateTraceTarget(event, organization);
-  const linkText = traceId === null ? null : t('Trace ID: %s', getShortEventId(traceId));
+  const linkText =
+    traceId === null
+      ? null
+      : t('Trace ID: %s (%s events)', getShortEventId(traceId), traceSize);
 
   const body = isLoading ? (
     <Placeholder height="24px" />
