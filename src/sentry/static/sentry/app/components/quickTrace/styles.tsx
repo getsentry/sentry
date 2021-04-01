@@ -44,7 +44,7 @@ const nodeColors = (theme: Theme) => ({
   },
 });
 
-export const EventNode = styled(Tag)<{pad?: 'left' | 'right'}>`
+export const EventNode = styled(Tag)`
   span {
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
@@ -86,6 +86,12 @@ export function DropdownItem({children, first, onSelect, to}: DropdownItemProps)
   );
 }
 
+export const DisabledDropdownItem = styled(StyledMenuItem)`
+  span {
+    cursor: not-allowed;
+  }
+`;
+
 export const DropdownItemSubContainer = styled('div')`
   display: flex;
   flex-direction: row;
@@ -93,6 +99,10 @@ export const DropdownItemSubContainer = styled('div')`
   > a {
     padding-left: 0 !important;
   }
+`;
+
+export const DisabledLink = styled('a')`
+  cursor: not-allowed;
 `;
 
 export const StyledTruncate = styled(Truncate)`

@@ -15,6 +15,9 @@ from hashlib import sha1
 from uuid import uuid4
 from typing import List
 
+from sentry.api.utils import get_date_range_from_params
+from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -409,6 +412,44 @@ def send_session(sid, dsn, time, release):
     resp = requests.post(url=url, data=body)
     resp.raise_for_status()
     print("send_session resp", resp)
+
+
+def generate_saved_query(project, transaction_title, name):
+    org = project.organization
+    start, end = get_date_range_from_params({})
+    params = {"start": start, "end": end, "project_id": [project.id], "organization_id": org.id}
+    data = {
+        "version": 2,
+        "name": name,
+        "fields": [
+            "title",
+            "browser.name",
+            "count()",
+            "p75(transaction.duration)",
+            "p95(transaction.duration)",
+            "p99(transaction.duration)",
+        ],
+        "widths": ["-1", "-1", "-1", "-1", "-1", "-1"],
+        "orderby": "-count",
+        "query": f"title:{transaction_title}",
+        "projects": [project.id],
+        "range": "7d",
+        "environment": [],
+        "yAxis": "p75(transaction.duration)",
+        "display": "daily",
+    }
+
+    serializer = DiscoverSavedQuerySerializer(data=data, context={"params": params})
+    if not serializer.is_valid():
+        raise Exception(serializer.errors)
+
+    data = serializer.validated_data
+    DiscoverSavedQuery.objects.create(
+        organization=org,
+        name=data["name"],
+        query=data["query"],
+        version=data["version"],
+    )
 
 
 def safe_send_event(data, quick):
@@ -889,6 +930,7 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     """
     generate_releases([react_project, python_project], quick=quick)
     generate_alerts(python_project)
+    generate_saved_query(react_project, "/productstore", "Product Store")
     populate_connected_event_scenario_1(react_project, python_project, quick=quick)
     # populate_connected_event_scenario_2(react_project, python_project, quick=quick)
     # populate_connected_event_scenario_3(python_project, quick=quick)

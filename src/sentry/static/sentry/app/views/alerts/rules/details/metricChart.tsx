@@ -115,6 +115,7 @@ function createIncidentSeries(
         formatter: identifier || '-',
         color: lineColor,
         fontSize: 10,
+        fontFamily: 'Rubik',
       } as any,
     }),
     data: [],

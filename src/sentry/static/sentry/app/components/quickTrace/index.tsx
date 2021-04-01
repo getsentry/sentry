@@ -2,8 +2,17 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptor} from 'history';
 
+import Feature from 'app/components/acl/feature';
 import DropdownLink from 'app/components/dropdownLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import {
+  ErrorDestination,
+  generateMultiTransactionsTarget,
+  generateSingleErrorTarget,
+  generateSingleTransactionTarget,
+  renderDisabledHoverCard,
+  TransactionDestination,
+} from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
 import {IconFire} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
@@ -22,6 +31,7 @@ import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
 import {
+  DisabledDropdownItem,
   DropdownItem,
   DropdownItemSubContainer,
   ErrorNodeContent,
@@ -32,13 +42,6 @@ import {
   StyledTruncate,
   TraceConnector,
 } from './styles';
-import {
-  ErrorDestination,
-  generateMultiTransactionsTarget,
-  generateSingleErrorTarget,
-  generateSingleTransactionTarget,
-  TransactionDestination,
-} from './utils';
 
 const TOOLTIP_PREFIX = {
   root: 'root',
@@ -87,7 +90,6 @@ export default function QuickTrace({
         organization={organization}
         events={[root]}
         text={t('Root')}
-        pad="right"
         anchor={anchor}
         nodeKey="root"
         errorDest={errorDest}
@@ -111,7 +113,6 @@ export default function QuickTrace({
           organization,
           'Ancestor'
         )}
-        pad="right"
         anchor={anchor}
         nodeKey="ancestors"
         errorDest={errorDest}
@@ -129,7 +130,6 @@ export default function QuickTrace({
         organization={organization}
         events={[parent]}
         text={t('Parent')}
-        pad="right"
         anchor={anchor}
         nodeKey="parent"
         errorDest={errorDest}
@@ -147,7 +147,6 @@ export default function QuickTrace({
       text={t('This %s', toTitleCase(event.type))}
       events={[current]}
       currentEvent={event}
-      pad="left"
       anchor={anchor}
       nodeKey="current"
       errorDest={errorDest}
@@ -170,7 +169,6 @@ export default function QuickTrace({
           organization,
           'Children'
         )}
-        pad="left"
         anchor={anchor}
         nodeKey="children"
         errorDest={errorDest}
@@ -194,7 +192,6 @@ export default function QuickTrace({
           organization,
           'Descendant'
         )}
-        pad="left"
         anchor={anchor}
         nodeKey="descendants"
         errorDest={errorDest}
@@ -235,7 +232,6 @@ type EventNodeSelectorProps = {
   organization: OrganizationSummary;
   events: QuickTraceEvent[];
   text: React.ReactNode;
-  pad: 'left' | 'right';
   currentEvent?: Event;
   extrasTarget?: LocationDescriptor;
   numEvents?: number;
@@ -250,7 +246,6 @@ function EventNodeSelector({
   organization,
   events = [],
   text,
-  pad,
   currentEvent,
   extrasTarget,
   nodeKey,
@@ -285,11 +280,7 @@ function EventNodeSelector({
   }
 
   if (events.length + errors.length === 0) {
-    return (
-      <EventNode pad={pad} type={type}>
-        {text}
-      </EventNode>
-    );
+    return <EventNode type={type}>{text}</EventNode>;
   } else if (events.length + errors.length === 1) {
     /**
      * When there is only 1 event, clicking the node should take the user directly to
@@ -311,7 +302,6 @@ function EventNodeSelector({
     return (
       <StyledEventNode
         text={text}
-        pad={pad}
         hoverText={hoverText}
         to={target}
         onClick={() => handleNode(nodeKey, organization)}
@@ -335,9 +325,7 @@ function EventNodeSelector({
     return (
       <DropdownLink
         caret={false}
-        title={
-          <StyledEventNode text={text} pad={pad} hoverText={hoverText} type={type} />
-        }
+        title={<StyledEventNode text={text} hoverText={hoverText} type={type} />}
         anchorRight={anchor === 'right'}
       >
         {errors.slice(0, numEvents).map((error, i) => {
@@ -385,11 +373,25 @@ function EventNodeSelector({
           );
         })}
         {events.length > numEvents && hoverText && extrasTarget && (
-          <DropdownItem
-            onSelect={() => handleDropdownItem(extrasTarget, nodeKey, organization, true)}
+          <Feature
+            features={['trace-view-summary']}
+            hookName="feature-disabled:trace-view-link"
+            renderDisabled={renderDisabledHoverCard}
           >
-            {hoverText}
-          </DropdownItem>
+            {({hasFeature}) =>
+              hasFeature ? (
+                <DropdownItem
+                  onSelect={() =>
+                    handleDropdownItem(extrasTarget, nodeKey, organization, true)
+                  }
+                >
+                  {hoverText}
+                </DropdownItem>
+              ) : (
+                <DisabledDropdownItem>{hoverText}</DisabledDropdownItem>
+              )
+            }
+          </Feature>
         )}
       </DropdownLink>
     );
@@ -446,24 +448,16 @@ function DropdownNodeItem({
 
 type EventNodeProps = {
   text: React.ReactNode;
-  pad: 'left' | 'right';
   hoverText: React.ReactNode;
   to?: LocationDescriptor;
   onClick?: (eventKey: any) => void;
   type?: keyof Theme['tag'];
 };
 
-function StyledEventNode({
-  text,
-  hoverText,
-  pad,
-  to,
-  onClick,
-  type = 'white',
-}: EventNodeProps) {
+function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNodeProps) {
   return (
     <Tooltip position="top" containerDisplayMode="inline-flex" title={hoverText}>
-      <EventNode type={type} pad={pad} icon={null} to={to} onClick={onClick}>
+      <EventNode type={type} icon={null} to={to} onClick={onClick}>
         {text}
       </EventNode>
     </Tooltip>

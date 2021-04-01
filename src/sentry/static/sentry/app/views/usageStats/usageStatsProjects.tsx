@@ -12,6 +12,8 @@ type Props = {
   organization: Organization;
   dataCategory: DataCategory;
   dataCategoryName: string;
+  dateStart: moment.Moment;
+  dateEnd: moment.Moment;
 } & AsyncComponent['props'];
 
 type State = {
@@ -22,18 +24,12 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
 
-    // TODO(org-stats): Allow user to pick date range
-    const fourWeeksAgo = moment().subtract(31, 'days').unix();
-    const today = moment().unix();
-
     return [
       [
         'orgStats',
         `/organizations/${organization.slug}/stats_v2/projects/`,
         {
           query: {
-            start: fourWeeksAgo,
-            end: today,
             interval: '1d',
           },
         },
