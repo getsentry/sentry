@@ -132,6 +132,46 @@ class EventManagerTest(TestCase):
         assert group.data.get("type") == "default"
         assert group.data.get("metadata") == {"title": "foo bar"}
 
+    def test_applies_secondary_grouping(self):
+        project = self.project
+        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+
+        timestamp = time() - 300
+        manager = EventManager(
+            make_event(message="foo 123", event_id="a" * 32, timestamp=timestamp)
+        )
+        manager.normalize()
+        event = manager.save(project.id)
+
+        project.update_option("sentry:grouping_config", "newstyle:2019-10-29")
+        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:secondary_grouping_expiry", time() + (24 * 90 * 3600))
+
+        # Switching to newstyle grouping changes hashes as 123 will be removed
+
+        manager = EventManager(
+            make_event(
+                message="foo 123", event_id="b" * 32, timestamp=timestamp + 2.0
+            )
+        )
+        manager.normalize()
+
+        with self.tasks():
+            event2 = manager.save(project.id)
+
+        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
+        assert not set(event.get_hashes()[0]) & set(event2.get_hashes()[0])
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=event.group_id)
+
+        assert group.times_seen == 2
+        assert group.last_seen == event2.datetime
+        assert group.message == event2.message
+        assert group.data.get("type") == "default"
+        assert group.data.get("metadata") == {"title": "foo 123"}
+
     def test_updates_group_with_fingerprint(self):
         ts = time() - 200
         manager = EventManager(
