@@ -5,6 +5,7 @@ import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
+import BarChart from 'app/components/charts/barChart';
 import OptionSelector from 'app/components/charts/optionSelector';
 import {
   ChartContainer,
@@ -13,6 +14,13 @@ import {
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
+import {
+  getDiffInMinutes,
+  ONE_HOUR,
+  ONE_WEEK,
+  TWENTY_FOUR_HOURS,
+  TWO_WEEKS,
+} from 'app/components/charts/utils';
 import {Panel} from 'app/components/panels';
 import CHART_PALETTE from 'app/constants/chartPalette';
 import NOT_AVAILABLE_MESSAGES from 'app/constants/notAvailableMessages';
@@ -125,12 +133,12 @@ class ProjectCharts extends React.Component<Props, State> {
       },
       {
         value: DisplayModes.ERRORS,
-        label: t('Daily Errors'),
+        label: t('Number of Errors'),
         disabled: this.otherActiveDisplayModes.includes(DisplayModes.ERRORS),
       },
       {
         value: DisplayModes.TRANSACTIONS,
-        label: t('Daily Transactions'),
+        label: t('Number of Transactions'),
         disabled:
           this.otherActiveDisplayModes.includes(DisplayModes.TRANSACTIONS) ||
           !hasPerformance,
@@ -152,6 +160,33 @@ class ProjectCharts extends React.Component<Props, State> {
       default:
         return t('Total Transactions');
     }
+  }
+
+  get barChartInterval() {
+    const {query} = this.props.location;
+
+    const diffInMinutes = getDiffInMinutes({
+      ...query,
+      period: decodeScalar(query.statsPeriod),
+    });
+
+    if (diffInMinutes >= TWO_WEEKS) {
+      return '1d';
+    }
+
+    if (diffInMinutes >= ONE_WEEK) {
+      return '12h';
+    }
+
+    if (diffInMinutes > TWENTY_FOUR_HOURS) {
+      return '6h';
+    }
+
+    if (diffInMinutes <= ONE_HOUR) {
+      return '1m';
+    }
+
+    return '15m';
   }
 
   handleDisplayModeChange = (value: string) => {
@@ -231,7 +266,7 @@ class ProjectCharts extends React.Component<Props, State> {
           {displayMode === DisplayModes.ERRORS &&
             (hasDiscover ? (
               <ProjectBaseEventsChart
-                title={t('Daily Errors')}
+                title={t('Number of Errors')}
                 query="event.type:error"
                 yAxis="count()"
                 field={[`count()`]}
@@ -240,7 +275,8 @@ class ProjectCharts extends React.Component<Props, State> {
                 organization={organization}
                 onTotalValuesChange={this.handleTotalValuesChange}
                 colors={[theme.purple300, theme.purple200]}
-                showDaily
+                interval={this.barChartInterval}
+                chartComponent={BarChart}
                 disableReleases
               />
             ) : (
@@ -253,7 +289,7 @@ class ProjectCharts extends React.Component<Props, State> {
             ))}
           {displayMode === DisplayModes.TRANSACTIONS && (
             <ProjectBaseEventsChart
-              title={t('Daily Transactions')}
+              title={t('Number of Transactions')}
               query="event.type:transaction"
               yAxis="count()"
               field={[`count()`]}
@@ -262,7 +298,8 @@ class ProjectCharts extends React.Component<Props, State> {
               organization={organization}
               onTotalValuesChange={this.handleTotalValuesChange}
               colors={[theme.gray200, theme.purple200]}
-              showDaily
+              interval={this.barChartInterval}
+              chartComponent={BarChart}
               disableReleases
             />
           )}

@@ -19,6 +19,7 @@ import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {DateString, OrganizationSummary} from 'app/types';
 import {Series} from 'app/types/echarts';
+import {defined} from 'app/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateMultiPlotType} from 'app/utils/discover/fields';
 import {Theme} from 'app/utils/theme';
@@ -53,6 +54,10 @@ type ChartProps = {
    * a list of series names that are also disableable.
    */
   disableableSeries?: string[];
+  chartComponent?:
+    | React.ComponentType<BarChart['props']>
+    | React.ComponentType<AreaChart['props']>
+    | React.ComponentType<LineChart['props']>;
 };
 
 type State = {
@@ -94,7 +99,11 @@ class Chart extends React.Component<ChartProps, State> {
     | React.ComponentType<BarChart['props']>
     | React.ComponentType<AreaChart['props']>
     | React.ComponentType<LineChart['props']> {
-    const {showDaily, timeseriesData, yAxis} = this.props;
+    const {showDaily, timeseriesData, yAxis, chartComponent} = this.props;
+    if (defined(chartComponent)) {
+      return chartComponent;
+    }
+
     if (showDaily) {
       return BarChart;
     }
@@ -324,6 +333,7 @@ export type EventsChartProps = {
   | 'disableableSeries'
   | 'legendOptions'
   | 'chartOptions'
+  | 'chartComponent'
 >;
 
 type ChartDataProps = {
@@ -370,6 +380,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       preserveReleaseQueryParams,
       releaseQueryExtra,
       disableableSeries,
+      chartComponent,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -424,6 +435,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             legendOptions={legendOptions}
             chartOptions={chartOptions}
             disableableSeries={disableableSeries}
+            chartComponent={chartComponent}
           />
         </TransitionChart>
       );
