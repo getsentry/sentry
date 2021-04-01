@@ -1698,10 +1698,8 @@ class NumericColumnNoLookup(NumericColumn):
         # expand it using `arrayJoin`. The resulting column will be a numeric
         # column of type Float64.
         if self.allow_array_value:
-            if value == "measurements_value":
-                return ["arrayJoin", ["measurements_value"]]
-            if value == "span_op_breakdowns_value":
-                return ["arrayJoin", ["span_op_breakdowns_value"]]
+            if value in {"measurements_value", "span_op_breakdowns_value"}:
+                return ["arrayJoin", [value]]
 
         super().normalize(value, params)
         return value
