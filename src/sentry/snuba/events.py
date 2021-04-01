@@ -283,6 +283,20 @@ class Columns(Enum):
         "measurements.value",
         "measurements_value",
     )
+    SPAN_OP_BREAKDOWNS_KEYS = Column(
+        None,
+        None,
+        "span_op_breakdowns.key",
+        "span_op_breakdowns.key",
+        "span_op_breakdowns_key",
+    )
+    SPAN_OP_BREAKDOWNS_VALUES = Column(
+        None,
+        None,
+        "span_op_breakdowns.value",
+        "span_op_breakdowns.value",
+        "span_op_breakdowns_value",
+    )
     # Tracing context fields.
     TRACE_ID = Column(
         "events.contexts[trace.trace_id]",
