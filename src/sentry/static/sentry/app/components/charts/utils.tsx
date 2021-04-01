@@ -7,7 +7,6 @@ import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'app/types';
 import {escape} from 'app/utils';
 import {parsePeriodToHours} from 'app/utils/dates';
 import {decodeList} from 'app/utils/queryString';
-import {Theme} from 'app/utils/theme';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
@@ -140,15 +139,3 @@ export const getDimensionValue = (dimension?: number | string | null) => {
 
   return dimension;
 };
-
-/**
- * Constructs the color palette for a chart given the Theme and optionally a
- * series length
- */
-export function getColorPalette(theme: Theme, seriesLength?: number | null) {
-  const palette = seriesLength
-    ? theme.charts.getColorPalette(seriesLength)
-    : theme.charts.colors;
-
-  return (palette as unknown) as string[];
-}

@@ -38,6 +38,7 @@ type Props = {
   builtinSymbolSources: Array<BuiltinSymbolSource> | null;
   onDelete: (debugId: string) => void;
   isLoading: boolean;
+  eventDateCreated: string;
   imageStatus?: ImageStatus;
 };
 
@@ -293,6 +294,7 @@ class Candidates extends React.Component<Props, State> {
       onDelete,
       isLoading,
       candidates,
+      eventDateCreated,
     } = this.props;
 
     const {searchTerm, filterOptions, filteredCandidatesByFilter} = this.state;
@@ -322,19 +324,13 @@ class Candidates extends React.Component<Props, State> {
               <StyledSearchBar
                 query={searchTerm}
                 onChange={value => this.handleChangeSearchTerm(value)}
-                placeholder={t('Search debug files')}
+                placeholder={t('Search debug file candidates')}
               />
             </Search>
           )}
         </Header>
         <StyledPanelTable
-          headers={[
-            t('Status'),
-            t('Location'),
-            t('Processing'),
-            t('Features'),
-            t('Actions'),
-          ]}
+          headers={[t('Status'), t('Information'), t('Processing'), t('Actions')]}
           isEmpty={!filteredCandidatesByFilter.length}
           isLoading={isLoading}
           {...this.getEmptyMessage()}
@@ -347,6 +343,7 @@ class Candidates extends React.Component<Props, State> {
               organization={organization}
               baseUrl={baseUrl}
               projectId={projectId}
+              eventDateCreated={eventDateCreated}
               onDelete={onDelete}
             />
           ))}
@@ -371,7 +368,6 @@ const Header = styled('div')`
   }
 `;
 
-// Table Title
 const Title = styled('div')`
   padding-right: ${space(4)};
   display: grid;
@@ -383,7 +379,6 @@ const Title = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-// Search
 const Search = styled('div')`
   flex-grow: 1;
   display: flex;
@@ -430,31 +425,5 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 0.5fr minmax(300px, 2fr) 1fr 1fr;
-
-  > *:nth-child(5n) {
-    padding: 0;
-    display: none;
-  }
-
-  > *:nth-child(5n-1),
-  > *:nth-child(5n) {
-    text-align: right;
-    justify-content: flex-end;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    overflow: visible;
-    > *:nth-child(5n-1) {
-      text-align: left;
-      justify-content: flex-start;
-    }
-
-    > *:nth-child(5n) {
-      padding: ${space(2)};
-      display: flex;
-    }
-
-    grid-template-columns: 1fr minmax(300px, 2.5fr) 1.5fr 1.5fr 0.5fr;
-  }
+  grid-template-columns: max-content minmax(450px, 1fr) max-content max-content;
 `;
