@@ -28,7 +28,7 @@ type Props = Pick<
   location: Location;
   organization: OrganizationSummary;
   quickTrace: QuickTraceQueryChildrenProps;
-  traceSize: string;
+  traceSize?: number;
 };
 
 function handleTraceLink(organization: OrganizationSummary) {
@@ -54,7 +54,11 @@ export default function QuickTraceMeta({
   const linkText =
     traceId === null
       ? null
-      : t('Trace ID: %s (%s events)', getShortEventId(traceId), traceSize);
+      : t(
+          'Trace ID: %s (%s events)',
+          getShortEventId(traceId),
+          traceSize ? traceSize : '?'
+        );
 
   const body = isLoading ? (
     <Placeholder height="24px" />

@@ -26,7 +26,7 @@ type Props = Pick<
   organization: OrganizationSummary;
   projectId: string;
   location: Location;
-  traceSize: string;
+  traceSize?: number;
   quickTrace: QuickTraceQueryChildrenProps;
 };
 

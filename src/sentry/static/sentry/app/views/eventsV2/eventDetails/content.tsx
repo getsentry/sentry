@@ -60,6 +60,7 @@ type Props = {
 type State = {
   event: Event | undefined;
   isSidebarVisible: boolean;
+  traceSize?: number;
 } & AsyncComponent['state'];
 
 class EventDetailsContent extends AsyncComponent<Props, State> {
@@ -69,11 +70,11 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     reloading: false,
     error: false,
     errors: [],
-    traceSize: '?',
     event: undefined,
 
     // local state
     isSidebarVisible: true,
+    traceSize: undefined,
   };
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -144,7 +145,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     }
     const traceId = event.contexts?.trace?.trace_id ?? null;
     if (!traceId) {
-      this.setState({traceSize: '0'});
+      return;
     }
 
     const {start, end} = getTraceTimeRangeFromEvent(event);
