@@ -5,6 +5,7 @@ from datetime import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import connections
+from django.db.models.functions import Lower
 from django.db.models.sql.datastructures import EmptyResultSet
 from django.utils import timezone
 
@@ -26,6 +27,7 @@ class BasePaginator:
     def __init__(
         self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None, post_query_filter=None
     ):
+
         if order_by:
             if order_by.startswith("-"):
                 self.key, self.desc = order_by[1:], True
@@ -485,9 +487,10 @@ class GenericOffsetPaginator:
 class CombinedQuerysetIntermediary:
     is_empty = False
 
-    def __init__(self, queryset, order_by):
+    def __init__(self, queryset, order_by, case_insensitive_sort=False):
         self.queryset = queryset
         self.order_by = order_by
+        self.case_insensitive_sort = case_insensitive_sort
         try:
             instance = queryset[:1].get()
             self.instance_type = type(instance)
@@ -556,6 +559,8 @@ class CombinedQuerysetPaginator:
             value_type = type(value)
             if value_type is float:
                 return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+            elif value_type is str:
+                return value.lower()
             return value
 
     def value_from_cursor(self, cursor):
@@ -589,6 +594,9 @@ class CombinedQuerysetPaginator:
 
             if value is not None:
                 filters[filter_condition] = value
+
+            if intermediary.case_insensitive_sort:
+                order_by = Lower(key) if asc else Lower(key).desc()
 
             queryset = intermediary.queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
             combined_querysets += list(queryset)
