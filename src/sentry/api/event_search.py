@@ -1688,16 +1688,20 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
-    def __init__(self, name, allow_measurements_value=False):
+    def __init__(self, name, allow_array_value=False):
         super().__init__(name)
-        self.allow_measurements_value = allow_measurements_value
+        self.allow_array_value = allow_array_value
 
     def normalize(self, value, params):
-        # `measurement_value` is actually an array of Float64s. But when used
-        # in this context, we always want to expand it using `arrayJoin`. The
-        # resulting column will be a numeric column of type Float64.
-        if self.allow_measurements_value and value == "measurements_value":
-            return ["arrayJoin", ["measurements_value"]]
+        # `measurement_value` and `span_op_breakdowns_value` are actually an
+        # array of Float64s. But when used in this context, we always want to
+        # expand it using `arrayJoin`. The resulting column will be a numeric
+        # column of type Float64.
+        if self.allow_array_value:
+            if value == "measurements_value":
+                return ["arrayJoin", ["measurements_value"]]
+            if value == "span_op_breakdowns_value":
+                return ["arrayJoin", ["span_op_breakdowns_value"]]
 
         super().normalize(value, params)
         return value
@@ -2133,7 +2137,7 @@ FUNCTIONS = {
         Function(
             "histogram",
             required_args=[
-                NumericColumnNoLookup("column", allow_measurements_value=True),
+                NumericColumnNoLookup("column", allow_array_value=True),
                 # the bucket_size and start_offset should already be adjusted
                 # using the multiplier before it is passed here
                 NumberRange("bucket_size", 0, None),
