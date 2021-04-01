@@ -381,9 +381,29 @@ def format_tag(tag):
     'user', 'foo bar'
     """
     idx = tag.index(":")
-    key = tag[:idx].lstrip("(").strip('"')
-    value = tag[idx + 1 :].rstrip(")").strip('"')
+    key = remove_surrounding_quotes(tag[:idx].lstrip("("))
+    value = remove_surrounding_quotes(tag[idx + 1 :].rstrip(")"))
     return key, value
+
+
+def remove_surrounding_quotes(text):
+    length = len(text)
+    if length <= 1:
+        return text
+
+    left = 0
+    while left <= length / 2:
+        if text[left] != '"':
+            break
+        left += 1
+
+    right = length - 1
+    while right >= length / 2:
+        if text[right] != '"' or text[right - 1] == "\\":
+            break
+        right -= 1
+
+    return text[left : right + 1]
 
 
 def format_query(query):
@@ -410,13 +430,17 @@ def split_query_into_tokens(query):
     Example:
     >>> split_query_into_tokens('user:foo user: bar  user"foo bar' foo  bar) =>
     ['user:foo', 'user: bar', 'user"foo bar"', 'foo',  'bar']
+
+    Has a companion implementation in static/app/utils/tokenizeSearch.tsx
     """
     tokens = []
     token = ""
     quote_enclosed = False
     quote_type = None
     end_of_prev_word = None
-    for idx, char in enumerate(query):
+    idx = 0
+    while idx < len(query):
+        char = query[idx]
         next_char = query[idx + 1] if idx < len(query) - 1 else None
         token += char
         if next_char and not char.isspace() and next_char.isspace():
@@ -430,6 +454,10 @@ def split_query_into_tokens(query):
                 quote_enclosed = not quote_enclosed
                 if quote_enclosed:
                     quote_type = char
+        if quote_enclosed and char == "\\" and next_char == quote_type:
+            token += next_char
+            idx += 1
+        idx += 1
     if not token.isspace():
         tokens.append(token.strip(" "))
     return tokens

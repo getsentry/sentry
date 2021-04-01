@@ -21,7 +21,7 @@ const config = {
 
   target: 'node',
   entry: {
-    config: 'app/chartcuterieConfig',
+    config: 'app/chartcuterie/config',
   },
 
   module: {
