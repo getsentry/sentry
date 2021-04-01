@@ -381,9 +381,29 @@ def format_tag(tag):
     'user', 'foo bar'
     """
     idx = tag.index(":")
-    key = tag[:idx].lstrip("(").strip('"')
-    value = tag[idx + 1 :].rstrip(")").strip('"')
+    key = remove_surrounding_quotes(tag[:idx].lstrip("("))
+    value = remove_surrounding_quotes(tag[idx + 1 :].rstrip(")"))
     return key, value
+
+
+def remove_surrounding_quotes(text):
+    length = len(text)
+    if length <= 1:
+        return text
+
+    left = 0
+    while left <= length / 2:
+        if text[left] != '"':
+            break
+        left += 1
+
+    right = length - 1
+    while right >= length / 2:
+        if text[right] != '"' or text[right - 1] == "\\":
+            break
+        right -= 1
+
+    return text[left : right + 1]
 
 
 def format_query(query):
