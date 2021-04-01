@@ -173,9 +173,7 @@ def reprocess_event(project_id, event_id, start_time):
     )
     files = {f.id: f for f in models.File.objects.filter(id__in=[ea.file_id for ea in attachments])}
 
-    missing_attachment_types = set(get_required_attachment_types(data)) - {
-        ea.type for ea in attachments
-    }
+    missing_attachment_types = get_required_attachment_types(data) - {ea.type for ea in attachments}
 
     if missing_attachment_types:
         raise CannotReprocess(
