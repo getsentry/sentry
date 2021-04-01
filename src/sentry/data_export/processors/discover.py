@@ -32,7 +32,10 @@ class DiscoverProcessor:
             self.params["environment"] = self.environments
         self.header_fields = map(lambda x: get_function_alias(x), discover_query["field"])
         self.data_fn = self.get_data_fn(
-            fields=discover_query["field"], query=discover_query["query"], params=self.params
+            fields=discover_query["field"],
+            query=discover_query["query"],
+            params=self.params,
+            sort=discover_query.get("sort"),
         )
 
     @staticmethod
@@ -64,13 +67,14 @@ class DiscoverProcessor:
         return environment_names
 
     @staticmethod
-    def get_data_fn(fields, query, params):
+    def get_data_fn(fields, query, params, sort):
         def data_fn(offset, limit):
             return discover.query(
                 selected_columns=fields,
                 query=query,
                 params=params,
                 offset=offset,
+                orderby=sort,
                 limit=limit,
                 referrer="data_export.tasks.discover",
                 auto_fields=True,

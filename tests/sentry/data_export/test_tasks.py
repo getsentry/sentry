@@ -545,6 +545,32 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Failed to save the assembled file."
 
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover_sort(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={
+                "project": [self.project.id],
+                "field": ["environment"],
+                "sort": "-environment",
+                "query": "",
+            },
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+        de = ExportedData.objects.get(id=de.id)
+        # Convert raw csv to list of line-strings
+        header, raw1, raw2, raw3 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"environment"
+
+        assert raw1.startswith(b"prod")
+        assert raw2.startswith(b"prod")
+        assert raw3.startswith(b"dev")
+
+        assert emailer.called
+
 
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
     def setUp(self):
