@@ -24,7 +24,7 @@ from sentry.notifications.legacy_mappings import (
 )
 
 
-class NotificationsManager(BaseManager):
+class NotificationsManager(BaseManager):  # type: ignore
     """
     TODO(mgaeta): Add a caching layer for notification settings
     """
