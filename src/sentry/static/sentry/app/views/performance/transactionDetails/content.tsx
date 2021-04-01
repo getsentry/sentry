@@ -2,6 +2,7 @@ import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 
+import {fetchTotalCount} from 'app/actionCreators/events';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -25,6 +26,10 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
 import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
+import {
+  getTraceTimeRangeFromEvent,
+  makeEventView,
+} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 import {appendTagCondition, decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
@@ -44,6 +49,7 @@ type Props = {
 type State = {
   event: Event | undefined;
   isSidebarVisible: boolean;
+  traceSize?: number;
 } & AsyncComponent['state'];
 
 class EventDetailsContent extends AsyncComponent<Props, State> {
@@ -57,7 +63,19 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     // local state
     isSidebarVisible: true,
+    traceSize: undefined,
   };
+
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    const {event} = this.state;
+    if (
+      event &&
+      event.contexts?.trace?.trace_id !== prevState?.event?.contexts?.trace?.trace_id
+    ) {
+      this.fetchTotal();
+    }
+    super.componentDidUpdate(prevProps, prevState);
+  }
 
   toggleSidebar = () => {
     this.setState({isSidebarVisible: !this.state.isSidebarVisible});
@@ -94,6 +112,29 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       query: newQuery,
     });
   };
+
+  async fetchTotal() {
+    const {location, organization} = this.props;
+    const {event} = this.state;
+    if (!event) {
+      return;
+    }
+    const traceId = event.contexts?.trace?.trace_id ?? null;
+    if (!traceId) {
+      return;
+    }
+
+    const {start, end} = getTraceTimeRangeFromEvent(event);
+    const apiPayload = makeEventView({start, end});
+    apiPayload.query = `trace:${traceId}`;
+
+    const traceSize = await fetchTotalCount(
+      this.api,
+      organization.slug,
+      apiPayload.getEventsAPIPayload(location)
+    );
+    this.setState({traceSize});
+  }
 
   renderBody() {
     const {event} = this.state;
@@ -157,6 +198,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 projectId={this.projectId}
                 location={location}
                 errorDest="issue"
+                traceSize={this.state.traceSize}
                 transactionDest="performance"
               />
             </Layout.Main>
