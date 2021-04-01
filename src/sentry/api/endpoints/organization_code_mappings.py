@@ -117,9 +117,7 @@ class NullableOrganizationIntegrationMixin:
             raise Http404
 
 
-class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
-    OrganizationEndpoint, NullableOrganizationIntegrationMixin
-):
+class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, NullableOrganizationIntegrationMixin):
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def get(self, request, organization):

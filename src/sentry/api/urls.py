@@ -169,12 +169,8 @@ from .endpoints.organization_has_mobile_app_events import OrganizationHasMobileA
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
-from .endpoints.organization_integration_repository_project_path_config_details import (
-    OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint,
-)
-from .endpoints.organization_integration_repository_project_path_configs import (
-    OrganizationIntegrationRepositoryProjectPathConfigEndpoint,
-)
+from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
+from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from .endpoints.organization_integration_request import OrganizationIntegrationRequestEndpoint
 from .endpoints.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
@@ -722,14 +718,14 @@ urlpatterns = [
                 ),
                 # Code Path Mappings
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/repo-project-path-configs/$",
-                    OrganizationIntegrationRepositoryProjectPathConfigEndpoint.as_view(),
-                    name="sentry-api-0-organization-repository-project-path-config",
+                    r"^(?P<organization_slug>[^\/]+)/code-mappings/$",
+                    OrganizationCodeMappingsEndpoint.as_view(),
+                    name="sentry-api-0-organization-code-mappings",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/repo-project-path-configs/(?P<config_id>[^\/]+)/$",
-                    OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-repository-project-path-config-details",
+                    r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/$",
+                    OrganizationCodeMappingDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-code-mapping-details",
                 ),
                 # Discover
                 url(

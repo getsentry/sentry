@@ -5,13 +5,13 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationInte
 from sentry.api.serializers import serialize
 from sentry.models import RepositoryProjectPathConfig
 
-from .organization_integration_repository_project_path_configs import (
+from .organization_code_mappings import (
     NullableOrganizationIntegrationMixin,
     RepositoryProjectPathConfigSerializer,
 )
 
 
-class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
+class OrganizationCodeMappingDetailsEndpoint(
     OrganizationEndpoint, NullableOrganizationIntegrationMixin
 ):
     permission_classes = (OrganizationIntegrationsPermission,)
