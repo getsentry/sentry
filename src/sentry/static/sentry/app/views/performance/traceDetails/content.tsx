@@ -8,8 +8,10 @@ import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import TimeSince from 'app/components/timeSince';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
+import {getDuration} from 'app/utils/formatters';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {filterTrace} from 'app/utils/performance/quickTrace/utils';
 import Breadcrumb from 'app/views/performance/breadcrumb';
@@ -152,6 +154,16 @@ class TraceDetailsContent extends React.Component<Props, State> {
             'Across %s projects',
             traceInfo.relevantProjectsWithErrors.size
           )}
+        />
+        <MetaData
+          headingText={t('Event Duration')}
+          tooltipText={t('The time elapsed between the start and end of this trace.')}
+          bodyText={getDuration(
+            traceInfo.endTimestamp - traceInfo.startTimestamp,
+            2,
+            true
+          )}
+          subtext={<TimeSince date={(traceInfo.endTimestamp || 0) * 1000} />}
         />
       </TraceDetailHeader>
     );
