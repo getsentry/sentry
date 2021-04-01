@@ -7,6 +7,7 @@ import moment from 'moment-timezone';
 import Feature from 'app/components/acl/feature';
 import DateTime from 'app/components/dateTime';
 import ErrorBoundary from 'app/components/errorBoundary';
+import FeatureBadge from 'app/components/featureBadge';
 import FileSize from 'app/components/fileSize';
 import ExternalLink from 'app/components/links/externalLink';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
@@ -195,9 +196,13 @@ class GroupEventToolbar extends React.Component<Props> {
                     onClick={() => this.handleTraceLink(organization)}
                   >
                     View Full Trace
+                    <FeatureBadge type="beta" />
                   </Link>
                 ) : (
-                  <DisabledLink>View Full Trace</DisabledLink>
+                  <DisabledLink>
+                    View Full Trace
+                    <FeatureBadge type="beta" />
+                  </DisabledLink>
                 )
               }
             </Feature>
