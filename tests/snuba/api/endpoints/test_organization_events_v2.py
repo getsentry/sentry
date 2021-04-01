@@ -2441,6 +2441,160 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["issue.id"] == event.group_id
         assert data[0]["count_id"] == 2
 
+    def test_in_query_events(self):
+        project_1 = self.create_project()
+        data = load_data(
+            "python",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        test_event = self.store_event(
+            data=data,
+            project_id=project_1.id,
+        )
+
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_1"],
+                "message": "group1",
+                "user": {"email": "hello@example.com"},
+                "environment": "prod",
+                "tags": {"random": "123"},
+                "stacktrace": {
+                    "frames": [{"filename": "src/app/group1.py", "abs_path": "src/app/group1.py"}]
+                },
+            },
+            project_id=project_1.id,
+        )
+        project_2 = self.create_project()
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "message": "group2",
+                "user": {"email": "bar@example.com"},
+                "environment": "staging",
+                "tags": {"random": "456"},
+                "stacktrace": {"frames": [{"filename": "src/app/group2.py"}]},
+            },
+            project_id=project_2.id,
+        )
+        project_3 = self.create_project()
+        event_3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_3"],
+                "message": "group3",
+                "user": {"email": "foo@example.com"},
+                "environment": "canary",
+                "tags": {"random": "789"},
+            },
+            project_id=project_3.id,
+        )
+
+        def run_test_in_query(query, expected_events, expected_negative_events=None):
+            params = {
+                "field": ["id"],
+                "query": query,
+                "orderby": "id",
+            }
+            response = self.do_request(
+                params, {"organizations:discover-basic": True, "organizations:global-views": True}
+            )
+            assert response.status_code == 200, response.content
+            assert [row["id"] for row in response.data["data"]] == [
+                e.event_id for e in expected_events
+            ]
+
+            if expected_negative_events is not None:
+                params["query"] = f"!{query}"
+                response = self.do_request(
+                    params,
+                    {"organizations:discover-basic": True, "organizations:global-views": True},
+                )
+                assert response.status_code == 200, response.content
+                assert [row["id"] for row in response.data["data"]] == [
+                    e.event_id for e in expected_negative_events
+                ]
+
+        run_test_in_query("environment:[prod, staging]", [event_1, event_2], [event_3])
+        run_test_in_query("environment:[staging]", [event_2], [event_1, event_3])
+        run_test_in_query(
+            "user.email:[foo@example.com, hello@example.com]", [event_1, event_3], [event_2]
+        )
+        run_test_in_query("user.email:[foo@example.com]", [event_3], [event_1, event_2])
+        run_test_in_query(
+            "user.display:[foo@example.com, hello@example.com]", [event_1, event_3], [event_2]
+        )
+        run_test_in_query("message:[group2, group1]", [event_1, event_2], [event_3])
+        run_test_in_query("stack.filename:*.py", [test_event])
+        run_test_in_query("stack.filename:*.py", [event_1], [event_2, event_3])
+
+        # TODO: Make sure this is properly validated for perms
+        # run_test_in_query(f"issue.id:[{event_1.group_id},{event_2.group_id}]", [event_1, event_2], [event_3])
+        # TODO: Make sure this is properly validated for perms
+        # run_test_in_query(f"project_id:[{project_3.id},{project_2.id}]", [event_2, event_3], [event_1])
+        run_test_in_query("random:[789,456]", [event_2, event_3], [event_1])
+        # run_test_in_query("tags[random]:[789,456]", [event_2, event_3], [event_1])
+        # TODO: Test stack. and error. (with wildcards? or disallow?)
+        # TODO: Negations
+        assert False
+
+    def test_in_query_transactions(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        data["event_id"] = "a" * 32
+        data["contexts"]["trace"]["status"] = "ok"
+        transaction_1 = self.store_event(data, project_id=project.id)
+
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        data["event_id"] = "b" * 32
+        data["contexts"]["trace"]["status"] = "aborted"
+        transaction_2 = self.store_event(data, project_id=project.id)
+
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        data["event_id"] = "c" * 32
+        data["contexts"]["trace"]["status"] = "already_exists"
+        transaction_3 = self.store_event(data, project_id=project.id)
+
+        def run_test_in_query(query, expected_events):
+            params = {
+                "field": ["id"],
+                "query": query,
+                "orderby": "id",
+            }
+            response = self.do_request(
+                params, {"organizations:discover-basic": True, "organizations:global-views": True}
+            )
+            assert response.status_code == 200, response.content
+            print(response.content)
+            assert [row["id"] for row in response.data["data"]] == [
+                e.event_id for e in expected_events
+            ]
+
+        run_test_in_query(
+            "transaction.status:[aborted, already_exists]", [transaction_2, transaction_3]
+        )
+        run_test_in_query("!transaction.status:[aborted, already_exists]", [transaction_1])
+
+        assert False
+
     def test_messed_up_function_values(self):
         # TODO (evanh): It would be nice if this surfaced an error to the user.
         # The problem: The && causes the parser to treat that term not as a bad

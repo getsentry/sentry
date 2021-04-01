@@ -48,6 +48,7 @@ NEGATION_MAP = {
     ">=": "<",
     "IN": "NOT IN",
 }
+equality_operators = frozenset(["=", "IN"])
 
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
 
@@ -264,7 +265,13 @@ class SearchFilter(namedtuple("SearchFilter", "key operator value")):
             and self.value.raw_value != ""
             or self.operator == "="
             and self.value.raw_value == ""
+            or self.operator == "NOT IN"
+            and self.value.raw_value
         )
+
+    @cached_property
+    def is_in_filter(self):
+        return self.operator in ("IN", "NOT IN")
 
 
 class SearchKey(namedtuple("SearchKey", "name")):
@@ -857,6 +864,15 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     return condition
 
 
+def translate_transaction_status(val):
+    if val not in SPAN_STATUS_NAME_TO_CODE:
+        raise InvalidSearchQuery(
+            f"Invalid value {val} for transaction.status condition. Accepted "
+            f"values are {', '.join(SPAN_STATUS_NAME_TO_CODE.keys())}"
+        )
+    return SPAN_STATUS_NAME_TO_CODE[val]
+
+
 def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
@@ -881,10 +897,10 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
             env_conditions.append(["environment", operator, None])
         if len(values) == 1:
-            operator = "=" if search_filter.operator == "=" else "!="
+            operator = "=" if search_filter.operator in equality_operators else "!="
             env_conditions.append(["environment", operator, values.pop()])
         elif values:
-            operator = "IN" if search_filter.operator == "=" else "NOT IN"
+            operator = "IN" if search_filter.operator in equality_operators else "NOT IN"
             env_conditions.append(["environment", operator, values])
         return env_conditions
     elif name == "message":
@@ -901,7 +917,20 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
             # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
             # so we should flip the operator here
-            operator = "=" if search_filter.operator == "!=" else "!="
+            operator = "!=" if search_filter.operator in equality_operators else "="
+            if search_filter.is_in_filter:
+                # XXX: This `toString` usage is unnecessary, but we need it in place to
+                # trick the legacy Snuba language into not treating `message` as a
+                # function. Once we switch over to snql it can be removed.
+                return [
+                    [
+                        "multiSearchFirstPositionCaseInsensitive",
+                        [["toString", ["message"]], ["array", [f"'{v}'" for v in value]]],
+                    ],
+                    operator,
+                    0,
+                ]
+
             # make message search case insensitive
             return [["positionCaseInsensitive", ["message", f"'{value}'"]], operator, 0]
     elif (
@@ -917,13 +946,13 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         if search_filter.value.raw_value == "":
             return [["isNull", [name]], search_filter.operator, 1]
 
-        internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
-        if internal_value is None:
-            raise InvalidSearchQuery(
-                "Invalid value for transaction.status condition. Accepted values are {}".format(
-                    ", ".join(SPAN_STATUS_NAME_TO_CODE.keys())
-                )
-            )
+        if search_filter.is_in_filter:
+            internal_value = [
+                translate_transaction_status(val) for val in search_filter.value.raw_value
+            ]
+        else:
+            internal_value = translate_transaction_status(search_filter.value.raw_value)
+
         return [name, search_filter.operator, internal_value]
     elif name == "issue.id":
         # Handle "has" queries

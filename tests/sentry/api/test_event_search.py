@@ -2100,6 +2100,23 @@ class GetSnubaQueryArgsTest(TestCase):
             [["ifNull", ["tags[project_id]", "''"]], "=", "123"]
         ]
 
+    def test_in_syntax(self):
+        # TODO: Need to go over format_search_filter in detail and make sure we cover all
+        # cases
+        # _filter = get_filter("random_field:[123, 456]")
+        assert get_filter("environment:[prod, dev]").conditions == [
+            [["environment", "IN", {"prod", "dev"}]]
+        ]
+        assert get_filter("random_tag:[what, hi]").conditions == [
+            [["ifNull", ["random_tag", "''"]], "IN", ["what", "hi"]]
+        ]
+        # assert _filter.filter_keys == {}
+        # _filter = get_filter("random_field:[123, 456]")
+        # assert _filter.conditions == [
+        #     [[["isNull", ["user.email"]], "=", 1], ["random_field", "IN", ""]]
+        # ]
+        # assert _filter.filter_keys == {}
+
     def test_no_search(self):
         _filter = get_filter(
             params={
