@@ -346,7 +346,9 @@ class EventManager:
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
             # clients did not set this appropriately so far.
-            grouping_config = get_grouping_config_dict_for_event_data(job["event"].data.data, project)
+            grouping_config = get_grouping_config_dict_for_event_data(
+                job["event"].data.data, project
+            )
 
         _calculate_event_grouping(project, job["event"], grouping_config)
 
