@@ -156,7 +156,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
           )}
         />
         <MetaData
-          headingText={t('Event Duration')}
+          headingText={t('Total Duration')}
           tooltipText={t('The time elapsed between the start and end of this trace.')}
           bodyText={getDuration(
             traceInfo.endTimestamp - traceInfo.startTimestamp,
