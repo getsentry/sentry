@@ -8,34 +8,40 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
-from sentry.constants import ALLOWED_FUTURE_DELTA
+from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
+    ValidationError,
     build_query_params_from_request,
     calculate_stats_period,
     delete_groups,
     get_by_short_id,
     rate_limit_endpoint,
+    track_slo_response,
     update_groups,
-    ValidationError,
 )
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
-from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.models import Environment, Group, GroupEnvironment, GroupInbox, GroupStatus, Project
-from sentry.search.snuba.backend import (
-    assigned_or_suggested_filter,
-    EventsDatasetSnubaSearchBackend,
+from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.constants import ALLOWED_FUTURE_DELTA
+from sentry.models import (
+    Environment,
+    Group,
+    GroupEnvironment,
+    GroupInbox,
+    GroupStatus,
+    Project,
 )
-from sentry.search.snuba.executors import get_search_filter, InvalidSearchQuery
+from sentry.search.snuba.backend import (
+    EventsDatasetSnubaSearchBackend,
+    assigned_or_suggested_filter,
+)
+from sentry.search.snuba.executors import InvalidSearchQuery, get_search_filter
 from sentry.snuba import discover
 from sentry.utils.compat import map
 from sentry.utils.cursors import Cursor, CursorResult
-
 from sentry.utils.validators import normalize_event_id
-
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -161,6 +167,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             result = search.query(**query_kwargs)
         return result, query_kwargs
 
+    @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, organization):
         """
@@ -334,6 +341,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         # TODO(jess): add metrics that are similar to project endpoint here
         return response
 
+    @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
     def put(self, request, organization):
         """
@@ -412,8 +420,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             projects,
             self.get_environments(request, organization),
         )
-        return update_groups(request, projects, organization.id, search_fn, has_inbox)
 
+        return update_groups(
+            request, request.GET.getlist("id"), projects, organization.id, search_fn, has_inbox
+        )
+
+    @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
     def delete(self, request, organization):
         """

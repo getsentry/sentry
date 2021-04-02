@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import {Panel} from 'app/components/panels';
 import ReleaseStats from 'app/components/releaseStats';
@@ -11,6 +12,8 @@ import Version from 'app/components/version';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, Release} from 'app/types';
+
+import {ReleaseHealthRequestRenderProps} from '../utils/releaseHealthRequest';
 
 import ReleaseHealth from './releaseHealth';
 import {DisplayOption} from './utils';
@@ -42,6 +45,7 @@ type Props = {
   reloading: boolean;
   showHealthPlaceholders: boolean;
   isTopRelease: boolean;
+  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
 };
 
 const ReleaseCard = ({
@@ -53,6 +57,7 @@ const ReleaseCard = ({
   selection,
   showHealthPlaceholders,
   isTopRelease,
+  getHealthData,
 }: Props) => {
   const {version, commitCount, lastDeploy, dateCreated, versionInfo} = release;
 
@@ -68,9 +73,11 @@ const ReleaseCard = ({
               query: {project: getReleaseProjectId(release, selection)},
             }}
           >
-            <VersionWrapper>
-              <StyledVersion version={version} tooltipRawVersion anchor={false} />
-            </VersionWrapper>
+            <GuideAnchor disabled={!isTopRelease} target="release_version">
+              <VersionWrapper>
+                <StyledVersion version={version} tooltipRawVersion anchor={false} />
+              </VersionWrapper>
+            </GuideAnchor>
           </GlobalSelectionLink>
           {commitCount > 0 && <ReleaseStats release={release} withHeading={false} />}
         </ReleaseInfoHeader>
@@ -93,6 +100,7 @@ const ReleaseCard = ({
           reloading={reloading}
           selection={selection}
           isTopRelease={isTopRelease}
+          getHealthData={getHealthData}
         />
       </ReleaseProjects>
     </StyledPanel>

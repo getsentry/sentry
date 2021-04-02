@@ -2,6 +2,7 @@ import {
   getCurlCommand,
   objectToSortedTupleArray,
   removeFilterMaskedEntries,
+  stringifyQueryList,
 } from 'app/components/events/interfaces/utils';
 import {MetaProxy, withMeta} from 'app/components/events/meta/metaProxy';
 import {FILTER_MASK} from 'app/constants';
@@ -197,6 +198,24 @@ describe('components/interfaces/utils', function () {
       expect(result.id).toEqual('26');
       expect(result).toHaveProperty('username');
       expect(result.username).toEqual('maiseythedog');
+    });
+  });
+
+  describe('stringifyQueryList()', function () {
+    it('should return query if it is a string', function () {
+      const query = stringifyQueryList('query');
+      expect(query).toEqual('query');
+    });
+    it('should parse query tuples', function () {
+      const query = stringifyQueryList([
+        ['field', 'ops.http'],
+        ['field', 'ops.db'],
+        ['field', 'total.time'],
+        ['numBuckets', '100'],
+      ]);
+      expect(query).toEqual(
+        'field=ops.http&field=ops.db&field=total.time&numBuckets=100'
+      );
     });
   });
 });

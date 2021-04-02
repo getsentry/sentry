@@ -131,6 +131,10 @@ RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
 SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 
+# XXX(epurkhiser): The generated chartucterie config.js file will be stored
+# here. This directory may not exist until that file is generated.
+CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -384,7 +388,8 @@ STATICFILES_FINDERS = (
 ASSET_VERSION = 0
 
 # setup a default media root to somewhere useless
-MEDIA_ROOT = "/tmp/sentry-media"
+MEDIA_ROOT = "/tmp/sentry-files"
+MEDIA_URL = "_media/"
 
 LOCALE_PATHS = (os.path.join(PROJECT_ROOT, "locale"),)
 
@@ -857,7 +862,7 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
-    # Enable the quick trace view on event details and errors
+    # Enable the quick trace view on event details
     "organizations:trace-view-quick": False,
     # Enable the trace view summary
     "organizations:trace-view-summary": False,
@@ -871,6 +876,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable the new Metrics page
+    "organizations:metrics": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1253,6 +1260,10 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+
+# Render charts on the backend. This uses the Chartcuterie external service.
+SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
+SENTRY_CHART_RENDERER_OPTIONS = {}
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
@@ -1681,6 +1692,17 @@ SENTRY_DEVSERVICES = {
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
         "with_devserver": True,
     },
+    "chartcuterie": {
+        "image": "us.gcr.io/sentryio/chartcuterie:nightly",
+        "pull": True,
+        "volumes": {CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
+        "environment": {
+            "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
+            "CHARTCUTERIE_CONFIG_POLLING": "true",
+        },
+        "ports": {"9090/tcp": 7901},
+        "only_if": lambda settings, options: options.get("chart-rendering.enabled"),
+    },
 }
 
 # Max file size for avatar photo uploads
@@ -1721,7 +1743,6 @@ SENTRY_SDK_CONFIG = {
     "release": sentry.__build__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
-    "_experiments": {"smart_transaction_trimming": True},
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
@@ -2131,6 +2152,12 @@ DEMO_NO_ORG_BUFFER = False
 
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
+
+# paramters that determine how demo events are generated
+DEMO_DATA_GEN_PARAMS = {}
+
+# parameters for an org when quickly generating them synchronously
+DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []

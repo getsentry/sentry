@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 import omit from 'lodash/omit';
 
+import Feature from 'app/components/acl/feature';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import SearchBar from 'app/components/events/searchBar';
@@ -26,6 +27,7 @@ import withProjects from 'app/utils/withProjects';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import Tags from 'app/views/eventsV2/tags';
+import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -38,6 +40,7 @@ import TransactionHeader, {Tab} from './header';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
+import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
 import {SidebarSpacer, TransactionFilterOptions} from './utils';
 
@@ -211,10 +214,21 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               organization={organization}
               eventView={eventView}
-              titles={[t('id'), t('user'), t('duration'), t('timestamp')]}
+              titles={
+                organization.features.includes('trace-view-summary')
+                  ? [
+                      t('event id'),
+                      t('user'),
+                      t('duration'),
+                      t('trace id'),
+                      t('timestamp'),
+                    ]
+                  : [t('event id'), t('user'), t('duration'), t('timestamp')]
+              }
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
                 id: generateTransactionLink(transactionName),
+                trace: generateTraceLink(eventView.normalizeDateSelection(location)),
               }}
               baseline={transactionName}
               handleBaselineClick={this.handleViewDetailsClick}
@@ -225,6 +239,15 @@ class SummaryContent extends React.Component<Props, State> {
               })}
               forceLoading={isLoading}
             />
+            <Feature features={['performance-tag-explorer']}>
+              <TagExplorer
+                eventView={eventView}
+                organization={organization}
+                location={location}
+                projects={projects}
+                transactionName={transactionName}
+              />
+            </Feature>
             <RelatedIssues
               organization={organization}
               location={location}
@@ -239,10 +262,16 @@ class SummaryContent extends React.Component<Props, State> {
               organization={organization}
               location={location}
               isLoading={isLoading}
+              hasWebVitals={hasWebVitals}
               error={error}
               totals={totalValues}
               transactionName={transactionName}
               eventView={eventView}
+            />
+            <StatusBreakdown
+              eventView={eventView}
+              organization={organization}
+              location={location}
             />
             <SidebarSpacer />
             <SidebarCharts
@@ -251,12 +280,6 @@ class SummaryContent extends React.Component<Props, State> {
               error={error}
               totals={totalValues}
               eventView={eventView}
-            />
-            <SidebarSpacer />
-            <StatusBreakdown
-              eventView={eventView}
-              organization={organization}
-              location={location}
             />
             <SidebarSpacer />
             <Tags
@@ -271,6 +294,21 @@ class SummaryContent extends React.Component<Props, State> {
       </React.Fragment>
     );
   }
+}
+
+function generateTraceLink(dateSelection) {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    _query: Query
+  ): LocationDescriptor => {
+    const traceId = `${tableRow.trace}`;
+    if (!traceId) {
+      return {};
+    }
+
+    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+  };
 }
 
 function generateTransactionLink(transactionName: string) {

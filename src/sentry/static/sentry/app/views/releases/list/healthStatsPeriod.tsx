@@ -5,41 +5,45 @@ import {Location} from 'history';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-
-export type StatsPeriod = '24h' | '14d';
+import {GlobalSelection, HealthStatsPeriodOption} from 'app/types';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 type Props = {
   location: Location;
-  activePeriod: StatsPeriod;
+  selection: GlobalSelection;
 };
 
-const HealthStatsPeriod = ({location, activePeriod}: Props) => {
+const HealthStatsPeriod = ({location, selection}: Props) => {
+  const activePeriod =
+    location.query.healthStatsPeriod || HealthStatsPeriodOption.TWENTY_FOUR_HOURS;
   const {pathname, query} = location;
-  const periods = [
-    {
-      key: '24h',
-      label: t('24h'),
-    },
-    {
-      key: '14d',
-      label: t('14d'),
-    },
-  ];
 
   return (
     <Wrapper>
-      {periods.map(period => (
+      {selection.datetime.period !== HealthStatsPeriodOption.TWENTY_FOUR_HOURS && (
         <Period
-          key={period.key}
           to={{
             pathname,
-            query: {...query, healthStatsPeriod: period.key},
+            query: {
+              ...query,
+              healthStatsPeriod: HealthStatsPeriodOption.TWENTY_FOUR_HOURS,
+            },
           }}
-          selected={activePeriod === period.key}
+          selected={activePeriod === HealthStatsPeriodOption.TWENTY_FOUR_HOURS}
         >
-          {period.label}
+          {t('24h')}
         </Period>
-      ))}
+      )}
+
+      <Period
+        to={{
+          pathname,
+          query: {...query, healthStatsPeriod: HealthStatsPeriodOption.AUTO},
+        }}
+        selected={activePeriod === HealthStatsPeriodOption.AUTO}
+      >
+        {selection.datetime.start ? t('Custom') : selection.datetime.period ?? t('14d')}
+      </Period>
     </Wrapper>
   );
 };
@@ -63,4 +67,4 @@ const Period = styled(Link)<{selected: boolean}>`
   }
 `;
 
-export default HealthStatsPeriod;
+export default withGlobalSelection(HealthStatsPeriod);

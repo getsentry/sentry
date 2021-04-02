@@ -50,7 +50,7 @@ class LatestReleaseFilter(EventFilter):
         )
 
         for release in releases:
-            if release == latest_release.version:
+            if release == latest_release.version.lower():
                 return True
 
         return False

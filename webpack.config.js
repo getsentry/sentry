@@ -29,7 +29,13 @@ const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 // We want it in the case where we are running tests and it is in CI,
 // this should not happen in local
 const IS_CI = !!env.CI;
-const IS_ACCEPTANCE_TEST = IS_CI && !!env.VISUAL_SNAPSHOT_ENABLE;
+// We intentionally build in production mode for acceptance tests, so we explicitly use an env var to
+// say that the bundle will be used in acceptance tests. This affects webpack plugins and components
+// with dynamic data that render differently statically in tests.
+//
+// Note, cannot assume it is an acceptance test if `IS_CI` is true, as our image builds has the
+// `CI` env var set.
+const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
@@ -41,6 +47,7 @@ const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
  */
 // Ports used by webpack dev server to proxy to backend and webpack
 const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
+const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
@@ -256,10 +263,6 @@ let appConfig = {
         },
       },
       {
-        test: /app\/icons\/.*\.svg$/,
-        use: ['svg-sprite-loader', 'svgo-loader'],
-      },
-      {
         test: /\.css/,
         use: ['style-loader', 'css-loader'],
       },
@@ -270,12 +273,13 @@ let appConfig = {
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
-        exclude: /app\/icons\/.*\.svg$/,
         use: [
           {
             loader: 'file-loader',
             options: {
-              name: '[name].[hash:6].[ext]',
+              // This needs to be `false` because of platformicons package
+              esModule: false,
+              name: '[folder]/[name].[hash:6].[ext]',
             },
           },
         ],
@@ -403,7 +407,7 @@ if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
 }
 
-if (!IS_PRODUCTION) {
+if (IS_ACCEPTANCE_TEST) {
   appConfig.plugins.push(new LastBuiltPlugin({basePath: __dirname}));
 }
 
@@ -429,6 +433,7 @@ if (
     // Required for getsentry
     disableHostCheck: true,
     contentBase: './src/sentry/static/sentry',
+    host: SENTRY_WEBPACK_PROXY_HOST,
     hot: true,
     // If below is false, will reload on errors
     hotOnly: true,

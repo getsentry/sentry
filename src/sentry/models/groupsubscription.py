@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models import Q
 from django.utils import timezone
+from typing import Any, Mapping
 
 from sentry.db.models import (
     BaseManager,
@@ -49,7 +50,7 @@ def get_user_options(key, user_ids, project, default):
         for option in UserOption.objects.filter(
             Q(project__isnull=True) | Q(project=project),
             user_id__in=user_ids,
-            key="workflow:notifications",
+            key=key,
         )
     }
 
@@ -122,11 +123,15 @@ class GroupSubscriptionManager(BaseManager):
                 if i == 0:
                     raise e
 
-    def get_participants(self, group):
+    @staticmethod
+    def get_participants(group) -> Mapping[Any, GroupSubscriptionReason]:
         """
         Identify all users who are participating with a given issue.
+        :param group: Group object
+        :returns Map of User objects to GroupSubscriptionReason
         """
-        from sentry.models import User, UserOptionValue
+        from sentry.models import User
+        from sentry.notifications.legacy_mappings import UserOptionValue
 
         users = {
             user.id: user

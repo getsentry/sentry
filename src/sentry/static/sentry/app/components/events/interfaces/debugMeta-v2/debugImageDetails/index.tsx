@@ -6,22 +6,24 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import AlertLink from 'app/components/alertLink';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import NotAvailable from 'app/components/notAvailable';
-import Tooltip from 'app/components/tooltip';
+import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
+import {BuiltinSymbolSource, DebugFile, DebugFileFeature} from 'app/types/debugFiles';
 import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
+import {Event} from 'app/types/event';
+import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
 import theme from 'app/utils/theme';
+import {getFileType} from 'app/views/settings/projectDebugFiles/utils';
 
-import Address from '../address';
-import Processings from '../debugImage/processings';
 import {getFileName} from '../utils';
 
 import Candidates from './candidates';
+import GeneralInfo from './generalInfo';
 import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
 type ImageCandidates = Image['candidates'];
@@ -30,7 +32,9 @@ type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     projectId: Project['id'];
     organization: Organization;
+    event: Event;
     image?: Image & {status: ImageStatus};
+    onReprocessEvent?: () => void;
   };
 
 type State = AsyncComponent['state'] & {
@@ -45,6 +49,14 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
       debugFiles: [],
       builtinSymbolSources: [],
     };
+  }
+
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (!prevProps.image && !!this.props.image) {
+      this.remountComponent();
+    }
+
+    super.componentDidUpdate(prevProps, prevState);
   }
 
   getUplodedDebugFiles(candidates: ImageCandidates) {
@@ -151,14 +163,40 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
 
     const unAppliedCandidates = debugFiles
       .filter(debugFile => !candidateLocations.has(debugFile.id))
-      .map(debugFile => ({
-        download: {
-          status: CandidateDownloadStatus.UNAPPLIED,
-        },
-        location: `${INTERNAL_SOURCE_LOCATION}${debugFile.id}`,
-        source: INTERNAL_SOURCE,
-        source_name: debugFile.objectName,
-      })) as ImageCandidates;
+      .map(debugFile => {
+        const {
+          data,
+          symbolType,
+          objectName: filename,
+          id: location,
+          size,
+          dateCreated,
+          cpuName,
+        } = debugFile;
+
+        const features = data?.features ?? [];
+
+        return {
+          download: {
+            status: CandidateDownloadStatus.UNAPPLIED,
+            features: {
+              has_sources: features.includes(DebugFileFeature.SOURCES),
+              has_debug_info: features.includes(DebugFileFeature.DEBUG),
+              has_unwind_info: features.includes(DebugFileFeature.UNWIND),
+              has_symbols: features.includes(DebugFileFeature.SYMTAB),
+            },
+          },
+          cpuName,
+          location,
+          filename,
+          size,
+          dateCreated,
+          symbolType,
+          fileType: getFileType(debugFile),
+          source: INTERNAL_SOURCE,
+          source_name: t('Sentry'),
+        };
+      }) as ImageCandidates;
 
     // Check for deleted candidates (debug files)
     const debugFileIds = new Set(debugFiles.map(debugFile => debugFile.id));
@@ -184,18 +222,6 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     return this.sortCandidates(convertedCandidates, unAppliedCandidates);
   }
 
-  getDebugFilesSettingsLink() {
-    const {organization, projectId, image} = this.props;
-    const orgSlug = organization.slug;
-    const debugId = image?.debug_id;
-
-    if (!orgSlug || !projectId || !debugId) {
-      return undefined;
-    }
-
-    return `/settings/${orgSlug}/projects/${projectId}/debug-symbols/?query=${debugId}`;
-  }
-
   handleDelete = async (debugId: string) => {
     const {organization, projectId} = this.props;
 
@@ -213,103 +239,104 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     }
   };
 
+  getDebugFilesSettingsLink() {
+    const {organization, projectId, image} = this.props;
+    const orgSlug = organization.slug;
+    const debugId = image?.debug_id;
+
+    if (!orgSlug || !projectId || !debugId) {
+      return undefined;
+    }
+
+    return `/settings/${orgSlug}/projects/${projectId}/debug-symbols/?query=${debugId}`;
+  }
+
   renderLoading() {
     return this.renderBody();
   }
 
   renderBody() {
-    const {Header, Body, Footer, image, organization, projectId} = this.props;
+    const {
+      Header,
+      Body,
+      Footer,
+      image,
+      organization,
+      projectId,
+      onReprocessEvent,
+      event,
+    } = this.props;
     const {loading, builtinSymbolSources} = this.state;
 
-    const {
-      debug_id,
-      debug_file,
-      code_file,
-      code_id,
-      arch: architecture,
-      unwind_status,
-      debug_status,
-      status,
-    } = image ?? {};
+    const {code_file, status} = image ?? {};
 
+    const debugFilesSettingsLink = this.getDebugFilesSettingsLink();
     const candidates = this.getCandidates();
     const baseUrl = this.api.baseUrl;
 
-    const title = getFileName(code_file);
-    const imageAddress = image ? <Address image={image} /> : undefined;
-    const debugFilesSettingsLink = this.getDebugFilesSettingsLink();
+    const fileName = getFileName(code_file);
+    const haveCandidatesUnappliedDebugFile = candidates.some(
+      candidate => candidate.download.status === CandidateDownloadStatus.UNAPPLIED
+    );
 
     return (
       <React.Fragment>
         <Header closeButton>
-          <span data-test-id="modal-title">{title ?? t('Unknown')}</span>
+          <Title>
+            {t('Image')}
+            <FileName>{fileName ?? t('Unknown')}</FileName>
+          </Title>
         </Header>
         <Body>
           <Content>
-            <GeneralInfo>
-              <Label>{t('Address Range')}</Label>
-              <Value>{imageAddress ?? <NotAvailable />}</Value>
-
-              <Label coloredBg>{t('Debug ID')}</Label>
-              <Value coloredBg>{debug_id ?? <NotAvailable />}</Value>
-
-              <Label>{t('Debug File')}</Label>
-              <Value>{debug_file ?? <NotAvailable />}</Value>
-
-              <Label coloredBg>{t('Code ID')}</Label>
-              <Value coloredBg>{code_id ?? <NotAvailable />}</Value>
-
-              <Label>{t('Code File')}</Label>
-              <Value>{code_file ?? <NotAvailable />}</Value>
-
-              <Label coloredBg>{t('Architecture')}</Label>
-              <Value coloredBg>{architecture ?? <NotAvailable />}</Value>
-
-              <Label>{t('Processing')}</Label>
-              <Value>
-                {unwind_status || debug_status ? (
-                  <Processings
-                    unwind_status={unwind_status}
-                    debug_status={debug_status}
-                  />
-                ) : (
-                  <NotAvailable />
-                )}
-              </Value>
-            </GeneralInfo>
-            {debugFilesSettingsLink && (
-              <SearchInSettingsAction>
-                <Tooltip
-                  title={t(
-                    'Search for this debug file in all images for the %s project',
-                    projectId
-                  )}
+            <GeneralInfo image={image} />
+            {haveCandidatesUnappliedDebugFile &&
+              displayReprocessEventAction(organization.features, event) &&
+              onReprocessEvent && (
+                <AlertLink
+                  priority="info"
+                  size="small"
+                  withoutMarginBottom
+                  onClick={onReprocessEvent}
                 >
-                  <Button to={debugFilesSettingsLink} size="small">
-                    {t('Search in Settings')}
-                  </Button>
-                </Tooltip>
-              </SearchInSettingsAction>
-            )}
+                  {t(
+                    'You’ve uploaded new debug files. Reprocess events to apply that information'
+                  )}
+                </AlertLink>
+              )}
             <Candidates
               imageStatus={status}
               candidates={candidates}
               organization={organization}
               projectId={projectId}
               baseUrl={baseUrl}
-              onDelete={this.handleDelete}
               isLoading={loading}
+              eventDateCreated={event.dateCreated}
               builtinSymbolSources={builtinSymbolSources}
+              onDelete={this.handleDelete}
             />
           </Content>
         </Body>
         <Footer>
-          <Button
-            href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
-            external
-          >
-            {t('Read the docs')}
-          </Button>
+          <ButtonBar gap={1}>
+            <Button
+              href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
+              external
+            >
+              {t('Read the docs')}
+            </Button>
+            {debugFilesSettingsLink && (
+              <Button
+                title={t(
+                  'Search for this debug file in all images for the %s project',
+                  projectId
+                )}
+                to={debugFilesSettingsLink}
+              >
+                {t('Open in Settings')}
+              </Button>
+            )}
+          </ButtonBar>
         </Footer>
       </React.Fragment>
     );
@@ -320,33 +347,25 @@ export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  grid-gap: ${space(4)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const SearchInSettingsAction = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
-const GeneralInfo = styled('div')`
+const Title = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   display: grid;
   grid-template-columns: max-content 1fr;
-`;
-
-const Label = styled('div')<{coloredBg?: boolean}>`
-  color: ${p => p.theme.textColor};
-  ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1)};
-`;
-
-const Value = styled(Label)`
-  color: ${p => p.theme.subText};
-  ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
-  padding: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
-  white-space: pre-wrap;
+  grid-gap: ${space(1)};
+  align-items: center;
+  max-width: calc(100% - 40px);
   word-break: break-all;
+`;
+
+const FileName = styled('span')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.gray400};
+  font-weight: 500;
 `;
 
 export const modalCss = css`
@@ -356,15 +375,29 @@ export const modalCss = css`
 
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
-      width: 55%;
-      margin-left: -27.5%;
+      width: 80%;
+      margin-left: -40%;
+    }
+  }
+
+  @media (min-width: ${theme.breakpoints[2]}) {
+    .modal-dialog {
+      width: 70%;
+      margin-left: -35%;
     }
   }
 
   @media (min-width: ${theme.breakpoints[3]}) {
     .modal-dialog {
-      width: 70%;
-      margin-left: -35%;
+      width: 60%;
+      margin-left: -30%;
+    }
+  }
+
+  @media (min-width: ${theme.breakpoints[4]}) {
+    .modal-dialog {
+      width: 50%;
+      margin-left: -25%;
     }
   }
 `;

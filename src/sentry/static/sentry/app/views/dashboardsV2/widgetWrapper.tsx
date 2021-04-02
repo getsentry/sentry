@@ -5,16 +5,30 @@ import {Widget} from './types';
 
 const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
   position: relative;
-  /* Min-width prevents grid items from stretching the grid */
-  min-width: 200px;
   touch-action: manipulation;
 
   ${p => {
     switch (p.displayType) {
       case 'big_number':
-        return 'grid-area: span 1 / span 1;';
+        return `
+          /* 2 cols */
+          grid-area: span 1 / span 2;
+
+          @media (min-width: ${p.theme.breakpoints[0]}) {
+            /* 4 cols */
+            grid-area: span 1 / span 1;
+          }
+
+          @media (min-width: ${p.theme.breakpoints[3]}) {
+            /* 6 and 8 cols */
+            grid-area: span 1 / span 2;
+          }
+        `;
       default:
-        return 'grid-area: span 2 / span 2;';
+        return `
+          /* 2, 4, 6 and 8 cols */
+          grid-area: span 2 / span 2;
+        `;
     }
   }};
 `;

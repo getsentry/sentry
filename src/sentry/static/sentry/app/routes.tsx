@@ -1179,7 +1179,16 @@ function routes() {
             <IndexRoute
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OverviewDashboard" */ 'app/views/dashboards/overviewDashboard'
+                  /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="widget/new/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget/new'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1565,6 +1574,16 @@ function routes() {
                 componentPromise={() =>
                   import(
                     /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/settings/projectAlerts/create'
+                  )
+                }
+              />
+              <Route
+                path="wizard/"
+                name="Alert Creation Wizard"
+                component={errorHandler(LazyLoad)}
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ProjectAlertsWizard" */ 'app/views/alerts/wizard'
                   )
                 }
               />

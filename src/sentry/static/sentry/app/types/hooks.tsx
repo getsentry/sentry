@@ -102,15 +102,18 @@ export type FeatureDisabledHooks = {
   'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
   'feature-disabled:open-discover': FeatureDisabledHook;
+  'feature-disabled:dashboards-edit': FeatureDisabledHook;
   'feature-disabled:incidents-sidebar-item': FeatureDisabledHook;
   'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
   'feature-disabled:performance-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:project-performance-score-card': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-rippling': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
+  'feature-disabled:trace-view-link': FeatureDisabledHook;
 };
 
 /**

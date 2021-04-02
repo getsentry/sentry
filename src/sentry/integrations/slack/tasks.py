@@ -198,9 +198,9 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
             if action["type"] == "slack":
                 if action["targetIdentifier"] in mapped_ids:
                     action["input_channel_id"] = mapped_ids[action["targetIdentifier"]]
+                else:
                     # We can early exit because we couldn't map this action's slack channel name to a slack id
                     # This is a fail safe, but I think we shouldn't really hit this.
-                else:
                     redis_rule_status.set_value("failed")
                     return
 
@@ -214,6 +214,7 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
             "access": SystemAccess(),
             "user": user,
             "use_async_lookup": True,
+            "validate_channel_id": False,
         },
         data=data,
         instance=alert_rule,

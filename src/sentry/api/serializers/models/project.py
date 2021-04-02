@@ -1,14 +1,14 @@
 from collections import defaultdict
 from datetime import timedelta
+
+import sentry_sdk
 from django.db import connection
 from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-import sentry_sdk
-
-from sentry import options, roles, projectoptions, features
-from sentry.api.serializers import register, serialize, Serializer
+from sentry import features, options, projectoptions, roles
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
 from sentry.app import env
@@ -17,6 +17,7 @@ from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
+from sentry.ingest.inbound_filters import FilterTypes
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
@@ -32,7 +33,6 @@ from sentry.models import (
     UserReport,
 )
 from sentry.snuba import discover
-from sentry.ingest.inbound_filters import FilterTypes
 from sentry.utils.compat import zip
 
 STATUS_LABELS = {
@@ -45,7 +45,9 @@ STATUS_LABELS = {
 STATS_PERIOD_CHOICES = {
     "30d": StatsPeriod(30, timedelta(hours=24)),
     "14d": StatsPeriod(14, timedelta(hours=24)),
+    "7d": StatsPeriod(7, timedelta(hours=24)),
     "24h": StatsPeriod(24, timedelta(hours=1)),
+    "1h": StatsPeriod(60, timedelta(minutes=1)),
 }
 
 _PROJECT_SCOPE_PREFIX = "projects:"
@@ -567,6 +569,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:fingerprinting_rules",
             "sentry:relay_pii_config",
             "sentry:dynamic_sampling",
+            "sentry:breakdowns",
             "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
@@ -698,6 +701,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "symbolSources": attrs["options"].get("sentry:symbol_sources"),
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
+                "breakdowns": get_value_with_default("sentry:breakdowns"),
             }
         )
         return data

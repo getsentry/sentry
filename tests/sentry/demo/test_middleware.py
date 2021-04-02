@@ -5,9 +5,9 @@ from django.test import override_settings
 
 from sentry.demo.settings import MIDDLEWARE_CLASSES
 from sentry.testutils import APITestCase
+from sentry.utils import auth
 from sentry.utils.compat import mock
 
-from sentry.utils import auth
 
 orig_login = auth.login
 
@@ -49,3 +49,35 @@ class DemoMiddlewareTest(APITestCase):
         url = reverse("sentry-account-settings")
         response = self.client.get(url)
         assert response.status_code == 302, response.content
+
+    def test_prompt_route(self):
+        url = reverse("sentry-api-0-prompts-activity")
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.content == b'{"data": {"dismissed_ts": 1}}'
+
+    def test_org_creation(self):
+        url = reverse("sentry-api-0-organizations")
+        response = self.client.post(url)
+        assert response.status_code == 400
+        assert response.content == b'{"detail": "Organization creation disabled in demo mode"}'
+
+    def test_login_redirect(self):
+        url = reverse("sentry-login")
+        response = self.client.get(url)
+        assert response.status_code == 302
+
+    def test_org_login_redirect(self):
+        url = reverse("sentry-auth-organization", args=[self.organization2.slug])
+        response = self.client.get(url)
+        assert response.status_code == 302
+
+    def test_login_no_redirect(self):
+        url = reverse("sentry-login") + "?allow_login=1"
+        response = self.client.get(url)
+        assert response.status_code == 200
+
+    def test_org_login_no_redirect(self):
+        url = reverse("sentry-auth-organization", args=[self.organization2.slug]) + "?allow_login=1"
+        response = self.client.get(url)
+        assert response.status_code == 200

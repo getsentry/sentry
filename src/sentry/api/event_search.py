@@ -1,13 +1,13 @@
 import re
-from collections import namedtuple, defaultdict
+from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
 
 from django.utils.functional import cached_property
-from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
-from parsimonious.nodes import Node, RegexNode
+from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.nodes import Node, RegexNode
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
@@ -15,29 +15,29 @@ from sentry.discover.models import KeyTransaction
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.search.utils import (
-    parse_duration,
-    parse_percentage,
+    InvalidQuery,
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
+    parse_duration,
     parse_numeric_value,
+    parse_percentage,
     parse_release,
-    InvalidQuery,
 )
 from sentry.snuba.dataset import Dataset
+from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
     FUNCTION_TO_OPERATOR,
-    get_json_type,
-    is_measurement,
-    is_duration_measurement,
     OPERATOR_TO_FUNCTION,
     SNUBA_AND,
     SNUBA_OR,
+    get_json_type,
+    is_duration_measurement,
+    is_measurement,
+    is_span_op_breakdown,
 )
-from sentry.utils.compat import filter, map, zip
-
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 NEGATION_MAP = {
@@ -266,12 +266,19 @@ class SearchKey(namedtuple("SearchKey", "name")):
     @cached_property
     def is_tag(self):
         return TAG_KEY_RE.match(self.name) or (
-            self.name not in SEARCH_MAP and not self.is_measurement
+            self.name not in SEARCH_MAP
+            and self.name not in FIELD_ALIASES
+            and not self.is_measurement
+            and not self.is_span_op_breakdown
         )
 
     @cached_property
     def is_measurement(self):
         return is_measurement(self.name) and self.name not in SEARCH_MAP
+
+    @cached_property
+    def is_span_op_breakdown(self):
+        return is_span_op_breakdown(self.name) and self.name not in SEARCH_MAP
 
 
 class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
@@ -315,6 +322,7 @@ class SearchVisitor(NodeVisitor):
         "p95",
         "p99",
         "failure_rate",
+        "count_miserable",
         "user_misery",
     }
     date_keys = {
@@ -324,6 +332,8 @@ class SearchVisitor(NodeVisitor):
         "last_seen",
         "time",
         "timestamp",
+        "timestamp.to_hour",
+        "timestamp.to_day",
         "transaction.start_time",
         "transaction.end_time",
     }
@@ -378,7 +388,9 @@ class SearchVisitor(NodeVisitor):
         return key in self.numeric_keys or is_measurement(key)
 
     def is_duration_key(self, key):
-        return key in self.duration_keys or is_duration_measurement(key)
+        return (
+            key in self.duration_keys or is_duration_measurement(key) or is_span_op_breakdown(key)
+        )
 
     def is_percentage_key(self, key):
         return key in self.percentage_keys
@@ -635,11 +647,17 @@ class SearchVisitor(NodeVisitor):
         # If a date or numeric key gets down to the basic filter, then it means
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for date field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid date: {search_value.raw_value}. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {datetime.now().isoformat()[:-4]})."
+            )
         if search_key.name in self.boolean_keys:
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for boolean field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid boolean: {search_value.raw_value}. Expected true, 1, false, or 0."
+            )
         if self.is_numeric_key(search_key.name):
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for numeric field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid number: {search_value.raw_value}. Expected number then optional k, m, or b suffix (e.g. 500k)."
+            )
 
         return SearchFilter(search_key, operator, search_value)
 
@@ -851,20 +869,12 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     elif name == "issue.id":
         # Handle "has" queries
         if search_filter.value.raw_value == "":
-            if search_filter.operator == "=":
-                # The state of having no issues is represented differently on transactions vs
-                # other events. On the transactions table, it is represented by 0 whereas it is
-                # represented by NULL everywhere else. This means we have to check for both 0
-                # or NULL.
-                return [
-                    [["isNull", [name]], search_filter.operator, 1],
-                    [name, search_filter.operator, 0],
-                ]
-            else:
-                # Based the reasoning above, we should be checking that it is not 0 and not NULL.
-                # However, because NULL != 0 evaluates to NULL in Clickhouse, we can simplify it
-                # to check just not 0.
-                return [name, search_filter.operator, 0]
+            # The state of having no issues is represented differently on transactions vs
+            # other events. On the transactions table, it is represented by 0 whereas it is
+            # represented by NULL everywhere else. We use coalesce here so we can treat this
+            # consistently
+            name = ["coalesce", [name, 0]]
+            value = 0
 
         # Skip isNull check on group_id value as we want to
         # allow snuba's prewhere optimizer to find this condition.
@@ -926,11 +936,20 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
         return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
     else:
-        value = (
-            int(to_timestamp(value)) * 1000
-            if isinstance(value, datetime) and name != "timestamp"
-            else value
-        )
+        # timestamp{,.to_{hour,day}} need a datetime string
+        # last_seen needs an integer
+        if isinstance(value, datetime) and name not in {
+            "timestamp",
+            "timestamp.to_hour",
+            "timestamp.to_day",
+        }:
+            value = int(to_timestamp(value)) * 1000
+
+        # most field aliases are handled above but timestamp.to_{hour,day} are
+        # handled here
+        if name in FIELD_ALIASES:
+            name = FIELD_ALIASES[name].get_expression(params)
+
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
@@ -946,7 +965,8 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
                 return [["isNull", [name]], search_filter.operator, 1]
 
         is_null_condition = None
-        if search_filter.operator == "!=" and not search_filter.key.is_tag:
+        # TODO(wmak): Skip this for all non-nullable keys not just event.type
+        if search_filter.operator == "!=" and not search_filter.key.is_tag and name != "event.type":
             # Handle null columns on inequality comparisons. Any comparison
             # between a value and a null will result to null, so we need to
             # explicitly check for whether the condition is null, and OR it
@@ -1390,9 +1410,9 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     ]
 
 
-# When adding aliases to this list please also update
-# static/app/utils/discover/fields.tsx so that
-# the UI builder stays in sync.
+# When updating this list, also check if the following need to be updated:
+# - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
+# - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
 FIELD_ALIASES = {
     field.name: field
     for field in [
@@ -1446,7 +1466,11 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
                 if result_type is not None:
                     return result_type
 
-    if "duration" in field_alias or is_duration_measurement(field_alias):
+    if (
+        "duration" in field_alias
+        or is_duration_measurement(field_alias)
+        or is_span_op_breakdown(field_alias)
+    ):
         return "duration"
     if is_measurement(field_alias):
         return "number"
@@ -1548,7 +1572,7 @@ class FieldColumn(CountColumn):
     """ Allow any field column, of any type """
 
     def get_type(self, value):
-        if is_duration_measurement(value):
+        if is_duration_measurement(value) or is_span_op_breakdown(value):
             return "duration"
         elif value == "transaction.duration":
             return "duration"
@@ -1641,6 +1665,8 @@ class NumericColumn(FunctionArg):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
             return value
+        if not snuba_column and is_span_op_breakdown(value):
+            return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
         elif snuba_column not in ["time", "timestamp", "duration"]:
@@ -1652,7 +1678,7 @@ class NumericColumn(FunctionArg):
 
     def get_type(self, value):
         snuba_column = self._normalize(value)
-        if is_duration_measurement(snuba_column):
+        if is_duration_measurement(snuba_column) or is_span_op_breakdown(snuba_column):
             return "duration"
         elif snuba_column == "duration":
             return "duration"
@@ -1662,16 +1688,18 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
-    def __init__(self, name, allow_measurements_value=False):
+    def __init__(self, name, allow_array_value=False):
         super().__init__(name)
-        self.allow_measurements_value = allow_measurements_value
+        self.allow_array_value = allow_array_value
 
     def normalize(self, value, params):
-        # `measurement_value` is actually an array of Float64s. But when used
-        # in this context, we always want to expand it using `arrayJoin`. The
-        # resulting column will be a numeric column of type Float64.
-        if self.allow_measurements_value and value == "measurements_value":
-            return ["arrayJoin", ["measurements_value"]]
+        # `measurement_value` and `span_op_breakdowns_value` are actually an
+        # array of Float64s. But when used in this context, we always want to
+        # expand it using `arrayJoin`. The resulting column will be a numeric
+        # column of type Float64.
+        if self.allow_array_value:
+            if value in {"measurements_value", "span_op_breakdowns_value"}:
+                return ["arrayJoin", [value]]
 
         super().normalize(value, params)
         return value
@@ -1681,6 +1709,8 @@ class DurationColumn(FunctionArg):
     def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_duration_measurement(value):
+            return value
+        if not snuba_column and is_span_op_breakdown(value):
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
@@ -1697,7 +1727,7 @@ class DurationColumnNoLookup(DurationColumn):
 
 class StringArrayColumn(FunctionArg):
     def normalize(self, value, params):
-        if value in ["tags.key", "tags.value", "measurements_key"]:
+        if value in ["tags.key", "tags.value", "measurements_key", "span_op_breakdowns_key"]:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
 
@@ -1952,9 +1982,9 @@ def reflective_result_type(index=0):
     return result_type_fn
 
 
-# When adding functions to this list please also update
-# static/sentry/app/utils/discover/fields.tsx so that
-# the UI builder stays in sync.
+# When updating this list, also check if the following need to be updated:
+# - convert_search_filter_to_snuba_query
+# - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
 FUNCTIONS = {
     function.name: function
     for function in [
@@ -2036,10 +2066,34 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
+            "count_miserable",
+            required_args=[CountColumn("column"), NumberRange("satisfaction", 0, None)],
+            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+            aggregate=[
+                "uniqIf",
+                [ArgValue("column"), ["greater", ["transaction.duration", ArgValue("tolerated")]]],
+                None,
+            ],
+            default_result_type="number",
+        ),
+        Function(
             "user_misery",
             required_args=[NumberRange("satisfaction", 0, None)],
-            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-            transform="uniqIf(user, greater(duration, {tolerated:g}))",
+            # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
+            # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
+            # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
+            # with the user misery being adjusted for each fast/slow unique transaction. See:
+            # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
+            # for an intuitive explanation of the Beta Distribution Function.
+            optional_args=[
+                with_default(5.8875, NumberRange("alpha", 0, None)),
+                with_default(111.8625, NumberRange("beta", 0, None)),
+            ],
+            calculated_args=[
+                {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
+                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+            ],
+            transform="ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
             default_result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),
@@ -2081,7 +2135,7 @@ FUNCTIONS = {
         Function(
             "histogram",
             required_args=[
-                NumericColumnNoLookup("column", allow_measurements_value=True),
+                NumericColumnNoLookup("column", allow_array_value=True),
                 # the bucket_size and start_offset should already be adjusted
                 # using the multiplier before it is passed here
                 NumberRange("bucket_size", 0, None),

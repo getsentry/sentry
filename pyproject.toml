@@ -36,6 +36,11 @@ filterwarnings = [
     #                  It'll probably show up in other dependencies.
     "ignore::DeprecationWarning",
 
+    # At writing, the Google Bigtable Emulator relies on deprecated behavior
+    # internally, this can be removed once a version containing this fix is
+    # released: https://github.com/googleapis/python-bigtable/pull/246
+    "ignore:The `channel` argument is deprecated; use `transport` instead.:PendingDeprecationWarning:google.cloud.bigtable*",
+
     # The following warning filters are for pytest only.
     # This is so we don't have to wrap most datetime objects in testing code
     # with django.utils.timezone.

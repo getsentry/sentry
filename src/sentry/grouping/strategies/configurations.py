@@ -98,6 +98,7 @@ register_strategy_config(
     initial_context={
         "trim_message": False,
     },
+    enhancements_base="legacy:2019-03-12",
 )
 
 # Simple newstyle grouping
@@ -128,6 +129,7 @@ register_strategy_config(
         "trim_message": True,
         "with_exception_value_fallback": True,
     },
+    enhancements_base="common:2019-03-23",
 )
 
 register_strategy_config(
@@ -175,6 +177,7 @@ register_strategy_config(
     initial_context={
         "legacy_function_logic": True,
     },
+    enhancements_base="common:2019-03-23",
 )
 
 register_strategy_config(

@@ -54,6 +54,10 @@ type Props = DefaultProps & {
    */
   tipColor?: string;
   /**
+   * Color of the arrow tip border
+   */
+  tipBorderColor?: string;
+  /**
    * Offset for the arrow
    */
   offset?: string;
@@ -129,6 +133,7 @@ class Hovercard extends React.Component<Props, State> {
       position,
       show,
       tipColor,
+      tipBorderColor,
       offset,
       modifiers,
     } = this.props;
@@ -191,6 +196,7 @@ class Hovercard extends React.Component<Props, State> {
                       style={arrowProps.style}
                       placement={placement as Direction}
                       tipColor={tipColor}
+                      tipBorderColor={tipBorderColor}
                     />
                   </StyledHovercard>
                 );
@@ -277,7 +283,11 @@ const Body = styled('div')`
   min-height: 30px;
 `;
 
-type HovercardArrowProps = {placement: Direction; tipColor?: string};
+type HovercardArrowProps = {
+  placement: Direction;
+  tipColor?: string;
+  tipBorderColor?: string;
+};
 
 const HovercardArrow = styled('span')<HovercardArrowProps>`
   position: absolute;
@@ -306,7 +316,8 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   &::before {
     top: 1px;
     border: 10px solid transparent;
-    border-${getTipDirection}-color: ${p => p.tipColor || p.theme.border};
+    border-${getTipDirection}-color: ${p =>
+  p.tipBorderColor || p.tipColor || p.theme.border};
 
     ${p => (p.placement === 'bottom' ? 'top: -1px' : '')};
     ${p => (p.placement === 'left' ? 'top: 0; left: 1px;' : '')};

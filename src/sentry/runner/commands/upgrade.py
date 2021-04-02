@@ -1,7 +1,7 @@
 import click
-
-from django.db import connections, ProgrammingError
 from django.conf import settings
+from django.db import ProgrammingError, connections
+
 from sentry.runner.decorators import configuration
 
 # List of migrations which we'll fake if we're coming from South

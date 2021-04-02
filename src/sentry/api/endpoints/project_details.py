@@ -1,15 +1,15 @@
 import logging
+from datetime import timedelta
 from itertools import chain
 from uuid import uuid4
 
-from datetime import timedelta
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
 from sentry import features
-from sentry.ingest.inbound_filters import FilterTypes
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -19,25 +19,28 @@ from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
-from sentry.lang.native.symbolicator import parse_sources, InvalidSourcesError
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
+from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.ingest.inbound_filters import FilterTypes
+from sentry.lang.native.symbolicator import InvalidSourcesError, parse_sources
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     AuditLogEntryEvent,
     Group,
     GroupStatus,
+    NotificationSetting,
     Project,
     ProjectBookmark,
     ProjectRedirect,
     ProjectStatus,
     ProjectTeam,
-    UserOption,
 )
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
-from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.legacy_mappings import get_option_value_from_boolean
+from sentry.notifications.types import NotificationSettingTypes
 from sentry.tasks.deletion import delete_project
 from sentry.utils import json
 from sentry.utils.compat import filter
-from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -141,9 +144,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     scrubIPAddresses = serializers.BooleanField(required=False)
     groupingConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     groupingEnhancements = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    groupingEnhancementsBase = serializers.CharField(
-        required=False, allow_blank=True, allow_null=True
-    )
     fingerprintingRules = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
@@ -460,13 +460,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:grouping_enhancements"] = result[
                     "groupingEnhancements"
                 ]
-        if result.get("groupingEnhancementsBase") is not None:
-            if project.update_option(
-                "sentry:grouping_enhancements_base", result["groupingEnhancementsBase"]
-            ):
-                changed_proj_settings["sentry:grouping_enhancements_base"] = result[
-                    "groupingEnhancementsBase"
-                ]
         if result.get("fingerprintingRules") is not None:
             if project.update_option("sentry:fingerprinting_rules", result["fingerprintingRules"]):
                 changed_proj_settings["sentry:fingerprinting_rules"] = result["fingerprintingRules"]
@@ -532,13 +525,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
 
-        if result.get("isSubscribed"):
-            UserOption.objects.set_value(
-                user=request.user, key="mail:alert", value=1, project=project
-            )
-        elif result.get("isSubscribed") is False:
-            UserOption.objects.set_value(
-                user=request.user, key="mail:alert", value=0, project=project
+        if "isSubscribed" in result:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                get_option_value_from_boolean(result.get("isSubscribed")),
+                user=request.user,
+                project=project,
             )
 
         if "dynamicSampling" in result:

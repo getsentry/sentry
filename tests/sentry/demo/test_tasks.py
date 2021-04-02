@@ -1,6 +1,7 @@
+from django.conf import settings
 from django.test import override_settings
 
-from sentry.demo.tasks import delete_users_orgs, ORG_BUFFER_SIZE, build_up_org_buffer
+from sentry.demo.tasks import delete_users_orgs, build_up_org_buffer, delete_initializing_orgs
 from sentry.demo.models import DemoOrganization, DemoUser, DemoOrgStatus
 from sentry.models import Organization, User
 from sentry.testutils import TestCase
@@ -8,7 +9,15 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.compat import mock
 
 
-@override_settings(DEMO_MODE=True)
+# fix buffer size at 3
+ORG_BUFFER_SIZE = 3
+MAX_INITIALIZATION_TIME = 60
+DEMO_DATA_GEN_PARAMS = settings.DEMO_DATA_GEN_PARAMS.copy()
+DEMO_DATA_GEN_PARAMS["ORG_BUFFER_SIZE"] = ORG_BUFFER_SIZE
+DEMO_DATA_GEN_PARAMS["MAX_INITIALIZATION_TIME"] = MAX_INITIALIZATION_TIME
+
+
+@override_settings(DEMO_MODE=True, DEMO_DATA_GEN_PARAMS=DEMO_DATA_GEN_PARAMS)
 class DemoTaskBaseClass(TestCase):
     def create_demo_org(self, org_args=None, **kwargs):
         org = self.create_organization(**(org_args or {}))
@@ -73,7 +82,9 @@ class BuildUpOrgBufferTest(DemoTaskBaseClass):
     @mock.patch("sentry.demo.tasks.create_demo_org")
     def test_add_one_fill_buffer(self, mock_create_demo_org):
         for i in range(ORG_BUFFER_SIZE - 1):
-            self.create_demo_org()
+            # pending an initializing orgs both count
+            status = DemoOrgStatus.INITIALIZING if i % 1 == 0 else DemoOrgStatus.PENDING
+            self.create_demo_org(status=status)
 
         # active orgs shoudn't count
         self.create_demo_org(status=DemoOrgStatus.ACTIVE)
@@ -84,14 +95,19 @@ class BuildUpOrgBufferTest(DemoTaskBaseClass):
             build_up_org_buffer()
 
         assert (
-            ORG_BUFFER_SIZE == DemoOrganization.objects.filter(status=DemoOrgStatus.PENDING).count()
+            ORG_BUFFER_SIZE
+            == DemoOrganization.objects.filter(
+                status__in=[DemoOrgStatus.PENDING, DemoOrgStatus.INITIALIZING]
+            ).count()
         )
         mock_create_demo_org.assert_called_once_with()
 
     @mock.patch("sentry.demo.tasks.create_demo_org")
     def test_add_two_fill_buffer(self, mock_create_demo_org):
         for i in range(ORG_BUFFER_SIZE - 2):
-            self.create_demo_org()
+            # pending an initializing orgs both count
+            status = DemoOrgStatus.INITIALIZING if i % 1 == 0 else DemoOrgStatus.PENDING
+            self.create_demo_org(status=status)
 
         mock_create_demo_org.side_effect = self.create_demo_org
 
@@ -99,7 +115,10 @@ class BuildUpOrgBufferTest(DemoTaskBaseClass):
             build_up_org_buffer()
 
         assert (
-            ORG_BUFFER_SIZE == DemoOrganization.objects.filter(status=DemoOrgStatus.PENDING).count()
+            ORG_BUFFER_SIZE
+            == DemoOrganization.objects.filter(
+                status__in=[DemoOrgStatus.PENDING, DemoOrgStatus.INITIALIZING]
+            ).count()
         )
         assert mock_create_demo_org.call_count == 2
 
@@ -114,3 +133,20 @@ class BuildUpOrgBufferTest(DemoTaskBaseClass):
             build_up_org_buffer()
 
         assert mock_create_demo_org.call_count == 0
+
+
+class DeleteInitializingOrgTest(DemoTaskBaseClass):
+    def test_basic(self):
+        before_cutoff = before_now(minutes=MAX_INITIALIZATION_TIME + 5)
+        after_cutoff = before_now(minutes=MAX_INITIALIZATION_TIME - 5)
+
+        org1 = self.create_demo_org(date_added=before_cutoff, status=DemoOrgStatus.INITIALIZING)
+        org2 = self.create_demo_org(date_added=after_cutoff, status=DemoOrgStatus.INITIALIZING)
+        org3 = self.create_demo_org(date_added=before_cutoff, status=DemoOrgStatus.ACTIVE)
+
+        with self.tasks():
+            delete_initializing_orgs()
+
+        assert not Organization.objects.filter(id=org1.id).exists()
+        assert Organization.objects.filter(id=org2.id).exists()
+        assert Organization.objects.filter(id=org3.id).exists()

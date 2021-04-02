@@ -15,6 +15,8 @@ describe('Debug Meta - Image Details Candidates', function () {
   // @ts-expect-error
   const organization = TestStubs.Organization();
   // @ts-expect-error
+  const event = TestStubs.Event();
+  // @ts-expect-error
   const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
   const {data} = eventEntryDebugMeta;
   const {images} = data;
@@ -44,6 +46,7 @@ describe('Debug Meta - Image Details Candidates', function () {
           image={debugImage}
           organization={organization}
           projectId={projectId}
+          event={event}
         />
       ),
       {
@@ -58,9 +61,8 @@ describe('Debug Meta - Image Details Candidates', function () {
   });
 
   it('Image Details Modal is open', () => {
-    expect(wrapper.find('[data-test-id="modal-title"]').text()).toEqual(
-      getFileName(debugImage.code_file)
-    );
+    const fileName = wrapper.find('Title FileName');
+    expect(fileName.text()).toEqual(getFileName(debugImage.code_file));
   });
 
   it('Image Candidates correctly sorted', () => {
@@ -70,24 +72,26 @@ describe('Debug Meta - Image Details Candidates', function () {
     // The UI shall sort the candidates by status. However, this sorting is not alphabetical but in the following order:
     // Permissions -> Failed -> Ok -> Deleted (previous Ok) -> Unapplied -> Not Found
     const statusColumns = candidates
-      .find('StatusTag')
+      .find('Status')
       .map(statusColumn => statusColumn.text());
     expect(statusColumns).toEqual(['Failed', 'Failed', 'Failed', 'Deleted']);
 
-    const debugFileColumn = candidates.find('DebugFileColumn');
-
-    // Check source names order.
-    // The UI shall sort the candidates by source name (alphabetical)
-    const sourceNames = debugFileColumn
-      .find('SourceName')
-      .map(sourceName => sourceName.text());
-    expect(sourceNames).toEqual(['America', 'Austria', 'Belgium', 'Sentry']);
+    const informationColumn = candidates.find('InformationColumn');
 
     // Check location order.
     // The UI shall sort the candidates by source location (alphabetical)
-    const locations = debugFileColumn.find('Location').map(location => location.text());
+    const locations = informationColumn
+      .find('[data-test-id="main-info"]')
+      .map(location => location.text());
     // Only 3 results are returned, as the UI only displays the Location component
     // when the location is defined and when it is not internal
     expect(locations).toEqual(['arizona', 'burgenland', 'brussels']);
+
+    // Check source names order.
+    // The UI shall sort the candidates by source name (alphabetical)
+    const sourceNames = informationColumn
+      .find('[data-test-id="source"]')
+      .map(sourceName => sourceName.text());
+    expect(sourceNames).toEqual(['America', 'Austria', 'Belgium', 'Sentry']);
   });
 });

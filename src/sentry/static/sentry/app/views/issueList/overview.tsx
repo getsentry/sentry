@@ -141,16 +141,16 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
 };
 
 class IssueListOverview extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  state: State = this.getInitialState();
 
+  getInitialState() {
     const realtimeActiveCookie = Cookies.get('realtimeActive');
     const realtimeActive =
       typeof realtimeActiveCookie === 'undefined'
         ? false
         : realtimeActiveCookie === 'true';
 
-    this.state = {
+    return {
       groupIds: [],
       selectAllActive: false,
       realtimeActive,
@@ -334,10 +334,16 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   getGroupStatsPeriod(): string {
-    const currentPeriod =
-      typeof this.props.location.query?.groupStatsPeriod === 'string'
-        ? this.props.location.query?.groupStatsPeriod
-        : DEFAULT_GRAPH_STATS_PERIOD;
+    let currentPeriod: string;
+    if (typeof this.props.location.query?.groupStatsPeriod === 'string') {
+      currentPeriod = this.props.location.query.groupStatsPeriod;
+    } else if (this.getSort() === IssueSortOptions.TREND) {
+      // Default to the larger graph when sorting by relative change
+      currentPeriod = 'auto';
+    } else {
+      currentPeriod = DEFAULT_GRAPH_STATS_PERIOD;
+    }
+
     return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
       : DEFAULT_GRAPH_STATS_PERIOD;
@@ -513,7 +519,7 @@ class IssueListOverview extends React.Component<Props, State> {
     this.setState({queryCounts});
   };
 
-  fetchData = (selectionChanged?: boolean) => {
+  fetchData = (fetchAllCounts = false) => {
     GroupStore.loadInitialData([]);
     this._streamManager.reset();
     const transaction = getCurrentSentryReactTransaction();
@@ -560,9 +566,6 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     this._poller.disable();
-
-    const fetchAllCounts =
-      this.props.organization.features.includes('inbox') && !!selectionChanged;
 
     this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
@@ -672,9 +675,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onRealtimeChange = (realtime: boolean) => {
     Cookies.set('realtimeActive', realtime.toString());
-    this.setState({
-      realtimeActive: realtime,
-    });
+    this.setState({realtimeActive: realtime});
   };
 
   onSelectStatsPeriod = (period: string) => {
@@ -830,7 +831,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const query = this.getQuery();
     const showInboxTime = this.getSort() === 'inbox';
 
-    return ids.map(id => {
+    return ids.map((id, index) => {
       const hasGuideAnchor = id === topIssue;
       const group = GroupStore.get(id) as Group | undefined;
       let members: Member['user'][] | undefined;
@@ -846,6 +847,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
       return (
         <StreamGroup
+          index={index}
           key={id}
           id={id}
           statsPeriod={groupStatsPeriod}
@@ -854,6 +856,7 @@ class IssueListOverview extends React.Component<Props, State> {
           memberList={members}
           displayReprocessingLayout={displayReprocessingLayout}
           onMarkReviewed={this.onMarkReviewed}
+          onDelete={this.onDelete}
           useFilteredStats
           showInboxTime={showInboxTime}
         />
@@ -924,8 +927,13 @@ class IssueListOverview extends React.Component<Props, State> {
     });
   };
 
+  onDelete = () => {
+    this.fetchData(true);
+  };
+
   onMarkReviewed = (itemIds: string[]) => {
     const query = this.getQuery();
+
     if (!isForReviewQuery(query)) {
       return;
     }
@@ -1042,6 +1050,7 @@ class IssueListOverview extends React.Component<Props, State> {
               <IssueListHeader
                 organization={organization}
                 query={query}
+                sort={this.getSort()}
                 queryCount={queryCount}
                 queryCounts={queryCounts}
                 realtimeActive={realtimeActive}
@@ -1086,6 +1095,7 @@ class IssueListOverview extends React.Component<Props, State> {
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}
                     onMarkReviewed={this.onMarkReviewed}
+                    onDelete={this.onDelete}
                     realtimeActive={realtimeActive}
                     statsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}

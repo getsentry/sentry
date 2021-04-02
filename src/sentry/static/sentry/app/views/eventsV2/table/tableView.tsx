@@ -27,6 +27,7 @@ import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
+import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
@@ -107,7 +108,7 @@ class TableView extends React.Component<TableViewProps> {
           <PrependHeader key="header-event-id">
             <SortLink
               align="left"
-              title={t('Id')}
+              title={t('event id')}
               direction={undefined}
               canSort={false}
               generateSortLink={() => undefined}
@@ -242,6 +243,24 @@ class TableView extends React.Component<TableViewProps> {
           </StyledLink>
         </Tooltip>
       );
+    } else if (columnKey === 'trace') {
+      const dateSelection = eventView.normalizeDateSelection(location);
+      if (dataRow.trace) {
+        const target = getTraceDetailsUrl(
+          organization,
+          String(dataRow.trace),
+          dateSelection,
+          {}
+        );
+
+        cell = (
+          <Tooltip title={t('View Trace')}>
+            <StyledLink data-test-id="view-trace" to={target}>
+              {cell}
+            </StyledLink>
+          </Tooltip>
+        );
+      }
     }
 
     return (

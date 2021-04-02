@@ -1,33 +1,26 @@
-from datetime import timedelta
 import functools
 import logging
+from datetime import timedelta
 
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import tsdb, tagstore, features
+from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
-from sentry.api.serializers import serialize, GroupSerializer, GroupSerializerSnuba
+from sentry.api.helpers.group_index import prep_search, rate_limit_endpoint, update_groups
+from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.models import (
-    Activity,
-    Group,
-    GroupSeen,
-    Release,
-    User,
-    UserReport,
-)
-from sentry.api.helpers.group_index import rate_limit_endpoint
+from sentry.models import Activity, Group, GroupSeen, Release, User, UserReport
+from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
 from sentry.utils import metrics
-from sentry.utils.safe import safe_execute
 from sentry.utils.compat import zip
-from sentry.models.groupinbox import get_inbox_details
+from sentry.utils.safe import safe_execute
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -303,14 +296,13 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         try:
             discard = request.data.get("discard")
-
-            # TODO(dcramer): we need to implement assignedTo in the bulk mutation
-            # endpoint
-            response = client.put(
-                path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
-                params={"id": group.id},
-                data=request.data,
-                request=request,
+            project = group.project
+            search_fn = functools.partial(prep_search, self, request, project)
+            has_inbox = features.has(
+                "organizations:inbox", project.organization, actor=request.user
+            )
+            response = update_groups(
+                request, [group.id], [project], project.organization_id, search_fn, has_inbox
             )
 
             # if action was discard, there isn't a group to serialize anymore
@@ -340,18 +332,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 "group_details:put client.ApiError",
                 exc_info=True,
             )
-            metrics.incr(
-                "workflowslo.http_response",
-                sample_rate=1.0,
-                tags={"status": e.status_code, "detail": "group_details:put:client.ApiError"},
-            )
             return Response(e.body, status=e.status_code)
         except Exception:
-            metrics.incr(
-                "group.update.http_response",
-                sample_rate=1.0,
-                tags={"status": 500, "detail": "group_details:put:Exception"},
-            )
             raise
 
     @rate_limit_endpoint(limit=5, window=1)
@@ -366,8 +348,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
-            from sentry.utils import snuba
             from sentry.group_deletion import delete_group
+            from sentry.utils import snuba
 
             transaction_id = delete_group(group)
 

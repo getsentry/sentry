@@ -12,7 +12,7 @@ from sentry.snuba.sessions_v2 import (
     massage_sessions_result,
     _get_timestamps,
     InvalidParams,
-    _get_constrained_date_range,
+    get_constrained_date_range,
 )
 
 
@@ -30,24 +30,24 @@ def result_sorted(result):
     return result
 
 
-@freeze_time("2018-12-11 03:21:34")
+@freeze_time("2018-12-11 03:21:00")
 def test_round_range():
-    start, end, interval = _get_constrained_date_range({"statsPeriod": "2d"})
+    start, end, interval = get_constrained_date_range({"statsPeriod": "2d"})
     assert start == datetime(2018, 12, 9, 4, tzinfo=pytz.utc)
-    assert end == datetime(2018, 12, 11, 4, tzinfo=pytz.utc)
+    assert end == datetime(2018, 12, 11, 3, 22, tzinfo=pytz.utc)
 
-    start, end, interval = _get_constrained_date_range({"statsPeriod": "2d", "interval": "1d"})
+    start, end, interval = get_constrained_date_range({"statsPeriod": "2d", "interval": "1d"})
     assert start == datetime(2018, 12, 10, tzinfo=pytz.utc)
-    assert end == datetime(2018, 12, 12, tzinfo=pytz.utc)
+    assert end == datetime(2018, 12, 11, 3, 22, tzinfo=pytz.utc)
 
 
 def test_invalid_interval():
     with pytest.raises(InvalidParams):
-        start, end, interval = _get_constrained_date_range({"interval": "0d"})
+        start, end, interval = get_constrained_date_range({"interval": "0d"})
 
 
 def test_round_exact():
-    start, end, interval = _get_constrained_date_range(
+    start, end, interval = get_constrained_date_range(
         {"start": "2021-01-12T04:06:16", "end": "2021-01-17T08:26:13", "interval": "1d"},
     )
     assert start == datetime(2021, 1, 12, tzinfo=pytz.utc)
@@ -55,7 +55,7 @@ def test_round_exact():
 
 
 def test_inclusive_end():
-    start, end, interval = _get_constrained_date_range(
+    start, end, interval = get_constrained_date_range(
         {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
     )
     assert start == datetime(2021, 2, 24, tzinfo=pytz.utc)
@@ -115,7 +115,6 @@ def test_timestamps():
 
     expected_timestamps = ["2020-12-17T12:00:00Z", "2020-12-18T00:00:00Z"]
     actual_timestamps = _get_timestamps(query)
-
     assert actual_timestamps == expected_timestamps
 
 
@@ -126,7 +125,8 @@ def test_hourly_rounded_start():
     actual_timestamps = _get_timestamps(query)
 
     assert actual_timestamps[0] == "2021-03-08T09:00:00Z"
-    assert len(actual_timestamps) == 60
+    assert actual_timestamps[-1] == "2021-03-08T09:34:00Z"
+    assert len(actual_timestamps) == 35
 
     # in this case "45m" means from 08:49:00-09:34:00, but since we round start/end
     # to hours, we extend the start time to 08:00:00.
@@ -135,7 +135,8 @@ def test_hourly_rounded_start():
     actual_timestamps = _get_timestamps(query)
 
     assert actual_timestamps[0] == "2021-03-08T08:00:00Z"
-    assert len(actual_timestamps) == 120
+    assert actual_timestamps[-1] == "2021-03-08T09:34:00Z"
+    assert len(actual_timestamps) == 95
 
 
 def test_rounded_end():
@@ -221,6 +222,8 @@ def test_massage_empty():
     result_timeseries = []
 
     expected_result = {
+        "start": "2020-12-18T00:00:00Z",
+        "end": "2020-12-18T11:15:00Z",
         "query": "",
         "intervals": ["2020-12-18T00:00:00Z"],
         "groups": [],
@@ -241,6 +244,8 @@ def test_massage_unbalanced_results():
     result_timeseries = []
 
     expected_result = {
+        "start": "2020-12-18T00:00:00Z",
+        "end": "2020-12-18T11:15:00Z",
         "query": "",
         "intervals": ["2020-12-18T00:00:00Z"],
         "groups": [
@@ -266,6 +271,8 @@ def test_massage_unbalanced_results():
     ]
 
     expected_result = {
+        "start": "2020-12-18T00:00:00Z",
+        "end": "2020-12-18T11:15:00Z",
         "query": "",
         "intervals": ["2020-12-18T00:00:00Z"],
         "groups": [
@@ -295,6 +302,8 @@ def test_massage_simple_timeseries():
     ]
 
     expected_result = {
+        "start": "2020-12-17T12:00:00Z",
+        "end": "2020-12-18T11:15:00Z",
         "query": "",
         "intervals": [
             "2020-12-17T12:00:00Z",
@@ -323,6 +332,8 @@ def test_massage_exact_timeseries():
     ]
 
     expected_result = {
+        "start": "2020-12-17T12:00:00Z",
+        "end": "2020-12-18T12:00:00Z",
         "query": "",
         "intervals": [
             "2020-12-17T12:00:00Z",
@@ -368,6 +379,8 @@ def test_massage_groupby_timeseries():
     ]
 
     expected_result = {
+        "start": "2020-12-17T12:00:00Z",
+        "end": "2020-12-18T11:15:00Z",
         "query": "",
         "intervals": [
             "2020-12-17T12:00:00Z",
@@ -438,6 +451,8 @@ def test_massage_virtual_groupby_timeseries():
     ]
 
     expected_result = {
+        "start": "2020-12-17T18:00:00Z",
+        "end": "2020-12-18T13:26:00Z",
         "query": "",
         "intervals": [
             "2020-12-17T18:00:00Z",
@@ -504,6 +519,8 @@ def test_nan_duration():
     ]
 
     expected_result = {
+        "start": "2020-12-17T12:00:00Z",
+        "end": "2020-12-18T11:15:00Z",
         "query": "",
         "intervals": [
             "2020-12-17T12:00:00Z",
