@@ -184,7 +184,7 @@ operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
 open_paren           = "("
 closed_paren         = ")"
 open_bracket         = "["
-closed_bracket       = "]"
+closed_bracket       = ~r"\](?=\s|$)"
 sep                  = ":"
 space                = " "
 negation             = "!"
@@ -686,7 +686,9 @@ class SearchVisitor(NodeVisitor):
                 self.process_list(search_value[1], [(_, _, val) for _, _, val in search_value[2]])
             )
         else:
-            if not search_value:
+            # XXX: We check whether the text in the node itself is actually empty, so
+            # we can tell the difference between an empty quoted string and no string
+            if not search_value.raw_value and not node.children[3].text:
                 raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
 
         operator = self.handle_negation(negation, operator)

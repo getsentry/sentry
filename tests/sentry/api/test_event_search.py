@@ -275,12 +275,67 @@ class ParseSearchQueryTest(unittest.TestCase):
                 value=SearchValue(raw_value="[h[e]llo"),
             ),
         ]
+        assert parse_search_query('test:"[h]"') == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h]"),
+            ),
+        ]
+        assert parse_search_query("test:[h]*") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h]*"),
+            ),
+        ]
+        assert parse_search_query("test:[h e]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h"),
+            ),
+            SearchFilter(
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(raw_value="e]"),
+            ),
+        ]
+        assert parse_search_query("test:[[h]]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[[h]]"),
+            ),
+        ]
+        assert parse_search_query("test:[]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[]"),
+            ),
+        ]
         assert parse_search_query('user.email:[test@test.com, "hi", 1]') == [
             SearchFilter(
                 key=SearchKey(name="user.email"),
                 operator="IN",
                 value=SearchValue(raw_value=["test@test.com", "hi", "1"]),
             )
+        ]
+        assert parse_search_query('user.email:[test@test.com, "hi", 1.0]') == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com", "hi", "1.0"]),
+            )
+        ]
+
+        assert parse_search_query("user.email:[test@test.com]user.email:hello@hello.com") == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="=",
+                value=SearchValue(raw_value="[test@test.com]user.email:hello@hello.com"),
+            ),
         ]
 
     def test_raw_search_anywhere(self):
