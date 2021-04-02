@@ -59,7 +59,9 @@ def should_be_participating(
     """
     Given a mapping of users to subscriptions and a mapping of default and
     specific notification settings by user, determine if a user should receive
-    a WORKFLOW notification.
+    a WORKFLOW notification. Unfortunately, this algorithm does not respect
+    NotificationSettingOptionValues.ALWAYS. If the user is unsubscribed from
+    the group, that overrides their notification preferences.
     """
     value = _get_setting_value_from_mapping(
         notification_settings_by_user,
@@ -71,11 +73,11 @@ def should_be_participating(
     if value == NotificationSettingOptionValues.NEVER:
         return False
 
-    if value == NotificationSettingOptionValues.ALWAYS:
-        return True
-
     subscription = subscriptions_by_user_id.get(user.id)
-    return bool(subscription and subscription.is_active)
+    if subscription:
+        return bool(subscription.is_active)
+
+    return value == NotificationSettingOptionValues.ALWAYS
 
 
 def transform_to_notification_settings_by_user(
