@@ -169,7 +169,8 @@ class ProjectDetail extends AsyncView<Props, State> {
     } = this.props;
     const project = this.project;
     const {hasSessions} = this.state;
-    const hasTransactions = project?.firstTransactionEvent;
+    const hasPerformance = organization.features.includes('performance-view');
+    const hasTransactions = hasPerformance && project?.firstTransactionEvent;
     const isProjectStabilized = this.isProjectStabilized();
     const visibleCharts = ['chart1'];
 
