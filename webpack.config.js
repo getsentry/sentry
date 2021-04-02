@@ -378,6 +378,8 @@ let appConfig = {
       vm: false,
       stream: false,
       crypto: require.resolve('crypto-browserify'),
+      // `yarn why` says this is only needed in dev deps
+      string_decoder: false,
     },
 
     modules: ['node_modules'],
