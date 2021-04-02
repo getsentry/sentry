@@ -47,13 +47,13 @@ function Information({
   function getFilenameOrLocation() {
     if (
       candidate.download.status === CandidateDownloadStatus.UNAPPLIED ||
-      candidate.download.status === CandidateDownloadStatus.OK
+      (candidate.download.status === CandidateDownloadStatus.OK && isInternalSource)
     ) {
       const {symbolType, filename} = candidate as
         | ImageCandidateUnApplied
         | ImageCandidateInternalOk;
 
-      return symbolType === 'proguard' && filename === 'proguard-mapping'
+      return symbolType === SymbolType.PROGUARD && filename === 'proguard-mapping'
         ? null
         : filename;
     }
