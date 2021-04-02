@@ -11,11 +11,15 @@ import Status from '.';
 
 type Props = {
   candidate: ImageCandidate;
+  hasReprocessWarning: boolean;
 };
 
-function StatusTooltip({candidate}: Props) {
+function StatusTooltip({candidate, hasReprocessWarning}: Props) {
   const {download} = candidate;
-  const {label, description, disabled} = getStatusTooltipDescription(candidate);
+  const {label, description, disabled} = getStatusTooltipDescription(
+    candidate,
+    hasReprocessWarning
+  );
 
   return (
     <Tooltip

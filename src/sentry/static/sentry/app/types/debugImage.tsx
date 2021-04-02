@@ -5,6 +5,25 @@ export enum CandidateProcessingStatus {
   ERROR = 'error',
 }
 
+export enum SymbolType {
+  UNKNOWN = 'unknown',
+  BREAKPAD = 'breakpad',
+  ELF = 'elf',
+  MACHO = 'macho',
+  PDB = 'pdb',
+  PE = 'pe',
+  SOURCEBUNDLE = 'sourcebundle',
+  WASM = 'wasm',
+  PROGUARD = 'proguard',
+}
+
+export enum ImageFeature {
+  has_sources = 'has_sources',
+  has_debug_info = 'has_debug_info',
+  has_unwind_info = 'has_unwind_info',
+  has_symbols = 'has_symbols',
+}
+
 type CandidateProcessingInfoOkStatus = {
   status: CandidateProcessingStatus.OK;
 };
@@ -30,13 +49,13 @@ export enum CandidateDownloadStatus {
 }
 
 type ImageFeatures = {
-  has_sources: boolean;
-  has_debug_info: boolean;
-  has_unwind_info: boolean;
-  has_symbols: boolean;
+  [ImageFeature.has_sources]: boolean;
+  [ImageFeature.has_debug_info]: boolean;
+  [ImageFeature.has_unwind_info]: boolean;
+  [ImageFeature.has_symbols]: boolean;
 };
 
-export type CandidateFeatures = ImageFeatures;
+type CandidateFeatures = ImageFeatures;
 
 type CandidateDownloadOkStatus = {
   status: CandidateDownloadStatus.OK;
@@ -81,25 +100,35 @@ type ImageCandidateBase = {
   location?: string;
 };
 
-export type ImageCandidateOk = ImageCandidateBase & {
-  download: CandidateDownloadOkStatus;
-  unwind?: CandidateProcessingInfo;
-  debug?: CandidateProcessingInfo;
-  filename?: string;
-};
-
-export type ImageCandidateUnApplied = ImageCandidateBase & {
-  download: CandidateDownloadUnAppliedStatus;
-  filename: string;
-  symbolType: string;
+type InternalSource = {
+  symbolType: SymbolType;
   fileType: string | null;
   cpuName: string;
   size: number;
   dateCreated: string;
-  source: string;
-  source_name?: string;
-  location?: string;
+  location: string;
+  filename: string;
 };
+
+export type ImageCandidateOk = ImageCandidateBase & {
+  download: CandidateDownloadOkStatus;
+  unwind?: CandidateProcessingInfo;
+  debug?: CandidateProcessingInfo;
+};
+
+export type ImageCandidateInternalOk = ImageCandidateBase &
+  InternalSource & {
+    download: CandidateDownloadOkStatus;
+    unwind?: CandidateProcessingInfo;
+    debug?: CandidateProcessingInfo;
+  };
+
+export type ImageCandidateUnApplied = ImageCandidateBase &
+  InternalSource & {
+    download: CandidateDownloadUnAppliedStatus;
+    source: string;
+    source_name?: string;
+  };
 
 type ImageCandidateOthers = ImageCandidateBase & {
   download:
@@ -113,6 +142,7 @@ type ImageCandidateOthers = ImageCandidateBase & {
 
 export type ImageCandidate =
   | ImageCandidateOk
+  | ImageCandidateInternalOk
   | ImageCandidateUnApplied
   | ImageCandidateOthers;
 

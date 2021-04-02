@@ -10,7 +10,6 @@ import {INTERNAL_SOURCE} from '../utils';
 import StatusTooltip from './status/statusTooltip';
 import Actions from './actions';
 import Information from './information';
-import Processings from './processings';
 
 type Props = {
   candidate: ImageCandidate;
@@ -18,8 +17,10 @@ type Props = {
   organization: Organization;
   projectId: Project['slug'];
   baseUrl: string;
-  eventDateCreated: string;
+  haveCandidatesAtLeastOneAction: boolean;
+  hasReprocessWarning: boolean;
   onDelete: (debugFileId: string) => void;
+  eventDateReceived?: string;
 };
 
 function Candidate({
@@ -28,8 +29,10 @@ function Candidate({
   organization,
   projectId,
   baseUrl,
-  eventDateCreated,
+  haveCandidatesAtLeastOneAction,
+  hasReprocessWarning,
   onDelete,
+  eventDateReceived,
 }: Props) {
   const {source} = candidate;
   const isInternalSource = source === INTERNAL_SOURCE;
@@ -37,7 +40,7 @@ function Candidate({
   return (
     <React.Fragment>
       <Column>
-        <StatusTooltip candidate={candidate} />
+        <StatusTooltip candidate={candidate} hasReprocessWarning={hasReprocessWarning} />
       </Column>
 
       <InformationColumn>
@@ -45,24 +48,23 @@ function Candidate({
           candidate={candidate}
           builtinSymbolSources={builtinSymbolSources}
           isInternalSource={isInternalSource}
-          eventDateCreated={eventDateCreated}
+          eventDateReceived={eventDateReceived}
+          hasReprocessWarning={hasReprocessWarning}
         />
       </InformationColumn>
 
-      <Column>
-        <Processings candidate={candidate} />
-      </Column>
-
-      <ActionsColumn>
-        <Actions
-          onDelete={onDelete}
-          baseUrl={baseUrl}
-          projectId={projectId}
-          organization={organization}
-          candidate={candidate}
-          isInternalSource={isInternalSource}
-        />
-      </ActionsColumn>
+      {haveCandidatesAtLeastOneAction && (
+        <ActionsColumn>
+          <Actions
+            onDelete={onDelete}
+            baseUrl={baseUrl}
+            projectId={projectId}
+            organization={organization}
+            candidate={candidate}
+            isInternalSource={isInternalSource}
+          />
+        </ActionsColumn>
+      )}
     </React.Fragment>
   );
 }

@@ -20,6 +20,7 @@ import Filter from '../filter';
 
 import Status from './candidate/status';
 import Candidate from './candidate';
+import {INTERNAL_SOURCE} from './utils';
 
 const filterOptionCategories = {
   status: t('Status'),
@@ -36,9 +37,10 @@ type Props = {
   projectId: Project['id'];
   baseUrl: string;
   builtinSymbolSources: Array<BuiltinSymbolSource> | null;
-  onDelete: (debugId: string) => void;
   isLoading: boolean;
-  eventDateCreated: string;
+  hasReprocessWarning: boolean;
+  onDelete: (debugId: string) => void;
+  eventDateReceived?: string;
   imageStatus?: ImageStatus;
 };
 
@@ -294,10 +296,20 @@ class Candidates extends React.Component<Props, State> {
       onDelete,
       isLoading,
       candidates,
-      eventDateCreated,
+      eventDateReceived,
+      hasReprocessWarning,
     } = this.props;
 
     const {searchTerm, filterOptions, filteredCandidatesByFilter} = this.state;
+
+    const haveCandidatesOkOrDeletedDebugFile = candidates.some(
+      candidate =>
+        (candidate.download.status === CandidateDownloadStatus.OK &&
+          candidate.source === INTERNAL_SOURCE) ||
+        candidate.download.status === CandidateDownloadStatus.DELETED
+    );
+    const haveCandidatesAtLeastOneAction =
+      haveCandidatesOkOrDeletedDebugFile || hasReprocessWarning;
 
     return (
       <Wrapper>
@@ -330,7 +342,11 @@ class Candidates extends React.Component<Props, State> {
           )}
         </Header>
         <StyledPanelTable
-          headers={[t('Status'), t('Information'), t('Processing'), t('Actions')]}
+          headers={
+            haveCandidatesAtLeastOneAction
+              ? [t('Status'), t('Information'), '']
+              : [t('Status'), t('Information')]
+          }
           isEmpty={!filteredCandidatesByFilter.length}
           isLoading={isLoading}
           {...this.getEmptyMessage()}
@@ -343,7 +359,9 @@ class Candidates extends React.Component<Props, State> {
               organization={organization}
               baseUrl={baseUrl}
               projectId={projectId}
-              eventDateCreated={eventDateCreated}
+              eventDateReceived={eventDateReceived}
+              hasReprocessWarning={hasReprocessWarning}
+              haveCandidatesAtLeastOneAction={haveCandidatesAtLeastOneAction}
               onDelete={onDelete}
             />
           ))}
@@ -425,5 +443,12 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: max-content minmax(450px, 1fr) max-content max-content;
+  grid-template-columns: ${p =>
+    p.headers.length === 3 ? 'max-content 1fr max-content' : 'max-content 1fr'};
+
+  height: 100%;
+
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    overflow: visible;
+  }
 `;

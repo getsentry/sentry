@@ -1,64 +1,57 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import QuestionTooltip from 'app/components/questionTooltip';
-import space from 'app/styles/space';
+import Tag from 'app/components/tag';
 import {
   CandidateDownload,
   CandidateDownloadStatus,
-  CandidateFeatures,
+  ImageFeature,
 } from 'app/types/debugImage';
 
-import {getFeatureLabel} from '../utils';
+import {getImageFeatureDescription} from '../utils';
 
 type Props = {
   download: CandidateDownload;
 };
 
 function Features({download}: Props) {
+  let features: string[] = [];
+
   if (
-    download.status !== CandidateDownloadStatus.OK &&
-    download.status !== CandidateDownloadStatus.DELETED &&
-    download.status !== CandidateDownloadStatus.UNAPPLIED
+    download.status === CandidateDownloadStatus.OK ||
+    download.status === CandidateDownloadStatus.DELETED ||
+    download.status === CandidateDownloadStatus.UNAPPLIED
   ) {
-    return null;
-  }
-
-  const features = Object.entries(download.features).filter(([_key, value]) => value);
-
-  if (!features.length) {
-    return null;
+    features = Object.keys(download.features).filter(
+      feature => download.features[feature]
+    );
   }
 
   return (
-    <Wrapper>
-      {features.map(([key]) => {
-        const {label, description} = getFeatureLabel(key as keyof CandidateFeatures);
+    <React.Fragment>
+      {Object.keys(ImageFeature).map(imageFeature => {
+        const {label, description} = getImageFeatureDescription(
+          imageFeature as ImageFeature
+        );
+
+        const isDisabled = !features.includes(imageFeature);
+
         return (
-          <Feature key={key}>
+          <StyledTag
+            key={label}
+            disabled={isDisabled}
+            tooltipText={isDisabled ? undefined : description}
+          >
             {label}
-            <QuestionTooltip title={description} size="xs" />
-          </Feature>
+          </StyledTag>
         );
       })}
-    </Wrapper>
+    </React.Fragment>
   );
 }
 
 export default Features;
 
-const Wrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
-`;
-
-const Feature = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-column-gap: ${space(0.5)};
-  align-items: center;
-  padding-right: ${space(1.5)};
+const StyledTag = styled(Tag)<{disabled: boolean}>`
+  opacity: ${p => (p.disabled ? '0.35' : 1)};
 `;
