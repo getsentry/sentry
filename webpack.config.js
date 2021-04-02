@@ -375,8 +375,8 @@ let appConfig = {
     },
 
     fallback: {
-      vm: require.resolve('vm-browserify'),
-      stream: require.resolve('stream-browserify'),
+      vm: false,
+      stream: false,
       crypto: require.resolve('crypto-browserify'),
     },
 
