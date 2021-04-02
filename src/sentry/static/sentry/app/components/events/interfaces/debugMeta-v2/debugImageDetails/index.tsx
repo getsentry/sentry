@@ -347,7 +347,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
           </Content>
         </Body>
         <Footer>
-          <ButtonBar gap={1}>
+          <StyledButtonBar gap={1}>
             <Button
               href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
               external
@@ -365,7 +365,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
                 {t('Open in Settings')}
               </Button>
             )}
-          </ButtonBar>
+          </StyledButtonBar>
         </Footer>
       </React.Fragment>
     );
@@ -394,6 +394,10 @@ const FileName = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
+const StyledButtonBar = styled(ButtonBar)`
+  white-space: nowrap;
+`;
+
 export const modalCss = css`
   .modal-content {
     overflow: initial;
@@ -403,13 +407,6 @@ export const modalCss = css`
     .modal-dialog {
       width: 90%;
       margin-left: -45%;
-    }
-  }
-
-  @media (min-width: ${theme.breakpoints[2]}) {
-    .modal-dialog {
-      width: 80%;
-      margin-left: -40%;
     }
   }
 
