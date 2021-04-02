@@ -47,10 +47,6 @@ module.exports = ({config} = {config: emptyConfig}) => {
           include: [path.join(__dirname), staticPath, path.join(__dirname, '../docs-ui')],
         },
         {
-          test: /\.css$/,
-          use: ['style-loader', 'css-loader'],
-        },
-        {
           test: /\.less$/,
           use: ['style-loader', 'css-loader', 'less-loader'],
         },
@@ -86,9 +82,7 @@ module.exports = ({config} = {config: emptyConfig}) => {
         jQuery: 'jquery',
       }),
       new webpack.DefinePlugin({
-        'process.env': {
-          FIXED_DYNAMIC_CONTENT: true,
-        },
+        'process.env.FIXED_DYNAMIC_CONTENT': true,
       }),
     ],
 
