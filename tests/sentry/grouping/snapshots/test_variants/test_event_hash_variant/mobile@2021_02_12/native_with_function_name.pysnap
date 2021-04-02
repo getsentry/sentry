@@ -1,5 +1,5 @@
 ---
-created: '2021-03-08T16:39:06.173578Z'
+created: '2021-04-02T13:00:19.630109Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,7 +24,7 @@ app-depth-max:
             filename*
               "main.cpp"
             function*
-              "(anonymous namespace)::start"
+              "`anonymous namespace'::start"
           frame (non app frame)
             filename*
               "main.cpp"
@@ -41,7 +41,7 @@ app-depth-max:
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 system:
-  hash: "c29439027eafcf7642f641554ab0f0ef"
+  hash: "72e3ce74a0c25e3f14c8aaf34f875a3e"
   tree_label: "main"
   component:
     system*
@@ -56,7 +56,7 @@ system:
             filename*
               "main.cpp"
             function*
-              "(anonymous namespace)::start"
+              "`anonymous namespace'::start"
           frame*
             filename*
               "main.cpp"
