@@ -13,7 +13,7 @@ from sentry.utils.strings import unescape_string
 
 from .actions import Action, FlagAction, VarAction
 from .exceptions import InvalidEnhancerConfig
-from .matchers import Match, FrameMatch, RangeMatch
+from .matchers import Match, ExceptionFieldMatch, FrameMatch, RangeMatch
 
 
 # Grammar is defined in EBNF syntax.
@@ -256,11 +256,22 @@ class Enhancements:
 class Rule:
     def __init__(self, matchers, actions):
         self.matchers = matchers
+
+        self._exception_matchers = []
+        frame_matchers = []
+        other_matchers = []
+        for matcher in matchers:
+            if isinstance(matcher, ExceptionFieldMatch):
+                self._exception_matchers.append(matcher)
+            elif isinstance(matcher, FrameMatch):
+                frame_matchers.append(matcher)
+            else:
+                other_matchers.append(matcher)
+
         # FrameMatch matchers are faster than RangeMatch matchers, so apply
         # them first to bail out early.
-        self._sorted_matchers = sorted(
-            matchers, key=lambda m: 0 if isinstance(m, FrameMatch) else 1
-        )
+        self._sorted_matchers = frame_matchers + other_matchers
+
         self.actions = actions
         self.is_updater = any(action.is_updater for action in actions)
         self.is_modifier = any(action.is_modifier for action in actions)
@@ -285,8 +296,14 @@ class Rule:
         if not self.matchers:
             return []
 
+        # 1 - Check if exception matchers match
+        for m in self._exception_matchers:
+            if not m.matches_frame(frames, -1, platform, exception_data):
+                return []
+
         rv = []
 
+        # 2 - Check if frame matchers match
         for idx, frame in enumerate(frames):
             matches = True
             for m in self._sorted_matchers:
@@ -369,6 +386,7 @@ class EnhancmentsVisitor(NodeVisitor):
 
     def visit_frame_matcher(self, node, children):
         _, negation, ty, _, argument = children
+
         return FrameMatch.from_key(ty, argument, bool(negation))
 
     def visit_matcher_type(self, node, children):
