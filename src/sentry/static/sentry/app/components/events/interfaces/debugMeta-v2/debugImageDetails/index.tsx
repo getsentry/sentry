@@ -149,77 +149,109 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
       return candidates;
     }
 
-    const imageCandidates = candidates.map(({location, ...candidate}) => ({
+    const debugFileCandidates = candidates.map(({location, ...candidate}) => ({
       ...candidate,
       location: location?.includes(INTERNAL_SOURCE_LOCATION)
         ? location.split(INTERNAL_SOURCE_LOCATION)[1]
         : location,
     }));
 
-    // Check for unapplied candidates (debug files)
     const candidateLocations = new Set(
-      imageCandidates.map(({location}) => location).filter(location => !!location)
+      debugFileCandidates.map(({location}) => location).filter(location => !!location)
     );
 
-    const unAppliedCandidates = debugFiles
-      .filter(debugFile => !candidateLocations.has(debugFile.id))
-      .map(debugFile => {
+    const [unAppliedDebugFiles, appliedDebugFiles] = partition(
+      debugFiles,
+      debugFile => !candidateLocations.has(debugFile.id)
+    );
+
+    const unAppliedCandidates = unAppliedDebugFiles.map(debugFile => {
+      const {
+        data,
+        symbolType,
+        objectName: filename,
+        id: location,
+        size,
+        dateCreated,
+        cpuName,
+      } = debugFile;
+
+      const features = data?.features ?? [];
+
+      return {
+        download: {
+          status: CandidateDownloadStatus.UNAPPLIED,
+          features: {
+            has_sources: features.includes(DebugFileFeature.SOURCES),
+            has_debug_info: features.includes(DebugFileFeature.DEBUG),
+            has_unwind_info: features.includes(DebugFileFeature.UNWIND),
+            has_symbols: features.includes(DebugFileFeature.SYMTAB),
+          },
+        },
+        cpuName,
+        location,
+        filename,
+        size,
+        dateCreated,
+        symbolType,
+        fileType: getFileType(debugFile),
+        source: INTERNAL_SOURCE,
+        source_name: t('Sentry'),
+      };
+    });
+
+    const [debugFileInternalOkCandidates, debugFileOtherCandidates] = partition(
+      debugFileCandidates,
+      debugFileCandidate =>
+        debugFileCandidate.download.status === CandidateDownloadStatus.OK &&
+        debugFileCandidate.source === INTERNAL_SOURCE
+    );
+
+    const convertedDebugFileInternalOkCandidates = debugFileInternalOkCandidates.map(
+      debugFileOkCandidate => {
+        const internalDebugFileInfo = appliedDebugFiles.find(
+          appliedDebugFile => appliedDebugFile.id === debugFileOkCandidate.location
+        );
+
+        if (!internalDebugFileInfo) {
+          return {
+            ...debugFileOkCandidate,
+            download: {
+              ...debugFileOkCandidate.download,
+              status: CandidateDownloadStatus.DELETED,
+            },
+          };
+        }
+
         const {
-          data,
           symbolType,
           objectName: filename,
           id: location,
           size,
           dateCreated,
           cpuName,
-        } = debugFile;
-
-        const features = data?.features ?? [];
+        } = internalDebugFileInfo;
 
         return {
-          download: {
-            status: CandidateDownloadStatus.UNAPPLIED,
-            features: {
-              has_sources: features.includes(DebugFileFeature.SOURCES),
-              has_debug_info: features.includes(DebugFileFeature.DEBUG),
-              has_unwind_info: features.includes(DebugFileFeature.UNWIND),
-              has_symbols: features.includes(DebugFileFeature.SYMTAB),
-            },
-          },
+          ...debugFileOkCandidate,
           cpuName,
           location,
           filename,
           size,
           dateCreated,
           symbolType,
-          fileType: getFileType(debugFile),
-          source: INTERNAL_SOURCE,
-          source_name: t('Sentry'),
-        };
-      }) as ImageCandidates;
-
-    // Check for deleted candidates (debug files)
-    const debugFileIds = new Set(debugFiles.map(debugFile => debugFile.id));
-
-    const convertedCandidates = imageCandidates.map(candidate => {
-      if (
-        candidate.source === INTERNAL_SOURCE &&
-        candidate.location &&
-        !debugFileIds.has(candidate.location) &&
-        candidate.download.status === CandidateDownloadStatus.OK
-      ) {
-        return {
-          ...candidate,
-          download: {
-            ...candidate.download,
-            status: CandidateDownloadStatus.DELETED,
-          },
+          fileType: getFileType(internalDebugFileInfo),
         };
       }
-      return candidate;
-    }) as ImageCandidates;
+    );
 
-    return this.sortCandidates(convertedCandidates, unAppliedCandidates);
+    return this.sortCandidates(
+      [
+        ...convertedDebugFileInternalOkCandidates,
+        ...debugFileOtherCandidates,
+      ] as ImageCandidates,
+      unAppliedCandidates as ImageCandidates
+    );
   }
 
   handleDelete = async (debugId: string) => {
@@ -251,10 +283,6 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     return `/settings/${orgSlug}/projects/${projectId}/debug-symbols/?query=${debugId}`;
   }
 
-  renderLoading() {
-    return this.renderBody();
-  }
-
   renderBody() {
     const {
       Header,
@@ -269,15 +297,17 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     const {loading, builtinSymbolSources} = this.state;
 
     const {code_file, status} = image ?? {};
-
     const debugFilesSettingsLink = this.getDebugFilesSettingsLink();
     const candidates = this.getCandidates();
     const baseUrl = this.api.baseUrl;
-
     const fileName = getFileName(code_file);
     const haveCandidatesUnappliedDebugFile = candidates.some(
       candidate => candidate.download.status === CandidateDownloadStatus.UNAPPLIED
     );
+    const hasReprocessWarning =
+      haveCandidatesUnappliedDebugFile &&
+      displayReprocessEventAction(organization.features, event) &&
+      !!onReprocessEvent;
 
     return (
       <React.Fragment>
@@ -289,21 +319,19 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
         </Header>
         <Body>
           <Content>
+            {hasReprocessWarning && (
+              <AlertLink
+                priority="warning"
+                size="small"
+                onClick={onReprocessEvent}
+                withoutMarginBottom
+              >
+                {t(
+                  'You’ve uploaded new debug files. Reprocess events in this issue to view a better stack trace'
+                )}
+              </AlertLink>
+            )}
             <GeneralInfo image={image} />
-            {haveCandidatesUnappliedDebugFile &&
-              displayReprocessEventAction(organization.features, event) &&
-              onReprocessEvent && (
-                <AlertLink
-                  priority="info"
-                  size="small"
-                  withoutMarginBottom
-                  onClick={onReprocessEvent}
-                >
-                  {t(
-                    'You’ve uploaded new debug files. Reprocess events to apply that information'
-                  )}
-                </AlertLink>
-              )}
             <Candidates
               imageStatus={status}
               candidates={candidates}
@@ -311,9 +339,10 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
               projectId={projectId}
               baseUrl={baseUrl}
               isLoading={loading}
-              eventDateCreated={event.dateCreated}
+              eventDateReceived={event.dateReceived}
               builtinSymbolSources={builtinSymbolSources}
               onDelete={this.handleDelete}
+              hasReprocessWarning={hasReprocessWarning}
             />
           </Content>
         </Body>
@@ -347,25 +376,22 @@ export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(4)};
+  grid-gap: ${space(3)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-gap: ${space(1)};
   align-items: center;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   max-width: calc(100% - 40px);
   word-break: break-all;
 `;
 
 const FileName = styled('span')`
-  font-size: ${p => p.theme.fontSizeLarge};
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.gray400};
-  font-weight: 500;
 `;
 
 export const modalCss = css`
@@ -375,22 +401,22 @@ export const modalCss = css`
 
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
-      width: 80%;
-      margin-left: -40%;
+      width: 90%;
+      margin-left: -45%;
     }
   }
 
   @media (min-width: ${theme.breakpoints[2]}) {
     .modal-dialog {
-      width: 70%;
-      margin-left: -35%;
+      width: 80%;
+      margin-left: -40%;
     }
   }
 
   @media (min-width: ${theme.breakpoints[3]}) {
     .modal-dialog {
-      width: 60%;
-      margin-left: -30%;
+      width: 70%;
+      margin-left: -35%;
     }
   }
 
