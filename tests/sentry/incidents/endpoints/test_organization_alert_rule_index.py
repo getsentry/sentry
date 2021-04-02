@@ -452,7 +452,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         next_cursor = links[1]["cursor"]
         # Test Limit as 1, next page of previous request:
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"cursor": next_cursor, "per_page": "1", "project": self.project.id}
+            request_data = {
+                "cursor": next_cursor,
+                "per_page": "1",
+                "project": self.project.id,
+                "sort": "name",
+                "asc": 1,
+            }
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )

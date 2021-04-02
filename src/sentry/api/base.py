@@ -289,6 +289,7 @@ class Endpoint(APIView):
         paginator_cls=Paginator,
         default_per_page=100,
         max_per_page=100,
+        cursor_cls=Cursor,
         **paginator_kwargs,
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
@@ -298,7 +299,7 @@ class Endpoint(APIView):
         input_cursor = None
         if request.GET.get("cursor"):
             try:
-                input_cursor = Cursor.from_string(request.GET.get("cursor"))
+                input_cursor = cursor_cls.from_string(request.GET.get("cursor"))
             except ValueError:
                 raise ParseError(detail="Invalid cursor parameter.")
 

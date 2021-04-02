@@ -22,6 +22,7 @@ from sentry.models import (
     OrganizationMemberTeam,
     Team,
 )
+from sentry.utils.cursors import StringCursor, Cursor
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
@@ -116,6 +117,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             default_per_page=25,
             intermediaries=[alert_rule_intermediary, rule_intermediary],
             desc=not is_asc,
+            cursor_cls=StringCursor if case_insensitive_sort else Cursor,
         )
 
 
