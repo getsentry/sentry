@@ -2,6 +2,8 @@ import logging
 from datetime import timedelta
 from itertools import chain
 from uuid import uuid4
+import time
+import math
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -145,6 +147,10 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     groupingConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     groupingEnhancements = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     fingerprintingRules = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    secondaryGroupingConfig = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    secondaryGroupingExpiry = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
     resolveAge = EmptyIntegerField(required=False, allow_null=True)
@@ -246,6 +252,18 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
             raise serializers.ValidationError(str(e))
+
+        return value
+
+    def validate_secondaryGroupingExpiry(self, value):
+        if not isinstance(value, (int, float)) or math.isnan(value):
+            raise serializers.ValidationError(
+                f"Grouping expiry must be a numerical value, a UNIX timestamp with second resolution, found {type(value)}"
+            )
+        if 0 < value - time.time() < (91 * 24 * 3600):
+            raise serializers.ValidationError(
+                "Grouping expiry must be sometime within the next 90 days and not in the past. Perhaps you specified the timestamp not in seconds?"
+            )
 
         return value
 
@@ -463,6 +481,21 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("fingerprintingRules") is not None:
             if project.update_option("sentry:fingerprinting_rules", result["fingerprintingRules"]):
                 changed_proj_settings["sentry:fingerprinting_rules"] = result["fingerprintingRules"]
+        if result.get("secondaryGroupingConfig") is not None:
+            if project.update_option(
+                "sentry:secondary_grouping_config", result["secondaryGroupingConfig"]
+            ):
+                changed_proj_settings["sentry:secondary_grouping_config"] = result[
+                    "secondaryGroupingConfig"
+                ]
+
+        if result.get("secondaryGroupingExpiry") is not None:
+            if project.update_option(
+                "sentry:secondary_grouping_expiry", result["secondaryGroupingConfig"]
+            ):
+                changed_proj_settings["sentry:secondary_grouping_expiry"] = result[
+                    "secondaryGroupingExpiry"
+                ]
         if result.get("securityToken") is not None:
             if project.update_option("sentry:token", result["securityToken"]):
                 changed_proj_settings["sentry:token"] = result["securityToken"]

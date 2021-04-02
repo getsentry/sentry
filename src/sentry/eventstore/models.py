@@ -410,12 +410,12 @@ class Event:
                 config = force_config
 
         # Otherwise we just use the same grouping config as stored.  if
-        # this is None the `get_grouping_variants_for_event` will fill in
-        # the default.
+        # this is None we use the project's default config.
         else:
-            config = self.data.get("grouping_config")
+            config = self.get_grouping_config()
 
         config = load_grouping_config(config)
+
         if normalize_stacktraces:
             normalize_stacktraces_for_grouping(self.data, config)
 

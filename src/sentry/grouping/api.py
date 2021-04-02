@@ -27,7 +27,7 @@ class GroupingConfigNotFound(LookupError):
     pass
 
 
-def get_grouping_config_dict_for_project(project, silent=True):
+def get_grouping_config_dict_for_project(project, silent=True, secondary=False):
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -35,7 +35,10 @@ def get_grouping_config_dict_for_project(project, silent=True):
     This is called early on in normalization so that everything that is needed
     to group the project is pulled into the event.
     """
-    config_id = project.get_option("sentry:grouping_config", validate=lambda x: x in CONFIGURATIONS)
+    config_id = project.get_option(
+        "sentry:grouping_config" if not secondary else "sentry:secondary_grouping_config",
+        validate=lambda x: x in CONFIGURATIONS,
+    )
 
     # At a later point we might want to store additional information here
     # such as frames that mark the end of a stacktrace and more.
@@ -47,10 +50,13 @@ def get_grouping_config_dict_for_event_data(data, project):
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
-def _get_project_enhancements_config(project):
+def _get_project_enhancements_config(project, secondary=False):
     enhancements = project.get_option("sentry:grouping_enhancements")
 
-    config_id = project.get_option("sentry:grouping_config", validate=lambda x: x in CONFIGURATIONS)
+    config_id = project.get_option(
+        "sentry:grouping_config" if not secondary else "sentry:secondary_grouping_config",
+        validate=lambda x: x in CONFIGURATIONS,
+    )
     enhancements_base = CONFIGURATIONS[config_id].enhancements_base
 
     # Instead of parsing and dumping out config here, we can make a
@@ -58,9 +64,8 @@ def _get_project_enhancements_config(project):
     from sentry.utils.cache import cache
     from sentry.utils.hashlib import md5_text
 
-    cache_key = (
-        "grouping-enhancements:" + md5_text(f"{enhancements_base}|{enhancements}").hexdigest()
-    )
+    cache_prefix = "grouping-enhancements:" if not secondary else "secondary-grouping-enhancements:"
+    cache_key = cache_prefix + md5_text(f"{enhancements_base}|{enhancements}").hexdigest()
     rv = cache.get(cache_key)
     if rv is not None:
         return rv

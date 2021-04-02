@@ -28,6 +28,14 @@ register(key="sentry:grouping_enhancements", default="")
 # server side fingerprinting defaults.
 register(key="sentry:fingerprinting_rules", default="")
 
+# Secondary grouping setup to run in addition for transition phase.
+#
+# To ensure we minimize unnecessary load, we ttl the secondary grouping setup
+# to 90 days, as that's when all groups should have hashes associated with
+# them.
+register(key="sentry:secondary_grouping_expiry", default=0)
+register(key="sentry:secondary_grouping_config", default=None)
+
 # The JavaScript loader version that is the project default.  This option
 # is expected to be never set but the epoch defaults are used if no
 # version is set on a project's DSN.
