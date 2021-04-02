@@ -105,7 +105,7 @@ function WidgetQueryFields({
   // data source is from an endpoint that is not timeseries-based.
   // The function/field choice for World Map widget will need to be numeric-like.
   // Column builder for Table widget is already handled above.
-  const doNotValidateYAxis = ['big_number'].includes(displayType);
+  const doNotValidateYAxis = displayType === 'big_number';
 
   return (
     <Field
@@ -125,7 +125,8 @@ function WidgetQueryFields({
             fieldOptions={fieldOptions}
             onChange={value => handleChangeField(value, i)}
             filterPrimaryOptions={option => {
-              // Only validate functions for timeseries widgets.
+              // Only validate function parameters for timeseries widgets and
+              // world map widgets.
               if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
                 const primaryOutput = aggregateFunctionOutputType(
                   option.value.meta.name,
