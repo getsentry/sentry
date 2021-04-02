@@ -559,7 +559,7 @@ class CombinedQuerysetPaginator:
             value_type = type(value)
             if value_type is float:
                 return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
-            elif value_type is str:
+            elif value_type is str and self.case_insensitive:
                 return value.lower()
             return value
 
