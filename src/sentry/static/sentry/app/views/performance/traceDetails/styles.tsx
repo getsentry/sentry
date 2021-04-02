@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
 import {SpanBarTitle} from 'app/components/events/interfaces/spans/spanBar';
+import {SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
@@ -39,7 +40,6 @@ export {
 export {
   SPAN_ROW_HEIGHT as TRANSACTION_ROW_HEIGHT,
   SPAN_ROW_PADDING as TRANSACTION_ROW_PADDING,
-  SpanRow as TransactionRow,
   SpanRowMessage as TransactionRowMessage,
 } from 'app/components/events/interfaces/spans/styles';
 
@@ -57,6 +57,7 @@ export const TraceDetailHeader = styled('div')`
   grid-template-columns: repeat(3, 1fr);
   grid-gap: ${space(2)};
   margin-top: ${space(2)};
+  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;
@@ -81,6 +82,10 @@ export const StyledPanel = styled(Panel)`
 export const StyledIconChevron = styled(IconChevron)`
   width: 7px;
   margin-left: ${space(0.25)};
+`;
+
+export const TransactionRow = styled(SpanRow)<{cursor: 'pointer' | 'default'}>`
+  cursor: ${p => p.cursor};
 `;
 
 export const TransactionBarTitle = styled(SpanBarTitle)`

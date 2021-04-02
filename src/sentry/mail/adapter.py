@@ -1,10 +1,11 @@
 import itertools
 import logging
+from enum import Enum
+from typing import Set
 
 from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
-from enum import Enum
 
 from sentry import digests, options
 from sentry.digests import get_option_key as get_digest_option_key
@@ -16,19 +17,20 @@ from sentry.models import (
     GroupSubscription,
     GroupSubscriptionReason,
     Integration,
+    Project,
     ProjectOption,
     ProjectOwnership,
     Release,
     Team,
     User,
 )
-from sentry.plugins.base.structs import Notification
 from sentry.plugins.base import plugins
+from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
-from sentry.utils import metrics, json
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
-from sentry.utils.email import group_id_to_email, MessageBuilder
+from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
@@ -218,7 +220,8 @@ class MailAdapter:
             )
             return self.get_send_to_all_in_project(project)
 
-    def disabled_users_from_project(self, project):
+    def disabled_users_from_project(self, project: Project) -> Set[User]:
+        """ Get a set of users that have disabled Issue Alert notifications for a given project. """
         alert_settings = project.get_member_alert_settings(self.alert_option_key)
         disabled_users = {user for user, setting in alert_settings.items() if setting == 0}
         return disabled_users

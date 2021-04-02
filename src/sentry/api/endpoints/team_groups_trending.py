@@ -1,10 +1,11 @@
 from datetime import timedelta
+
 from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
-from sentry.api.serializers import serialize, GroupSerializer
+from sentry.api.serializers import GroupSerializer, serialize
 from sentry.models import Group, GroupStatus, Project
 
 

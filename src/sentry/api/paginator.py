@@ -1,16 +1,15 @@
 import bisect
 import functools
 import math
-
 from datetime import datetime
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import connections
 from django.db.models.sql.datastructures import EmptyResultSet
 from django.utils import timezone
 
-from sentry.utils.cursors import build_cursor, Cursor, CursorResult
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
+from sentry.utils.compat import map, zip
+from sentry.utils.cursors import Cursor, CursorResult, build_cursor
 
 quote_name = connections["default"].ops.quote_name
 

@@ -27,13 +27,13 @@ class CacheKVStorage(KVStorage[Any, Any]):
         self.backend = backend
 
     def get(self, key: Any) -> Optional[Any]:
-        return self.backend.get(key)  # type: ignore
+        return self.backend.get(key)
 
     def set(self, key: Any, value: Any, ttl: Optional[timedelta] = None) -> None:
-        self.backend.set(key, value, timeout=int(ttl.total_seconds()) if ttl is not None else None)  # type: ignore
+        self.backend.set(key, value, timeout=int(ttl.total_seconds()) if ttl is not None else None)
 
     def delete(self, key: Any) -> None:
-        self.backend.delete(key)  # type: ignore
+        self.backend.delete(key)
 
     def bootstrap(self) -> None:
         # Nothing to do in this method: the backend is expected to either not

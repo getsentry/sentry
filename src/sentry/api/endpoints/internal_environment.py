@@ -1,11 +1,11 @@
 import sys
 
-from rest_framework.response import Response
 from django.conf import settings
+from rest_framework.response import Response
 
-from sentry.app import env
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
+from sentry.app import env
 
 
 class InternalEnvironmentEndpoint(Endpoint):

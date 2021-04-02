@@ -1010,7 +1010,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             "totals": True,
             "turbo": False,
             "sample": 1,
-            "use_snql": False,
+            "use_snql": None,
         }
 
         self.make_query(search_filter_query="status:unresolved")

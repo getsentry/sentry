@@ -809,3 +809,10 @@ export function fieldAlignment(
   }
   return align;
 }
+
+/**
+ * Match on types that are legal to show on a timeseries chart.
+ */
+export function isLegalYAxisType(match: ColumnType) {
+  return ['number', 'integer', 'duration', 'percentage'].includes(match);
+}

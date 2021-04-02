@@ -6,8 +6,10 @@ import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
+  aggregateFunctionOutputType,
   explodeField,
   generateFieldAsString,
+  isLegalYAxisType,
   QueryFieldValue,
 } from 'app/utils/discover/fields';
 import {Widget} from 'app/views/dashboardsV2/types';
@@ -99,6 +101,11 @@ function WidgetQueryFields({
     (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
       fields.length === 3);
 
+  // Any column choice for World Map and Big Number widgets is legal since the
+  // data source is from an endpoint that is not timeseries-based.
+  // Column builder for Table widget is already handled above.
+  const doNotValidateYAxis = ['world_map', 'big_number'].includes(displayType);
+
   return (
     <Field
       data-test-id="y-axis"
@@ -117,7 +124,32 @@ function WidgetQueryFields({
             fieldOptions={fieldOptions}
             onChange={value => handleChangeField(value, i)}
             filterPrimaryOptions={option => {
+              // Only validate functions for timeseries widgets.
+              if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
+                const primaryOutput = aggregateFunctionOutputType(
+                  option.value.meta.name,
+                  undefined
+                );
+                if (primaryOutput) {
+                  // If a function returns a specific type, then validate it.
+                  return isLegalYAxisType(primaryOutput);
+                }
+              }
+
               return option.value.kind === FieldValueKind.FUNCTION;
+            }}
+            filterAggregateParameters={option => {
+              // Only validate function parameters for timeseries widgets.
+              if (doNotValidateYAxis) {
+                return true;
+              }
+
+              if (option.value.kind === FieldValueKind.FUNCTION) {
+                // Functions are not legal options as an aggregate/function parameter.
+                return false;
+              }
+
+              return isLegalYAxisType(option.value.meta.dataType);
             }}
           />
           {fields.length > 1 && (

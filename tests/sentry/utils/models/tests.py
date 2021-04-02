@@ -20,24 +20,6 @@ class DummyModel(Model):
 
 
 class ModelTest(TestCase):
-    def test_foo_hasnt_changed_on_init(self):
-        inst = DummyModel(id=1, foo="bar")
-        self.assertFalse(inst.has_changed("foo"))
-
-    def test_foo_has_changes_before_save(self):
-        inst = DummyModel(id=1, foo="bar")
-        inst.foo = "baz"
-        self.assertTrue(inst.has_changed("foo"))
-        self.assertEquals(inst.old_value("foo"), "bar")
-
-    def test_foo_hasnt_changed_after_save(self):
-        inst = DummyModel(id=1, foo="bar")
-        inst.foo = "baz"
-        self.assertTrue(inst.has_changed("foo"))
-        self.assertEquals(inst.old_value("foo"), "bar")
-        models.signals.post_save.send(instance=inst, sender=type(inst), created=False)
-        self.assertFalse(inst.has_changed("foo"))
-
     def test_large_int(self):
         with self.assertRaises(AssertionError):
             DummyModel.objects.create(normint=int(9223372036854775807), foo="bar")

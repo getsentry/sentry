@@ -1,6 +1,8 @@
 import logging
 import posixpath
 
+from typing import Set
+
 from sentry.lang.native.error import write_error, SymbolicationFailed
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.lang.native.utils import (
@@ -421,3 +423,12 @@ def get_symbolication_function(data):
 
 def should_process_with_symbolicator(data):
     return bool(get_symbolication_function(data))
+
+
+def get_required_attachment_types(data) -> Set[str]:
+    if is_minidump_event(data):
+        return {MINIDUMP_ATTACHMENT_TYPE}
+    elif is_applecrashreport_event(data):
+        return {APPLECRASHREPORT_ATTACHMENT_TYPE}
+    else:
+        return set()
