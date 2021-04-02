@@ -29,7 +29,7 @@ class Action:
     is_modifier = False
     is_updater = False
 
-    def apply_modifications_to_frame(self, frames, idx, rule=None, match_cache=None):
+    def apply_modifications_to_frame(self, frames, idx, rule=None):
         pass
 
     def update_frame_components_contributions(self, components, frames, idx, rule=None):
@@ -85,7 +85,7 @@ class FlagAction(Action):
         else:
             return self.flag == component.contributes
 
-    def apply_modifications_to_frame(self, frames, idx, rule=None, match_cache=None):
+    def apply_modifications_to_frame(self, frames, idx, rule=None):
         # Grouping is not stored on the frame
         if self.key == "group":
             return
@@ -158,8 +158,7 @@ class VarAction(Action):
         if self.var not in VarAction._FRAME_VARIABLES:
             state.set(self.var, self.value, rule)
 
-    def apply_modifications_to_frame(self, frames, idx, rule=None, match_cache=None):
+    def apply_modifications_to_frame(self, frames, idx, rule=None):
         if self.var == "category":
             frame = frames[idx]
             set_path(frame, "data", "category", value=self.value)
-            match_cache.remove(idx, self.var)
