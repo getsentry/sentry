@@ -87,6 +87,7 @@ tags.sku_class:enterprise #enterprise`;
         />
         <PermissionAlert />
         <RulesPanel
+          data-test-id="issueowners-panel"
           type="issueowners"
           raw={ownership.raw || ''}
           dateUpdated={ownership.lastUpdated}

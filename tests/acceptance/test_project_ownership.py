@@ -10,6 +10,5 @@ class ProjectOwnershipTest(AcceptanceTestCase):
     def test_simple(self):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
-        self.browser.wait_until('[name="select-type"]')
-        self.browser.wait_until_not(".Select-loading")
+        self.browser.wait_until_test_id("issueowners-panel")
         self.browser.snapshot("project ownership")
