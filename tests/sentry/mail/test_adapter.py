@@ -137,7 +137,7 @@ class MailAdapterGetSendToTest(BaseMailAdapterTest, TestCase):
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
-    def test_get_sendable_users(self):
+    def test_get_sendable_user_objects(self):
         user = self.create_user(email="foo@example.com", is_active=True)
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_user(email="baz2@example.com", is_active=True)
@@ -158,7 +158,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
         self.create_member(user=user2, organization=organization, teams=[team])
 
         # all members
-        users = self.adapter.get_sendable_users(project)
+        users = self.adapter.get_sendable_user_objects(project)
         assert sorted({user.id, user2.id}) == sorted([user.id for user in users])
 
         # disabled user2
@@ -170,11 +170,11 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
             project=project,
         )
 
-        assert user2 not in self.adapter.get_sendable_users(project)
+        assert user2 not in self.adapter.get_sendable_user_objects(project)
 
         user4 = User.objects.create(username="baz4", email="bar@example.com", is_active=True)
         self.create_member(user=user4, organization=organization, teams=[team])
-        assert user4 in self.adapter.get_sendable_users(project)
+        assert user4 in self.adapter.get_sendable_user_objects(project)
 
         # disabled by default user4
         NotificationSetting.objects.update_settings(
@@ -184,7 +184,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
             user=user4,
         )
 
-        assert user4 not in self.adapter.get_sendable_users(project)
+        assert user4 not in self.adapter.get_sendable_user_objects(project)
 
         NotificationSetting.objects.remove_settings(
             ExternalProviders.EMAIL,
@@ -199,7 +199,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
             user=user4,
         )
 
-        assert user4 not in self.adapter.get_sendable_users(project)
+        assert user4 not in self.adapter.get_sendable_user_objects(project)
 
 
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest, TestCase):

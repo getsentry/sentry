@@ -128,7 +128,7 @@ class NotificationPlugin(Plugin):
 
         return member_set
 
-    def get_sendable_users(self, project):
+    def get_sendable_user_objects(self, project):
         """
         Return a collection of user IDs that are eligible to receive
         notifications for the provided project.

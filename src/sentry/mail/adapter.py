@@ -150,7 +150,8 @@ class MailAdapter:
         if message is not None:
             return message.send_async()
 
-    def get_sendable_users(self, project):
+    @staticmethod
+    def get_sendable_user_objects(project):
         """
         Return a collection of USERS that are eligible to receive
         notifications for the provided project.
@@ -159,11 +160,17 @@ class MailAdapter:
             ExternalProviders.EMAIL, project
         )
 
+    def get_sendable_users(self, project):
+        users = self.get_sendable_user_objects(project)
+        return [user.id for user in users]
+
     def should_notify(self, target_type, group):
         metrics.incr("mail_adapter.should_notify")
         # only notify if we have users to notify. We always want to notify if targeting
         # a member directly.
-        return target_type == ActionTargetType.MEMBER or self.get_sendable_users(group.project)
+        return target_type == ActionTargetType.MEMBER or self.get_sendable_user_objects(
+            group.project
+        )
 
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
@@ -291,7 +298,7 @@ class MailAdapter:
         cache_key = f"mail:send_to:{project.pk}"
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
-            users = self.get_sendable_users(project)
+            users = self.get_sendable_user_objects(project)
             send_to_list = [user.id for user in users if user]
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache
 
