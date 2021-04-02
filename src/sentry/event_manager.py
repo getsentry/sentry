@@ -333,15 +333,19 @@ class EventManager:
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
-        secondary_event = None
+        secondary_flat_hashes = []
 
-        if (project.get_option("sentry:secondary_grouping_expiry") or 0) >= time.time():
-            with metrics.timer("event_manager.secondary_grouping"):
-                secondary_event = copy.deepcopy(job["event"])
-                secondary_grouping_config = get_grouping_config_dict_for_project(
-                    project, secondary=True
-                )
-                _calculate_event_grouping(project, secondary_event, secondary_grouping_config)
+        try:
+            if (project.get_option("sentry:secondary_grouping_expiry") or 0) >= time.time():
+                with metrics.timer("event_manager.secondary_grouping"):
+                    secondary_event = copy.deepcopy(job["event"])
+                    secondary_grouping_config = get_grouping_config_dict_for_project(
+                        project, secondary=True
+                    )
+                    _calculate_event_grouping(project, secondary_event, secondary_grouping_config)
+                    secondary_flat_hashes.extend(secondary_event.data["hashes"])
+        except Exception:
+            sentry_sdk.capture_exception()
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -352,9 +356,7 @@ class EventManager:
 
         _calculate_event_grouping(project, job["event"], grouping_config)
 
-        flat_hashes = job["event"].data["hashes"] + (
-            secondary_event.data["hashes"] if secondary_event else []
-        )
+        flat_hashes = job["event"].data["hashes"] + secondary_flat_hashes
         hierarchical_hashes = job["event"].data.get("hierarchical_hashes") or []
 
         _materialize_metadata_many(jobs)
