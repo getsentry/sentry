@@ -25,7 +25,7 @@ REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
 class Action:
-    def apply_modifications_to_frame(self, frames, idx, rule=None):
+    def apply_modifications_to_frame(self, frames, idx, rule=None, match_cache=None):
         pass
 
     def update_frame_components_contributions(self, components, frames, idx, rule=None):
@@ -79,7 +79,7 @@ class FlagAction(Action):
         else:
             return self.flag == component.contributes
 
-    def apply_modifications_to_frame(self, frames, idx, rule=None):
+    def apply_modifications_to_frame(self, frames, idx, rule=None, match_cache=None):
         # Grouping is not stored on the frame
         if self.key == "group":
             return
@@ -150,7 +150,8 @@ class VarAction(Action):
         if self.var not in VarAction._FRAME_VARIABLES:
             state.set(self.var, self.value, rule)
 
-    def apply_modifications_to_frame(self, frames, idx, rule=None):
+    def apply_modifications_to_frame(self, frames, idx, rule=None, match_cache=None):
         if self.var == "category":
             frame = frames[idx]
             set_path(frame, "data", "category", value=self.value)
+            match_cache.remove(idx, self.var)

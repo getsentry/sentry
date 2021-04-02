@@ -52,6 +52,7 @@ MATCHERS = {
 
 class Match:
     description = None
+    keys = tuple()
 
     def matches_frame(self, frames, idx, platform, exception_data):
         raise NotImplementedError()
@@ -120,6 +121,7 @@ class FrameMatch(Match):
         super().__init__()
         try:
             self.key = MATCHERS[key]
+            self.keys = (self.key,)
         except KeyError:
             raise InvalidEnhancerConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
@@ -258,6 +260,12 @@ class RangeMatch(Match):
         self.end = end
         self.start_neighbouring = start_neighbouring
         self.end_neighbouring = end_neighbouring
+
+        self.keys = tuple()
+        if self.start:
+            self.keys += self.start.keys
+        if self.end:
+            self.keys += self.end.keys
 
     @property
     def description(self):

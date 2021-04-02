@@ -1,10 +1,10 @@
+from collections import defaultdict
+from typing import Optional
 import os
 import zlib
 import base64
 import msgpack
 import inspect
-
-from collections import defaultdict
 
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
@@ -92,6 +92,29 @@ class StacktraceState:
         return f"{hint} by stack trace rule ({description})"
 
 
+class MatchCache:
+    def __init__(self):
+        self._caches = defaultdict(dict)
+        self._types = defaultdict(list)
+
+    def get(self, frame_idx: int, matcher: Match) -> Optional[bool]:
+        cache = self._caches[frame_idx]
+        matcher_id = id(matcher)
+        if matcher_id in cache:
+            return cache[matcher_id]
+
+    def set(self, frame_idx: int, matcher: Match, value: bool):
+        for key in matcher.keys:
+            self._types[key].append(id(matcher))
+        self._caches[frame_idx][id(matcher)] = value
+
+    def remove(self, frame_idx: int, matcher_key: str):
+        """Invalidates all cache entries of the given matcher type. """
+        cache = self._caches[frame_idx]
+        for matcher_id in self._types[matcher_key]:
+            cache.pop(matcher_id, None)
+
+
 class Enhancements:
     def __init__(self, rules, changelog=None, version=None, bases=None, id=None):
         self.id = id
@@ -104,57 +127,25 @@ class Enhancements:
             bases = []
         self.bases = bases
 
-        self._matchers, self._rules_by_matcher = self._populate_matchers()
-
-    def _populate_matchers(self):
-        matchers = {}
-        rules_by_matcher = defaultdict(list)
-        for rule in self.iter_rules():
-            for matcher in rule.matchers:
-                rules_by_matcher[id(matcher)].append(rule)
-                matchers[id(matcher)] = matcher
-
-        matchers = sorted(matchers.values(), key=lambda m: 0 if isinstance(m, FrameMatch) else 1)
-
-        return matchers, rules_by_matcher
-
-    def _iter_matching_rules(self, frames, idx, platform, exception_data):
-        unmatched_rules = set()
-        rules_by_matcher = self._rules_by_matcher
-        remaining_rules_per_matcher = {
-            id(matcher): len(rules_by_matcher[id(matcher)]) for matcher in self._matchers
-        }
-        for matcher in self._matchers:
-
-            if remaining_rules_per_matcher[id(matcher)] <= 0:
-                continue
-
-            if not matcher.matches_frame(frames, idx, platform, exception_data):
-                # Can put all rules which use this matcher on the blocklist:
-                for rule in rules_by_matcher[id(matcher)]:
-                    unmatched_rules.add(id(rule))
-                    for matcher in rule.matchers:
-                        remaining_rules_per_matcher[id(matcher)] -= 1
-
-        for rule in self.iter_rules():
-            if rule.matchers and id(rule) not in unmatched_rules:
-                for action in rule.actions:
-                    yield action, rule
-
     def apply_modifications_to_frame(self, frames, platform, exception_data):
         """This applies the frame modifications to the frames itself.  This
         does not affect grouping.
         """
-        for idx, _ in enumerate(frames):
-            for action, rule in self._iter_matching_rules(frames, idx, platform, exception_data):
-                action.apply_modifications_to_frame(frames, idx, rule=rule)
+        match_cache = MatchCache()
+        for rule in self.iter_rules():
+            for idx, action in rule.get_matching_frame_actions(
+                frames, platform, exception_data, match_cache
+            ):
+                action.apply_modifications_to_frame(frames, idx, rule=rule, match_cache=match_cache)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         stacktrace_state = StacktraceState()
-
+        match_cache = MatchCache()
         # Apply direct frame actions and update the stack state alongside
-        for idx, _ in enumerate(frames):
-            for action, rule in self._iter_matching_rules(frames, idx, platform, exception_data):
+        for rule in self.iter_rules():
+            for idx, action in rule.get_matching_frame_actions(
+                frames, platform, exception_data, match_cache
+            ):
                 action.update_frame_components_contributions(components, frames, idx, rule=rule)
                 action.modify_stacktrace_state(stacktrace_state, rule)
 
@@ -308,7 +299,7 @@ class Rule:
             matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
-    def get_matching_frame_actions(self, frames, platform, exception_data=None):
+    def get_matching_frame_actions(self, frames, platform, exception_data=None, match_cache=None):
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
@@ -319,13 +310,22 @@ class Rule:
 
         for idx, frame in enumerate(frames):
             if all(
-                m.matches_frame(frames, idx, platform, exception_data)
+                self._matches_frame(m, frames, idx, platform, exception_data, match_cache)
                 for m in self._sorted_matchers
             ):
                 for action in self.actions:
                     rv.append((idx, action))
 
         return rv
+
+    @staticmethod
+    def _matches_frame(matcher, frames, idx, platform, exception_data, cache):
+        value = cache.get(idx, matcher)
+        if value is None:
+            value = matcher.matches_frame(frames, idx, platform, exception_data)
+            cache.set(idx, matcher, value)
+
+        return value
 
     def _to_config_structure(self, version):
         return [
