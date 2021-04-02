@@ -494,7 +494,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.queries[0].fields).toEqual(['count_unique(user.display)']);
   });
 
-  it('should not filter y-axis choices for world map widget charts', async function () {
+  it('should filter y-axis choices for world map widget charts', async function () {
     let widget = undefined;
     const wrapper = mountModal({
       initialData,
@@ -507,14 +507,43 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     selectByLabel(wrapper, 'World Map', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('world_map');
 
+    // Choose any()
+    selectByLabel(wrapper, 'any(\u2026)', {
+      name: 'field',
+      at: 0,
+      control: true,
+    });
+
+    // user.display should be filtered out for any()
+    const option = getOptionByLabel(wrapper, 'user.display', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+    expect(option.exists()).toEqual(false);
+
+    selectByLabel(wrapper, 'measurements.lcp', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+
+    // Choose count_unique()
     selectByLabel(wrapper, 'count_unique(\u2026)', {
       name: 'field',
       at: 0,
       control: true,
     });
 
-    // Be able to choose a non numeric-like option for count_unique()
+    // user.display not should be filtered out for count_unique()
     selectByLabel(wrapper, 'user.display', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+
+    // Be able to choose a numeric-like option
+    selectByLabel(wrapper, 'measurements.lcp', {
       name: 'parameter',
       at: 0,
       control: true,
@@ -524,6 +553,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.displayType).toEqual('world_map');
     expect(widget.queries).toHaveLength(1);
-    expect(widget.queries[0].fields).toEqual(['count_unique(user.display)']);
+    expect(widget.queries[0].fields).toEqual(['count_unique(measurements.lcp)']);
   });
 });
