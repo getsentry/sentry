@@ -153,7 +153,7 @@ aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_forma
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
-tag_filter           = negation? "tags[" search_key "]" sep search_value
+tag_filter           = negation? "tags[" search_key "]" sep ((open_bracket (quoted_value / in_value) (comma space* (quoted_value / in_value))* closed_bracket) / search_value)
 
 aggregate_key        = key open_paren function_arg* closed_paren
 search_key           = key / quoted_key
@@ -694,7 +694,7 @@ class SearchVisitor(NodeVisitor):
         if isinstance(search_value, list):
             operator = "IN"
             search_value = self.process_list(
-                search_value[1].text, [(_, _, val.text) for _, _, val in search_value[2]]
+                search_value[1], [(_, _, val) for _, _, val in search_value[2]]
             )
         else:
             if not search_value:
@@ -736,8 +736,18 @@ class SearchVisitor(NodeVisitor):
         return SearchFilter(search_key, operator, SearchValue(""))
 
     def visit_tag_filter(self, node, children):
-        (negation, _, search_key, _, sep, search_value) = children
-        operator = "!=" if self.is_negated(negation) else "="
+        (negation, _, search_key, _, sep, (search_value,)) = children
+        operator = "="
+        if isinstance(search_value, list):
+            operator = "IN"
+            search_value = SearchValue(
+                self.process_list(
+                    search_value[1][0],
+                    [(_, _, val[0]) for (_, _, val) in search_value[2]],
+                )
+            )
+
+        operator = self.handle_negation(negation, operator)
         return SearchFilter(SearchKey(f"tags[{search_key.name}]"), operator, search_value)
 
     def visit_is_filter(self, node, children):
@@ -809,6 +819,9 @@ class SearchVisitor(NodeVisitor):
         return node.text.replace('\\"', '"')
 
     def visit_key(self, node, children):
+        return node.text
+
+    def visit_in_value(self, node, children):
         return node.text
 
     def visit_quoted_value(self, node, children):

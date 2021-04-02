@@ -276,6 +276,15 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
+    def test_simple_in_fails(self):
+        assert parse_search_query('user.email:[test@test.com, 1, "hi"]') == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com", "1", "hi"]),
+            )
+        ]
+
     def test_raw_search_anywhere(self):
         assert parse_search_query(
             "hello what user.email:foo@example.com where release:1.2.1 when"
@@ -780,6 +789,22 @@ class ParseSearchQueryTest(unittest.TestCase):
                 key=SearchKey(name="tags[project_id]"),
                 operator="=",
                 value=SearchValue(raw_value="123"),
+            ),
+        ]
+
+    def test_explicit_tags_in_filter(self):
+        assert parse_search_query("tags[fruit]:[apple, pear]") == [
+            SearchFilter(
+                key=SearchKey(name="tags[fruit]"),
+                operator="IN",
+                value=SearchValue(raw_value=["apple", "pear"]),
+            ),
+        ]
+        assert parse_search_query('tags[fruit]:["apple wow", "pear"]') == [
+            SearchFilter(
+                key=SearchKey(name="tags[fruit]"),
+                operator="IN",
+                value=SearchValue(raw_value=["apple wow", "pear"]),
             ),
         ]
 

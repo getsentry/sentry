@@ -392,7 +392,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.issue_rule = self.create_issue_alert_rule(
             data={
                 "project": self.project,
-                "name": "Issue Rule Test",
+                "name": "issue Rule Test",
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
