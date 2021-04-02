@@ -275,13 +275,11 @@ class ParseSearchQueryTest(unittest.TestCase):
                 value=SearchValue(raw_value="[h[e]llo"),
             ),
         ]
-
-    def test_simple_in_fails(self):
-        assert parse_search_query('user.email:[test@test.com, 1, "hi"]') == [
+        assert parse_search_query('user.email:[test@test.com, "hi", 1]') == [
             SearchFilter(
                 key=SearchKey(name="user.email"),
                 operator="IN",
-                value=SearchValue(raw_value=["test@test.com", "1", "hi"]),
+                value=SearchValue(raw_value=["test@test.com", "hi", "1"]),
             )
         ]
 

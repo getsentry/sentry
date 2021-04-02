@@ -122,17 +122,16 @@ search               = (boolean_operator / paren_term / search_term)*
 boolean_operator     = spaces (or_operator / and_operator) spaces
 paren_term           = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter
+key_val_term         = spaces (time_filter / rel_time_filter / specific_time_filter
                        / duration_filter / boolean_filter / numeric_filter
                        / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
-                       / has_filter / is_filter / quoted_basic_filter / basic_filter)
+                       / has_filter / is_filter / text_filter)
                        spaces
 raw_search           = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
 # standard key:val filter
-basic_filter         = negation? search_key sep ((open_bracket in_value (comma space* in_value)* closed_bracket) / value)
-quoted_basic_filter  = negation? search_key sep (quoted_value / (open_bracket quoted_value (comma space* quoted_value)* closed_bracket))
+text_filter          = negation? text_key sep ((open_bracket text_value (comma space* text_value)* closed_bracket) / search_value)
 # filter for dates
 time_filter          = search_key sep? operator (date_format / alt_date_format)
 # filter for relative dates
@@ -153,13 +152,12 @@ aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_forma
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
-tag_filter           = negation? "tags[" search_key "]" sep ((open_bracket (quoted_value / in_value) (comma space* (quoted_value / in_value))* closed_bracket) / search_value)
 
 aggregate_key        = key open_paren function_arg* closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
-in_value             = ~r"[^(),\s]+[^\],\s)]"
+in_value             = ~r"[^(),\s]*[^\],\s)]"
 numeric_value        = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
 boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
@@ -167,6 +165,9 @@ key                  = ~r"[a-zA-Z0-9_\.-]+"
 function_arg         = space? key? comma? space?
 # only allow colons in quoted keys
 quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
+explicit_tag_key     = "tags[" search_key "]"
+text_key             = explicit_tag_key / search_key
+text_value           = quoted_value / in_value
 
 date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|\)|$)"
 alt_date_format      = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+\d{2}:\d{2})?)?(?=\s|\)|$)"
@@ -676,25 +677,13 @@ class SearchVisitor(NodeVisitor):
 
         return node.text == "!"
 
-    def visit_quoted_basic_filter(self, node, children):
+    def visit_text_filter(self, node, children):
         (negation, search_key, _, (search_value,)) = children
         operator = "="
         if isinstance(search_value, list):
             operator = "IN"
-            search_value = self.process_list(search_value[1], search_value[2])
-
-        search_value = SearchValue(search_value)
-        operator = self.handle_negation(negation, operator)
-
-        return self._handle_basic_filter(search_key, operator, search_value)
-
-    def visit_basic_filter(self, node, children):
-        (negation, search_key, _, (search_value,)) = children
-        operator = "="
-        if isinstance(search_value, list):
-            operator = "IN"
-            search_value = self.process_list(
-                search_value[1], [(_, _, val) for _, _, val in search_value[2]]
+            search_value = SearchValue(
+                self.process_list(search_value[1], [(_, _, val) for _, _, val in search_value[2]])
             )
         else:
             if not search_value:
@@ -702,7 +691,7 @@ class SearchVisitor(NodeVisitor):
 
         operator = self.handle_negation(negation, operator)
 
-        return self._handle_basic_filter(search_key, operator, SearchValue(search_value))
+        return self._handle_basic_filter(search_key, operator, search_value)
 
     def _handle_basic_filter(self, search_key, operator, search_value):
         # If a date or numeric key gets down to the basic filter, then it means
@@ -734,21 +723,6 @@ class SearchVisitor(NodeVisitor):
 
         operator = "=" if self.is_negated(negation) else "!="
         return SearchFilter(search_key, operator, SearchValue(""))
-
-    def visit_tag_filter(self, node, children):
-        (negation, _, search_key, _, sep, (search_value,)) = children
-        operator = "="
-        if isinstance(search_value, list):
-            operator = "IN"
-            search_value = SearchValue(
-                self.process_list(
-                    search_value[1][0],
-                    [(_, _, val[0]) for (_, _, val) in search_value[2]],
-                )
-            )
-
-        operator = self.handle_negation(negation, operator)
-        return SearchFilter(SearchKey(f"tags[{search_key.name}]"), operator, search_value)
 
     def visit_is_filter(self, node, children):
         raise InvalidSearchQuery('"is:" queries are only supported in issue search.')
@@ -822,13 +796,22 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_in_value(self, node, children):
-        return node.text
+        return node.text.replace('\\"', '"')
 
     def visit_quoted_value(self, node, children):
         return node.match.groups()[0].replace('\\"', '"')
 
     def visit_quoted_key(self, node, children):
         return node.match.groups()[0]
+
+    def visit_explicit_tag_key(self, node, children):
+        return SearchKey(f"tags[{children[1].name}]")
+
+    def visit_text_key(self, node, children):
+        return children[0]
+
+    def visit_text_value(self, node, children):
+        return children[0]
 
     def generic_visit(self, node, children):
         return children or node
