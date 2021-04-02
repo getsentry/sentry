@@ -576,7 +576,9 @@ class CombinedQuerysetPaginator:
             return value
 
     def _is_asc(self, is_prev):
-        return (self.desc and is_prev) or not (self.desc or is_prev)
+        if self.using_dates:
+            return (self.desc and is_prev) or not (self.desc or is_prev)
+        return self.desc
 
     def _build_combined_querysets(self, value, is_prev, limit, extra):
         asc = self._is_asc(is_prev)
@@ -584,6 +586,11 @@ class CombinedQuerysetPaginator:
         for intermediary in self.intermediaries:
             key = intermediary.order_by
             filters = {}
+            annotate = {}
+
+            if intermediary.case_insensitive_sort:
+                key = "%s_lower" % key
+                annotate[key] = Lower(intermediary.order_by)
 
             if asc:
                 order_by = key
@@ -595,10 +602,11 @@ class CombinedQuerysetPaginator:
             if value is not None:
                 filters[filter_condition] = value
 
-            if intermediary.case_insensitive_sort:
-                order_by = Lower(key) if asc else Lower(key).desc()
-
-            queryset = intermediary.queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
+            queryset = (
+                intermediary.queryset.annotate(**annotate)
+                .filter(**filters)
+                .order_by(order_by)[: (limit + extra)]
+            )
             combined_querysets += list(queryset)
 
         def _sort_combined_querysets(item):
@@ -632,7 +640,11 @@ class CombinedQuerysetPaginator:
         )
 
         stop = offset + limit + extra
-        results = list(combined_querysets[offset:stop])
+        results = (
+            list(combined_querysets[offset:stop])
+            if self.using_dates
+            else list(combined_querysets[: (limit + extra)])
+        )
 
         if cursor.is_prev and cursor.value:
             # If the first result is equal to the cursor_value then it's safe to filter
@@ -644,7 +656,7 @@ class CombinedQuerysetPaginator:
                 results = results[:-1]
 
         # We reversed the results when generating the querysets, so we need to reverse back now.
-        if cursor.is_prev:
+        if self.using_dates:
             results.reverse()
 
         return build_cursor(
