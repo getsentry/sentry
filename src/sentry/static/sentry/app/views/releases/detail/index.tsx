@@ -224,7 +224,8 @@ class ReleasesDetail extends AsyncView<Props, State> {
 }
 
 class ReleasesDetailContainer extends AsyncComponent<
-  Omit<Props, 'releaseMeta' | 'getHealthData' | 'isHealthLoading'>
+  Omit<Props, 'releaseMeta' | 'getHealthData' | 'isHealthLoading'>,
+  {releaseMeta: ReleaseMeta | null} & AsyncComponent['state']
 > {
   shouldReload = true;
 
@@ -283,6 +284,11 @@ class ReleasesDetailContainer extends AsyncComponent<
   renderBody() {
     const {organization, params, router, location, selection} = this.props;
     const {releaseMeta} = this.state;
+
+    if (!releaseMeta) {
+      return null;
+    }
+
     const {projects} = releaseMeta;
     const isFreshRelease = moment(releaseMeta.released).isAfter(
       moment().subtract(24, 'hours')
@@ -306,7 +312,9 @@ class ReleasesDetailContainer extends AsyncComponent<
       <GlobalSelectionHeader
         lockedMessageSubject={t('release')}
         shouldForceProject={projects.length === 1}
-        forceProject={projects.length === 1 ? projects[0] : undefined}
+        forceProject={
+          projects.length === 1 ? {...projects[0], id: String(projects[0].id)} : undefined
+        }
         specificProjectSlugs={projects.map(p => p.slug)}
         disableMultipleProjectSelection
         showProjectSettingsLink
