@@ -101,10 +101,11 @@ function WidgetQueryFields({
     (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
       fields.length === 3);
 
-  // Any column choice for World Map and Big Number widgets is legal since the
+  // Any function/field choice for Big Number widgets is legal since the
   // data source is from an endpoint that is not timeseries-based.
+  // The function/field choice for World Map widget will need to be numeric-like.
   // Column builder for Table widget is already handled above.
-  const doNotValidateYAxis = ['world_map', 'big_number'].includes(displayType);
+  const doNotValidateYAxis = ['big_number'].includes(displayType);
 
   return (
     <Field
