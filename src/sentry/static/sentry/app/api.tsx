@@ -79,7 +79,7 @@ export const initApiClientErrorHandling = () =>
 
     // 401s can also mean sudo is required or it's a request that is allowed to fail
     // Ignore if these are the cases
-    if (code === 'sudo-required' || code === 'ignore') {
+    if (['sudo-required', 'ignore', '2fa-required'].includes(code)) {
       return;
     }
 
