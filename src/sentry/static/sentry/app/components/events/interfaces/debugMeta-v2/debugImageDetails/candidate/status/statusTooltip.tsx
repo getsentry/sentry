@@ -5,16 +5,21 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {ImageCandidate} from 'app/types/debugImage';
 
-import Status from './status';
-import {getStatusTooltipDescription} from './utils';
+import {getStatusTooltipDescription} from '../utils';
+
+import Status from '.';
 
 type Props = {
   candidate: ImageCandidate;
+  hasReprocessWarning: boolean;
 };
 
-function StatusTooltip({candidate}: Props) {
+function StatusTooltip({candidate, hasReprocessWarning}: Props) {
   const {download} = candidate;
-  const {label, description, disabled} = getStatusTooltipDescription(candidate);
+  const {label, description, disabled} = getStatusTooltipDescription(
+    candidate,
+    hasReprocessWarning
+  );
 
   return (
     <Tooltip

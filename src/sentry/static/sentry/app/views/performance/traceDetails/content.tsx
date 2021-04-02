@@ -3,13 +3,17 @@ import {Params} from 'react-router/lib/Router';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
+import Alert from 'app/components/alert';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import TimeSince from 'app/components/timeSince';
+import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
+import {getDuration} from 'app/utils/formatters';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {filterTrace} from 'app/utils/performance/quickTrace/utils';
 import Breadcrumb from 'app/views/performance/breadcrumb';
@@ -26,7 +30,7 @@ import {
 } from './styles';
 import TransactionGroup from './transactionGroup';
 import {TraceInfo, TreeDepth} from './types';
-import {getTraceInfo} from './utils';
+import {getTraceInfo, isRootTransaction} from './utils';
 
 type AccType = {
   renderedChildren: React.ReactNode[];
@@ -153,8 +157,62 @@ class TraceDetailsContent extends React.Component<Props, State> {
             traceInfo.relevantProjectsWithErrors.size
           )}
         />
+        <MetaData
+          headingText={t('Total Duration')}
+          tooltipText={t('The time elapsed between the start and end of this trace.')}
+          bodyText={getDuration(
+            traceInfo.endTimestamp - traceInfo.startTimestamp,
+            2,
+            true
+          )}
+          subtext={<TimeSince date={(traceInfo.endTimestamp || 0) * 1000} />}
+        />
       </TraceDetailHeader>
     );
+  }
+
+  renderTraceWarnings() {
+    const {traces} = this.props;
+
+    const {roots, orphans} = (traces ?? []).reduce(
+      (counts, trace) => {
+        if (isRootTransaction(trace)) {
+          counts.roots++;
+        } else {
+          counts.orphans++;
+        }
+        return counts;
+      },
+      {roots: 0, orphans: 0}
+    );
+
+    let warning: React.ReactNode = null;
+
+    if (roots === 0 && orphans > 0) {
+      warning = (
+        <Alert type="info" icon={<IconInfo size="md" />}>
+          {t(
+            'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+          )}
+        </Alert>
+      );
+    } else if (roots === 1 && orphans > 0) {
+      warning = (
+        <Alert type="info" icon={<IconInfo size="md" />}>
+          {t(
+            'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+          )}
+        </Alert>
+      );
+    } else if (roots > 1) {
+      warning = (
+        <Alert type="info" icon={<IconInfo size="md" />}>
+          {t('Multiple root transactions have been found with this trace ID.')}
+        </Alert>
+      );
+    }
+
+    return warning;
   }
 
   renderInfoMessage({
@@ -314,7 +372,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
         const result = this.renderTransaction(trace, {
           ...acc,
           // if the root of a subtrace has a parent_span_idk, then it must be an orphan
-          isOrphan: trace.parent_span_id !== null,
+          isOrphan: !isRootTransaction(trace),
           isLast: isLastTransaction,
           continuingDepths:
             !isLastTransaction && hasChildren
@@ -385,6 +443,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
         <React.Fragment>
           {this.renderSearchBar()}
           {this.renderTraceHeader(traceInfo)}
+          {this.renderTraceWarnings()}
           {this.renderTraceView(traceInfo)}
         </React.Fragment>
       );

@@ -4,14 +4,20 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
+import Feature from 'app/components/acl/feature';
 import DateTime from 'app/components/dateTime';
 import ErrorBoundary from 'app/components/errorBoundary';
+import FeatureBadge from 'app/components/featureBadge';
 import FileSize from 'app/components/fileSize';
 import ExternalLink from 'app/components/links/externalLink';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
 import Placeholder from 'app/components/placeholder';
 import QuickTrace from 'app/components/quickTrace';
-import {generateTraceTarget} from 'app/components/quickTrace/utils';
+import {DisabledLink} from 'app/components/quickTrace/styles';
+import {
+  generateTraceTarget,
+  renderDisabledHoverCard,
+} from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -178,13 +184,28 @@ class GroupEventToolbar extends React.Component<Props> {
         </Tooltip>
         {hasQuickTraceView && (
           <LinkContainer>
-            <Link
-              to={generateTraceTarget(evt, organization)}
-              onClick={() => this.handleTraceLink(organization)}
+            <Feature
+              features={['trace-view-summary']}
+              hookName="feature-disabled:trace-view-link"
+              renderDisabled={renderDisabledHoverCard}
             >
-              {' '}
-              View Full Trace
-            </Link>
+              {({hasFeature}) =>
+                hasFeature ? (
+                  <Link
+                    to={generateTraceTarget(evt, organization)}
+                    onClick={() => this.handleTraceLink(organization)}
+                  >
+                    View Full Trace
+                    <FeatureBadge type="beta" />
+                  </Link>
+                ) : (
+                  <DisabledLink>
+                    View Full Trace
+                    <FeatureBadge type="beta" />
+                  </DisabledLink>
+                )
+              }
+            </Feature>
           </LinkContainer>
         )}
         {hasQuickTraceView && this.renderQuickTrace()}

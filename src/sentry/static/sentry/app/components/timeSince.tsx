@@ -45,7 +45,7 @@ type Props = DefaultProps & {
    */
   extraShort?: boolean;
 
-  tooltipTitle?: string;
+  tooltipTitle?: React.ReactNode;
 
   className?: string;
 } & TimeProps;

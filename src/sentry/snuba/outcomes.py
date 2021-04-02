@@ -95,7 +95,7 @@ class TimesSeenField(Field):
             return ("count()", "", "times_seen")
 
 
-class Dimension(SimpleGroupBy, ABC):
+class Dimension(SimpleGroupBy, ABC):  # type: ignore
     @abstractmethod
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[DataCategory]:
         """
@@ -171,7 +171,7 @@ COLUMN_MAP = {
     "sum(times_seen)": TimesSeenField(),
 }
 
-DIMENSION_MAP = {
+DIMENSION_MAP: Mapping[str, Dimension] = {
     "outcome": OutcomeDimension("outcome"),
     "category": CategoryDimension("category"),
     "reason": ReasonDimension("reason"),
@@ -344,6 +344,8 @@ def massage_outcomes_result(
     result_totals: ResultSet,
     result_timeseries: ResultSet,
 ) -> Dict[str, List[Any]]:
-    result = massage_sessions_result(query, result_totals, result_timeseries, ts_col=TS_COL)
+    result: Dict[str, List[Any]] = massage_sessions_result(
+        query, result_totals, result_timeseries, ts_col=TS_COL
+    )
     del result["query"]
     return result

@@ -1,19 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {BuiltinSymbolSource} from 'app/types/debugFiles';
 import {ImageCandidate} from 'app/types/debugImage';
 
 import {INTERNAL_SOURCE} from '../utils';
 
+import StatusTooltip from './status/statusTooltip';
 import Actions from './actions';
-import Features from './features';
-import Processings from './processings';
-import StatusTooltip from './statusTooltip';
-import {getSourceTooltipDescription} from './utils';
+import Information from './information';
 
 type Props = {
   candidate: ImageCandidate;
@@ -21,7 +17,10 @@ type Props = {
   organization: Organization;
   projectId: Project['slug'];
   baseUrl: string;
+  haveCandidatesAtLeastOneAction: boolean;
+  hasReprocessWarning: boolean;
   onDelete: (debugFileId: string) => void;
+  eventDateReceived?: string;
 };
 
 function Candidate({
@@ -30,42 +29,42 @@ function Candidate({
   organization,
   projectId,
   baseUrl,
+  haveCandidatesAtLeastOneAction,
+  hasReprocessWarning,
   onDelete,
+  eventDateReceived,
 }: Props) {
-  const {location, download, source_name, source} = candidate;
+  const {source} = candidate;
   const isInternalSource = source === INTERNAL_SOURCE;
 
   return (
     <React.Fragment>
       <Column>
-        <StatusTooltip candidate={candidate} />
+        <StatusTooltip candidate={candidate} hasReprocessWarning={hasReprocessWarning} />
       </Column>
 
-      <DebugFileColumn>
-        <Tooltip title={getSourceTooltipDescription(source, builtinSymbolSources)}>
-          <SourceName>{source_name ?? t('Unknown')}</SourceName>
-        </Tooltip>
-        {location && !isInternalSource && <Location>{location}</Location>}
-      </DebugFileColumn>
-
-      <Column>
-        <Processings candidate={candidate} />
-      </Column>
-
-      <Column>
-        <Features download={download} />
-      </Column>
-
-      <Column>
-        <Actions
-          onDelete={onDelete}
-          baseUrl={baseUrl}
-          projectId={projectId}
-          organization={organization}
+      <InformationColumn>
+        <Information
           candidate={candidate}
+          builtinSymbolSources={builtinSymbolSources}
           isInternalSource={isInternalSource}
+          eventDateReceived={eventDateReceived}
+          hasReprocessWarning={hasReprocessWarning}
         />
-      </Column>
+      </InformationColumn>
+
+      {haveCandidatesAtLeastOneAction && (
+        <ActionsColumn>
+          <Actions
+            onDelete={onDelete}
+            baseUrl={baseUrl}
+            projectId={projectId}
+            organization={organization}
+            candidate={candidate}
+            isInternalSource={isInternalSource}
+          />
+        </ActionsColumn>
+      )}
     </React.Fragment>
   );
 }
@@ -77,19 +76,11 @@ const Column = styled('div')`
   align-items: center;
 `;
 
-// Debug File Info Column
-const DebugFileColumn = styled(Column)`
+const InformationColumn = styled(Column)`
   flex-direction: column;
   align-items: flex-start;
 `;
 
-const SourceName = styled('div')`
-  color: ${p => p.theme.textColor};
-  width: 100%;
-  white-space: pre-wrap;
-  word-break: break-all;
-`;
-
-const Location = styled(SourceName)`
-  color: ${p => p.theme.gray300};
+const ActionsColumn = styled(Column)`
+  justify-content: flex-end;
 `;
