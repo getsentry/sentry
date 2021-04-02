@@ -133,6 +133,10 @@ class Enhancements:
         """
         match_cache = MatchCache()
         for rule in self.iter_rules():
+
+            if not rule.is_modifier:
+                continue
+
             for idx, action in rule.get_matching_frame_actions(
                 frames, platform, exception_data, match_cache
             ):
@@ -143,6 +147,10 @@ class Enhancements:
         match_cache = MatchCache()
         # Apply direct frame actions and update the stack state alongside
         for rule in self.iter_rules():
+
+            if not rule.is_updater:
+                continue
+
             for idx, action in rule.get_matching_frame_actions(
                 frames, platform, exception_data, match_cache
             ):
@@ -285,6 +293,8 @@ class Rule:
             matchers, key=lambda m: 0 if isinstance(m, FrameMatch) else 1
         )
         self.actions = actions
+        self.is_updater = any(action.is_updater for action in actions)
+        self.is_modifier = any(action.is_modifier for action in actions)
 
     @property
     def matcher_description(self):

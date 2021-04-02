@@ -25,6 +25,10 @@ REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
 class Action:
+
+    is_modifier = False
+    is_updater = False
+
     def apply_modifications_to_frame(self, frames, idx, rule=None, match_cache=None):
         pass
 
@@ -45,6 +49,8 @@ class Action:
 class FlagAction(Action):
     def __init__(self, key, flag, range):
         self.key = key
+        self.is_updater = key in {"group", "app", "prefix", "sentinel"}
+        self.is_modifier = key == "app"
         self.flag = flag
         self.range = range
 
@@ -83,8 +89,8 @@ class FlagAction(Action):
         # Grouping is not stored on the frame
         if self.key == "group":
             return
-        for frame in self._slice_to_range(frames, idx):
-            if self.key == "app":
+        if self.key == "app":
+            for frame in self._slice_to_range(frames, idx):
                 set_in_app(frame, self.flag)
 
     def update_frame_components_contributions(self, components, frames, idx, rule=None):
@@ -132,6 +138,8 @@ class VarAction(Action):
 
     def __init__(self, var, value):
         self.var = var
+        self.is_modifier = self.var == "category"
+        self.is_updater = self.var not in VarAction._FRAME_VARIABLES
 
         try:
             self.value = VarAction._VALUE_PARSERS[var](value)
