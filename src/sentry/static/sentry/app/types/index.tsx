@@ -1975,3 +1975,12 @@ export enum HealthStatsPeriodOption {
   AUTO = 'auto',
   TWENTY_FOUR_HOURS = '24h',
 }
+
+export type IssueOwnership = {
+  raw: string;
+  fallthrough: boolean;
+  dateCreated: string;
+  lastUpdated: string;
+  isActive: boolean;
+  autoAssignment: boolean;
+};

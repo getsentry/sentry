@@ -6,7 +6,15 @@ import {css} from '@emotion/core';
 import ModalActions from 'app/actions/modalActions';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
-import {DebugFileSource, Group, Organization, Project, SentryApp, Team} from 'app/types';
+import {
+  DebugFileSource,
+  Group,
+  IssueOwnership,
+  Organization,
+  Project,
+  SentryApp,
+  Team,
+} from 'app/types';
 import {Event} from 'app/types/event';
 
 export type ModalRenderProps = {
@@ -109,9 +117,25 @@ type CreateOwnershipRuleModalOptions = {
   issueId: string;
 };
 
+export type EditOwnershipRulesModalOptions = {
+  organization: Organization;
+  project: Project;
+  ownership: IssueOwnership;
+  onSave: (text: string | null) => void;
+};
+
 export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {
   const mod = await import(
     /* webpackChunkName: "CreateOwnershipRuleModal" */ 'app/components/modals/createOwnershipRuleModal'
+  );
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
+export async function openEditOwnershipRules(options: EditOwnershipRulesModalOptions) {
+  const mod = await import(
+    /* webpackChunkName: "EditOwnershipRulesModal" */ 'app/components/modals/editOwnershipRulesModal'
   );
   const {default: Modal, modalCss} = mod;
 
