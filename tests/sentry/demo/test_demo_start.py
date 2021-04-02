@@ -1,15 +1,17 @@
-from sentry.utils.compat import mock
-
 from django.test.utils import override_settings
+from django.core import signing
 from exam import fixture
 
 from sentry.demo.demo_start import MEMBER_ID_COOKIE
 from sentry.models import OrganizationStatus
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
+
+signer = signing.get_cookie_signer(salt=MEMBER_ID_COOKIE)
 
 
 @override_settings(DEMO_MODE=True, ROOT_URLCONF="sentry.demo.urls")
-class AuthLoginTest(TestCase):
+class DemoStartTeset(TestCase):
     @fixture
     def path(self):
         return "/demo/start/"
@@ -27,7 +29,8 @@ class AuthLoginTest(TestCase):
         resp = self.client.post(self.path)
         assert resp.status_code == 302
         mock_auth_login.assert_called_once_with(mock.ANY, self.user)
-        assert resp.cookies[MEMBER_ID_COOKIE].value == str(self.member.id)
+        recovered = resp.cookies[MEMBER_ID_COOKIE].value.split(":")[0]
+        assert recovered == str(self.member.id)
 
     @override_settings(DEMO_MODE=False, ROOT_URLCONF="sentry.demo.urls")
     def test_disabled(self):
@@ -36,7 +39,7 @@ class AuthLoginTest(TestCase):
 
     @mock.patch("sentry.demo.demo_start.auth.login")
     def test_member_cookie(self, mock_auth_login):
-        self.save_cookie(MEMBER_ID_COOKIE, self.member.id)
+        self.save_cookie(MEMBER_ID_COOKIE, signer.sign(self.member.id))
         resp = self.client.post(self.path)
         assert resp.status_code == 302
         mock_auth_login.assert_called_once_with(mock.ANY, self.user)
@@ -46,7 +49,7 @@ class AuthLoginTest(TestCase):
     def test_member_cookie_deactivated_org(self, mock_assign_demo_org, mock_auth_login):
         self.org.status = OrganizationStatus.PENDING_DELETION
         self.org.save()
-        self.save_cookie(MEMBER_ID_COOKIE, self.member.id)
+        self.save_cookie(MEMBER_ID_COOKIE, signer.sign(self.member.id))
 
         new_user = self.create_user()
         new_org = self.create_organization()
@@ -56,7 +59,8 @@ class AuthLoginTest(TestCase):
         resp = self.client.post(self.path)
         assert resp.status_code == 302
         mock_auth_login.assert_called_once_with(mock.ANY, new_user)
-        assert resp.cookies[MEMBER_ID_COOKIE].value == str(new_member.id)
+        recovered = resp.cookies[MEMBER_ID_COOKIE].value.split(":")[0]
+        assert recovered == str(new_member.id)
 
     @mock.patch("sentry.demo.demo_start.auth.login")
     @mock.patch("sentry.demo.demo_org_manager.assign_demo_org")

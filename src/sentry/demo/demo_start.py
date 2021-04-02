@@ -25,7 +25,7 @@ class DemoStartView(BaseView):
 
         org = None
         # see if the user already was assigned a member
-        member_id = request.COOKIES.get(MEMBER_ID_COOKIE)
+        member_id = request.get_signed_cookie(MEMBER_ID_COOKIE, default="")
         logger.info("post.start", extra={"cookie_member_id": member_id})
 
         if member_id:
@@ -64,7 +64,7 @@ class DemoStartView(BaseView):
             resp.set_cookie(ACCEPTED_TRACKING_COOKIE, accepted_tracking)
 
         # set the member id
-        resp.set_cookie(MEMBER_ID_COOKIE, member.id)
+        resp.set_signed_cookie(MEMBER_ID_COOKIE, member.id)
         return resp
 
 
