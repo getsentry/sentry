@@ -390,12 +390,11 @@ def generate_issue_alert(project):
 
 
 def send_session(sid, user_id, dsn, time, release, **kwargs):
+    """
+    Creates an envelope payload for a session and posts it to Relay
+    """
     formated_time = time.isoformat()
-    envelope_headers = json.dumps(
-        {
-            # "sdk": {"name": "sentry.javascript.react", "version": "6.3.0-beta.4"},
-        }
-    )
+    envelope_headers = "{}"
     item_headers = json.dumps({"type": "session"})
     data = {
         "sid": sid,
@@ -730,7 +729,6 @@ def populate_connected_event_scenario_1(
         trace_id = uuid4().hex
         release = get_release_from_time(react_project.organization_id, timestamp)
         release_sha = release.version
-        sid = uuid4().hex
 
         old_span_id = react_transaction["contexts"]["trace"]["span_id"]
         frontend_root_span_id = uuid4().hex[:16]
@@ -753,10 +751,6 @@ def populate_connected_event_scenario_1(
             # start_timestamp decreases based on day so that there's a trend
             start_timestamp=timestamp - timedelta(seconds=frontend_duration),
             measurements=gen_measurements(frontend_duration),
-            tags=[
-                ["session_id", sid],
-                ["mechanism", "onunhandledrejection"],
-            ],
         )
         update_context(local_event, frontend_trace)
         fix_transaction_event(local_event, old_span_id)
@@ -773,10 +767,6 @@ def populate_connected_event_scenario_1(
             timestamp=timestamp,
             user=transaction_user,
             release=release_sha,
-            tags=[
-                ["session_id", sid],
-                ["mechanism", "onunhandledrejection"],
-            ],
         )
         update_context(local_event, frontend_trace)
         fix_error_event(local_event, quick)
@@ -950,15 +940,18 @@ def populate_sessions(project, error_file, quick=False):
         release = get_release_from_time(project.organization_id, timestamp)
         version = release.version
 
+        # initialize the session
         session_data = {
             "init": True,
         }
         send_session(sid, transaction_user["id"], dsn, timestamp, version, **session_data)
 
+        # determine if this session should crash or exit with success
         rate_map = crash_free_rate_by_release_quick if quick else crash_free_rate_by_release
         threshold = rate_map[version]
         outcome = random.random()
         if outcome > threshold:
+            # if crash, make an error for it
             local_event = copy.deepcopy(react_error)
             local_event.update(
                 project=project,
