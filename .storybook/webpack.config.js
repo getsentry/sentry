@@ -98,6 +98,7 @@ module.exports = ({config} = {config: emptyConfig}) => {
       },
       fallback: {
         ...appConfig.resolve.fallback,
+        crypto: require.resolve('crypto-browserify'),
       },
     },
   };
