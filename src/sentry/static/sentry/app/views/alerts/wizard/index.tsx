@@ -4,8 +4,12 @@ import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
 import CreateAlertButton from 'app/components/createAlertButton';
+import ExternalLink from 'app/components/links/externalLink';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import PageHeading from 'app/components/pageHeading';
 import {Panel, PanelBody} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -18,8 +22,8 @@ import {Dataset} from 'app/views/settings/incidentRules/types';
 import {
   AlertType,
   AlertWizardAlertNames,
-  AlertWizardDescriptions,
   AlertWizardOptions,
+  AlertWizardPanelContent,
   AlertWizardRuleTemplates,
 } from './options';
 
@@ -81,7 +85,7 @@ class AlertWizard extends React.Component<Props, State> {
     } = this.props;
     const {alertOption} = this.state;
     const title = t('Alert Creation Wizard');
-
+    const {description, examples, docsLink} = AlertWizardPanelContent[alertOption];
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
@@ -113,7 +117,22 @@ class AlertWizard extends React.Component<Props, State> {
                 ))}
               </WizardOptions>
               <WizardPanel>
-                <WizardPanelBody>{AlertWizardDescriptions[alertOption]}</WizardPanelBody>
+                <WizardPanelBody>
+                  <PageHeading>{AlertWizardAlertNames[alertOption]}</PageHeading>
+                  <PanelDescription>
+                    {description}{' '}
+                    {docsLink && (
+                      <ExternalLink href={docsLink}>{t('Learn more')}</ExternalLink>
+                    )}
+                  </PanelDescription>
+                  <Placeholder height="250px" />
+                  <ExampleHeader>{t('Examples')}</ExampleHeader>
+                  <List symbol="bullet">
+                    {examples.map((example, i) => (
+                      <ExampleItem key={i}>{example}</ExampleItem>
+                    ))}
+                  </List>
+                </WizardPanelBody>
                 {this.renderCreateAlertButton()}
               </WizardPanel>
             </WizardBody>
@@ -151,7 +170,22 @@ const WizardPanel = styled(Panel)`
 `;
 
 const WizardPanelBody = styled(PanelBody)`
+  margin-bottom: ${space(2)};
   flex: 1;
+`;
+
+const PanelDescription = styled('div')`
+  color: ${p => p.theme.subText};
+  margin-bottom: ${space(2)};
+`;
+
+const ExampleHeader = styled('div')`
+  margin: ${space(2)} 0;
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const ExampleItem = styled(ListItem)`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const OptionsWrapper = styled('div')`

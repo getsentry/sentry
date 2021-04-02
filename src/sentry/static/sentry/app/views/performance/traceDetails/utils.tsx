@@ -78,3 +78,8 @@ export function isTraceFullDetailed(transaction): transaction is TraceFullDetail
 export {getDurationDisplay} from 'app/components/events/interfaces/spans/spanBar';
 
 export {getHumanDuration, toPercent} from 'app/components/events/interfaces/spans/utils';
+
+export function isRootTransaction(trace: TraceFullDetailed): boolean {
+  // Root transactions has no parent_span_id
+  return trace.parent_span_id === null;
+}

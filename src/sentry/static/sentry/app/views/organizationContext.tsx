@@ -323,6 +323,10 @@ class OrganizationContext extends React.Component<Props, State> {
     let errorComponent: React.ReactElement;
 
     switch (this.state.errorType) {
+      case ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS:
+        // We can still render when an org can't be loaded due to 401. The
+        // backend will handle redirects when this is a problem.
+        return this.renderBody();
       case ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND:
         errorComponent = (
           <Alert type="error">
@@ -335,6 +339,18 @@ class OrganizationContext extends React.Component<Props, State> {
     }
 
     return <ErrorWrapper>{errorComponent}</ErrorWrapper>;
+  }
+
+  renderBody() {
+    return (
+      <DocumentTitle title={this.getTitle()}>
+        <div className="app">
+          {this.state.hooks}
+          {this.renderSidebar()}
+          {this.props.children}
+        </div>
+      </DocumentTitle>
+    );
   }
 
   render() {
@@ -355,15 +371,7 @@ class OrganizationContext extends React.Component<Props, State> {
       );
     }
 
-    return (
-      <DocumentTitle title={this.getTitle()}>
-        <div className="app">
-          {this.state.hooks}
-          {this.renderSidebar()}
-          {this.props.children}
-        </div>
-      </DocumentTitle>
-    );
+    return this.renderBody();
   }
 }
 
