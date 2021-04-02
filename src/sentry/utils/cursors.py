@@ -48,7 +48,6 @@ class StringCursor(Cursor):
     @classmethod
     def from_string(cls, value):
         bits = value.rsplit(":", 2)
-        print(bits)
         if len(bits) != 3:
             raise ValueError
         try:
