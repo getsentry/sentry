@@ -47,7 +47,8 @@ class DemoStartView(BaseView):
             from .demo_org_manager import assign_demo_org
 
             # assign the demo org and get the user
-            org, user, member = assign_demo_org()
+            org, user = assign_demo_org()
+            member = OrganizationMember.objects.get(organization=org, user=user)
 
             logger.info("post.assigned_org", extra={"organization_slug": org.slug})
 
@@ -63,7 +64,7 @@ class DemoStartView(BaseView):
             resp.set_cookie(ACCEPTED_TRACKING_COOKIE, accepted_tracking)
 
         # set the member id
-        resp.set_cookie(MEMBER_ID_COOKIE, member.id, max_age=60 * 60 * 24)
+        resp.set_cookie(MEMBER_ID_COOKIE, member.id)
         return resp
 
 

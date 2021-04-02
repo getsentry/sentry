@@ -66,7 +66,7 @@ class DemoOrgManagerTest(TestCase):
 
         Team.objects.create(organization=org)
 
-        (org, user, member) = assign_demo_org()
+        (org, user) = assign_demo_org()
 
         assert OrganizationMember.objects.filter(
             user=user, organization=org, role="member"
@@ -75,8 +75,6 @@ class DemoOrgManagerTest(TestCase):
 
         demo_org = DemoOrganization.objects.get(organization=org, status=DemoOrgStatus.ACTIVE)
         demo_user = DemoUser.objects.get(user=user)
-        assert member.user == user
-
         assert demo_org.date_assigned == curr_time
         assert demo_user.date_assigned == curr_time
 
