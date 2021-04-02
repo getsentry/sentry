@@ -23,6 +23,7 @@ from sentry.models import (
     Repository,
     Rule,
     User,
+    UserOption,
     UserReport,
 )
 from sentry.models.integration import ExternalProviders
@@ -686,9 +687,13 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
         event_all_users = self.store_event(
             data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
+        alert_disabled = UserOption.objects.get(user=self.user2)
         assert self.adapter.get_send_to_owners(event_all_users, self.project) == {
             self.user.id,
             self.user3.id,
+        }
+        assert self.project.get_member_alert_settings(self.project) == {
+            alert_disabled.user_id: alert_disabled.value
         }
 
 

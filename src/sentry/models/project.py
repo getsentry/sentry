@@ -251,17 +251,19 @@ class Project(Model, PendingDeletionMixin):
         """
         from sentry.models import UserOption, User
 
-        member_alert_disabled = {}
-        for user in User.objects.get_from_projects(self.organization.id, [self]):
-            is_disabled = {
-                o.user_id: int(o.value)
-                for o in UserOption.objects.filter(user=user)
-                if str(o.value) == "0"
-            }
+        alert_settings = {}
+        users = [user for user in User.objects.get_from_projects(self.organization.id, [self])]
 
-            member_alert_disabled.update(is_disabled)
+        for u in users:
+            alert_settings.update(
+                {
+                    o.user_id: int(o.value)
+                    for o in UserOption.objects.filter(user=u)
+                    if str(o.value) == "0"
+                }
+            )
 
-        return member_alert_disabled
+        return alert_settings
 
     def get_notification_recipients(self, user_option):
         from sentry.models import UserOption
