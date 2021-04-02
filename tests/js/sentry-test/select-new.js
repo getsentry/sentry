@@ -37,6 +37,11 @@ export function selectByLabel(wrapper, label, options = {}) {
   findOption(wrapper, {label}, options).at(0).simulate('click');
 }
 
+export function getOptionByLabel(wrapper, label, options = {}) {
+  openMenu(wrapper, options);
+  return findOption(wrapper, {label}, options).at(0);
+}
+
 export function selectByValue(wrapper, value, options = {}) {
   openMenu(wrapper, options);
   findOption(wrapper, {value}, options).at(0).simulate('click');

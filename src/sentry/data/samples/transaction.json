@@ -175,5 +175,24 @@
       "cls": {
          "value": 0.0382
       }
+   },
+   "breakdowns": {
+      "span_ops": {
+         "ops.http": {
+            "value": 2039.16049
+         },
+         "ops.db": {
+            "value": 91.876
+         },
+         "ops.resource": {
+            "value": 2024.234772
+         },
+         "ops.browser": {
+            "value": 633.474827
+         },
+         "total.time": {
+            "value": 2875.570536
+         }
+      }
    }
 }
