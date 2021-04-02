@@ -59,7 +59,9 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-crash_free_rate_by_release = {"3.0": 1.0, "3.1": 0.98, "3.2": 0.8}
+crash_free_rate_by_release = {"3.0": 1.0, "3.1": 0.99, "3.2": 0.9}
+# higher crash rate if we are doing a quick org
+crash_free_rate_by_release_quick = {"3.0": 1.0, "3.1": 0.95, "3.2": 0.75}
 
 logger = logging.getLogger(__name__)
 
@@ -635,6 +637,9 @@ def fix_breadrumbs(event_json, quick):
     BREADCRUMB_LOOKBACK_TIME = get_config_var("BREADCRUMB_LOOKBACK_TIME", quick)
     breadcrumbs = event_json.get("breadcrumbs", {}).get("values", [])
     num_breadcrumbs = len(breadcrumbs)
+    if num_breadcrumbs == 0:
+        return
+
     breadcrumb_time_step = BREADCRUMB_LOOKBACK_TIME * 1.0 / num_breadcrumbs
 
     curr_time = event_json["timestamp"] - BREADCRUMB_LOOKBACK_TIME
@@ -719,8 +724,6 @@ def populate_connected_event_scenario_1(
         "quick": quick,
     }
     logger.info("populate_connected_event_scenario_1.start", extra=log_extra)
-
-    dsn = ProjectKey.objects.get(project=react_project)
 
     for (timestamp, day) in iter_timestamps(1, quick):
         transaction_user = generate_user(quick)
@@ -814,14 +817,6 @@ def populate_connected_event_scenario_1(
         update_context(local_event, backend_trace)
         fix_error_event(local_event, quick)
         safe_send_event(local_event, quick)
-
-        # session_data = {
-        #     "init": True,
-        # }
-        # send_session(sid, transaction_user["id"], dsn, timestamp, release_sha, **session_data)
-
-        # session_data = {"errors": 1, "status": "exited"}
-        # send_session(sid, transaction_user["id"], dsn, timestamp, release_sha, **session_data)
 
     logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)
 
@@ -944,24 +939,24 @@ def populate_connected_event_scenario_3(python_project: Project, quick=False):
     logger.info("populate_connected_event_scenario_3.finished", extra=log_extra)
 
 
-def populate_sessions(project, quick=False):
+def populate_sessions(project, error_file, quick=False):
     dsn = ProjectKey.objects.get(project=project)
 
-    react_error = get_event_from_file("sessions/react_unhandled_exception.json")
+    react_error = get_event_from_file(error_file)
 
     for (timestamp, day) in iter_timestamps(4, quick):
         transaction_user = generate_user(quick)
         sid = uuid4().hex
         release = get_release_from_time(project.organization_id, timestamp)
         version = release.version
-        print("version", version)
 
         session_data = {
             "init": True,
         }
         send_session(sid, transaction_user["id"], dsn, timestamp, version, **session_data)
 
-        threshold = crash_free_rate_by_release[version]
+        rate_map = crash_free_rate_by_release_quick if quick else crash_free_rate_by_release
+        threshold = rate_map[version]
         outcome = random.random()
         if outcome > threshold:
             local_event = copy.deepcopy(react_error)
@@ -994,8 +989,8 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     generate_releases([react_project, python_project], quick=quick)
     generate_alerts(python_project)
     generate_saved_query(react_project, "/productstore", "Product Store")
-    populate_sessions(react_project, quick=quick)
-    populate_sessions(python_project, quick=quick)
-    # populate_connected_event_scenario_1(react_project, python_project, quick=quick)
-    # populate_connected_event_scenario_2(react_project, python_project, quick=quick)
-    # populate_connected_event_scenario_3(python_project, quick=quick)
+    populate_sessions(react_project, "sessions/react_unhandled_exception.json", quick=quick)
+    populate_sessions(python_project, "sessions/python_unhandled_exception.json", quick=quick)
+    populate_connected_event_scenario_1(react_project, python_project, quick=quick)
+    populate_connected_event_scenario_2(react_project, python_project, quick=quick)
+    populate_connected_event_scenario_3(python_project, quick=quick)

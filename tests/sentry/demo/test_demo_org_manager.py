@@ -43,7 +43,6 @@ class DemoOrgManagerTest(TestCase):
         ).exists()
 
         assert len(Project.objects.filter(organization=org)) == 2
-        assert not ProjectKey.objects.filter(project__organization=org).exists()
         mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=False)
 
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
@@ -66,6 +65,9 @@ class DemoOrgManagerTest(TestCase):
 
         Team.objects.create(organization=org)
 
+        project = self.create_project(organization=org)
+        self.create_project_key(project)
+
         (org, user) = assign_demo_org()
 
         assert OrganizationMember.objects.filter(
@@ -78,6 +80,7 @@ class DemoOrgManagerTest(TestCase):
 
         assert demo_org.date_assigned == curr_time
         assert demo_user.date_assigned == curr_time
+        assert not ProjectKey.objects.filter(project__organization=org).exists()
 
         mock_build_up_org_buffer.assert_called_once_with()
 
