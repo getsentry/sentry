@@ -101,6 +101,11 @@ function WidgetQueryFields({
     (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
       fields.length === 3);
 
+  // Any column choice for World Map and Big Number widgets is legal since the
+  // data source is from an endpoint that is not timeseries-based.
+  // Column builder for Table widget is already handled above.
+  const doNotValidateYAxis = ['world_map', 'big_number'].includes(displayType);
+
   return (
     <Field
       data-test-id="y-axis"
@@ -119,7 +124,8 @@ function WidgetQueryFields({
             fieldOptions={fieldOptions}
             onChange={value => handleChangeField(value, i)}
             filterPrimaryOptions={option => {
-              if (option.value.kind === FieldValueKind.FUNCTION) {
+              // Only validate functions for timeseries widgets.
+              if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
                 const primaryOutput = aggregateFunctionOutputType(
                   option.value.meta.name,
                   undefined
@@ -133,6 +139,11 @@ function WidgetQueryFields({
               return option.value.kind === FieldValueKind.FUNCTION;
             }}
             filterAggregateParameters={option => {
+              // Only validate function parameters for timeseries widgets.
+              if (doNotValidateYAxis) {
+                return true;
+              }
+
               if (option.value.kind === FieldValueKind.FUNCTION) {
                 // Functions are not legal options as an aggregate/function parameter.
                 return false;

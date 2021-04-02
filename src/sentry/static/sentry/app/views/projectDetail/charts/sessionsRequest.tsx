@@ -53,6 +53,7 @@ type Props = {
   organization: Organization;
   selection: GlobalSelection;
   children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
+  onTotalValuesChange: (value: number | null) => void;
 };
 
 type State = {
@@ -89,7 +90,7 @@ class SessionsRequest extends React.Component<Props, State> {
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {api, selection} = this.props;
+    const {api, selection, onTotalValuesChange} = this.props;
     const shouldFetchWithPrevious = shouldFetchPreviousPeriod(selection.datetime);
 
     this.setState(state => ({
@@ -118,6 +119,7 @@ class SessionsRequest extends React.Component<Props, State> {
         previousTimeseriesData,
         totalSessions,
       });
+      onTotalValuesChange(totalSessions);
     } catch {
       addErrorMessage(t('Error loading chart data'));
       this.setState({

@@ -9,7 +9,6 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
-from sentry.models import Group
 from sentry.snuba import discover
 
 logger = logging.getLogger(__name__)
@@ -59,10 +58,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     def serialize_error(self, event):
         return {
             "event_id": event["id"],
+            "issue_id": event["issue.id"],
             "span": event["trace.span"],
             "project_id": event["project.id"],
             "project_slug": event["project"],
-            "url": event["url"],
         }
 
     def construct_span_map(self, events, key):
@@ -152,19 +151,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         current_transaction = find_event(result["data"], lambda t: t["id"] == event_id)
         errors = self.get_errors(organization, trace_id, params, current_transaction, event_id)
-        if errors:
-            groups = {
-                group.id: group
-                for group in Group.objects.filter(
-                    id__in=[row["issue.id"] for row in errors],
-                    project_id__in=params.get("project_id", []),
-                    project__organization=organization,
-                )
-            }
-            for row in errors:
-                row["url"] = groups[row["issue.id"]].get_absolute_url(
-                    organization_slug=organization.slug
-                )
 
         return Response(
             self.serialize(result["data"], errors, root, warning_extra, event_id, detailed)
@@ -385,10 +371,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_map = self.construct_span_map(transactions, "trace.parent_span")
         error_map = self.construct_span_map(errors, "trace.span")
         parent_events = {}
-        # TODO(wmak): Dictionary ordering in py3.6 is an implementation detail, using an OrderedDict because this way
-        # we try to guarantee in py3.6 that the first item is the root
-        # So we can switch back to a normal dict when either the frontend doesn't depend on the root being the first
-        # element, or if we're on python 3.7
+        # TODO(3.7): Dictionary ordering in py3.6 is an implementation detail, using an OrderedDict because this way
+        # we try to guarantee in py3.6 that the first item is the root.  We can switch back to a normal dict when we're
+        # on python 3.7.
         results_map = OrderedDict()
         to_check = deque()
         if root:

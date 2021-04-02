@@ -1,5 +1,8 @@
+import React from 'react';
 import {Location, LocationDescriptor} from 'history';
 
+import FeatureDisabled from 'app/components/acl/featureDisabled';
+import Hovercard from 'app/components/hovercard';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
@@ -18,11 +21,9 @@ export type TransactionDestination = 'discover' | 'performance';
 
 function generateIssueEventTarget(
   event: TraceError,
-  organization: OrganizationSummary,
-  location: Location
+  organization: OrganizationSummary
 ): LocationDescriptor {
-  // TODO(txiao): This requires the group permalink, linking to discover for now.
-  return generateDiscoverEventTarget(event, organization, location);
+  return `/organizations/${organization.slug}/issues/${event.issue_id}/events/${event.event_id}`;
 }
 
 function generatePerformanceEventTarget(
@@ -66,7 +67,7 @@ export function generateSingleErrorTarget(
 ): LocationDescriptor {
   switch (destination) {
     case 'issue':
-      return generateIssueEventTarget(event, organization, location);
+      return generateIssueEventTarget(event, organization);
     case 'discover':
     default:
       return generateDiscoverEventTarget(event, organization, location);
@@ -143,4 +144,21 @@ export function generateTraceTarget(
     ...dateSelection,
   });
   return eventView.getResultsViewUrlTarget(organization.slug);
+}
+
+export function renderDisabledHoverCard(p: any) {
+  return (
+    <Hovercard
+      body={
+        <FeatureDisabled
+          features={['trace-view-summary']}
+          hideHelpToggle
+          message="The Trace View is disabled"
+          featureName="Trace View"
+        />
+      }
+    >
+      {p.children(p)}
+    </Hovercard>
+  );
 }

@@ -262,7 +262,7 @@ class BaseView(View, OrganizationMixin):
         redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def get_no_permission_url(request, *args, **kwargs):
+    def get_no_permission_url(self, request, *args, **kwargs):
         return reverse("sentry-login")
 
     def get_not_2fa_compliant_url(self, request, *args, **kwargs):
