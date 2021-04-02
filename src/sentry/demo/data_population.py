@@ -59,7 +59,7 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-crash_free_rate_by_release = {"3.0": 1.0, "3.1": 0.99, "3.2": 0.9}
+crash_free_rate_by_release = {"3.0": 1.0, "3.1": 0.98, "3.2": 0.8}
 
 logger = logging.getLogger(__name__)
 
@@ -680,7 +680,7 @@ def iter_timestamps(disribution_fn_num: int, quick: bool):
                 yield (timestamp, day)
 
 
-def update_context(event, trace):
+def update_context(event, trace=None):
     context = event["contexts"]
     # delete device since we aren't mocking it (yet)
     if "device" in context:
@@ -689,6 +689,11 @@ def update_context(event, trace):
     context.update(**gen_base_context())
     # add our trace info
     base_trace = context.get("trace", {})
+    if not trace:
+        trace = {
+            "trace_id": uuid4().hex,
+            "span_id": uuid4().hex[:16],
+        }
     base_trace.update(**trace)
     context["trace"] = base_trace
 
@@ -810,13 +815,13 @@ def populate_connected_event_scenario_1(
         fix_error_event(local_event, quick)
         safe_send_event(local_event, quick)
 
-        session_data = {
-            "init": True,
-        }
-        send_session(sid, transaction_user["id"], dsn, timestamp, release_sha, **session_data)
+        # session_data = {
+        #     "init": True,
+        # }
+        # send_session(sid, transaction_user["id"], dsn, timestamp, release_sha, **session_data)
 
-        session_data = {"errors": 1, "status": "exited"}
-        send_session(sid, transaction_user["id"], dsn, timestamp, release_sha, **session_data)
+        # session_data = {"errors": 1, "status": "exited"}
+        # send_session(sid, transaction_user["id"], dsn, timestamp, release_sha, **session_data)
 
     logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)
 
@@ -939,24 +944,38 @@ def populate_connected_event_scenario_3(python_project: Project, quick=False):
     logger.info("populate_connected_event_scenario_3.finished", extra=log_extra)
 
 
-def populate_healthy_sessions(project, quick=False):
+def populate_sessions(project, quick=False):
     dsn = ProjectKey.objects.get(project=project)
+
+    react_error = get_event_from_file("sessions/react_unhandled_exception.json")
 
     for (timestamp, day) in iter_timestamps(4, quick):
         transaction_user = generate_user(quick)
         sid = uuid4().hex
         release = get_release_from_time(project.organization_id, timestamp)
         version = release.version
-        threshold = crash_free_rate_by_release[version]
+        print("version", version)
 
         session_data = {
             "init": True,
         }
         send_session(sid, transaction_user["id"], dsn, timestamp, version, **session_data)
 
+        threshold = crash_free_rate_by_release[version]
         outcome = random.random()
-        print("threshold", threshold, outcome)
         if outcome > threshold:
+            local_event = copy.deepcopy(react_error)
+            local_event.update(
+                project=project,
+                platform=project.platform,
+                timestamp=timestamp,
+                user=transaction_user,
+                release=version,
+            )
+            update_context(local_event)
+            fix_error_event(local_event, quick)
+            safe_send_event(local_event, quick)
+
             data = {
                 "status": "crashed",
             }
@@ -975,8 +994,8 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     generate_releases([react_project, python_project], quick=quick)
     generate_alerts(python_project)
     generate_saved_query(react_project, "/productstore", "Product Store")
-    populate_healthy_sessions(react_project, quick=quick)
-    # populate_healthy_sessions(python_project, quick=quick)
-    populate_connected_event_scenario_1(react_project, python_project, quick=quick)
+    populate_sessions(react_project, quick=quick)
+    populate_sessions(python_project, quick=quick)
+    # populate_connected_event_scenario_1(react_project, python_project, quick=quick)
     # populate_connected_event_scenario_2(react_project, python_project, quick=quick)
     # populate_connected_event_scenario_3(python_project, quick=quick)
