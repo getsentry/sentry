@@ -1,5 +1,4 @@
 import React from 'react';
-import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import ActionLink from 'app/components/actions/actionLink';
@@ -240,28 +239,10 @@ const Wrapper = styled('div')<{hasInbox?: boolean}>`
     width: 50%;
   }
   flex: 1;
-  margin-left: ${space(1)};
-  margin-right: ${space(1)};
+  margin: 0 ${space(1)};
   display: grid;
   gap: ${space(0.5)};
   grid-auto-flow: column;
   justify-content: flex-start;
   white-space: nowrap;
-
-  ${p =>
-    p.hasInbox &&
-    css`
-      animation: 0.15s linear ZoomUp forwards;
-    `};
-
-  @keyframes ZoomUp {
-    0% {
-      opacity: 0;
-      transform: translateY(5px);
-    }
-    100% {
-      opacity: 1;
-      transform: tranlsateY(0);
-    }
-  }
 `;
