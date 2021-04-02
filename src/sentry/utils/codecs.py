@@ -72,7 +72,7 @@ class JSONCodec(Codec[JSONData, str]):
     """
 
     def encode(self, value: JSONData) -> str:
-        return json.dumps(value)
+        return str(json.dumps(value))
 
     def decode(self, value: str) -> JSONData:
         return json.loads(value)
