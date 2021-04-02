@@ -8,6 +8,7 @@ import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
@@ -280,10 +281,19 @@ class Chart extends React.Component<ChartProps, ChartState> {
   }
 
   render() {
-    const {zoomRenderProps, timeSeries, previousTimeSeries, releaseSeries} = this.props;
+    const {
+      zoomRenderProps,
+      timeSeries,
+      previousTimeSeries,
+      releaseSeries,
+      displayMode,
+    } = this.props;
+
+    const ChartComponent =
+      displayMode === DisplayModes.STABILITY ? LineChart : StackedAreaChart;
 
     return (
-      <LineChart
+      <ChartComponent
         {...zoomRenderProps}
         {...this.chartOptions}
         legend={this.legend}
