@@ -473,8 +473,8 @@ def test_massage_virtual_groupby_timeseries():
             },
             {
                 "by": {"session.status": "errored"},
-                "series": {"count_unique(user)": [0, 0, 0, 1], "sum(session)": [0, 0, 0, 1]},
-                "totals": {"count_unique(user)": 1, "sum(session)": 1},
+                "series": {"count_unique(user)": [0, 0, 0, 1], "sum(session)": [0, 0, 0, 0]},
+                "totals": {"count_unique(user)": 1, "sum(session)": 0},
             },
             {
                 "by": {"session.status": "healthy"},
