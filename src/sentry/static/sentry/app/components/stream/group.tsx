@@ -19,7 +19,6 @@ import Placeholder from 'app/components/placeholder';
 import ProgressBar from 'app/components/progressBar';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
-import GroupRowActions from 'app/components/stream/groupRowActions';
 import TimeSince from 'app/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
@@ -77,8 +76,6 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
-  onMarkReviewed?: (itemIds: string[]) => void;
-  onDelete?: () => void;
   showInboxTime?: boolean;
   index?: number;
   // TODO(ts): higher order functions break defaultprops export types
@@ -345,9 +342,7 @@ class StreamGroup extends React.Component<Props, State> {
       organization,
       displayReprocessingLayout,
       showInboxTime,
-      onMarkReviewed,
       useFilteredStats,
-      onDelete,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -557,18 +552,6 @@ class StreamGroup extends React.Component<Props, State> {
                 onAssign={this.trackAssign}
               />
             </AssigneeWrapper>
-            {canSelect && hasInbox && (
-              <ActionsWrapper>
-                <GroupRowActions
-                  group={data}
-                  orgSlug={organization.slug}
-                  selection={selection}
-                  onDelete={onDelete}
-                  onMarkReviewed={onMarkReviewed}
-                  query={query}
-                />
-              </ActionsWrapper>
-            )}
           </React.Fragment>
         )}
       </Wrapper>
@@ -712,16 +695,6 @@ const AssigneeWrapper = styled('div')`
   width: 80px;
   margin: 0 ${space(2)};
   align-self: center;
-`;
-
-const ActionsWrapper = styled('div')`
-  width: 80px;
-  margin: 0 ${space(2)};
-  align-self: center;
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    display: none;
-  }
 `;
 
 // Reprocessing

@@ -70,21 +70,6 @@ function ActionSet({
 
   return (
     <Wrapper hasInbox={hasInbox}>
-      {hasInbox && (
-        <GuideAnchor
-          target="inbox_guide_review"
-          disabled={!inboxGuideActiveReview}
-          position="bottom"
-        >
-          <div className="hidden-sm hidden-xs">
-            <ReviewAction
-              primary={isForReviewQuery(query)}
-              disabled={!anySelected}
-              onUpdate={onUpdate}
-            />
-          </div>
-        </GuideAnchor>
-      )}
       {selectedProjectSlug ? (
         <Projects orgId={orgSlug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -141,6 +126,22 @@ function ActionSet({
           disabled={!anySelected}
         />
       </GuideAnchor>
+
+      {hasInbox && (
+        <GuideAnchor
+          target="inbox_guide_review"
+          disabled={!inboxGuideActiveReview}
+          position="bottom"
+        >
+          <div className="hidden-sm hidden-xs">
+            <ReviewAction
+              primary={isForReviewQuery(query)}
+              disabled={!anySelected}
+              onUpdate={onUpdate}
+            />
+          </div>
+        </GuideAnchor>
+      )}
 
       <div className="hidden-md hidden-sm hidden-xs">
         <ActionLink

@@ -69,11 +69,6 @@ function Headers({
           <AssigneesLabel className="hidden-xs hidden-sm">
             <IssueToolbarHeader>{t('Assignee')}</IssueToolbarHeader>
           </AssigneesLabel>
-          {hasInbox && (
-            <ActionsLabel>
-              <IssueToolbarHeader>{t('Actions')}</IssueToolbarHeader>
-            </ActionsLabel>
-          )}
         </React.Fragment>
       )}
     </React.Fragment>
@@ -166,17 +161,6 @@ const AssigneesLabel = styled('div')`
   width: 80px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
-`;
-
-const ActionsLabel = styled('div')`
-  justify-content: flex-end;
-  text-align: right;
-  width: 80px;
-  margin: 0 ${space(2)};
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    display: none;
-  }
 `;
 
 // Reprocessing
