@@ -1,6 +1,6 @@
 import logging
 
-from sentry import features
+from sentry import features, analytics
 from sentry.app import locks
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
@@ -90,11 +90,18 @@ def handle_owner_assignment(project, group, event):
         if owners_exists:
             return
 
-        auto_assignment, owners = ProjectOwnership.get_autoassign_owners(
+        auto_assignment, owners, assigned_by_codeowners = ProjectOwnership.get_autoassign_owners(
             group.project_id, event.data
         )
         if auto_assignment and owners:
             GroupAssignee.objects.assign(group, owners[0])
+            if assigned_by_codeowners:
+                analytics.record(
+                    "codeowners.assignment",
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    group_id=group.id,
+                )
 
         if owners:
             try:
