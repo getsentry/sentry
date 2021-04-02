@@ -168,12 +168,13 @@ def reprocess_event(project_id, event_id, start_time):
     if event is None:
         raise CannotReprocess("event.not_found")
 
+    required_attachment_types = get_required_attachment_types(data)
     attachments = list(
-        models.EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
+        models.EventAttachment.objects.filter(
+            project_id=project_id, event_id=event_id, type__in=list(required_attachment_types)
+        )
     )
-    files = {f.id: f for f in models.File.objects.filter(id__in=[ea.file_id for ea in attachments])}
-
-    missing_attachment_types = get_required_attachment_types(data) - {ea.type for ea in attachments}
+    missing_attachment_types = required_attachment_types - {ea.type for ea in attachments}
 
     if missing_attachment_types:
         raise CannotReprocess(
@@ -188,8 +189,12 @@ def reprocess_event(project_id, event_id, start_time):
     )
     cache_key = event_processing_store.store(data)
 
-    # Step 2: Copy attachments into attachment cache
+    # Step 2: Copy attachments into attachment cache. Note that we can only
+    # consider minidumps because filestore just stays as-is after reprocessing
+    # (we simply update group_id on the EventAttachment models in post_process)
     attachment_objects = []
+
+    files = {f.id: f for f in models.File.objects.filter(id__in=[ea.file_id for ea in attachments])}
 
     for attachment_id, attachment in enumerate(attachments):
         with sentry_sdk.start_span(op="reprocess_event._copy_attachment_into_cache") as span:
