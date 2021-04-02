@@ -68,7 +68,7 @@ function ProjectIssues({organization, location, projectId, api}: Props) {
             query={issueQuery}
             selectedProjectIds={[projectId]}
             groupIds={[]}
-            emptyMessage={tct('No issues for the [timePeriod].', {
+            emptyMessage={tct('No unhandled issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
           />

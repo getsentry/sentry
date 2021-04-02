@@ -22,12 +22,12 @@ type Props = AsyncComponent['props'] & {
   organization: Organization;
   selection: GlobalSelection;
   isProjectStabilized: boolean;
+  hasTransactions?: boolean;
 };
 
 type State = AsyncComponent['state'] & {
   currentApdex: TableData | null;
   previousApdex: TableData | null;
-  noApdexEver: boolean;
 };
 
 class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
@@ -36,14 +36,13 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       currentApdex: null,
       previousApdex: null,
-      noApdexEver: false,
     };
   }
 
   getEndpoints() {
-    const {organization, selection, isProjectStabilized} = this.props;
+    const {organization, selection, isProjectStabilized, hasTransactions} = this.props;
 
-    if (!this.hasFeature() || !isProjectStabilized) {
+    if (!this.hasFeature() || !isProjectStabilized || !hasTransactions) {
       return [];
     }
 
@@ -84,48 +83,13 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
-  /**
-   * If there's no apdex in the time frame, check if there is one in the last 90 days (empty message differs then)
-   */
-  async onLoadAllEndpointsSuccess() {
-    const {organization, selection, isProjectStabilized} = this.props;
-    const {projects} = selection;
-
-    if (!isProjectStabilized) {
-      return;
-    }
-
-    if (defined(this.currentApdex) || defined(this.previousApdex)) {
-      this.setState({noApdexEver: false});
-      return;
-    }
-
-    this.setState({loading: true});
-
-    const response = await this.api.requestPromise(
-      `/organizations/${organization.slug}/eventsv2/`,
-      {
-        query: {
-          project: projects.map(proj => String(proj)),
-          field: [`apdex(${organization.apdexThreshold})`],
-          query: 'event.type:transaction count():>0',
-          statsPeriod: '90d',
-        },
-      }
-    );
-
-    const apdex =
-      response?.data[0]?.[getAggregateAlias(`apdex(${organization.apdexThreshold})`)];
-
-    this.setState({noApdexEver: !defined(apdex), loading: false});
-  }
-
   componentDidUpdate(prevProps: Props) {
-    const {selection, isProjectStabilized} = this.props;
+    const {selection, isProjectStabilized, hasTransactions} = this.props;
 
     if (
-      prevProps.selection !== selection ||
-      prevProps.isProjectStabilized !== isProjectStabilized
+      (prevProps.selection !== selection ||
+        prevProps.hasTransactions !== hasTransactions) &&
+      isProjectStabilized
     ) {
       this.remountComponent();
     }
@@ -221,7 +185,9 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    if (!this.hasFeature() || this.state.noApdexEver) {
+    const {hasTransactions} = this.props;
+
+    if (!this.hasFeature() || hasTransactions === false) {
       return this.renderMissingFeatureCard();
     }
 

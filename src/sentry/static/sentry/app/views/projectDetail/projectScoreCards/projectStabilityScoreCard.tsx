@@ -25,12 +25,12 @@ type Props = AsyncComponent['props'] & {
   organization: Organization;
   selection: GlobalSelection;
   isProjectStabilized: boolean;
+  hasSessions: boolean | null;
 };
 
 type State = AsyncComponent['state'] & {
   currentSessions: SessionApiResponse | null;
   previousSessions: SessionApiResponse | null;
-  noSessionEver: boolean;
 };
 
 class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
@@ -39,14 +39,13 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       currentSessions: null,
       previousSessions: null,
-      noSessionEver: false,
     };
   }
 
   getEndpoints() {
-    const {organization, selection, isProjectStabilized} = this.props;
+    const {organization, selection, isProjectStabilized, hasSessions} = this.props;
 
-    if (!isProjectStabilized) {
+    if (!isProjectStabilized || !hasSessions) {
       return [];
     }
 
@@ -98,40 +97,6 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
-  /**
-   * If there are no sessions in the time frame, check if there are any in the last 90 days (empty message differs then)
-   */
-  async onLoadAllEndpointsSuccess() {
-    const {organization, selection, isProjectStabilized} = this.props;
-
-    if (!isProjectStabilized) {
-      return;
-    }
-
-    if (defined(this.score) || defined(this.trend)) {
-      this.setState({noSessionEver: false});
-      return;
-    }
-
-    this.setState({loading: true});
-
-    const response: SessionApiResponse = await this.api.requestPromise(
-      `/organizations/${organization.slug}/sessions/`,
-      {
-        query: {
-          project: selection.projects[0],
-          field: 'sum(session)',
-          statsPeriod: '90d',
-          interval: '1d',
-        },
-      }
-    );
-
-    const allSessions = response.groups[0].totals['sum(session)'];
-
-    this.setState({noSessionEver: !allSessions || allSessions === 0, loading: false});
-  }
-
   get cardTitle() {
     return t('Crash Free Sessions');
   }
@@ -171,11 +136,11 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {selection, isProjectStabilized} = this.props;
+    const {selection, isProjectStabilized, hasSessions} = this.props;
 
     if (
-      prevProps.selection !== selection ||
-      prevProps.isProjectStabilized !== isProjectStabilized
+      (prevProps.selection !== selection || prevProps.hasSessions !== hasSessions) &&
+      isProjectStabilized
     ) {
       this.remountComponent();
     }
@@ -249,9 +214,9 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {noSessionEver} = this.state;
+    const {hasSessions} = this.props;
 
-    if (noSessionEver) {
+    if (hasSessions === false) {
       return this.renderMissingFeatureCard();
     }
 

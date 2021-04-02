@@ -11,6 +11,7 @@ import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 
 const ALLOWED_TIME_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
@@ -111,21 +112,24 @@ class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
     const {theme} = this.props;
     const {loading, reloading} = this.state;
 
-    return (
-      <TransitionChart loading={loading} reloading={reloading}>
-        <TransparentLoadingMask visible={reloading} />
+    return getDynamicText({
+      value: (
+        <TransitionChart loading={loading} reloading={reloading}>
+          <TransparentLoadingMask visible={reloading} />
 
-        <HeaderTitleLegend>{t('Daily Errors')}</HeaderTitleLegend>
+          <HeaderTitleLegend>{t('Daily Errors')}</HeaderTitleLegend>
 
-        <BaseChart
-          series={this.getSeries()}
-          isGroupedByDate
-          showTimeInTooltip
-          colors={[theme.purple300, theme.purple200]}
-          grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
-        />
-      </TransitionChart>
-    );
+          <BaseChart
+            series={this.getSeries()}
+            isGroupedByDate
+            showTimeInTooltip
+            colors={[theme.purple300, theme.purple200]}
+            grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
+          />
+        </TransitionChart>
+      ),
+      fixed: t('Number of Errors Chart'),
+    });
   }
 }
 

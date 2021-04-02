@@ -12,15 +12,24 @@ type Props = {
   organization: Organization;
   selection: GlobalSelection;
   isProjectStabilized: boolean;
+  hasSessions: boolean | null;
+  hasTransactions?: boolean;
 };
 
-function ProjectScoreCards({organization, selection, isProjectStabilized}: Props) {
+function ProjectScoreCards({
+  organization,
+  selection,
+  isProjectStabilized,
+  hasSessions,
+  hasTransactions,
+}: Props) {
   return (
     <CardWrapper>
       <ProjectStabilityScoreCard
         organization={organization}
         selection={selection}
         isProjectStabilized={isProjectStabilized}
+        hasSessions={hasSessions}
       />
 
       <ProjectVelocityScoreCard
@@ -33,6 +42,7 @@ function ProjectScoreCards({organization, selection, isProjectStabilized}: Props
         organization={organization}
         selection={selection}
         isProjectStabilized={isProjectStabilized}
+        hasTransactions={hasTransactions}
       />
     </CardWrapper>
   );

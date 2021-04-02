@@ -58,6 +58,7 @@ function ProjectStabilityChart({
                 api={api}
                 selection={selection}
                 organization={organization}
+                onTotalValuesChange={onTotalValuesChange}
               >
                 {({
                   errored,
@@ -65,7 +66,6 @@ function ProjectStabilityChart({
                   reloading,
                   timeseriesData,
                   previousTimeseriesData,
-                  totalSessions,
                 }) => (
                   <ReleaseSeries
                     utc={utc}
@@ -83,8 +83,6 @@ function ProjectStabilityChart({
                           </ErrorPanel>
                         );
                       }
-
-                      onTotalValuesChange(totalSessions);
 
                       return (
                         <TransitionChart loading={loading} reloading={reloading}>
