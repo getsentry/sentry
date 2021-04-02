@@ -43,7 +43,7 @@ import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {getTabs, isForReviewQuery} from 'app/views/issueList/utils';
+import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -148,7 +148,7 @@ class StreamGroup extends React.Component<Props, State> {
 
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
-      // On the inbox tab and the inbox reason is removed
+      // When searching is:for_review and the inbox reason is removed
       const reviewed =
         state.reviewed ||
         (isForReviewQuery(query) &&
@@ -175,7 +175,7 @@ class StreamGroup extends React.Component<Props, State> {
   trackClick = () => {
     const {query, organization} = this.props;
     const {data} = this.state;
-    if (isForReviewQuery(query)) {
+    if (query === Query.FOR_REVIEW) {
       trackAnalyticsEvent({
         eventKey: 'inbox_tab.issue_clicked',
         eventName: 'Clicked Issue from Inbox Tab',
