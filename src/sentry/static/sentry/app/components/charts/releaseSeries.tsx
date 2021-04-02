@@ -2,6 +2,7 @@ import React from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import {EChartOption} from 'echarts/lib/echarts';
+import {withTheme} from 'emotion-theming';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
@@ -17,7 +18,7 @@ import {escape} from 'app/utils';
 import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import {formatVersion} from 'app/utils/formatters';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import theme from 'app/utils/theme';
+import theme, {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -62,6 +63,7 @@ function getOrganizationReleases(
 
 type Props = WithRouterProps & {
   api: Client;
+  theme: Theme;
   organization: Organization;
   children: (s: State) => React.ReactNode;
   projects: Readonly<number[]>;
@@ -290,6 +292,7 @@ class ReleaseSeries extends React.Component<Props, State> {
 
     return {
       seriesName: 'Releases',
+      color: theme.purple200,
       data: [],
       markLine,
     };
@@ -305,4 +308,4 @@ class ReleaseSeries extends React.Component<Props, State> {
   }
 }
 
-export default withRouter(withOrganization(withApi(ReleaseSeries)));
+export default withRouter(withOrganization(withApi(withTheme(ReleaseSeries))));
