@@ -555,4 +555,52 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count_unique(measurements.lcp)']);
   });
+
+  it('should filter y-axis choices by output type when switching from big number to line chart', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    // Select Big Number display
+    selectByLabel(wrapper, 'Big Number', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('big_number');
+
+    // Choose any()
+    selectByLabel(wrapper, 'any(\u2026)', {
+      name: 'field',
+      at: 0,
+      control: true,
+    });
+
+    selectByLabel(wrapper, 'id', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('line');
+
+    // Expect event.type field to be converted to count()
+    const fieldColumn = wrapper.find('input[name="field"]');
+    expect(fieldColumn.length).toEqual(1);
+    expect(fieldColumn.props().value).toMatchObject({
+      kind: 'function',
+      meta: {
+        name: 'count',
+        parameters: [],
+      },
+    });
+
+    await clickSubmit(wrapper);
+
+    expect(widget.displayType).toEqual('line');
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count()']);
+  });
 });
