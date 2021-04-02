@@ -6,7 +6,7 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import features
+from sentry import features, analytics
 from sentry.utils import metrics
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -207,6 +207,13 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         if serializer.is_valid():
             project_codeowners = serializer.save()
             self.track_response_code("create", status.HTTP_201_CREATED)
+            analytics.record(
+                "codeowners.created",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                codeowners_id=project_codeowners.id,
+            )
             return Response(
                 serialize(project_codeowners, request.user), status=status.HTTP_201_CREATED
             )
