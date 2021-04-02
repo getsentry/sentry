@@ -19,6 +19,18 @@ LegacyUserOptionClone = namedtuple(
     ],
 )
 
+
+class UserOptionValue:
+    # 'workflow:notifications'
+    all_conversations = "0"
+    participating_only = "1"
+    no_conversations = "2"
+    # 'deploy-emails
+    all_deploys = "2"
+    committed_deploys_only = "3"
+    no_deploys = "4"
+
+
 USER_OPTION_SETTINGS = {
     UserOptionsSettingsKey.DEPLOY: {
         "key": "deploy-emails",
@@ -45,6 +57,14 @@ USER_OPTION_SETTINGS = {
         "default": "1",
         "type": int,
     },
+}
+
+FINE_TUNING_KEY_MAP = {
+    FineTuningAPIKey.ALERTS: "mail:alert",
+    FineTuningAPIKey.DEPLOY: "deploy-emails",
+    FineTuningAPIKey.EMAIL: "mail:email",
+    FineTuningAPIKey.REPORTS: "reports:disabled-organizations",
+    FineTuningAPIKey.WORKFLOW: "workflow:notifications",
 }
 
 KEYS_TO_LEGACY_KEYS = {
@@ -125,6 +145,10 @@ def get_type_from_fine_tuning_key(key: FineTuningAPIKey) -> Optional[Notificatio
         FineTuningAPIKey.DEPLOY: NotificationSettingTypes.DEPLOY,
         FineTuningAPIKey.WORKFLOW: NotificationSettingTypes.WORKFLOW,
     }.get(key)
+
+
+def get_legacy_key_from_fine_tuning_key(key: FineTuningAPIKey) -> Optional[str]:
+    return FINE_TUNING_KEY_MAP.get(key)
 
 
 def get_type_from_user_option_settings_key(
