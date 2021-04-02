@@ -186,14 +186,7 @@ class SessionsRequest extends React.Component<Props, State> {
     };
   }
 
-  transformData(
-    responseData: SessionApiResponse,
-    {fetchedWithPrevious = false}
-  ): {
-    timeseriesData: Series[];
-    previousTimeseriesData: Series | null;
-    totalSessions: number;
-  } {
+  transformData(responseData: SessionApiResponse, {fetchedWithPrevious = false}) {
     const {theme} = this.props;
 
     // Take the floor just in case, but data should always be divisible by 2
@@ -302,13 +295,7 @@ class SessionsRequest extends React.Component<Props, State> {
     };
   }
 
-  transformSessionCountData(
-    responseData: SessionApiResponse
-  ): {
-    timeseriesData: Series[];
-    previousTimeseriesData: null;
-    totalSessions: number;
-  } {
+  transformSessionCountData(responseData: SessionApiResponse) {
     const totalSessions = getTotalsFromSessionsResponse({
       response: responseData,
       field: 'sum(session)',

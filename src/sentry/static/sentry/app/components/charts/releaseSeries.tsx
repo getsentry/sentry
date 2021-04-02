@@ -18,7 +18,7 @@ import {escape} from 'app/utils';
 import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import {formatVersion} from 'app/utils/formatters';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import theme, {Theme} from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -220,6 +220,7 @@ class ReleaseSeries extends React.Component<Props, State> {
       period,
       preserveQueryParams,
       queryExtra,
+      theme,
     } = this.props;
 
     const query = {...queryExtra};
