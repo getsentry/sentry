@@ -243,6 +243,7 @@ export const FILTER_MASK = '[Filtered]';
 // Errors that may occur during the fetching of organization details
 export const ORGANIZATION_FETCH_ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
+  ORG_NO_ACCESS: 'ORG_NO_ACCESS',
 };
 
 export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
