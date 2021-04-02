@@ -86,13 +86,9 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             status=ObjectStatus.PENDING_DELETION,
         )
 
-        # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 36
-
-        # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
-        expected_queries += 1
-
-        with self.assertNumQueries(expected_queries, using="default"):
+        # TODO(dcramer): we need to pare this down -- lots of duplicate queries
+        # for membership data
+        with self.assertNumQueries(36, using="default"):
             response = self.get_success_response(self.organization.slug)
 
         project_slugs = [p["slug"] for p in response.data["projects"]]
