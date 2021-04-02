@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T21:59:15.750114Z'
+created: '2021-04-02T09:10:51.548358Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,7 +8,7 @@ app:
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
-        stacktrace
+        stacktrace*
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "start"
@@ -48,37 +48,37 @@ app:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "functional"
             function*
               "std::__1::function<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "functional"
             function*
               "std::__1::__function::__value_func<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "functional"
             function*
               "std::__1::__function::__func<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "functional"
             function*
               "std::__1::__function::__alloc_func<T>::operator()"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "__functional_base"
             function*
               "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "type_traits"
             function*
               "std::__1::__invoke<T>"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "Src/Initialize.cpp"
             function*
@@ -155,7 +155,7 @@ app:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "dlopen"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -182,7 +182,7 @@ app:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "__report_load"
-          frame (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -193,15 +193,15 @@ app:
               "__pthread_kill"
         type*
           "0x00000000 / 0x00000000"
-        value*
+        value (stacktrace and type take precedence)
           "Fatal Error: 0x00000000 / 0x00000000"
 --------------------------------------------------------------------------
 system:
-  hash: "a3ce3ffb7077f57549483112e3dcf68c"
+  hash: "19208a8d2bfdfe0f14d6bcc72e7bb54a"
   component:
     system*
       exception*
-        stacktrace
+        stacktrace*
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "start"
@@ -241,37 +241,37 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "functional"
             function*
               "std::__1::function<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "functional"
             function*
               "std::__1::__function::__value_func<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "functional"
             function*
               "std::__1::__function::__func<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "functional"
             function*
               "std::__1::__function::__alloc_func<T>::operator()"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             filename*
               "__functional_base"
             function*
               "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             filename*
               "type_traits"
             function*
               "std::__1::__invoke<T>"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "Src/Initialize.cpp"
             function*
@@ -348,7 +348,7 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "dlopen"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -375,7 +375,7 @@ system:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "__report_load"
-          frame (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -386,5 +386,5 @@ system:
               "__pthread_kill"
         type*
           "0x00000000 / 0x00000000"
-        value*
+        value (stacktrace and type take precedence)
           "Fatal Error: 0x00000000 / 0x00000000"
