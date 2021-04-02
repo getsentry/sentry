@@ -576,9 +576,7 @@ class CombinedQuerysetPaginator:
             return value
 
     def _is_asc(self, is_prev):
-        if self.using_dates:
-            return (self.desc and is_prev) or not (self.desc or is_prev)
-        return self.desc
+        return (self.desc and is_prev) or not (self.desc or is_prev)
 
     def _build_combined_querysets(self, value, is_prev, limit, extra):
         asc = self._is_asc(is_prev)
@@ -656,7 +654,7 @@ class CombinedQuerysetPaginator:
                 results = results[:-1]
 
         # We reversed the results when generating the querysets, so we need to reverse back now.
-        if self.using_dates:
+        if cursor.is_prev:
             results.reverse()
 
         return build_cursor(
