@@ -16,7 +16,7 @@ catch_all = urlpatterns.pop()
 # add our org catch all before the last catch all
 urlpatterns += [
     url(
-        r"^organizations/(?P<organization_slug>[\w_-]+)/",
+        r"^(?:settings|organizations)/(?P<organization_slug>[\w_-]+)/",
         ReactPageView.as_view(),
         name="sentry-org-catch-all",
     ),
