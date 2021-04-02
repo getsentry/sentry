@@ -84,7 +84,7 @@ def create_demo_org(quick=False) -> Organization:
     return org
 
 
-def assign_demo_org() -> Tuple[Organization, User]:
+def assign_demo_org() -> Tuple[Organization, User, OrganizationMember]:
     from .tasks import build_up_org_buffer
 
     demo_org = None
@@ -123,4 +123,4 @@ def assign_demo_org() -> Tuple[Organization, User]:
     # build up the buffer
     build_up_org_buffer.apply_async()
 
-    return (org, user)
+    return (org, user, member)
