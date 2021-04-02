@@ -43,11 +43,11 @@ class TraceSummary extends React.Component<Props> {
     const content = ({
       isLoading,
       error,
-      trace,
+      traces,
     }: {
       isLoading: boolean;
       error: string | null;
-      trace: TraceFullDetailed | null;
+      traces: TraceFullDetailed[] | null;
     }) => (
       <TraceDetailsContent
         location={location}
@@ -59,7 +59,7 @@ class TraceSummary extends React.Component<Props> {
         statsPeriod={statsPeriod}
         isLoading={isLoading}
         error={error}
-        trace={trace}
+        traces={traces}
       />
     );
 
@@ -67,7 +67,7 @@ class TraceSummary extends React.Component<Props> {
       return content({
         isLoading: false,
         error: 'date selection not specified',
-        trace: null,
+        traces: null,
       });
     }
 

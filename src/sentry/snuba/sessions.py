@@ -518,3 +518,58 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             }
 
     return stats, totals
+
+
+def get_release_sessions_time_bounds(project_id, release, org_id, environments=None):
+    """
+    Get the sessions time bounds in terms of when the first session started and
+    when the last session started according to a specific (project_id, org_id, release, environments)
+    combination
+    Inputs:
+        * project_id
+        * release
+        * org_id: Organisation Id
+        * environments
+    Return:
+        Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that
+    correspond to when the first session occurred and when the last session occurred respectively
+    """
+    release_sessions_time_bounds = {
+        "sessions_lower_bound": None,
+        "sessions_upper_bound": None,
+    }
+
+    filter_keys = {"project_id": [project_id], "org_id": [org_id]}
+    conditions = [["release", "=", release]]
+    if environments is not None:
+        conditions.append(["environment", "IN", environments])
+
+    rows = raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=["first_session_started", "last_session_started"],
+        aggregations=[
+            ["min(started)", None, "first_session_started"],
+            ["max(started)", None, "last_session_started"],
+        ],
+        conditions=conditions,
+        filter_keys=filter_keys,
+        referrer="sessions.release-sessions-time-bounds",
+    )["data"]
+
+    formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+    if rows:
+        rv = rows[0]
+
+        # This check is added because if there are no sessions found, then the
+        # aggregations query return both the sessions_lower_bound and the
+        # sessions_upper_bound as `0` timestamp and we do not want that behaviour
+        # by default
+        # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
+        # is rendered as '0000-00-00 00:00:00' in clickhouse shell
+        if set(rv.values()) != {formatted_unix_start_time}:
+            release_sessions_time_bounds = {
+                "sessions_lower_bound": rv["first_session_started"],
+                "sessions_upper_bound": rv["last_session_started"],
+            }
+    return release_sessions_time_bounds

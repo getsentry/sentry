@@ -4,12 +4,12 @@ from django.core.urlresolvers import reverse
 from rest_framework.response import Response
 
 from sentry import newsletter
+from sentry.api.base import Endpoint
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.utils import auth
 from sentry.models import Organization
-from sentry.api.base import Endpoint
+from sentry.utils import auth
 from sentry.web.frontend.auth_login import additional_context
 from sentry.web.frontend.base import OrganizationMixin
 

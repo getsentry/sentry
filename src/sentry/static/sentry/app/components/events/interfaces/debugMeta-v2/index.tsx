@@ -610,7 +610,6 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   ${p => layout(p.theme, p.scrollbarWidth)}
 `;
 
-// Section Title
 const TitleWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
@@ -625,7 +624,6 @@ const Title = styled('h3')`
   height: 14px;
 `;
 
-// Virtual List
 const StyledList = styled(List)<{height: number}>`
   height: auto !important;
   max-height: ${p => p.height}px;

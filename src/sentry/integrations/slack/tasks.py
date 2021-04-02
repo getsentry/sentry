@@ -214,6 +214,7 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
             "access": SystemAccess(),
             "user": user,
             "use_async_lookup": True,
+            "validate_channel_id": False,
         },
         data=data,
         instance=alert_rule,

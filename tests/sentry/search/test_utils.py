@@ -64,6 +64,11 @@ def test_tokenize_query_only_keyed_fields():
             "((x y)) a():>a AND (!b:b OR c():<c) z)",
             {"a()": [">a"], "!b": ["b"], "c()": ["<c"], "query": ["x", "y", "z"]},
         ),
+        ('a:"\\"a\\""', {"a": ['\\"a\\"']}),
+        (
+            'a:"i \\" quote" b:"b\\"bb" c:"cc"',
+            {"a": ['i \\" quote'], "b": ['b\\"bb'], "c": ["cc"]},
+        ),
     ]
 
     for test in tests:

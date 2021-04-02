@@ -3,7 +3,7 @@ import copy
 import sentry_relay
 from rest_framework import serializers
 
-from sentry.utils import metrics, json
+from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 
 

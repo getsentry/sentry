@@ -862,7 +862,7 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
-    # Enable the quick trace view on event details and errors
+    # Enable the quick trace view on event details
     "organizations:trace-view-quick": False,
     # Enable the trace view summary
     "organizations:trace-view-summary": False,
@@ -1260,6 +1260,10 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+
+# Render charts on the backend. This uses the Chartcuterie external service.
+SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
+SENTRY_CHART_RENDERER_OPTIONS = {}
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)

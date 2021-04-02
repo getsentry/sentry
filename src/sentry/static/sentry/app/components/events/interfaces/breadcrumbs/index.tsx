@@ -333,6 +333,48 @@ class Breadcrumbs extends React.Component<Props, State> {
     }));
   };
 
+  handleResetSearchBar = () => {
+    this.setState(prevState => ({
+      searchTerm: '',
+      filteredBySearch: prevState.breadcrumbs,
+    }));
+  };
+
+  renderEmptyMessage() {
+    const {searchTerm, filteredBySearch, filterOptions} = this.state;
+
+    if (searchTerm && !filteredBySearch.length) {
+      const hasActiveFilter = filterOptions
+        .flatMap(filterOption => [...filterOption])
+        .find(filterOption => filterOption.isChecked);
+
+      return (
+        <StyledEmptyMessage
+          icon={<IconWarning size="xl" />}
+          action={
+            hasActiveFilter ? (
+              <Button onClick={this.handleResetFilter} priority="primary">
+                {t('Reset filter')}
+              </Button>
+            ) : (
+              <Button onClick={this.handleResetSearchBar} priority="primary">
+                {t('Clear search bar')}
+              </Button>
+            )
+          }
+        >
+          {t('Sorry, no breadcrumbs match your search query')}
+        </StyledEmptyMessage>
+      );
+    }
+
+    return (
+      <StyledEmptyMessage icon={<IconWarning size="xl" />}>
+        {t('There are no breadcrumbs to be displayed')}
+      </StyledEmptyMessage>
+    );
+  }
+
   render() {
     const {type, event, organization} = this.props;
     const {
@@ -347,7 +389,7 @@ class Breadcrumbs extends React.Component<Props, State> {
       <StyledEventDataSection
         type={type}
         title={
-          <GuideAnchor target="breadcrumbs" position="bottom">
+          <GuideAnchor target="breadcrumbs" position="right">
             <h3>{t('Breadcrumbs')}</h3>
           </GuideAnchor>
         }
@@ -355,15 +397,16 @@ class Breadcrumbs extends React.Component<Props, State> {
           <Search>
             <Filter onFilter={this.handleFilter} options={filterOptions} />
             <StyledSearchBar
-              placeholder={t('Search breadcrumbs\u2026')}
+              placeholder={t('Search breadcrumbs')}
               onSearch={this.handleSearch}
+              query={searchTerm}
             />
           </Search>
         }
         wrapTitle={false}
         isCentered
       >
-        {filteredBySearch.length > 0 ? (
+        {!!filteredBySearch.length ? (
           <ErrorBoundary>
             <List
               breadcrumbs={filteredBySearch}
@@ -376,16 +419,7 @@ class Breadcrumbs extends React.Component<Props, State> {
             />
           </ErrorBoundary>
         ) : (
-          <StyledEmptyMessage
-            icon={<IconWarning size="xl" />}
-            action={
-              <Button onClick={this.handleResetFilter} priority="primary">
-                {t('Reset Filter')}
-              </Button>
-            }
-          >
-            {t('Sorry, no breadcrumbs match your search query.')}
-          </StyledEmptyMessage>
+          this.renderEmptyMessage()
         )}
       </StyledEventDataSection>
     );

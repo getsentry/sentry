@@ -1,7 +1,6 @@
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-
 from sentry.models import GroupTombstone
 
 

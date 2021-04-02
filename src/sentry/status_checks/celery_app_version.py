@@ -1,9 +1,9 @@
-import sentry
-
 from django.conf import settings
+
+import sentry
 from sentry import options
 
-from .base import StatusCheck, Problem
+from .base import Problem, StatusCheck
 
 
 class CeleryAppVersionCheck(StatusCheck):

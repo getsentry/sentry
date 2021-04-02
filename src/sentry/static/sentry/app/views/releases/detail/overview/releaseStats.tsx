@@ -184,17 +184,18 @@ function ReleaseStats({
           <SectionContent>
             {get24hSessionCountByProject || get24hUserCountByProject ? (
               <AdoptionWrapper>
-                {get24hSessionCountByProject && (
-                  <ReleaseAdoption
-                    releaseCount={get24hSessionCountByRelease ?? 0}
-                    projectCount={get24hSessionCountByProject ?? 0}
-                    adoption={sessionAdoption ?? 0}
-                    displayOption={DisplayOption.SESSIONS}
-                    withLabels
-                  />
-                )}
+                {defined(get24hSessionCountByProject) &&
+                  get24hSessionCountByProject > 0 && (
+                    <ReleaseAdoption
+                      releaseCount={get24hSessionCountByRelease ?? 0}
+                      projectCount={get24hSessionCountByProject ?? 0}
+                      adoption={sessionAdoption ?? 0}
+                      displayOption={DisplayOption.SESSIONS}
+                      withLabels
+                    />
+                  )}
 
-                {get24hUserCountByProject && (
+                {defined(get24hUserCountByProject) && get24hUserCountByProject > 0 && (
                   <ReleaseAdoption
                     releaseCount={get24hUserCountByRelease ?? 0}
                     projectCount={get24hUserCountByProject ?? 0}
