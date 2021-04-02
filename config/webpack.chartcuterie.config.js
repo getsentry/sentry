@@ -40,7 +40,6 @@ const config = {
     libraryTarget: 'commonjs2',
   },
 
-  devtool: 'none',
   optimization: {minimize: false},
 };
 
