@@ -282,8 +282,6 @@ class IssueListActions extends React.Component<Props, State> {
       multiSelected,
       selectedProjectSlug,
       inboxGuideActive,
-      inboxGuideActiveReview,
-      inboxGuideActiveIgnore,
     } = this.state;
 
     const numIssues = issues.size;
@@ -316,8 +314,6 @@ class IssueListActions extends React.Component<Props, State> {
                 onRealtimeChange={this.handleRealtimeChange}
                 onMerge={this.handleMerge}
                 onUpdate={this.handleUpdate}
-                inboxGuideActiveReview={inboxGuideActiveReview}
-                inboxGuideActiveIgnore={inboxGuideActiveIgnore}
               />
             )}
           <Headers

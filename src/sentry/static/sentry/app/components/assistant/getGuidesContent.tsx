@@ -148,15 +148,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         {
           target: 'inbox_guide_ignore',
           description: t(`Resolving or ignoring an issue also marks it reviewed.`),
-          nextText: t(`Seriously, there's more?`),
-          cantDismiss: true,
-        },
-        {
-          target: 'for_review_guide_tab',
-          description: t(
-            `Everything is automatically reviewed after seven days, preventing
-            issues from piling up and you from losing your damn mind.`
-          ),
           nextText: t(`Make It Stop Already`),
         },
       ],

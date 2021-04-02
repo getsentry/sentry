@@ -37,8 +37,6 @@ type Props = {
   onUpdate: (data?: any) => void;
   selectedProjectSlug?: string;
   hasInbox?: boolean;
-  inboxGuideActiveReview: boolean;
-  inboxGuideActiveIgnore: boolean;
 };
 
 function ActionSet({
@@ -57,8 +55,6 @@ function ActionSet({
   onMerge,
   selectedProjectSlug,
   hasInbox,
-  inboxGuideActiveReview,
-  inboxGuideActiveIgnore,
 }: Props) {
   const numIssues = issues.size;
   const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
@@ -71,11 +67,7 @@ function ActionSet({
   return (
     <Wrapper hasInbox={hasInbox}>
       {hasInbox && (
-        <GuideAnchor
-          target="inbox_guide_review"
-          disabled={!inboxGuideActiveReview}
-          position="bottom"
-        >
+        <GuideAnchor target="inbox_guide_review" position="bottom">
           <div className="hidden-sm hidden-xs">
             <ReviewAction
               primary={isForReviewQuery(query)}
@@ -128,11 +120,7 @@ function ActionSet({
         />
       )}
 
-      <GuideAnchor
-        target="inbox_guide_ignore"
-        disabled={!inboxGuideActiveIgnore}
-        position="bottom"
-      >
+      <GuideAnchor target="inbox_guide_ignore" position="bottom">
         <IgnoreActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
