@@ -416,16 +416,27 @@ def test_massage_virtual_groupby_timeseries():
         {
             "users": 1,
             "users_crashed": 1,
-            "sessions": 6,
-            "sessions_errored": 1,
+            "sessions": 21,
+            "sessions_errored": 11,
             "users_errored": 1,
-            "sessions_abnormal": 0,
-            "sessions_crashed": 1,
+            "sessions_abnormal": 2,
+            "sessions_crashed": 5,
             "users_abnormal": 0,
         }
     ]
     # snuba returns the datetimes as strings for now
     result_timeseries = [
+        {
+            "sessions_errored": 10,
+            "users": 1,
+            "users_crashed": 0,
+            "sessions_abnormal": 2,
+            "sessions": 15,
+            "users_errored": 0,
+            "users_abnormal": 0,
+            "sessions_crashed": 4,
+            "bucketed_started": "2020-12-18T00:00:00+00:00",
+        },
         {
             "sessions_errored": 1,
             "users": 1,
@@ -463,27 +474,27 @@ def test_massage_virtual_groupby_timeseries():
         "groups": [
             {
                 "by": {"session.status": "abnormal"},
-                "series": {"count_unique(user)": [0, 0, 0, 0], "sum(session)": [0, 0, 0, 0]},
-                "totals": {"count_unique(user)": 0, "sum(session)": 0},
+                "series": {"count_unique(user)": [0, 0, 0, 0], "sum(session)": [0, 2, 0, 0]},
+                "totals": {"count_unique(user)": 0, "sum(session)": 2},
             },
             {
                 "by": {"session.status": "crashed"},
-                "series": {"count_unique(user)": [0, 0, 0, 1], "sum(session)": [0, 0, 0, 1]},
-                "totals": {"count_unique(user)": 1, "sum(session)": 1},
+                "series": {"count_unique(user)": [0, 0, 0, 1], "sum(session)": [0, 4, 0, 1]},
+                "totals": {"count_unique(user)": 1, "sum(session)": 5},
             },
             {
                 "by": {"session.status": "errored"},
-                "series": {"count_unique(user)": [0, 0, 0, 1], "sum(session)": [0, 0, 0, 1]},
-                "totals": {"count_unique(user)": 1, "sum(session)": 1},
+                "series": {"count_unique(user)": [0, 0, 0, 1], "sum(session)": [0, 4, 0, 0]},
+                "totals": {"count_unique(user)": 1, "sum(session)": 4},
             },
             {
                 "by": {"session.status": "healthy"},
-                "series": {"count_unique(user)": [0, 0, 1, 0], "sum(session)": [0, 0, 3, 2]},
+                "series": {"count_unique(user)": [0, 1, 1, 0], "sum(session)": [0, 5, 3, 2]},
                 # while in one of the time slots, we have a healthy user, it is
                 # the *same* user as the one experiencing a crash later on,
                 # so in the *whole* time window, that one user is not counted as healthy,
                 # so the `0` here is expected, as thats an example of the `count_unique` behavior.
-                "totals": {"count_unique(user)": 0, "sum(session)": 5},
+                "totals": {"count_unique(user)": 0, "sum(session)": 10},
             },
         ],
     }
