@@ -103,13 +103,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         rule_sort_key = (
             sort_key if sort_key != "name" else "label"
         )  # Rule's don't share the same field name for their title/label/name...so we account for that here.
-        case_insensitive_sort = sort_key == "name"
-        alert_rule_intermediary = CombinedQuerysetIntermediary(
-            alert_rules, sort_key, case_insensitive_sort
-        )
-        rule_intermediary = CombinedQuerysetIntermediary(
-            issue_rules, rule_sort_key, case_insensitive_sort
-        )
+        case_insensitive = sort_key == "name"
+        alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, sort_key)
+        rule_intermediary = CombinedQuerysetIntermediary(issue_rules, rule_sort_key)
         return self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
@@ -117,7 +113,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             default_per_page=25,
             intermediaries=[alert_rule_intermediary, rule_intermediary],
             desc=not is_asc,
-            cursor_cls=StringCursor if case_insensitive_sort else Cursor,
+            cursor_cls=StringCursor if case_insensitive else Cursor,
+            case_insensitive=case_insensitive,
         )
 
 

@@ -487,10 +487,9 @@ class GenericOffsetPaginator:
 class CombinedQuerysetIntermediary:
     is_empty = False
 
-    def __init__(self, queryset, order_by, case_insensitive_sort=False):
+    def __init__(self, queryset, order_by):
         self.queryset = queryset
         self.order_by = order_by
-        self.case_insensitive_sort = case_insensitive_sort
         try:
             instance = queryset[:1].get()
             self.instance_type = type(instance)
@@ -522,10 +521,11 @@ class CombinedQuerysetPaginator:
     using_dates = False
     model_key_map = {}
 
-    def __init__(self, intermediaries, desc=False, on_results=None):
+    def __init__(self, intermediaries, desc=False, on_results=None, case_insensitive=False):
         self.desc = desc
         self.intermediaries = intermediaries
         self.on_results = on_results
+        self.case_insensitive = case_insensitive
         for intermediary in list(self.intermediaries):
             if intermediary.is_empty:
                 self.intermediaries.remove(intermediary)
@@ -586,8 +586,8 @@ class CombinedQuerysetPaginator:
             filters = {}
             annotate = {}
 
-            if intermediary.case_insensitive_sort:
-                key = "%s_lower" % key
+            if self.case_insensitive:
+                key = f"{key}_lower"
                 annotate[key] = Lower(intermediary.order_by)
 
             if asc:
