@@ -192,7 +192,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       warning = (
         <Alert type="info" icon={<IconInfo size="md" />}>
           {t(
-            'A root Transaction is missing. Transaction linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+            'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
           )}
         </Alert>
       );
@@ -200,7 +200,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       warning = (
         <Alert type="info" icon={<IconInfo size="md" />}>
           {t(
-            'This trace has broken subtraces. Transaction linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+            'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
           )}
         </Alert>
       );
