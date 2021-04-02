@@ -30,9 +30,9 @@ class DemoStartView(BaseView):
 
         if member_id:
             try:
-                # only assign them to an active org
+                # only assign them to an active org for a member role
                 member = OrganizationMember.objects.get(
-                    id=member_id, organization__status=OrganizationStatus.ACTIVE
+                    id=member_id, organization__status=OrganizationStatus.ACTIVE, role="member"
                 )
             except OrganizationMember.DoesNotExist:
                 pass
