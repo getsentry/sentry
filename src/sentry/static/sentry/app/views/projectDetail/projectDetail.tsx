@@ -257,7 +257,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   hasSessions={hasSessions}
                   hasTransactions={hasTransactions}
                 />
-                {isProjectStabilized && defined(hasSessions) && (
+                {isProjectStabilized && (
                   <React.Fragment>
                     {visibleCharts.map((id, index) => (
                       <ProjectCharts
