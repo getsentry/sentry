@@ -16,7 +16,7 @@ def handle_project(project: Project, stream) -> None:
     """
     stream.write("# Project: %s\n" % project)
 
-    users = mail_adapter.get_sendable_users(project)
+    users = mail_adapter.get_sendable_user_objects(project)
     users_map = {user.id: user for user in users}
     emails = get_email_addresses(users_map.keys(), project)
     for user_id, email in emails.items():
