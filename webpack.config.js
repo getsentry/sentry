@@ -375,7 +375,7 @@ let appConfig = {
     },
 
     fallback: {
-      ...(IS_PRODUCTION
+      ...(!IS_PRODUCTION
         ? {
             vm: require.resolve('vm-browserify'),
             stream: require.resolve('stream-browserify'),
