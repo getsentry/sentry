@@ -22,6 +22,7 @@ import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconFire, IconInfo, IconUser, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
@@ -291,11 +292,13 @@ export default class DetailsBody extends React.Component<Props> {
         {({initiallyLoaded, projects}) => {
           return initiallyLoaded ? (
             <React.Fragment>
-              <StyledAlert type="info" icon={<IconInfo size="md" />}>
-                {t(
-                  'You’re viewing the new alert details page. To view the old experience, select an alert on the chart or in the history.'
-                )}
-              </StyledAlert>
+              <StyledPageContent>
+                <StyledAlert type="info" icon={<IconInfo size="md" />}>
+                  {t(
+                    'You’re viewing the new alert details page. To view the old experience, select an alert on the chart or in the history.'
+                  )}
+                </StyledAlert>
+              </StyledPageContent>
               <Layout.Body>
                 <Layout.Main>
                   <HeaderContainer>
@@ -406,8 +409,16 @@ const HeaderContainer = styled('div')`
   gap: ${space(4)};
 `;
 
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
+
+const StyledLayoutBody = styled(Layout.Body)`
+  margin-bottom: -20px;
+`;
+
 const StyledAlert = styled(Alert)`
-  margin: ${space(3)} ${space(4)} 0;
+  margin: 0;
 `;
 
 const ActivityWrapper = styled('div')`
