@@ -167,6 +167,7 @@ supportedLocales
       );
 
     localeChunkGroups[group] = {
+      chunks: 'initial',
       name: group,
       test: groupTest,
       enforce: true,
