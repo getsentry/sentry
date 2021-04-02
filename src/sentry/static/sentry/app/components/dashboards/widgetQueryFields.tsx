@@ -140,9 +140,24 @@ function WidgetQueryFields({
               return option.value.kind === FieldValueKind.FUNCTION;
             }}
             filterAggregateParameters={option => {
-              // Only validate function parameters for timeseries widgets.
+              // Only validate function parameters for timeseries widgets and
+              // world map widgets.
               if (doNotValidateYAxis) {
                 return true;
+              }
+
+              const exploded = explodeField({field});
+              if (exploded.kind !== 'function') {
+                return true;
+              }
+
+              const functionName = exploded.function[0];
+              const primaryOutput = aggregateFunctionOutputType(
+                functionName as string,
+                option.value.meta.name
+              );
+              if (primaryOutput) {
+                return isLegalYAxisType(primaryOutput);
               }
 
               if (option.value.kind === FieldValueKind.FUNCTION) {
