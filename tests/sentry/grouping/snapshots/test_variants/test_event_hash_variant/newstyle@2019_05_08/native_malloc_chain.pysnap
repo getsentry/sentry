@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:39:05.688086Z'
+created: '2021-04-02T10:31:45.700334Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,7 +12,7 @@ app:
           frame (non app frame)
             function*
               "application_frame"
-          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "malloc_zone_malloc"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -33,7 +33,7 @@ app:
           "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
 --------------------------------------------------------------------------
 system:
-  hash: "3ff01ce959249abecc6bc8a8f1432b0b"
+  hash: "69d066e455243e7c5762b7522b430ca9"
   component:
     system*
       exception*
@@ -41,19 +41,19 @@ system:
           frame*
             function*
               "application_frame"
-          frame* (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "malloc_zone_malloc"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "nanov2_malloc"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "nanov2_allocate"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "nanov2_allocate_from_block"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "nanov2_allocate_from_block.cold.1"
         type (ignored because exception is synthetic)

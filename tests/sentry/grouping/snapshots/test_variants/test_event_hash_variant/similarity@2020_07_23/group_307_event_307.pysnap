@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:54:06.608863Z'
+created: '2021-04-02T10:31:56.564733Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -63,18 +63,18 @@ app:
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
 --------------------------------------------------------------------------
 system:
-  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  hash: "b7c6253ad69f02d33e770f3050d72c88"
   component:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame*
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "thread_start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "_pthread_start"
           frame*
@@ -113,7 +113,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "__dynamic_cast"
         type (ignored because exception is synthetic)

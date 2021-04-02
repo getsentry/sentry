@@ -159,6 +159,7 @@ register_strategy_config(
         "discard_native_filename": True,
         "use_package_fallback": True,
     },
+    enhancements_base="mobile:2021-04-02",
 )
 
 

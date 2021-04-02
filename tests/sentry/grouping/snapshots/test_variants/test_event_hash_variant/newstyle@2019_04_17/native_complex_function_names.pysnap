@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:39:25.747784Z'
+created: '2020-02-26T19:54:35.788493Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,7 +24,7 @@ app:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "9b78cced1eefcd0c655a0a3d8ce2cdd2"
+  hash: "61d21e6d53c0837718af047c20e5e7ea"
   component:
     system*
       exception*
@@ -35,7 +35,7 @@ system:
           frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)
