@@ -319,10 +319,13 @@ class Rule:
         rv = []
 
         for idx, frame in enumerate(frames):
-            if all(
-                self._matches_frame(m, frames, idx, platform, exception_data, match_cache)
-                for m in self._sorted_matchers
-            ):
+            matches = True
+            for m in self._sorted_matchers:
+                if not m.matches_frame(frames, idx, platform, exception_data):
+                    matches = False
+                    break
+
+            if matches:
                 for action in self.actions:
                     rv.append((idx, action))
 

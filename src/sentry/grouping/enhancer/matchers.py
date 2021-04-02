@@ -185,7 +185,7 @@ class PathMatch(PathLikeMatch):
 class FamilyMatch(FrameMatch):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._flags = self.pattern.split(",")
+        self._flags = set(self.pattern.split(","))
 
     def _positive_frame_match(self, frame_data, platform, exception_data):
         if "all" in self._flags:
