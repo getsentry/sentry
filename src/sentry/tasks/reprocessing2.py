@@ -10,6 +10,13 @@ from sentry.eventstore.models import Event
 from sentry.utils.query import celery_run_batch_query
 from sentry.tasks.base import instrumented_task, retry
 
+
+# We have observed that the p95 of process_event is around 10s (p50 = 400ms),
+# so we need to make sure that the amount of events we process in
+# reprocess_group stays within its time_limit and soft_time_limit
+#
+# chunk_size         soft_time_limit
+# 10         * 10 <= 110
 GROUP_REPROCESSING_CHUNK_SIZE = 10
 
 nodestore_stats_logger = logging.getLogger("sentry.nodestore.stats")
