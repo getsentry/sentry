@@ -327,7 +327,11 @@ export default class DetailsBody extends React.Component<Props> {
                     <div>
                       <SidebarHeading noMargin>
                         {t('Time Interval')}
-                        <Tooltip title="This is the time period which the metric is evaluated by.">
+                        <Tooltip
+                          title={t(
+                            'This is the time period which the metric is evaluated by.'
+                          )}
+                        >
                           <IconInfo size="xs" />
                         </Tooltip>
                       </SidebarHeading>
@@ -409,6 +413,9 @@ const HeaderContainer = styled('div')`
 `;
 
 const StyledLayoutBody = styled(Layout.Body)`
+  flex-grow: 0;
+  padding-bottom: 0 !important;
+
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: auto;
   }
