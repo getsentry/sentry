@@ -604,14 +604,14 @@ urlpatterns = [
                     name="sentry-api-0-user-notifications",
                 ),
                 url(
-                    r"^(?P<user_id>[^\/]+)/password/$",
-                    UserPasswordEndpoint.as_view(),
-                    name="sentry-api-0-user-password",
-                ),
-                url(
                     r"^(?P<user_id>[^\/]+)/notifications/(?P<notification_type>[^\/]+)/$",
                     UserNotificationFineTuningEndpoint.as_view(),
                     name="sentry-api-0-user-notifications-fine-tuning",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/password/$",
+                    UserPasswordEndpoint.as_view(),
+                    name="sentry-api-0-user-password",
                 ),
                 url(
                     r"^(?P<user_id>[^\/]+)/social-identities/$",
