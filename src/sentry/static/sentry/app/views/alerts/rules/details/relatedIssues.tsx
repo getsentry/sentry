@@ -6,8 +6,6 @@ import {SectionHeading} from 'app/components/charts/styles';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GroupList from 'app/components/issues/groupList';
 import {Panel, PanelBody} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {OrganizationSummary, Project} from 'app/types';
@@ -57,9 +55,6 @@ class RelatedIssues extends React.Component<Props> {
       <React.Fragment>
         <ControlsWrapper>
           <SectionHeading>{t('Related Issues')}</SectionHeading>
-          <Tooltip title={t('Top issues containing events matching the metric.')}>
-            <IconInfo size="xs" />
-          </Tooltip>
           <Button data-test-id="issues-open" size="small" to={issueSearch}>
             {t('Open in Issues')}
           </Button>
