@@ -293,8 +293,8 @@ class GroupHeader extends React.Component<Props, State> {
           >
             {t('Activity')}
             <StyledTag>
-              <TabCount>{group.numComments}</TabCount>
-              <IconChat size="xs" color="white" />
+              {group.numComments}
+              <IconChat size="xs" />
             </StyledTag>
           </StyledListLink>
           <StyledListLink
@@ -384,11 +384,6 @@ const StyledListLink = styled(ListLink)`
 
 const StyledTag = styled(Tag)`
   margin-left: ${space(0.75)};
-`;
-
-const TabCount = styled('span')`
-  color: ${p => p.theme.white};
-  font-weight: 600;
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`
