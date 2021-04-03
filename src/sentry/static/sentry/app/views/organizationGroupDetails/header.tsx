@@ -7,7 +7,6 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Badge from 'app/components/badge';
 import Count from 'app/components/count';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -303,7 +302,7 @@ class GroupHeader extends React.Component<Props, State> {
             isActive={() => currentTab === TAB.USER_FEEDBACK}
             disabled={disabledTabs.includes(TAB.USER_FEEDBACK)}
           >
-            {t('User Feedback')} <Badge text={group.userReportCount} />
+            {t('User Feedback')} <Tag>{group.userReportCount}</Tag>
           </StyledListLink>
           {hasEventAttachments && (
             <ListLink
@@ -384,9 +383,6 @@ const StyledListLink = styled(ListLink)`
 `;
 
 const StyledTag = styled(Tag)`
-  div {
-    background-color: ${p => p.theme.badge.default.background};
-  }
   margin-left: ${space(0.75)};
 `;
 
