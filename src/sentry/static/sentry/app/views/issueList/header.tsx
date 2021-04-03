@@ -150,7 +150,7 @@ function IssueListHeader({
                               type:
                                 isForReviewQuery(tabQuery) &&
                                 queryCounts[tabQuery].count > 0
-                                  ? 'warning'
+                                  ? 'focus'
                                   : 'default',
                             }}
                             count={queryCounts[tabQuery].count}

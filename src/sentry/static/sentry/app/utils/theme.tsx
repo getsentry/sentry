@@ -269,6 +269,10 @@ const tag = {
     background: colors.purple100,
     iconColor: colors.purple300,
   },
+  focus: {
+    background: colors.purple300,
+    iconColor: colors.white,
+  },
   warning: {
     background: colors.yellow100,
     iconColor: colors.yellow300,
