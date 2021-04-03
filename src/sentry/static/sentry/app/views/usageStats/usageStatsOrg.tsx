@@ -127,8 +127,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     }
 
     const formatOptions = {
-      isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
-      useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
+      isAbbreviated: dataCategory !== DataCategory.ATTACHMENT,
+      useUnitScaling: dataCategory === DataCategory.ATTACHMENT,
     };
 
     return {

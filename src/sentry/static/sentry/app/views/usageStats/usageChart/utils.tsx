@@ -27,9 +27,9 @@ export function getDateRange(dateStart: string, dateEnd: string): string[] {
 }
 
 export function getTooltipFormatter(dataCategory: DataCategory) {
-  if (dataCategory === DataCategory.ATTACHMENTS) {
+  if (dataCategory === DataCategory.ATTACHMENT) {
     return (val: number = 0) =>
-      formatUsageWithUnits(val, DataCategory.ATTACHMENTS, {useUnitScaling: true});
+      formatUsageWithUnits(val, DataCategory.ATTACHMENT, {useUnitScaling: true});
   }
 
   return (val: number = 0) => val.toLocaleString();

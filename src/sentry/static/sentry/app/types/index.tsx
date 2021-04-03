@@ -684,9 +684,9 @@ export interface Config {
 }
 
 export enum DataCategory {
-  ERRORS = 'errors',
-  TRANSACTIONS = 'transactions',
-  ATTACHMENTS = 'attachments',
+  ERROR = 'error',
+  TRANSACTION = 'transaction',
+  ATTACHMENT = 'attachment',
 }
 
 export type EventOrGroupType =

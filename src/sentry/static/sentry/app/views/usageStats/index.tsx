@@ -32,7 +32,7 @@ type State = {
 
 class OrganizationStats extends React.Component<Props, State> {
   state: State = {
-    dataCategory: DataCategory.ERRORS,
+    dataCategory: DataCategory.ERROR,
     dateStart: moment().subtract(14, 'days'),
     dateEnd: moment(),
   };

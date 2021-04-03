@@ -28,7 +28,7 @@ export function formatUsageWithUnits(
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
-  if (dataCategory !== DataCategory.ATTACHMENTS) {
+  if (dataCategory !== DataCategory.ATTACHMENT) {
     return options.isAbbreviated
       ? abbreviateUsageNumber(usageQuantity)
       : usageQuantity.toLocaleString();

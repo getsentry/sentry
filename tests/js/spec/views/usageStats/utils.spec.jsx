@@ -8,117 +8,115 @@ import {
 
 describe('formatUsageWithUnits', function () {
   it('returns correct strings for Errors', function () {
-    expect(formatUsageWithUnits(0, DataCategory.ERRORS)).toBe('0');
-    expect(formatUsageWithUnits(1000, DataCategory.ERRORS)).toBe('1,000');
-    expect(formatUsageWithUnits(MILLION, DataCategory.ERRORS)).toBe('1,000,000');
-    expect(formatUsageWithUnits(BILLION, DataCategory.ERRORS)).toBe('1,000,000,000');
+    expect(formatUsageWithUnits(0, DataCategory.ERROR)).toBe('0');
+    expect(formatUsageWithUnits(1000, DataCategory.ERROR)).toBe('1,000');
+    expect(formatUsageWithUnits(MILLION, DataCategory.ERROR)).toBe('1,000,000');
+    expect(formatUsageWithUnits(BILLION, DataCategory.ERROR)).toBe('1,000,000,000');
 
-    expect(formatUsageWithUnits(0, DataCategory.ERRORS, {isAbbreviated: true})).toBe('0');
-    expect(formatUsageWithUnits(1000, DataCategory.ERRORS, {isAbbreviated: true})).toBe(
+    expect(formatUsageWithUnits(0, DataCategory.ERROR, {isAbbreviated: true})).toBe('0');
+    expect(formatUsageWithUnits(1000, DataCategory.ERROR, {isAbbreviated: true})).toBe(
       '1K'
     );
+    expect(formatUsageWithUnits(MILLION, DataCategory.ERROR, {isAbbreviated: true})).toBe(
+      '1M'
+    );
     expect(
-      formatUsageWithUnits(MILLION, DataCategory.ERRORS, {isAbbreviated: true})
-    ).toBe('1M');
-    expect(
-      formatUsageWithUnits(1.234 * MILLION, DataCategory.ERRORS, {
+      formatUsageWithUnits(1.234 * MILLION, DataCategory.ERROR, {
         isAbbreviated: true,
       })
     ).toBe('1.2M');
     expect(
-      formatUsageWithUnits(1.234 * BILLION, DataCategory.ERRORS, {
+      formatUsageWithUnits(1.234 * BILLION, DataCategory.ERROR, {
         isAbbreviated: true,
       })
     ).toBe('1.23B');
   });
 
   it('returns correct strings for Transactions', function () {
-    expect(formatUsageWithUnits(0, DataCategory.TRANSACTIONS)).toBe('0');
-    expect(formatUsageWithUnits(1000, DataCategory.TRANSACTIONS)).toBe('1,000');
-    expect(formatUsageWithUnits(MILLION, DataCategory.TRANSACTIONS)).toBe('1,000,000');
-    expect(formatUsageWithUnits(BILLION, DataCategory.TRANSACTIONS)).toBe(
-      '1,000,000,000'
-    );
+    expect(formatUsageWithUnits(0, DataCategory.TRANSACTION)).toBe('0');
+    expect(formatUsageWithUnits(1000, DataCategory.TRANSACTION)).toBe('1,000');
+    expect(formatUsageWithUnits(MILLION, DataCategory.TRANSACTION)).toBe('1,000,000');
+    expect(formatUsageWithUnits(BILLION, DataCategory.TRANSACTION)).toBe('1,000,000,000');
 
+    expect(formatUsageWithUnits(0, DataCategory.TRANSACTION, {isAbbreviated: true})).toBe(
+      '0'
+    );
     expect(
-      formatUsageWithUnits(0, DataCategory.TRANSACTIONS, {isAbbreviated: true})
-    ).toBe('0');
-    expect(
-      formatUsageWithUnits(1000, DataCategory.TRANSACTIONS, {isAbbreviated: true})
+      formatUsageWithUnits(1000, DataCategory.TRANSACTION, {isAbbreviated: true})
     ).toBe('1K');
     expect(
-      formatUsageWithUnits(MILLION, DataCategory.TRANSACTIONS, {isAbbreviated: true})
+      formatUsageWithUnits(MILLION, DataCategory.TRANSACTION, {isAbbreviated: true})
     ).toBe('1M');
     expect(
-      formatUsageWithUnits(1.234 * MILLION, DataCategory.TRANSACTIONS, {
+      formatUsageWithUnits(1.234 * MILLION, DataCategory.TRANSACTION, {
         isAbbreviated: true,
       })
     ).toBe('1.2M');
     expect(
-      formatUsageWithUnits(1.234 * BILLION, DataCategory.TRANSACTIONS, {
+      formatUsageWithUnits(1.234 * BILLION, DataCategory.TRANSACTION, {
         isAbbreviated: true,
       })
     ).toBe('1.23B');
   });
 
   it('returns correct strings for Attachments', function () {
-    expect(formatUsageWithUnits(0, DataCategory.ATTACHMENTS)).toBe('0 GB');
-    expect(formatUsageWithUnits(MILLION, DataCategory.ATTACHMENTS)).toBe('0 GB');
-    expect(formatUsageWithUnits(BILLION, DataCategory.ATTACHMENTS)).toBe('1 GB');
-    expect(formatUsageWithUnits(1.234 * BILLION, DataCategory.ATTACHMENTS)).toBe(
+    expect(formatUsageWithUnits(0, DataCategory.ATTACHMENT)).toBe('0 GB');
+    expect(formatUsageWithUnits(MILLION, DataCategory.ATTACHMENT)).toBe('0 GB');
+    expect(formatUsageWithUnits(BILLION, DataCategory.ATTACHMENT)).toBe('1 GB');
+    expect(formatUsageWithUnits(1.234 * BILLION, DataCategory.ATTACHMENT)).toBe(
       '1.23 GB'
     );
-    expect(formatUsageWithUnits(1234 * GIGABYTE, DataCategory.ATTACHMENTS)).toBe(
+    expect(formatUsageWithUnits(1234 * GIGABYTE, DataCategory.ATTACHMENT)).toBe(
       '1,234 GB'
     );
 
-    expect(formatUsageWithUnits(0, DataCategory.ATTACHMENTS, {isAbbreviated: true})).toBe(
+    expect(formatUsageWithUnits(0, DataCategory.ATTACHMENT, {isAbbreviated: true})).toBe(
       '0 GB'
     );
     expect(
-      formatUsageWithUnits(MILLION, DataCategory.ATTACHMENTS, {isAbbreviated: true})
+      formatUsageWithUnits(MILLION, DataCategory.ATTACHMENT, {isAbbreviated: true})
     ).toBe('0 GB');
     expect(
-      formatUsageWithUnits(BILLION, DataCategory.ATTACHMENTS, {isAbbreviated: true})
+      formatUsageWithUnits(BILLION, DataCategory.ATTACHMENT, {isAbbreviated: true})
     ).toBe('1 GB');
     expect(
-      formatUsageWithUnits(1.234 * BILLION, DataCategory.ATTACHMENTS, {
+      formatUsageWithUnits(1.234 * BILLION, DataCategory.ATTACHMENT, {
         isAbbreviated: true,
       })
     ).toBe('1 GB');
     expect(
-      formatUsageWithUnits(1234 * BILLION, DataCategory.ATTACHMENTS, {
+      formatUsageWithUnits(1234 * BILLION, DataCategory.ATTACHMENT, {
         isAbbreviated: true,
       })
     ).toBe('1K GB');
 
     expect(
-      formatUsageWithUnits(0, DataCategory.ATTACHMENTS, {
+      formatUsageWithUnits(0, DataCategory.ATTACHMENT, {
         useUnitScaling: true,
       })
     ).toBe('0 B');
     expect(
-      formatUsageWithUnits(1000, DataCategory.ATTACHMENTS, {
+      formatUsageWithUnits(1000, DataCategory.ATTACHMENT, {
         useUnitScaling: true,
       })
     ).toBe('1 KB');
     expect(
-      formatUsageWithUnits(MILLION, DataCategory.ATTACHMENTS, {
+      formatUsageWithUnits(MILLION, DataCategory.ATTACHMENT, {
         useUnitScaling: true,
       })
     ).toBe('1 MB');
     expect(
-      formatUsageWithUnits(1.234 * MILLION, DataCategory.ATTACHMENTS, {
+      formatUsageWithUnits(1.234 * MILLION, DataCategory.ATTACHMENT, {
         useUnitScaling: true,
       })
     ).toBe('1.23 MB');
     expect(
-      formatUsageWithUnits(1.234 * BILLION, DataCategory.ATTACHMENTS, {
+      formatUsageWithUnits(1.234 * BILLION, DataCategory.ATTACHMENT, {
         useUnitScaling: true,
       })
     ).toBe('1.23 GB');
     expect(
-      formatUsageWithUnits(1234 * BILLION, DataCategory.ATTACHMENTS, {
+      formatUsageWithUnits(1234 * BILLION, DataCategory.ATTACHMENT, {
         useUnitScaling: true,
       })
     ).toBe('1.23 TB');

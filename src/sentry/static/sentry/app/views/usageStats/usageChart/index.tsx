@@ -33,17 +33,17 @@ const COLOR_PROJECTED = commonTheme.gray200;
 export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
   {
     label: 'Errors',
-    value: DataCategory.ERRORS,
+    value: DataCategory.ERROR,
     disabled: false,
   },
   {
     label: 'Transactions',
-    value: DataCategory.TRANSACTIONS,
+    value: DataCategory.TRANSACTION,
     disabled: false,
   },
   {
     label: 'Attachments',
-    value: DataCategory.ATTACHMENTS,
+    value: DataCategory.ATTACHMENT,
     disabled: false,
   },
 ];
@@ -164,11 +164,11 @@ export class UsageChart extends React.Component<Props, State> {
   get chartColors() {
     const {dataCategory} = this.props;
 
-    if (dataCategory === DataCategory.ERRORS) {
+    if (dataCategory === DataCategory.ERROR) {
       return [COLOR_ERRORS, COLOR_ERRORS_DROPPED, COLOR_PROJECTED];
     }
 
-    if (dataCategory === DataCategory.ATTACHMENTS) {
+    if (dataCategory === DataCategory.ATTACHMENT) {
       return [COLOR_ATTACHMENTS, COLOR_ATTACHMENTS_DROPPED, COLOR_PROJECTED];
     }
 
@@ -211,7 +211,7 @@ export class UsageChart extends React.Component<Props, State> {
 
     const {label, value} = selectDataCategory;
 
-    if (value === DataCategory.ERRORS || value === DataCategory.TRANSACTIONS) {
+    if (value === DataCategory.ERROR || value === DataCategory.TRANSACTION) {
       return {
         chartLabel: label,
         chartData,
@@ -228,7 +228,7 @@ export class UsageChart extends React.Component<Props, State> {
       xAxisData: xAxisDates,
       yAxisMinInterval: 1 * GIGABYTE,
       yAxisFormatter: (val: number) =>
-        formatUsageWithUnits(val, DataCategory.ATTACHMENTS, {
+        formatUsageWithUnits(val, DataCategory.ATTACHMENT, {
           isAbbreviated: true,
           useUnitScaling: true,
         }),
