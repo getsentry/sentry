@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import moment from 'moment';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -21,7 +22,7 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, Organization} from 'app/types';
 
-import {OrganizationUsageStats} from './types';
+import {Outcome, UsageSeries, UsageStat} from './types';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
   CHART_OPTIONS_DATACATEGORY,
@@ -41,7 +42,7 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  orgStats: OrganizationUsageStats;
+  orgStats: UsageSeries | undefined;
   chartDataTransform: ChartDataTransform;
 } & AsyncComponent['state'];
 
@@ -53,31 +54,30 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     };
   }
 
-  /**
-   * Ignore this hard-coded method.
-   * This will be updated in a separate PR.
-   */
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
+    return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
+  }
 
-    return [
-      [
-        'orgStats',
-        `/organizations/${organization.slug}/stats_v2/`,
-        {
-          query: {
-            interval: '1d',
-          },
-        },
-      ],
-    ];
+  get endpointPath() {
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/stats_v2/`;
+  }
+
+  get endpointQuery() {
+    const {dateStart, dateEnd} = this.props;
+    return {
+      statsPeriod: `${dateEnd.diff(dateStart, 'd')}d`, // TODO(org-stats)
+      interval: '1d', // TODO(org-stats)
+      groupBy: ['category', 'outcome'],
+      field: ['sum(quantity)', 'sum(times_seen)'],
+    };
   }
 
   get chartMetadata() {
     const {orgStats} = this.state;
 
     return {
-      ...this.mapStatsToChart(orgStats),
+      ...this.mapSeriesToChart(orgStats),
     };
   }
 
@@ -85,12 +85,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     this.setState({chartDataTransform: value});
   }
 
-  /**
-   * Ignore this hard-coded method.
-   * This will be updated in a separate PR.
-   */
-  mapStatsToChart(
-    _orgStats: any
+  mapSeriesToChart(
+    orgStats?: UsageSeries
   ): {
     chartData: ChartStats;
     cardData: {
@@ -99,47 +95,109 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       dropped: string;
       filtered: string;
     };
+    error?: Error;
   } {
-    const {dataCategory} = this.state;
-
-    let sumTotal = 0;
-    let sumAccepted = 0;
-    let sumDropped = 0;
-    let sumFiltered = 0;
-
+    const cardData = {
+      total: '-',
+      accepted: '-',
+      dropped: '-',
+      filtered: '-',
+    };
     const chartData: ChartStats = {
       accepted: [],
       dropped: [],
       projected: [],
     };
 
-    // Please ignore this stub
-    for (let i = 1; i <= 31; i++) {
-      const date = `Mar ${i}`;
-
-      chartData.accepted.push({value: [date, 2000]} as any); // TODO(ts)
-      chartData.dropped.push({value: [date, 1000]} as any); // TODO(ts)
-
-      sumTotal += 5000;
-      sumAccepted += 2000;
-      sumDropped += 1000;
-      sumFiltered += 2000;
+    if (!orgStats) {
+      return {cardData, chartData};
     }
 
-    const formatOptions = {
-      isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
-      useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
-    };
+    try {
+      const {dataCategory} = this.props;
+      const interval = '1d'; // TODO(org-stats)
+      const dateTimeFormat = interval === '1d' ? 'MMM D' : 'MMM D, HH:mm';
 
-    return {
-      cardData: {
-        total: formatUsageWithUnits(sumTotal, dataCategory, formatOptions),
-        accepted: formatUsageWithUnits(sumAccepted, dataCategory, formatOptions),
-        dropped: formatUsageWithUnits(sumDropped, dataCategory, formatOptions),
-        filtered: formatUsageWithUnits(sumFiltered, dataCategory, formatOptions),
-      },
-      chartData,
-    };
+      const usageStats: UsageStat[] = orgStats.intervals.map(i => {
+        const dateTime = moment(i);
+
+        return {
+          date: dateTime.format(dateTimeFormat),
+          total: 0,
+          accepted: 0,
+          filtered: 0,
+          dropped: {total: 0},
+        };
+      });
+
+      orgStats.groups.forEach(group => {
+        const {outcome, category} = group.by;
+        if (category !== dataCategory) {
+          return;
+        }
+
+        const stats = this.mapSeriesToStats(dataCategory, group.series);
+        stats.forEach((s, i) => {
+          usageStats[i][outcome] = outcome === Outcome.DROPPED ? {total: s} : s;
+        });
+      });
+
+      let sumTotal = 0;
+      let sumAccepted = 0;
+      let sumDropped = 0;
+      let sumFiltered = 0;
+      usageStats.forEach(s => {
+        s.total = s.accepted + s.filtered + s.dropped.total;
+
+        // Card Data
+        sumTotal += s.total;
+        sumAccepted += s.accepted;
+        sumDropped += s.dropped.total;
+        sumFiltered += s.filtered;
+
+        // Chart Data
+        chartData.accepted.push({value: [s.date, s.accepted]} as any);
+        chartData.dropped.push({value: [s.date, s.dropped.total]} as any);
+      });
+
+      const formatOptions = {
+        isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
+        useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
+      };
+
+      return {
+        cardData: {
+          total: formatUsageWithUnits(sumTotal, dataCategory, formatOptions),
+          accepted: formatUsageWithUnits(sumAccepted, dataCategory, formatOptions),
+          dropped: formatUsageWithUnits(sumDropped, dataCategory, formatOptions),
+          filtered: formatUsageWithUnits(sumFiltered, dataCategory, formatOptions),
+        },
+        chartData,
+      };
+    } catch (err) {
+      Sentry.withScope(scope => {
+        scope.setContext('query', this.endpointQuery);
+        scope.setContext('body', orgStats);
+        Sentry.captureException(err);
+      });
+
+      return {
+        cardData,
+        chartData,
+        error: err,
+      };
+    }
+  }
+
+  mapSeriesToStats(dataCategory: DataCategory, series: Record<string, number[]>) {
+    if (
+      dataCategory === DataCategory.ATTACHMENTS ||
+      dataCategory === DataCategory.TRANSACTIONS
+    ) {
+      return series['sum(times_seen)'];
+    }
+
+    return series['sum(quantity)'];
   }
 
   renderCards() {
@@ -207,7 +265,9 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       );
     }
 
-    if (error || !orgStats) {
+    const {chartData, error: chartError} = this.chartMetadata;
+
+    if (error || chartError || !orgStats) {
       return (
         <Panel>
           <PanelBody>
@@ -219,7 +279,6 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       );
     }
 
-    const {chartData} = this.chartMetadata;
     const usageDateStart = dateStart.format('YYYY-MM-DD');
     const usageDateEnd = dateEnd.format('YYYY-MM-DD');
 
