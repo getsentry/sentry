@@ -16,6 +16,8 @@ export type AlertType =
   | 'fcp'
   | 'ttfb';
 
+export const WebVitalAlertTypes = new Set(['lcp', 'fid', 'cls', 'fp', 'fcp', 'ttfb']);
+
 export const AlertWizardAlertNames: Record<AlertType, string> = {
   issues: t('Issues'),
   num_errors: t('Number of Errors'),
