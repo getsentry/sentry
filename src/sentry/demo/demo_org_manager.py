@@ -52,8 +52,6 @@ def create_demo_org(quick=False) -> Organization:
             name="React", organization=org, platform="javascript-react"
         )
         react_project.add_team(team)
-        # delete all DSNs for the org so people don't send events
-        ProjectKey.objects.filter(project__organization=org).delete()
 
         # we'll be adding transactions later
         Project.objects.filter(organization=org).update(
@@ -116,6 +114,9 @@ def assign_demo_org() -> Tuple[Organization, User]:
 
         member = OrganizationMember.objects.create(organization=org, user=user, role="member")
         OrganizationMemberTeam.objects.create(team=team, organizationmember=member, is_active=True)
+
+        # delete all DSNs for the org so people don't send events
+        ProjectKey.objects.filter(project__organization=org).delete()
 
         # update the date added to now so we reset the timer on deletion
         demo_org.mark_assigned()

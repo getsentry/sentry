@@ -6,6 +6,7 @@ from sentry.models import (
     Release,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 # significantly decrease event volume
@@ -21,7 +22,8 @@ class DataPopulationTest(TestCase):
         self.react_project = self.create_project(organization=self.organization, platform="react")
         self.python_project = self.create_project(organization=self.organization, platform="python")
 
-    def test_basic(self):
+    @mock.patch("sentry.demo.data_population.send_session")
+    def test_basic(self, mock_send_session):
         # let's just make sure things don't blow up
         handle_react_python_scenario(self.react_project, self.python_project)
         assert Release.objects.filter(organization=self.organization).count() == 3
