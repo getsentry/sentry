@@ -10,7 +10,7 @@ import {DataCategory, DataCategoryName, Organization, RelativePeriod} from 'app/
 
 import {ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
-// import UsageStatsProjects from './usageStatsProjects';
+import UsageStatsProjects from './usageStatsProjects';
 
 type Props = {
   organization: Organization;
@@ -58,6 +58,12 @@ class OrganizationStats extends React.Component<Props> {
     return chartTransform;
   }
 
+  // Validation and type-casting should be handled by table
+  get tableSort(): string | undefined {
+    const {sort} = this.props.location?.query ?? {};
+    return sort;
+  }
+
   /**
    * TODO: Enable user to set dateStart/dateEnd
    */
@@ -65,6 +71,7 @@ class OrganizationStats extends React.Component<Props> {
     dataCategory?: DataCategory;
     pagePeriod?: RelativePeriod;
     chartTransform?: ChartDataTransform;
+    sort?: string;
   }) => {
     const {location} = this.props;
 
@@ -106,15 +113,14 @@ class OrganizationStats extends React.Component<Props> {
           </PageHeading>
         </PageHeader>
 
-        {/*
         <UsageStatsProjects
           organization={organization}
-          dataCategory={dataCategory}
+          dataCategory={this.dataCategory}
           dataCategoryName={this.dataCategoryName}
-          dateStart={dateStart}
-          dateEnd={dateEnd}
+          dataDatetime={this.dataPeriod}
+          tableSort={this.tableSort}
+          handleChangeState={this.setStateOnUrl}
         />
-        */}
       </PageContent>
     );
   }

@@ -11,21 +11,15 @@ describe('UsageStats', function () {
   const router = TestStubs.router();
   const {organization, routerContext} = initializeOrg({router});
 
-  const orgUrl = `/organizations/${organization.slug}/stats_v2/`;
-  const projectUrl = `/organizations/${organization.slug}/stats_v2/projects/`;
-  let orgMock;
-  // let projectMock;
+  const statsUrl = `/organizations/${organization.slug}/stats_v2/`;
 
   const {mockOrgStats} = getMockResponse();
+  let mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    orgMock = MockApiClient.addMockResponse({
-      url: orgUrl,
-      body: mockOrgStats,
-    });
-    MockApiClient.addMockResponse({
-      url: projectUrl,
+    mock = MockApiClient.addMockResponse({
+      url: statsUrl,
       body: mockOrgStats,
     });
   });
@@ -42,12 +36,8 @@ describe('UsageStats', function () {
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
     expect(wrapper.find('UsageChart')).toHaveLength(1);
+    expect(wrapper.find('UsageTable')).toHaveLength(1);
     expect(wrapper.find('IconWarning')).toHaveLength(0);
-
-    /*
-    expect(wrapper.text()).toContain('UsageStatsProjects is okay');
-    expect(wrapper.text()).not.toContain('UsageStatsProjects has an error');
-    */
 
     const orgAsync = wrapper.find('UsageStatsOrganization');
     expect(orgAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
@@ -57,9 +47,17 @@ describe('UsageStats', function () {
     expect(orgChart.props().dataCategory).toEqual(DataCategory.ERRORS);
     expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[0].value);
 
+    const projectAsync = wrapper.find('UsageStatsProjects');
+    expect(projectAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
+    expect(projectAsync.props().tableSort).toEqual(undefined);
+
+    const projectTable = wrapper.find('UsageTable');
+    expect(projectTable.props().dataCategory).toEqual(DataCategory.ERRORS);
+
     // API calls with defaults
-    expect(orgMock).toHaveBeenCalledTimes(1);
-    expect(orgMock).toHaveBeenLastCalledWith(
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(mock).toHaveBeenNthCalledWith(
+      1,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
@@ -70,26 +68,23 @@ describe('UsageStats', function () {
         },
       })
     );
-
-    /*
-    expect(projectMock).toHaveBeenCalledTimes(1);
-    expect(projectMock).toHaveBeenLastCalledWith(
+    expect(mock).toHaveBeenNthCalledWith(
+      2,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
           statsPeriod: '14d',
-          interval: '1h',
+          interval: '1d',
           groupBy: ['category', 'outcome', 'project'],
           field: ['sum(quantity)'],
         },
       })
     );
-    */
   });
 
   it('renders with error on organization stats endpoint', async function () {
     MockApiClient.addMockResponse({
-      url: orgUrl,
+      url: statsUrl,
       statusCode: 500,
     });
 
@@ -104,39 +99,11 @@ describe('UsageStats', function () {
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
     expect(wrapper.find('UsageChart')).toHaveLength(0);
-    expect(wrapper.find('IconWarning')).toHaveLength(1);
-
-    /*
-    expect(wrapper.text()).toContain('UsageStatsProjects is okay');
-    expect(wrapper.text()).not.toContain('UsageStatsProjects has an error');
-    */
+    expect(wrapper.find('UsageTable')).toHaveLength(0);
+    expect(wrapper.find('IconWarning')).toHaveLength(2);
   });
 
-  it('renders with error on project stats endpoint', async function () {
-    MockApiClient.addMockResponse({
-      url: projectUrl,
-      statusCode: 500,
-    });
-
-    const wrapper = mountWithTheme(
-      <UsageStats organization={organization} />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
-    expect(wrapper.find('UsageChart')).toHaveLength(1);
-    expect(wrapper.find('IconWarning')).toHaveLength(0);
-
-    /*
-    expect(wrapper.text()).not.toContain('UsageStatsProjects is okay');
-    expect(wrapper.text()).toContain('UsageStatsProjects has an error');
-    */
-  });
-
-  it('passes state in router', async function () {
+  it('passes state from router', async function () {
     const wrapper = mountWithTheme(
       <UsageStats
         organization={organization}
@@ -145,6 +112,7 @@ describe('UsageStats', function () {
             statsPeriod: '30d',
             dataCategory: DataCategory.TRANSACTIONS,
             chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            sort: '-project',
           },
         }}
       />,
@@ -164,8 +132,16 @@ describe('UsageStats', function () {
     expect(orgChart.props().dataCategory).toEqual(DataCategory.TRANSACTIONS);
     expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[1].value);
 
-    expect(orgMock).toHaveBeenCalledTimes(1);
-    expect(orgMock).toHaveBeenLastCalledWith(
+    const projectAsync = wrapper.find('UsageStatsProjects');
+    expect(projectAsync.props().dataCategory).toEqual(DataCategory.TRANSACTIONS);
+    expect(projectAsync.props().tableSort).toEqual('-project');
+
+    const projectTable = wrapper.find('UsageTable');
+    expect(projectTable.props().dataCategory).toEqual(DataCategory.TRANSACTIONS);
+
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(mock).toHaveBeenNthCalledWith(
+      1,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
@@ -176,21 +152,18 @@ describe('UsageStats', function () {
         },
       })
     );
-
-    /*
-    expect(projectMock).toHaveBeenCalledTimes(1);
-    expect(projectMock).toHaveBeenLastCalledWith(
+    expect(mock).toHaveBeenNthCalledWith(
+      2,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '14d',
-          interval: '1h',
+          statsPeriod: '30d',
+          interval: '1d',
           groupBy: ['category', 'outcome', 'project'],
           field: ['sum(quantity)'],
         },
       })
     );
-    */
   });
 });
 
