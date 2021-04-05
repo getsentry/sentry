@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
-from sentry.utils.snuba import is_measurement, is_span_op_breakdown
 
 # The maximum number of array columns allowed to be queried at at time
 MAX_ARRAY_COLS = 4
@@ -26,10 +25,8 @@ class HistogramSerializer(serializers.Serializer):
         if len(fields) > 1:
             # Due to how the data is stored in snuba, multihistograms
             # are only possible when they are all measurements or all span op breakdowns.
-            if not (
-                all(is_measurement(field) for field in fields)
-                or all(is_span_op_breakdown(field) for field in fields)
-            ):
+            histogram_type = discover.check_histogram_fields(fields)
+            if not histogram_type:
                 detail = "You can only generate histogram for one column at a time unless they are all measurements or all span op breakdowns."
                 raise serializers.ValidationError(detail)
         return fields

@@ -45,6 +45,7 @@ __all__ = (
     "transform_data",
     "zerofill",
     "histogram_query",
+    "check_histogram_fields",
 )
 
 
