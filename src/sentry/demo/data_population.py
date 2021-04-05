@@ -484,7 +484,8 @@ def clean_event(event_json):
         if field in event_json:
             del event_json[field]
 
-        # delete in spans as well
+    span_fields_to_delete = ["timestamp", "start_timestamp"]
+    for field in span_fields_to_delete:
         for span in event_json.get("spans", []):
             if field in span:
                 del span[field]
@@ -811,6 +812,79 @@ def populate_connected_event_scenario_1(
     logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)
 
 
+def populate_connected_event_scenario_1b(
+    react_project: Project, python_project: Project, quick=False
+):
+    react_transaction = get_event_from_file("scen1b/react_transaction.json")
+    python_transaction = get_event_from_file("scen1b/python_transaction.json")
+
+    log_extra = {
+        "organization_slug": react_project.organization.slug,
+        "quick": quick,
+    }
+    logger.info("populate_connected_event_scenario_1b.start", extra=log_extra)
+
+    for (timestamp, day) in iter_timestamps(2, quick):
+        transaction_user = generate_user(quick)
+        trace_id = uuid4().hex
+        release = get_release_from_time(react_project.organization_id, timestamp)
+        release_sha = release.version
+
+        old_span_id = react_transaction["contexts"]["trace"]["span_id"]
+        frontend_root_span_id = uuid4().hex[:16]
+        frontend_duration = gen_frontend_duration(day, quick)
+
+        frontend_trace = {
+            "trace_id": trace_id,
+            "span_id": frontend_root_span_id,
+        }
+
+        # React transaction
+        local_event = copy.deepcopy(react_transaction)
+        local_event.update(
+            project=react_project,
+            platform=react_project.platform,
+            event_id=uuid4().hex,
+            user=transaction_user,
+            release=release_sha,
+            timestamp=timestamp,
+            # start_timestamp decreases based on day so that there's a trend
+            start_timestamp=timestamp - timedelta(seconds=frontend_duration),
+            measurements=gen_measurements(frontend_duration),
+        )
+        update_context(local_event, frontend_trace)
+        fix_transaction_event(local_event, old_span_id)
+        safe_send_event(local_event, quick)
+
+        # note picking the 0th span is arbitrary
+        backend_parent_id = local_event["spans"][0]["span_id"]
+
+        # python transaction
+        old_span_id = python_transaction["contexts"]["trace"]["span_id"]
+        backend_duration = frontend_duration - random_normal(0.3, 0.1, 0.1)
+
+        backend_trace = {
+            "trace_id": trace_id,
+            "span_id": uuid4().hex[:16],
+            "parent_span_id": backend_parent_id,
+        }
+
+        local_event = copy.deepcopy(python_transaction)
+        local_event.update(
+            project=python_project,
+            platform=python_project.platform,
+            timestamp=timestamp,
+            start_timestamp=timestamp - timedelta(seconds=backend_duration),
+            user=transaction_user,
+            release=release_sha,
+        )
+        update_context(local_event, backend_trace)
+        fix_transaction_event(local_event, old_span_id)
+        safe_send_event(local_event, quick)
+
+    logger.info("populate_connected_event_scenario_1b.finished", extra=log_extra)
+
+
 def populate_connected_event_scenario_2(
     react_project: Project, python_project: Project, quick=False
 ):
@@ -982,8 +1056,9 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     generate_releases([react_project, python_project], quick=quick)
     generate_alerts(python_project)
     generate_saved_query(react_project, "/productstore", "Product Store")
-    populate_sessions(react_project, "sessions/react_unhandled_exception.json", quick=quick)
-    populate_sessions(python_project, "sessions/python_unhandled_exception.json", quick=quick)
+    # populate_sessions(react_project, "sessions/react_unhandled_exception.json", quick=quick)
+    # populate_sessions(python_project, "sessions/python_unhandled_exception.json", quick=quick)
     populate_connected_event_scenario_1(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_2(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_3(python_project, quick=quick)
+    populate_connected_event_scenario_1b(react_project, python_project, quick=quick)
+    # populate_connected_event_scenario_2(react_project, python_project, quick=quick)
+    # populate_connected_event_scenario_3(python_project, quick=quick)
