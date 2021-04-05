@@ -298,6 +298,7 @@ class Table extends React.Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           setError={setError}
+          referrer="api.performance.landing-table"
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>
