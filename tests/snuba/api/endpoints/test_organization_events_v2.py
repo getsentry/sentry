@@ -2583,6 +2583,50 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.do_request(query)
         assert len(mock_quantize.mock_calls) == 2
 
+    @mock.patch("sentry.snuba.discover.query")
+    def test_valid_referrer(self, mock):
+        mock.return_value = {}
+        project = self.create_project()
+        data = load_data("transaction", timestamp=before_now(hours=1))
+        self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["user"],
+            "referrer": "api.performance.transaction-summary",
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], "api.performance.transaction-summary")
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_invalid_referrer(self, mock):
+        mock.return_value = {}
+        project = self.create_project()
+        data = load_data("transaction", timestamp=before_now(hours=1))
+        self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["user"],
+            "referrer": "api.performance.invalid",
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], "api.organization-events-v2")
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_empty_referrer(self, mock):
+        mock.return_value = {}
+        project = self.create_project()
+        data = load_data("transaction", timestamp=before_now(hours=1))
+        self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["user"],
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], "api.organization-events-v2")
+
     def test_limit_number_of_fields(self):
         self.create_project()
         for i in range(1, 25):
