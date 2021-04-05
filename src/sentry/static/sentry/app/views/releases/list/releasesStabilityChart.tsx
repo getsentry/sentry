@@ -14,7 +14,10 @@ import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
-import ProjectStabilityChart from 'app/views/projectDetail/charts/projectStabilityChart';
+import ProjectBaseSessionsChart from 'app/views/projectDetail/charts/projectBaseSessionsChart';
+import {DisplayModes} from 'app/views/projectDetail/projectCharts';
+
+import {getSessionTermDescription, SessionTerm} from '../utils/sessionTerm';
 
 type Props = {
   api: Client;
@@ -45,11 +48,14 @@ class ReleasesStabilityChart extends React.Component<Props, State> {
     return (
       <Panel>
         <ChartContainer>
-          <ProjectStabilityChart
+          <ProjectBaseSessionsChart
+            title={t('Crash Free Sessions')}
+            help={getSessionTermDescription(SessionTerm.STABILITY, null)}
             router={router}
             api={api}
             organization={organization}
             onTotalValuesChange={this.handleTotalValuesChange}
+            displayMode={DisplayModes.STABILITY}
           />
         </ChartContainer>
         <ChartControls>

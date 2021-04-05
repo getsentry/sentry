@@ -8,6 +8,7 @@ import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
@@ -21,29 +22,36 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
-import {
-  getSessionTermDescription,
-  SessionTerm,
-} from 'app/views/releases/utils/sessionTerm';
+import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
+
+import {DisplayModes} from '../projectCharts';
 
 import SessionsRequest from './sessionsRequest';
 
 type Props = {
+  title: string;
   router: InjectedRouter;
   selection: GlobalSelection;
   api: Client;
   organization: Organization;
   theme: Theme;
   onTotalValuesChange: (value: number | null) => void;
+  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
+  help?: string;
+  disablePrevious?: boolean;
 };
 
-function ProjectStabilityChart({
+function ProjectBaseSessionsChart({
+  title,
   theme,
   organization,
   router,
   selection,
   api,
   onTotalValuesChange,
+  displayMode,
+  help,
+  disablePrevious,
 }: Props) {
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
@@ -59,6 +67,8 @@ function ProjectStabilityChart({
                 selection={selection}
                 organization={organization}
                 onTotalValuesChange={onTotalValuesChange}
+                displayMode={displayMode}
+                disablePrevious={disablePrevious}
               >
                 {({
                   errored,
@@ -89,15 +99,10 @@ function ProjectStabilityChart({
                           <TransparentLoadingMask visible={reloading} />
 
                           <HeaderTitleLegend>
-                            {t('Crash Free Sessions')}
-                            <QuestionTooltip
-                              size="sm"
-                              position="top"
-                              title={getSessionTermDescription(
-                                SessionTerm.STABILITY,
-                                null
-                              )}
-                            />
+                            {title}
+                            {help && (
+                              <QuestionTooltip size="sm" position="top" title={help} />
+                            )}
                           </HeaderTitleLegend>
 
                           <Chart
@@ -111,6 +116,7 @@ function ProjectStabilityChart({
                                 : undefined
                             }
                             releaseSeries={releaseSeries}
+                            displayMode={displayMode}
                           />
                         </TransitionChart>
                       );
@@ -121,7 +127,7 @@ function ProjectStabilityChart({
             )}
           </ChartZoom>
         ),
-        fixed: t('Crash Free Sessions Chart'),
+        fixed: `${title} Chart`,
       })}
     </React.Fragment>
   );
@@ -134,6 +140,7 @@ type ChartProps = {
   timeSeries: Series[];
   releaseSeries: Series[];
   previousTimeSeries?: Series[];
+  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
 };
 
 type ChartState = {
@@ -194,15 +201,23 @@ class Chart extends React.Component<ChartProps, ChartState> {
   };
 
   get legend() {
-    const {theme, releaseSeries} = this.props;
+    const {theme, timeSeries, previousTimeSeries, releaseSeries} = this.props;
     const {seriesSelection} = this.state;
 
     const hideReleasesByDefault =
       (releaseSeries[0] as any)?.markLine?.data.length >= RELEASE_LINES_THRESHOLD;
 
+    const hideHealthyByDefault = timeSeries
+      .filter(s => sessionTerm.healthy !== s.seriesName)
+      .some(s => s.data.some(d => d.value > 0));
+
     const selected =
-      Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
-        ? {[t('Releases')]: false}
+      Object.keys(seriesSelection).length === 0 &&
+      (hideReleasesByDefault || hideHealthyByDefault)
+        ? {
+            [t('Releases')]: !hideReleasesByDefault,
+            [sessionTerm.healthy]: !hideHealthyByDefault,
+          }
         : seriesSelection;
 
     return {
@@ -219,16 +234,19 @@ class Chart extends React.Component<ChartProps, ChartState> {
         fontSize: 11,
         fontFamily: theme.text.family,
       },
-      data: [t('This Period'), t('Previous Period'), t('Releases')],
+      data: [
+        ...timeSeries.map(s => s.seriesName),
+        ...(previousTimeSeries ?? []).map(s => s.seriesName),
+        ...releaseSeries.map(s => s.seriesName),
+      ],
       selected,
     };
   }
 
   get chartOptions() {
-    const {theme} = this.props;
+    const {theme, displayMode} = this.props;
 
     return {
-      colors: [theme.green300, theme.purple200],
       grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
       seriesOptions: {
         showSymbol: false,
@@ -241,25 +259,41 @@ class Chart extends React.Component<ChartProps, ChartState> {
             return '\u2014';
           }
 
-          return displayCrashFreePercent(value, 0, 3);
+          if (displayMode === DisplayModes.STABILITY) {
+            return displayCrashFreePercent(value, 0, 3);
+          }
+
+          return typeof value === 'number' ? value.toLocaleString() : value;
         },
       },
-      yAxis: {
-        axisLabel: {
-          color: theme.gray200,
-          formatter: (value: number) => displayCrashFreePercent(value),
-        },
-        scale: true,
-        max: 100,
-      },
+      yAxis:
+        displayMode === DisplayModes.STABILITY
+          ? {
+              axisLabel: {
+                color: theme.gray200,
+                formatter: (value: number) => displayCrashFreePercent(value),
+              },
+              scale: true,
+              max: 100,
+            }
+          : {min: 0},
     };
   }
 
   render() {
-    const {zoomRenderProps, timeSeries, previousTimeSeries, releaseSeries} = this.props;
+    const {
+      zoomRenderProps,
+      timeSeries,
+      previousTimeSeries,
+      releaseSeries,
+      displayMode,
+    } = this.props;
+
+    const ChartComponent =
+      displayMode === DisplayModes.STABILITY ? LineChart : StackedAreaChart;
 
     return (
-      <LineChart
+      <ChartComponent
         {...zoomRenderProps}
         {...this.chartOptions}
         legend={this.legend}
@@ -274,4 +308,4 @@ class Chart extends React.Component<ChartProps, ChartState> {
   }
 }
 
-export default withGlobalSelection(withTheme(ProjectStabilityChart));
+export default withGlobalSelection(withTheme(ProjectBaseSessionsChart));
