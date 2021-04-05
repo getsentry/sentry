@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from django.db.models import Q
 
 from sentry import features
+
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
@@ -12,16 +13,11 @@ from sentry.api.paginator import (
     CombinedQuerysetIntermediary,
 )
 from sentry.api.serializers import serialize, CombinedRuleSerializer
+from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.models import AlertRule
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.snuba.dataset import Dataset
-from sentry.models import (
-    Rule,
-    RuleStatus,
-    Project,
-    OrganizationMemberTeam,
-    Team,
-)
+from sentry.models import Rule, RuleStatus, Project, OrganizationMemberTeam, Team, TeamStatus
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
@@ -48,6 +44,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         teams = set(request.GET.getlist("team", []))
         team_filter_query = None
         if teams:
+            # do normal teams lookup based on request params
             verified_ids = set()
             unassigned = None
             if "unassigned" in teams:
@@ -56,8 +53,15 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
             if "myteams" in teams:
                 teams.remove("myteams")
-                myteams = [t.id for t in request.access.teams]
-                verified_ids.update(myteams)
+                if is_active_superuser(request):
+                    # retrieve all teams within the organization
+                    myteams = Team.objects.filter(
+                        organization=organization, status=TeamStatus.VISIBLE
+                    ).values_list("actor_id", flat=True)
+                    verified_ids.update(myteams)
+                else:
+                    myteams = [t.id for t in request.access.teams]
+                    verified_ids.update(myteams)
 
             for team_id in teams:  # Verify each passed Team id is numeric
                 if type(team_id) is not int and not team_id.isdigit():
@@ -71,7 +75,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 if team.id in verified_ids:
                     continue
 
-                if not request.access.has_team_access(team):
+                if not request.is_superuser() and not request.access.has_team_access(team):
                     return Response(
                         f"Error: You do not have permission to access {team.name}",
                         status=status.HTTP_400_BAD_REQUEST,
