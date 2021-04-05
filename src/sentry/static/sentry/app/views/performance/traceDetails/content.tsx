@@ -7,13 +7,16 @@ import Alert from 'app/components/alert';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
+import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import TimeSince from 'app/components/timeSince';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {reduceTrace} from 'app/utils/performance/quickTrace/utils';
@@ -62,6 +65,7 @@ type Props = {
   isLoading: boolean;
   error: string | null;
   traces: TraceFullDetailed[] | null;
+  totalTransactions: number | null;
 };
 
 type State = {
@@ -172,7 +176,32 @@ class TraceDetailsContent extends React.Component<Props, State> {
       : true;
   };
 
+  getTraceEventView() {
+    const {traceSlug, start, end, statsPeriod} = this.props;
+
+    return EventView.fromSavedQuery({
+      id: undefined,
+      name: `Transactions with Trace ID ${traceSlug}`,
+      fields: [
+        'transaction',
+        'project',
+        'trace.span',
+        'transaction.duration',
+        'timestamp',
+      ],
+      orderby: '-timestamp',
+      query: `event.type:transaction trace:${traceSlug}`,
+      projects: [ALL_ACCESS_PROJECTS],
+      version: 2,
+      start,
+      end,
+      range: statsPeriod,
+    });
+  }
+
   renderTraceHeader(traceInfo: TraceInfo) {
+    const {totalTransactions} = this.props;
+
     return (
       <TraceDetailHeader>
         <MetaData
@@ -181,7 +210,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
           bodyText={t(
             '%s of %s',
             traceInfo.relevantTransactions.size,
-            traceInfo.transactions.size
+            Math.max(traceInfo.transactions.size, totalTransactions || 0)
           )}
           subtext={tn(
             'Across %s project',
@@ -291,6 +320,29 @@ class TraceDetailsContent extends React.Component<Props, State> {
     }
 
     return <TransactionRowMessage>{messages}</TransactionRowMessage>;
+  }
+
+  renderLimitExceededMessage(traceInfo: TraceInfo) {
+    const {organization, totalTransactions} = this.props;
+    const count = traceInfo.transactions.size;
+
+    if (totalTransactions === null || count >= totalTransactions) {
+      return null;
+    }
+
+    const target = this.getTraceEventView().getResultsViewUrlTarget(organization.slug);
+
+    return (
+      <TransactionRowMessage>
+        {tct(
+          'Limited to a view of counts transactions. To view the full list, go to [discover].',
+          {
+            count,
+            discover: <Link to={target}>Discover</Link>,
+          }
+        )}
+      </TransactionRowMessage>
+    );
   }
 
   renderTransaction(
@@ -459,6 +511,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                 isVisible: true,
                 numberOfHiddenTransactionsAbove,
               })}
+              {this.renderLimitExceededMessage(traceInfo)}
             </TraceViewContainer>
           </DividerHandlerManager.Provider>
         </StyledPanel>
