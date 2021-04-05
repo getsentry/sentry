@@ -12,7 +12,7 @@ from sentry.utils.samples import load_data
 
 HistogramSpec = namedtuple("HistogramSpec", ["start", "end", "fields"])
 
-PREFIXES = ["measurements", "span_op_breakdowns"]
+ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
 class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
@@ -73,23 +73,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {}
 
     def test_good_params(self):
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "query": "event.type:transaction",
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo", f"{prefix}.bar"],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
                 "numBuckets": 10,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
 
     def test_good_params_with_optionals(self):
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "query": "event.type:transaction",
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo", f"{prefix}.bar"],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
                 "numBuckets": 10,
                 "precision": 0,
                 "min": 0,
@@ -97,7 +97,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
 
     def test_bad_params_missing_fields(self):
         query = {
@@ -128,11 +128,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         }
 
     def test_bad_params_mixed_fields(self):
-        for prefix in PREFIXES:
-            for other_prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
+            for other_array_column in ARRAY_COLUMNS:
                 query = {
                     "project": [self.project.id],
-                    "field": ["foo", f"{prefix}.foo", f"{other_prefix}.bar"],
+                    "field": ["foo", f"{array_column}.foo", f"{other_array_column}.bar"],
                     "numBuckets": 10,
                     "min": 0,
                     "max": 100,
@@ -140,12 +140,12 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                 }
 
                 response = self.do_request(query)
-                assert response.status_code == 400
+                assert response.status_code == 400, f"failing for {array_column}"
                 assert response.data == {
                     "field": [
                         "You can only generate histogram for one column at a time unless they are all measurements or all span op breakdowns."
                     ],
-                }
+                }, f"failing for {array_column}"
 
     def test_bad_params_missing_num_buckets(self):
         query = {
@@ -159,116 +159,119 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         }
 
     def test_bad_params_invalid_num_buckets(self):
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo", f"{prefix}.bar"],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
                 "numBuckets": "baz",
             }
             response = self.do_request(query)
-            assert response.status_code == 400
+            assert response.status_code == 400, f"failing for {array_column}"
             assert response.data == {
                 "numBuckets": ["A valid integer is required."],
-            }
+            }, f"failing for {array_column}"
 
     def test_bad_params_invalid_negative_num_buckets(self):
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo", f"{prefix}.bar"],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
                 "numBuckets": -1,
             }
             response = self.do_request(query)
-            assert response.status_code == 400
+            assert response.status_code == 400, f"failing for {array_column}"
             assert response.data == {
                 "numBuckets": ["Ensure this value is greater than or equal to 1."],
-            }
+            }, f"failing for {array_column}"
 
     def test_bad_params_num_buckets_too_large(self):
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo", f"{prefix}.bar"],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
                 "numBuckets": 150,
             }
             response = self.do_request(query)
-            assert response.status_code == 400
+            assert response.status_code == 400, f"failing for {array_column}"
             assert response.data == {
                 "numBuckets": ["Ensure this value is less than or equal to 100."],
-            }
+            }, f"failing for {array_column}"
 
     def test_bad_params_invalid_precision_too_small(self):
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo", f"{prefix}.bar"],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
                 "numBuckets": 10,
                 "precision": -1,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 400
+            assert response.status_code == 400, f"failing for {array_column}"
             assert response.data == {
                 "precision": ["Ensure this value is greater than or equal to 0."],
-            }
+            }, f"failing for {array_column}"
 
     def test_bad_params_invalid_precision_too_big(self):
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo", f"{prefix}.bar"],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
                 "numBuckets": 10,
                 "precision": 100,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 400
+            assert response.status_code == 400, f"failing for {array_column}"
             assert response.data == {
                 "precision": ["Ensure this value is less than or equal to 4."],
-            }
+            }, f"failing for {array_column}"
 
     def test_bad_params_invalid_min(self):
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo", f"{prefix}.bar"],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
                 "numBuckets": 10,
                 "min": "qux",
             }
 
             response = self.do_request(query)
-            assert response.status_code == 400
+            assert response.status_code == 400, f"failing for {array_column}"
             assert response.data == {
                 "min": ["A valid number is required."],
-            }
+            }, f"failing for {array_column}"
 
     def test_bad_params_invalid_max(self):
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo", f"{prefix}.bar"],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
                 "numBuckets": 10,
                 "max": "qux",
             }
 
             response = self.do_request(query)
-            assert response.status_code == 400
+            assert response.status_code == 400, f"failing for {array_column}"
             assert response.data == {
                 "max": ["A valid number is required."],
-            }
+            }, f"failing for {array_column}"
 
     def test_histogram_empty(self):
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo", f"{prefix}.bar"],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
-            expected = [(i, i + 1, [(f"{prefix}.foo", 0), (f"{prefix}.bar", 0)]) for i in range(5)]
-            assert response.data == self.as_response_data(expected)
+            assert response.status_code == 200, f"failing for {array_column}"
+            expected = [
+                (i, i + 1, [(f"{array_column}.foo", 0), (f"{array_column}.bar", 0)])
+                for i in range(5)
+            ]
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_simple(self):
         # range is [0, 5), so it is divided into 5 buckets of width 1
@@ -280,23 +283,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1, [(f"{prefix}.foo", 1)]),
-                (1, 2, [(f"{prefix}.foo", 1)]),
-                (2, 3, [(f"{prefix}.foo", 1)]),
-                (3, 4, [(f"{prefix}.foo", 0)]),
-                (4, 5, [(f"{prefix}.foo", 1)]),
+                (0, 1, [(f"{array_column}.foo", 1)]),
+                (1, 2, [(f"{array_column}.foo", 1)]),
+                (2, 3, [(f"{array_column}.foo", 1)]),
+                (3, 4, [(f"{array_column}.foo", 0)]),
+                (4, 5, [(f"{array_column}.foo", 1)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_simple_using_min_max(self):
         # range is [0, 5), so it is divided into 5 buckets of width 1
@@ -308,25 +311,25 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
                 "min": 0,
                 "max": 5,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1, [(f"{prefix}.foo", 1)]),
-                (1, 2, [(f"{prefix}.foo", 1)]),
-                (2, 3, [(f"{prefix}.foo", 1)]),
-                (3, 4, [(f"{prefix}.foo", 0)]),
-                (4, 5, [(f"{prefix}.foo", 1)]),
+                (0, 1, [(f"{array_column}.foo", 1)]),
+                (1, 2, [(f"{array_column}.foo", 1)]),
+                (2, 3, [(f"{array_column}.foo", 1)]),
+                (3, 4, [(f"{array_column}.foo", 0)]),
+                (4, 5, [(f"{array_column}.foo", 1)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_large_buckets(self):
         # make sure that it works for large width buckets
@@ -337,23 +340,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 20, [(f"{prefix}.foo", 2)]),
-                (20, 40, [(f"{prefix}.foo", 0)]),
-                (40, 60, [(f"{prefix}.foo", 0)]),
-                (60, 80, [(f"{prefix}.foo", 0)]),
-                (80, 100, [(f"{prefix}.foo", 2)]),
+                (0, 20, [(f"{array_column}.foo", 2)]),
+                (20, 40, [(f"{array_column}.foo", 0)]),
+                (40, 60, [(f"{array_column}.foo", 0)]),
+                (60, 80, [(f"{array_column}.foo", 0)]),
+                (80, 100, [(f"{array_column}.foo", 2)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_non_zero_offset(self):
         # range is [10, 15), so it is divided into 5 buckets of width 1
@@ -365,23 +368,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (10, 11, [(f"{prefix}.foo", 1)]),
-                (11, 12, [(f"{prefix}.foo", 0)]),
-                (12, 13, [(f"{prefix}.foo", 1)]),
-                (13, 14, [(f"{prefix}.foo", 1)]),
-                (14, 15, [(f"{prefix}.foo", 1)]),
+                (10, 11, [(f"{array_column}.foo", 1)]),
+                (11, 12, [(f"{array_column}.foo", 0)]),
+                (12, 13, [(f"{array_column}.foo", 1)]),
+                (13, 14, [(f"{array_column}.foo", 1)]),
+                (14, 15, [(f"{array_column}.foo", 1)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_extra_data(self):
         # range is [11, 16), so it is divided into 5 buckets of width 1
@@ -397,25 +400,25 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
                 "min": 11,
                 "max": 16,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (11, 12, [(f"{prefix}.foo", 1)]),
-                (12, 13, [(f"{prefix}.foo", 1)]),
-                (13, 14, [(f"{prefix}.foo", 1)]),
-                (14, 15, [(f"{prefix}.foo", 1)]),
-                (15, 16, [(f"{prefix}.foo", 1)]),
+                (11, 12, [(f"{array_column}.foo", 1)]),
+                (12, 13, [(f"{array_column}.foo", 1)]),
+                (13, 14, [(f"{array_column}.foo", 1)]),
+                (14, 15, [(f"{array_column}.foo", 1)]),
+                (15, 16, [(f"{array_column}.foo", 1)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_non_zero_min_large_buckets(self):
         # range is [10, 59], so it is divided into 5 buckets of width 10
@@ -426,23 +429,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (10, 20, [(f"{prefix}.foo", 1)]),
-                (20, 30, [(f"{prefix}.foo", 0)]),
-                (30, 40, [(f"{prefix}.foo", 0)]),
-                (40, 50, [(f"{prefix}.foo", 1)]),
-                (50, 60, [(f"{prefix}.foo", 2)]),
+                (10, 20, [(f"{array_column}.foo", 1)]),
+                (20, 30, [(f"{array_column}.foo", 0)]),
+                (30, 40, [(f"{array_column}.foo", 0)]),
+                (40, 50, [(f"{array_column}.foo", 1)]),
+                (50, 60, [(f"{array_column}.foo", 2)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     @pytest.mark.xfail(reason="snuba does not allow - in alias names")
     def test_histogram_negative_values(self):
@@ -453,23 +456,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (-9, -8, [(f"{prefix}.foo", 3)]),
-                (-8, -7, [(f"{prefix}.foo", 0)]),
-                (-7, -6, [(f"{prefix}.foo", 0)]),
-                (-6, -5, [(f"{prefix}.foo", 0)]),
-                (-5, -4, [(f"{prefix}.foo", 1)]),
+                (-9, -8, [(f"{array_column}.foo", 3)]),
+                (-8, -7, [(f"{array_column}.foo", 0)]),
+                (-7, -6, [(f"{array_column}.foo", 0)]),
+                (-6, -5, [(f"{array_column}.foo", 0)]),
+                (-5, -4, [(f"{array_column}.foo", 1)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     @pytest.mark.xfail(reason="snuba does not allow - in alias names")
     def test_histogram_positive_and_negative_values(self):
@@ -481,23 +484,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (-50, -30, [(f"{prefix}.foo", 1)]),
-                (-30, -10, [(f"{prefix}.foo", 0)]),
-                (-10, 10, [(f"{prefix}.foo", 2)]),
-                (10, 30, [(f"{prefix}.foo", 0)]),
-                (30, 50, [(f"{prefix}.foo", 1)]),
+                (-50, -30, [(f"{array_column}.foo", 1)]),
+                (-30, -10, [(f"{array_column}.foo", 0)]),
+                (-10, 10, [(f"{array_column}.foo", 2)]),
+                (10, 30, [(f"{array_column}.foo", 0)]),
+                (30, 50, [(f"{array_column}.foo", 1)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_increased_precision(self):
         # range is [1.00, 2.24], so it is divided into 5 buckets of width 0.25
@@ -507,24 +510,24 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
                 "precision": 2,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (1.00, 1.25, [(f"{prefix}.foo", 3)]),
-                (1.25, 1.50, [(f"{prefix}.foo", 0)]),
-                (1.50, 1.75, [(f"{prefix}.foo", 0)]),
-                (1.75, 2.00, [(f"{prefix}.foo", 0)]),
-                (2.00, 2.25, [(f"{prefix}.foo", 1)]),
+                (1.00, 1.25, [(f"{array_column}.foo", 3)]),
+                (1.25, 1.50, [(f"{array_column}.foo", 0)]),
+                (1.50, 1.75, [(f"{array_column}.foo", 0)]),
+                (1.75, 2.00, [(f"{array_column}.foo", 0)]),
+                (2.00, 2.25, [(f"{array_column}.foo", 1)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_increased_precision_with_min_max(self):
         # range is [1.25, 2.24], so it is divided into 5 buckets of width 0.25
@@ -534,10 +537,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 3,
                 "precision": 2,
                 "min": 1.25,
@@ -545,13 +548,13 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (1.25, 1.50, [(f"{prefix}.foo", 0)]),
-                (1.50, 1.75, [(f"{prefix}.foo", 0)]),
-                (1.75, 2.00, [(f"{prefix}.foo", 0)]),
+                (1.25, 1.50, [(f"{array_column}.foo", 0)]),
+                (1.50, 1.75, [(f"{array_column}.foo", 0)]),
+                (1.75, 2.00, [(f"{array_column}.foo", 0)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_increased_precision_large_buckets(self):
         # range is [10.0000, 59.9999] so it is divided into 5 buckets of width 10
@@ -562,24 +565,24 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
                 "precision": 4,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (10.0000, 20.0000, [(f"{prefix}.foo", 1)]),
-                (20.0000, 30.0000, [(f"{prefix}.foo", 0)]),
-                (30.0000, 40.0000, [(f"{prefix}.foo", 1)]),
-                (40.0000, 50.0000, [(f"{prefix}.foo", 0)]),
-                (50.0000, 60.0000, [(f"{prefix}.foo", 2)]),
+                (10.0000, 20.0000, [(f"{array_column}.foo", 1)]),
+                (20.0000, 30.0000, [(f"{array_column}.foo", 0)]),
+                (30.0000, 40.0000, [(f"{array_column}.foo", 1)]),
+                (40.0000, 50.0000, [(f"{array_column}.foo", 0)]),
+                (50.0000, 60.0000, [(f"{array_column}.foo", 2)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_multiple_measures(self):
         # range is [10, 59] so it is divided into 5 buckets of width 10
@@ -590,23 +593,63 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.bar", f"{prefix}.baz", f"{prefix}.foo"],
+                "field": [f"{array_column}.bar", f"{array_column}.baz", f"{array_column}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (10, 20, [(f"{prefix}.bar", 0), (f"{prefix}.baz", 0), (f"{prefix}.foo", 1)]),
-                (20, 30, [(f"{prefix}.bar", 0), (f"{prefix}.baz", 0), (f"{prefix}.foo", 0)]),
-                (30, 40, [(f"{prefix}.bar", 2), (f"{prefix}.baz", 0), (f"{prefix}.foo", 0)]),
-                (40, 50, [(f"{prefix}.bar", 0), (f"{prefix}.baz", 0), (f"{prefix}.foo", 0)]),
-                (50, 60, [(f"{prefix}.bar", 0), (f"{prefix}.baz", 1), (f"{prefix}.foo", 0)]),
+                (
+                    10,
+                    20,
+                    [
+                        (f"{array_column}.bar", 0),
+                        (f"{array_column}.baz", 0),
+                        (f"{array_column}.foo", 1),
+                    ],
+                ),
+                (
+                    20,
+                    30,
+                    [
+                        (f"{array_column}.bar", 0),
+                        (f"{array_column}.baz", 0),
+                        (f"{array_column}.foo", 0),
+                    ],
+                ),
+                (
+                    30,
+                    40,
+                    [
+                        (f"{array_column}.bar", 2),
+                        (f"{array_column}.baz", 0),
+                        (f"{array_column}.foo", 0),
+                    ],
+                ),
+                (
+                    40,
+                    50,
+                    [
+                        (f"{array_column}.bar", 0),
+                        (f"{array_column}.baz", 0),
+                        (f"{array_column}.foo", 0),
+                    ],
+                ),
+                (
+                    50,
+                    60,
+                    [
+                        (f"{array_column}.bar", 0),
+                        (f"{array_column}.baz", 1),
+                        (f"{array_column}.foo", 0),
+                    ],
+                ),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_max_value_on_edge(self):
         # range is [11, 21] so it is divided into 5 buckets of width 5
@@ -618,21 +661,45 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.bar", f"{prefix}.baz", f"{prefix}.foo"],
+                "field": [f"{array_column}.bar", f"{array_column}.baz", f"{array_column}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (10, 15, [(f"{prefix}.bar", 0), (f"{prefix}.baz", 0), (f"{prefix}.foo", 1)]),
-                (15, 20, [(f"{prefix}.bar", 0), (f"{prefix}.baz", 0), (f"{prefix}.foo", 0)]),
-                (20, 25, [(f"{prefix}.bar", 1), (f"{prefix}.baz", 1), (f"{prefix}.foo", 1)]),
+                (
+                    10,
+                    15,
+                    [
+                        (f"{array_column}.bar", 0),
+                        (f"{array_column}.baz", 0),
+                        (f"{array_column}.foo", 1),
+                    ],
+                ),
+                (
+                    15,
+                    20,
+                    [
+                        (f"{array_column}.bar", 0),
+                        (f"{array_column}.baz", 0),
+                        (f"{array_column}.foo", 0),
+                    ],
+                ),
+                (
+                    20,
+                    25,
+                    [
+                        (f"{array_column}.bar", 1),
+                        (f"{array_column}.baz", 1),
+                        (f"{array_column}.foo", 1),
+                    ],
+                ),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_bins_exceed_max(self):
         specs = [
@@ -641,38 +708,62 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.bar", f"{prefix}.baz", f"{prefix}.foo"],
+                "field": [f"{array_column}.bar", f"{array_column}.baz", f"{array_column}.foo"],
                 "numBuckets": 5,
                 "min": 10,
                 "max": 21,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (10, 15, [(f"{prefix}.bar", 0), (f"{prefix}.baz", 0), (f"{prefix}.foo", 1)]),
-                (15, 20, [(f"{prefix}.bar", 0), (f"{prefix}.baz", 0), (f"{prefix}.foo", 0)]),
-                (20, 25, [(f"{prefix}.bar", 0), (f"{prefix}.baz", 0), (f"{prefix}.foo", 0)]),
+                (
+                    10,
+                    15,
+                    [
+                        (f"{array_column}.bar", 0),
+                        (f"{array_column}.baz", 0),
+                        (f"{array_column}.foo", 1),
+                    ],
+                ),
+                (
+                    15,
+                    20,
+                    [
+                        (f"{array_column}.bar", 0),
+                        (f"{array_column}.baz", 0),
+                        (f"{array_column}.foo", 0),
+                    ],
+                ),
+                (
+                    20,
+                    25,
+                    [
+                        (f"{array_column}.bar", 0),
+                        (f"{array_column}.baz", 0),
+                        (f"{array_column}.foo", 0),
+                    ],
+                ),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_bad_params_invalid_data_filter(self):
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo", f"{prefix}.bar"],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
                 "numBuckets": 10,
                 "dataFilter": "invalid",
             }
 
             response = self.do_request(query)
-            assert response.status_code == 400
+            assert response.status_code == 400, f"failing for {array_column}"
             assert response.data == {
                 "dataFilter": ['"invalid" is not a valid choice.'],
-            }
+            }, f"failing for {array_column}"
 
     def test_histogram_all_data_filter(self):
         specs = [
@@ -681,24 +772,24 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
                 "dataFilter": "all",
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1000, [(f"{prefix}.foo", 4)]),
-                (1000, 2000, [(f"{prefix}.foo", 0)]),
-                (2000, 3000, [(f"{prefix}.foo", 0)]),
-                (3000, 4000, [(f"{prefix}.foo", 0)]),
-                (4000, 5000, [(f"{prefix}.foo", 1)]),
+                (0, 1000, [(f"{array_column}.foo", 4)]),
+                (1000, 2000, [(f"{array_column}.foo", 0)]),
+                (2000, 3000, [(f"{array_column}.foo", 0)]),
+                (3000, 4000, [(f"{array_column}.foo", 0)]),
+                (4000, 5000, [(f"{array_column}.foo", 1)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_exclude_outliers_data_filter(self):
         specs = [
@@ -707,20 +798,20 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
                 "dataFilter": "exclude_outliers",
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1, [(f"{prefix}.foo", 4)]),
+                (0, 1, [(f"{array_column}.foo", 4)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_missing_measurement_data(self):
         # make sure there is at least one transaction
@@ -729,25 +820,25 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
                 # make sure to query a measurement that does not exist
-                "field": [f"{prefix}.bar"],
+                "field": [f"{array_column}.bar"],
                 "numBuckets": 5,
                 "dataFilter": "exclude_outliers",
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1, [(f"{prefix}.bar", 0)]),
-                (1, 1, [(f"{prefix}.bar", 0)]),
-                (2, 2, [(f"{prefix}.bar", 0)]),
-                (3, 3, [(f"{prefix}.bar", 0)]),
-                (4, 4, [(f"{prefix}.bar", 0)]),
+                (0, 1, [(f"{array_column}.bar", 0)]),
+                (1, 1, [(f"{array_column}.bar", 0)]),
+                (2, 2, [(f"{array_column}.bar", 0)]),
+                (3, 3, [(f"{array_column}.bar", 0)]),
+                (4, 4, [(f"{array_column}.bar", 0)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_missing_measurement_data_with_explicit_bounds(self):
         # make sure there is at least one transaction
@@ -756,26 +847,26 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
                 # make sure to query a measurement that does not exist
-                "field": [f"{prefix}.bar"],
+                "field": [f"{array_column}.bar"],
                 "numBuckets": 5,
                 "dataFilter": "exclude_outliers",
                 "min": 10,
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (10, 11, [(f"{prefix}.bar", 0)]),
-                (11, 11, [(f"{prefix}.bar", 0)]),
-                (12, 12, [(f"{prefix}.bar", 0)]),
-                (13, 13, [(f"{prefix}.bar", 0)]),
-                (14, 14, [(f"{prefix}.bar", 0)]),
+                (10, 11, [(f"{array_column}.bar", 0)]),
+                (11, 11, [(f"{array_column}.bar", 0)]),
+                (12, 12, [(f"{array_column}.bar", 0)]),
+                (13, 13, [(f"{array_column}.bar", 0)]),
+                (14, 14, [(f"{array_column}.bar", 0)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_ignores_aggregate_conditions(self):
         # range is [0, 5), so it is divided into 5 buckets of width 1
@@ -788,24 +879,24 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
         self.populate_events(specs)
 
-        for prefix in PREFIXES:
+        for array_column in ARRAY_COLUMNS:
             query = {
                 "project": [self.project.id],
-                "field": [f"{prefix}.foo"],
+                "field": [f"{array_column}.foo"],
                 "numBuckets": 5,
                 "query": "tpm():>0.001",
             }
 
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1, [(f"{prefix}.foo", 1)]),
-                (1, 2, [(f"{prefix}.foo", 1)]),
-                (2, 3, [(f"{prefix}.foo", 1)]),
-                (3, 4, [(f"{prefix}.foo", 0)]),
-                (4, 5, [(f"{prefix}.foo", 1)]),
+                (0, 1, [(f"{array_column}.foo", 1)]),
+                (1, 2, [(f"{array_column}.foo", 1)]),
+                (2, 3, [(f"{array_column}.foo", 1)]),
+                (3, 4, [(f"{array_column}.foo", 0)]),
+                (4, 5, [(f"{array_column}.foo", 1)]),
             ]
-            assert response.data == self.as_response_data(expected)
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_outlier_filtering_with_no_rows(self):
         query = {

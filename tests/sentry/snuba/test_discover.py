@@ -1653,62 +1653,83 @@ class QueryTransformTest(TestCase):
             values = discover.find_histogram_min_max(
                 [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
-            assert values == (None, None)
+            assert values == (None, None), f"failing for {array_column}"
 
             # more than 2 rows returned snuba
             mock_query.side_effect = [{"meta": [], "data": [{}, {}]}]
             values = discover.find_histogram_min_max(
                 [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
-            assert values == (None, None)
+            assert values == (None, None), f"failing for {array_column}"
 
             # None rows are returned from snuba
             mock_query.side_effect = [
                 {
-                    "meta": [{"name": f"min_{array_column}_foo"}, {"name": f"max_{array_column}_foo"}],
+                    "meta": [
+                        {"name": f"min_{array_column}_foo"},
+                        {"name": f"max_{array_column}_foo"},
+                    ],
                     "data": [{f"min_{array_column}_foo": None, f"max_{array_column}_foo": None}],
                 },
             ]
             values = discover.find_histogram_min_max(
                 [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
-            assert values == (None, None)
+            assert values == (None, None), f"failing for {array_column}"
 
             # use the given min/max
             values = discover.find_histogram_min_max(
                 [f"{array_column}.foo"], 1, 2, "", {"project_id": [self.project.id]}
             )
-            assert values == (1, 2)
+            assert values == (1, 2), f"failing for {array_column}"
 
             # use the given min, but query for max
             mock_query.side_effect = [
-                {"meta": [{"name": f"max_{array_column}_foo"}], "data": [{f"max_{array_column}_foo": 3.45}]},
+                {
+                    "meta": [{"name": f"max_{array_column}_foo"}],
+                    "data": [{f"max_{array_column}_foo": 3.45}],
+                },
             ]
             values = discover.find_histogram_min_max(
                 [f"{array_column}.foo"], 1.23, None, "", {"project_id": [self.project.id]}
             )
-            assert values == (1.23, 3.45)
+            assert values == (
+                1.23,
+                3.45,
+            ), f"failing for {array_column}"
 
             # use the given max, but query for min
             mock_query.side_effect = [
-                {"meta": [{"name": f"min_{array_column}_foo"}], "data": [{f"min_{array_column}_foo": 1.23}]},
+                {
+                    "meta": [{"name": f"min_{array_column}_foo"}],
+                    "data": [{f"min_{array_column}_foo": 1.23}],
+                },
             ]
             values = discover.find_histogram_min_max(
                 [f"{array_column}.foo"], None, 3.45, "", {"project_id": [self.project.id]}
             )
-            assert values == (1.23, 3.45)
+            assert values == (
+                1.23,
+                3.45,
+            ), f"failing for {array_column}"
 
             # single min/max returned from snuba
             mock_query.side_effect = [
                 {
-                    "meta": [{"name": f"min_{array_column}_foo"}, {"name": f"max_{array_column}_foo"}],
+                    "meta": [
+                        {"name": f"min_{array_column}_foo"},
+                        {"name": f"max_{array_column}_foo"},
+                    ],
                     "data": [{f"min_{array_column}_foo": 1.23, f"max_{array_column}_foo": 3.45}],
                 },
             ]
             values = discover.find_histogram_min_max(
                 [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
-            assert values == (1.23, 3.45)
+            assert values == (
+                1.23,
+                3.45,
+            ), f"failing for {array_column}"
 
             # multiple min/max returned from snuba
             mock_query.side_effect = [
@@ -1740,7 +1761,10 @@ class QueryTransformTest(TestCase):
                 "",
                 {"project_id": [self.project.id]},
             )
-            assert values == (1.23, 3.67)
+            assert values == (
+                1.23,
+                3.67,
+            ), f"failing for {array_column}"
 
             # multiple min/max with some Nones returned from snuba
             mock_query.side_effect = [
@@ -1772,7 +1796,10 @@ class QueryTransformTest(TestCase):
                 "",
                 {"project_id": [self.project.id]},
             )
-            assert values == (1.23, 3.67)
+            assert values == (
+                1.23,
+                3.67,
+            ), f"failing for {array_column}"
 
     def test_find_histogram_params(self):
         # min and max is None
@@ -1815,7 +1842,7 @@ class QueryTransformTest(TestCase):
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 0},
                 ],
-            }
+            }, f"failing for {array_column}"
 
     def test_normalize_histogram_results_empty_multiple(self):
         for array_column in ARRAY_COLUMNS:
@@ -1845,7 +1872,7 @@ class QueryTransformTest(TestCase):
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 0},
                 ],
-            }
+            }, f"failing for {array_column}"
 
     def test_normalize_histogram_results_full(self):
         for array_column in ARRAY_COLUMNS:
@@ -1886,7 +1913,7 @@ class QueryTransformTest(TestCase):
                     {"bin": 1, "count": 2},
                     {"bin": 2, "count": 1},
                 ],
-            }
+            }, f"failing for {array_column}"
 
     def test_normalize_histogram_results_full_multiple(self):
         for array_column in ARRAY_COLUMNS:
@@ -1947,7 +1974,7 @@ class QueryTransformTest(TestCase):
                     {"bin": 1, "count": 2},
                     {"bin": 2, "count": 1},
                 ],
-            }
+            }, f"failing for {array_column}"
 
     def test_normalize_histogram_results_partial(self):
         for array_column in ARRAY_COLUMNS:
@@ -1978,7 +2005,7 @@ class QueryTransformTest(TestCase):
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 0},
                 ],
-            }
+            }, f"failing for {array_column}"
 
     def test_normalize_histogram_results_partial_multiple(self):
         for array_column in ARRAY_COLUMNS:
@@ -2019,7 +2046,7 @@ class QueryTransformTest(TestCase):
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 0},
                 ],
-            }
+            }, f"failing for {array_column}"
 
     def test_normalize_histogram_results_ignore_unexpected_rows(self):
         for array_column in ARRAY_COLUMNS:
@@ -2072,7 +2099,7 @@ class QueryTransformTest(TestCase):
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 0},
                 ],
-            }
+            }, f"failing for {array_column}"
 
     def test_normalize_histogram_results_adjust_for_precision(self):
         for array_column in ARRAY_COLUMNS:
@@ -2119,7 +2146,7 @@ class QueryTransformTest(TestCase):
                     {"bin": 0.50, "count": 1},
                     {"bin": 0.75, "count": 1},
                 ],
-            }
+            }, f"failing for {array_column}"
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_query(self, mock_query):
@@ -2182,7 +2209,7 @@ class QueryTransformTest(TestCase):
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 1},
                 ],
-            }
+            }, f"failing for {array_column}"
 
     def test_histogram_query_with_bad_fields(self):
         for array_column in ARRAY_COLUMNS:
@@ -2194,7 +2221,9 @@ class QueryTransformTest(TestCase):
                     3,
                     0,
                 )
-            assert "multihistogram expected either all measurements or all breakdowns" in str(err)
+            assert "multihistogram expected either all measurements or all breakdowns" in str(
+                err
+            ), f"failing for {array_column}"
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_query_with_optionals(self, mock_query):
@@ -2257,7 +2286,7 @@ class QueryTransformTest(TestCase):
                     {"bin": 1.0, "count": 0},
                     {"bin": 1.5, "count": 1},
                 ],
-            }
+            }, f"failing for {array_column}"
 
 
 class TimeseriesBase(SnubaTestCase, TestCase):
