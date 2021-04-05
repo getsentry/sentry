@@ -1,11 +1,18 @@
 import moment from 'moment';
 
-import {DataCategory} from 'app/types';
+import {DataCategory, IntervalPeriod} from 'app/types';
 
 import {formatUsageWithUnits} from '../utils';
 
-export function getDateFromMoment(m: moment.Moment) {
-  return m.format('MMM D');
+export function getDateFromMoment(m: moment.Moment, interval: IntervalPeriod = '1d') {
+  const unit = interval.replace(/[0-9]/g, '');
+
+  switch (unit) {
+    case 'd':
+      return m.startOf('h').format('MMM D');
+    default:
+      return m.startOf('h').format('MMM D HH:mm');
+  }
 }
 
 export function getDateFromUnixTimestamp(timestamp: number) {
@@ -13,14 +20,21 @@ export function getDateFromUnixTimestamp(timestamp: number) {
   return getDateFromMoment(date);
 }
 
-export function getDateRange(dateStart: string, dateEnd: string): string[] {
+export function getXAxisDates(
+  dateStart: string,
+  dateEnd: string,
+  interval: IntervalPeriod = '1d'
+): string[] {
   const range: string[] = [];
-  const start = moment(dateStart);
-  const end = moment(dateEnd);
+  const start = moment(dateStart).startOf('h');
+  const end = moment(dateEnd).startOf('h');
 
-  while (!start.isAfter(end, 'd')) {
-    range.push(getDateFromMoment(start));
-    start.add(1, 'd');
+  const amount = Number(interval.replace(/[a-zA-Z]/g, ''));
+  const unit = interval.replace(/[0-9]/g, '');
+
+  while (!start.isAfter(end)) {
+    range.push(getDateFromMoment(start, interval));
+    start.add(amount as any, unit as any); // FIXME(ts): Something odd with momentjs types
   }
 
   return range;

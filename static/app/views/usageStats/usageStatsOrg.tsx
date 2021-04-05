@@ -13,15 +13,18 @@ import {
   InlineContainer,
   SectionValue,
 } from 'app/components/charts/styles';
+import {DateTimeObject, getInterval} from 'app/components/charts/utils';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconCalendar, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {DataCategory, Organization} from 'app/types';
+import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
 
+import {getDateFromMoment} from './usageChart/utils';
 import {Outcome, UsageSeries, UsageStat} from './types';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
@@ -35,25 +38,20 @@ type Props = {
   organization: Organization;
   dataCategory: DataCategory;
   dataCategoryName: string;
-  dateStart: moment.Moment;
-  dateEnd: moment.Moment;
-  onChangeDataCategory: (dataCategory: DataCategory) => void;
-  onChangeDateRange: (dateStart: moment.Moment, dateEnd: moment.Moment) => void;
+  dataDatetime: DateTimeObject;
+  chartTransform?: string;
+  handleChangeState: (state: {
+    dataCategory?: DataCategory;
+    statsPeriod?: RelativePeriod;
+    chartTransform?: ChartDataTransform;
+  }) => void;
 } & AsyncComponent['props'];
 
 type State = {
   orgStats: UsageSeries | undefined;
-  chartDataTransform: ChartDataTransform;
 } & AsyncComponent['state'];
 
 class UsageStatsOrganization extends AsyncComponent<Props, State> {
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      chartDataTransform: ChartDataTransform.CUMULATIVE,
-    };
-  }
-
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
   }
@@ -64,20 +62,93 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   get endpointQuery() {
-    const {dateStart, dateEnd} = this.props;
+    const {dataDatetime} = this.props;
+
+    // TODO: Enable user to use dateStart/dateEnd
     return {
-      statsPeriod: `${dateEnd.diff(dateStart, 'd')}d`, // TODO(org-stats)
-      interval: '1d', // TODO(org-stats)
+      statsPeriod: dataDatetime?.period || DEFAULT_STATS_PERIOD,
+      interval: getInterval(dataDatetime),
       groupBy: ['category', 'outcome'],
       field: ['sum(quantity)'],
     };
   }
 
-  get chartMetadata() {
+  get chartMetadata(): {
+    chartData: ChartStats;
+    cardData: {
+      total: string;
+      accepted: string;
+      dropped: string;
+      filtered: string;
+    };
+    dataError?: Error;
+    chartDateInterval: IntervalPeriod;
+    chartDateStart: string;
+    chartDateEnd: string;
+    chartTransform: ChartDataTransform;
+  } {
     const {orgStats} = this.state;
 
     return {
       ...this.mapSeriesToChart(orgStats),
+      ...this.chartDateRange,
+      ...this.chartTransform,
+    };
+  }
+
+  get chartTransform(): {chartTransform: ChartDataTransform} {
+    const {chartTransform} = this.props;
+
+    switch (chartTransform) {
+      case ChartDataTransform.CUMULATIVE:
+      case ChartDataTransform.DAILY:
+        return {chartTransform};
+      default:
+        return {chartTransform: ChartDataTransform.CUMULATIVE};
+    }
+  }
+
+  get chartDateRange(): {
+    chartDateInterval: IntervalPeriod;
+    chartDateStart: string;
+    chartDateEnd: string;
+  } {
+    const {dataDatetime} = this.props;
+    const {period, start, end} = dataDatetime;
+    const interval = getInterval(dataDatetime);
+
+    let chartDateStart = moment().subtract(14, 'd');
+    let chartDateEnd = moment();
+
+    try {
+      if (start && end) {
+        chartDateStart = moment(start);
+        chartDateEnd = moment(end);
+      }
+
+      if (period) {
+        const amount = Number(period.replace(/[a-zA-Z]/g, ''));
+        const unit = period.replace(/[0-9]/g, '');
+
+        switch (unit) {
+          case 'h':
+          case 'd':
+            break;
+          default:
+            throw new Error('Format for data period is not recognized');
+        }
+
+        chartDateStart = moment().subtract(amount, unit);
+      }
+    } catch (err) {
+      // do nothing
+    }
+
+    // chartDateStart need to +1 hour to remove empty column on left of chart
+    return {
+      chartDateInterval: interval,
+      chartDateStart: chartDateStart.add(1, 'h').startOf('h').format(),
+      chartDateEnd: chartDateEnd.startOf('h').format(),
     };
   }
 
@@ -95,7 +166,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       dropped: string;
       filtered: string;
     };
-    error?: Error;
+    dataError?: Error;
   } {
     const cardData = {
       total: '-',
@@ -115,14 +186,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     try {
       const {dataCategory} = this.props;
-      const rollup = '1d'; // TODO(org-stats)
-      const dateTimeFormat = rollup === '1d' ? 'MMM D' : 'MMM D, HH:mm';
+      const {chartDateInterval} = this.chartDateRange;
 
       const usageStats: UsageStat[] = orgStats.intervals.map(interval => {
         const dateTime = moment(interval);
 
         return {
-          date: dateTime.format(dateTimeFormat),
+          date: getDateFromMoment(dateTime, chartDateInterval),
           total: 0,
           accepted: 0,
           filtered: 0,
@@ -195,7 +265,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       return {
         cardData,
         chartData,
-        error: err,
+        dataError: err,
       };
     }
   }
@@ -252,8 +322,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   renderChart() {
-    const {dateStart, dateEnd, dataCategory} = this.props;
-    const {chartDataTransform, error, loading, orgStats} = this.state;
+    const {dataCategory} = this.props;
+    const {error, loading, orgStats} = this.state;
 
     if (loading) {
       return (
@@ -265,9 +335,16 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       );
     }
 
-    const {chartData, error: chartError} = this.chartMetadata;
+    const {
+      chartData,
+      dataError,
+      chartDateInterval,
+      chartDateStart,
+      chartDateEnd,
+      chartTransform,
+    } = this.chartMetadata;
 
-    if (error || chartError || !orgStats) {
+    if (error || dataError || !orgStats) {
       return (
         <Panel>
           <PanelBody>
@@ -279,24 +356,22 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       );
     }
 
-    const usageDateStart = dateStart.format('YYYY-MM-DD');
-    const usageDateEnd = dateEnd.format('YYYY-MM-DD');
-
     return (
       <UsageChart
         footer={this.renderChartFooter()}
         dataCategory={dataCategory}
-        dataTransform={chartDataTransform}
-        usageDateStart={usageDateStart}
-        usageDateEnd={usageDateEnd}
+        dataTransform={chartTransform}
+        usageDateStart={chartDateStart}
+        usageDateEnd={chartDateEnd}
+        usageDateInterval={chartDateInterval}
         usageStats={chartData}
       />
     );
   }
 
   renderChartFooter = () => {
-    const {dataCategory, onChangeDataCategory} = this.props;
-    const {chartDataTransform} = this.state;
+    const {dataCategory, handleChangeState} = this.props;
+    const {chartTransform} = this.chartMetadata;
 
     return (
       <ChartControls>
@@ -317,17 +392,18 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         <InlineContainer>
           <OptionSelector
             title={t('Display')}
-            menuWidth="135px"
             selected={dataCategory}
             options={CHART_OPTIONS_DATACATEGORY}
-            onChange={(val: string) => onChangeDataCategory(val as DataCategory)}
+            onChange={(val: string) =>
+              handleChangeState({dataCategory: val as DataCategory})
+            }
           />
           <OptionSelector
             title={t('Type')}
-            selected={chartDataTransform}
+            selected={chartTransform}
             options={CHART_OPTIONS_DATA_TRANSFORM}
             onChange={(val: string) =>
-              this.handleSelectDataTransform(val as ChartDataTransform)
+              handleChangeState({chartTransform: val as ChartDataTransform})
             }
           />
         </InlineContainer>
