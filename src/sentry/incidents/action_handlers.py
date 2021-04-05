@@ -11,6 +11,8 @@ from sentry.incidents.models import (
     IncidentTrigger,
     INCIDENT_STATUS,
 )
+from sentry.models.integration import ExternalProviders
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -63,8 +65,10 @@ class EmailActionHandler(ActionHandler):
             if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
                 targets = [(target.id, target.email)]
             elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-                users = self.project.filter_to_subscribed_users(
-                    {member.user for member in target.member_set}
+                users = NotificationSetting.objects.filter_to_subscribed_users(
+                    ExternalProviders.EMAIL,
+                    self.project,
+                    {member.user for member in target.member_set},
                 )
                 targets = [(user.id, user.email) for user in users]
         # TODO: We need some sort of verification system to make sure we're not being

@@ -4,7 +4,6 @@ from sentry.mail import mail_adapter
 from sentry.models import (
     Organization,
     Project,
-    User,
 )
 from sentry.utils.email import get_email_addresses
 
@@ -17,10 +16,11 @@ def handle_project(project: Project, stream) -> None:
     """
     stream.write("# Project: %s\n" % project)
 
-    user_ids = mail_adapter.get_sendable_users(project)
-    users = User.objects.in_bulk(user_ids)
-    for user_id, email in get_email_addresses(user_ids, project).items():
-        stream.write(f"{users[user_id].username}: {email}\n")
+    users = mail_adapter.get_sendable_user_objects(project)
+    users_map = {user.id: user for user in users}
+    emails = get_email_addresses(users_map.keys(), project)
+    for user_id, email in emails.items():
+        stream.write(f"{users_map[user_id].username}: {email}\n")
 
 
 class Command(BaseCommand):
