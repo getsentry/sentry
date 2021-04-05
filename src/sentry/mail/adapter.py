@@ -262,11 +262,10 @@ class MailAdapter:
             settings = notification_settings_by_user.get(user)
             if settings:
                 # Check per-project settings first, fallback to project-independent settings.
-                if (
-                    settings.get(NotificationScopeType.PROJECT)
-                    == NotificationSettingOptionValues.NEVER
-                    or settings.get(NotificationScopeType.USER)
-                    == NotificationSettingOptionValues.NEVER
+                project_setting = settings.get(NotificationScopeType.PROJECT)
+                user_setting = settings.get(NotificationScopeType.USER)
+                if project_setting == NotificationSettingOptionValues.NEVER or (
+                    not project_setting and user_setting == NotificationSettingOptionValues.NEVER
                 ):
                     output.add(user.id)
         return output
