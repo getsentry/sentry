@@ -54,7 +54,7 @@ function SavedSearchTab({
             <TitleTextOverflow>
               {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
             </TitleTextOverflow>
-            {queryCount && (
+            {queryCount !== undefined && queryCount > 0 && (
               <Badge>
                 <QueryCount hideParens count={queryCount} max={1000} />
               </Badge>
