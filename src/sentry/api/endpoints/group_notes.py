@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
@@ -7,9 +8,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
-
 from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason
-
 from sentry.utils.functional import extract_lazy_object
 
 

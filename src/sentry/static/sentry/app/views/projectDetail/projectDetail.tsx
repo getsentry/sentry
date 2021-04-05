@@ -18,7 +18,7 @@ import TextOverflow from 'app/components/textOverflow';
 import {IconSettings, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
-import {GlobalSelection, Organization, Project} from 'app/types';
+import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
 import {defined} from 'app/utils';
 import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -45,7 +45,9 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   selection: GlobalSelection;
 };
 
-type State = AsyncView['state'];
+type State = AsyncView['state'] & {
+  hasSessions: boolean | null;
+};
 
 class ProjectDetail extends AsyncView<Props, State> {
   getTitle() {
@@ -56,16 +58,51 @@ class ProjectDetail extends AsyncView<Props, State> {
 
   componentDidMount() {
     this.syncProjectWithSlug();
+    if (this.props.location.query.project) {
+      this.fetchSessionsExistence();
+    }
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: Props) {
     this.syncProjectWithSlug();
+
+    if (prevProps.location.query.project !== this.props.location.query.project) {
+      this.fetchSessionsExistence();
+    }
   }
 
   get project() {
     const {projects, params} = this.props;
 
     return projects.find(p => p.slug === params.projectId);
+  }
+
+  async fetchSessionsExistence() {
+    const {organization, location} = this.props;
+    const projectId = location.query.project;
+    if (!projectId) {
+      return;
+    }
+
+    this.setState({
+      hasSessions: null,
+    });
+
+    const response: SessionApiResponse = await this.api.requestPromise(
+      `/organizations/${organization.slug}/sessions/`,
+      {
+        query: {
+          project: projectId,
+          field: 'sum(session)',
+          statsPeriod: '90d',
+          interval: '1d',
+        },
+      }
+    );
+
+    this.setState({
+      hasSessions: response.groups[0].totals['sum(session)'] > 0,
+    });
   }
 
   handleProjectChange = (selectedProjects: number[]) => {
@@ -131,7 +168,15 @@ class ProjectDetail extends AsyncView<Props, State> {
       selection,
     } = this.props;
     const project = this.project;
+    const {hasSessions} = this.state;
+    const hasPerformance = organization.features.includes('performance-view');
+    const hasTransactions = hasPerformance && project?.firstTransactionEvent;
     const isProjectStabilized = this.isProjectStabilized();
+    const visibleCharts = ['chart1'];
+
+    if (hasTransactions || hasSessions) {
+      visibleCharts.push('chart2');
+    }
 
     if (!loadingProjects && !project) {
       return this.renderProjectNotFound();
@@ -210,19 +255,31 @@ class ProjectDetail extends AsyncView<Props, State> {
                   organization={organization}
                   isProjectStabilized={isProjectStabilized}
                   selection={selection}
+                  hasSessions={hasSessions}
+                  hasTransactions={hasTransactions}
                 />
                 {isProjectStabilized && (
                   <React.Fragment>
-                    {[0, 1].map(id => (
+                    {visibleCharts.map((id, index) => (
                       <ProjectCharts
                         location={location}
                         organization={organization}
                         router={router}
                         key={`project-charts-${id}`}
-                        index={id}
+                        chartId={id}
+                        chartIndex={index}
+                        projectId={project?.id}
+                        hasSessions={hasSessions}
+                        hasTransactions={!!hasTransactions}
+                        visibleCharts={visibleCharts}
                       />
                     ))}
-                    <ProjectIssues organization={organization} location={location} />
+                    <ProjectIssues
+                      organization={organization}
+                      location={location}
+                      projectId={selection.projects[0]}
+                      api={this.api}
+                    />
                   </React.Fragment>
                 )}
               </Layout.Main>

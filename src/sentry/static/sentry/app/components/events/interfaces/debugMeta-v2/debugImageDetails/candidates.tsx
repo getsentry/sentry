@@ -20,6 +20,7 @@ import Filter from '../filter';
 
 import Status from './candidate/status';
 import Candidate from './candidate';
+import {INTERNAL_SOURCE} from './utils';
 
 const filterOptionCategories = {
   status: t('Status'),
@@ -36,8 +37,10 @@ type Props = {
   projectId: Project['id'];
   baseUrl: string;
   builtinSymbolSources: Array<BuiltinSymbolSource> | null;
-  onDelete: (debugId: string) => void;
   isLoading: boolean;
+  hasReprocessWarning: boolean;
+  onDelete: (debugId: string) => void;
+  eventDateReceived?: string;
   imageStatus?: ImageStatus;
 };
 
@@ -293,9 +296,20 @@ class Candidates extends React.Component<Props, State> {
       onDelete,
       isLoading,
       candidates,
+      eventDateReceived,
+      hasReprocessWarning,
     } = this.props;
 
     const {searchTerm, filterOptions, filteredCandidatesByFilter} = this.state;
+
+    const haveCandidatesOkOrDeletedDebugFile = candidates.some(
+      candidate =>
+        (candidate.download.status === CandidateDownloadStatus.OK &&
+          candidate.source === INTERNAL_SOURCE) ||
+        candidate.download.status === CandidateDownloadStatus.DELETED
+    );
+    const haveCandidatesAtLeastOneAction =
+      haveCandidatesOkOrDeletedDebugFile || hasReprocessWarning;
 
     return (
       <Wrapper>
@@ -322,19 +336,17 @@ class Candidates extends React.Component<Props, State> {
               <StyledSearchBar
                 query={searchTerm}
                 onChange={value => this.handleChangeSearchTerm(value)}
-                placeholder={t('Search debug files')}
+                placeholder={t('Search debug file candidates')}
               />
             </Search>
           )}
         </Header>
         <StyledPanelTable
-          headers={[
-            t('Status'),
-            t('Location'),
-            t('Processing'),
-            t('Features'),
-            t('Actions'),
-          ]}
+          headers={
+            haveCandidatesAtLeastOneAction
+              ? [t('Status'), t('Information'), '']
+              : [t('Status'), t('Information')]
+          }
           isEmpty={!filteredCandidatesByFilter.length}
           isLoading={isLoading}
           {...this.getEmptyMessage()}
@@ -347,6 +359,9 @@ class Candidates extends React.Component<Props, State> {
               organization={organization}
               baseUrl={baseUrl}
               projectId={projectId}
+              eventDateReceived={eventDateReceived}
+              hasReprocessWarning={hasReprocessWarning}
+              haveCandidatesAtLeastOneAction={haveCandidatesAtLeastOneAction}
               onDelete={onDelete}
             />
           ))}
@@ -371,7 +386,6 @@ const Header = styled('div')`
   }
 `;
 
-// Table Title
 const Title = styled('div')`
   padding-right: ${space(4)};
   display: grid;
@@ -383,7 +397,6 @@ const Title = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-// Search
 const Search = styled('div')`
   flex-grow: 1;
   display: flex;
@@ -430,31 +443,12 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 0.5fr minmax(300px, 2fr) 1fr 1fr;
+  grid-template-columns: ${p =>
+    p.headers.length === 3 ? 'max-content 1fr max-content' : 'max-content 1fr'};
 
-  > *:nth-child(5n) {
-    padding: 0;
-    display: none;
-  }
+  height: 100%;
 
-  > *:nth-child(5n-1),
-  > *:nth-child(5n) {
-    text-align: right;
-    justify-content: flex-end;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
     overflow: visible;
-    > *:nth-child(5n-1) {
-      text-align: left;
-      justify-content: flex-start;
-    }
-
-    > *:nth-child(5n) {
-      padding: ${space(2)};
-      display: flex;
-    }
-
-    grid-template-columns: 1fr minmax(300px, 2.5fr) 1.5fr 1.5fr 0.5fr;
   }
 `;

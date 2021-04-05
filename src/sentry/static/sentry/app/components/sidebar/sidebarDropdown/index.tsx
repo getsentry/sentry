@@ -119,10 +119,11 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                 </React.Fragment>
               )}
 
+              {hasOrganization && user && <Divider />}
+
               <DemoModeGate>
                 {!!user && (
                   <React.Fragment>
-                    <Divider />
                     <UserSummary to="/settings/account/details/">
                       <UserBadgeNoOverflow user={user} avatarSize={32} />
                     </UserSummary>

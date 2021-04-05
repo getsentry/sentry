@@ -39,8 +39,8 @@ describe('UserFeedback', function () {
 
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
-    expect(wrapper.text()).toContain('UsageStatsOrganization Chart');
-    expect(wrapper.text()).not.toContain('UsageStatsOrganization has an error');
+    expect(wrapper.find('UsageChart')).toHaveLength(1);
+    expect(wrapper.find('IconWarning')).toHaveLength(0);
 
     expect(wrapper.text()).toContain('UsageStatsProjects is okay');
     expect(wrapper.text()).not.toContain('UsageStatsProjects has an error');
@@ -62,8 +62,8 @@ describe('UserFeedback', function () {
 
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
-    expect(wrapper.text()).not.toContain('UsageStatsOrganization Chart');
-    expect(wrapper.text()).toContain('UsageStatsOrganization has an error');
+    expect(wrapper.find('UsageChart')).toHaveLength(0);
+    expect(wrapper.find('IconWarning')).toHaveLength(1);
 
     expect(wrapper.text()).toContain('UsageStatsProjects is okay');
     expect(wrapper.text()).not.toContain('UsageStatsProjects has an error');
@@ -85,8 +85,8 @@ describe('UserFeedback', function () {
 
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
-    expect(wrapper.text()).toContain('UsageStatsOrganization Chart');
-    expect(wrapper.text()).not.toContain('UsageStatsOrganization has an error');
+    expect(wrapper.find('UsageChart')).toHaveLength(1);
+    expect(wrapper.find('IconWarning')).toHaveLength(0);
 
     expect(wrapper.text()).not.toContain('UsageStatsProjects is okay');
     expect(wrapper.text()).toContain('UsageStatsProjects has an error');

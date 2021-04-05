@@ -2,7 +2,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DiscoverSavedQuery
-from sentry.utils.dates import parse_timestamp, outside_retention_with_modified_start
+from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 
 @register(DiscoverSavedQuery)

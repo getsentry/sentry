@@ -109,7 +109,7 @@ class TableView extends React.Component<TableViewProps> {
           <PrependHeader key="header-event-id">
             <SortLink
               align="left"
-              title={t('Id')}
+              title={t('event id')}
               direction={undefined}
               canSort={false}
               generateSortLink={() => undefined}

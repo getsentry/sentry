@@ -1,16 +1,15 @@
 import logging
 
 from django.db import IntegrityError
-
 from rest_framework import serializers, status
-from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ExternalTeam, EXTERNAL_PROVIDERS
+from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.models import EXTERNAL_PROVIDERS, ExternalTeam
 
 logger = logging.getLogger(__name__)
 

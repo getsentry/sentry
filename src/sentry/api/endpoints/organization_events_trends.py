@@ -1,17 +1,16 @@
 from collections import namedtuple
-import sentry_sdk
-
 from datetime import datetime, timedelta
-from rest_framework.response import Response
+
+import sentry_sdk
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import DateArg, parse_function
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.search.utils import parse_datetime_string, InvalidQuery
+from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba import discover
-
 
 # converter is to convert the aggregate filter to snuba query
 Alias = namedtuple("Alias", "converter aggregate")

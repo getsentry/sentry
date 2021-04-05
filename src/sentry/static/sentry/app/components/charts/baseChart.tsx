@@ -29,7 +29,7 @@ import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getColorPalette, getDimensionValue} from './utils';
+import {getDimensionValue} from './utils';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -355,11 +355,15 @@ function BaseChartUnwrapped({
         })
       : undefined;
 
+  const color =
+    colors ||
+    (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
+
   const chartOption = {
     ...options,
     animation: IS_ACCEPTANCE_TEST ? false : options.animation ?? true,
     useUTC: utc,
-    color: colors || getColorPalette(theme, series?.length),
+    color,
     grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
     tooltip: tooltipOrNone,
     legend: legend ? Legend({theme, ...legend}) : undefined,

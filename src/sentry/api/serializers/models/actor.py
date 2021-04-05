@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer
-from sentry.models import User, Team
+from sentry.models import Team, User
 
 
 class ActorSerializer(Serializer):
