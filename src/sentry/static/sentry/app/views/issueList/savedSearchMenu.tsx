@@ -110,7 +110,7 @@ function SavedSearchMenu({savedSearchList, ...props}: Props) {
           />
         ))
       )}
-      <SecondaryMenuHeader>{t('Common Searches')}</SecondaryMenuHeader>
+      <SecondaryMenuHeader>{t('Pre-built searches')}</SecondaryMenuHeader>
       {commonSearches.length === 0 ? (
         <EmptyItem>{t('No common searches')}</EmptyItem>
       ) : (
