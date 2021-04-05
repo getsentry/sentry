@@ -27,6 +27,14 @@ class SentryAPIException(APIException):
         self.detail = {"detail": detail}
 
 
+class ParameterValidationError(SentryAPIException):  # type: ignore
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "parameter-validation-error"
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message=message)
+
+
 class ProjectMoved(SentryAPIException):
     status_code = status.HTTP_302_FOUND
     # code/message currently don't get used
