@@ -78,20 +78,20 @@ describe('Debug Meta - Image Details Candidates', function () {
 
     const informationColumn = candidates.find('InformationColumn');
 
+    // Check source names order.
+    // The UI shall sort the candidates by source name (alphabetical)
+    const sourceNames = informationColumn
+      .find('[data-test-id="source_name"]')
+      .map(sourceName => sourceName.text());
+    expect(sourceNames).toEqual(['America', 'Austria', 'Belgium', 'Sentry']);
+
     // Check location order.
     // The UI shall sort the candidates by source location (alphabetical)
     const locations = informationColumn
-      .find('[data-test-id="main-info"]')
+      .find('FilenameOrLocation')
       .map(location => location.text());
     // Only 3 results are returned, as the UI only displays the Location component
     // when the location is defined and when it is not internal
     expect(locations).toEqual(['arizona', 'burgenland', 'brussels']);
-
-    // Check source names order.
-    // The UI shall sort the candidates by source name (alphabetical)
-    const sourceNames = informationColumn
-      .find('[data-test-id="source"]')
-      .map(sourceName => sourceName.text());
-    expect(sourceNames).toEqual(['America', 'Austria', 'Belgium', 'Sentry']);
   });
 });
