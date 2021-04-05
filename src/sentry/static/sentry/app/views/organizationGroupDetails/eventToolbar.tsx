@@ -75,29 +75,57 @@ class GroupEventToolbar extends React.Component<Props> {
     const {event, organization, location} = this.props;
 
     return (
-      <QuickTraceWrapper>
-        <ErrorBoundary mini>
-          <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-            {results =>
-              results.isLoading ? (
-                <Placeholder height="24px" />
-              ) : results.error || results.trace === null ? (
-                '\u2014'
-              ) : (
-                <QuickTrace
-                  event={event}
-                  quickTrace={results}
-                  location={location}
-                  organization={organization}
-                  anchor="left"
-                  errorDest="issue"
-                  transactionDest="performance"
-                />
-              )
-            }
-          </QuickTraceQuery>
-        </ErrorBoundary>
-      </QuickTraceWrapper>
+      <ErrorBoundary mini>
+        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+          {results => (
+            <React.Fragment>
+              {!results.isLoading && results.error === null && results.trace !== null && (
+                <LinkContainer>
+                  <Feature
+                    features={['trace-view-summary']}
+                    hookName="feature-disabled:trace-view-link"
+                    renderDisabled={renderDisabledHoverCard}
+                  >
+                    {({hasFeature}) =>
+                      hasFeature ? (
+                        <Link
+                          to={generateTraceTarget(event, organization)}
+                          onClick={() => this.handleTraceLink(organization)}
+                        >
+                          View Full Trace
+                          <FeatureBadge type="beta" />
+                        </Link>
+                      ) : (
+                        <DisabledLink>
+                          View Full Trace
+                          <FeatureBadge type="beta" />
+                        </DisabledLink>
+                      )
+                    }
+                  </Feature>
+                </LinkContainer>
+              )}
+              <QuickTraceWrapper>
+                {results.isLoading ? (
+                  <Placeholder height="24px" />
+                ) : results.error || results.trace === null ? (
+                  '\u2014'
+                ) : (
+                  <QuickTrace
+                    event={event}
+                    quickTrace={results}
+                    location={location}
+                    organization={organization}
+                    anchor="left"
+                    errorDest="issue"
+                    transactionDest="performance"
+                  />
+                )}
+              </QuickTraceWrapper>
+            </React.Fragment>
+          )}
+        </QuickTraceQuery>
+      </ErrorBoundary>
     );
   }
 
@@ -182,32 +210,6 @@ class GroupEventToolbar extends React.Component<Props> {
           />
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
-        {hasQuickTraceView && (
-          <LinkContainer>
-            <Feature
-              features={['trace-view-summary']}
-              hookName="feature-disabled:trace-view-link"
-              renderDisabled={renderDisabledHoverCard}
-            >
-              {({hasFeature}) =>
-                hasFeature ? (
-                  <Link
-                    to={generateTraceTarget(evt, organization)}
-                    onClick={() => this.handleTraceLink(organization)}
-                  >
-                    View Full Trace
-                    <FeatureBadge type="beta" />
-                  </Link>
-                ) : (
-                  <DisabledLink>
-                    View Full Trace
-                    <FeatureBadge type="beta" />
-                  </DisabledLink>
-                )
-              }
-            </Feature>
-          </LinkContainer>
-        )}
         {hasQuickTraceView && this.renderQuickTrace()}
       </Wrapper>
     );
