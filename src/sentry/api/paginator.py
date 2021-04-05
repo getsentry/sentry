@@ -5,6 +5,7 @@ from datetime import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import connections
+from django.db.models.functions import Lower
 from django.db.models.sql.datastructures import EmptyResultSet
 from django.utils import timezone
 
@@ -26,6 +27,7 @@ class BasePaginator:
     def __init__(
         self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None, post_query_filter=None
     ):
+
         if order_by:
             if order_by.startswith("-"):
                 self.key, self.desc = order_by[1:], True
@@ -519,10 +521,11 @@ class CombinedQuerysetPaginator:
     using_dates = False
     model_key_map = {}
 
-    def __init__(self, intermediaries, desc=False, on_results=None):
+    def __init__(self, intermediaries, desc=False, on_results=None, case_insensitive=False):
         self.desc = desc
         self.intermediaries = intermediaries
         self.on_results = on_results
+        self.case_insensitive = case_insensitive
         for intermediary in list(self.intermediaries):
             if intermediary.is_empty:
                 self.intermediaries.remove(intermediary)
@@ -556,6 +559,8 @@ class CombinedQuerysetPaginator:
             value_type = type(value)
             if value_type is float:
                 return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+            elif value_type is str and self.case_insensitive:
+                return value.lower()
             return value
 
     def value_from_cursor(self, cursor):
@@ -579,6 +584,11 @@ class CombinedQuerysetPaginator:
         for intermediary in self.intermediaries:
             key = intermediary.order_by
             filters = {}
+            annotate = {}
+
+            if self.case_insensitive:
+                key = f"{key}_lower"
+                annotate[key] = Lower(intermediary.order_by)
 
             if asc:
                 order_by = key
@@ -590,7 +600,11 @@ class CombinedQuerysetPaginator:
             if value is not None:
                 filters[filter_condition] = value
 
-            queryset = intermediary.queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
+            queryset = (
+                intermediary.queryset.annotate(**annotate)
+                .filter(**filters)
+                .order_by(order_by)[: (limit + extra)]
+            )
             combined_querysets += list(queryset)
 
         def _sort_combined_querysets(item):
@@ -624,7 +638,11 @@ class CombinedQuerysetPaginator:
         )
 
         stop = offset + limit + extra
-        results = list(combined_querysets[offset:stop])
+        results = (
+            list(combined_querysets[offset:stop])
+            if self.using_dates
+            else list(combined_querysets[: (limit + extra)])
+        )
 
         if cursor.is_prev and cursor.value:
             # If the first result is equal to the cursor_value then it's safe to filter

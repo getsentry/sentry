@@ -224,8 +224,10 @@ let appConfig = {
   entry: {
     /**
      * Main Sentry SPA
+     *
+     * The order here matters for `getsentry`
      */
-    app: 'app',
+    app: ['app/utils/statics-setup', 'app'],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.

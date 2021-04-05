@@ -3,6 +3,7 @@ import {InjectedRouter, Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Badge from 'app/components/badge';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import * as Layout from 'app/components/layouts/thirds';
@@ -137,19 +138,21 @@ function IssueListHeader({
                         delay={1000}
                       >
                         {queryName}{' '}
-                        {queryCounts[tabQuery] && (
-                          <StyledQueryCount
-                            isTag
-                            tagProps={{
-                              type:
-                                tabQuery === Query.FOR_REVIEW &&
-                                (queryCounts[tabQuery]?.count ?? 0) > 0
-                                  ? 'warning'
-                                  : 'default',
-                            }}
-                            count={queryCounts[tabQuery].count}
-                            max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                          />
+                        {queryCounts[tabQuery]?.count > 0 && (
+                          <Badge
+                            type={
+                              tabQuery === Query.FOR_REVIEW &&
+                              queryCounts[tabQuery]!.count > 0
+                                ? 'review'
+                                : 'default'
+                            }
+                          >
+                            <QueryCount
+                              hideParens
+                              count={queryCounts[tabQuery].count}
+                              max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                            />
+                          </Badge>
                         )}
                       </Tooltip>
                     </WrapGuideTabs>
@@ -200,8 +203,4 @@ const TabLayoutHeader = styled(Layout.Header)`
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   margin-bottom: 0;
   margin-right: ${space(2)};
-`;
-
-const StyledQueryCount = styled(QueryCount)`
-  color: ${p => p.theme.gray300};
 `;

@@ -1,5 +1,4 @@
 import isString from 'lodash/isString';
-import parseurl from 'parseurl';
 import * as queryString from 'query-string';
 
 import {escapeDoubleQuotes} from 'app/utils';
@@ -13,14 +12,19 @@ export function addQueryParamsToExistingUrl(
   origUrl: string,
   queryParams: object
 ): string {
-  const url = parseurl({url: origUrl});
-  if (!url) {
+  let url;
+
+  try {
+    url = new URL(origUrl);
+  } catch {
     return '';
   }
+
+  const searchEntries = url.searchParams.entries();
   // Order the query params alphabetically.
   // Otherwise ``queryString`` orders them randomly and it's impossible to test.
   const params = JSON.parse(JSON.stringify(queryParams));
-  const query = url.query ? {...queryString.parse(url.query), ...params} : params;
+  const query = {...Object.fromEntries(searchEntries), ...params};
 
   return `${url.protocol}//${url.host}${url.pathname}?${queryString.stringify(query)}`;
 }
