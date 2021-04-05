@@ -665,7 +665,12 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
         assert self.adapter.get_send_to_owners(event_single_user, self.project) == {self.user2.id}
 
     def test_disable_alerts(self):
-        # Make sure that disabling mail alerts works as expected
+        """ Make sure that disabling mail alerts works as expected. """
+        event_all_users = self.store_event(
+            data=self.make_event_data("foo.cbl"), project_id=self.project.id
+        )
+
+        # Per-project setting.
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
@@ -673,13 +678,21 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
             user=self.user2,
             project=self.project,
         )
-        event_all_users = self.store_event(
-            data=self.make_event_data("foo.cbl"), project_id=self.project.id
+
+        assert self.user2.id not in self.adapter.get_send_to_owners(event_all_users, self.project)
+
+        # Clear settings so we can try again another way.
+        NotificationSetting.objects.remove_for_user(self.user2)
+
+        # Project-independent setting.
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user2,
         )
-        assert self.adapter.get_send_to_owners(event_all_users, self.project) == {
-            self.user.id,
-            self.user3.id,
-        }
+
+        assert self.user2.id not in self.adapter.get_send_to_owners(event_all_users, self.project)
 
 
 class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
