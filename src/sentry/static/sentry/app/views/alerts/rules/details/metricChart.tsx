@@ -115,6 +115,7 @@ function createIncidentSeries(
         formatter: identifier || '-',
         color: lineColor,
         fontSize: 10,
+        fontFamily: 'Rubik',
       } as any,
     }),
     data: [],
@@ -129,7 +130,8 @@ function createIncidentSeries(
         `<div class="tooltip-series"><div>`,
         `<span class="tooltip-label">${marker} <strong>${t(
           'Alert'
-        )} #${identifier}</strong></span>${seriesName} ${dataPoint?.value}</div></div>`,
+        )} #${identifier}</strong></span>${seriesName} ${dataPoint?.value?.toLocaleString()}`,
+        `</div></div>`,
         `<div class="tooltip-date">${time}</div>`,
         `<div class="tooltip-arrow"></div>`,
       ].join('');
@@ -295,6 +297,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     maxThresholdValue: number,
     maxSeriesValue: number
   ) {
+    const {dateModified, timeWindow} = this.props.rule || {};
     return (
       <LineChart
         isGroupedByDate
@@ -311,6 +314,37 @@ class MetricChart extends React.PureComponent<Props, State> {
         graphic={Graphic({
           elements: this.getRuleChangeThresholdElements(data),
         })}
+        tooltip={{
+          formatter: seriesParams => {
+            // seriesParams can be object instead of array
+            const pointSeries = Array.isArray(seriesParams)
+              ? seriesParams
+              : [seriesParams];
+            const {marker, data: pointData, seriesName} = pointSeries[0];
+            const [pointX, pointY] = pointData as [number, number];
+            const isModified = dateModified && pointX <= new Date(dateModified).getTime();
+
+            const startTime = getFormattedDate(new Date(pointX), 'MMM D LT');
+            const endTime = getFormattedDate(
+              moment(new Date(pointX)).add(timeWindow, 'minutes'),
+              'MMM D LT'
+            );
+            const title = isModified
+              ? `<strong>${t('Alert Rule Modified')}</strong>`
+              : `${marker} <strong>${seriesName}</strong>`;
+            const value = isModified
+              ? `${seriesName} ${pointY.toLocaleString()}`
+              : pointY.toLocaleString();
+
+            return [
+              `<div class="tooltip-series"><div>`,
+              `<span class="tooltip-label">${title}</span>${value}`,
+              `</div></div>`,
+              `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
+              `<div class="tooltip-arrow"></div>`,
+            ].join('');
+          },
+        }}
         onFinished={() => {
           // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
           // any graphics related to the triggers (e.g. the threshold areas + boundaries)

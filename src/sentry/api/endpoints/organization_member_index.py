@@ -1,17 +1,17 @@
+from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, F
+from django.db.models import F, Q
 from rest_framework import serializers
 from rest_framework.response import Response
-from django.conf import settings
 
-from sentry.app import locks
-from sentry import roles, features
+from sentry import features, roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
+from sentry.app import locks
 from sentry.models import (
     AuditLogEntryEvent,
     InviteStatus,
@@ -23,10 +23,10 @@ from sentry.models import (
 from sentry.models.authenticator import available_authenticators
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
-from .organization_member_details import get_allowed_roles
 from sentry.utils import metrics, ratelimits
 from sentry.utils.retries import TimedRetryPolicy
 
+from .organization_member_details import get_allowed_roles
 
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 

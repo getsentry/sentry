@@ -42,8 +42,9 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
-  thresholdChart: React.ReactElement;
+  thresholdChart: (props: {footer: React.ReactNode}) => React.ReactElement;
   onFilterSearch: (query: string) => void;
+  allowChangeEventTypes?: boolean;
 };
 
 type State = {
@@ -78,7 +79,7 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled, onFilterSearch} = this.props;
+    const {organization, disabled, onFilterSearch, allowChangeEventTypes} = this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] =
@@ -122,18 +123,6 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
       },
     ];
 
-    if (organization.features.includes('performance-view')) {
-      dataSourceOptions.push({
-        label: t('Transactions'),
-        options: [
-          {
-            value: Datasource.TRANSACTION,
-            label: DATA_SOURCE_LABELS[Datasource.TRANSACTION],
-          },
-        ],
-      });
-    }
-
     const formElemBaseStyle = {
       padding: `${space(0.5)}`,
       border: 'none',
@@ -142,7 +131,50 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
     return (
       <React.Fragment>
         <Panel>
-          <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
+          <StyledPanelBody>
+            {this.props.thresholdChart({
+              footer: (
+                <ChartFooter>
+                  <MetricField
+                    name="aggregate"
+                    help={null}
+                    organization={organization}
+                    disabled={disabled}
+                    style={{
+                      ...formElemBaseStyle,
+                    }}
+                    inline={false}
+                    flexibleControlStateSize
+                    columnWidth={250}
+                    inFieldLabels
+                    required
+                  />
+                  <FormRowText>{t('over a')}</FormRowText>
+                  <Tooltip
+                    title={t(
+                      'Triggers are evaluated every minute regardless of this value.'
+                    )}
+                  >
+                    <SelectField
+                      name="timeWindow"
+                      style={{
+                        ...formElemBaseStyle,
+                        flex: 1,
+                        minWidth: 180,
+                      }}
+                      choices={Object.entries(TIME_WINDOW_MAP)}
+                      required
+                      isDisabled={disabled}
+                      getValue={value => Number(value)}
+                      setValue={value => `${value}`}
+                      inline={false}
+                      flexibleControlStateSize
+                    />
+                  </Tooltip>
+                </ChartFooter>
+              ),
+            })}
+          </StyledPanelBody>
         </Panel>
         <StyledListItem>{t('Select events')}</StyledListItem>
         <FormRow>
@@ -176,51 +208,53 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
             flexibleControlStateSize
             inFieldLabel={t('Env: ')}
           />
-          <FormField
-            name="datasource"
-            inline={false}
-            style={{
-              ...formElemBaseStyle,
-              minWidth: 300,
-              flex: 2,
-            }}
-            flexibleControlStateSize
-          >
-            {({onChange, onBlur, model}) => {
-              const formDataset = model.getValue('dataset');
-              const formEventTypes = model.getValue('eventTypes');
-              const mappedValue = convertDatasetEventTypesToSource(
-                formDataset,
-                formEventTypes
-              );
-              return (
-                <SelectControl
-                  value={mappedValue}
-                  inFieldLabel={t('Events: ')}
-                  onChange={optionObj => {
-                    const optionValue = optionObj.value;
-                    onChange(optionValue, {});
-                    onBlur(optionValue, {});
-                    // Reset the aggregate to the default (which works across
-                    // datatypes), otherwise we may send snuba an invalid query
-                    // (transaction aggregate on events datasource = bad).
-                    optionValue === 'transaction'
-                      ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
-                      : model.setValue('aggregate', DEFAULT_AGGREGATE);
+          {allowChangeEventTypes && (
+            <FormField
+              name="datasource"
+              inline={false}
+              style={{
+                ...formElemBaseStyle,
+                minWidth: 300,
+                flex: 2,
+              }}
+              flexibleControlStateSize
+            >
+              {({onChange, onBlur, model}) => {
+                const formDataset = model.getValue('dataset');
+                const formEventTypes = model.getValue('eventTypes');
+                const mappedValue = convertDatasetEventTypesToSource(
+                  formDataset,
+                  formEventTypes
+                );
+                return (
+                  <SelectControl
+                    value={mappedValue}
+                    inFieldLabel={t('Events: ')}
+                    onChange={optionObj => {
+                      const optionValue = optionObj.value;
+                      onChange(optionValue, {});
+                      onBlur(optionValue, {});
+                      // Reset the aggregate to the default (which works across
+                      // datatypes), otherwise we may send snuba an invalid query
+                      // (transaction aggregate on events datasource = bad).
+                      optionValue === 'transaction'
+                        ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
+                        : model.setValue('aggregate', DEFAULT_AGGREGATE);
 
-                    // set the value of the dataset and event type from data source
-                    const {dataset, eventTypes} =
-                      DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
-                    model.setValue('dataset', dataset);
-                    model.setValue('eventTypes', eventTypes);
-                  }}
-                  options={dataSourceOptions}
-                  isDisabled={disabled}
-                  required
-                />
-              );
-            }}
-          </FormField>
+                      // set the value of the dataset and event type from data source
+                      const {dataset, eventTypes} =
+                        DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
+                      model.setValue('dataset', dataset);
+                      model.setValue('eventTypes', eventTypes);
+                    }}
+                    options={dataSourceOptions}
+                    isDisabled={disabled}
+                    required
+                  />
+                );
+              }}
+            </FormField>
+          )}
           <FormField
             name="query"
             inline={false}
@@ -269,49 +303,12 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
             )}
           </FormField>
         </FormRow>
-        <FormRow>
-          <MetricField
-            name="aggregate"
-            help={null}
-            organization={organization}
-            disabled={disabled}
-            style={{
-              ...formElemBaseStyle,
-            }}
-            inline={false}
-            flexibleControlStateSize
-            columnWidth={250}
-            inFieldLabels
-            required
-          />
-          <FormRowText>{t('over a')}</FormRowText>
-          <Tooltip
-            title={t('Triggers are evaluated every minute regardless of this value.')}
-          >
-            <SelectField
-              name="timeWindow"
-              style={{
-                ...formElemBaseStyle,
-                flex: 1,
-                minWidth: 180,
-              }}
-              choices={Object.entries(TIME_WINDOW_MAP)}
-              required
-              isDisabled={disabled}
-              getValue={value => Number(value)}
-              setValue={value => `${value}`}
-              inline={false}
-              flexibleControlStateSize
-            />
-          </Tooltip>
-        </FormRow>
       </React.Fragment>
     );
   }
 }
 
 const StyledPanelBody = styled(PanelBody)`
-  padding-top: ${space(1)};
   ol,
   h4 {
     margin-bottom: ${space(1)};
@@ -336,6 +333,10 @@ const FormRow = styled('div')`
   align-items: flex-end;
   flex-wrap: wrap;
   margin-bottom: ${space(2)};
+`;
+
+const ChartFooter = styled(FormRow)`
+  margin: 0;
 `;
 
 const FormRowText = styled('div')`

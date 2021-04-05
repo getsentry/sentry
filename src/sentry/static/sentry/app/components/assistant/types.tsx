@@ -21,6 +21,7 @@ type BaseGuide = {
    * guide to be shown regardless.
    */
   requiredTargets: string[];
+  /** Show the guide to users who've joined before the date threshold */
   dateThreshold?: Date;
   steps: GuideStep[];
   /**

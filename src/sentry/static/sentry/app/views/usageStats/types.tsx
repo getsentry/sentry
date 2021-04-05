@@ -1,18 +1,14 @@
 import {MinimalProject} from 'app/types';
 
-export type RawStat = {
-  quantity: number; // Counting for attachment size
-  timesSeen: number; // Counting for errors or transactions
-};
-
 export type UsageStat = {
   ts: string;
-  accepted: RawStat;
-  filtered: RawStat;
+  date: string;
+  total: number;
+  accepted: number;
+  filtered: number;
   dropped: {
-    overQuota?: RawStat;
-    spikeProtection?: RawStat;
-    other?: RawStat;
+    total: number;
+    other?: number;
   };
 };
 

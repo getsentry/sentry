@@ -1,15 +1,12 @@
 import logging
 
-from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases import (
-    OrganizationEventsV2EndpointBase,
-    NoProjects,
-)
-from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import is_function
+from sentry.api.paginator import GenericOffsetPaginator
 from sentry.snuba import discover
 
 logger = logging.getLogger(__name__)

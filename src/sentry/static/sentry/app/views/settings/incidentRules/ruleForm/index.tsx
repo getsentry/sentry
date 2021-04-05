@@ -23,6 +23,8 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
 import RuleNameOwnerForm from 'app/views/settings/incidentRules/ruleNameOwnerForm';
@@ -38,6 +40,7 @@ import RuleConditionsFormForWizard from '../ruleConditionsFormForWizard';
 import {
   AlertRuleThresholdType,
   Dataset,
+  EventTypes,
   IncidentRule,
   MetricActionTemplate,
   Trigger,
@@ -82,6 +85,7 @@ type State = {
   timeWindow: number;
   environment: string | null;
   uuid?: string;
+  eventTypes?: EventTypes[];
 } & AsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -576,24 +580,40 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       thresholdType,
       resolveThreshold,
       loading,
+      eventTypes,
+      dataset,
     } = this.state;
 
-    const eventTypeFilter = getEventTypeFilter(this.state.dataset, this.state.eventTypes);
+    const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = `${query} ${eventTypeFilter}`.trim();
 
-    const chart = (
+    const chartProps = {
+      organization,
+      projects: this.state.projects,
+      triggers,
+      query: queryWithTypeFilter,
+      aggregate,
+      timeWindow,
+      environment,
+      resolveThreshold,
+      thresholdType,
+    };
+    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+    const wizardBuilderChart = ({footer}) => (
       <TriggersChart
-        organization={organization}
-        projects={this.state.projects}
-        triggers={triggers}
-        query={queryWithTypeFilter}
-        aggregate={aggregate}
-        timeWindow={timeWindow}
-        environment={environment}
-        resolveThreshold={resolveThreshold}
-        thresholdType={thresholdType}
+        {...chartProps}
+        header={
+          <ChartHeader>
+            <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
+            <AlertInfo>
+              {aggregate} | event.type:{eventTypes?.join(',')}
+            </AlertInfo>
+          </ChartHeader>
+        }
+        footer={footer}
       />
     );
+    const chart = <TriggersChart {...chartProps} />;
 
     const ownerId = rule.owner?.split(':')[1];
     const canEdit = ownerId ? userTeamIds.has(ownerId) : true;
@@ -676,8 +696,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       projectSlug={params.projectId}
                       organization={organization}
                       disabled={!hasAccess || !canEdit}
-                      thresholdChart={chart}
+                      thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
+                      allowChangeEventTypes={dataset === Dataset.ERRORS}
                     />
                     <StyledListItem>
                       {t('Set actions for when a threshold is met')}
@@ -711,6 +732,23 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(1)};
+`;
+
+const ChartHeader = styled('div')`
+  padding: ${space(3)} ${space(3)} 0 ${space(3)};
+`;
+
+const AlertName = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: normal;
+  color: ${p => p.theme.textColor};
+`;
+
+const AlertInfo = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-family: ${p => p.theme.text.familyMono};
+  font-weight: normal;
+  color: ${p => p.theme.subText};
 `;
 
 export {RuleFormContainer};

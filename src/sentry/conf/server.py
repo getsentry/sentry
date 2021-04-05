@@ -862,7 +862,7 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
-    # Enable the quick trace view on event details and errors
+    # Enable the quick trace view on event details
     "organizations:trace-view-quick": False,
     # Enable the trace view summary
     "organizations:trace-view-summary": False,
@@ -947,6 +947,9 @@ SENTRY_FEATURES = {
     "organizations:releases-top-charts": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": False,
+    # Enable option to send alert, workflow, and deploy notifications
+    # to 3rd parties (e.g. Slack) in addition to email
+    "organizations:notification-platform": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on

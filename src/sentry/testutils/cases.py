@@ -393,7 +393,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         """
         status_code = params.pop("status_code", None)
 
-        if status_code >= 400:
+        if status_code and status_code >= 400:
             raise Exception("status_code must be < 400")
 
         response = self.get_response(*args, **params)
@@ -417,7 +417,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         """
         status_code = params.pop("status_code", None)
 
-        if status_code < 400:
+        if status_code and status_code < 400:
             raise Exception("status_code must be >= 400 (an error status code)")
 
         response = self.get_response(*args, **params)
@@ -465,7 +465,7 @@ class TwoFactorAPITestCase(APITestCase):
             assert err_msg.encode("utf-8") in response.content
         organization = Organization.objects.get(id=organization.id)
 
-        if status_code >= 200 and status_code < 300:
+        if 200 <= status_code < 300:
             assert organization.flags.require_2fa
         else:
             assert not organization.flags.require_2fa
@@ -814,6 +814,15 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def store_outcome(self, group):
+        data = [self.__wrap_group(group)]
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(data)
+            ).status_code
+            == 200
+        )
+
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
@@ -914,21 +923,12 @@ class OutcomesSnubaTest(TestCase):
         super().setUp()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
 
-    def __format(self, org_id, project_id, outcome, category, timestamp, key_id):
-        return {
-            "project_id": project_id,
-            "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            "org_id": org_id,
-            "reason": None,
-            "key_id": key_id,
-            "outcome": outcome,
-            "category": category,
-        }
-
-    def store_outcomes(self, org_id, project_id, outcome, category, timestamp, key_id, num_times):
+    def store_outcomes(self, outcome, num_times=1):
         outcomes = []
         for _ in range(num_times):
-            outcomes.append(self.__format(org_id, project_id, outcome, category, timestamp, key_id))
+            outcome_copy = outcome.copy()
+            outcome_copy["timestamp"] = outcome_copy["timestamp"].strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            outcomes.append(outcome_copy)
 
         assert (
             requests.post(
