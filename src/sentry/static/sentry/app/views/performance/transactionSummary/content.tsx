@@ -215,6 +215,7 @@ class SummaryContent extends React.Component<Props, State> {
           <Layout.Main>
             <Search>
               <Filter
+                organization={organization}
                 currentFilter={this.state.spanOperationBreakdownFilter}
                 onChangeFilter={this.onChangeFilter}
               />

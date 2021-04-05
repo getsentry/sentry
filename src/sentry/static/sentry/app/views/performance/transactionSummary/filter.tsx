@@ -9,6 +9,7 @@ import {IconFilter} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {OrganizationSummary} from 'app/types';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
@@ -28,13 +29,18 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
 ];
 
 type Props = {
+  organization: OrganizationSummary;
   currentFilter: SpanOperationBreakdownFilter;
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
 };
 
 class Filter extends React.Component<Props> {
   render() {
-    const {currentFilter, onChangeFilter} = this.props;
+    const {currentFilter, onChangeFilter, organization} = this.props;
+
+    if (!organization.features.includes('performance-ops-breakdown')) {
+      return null;
+    }
 
     const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
       hasDarkBorderBottomColor: boolean;
