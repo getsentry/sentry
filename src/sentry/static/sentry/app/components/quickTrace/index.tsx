@@ -2,7 +2,6 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptor} from 'history';
 
-import Feature from 'app/components/acl/feature';
 import DropdownLink from 'app/components/dropdownLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {
@@ -10,7 +9,6 @@ import {
   generateMultiTransactionsTarget,
   generateSingleErrorTarget,
   generateSingleTransactionTarget,
-  renderDisabledHoverCard,
   TransactionDestination,
 } from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
@@ -31,7 +29,6 @@ import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
 import {
-  DisabledDropdownItem,
   DropdownItem,
   DropdownItemSubContainer,
   ErrorNodeContent,
@@ -373,25 +370,11 @@ function EventNodeSelector({
           );
         })}
         {events.length > numEvents && hoverText && extrasTarget && (
-          <Feature
-            features={['trace-view-summary']}
-            hookName="feature-disabled:trace-view-link"
-            renderDisabled={renderDisabledHoverCard}
+          <DropdownItem
+            onSelect={() => handleDropdownItem(extrasTarget, nodeKey, organization, true)}
           >
-            {({hasFeature}) =>
-              hasFeature ? (
-                <DropdownItem
-                  onSelect={() =>
-                    handleDropdownItem(extrasTarget, nodeKey, organization, true)
-                  }
-                >
-                  {hoverText}
-                </DropdownItem>
-              ) : (
-                <DisabledDropdownItem>{hoverText}</DisabledDropdownItem>
-              )
-            }
-          </Feature>
+            {hoverText}
+          </DropdownItem>
         )}
       </DropdownLink>
     );

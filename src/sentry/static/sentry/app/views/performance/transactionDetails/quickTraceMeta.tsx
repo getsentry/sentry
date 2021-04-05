@@ -1,16 +1,11 @@
 import React from 'react';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
 import ErrorBoundary from 'app/components/errorBoundary';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import QuickTrace from 'app/components/quickTrace';
-import {DisabledLink} from 'app/components/quickTrace/styles';
-import {
-  generateTraceTarget,
-  renderDisabledHoverCard,
-} from 'app/components/quickTrace/utils';
+import {generateTraceTarget} from 'app/components/quickTrace/utils';
 import {t} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
@@ -88,21 +83,9 @@ export default function QuickTraceMeta({
         traceId === null ? (
           '\u2014'
         ) : (
-          <Feature
-            hookName="feature-disabled:trace-view-link"
-            features={['trace-view-summary']}
-            renderDisabled={renderDisabledHoverCard}
-          >
-            {({hasFeature}) =>
-              hasFeature ? (
-                <Link to={traceTarget} onClick={() => handleTraceLink(organization)}>
-                  {linkText}
-                </Link>
-              ) : (
-                <DisabledLink>{linkText}</DisabledLink>
-              )
-            }
-          </Feature>
+          <Link to={traceTarget} onClick={() => handleTraceLink(organization)}>
+            {linkText}
+          </Link>
         )
       }
     />
