@@ -166,7 +166,8 @@ class MailAdapter:
 
     def get_sendable_users(self, project):
         """ @deprecated Do not change this function, it is being used in getsentry. """
-        return self.get_sendable_user_ids(project)
+        users = self.get_sendable_user_objects(project)
+        return [user.id for user in users]
 
     def should_notify(self, target_type, group):
         metrics.incr("mail_adapter.should_notify")
