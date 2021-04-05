@@ -214,8 +214,8 @@ type WrapperProps = {disabled?: boolean} & Props;
 export default class GuideAnchorWrapper extends React.Component<WrapperProps> {
   render() {
     const {disabled, children, ...rest} = this.props;
-    if (disabled) {
-      return children;
+    if (disabled || window.localStorage.getItem('hide_anchors') === '1') {
+      return children || null;
     }
     return <GuideAnchor {...rest}>{children}</GuideAnchor>;
   }
