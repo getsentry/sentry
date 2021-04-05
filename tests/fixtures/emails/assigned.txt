@@ -1,6 +1,6 @@
 # Assigned
 
-foo@example.com assigned an issue to foo@example.com
+foo@example.com assigned PROJECT-1 to foo@example.com
 
 
 ## Issue Details

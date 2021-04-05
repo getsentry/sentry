@@ -1,6 +1,6 @@
 # Resolved Issue
 
-Sentry marked an issue as resolved in abcdef
+Sentry marked PROJECT-1 as resolved in abcdef
 
 
 ## Issue Details

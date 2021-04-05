@@ -1,6 +1,6 @@
 # Regression
 
-Sentry marked an issue as a regression in abcdef
+Sentry marked PROJECT-1 as a regression in abcdef
 
 
 ## Issue Details

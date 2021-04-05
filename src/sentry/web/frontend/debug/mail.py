@@ -93,6 +93,7 @@ def make_group_generator(random, project):
 
         group = Group(
             id=id,
+            short_id=id,
             project=project,
             culprit=culprit,
             level=level,

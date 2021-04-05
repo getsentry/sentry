@@ -188,7 +188,9 @@ class ActivityEmail:
         else:
             name = "Sentry"
 
-        context = {"author": name, "an issue": "an issue"}
+        issue_name = self.group.qualified_short_id or "an issue"
+
+        context = {"author": name, "an issue": issue_name}
         context.update(params)
 
         return description.format(**context)
@@ -204,7 +206,8 @@ class ActivityEmail:
 
         author = mark_safe(fmt.format(self.avatar_as_html(), escape(name)))
 
-        an_issue = f'<a href="{escape(self.get_group_link())}">an issue</a>'
+        issue_name = escape(self.group.qualified_short_id or "an issue")
+        an_issue = f'<a href="{escape(self.get_group_link())}">{issue_name}</a>'
 
         context = {"author": author, "an issue": an_issue}
         context.update(params)
