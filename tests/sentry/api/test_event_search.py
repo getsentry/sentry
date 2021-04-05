@@ -109,7 +109,7 @@ def test_get_json_meta_type():
                 {"column": "span_op_breakdowns.foo", "percentile": 0.5},
             ),
         )
-        == "number"
+        == "duration"
     )
 
 
