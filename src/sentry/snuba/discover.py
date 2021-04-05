@@ -900,30 +900,26 @@ def histogram_query(
 
     key_column = None
     array_column = None
+    histogram_function = None
     conditions = []
     if len(fields) > 1:
-        if all(is_measurement(field) for field in fields):
+        histogram_type = check_histogram_fields(fields)
+        if histogram_type == "measurements":
             key_column = "array_join(measurements_key)"
-            key_alias = get_function_alias(key_column)
             array_column = "measurements"
-            measurements = []
-            for f in fields:
-                measurement = get_measurement_name(f)
-                measurements.append(measurement)
-            conditions.append([key_alias, "IN", measurements])
-        elif all(is_span_op_breakdown(field) for field in fields):
+            histogram_function = get_measurement_name
+        elif histogram_type == "op_breakdown":
             key_column = "array_join(span_op_breakdowns_key)"
-            key_alias = get_function_alias(key_column)
             array_column = "span_op_breakdowns"
-            breakdowns = []
-            for f in fields:
-                span_op_breakdown = get_span_op_breakdown_name(f)
-                breakdowns.append(span_op_breakdown)
-            conditions.append([key_alias, "IN", breakdowns])
+            histogram_function = get_span_op_breakdown_name
         else:
             raise InvalidSearchQuery(
                 "multihistogram expected either all measurements or all breakdowns"
             )
+
+        key_alias = get_function_alias(key_column)
+        field_names = [histogram_function(field) for field in fields]
+        conditions.append([key_alias, "IN", field_names])
 
     histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
     histogram_column = get_histogram_column(fields, key_column, histogram_params, array_column)
@@ -1150,3 +1146,27 @@ def normalize_histogram_results(fields, key_column, histogram_params, results, a
             new_data[field].append(row)
 
     return new_data
+
+
+def check_histogram_fields(fields):
+    """
+    Returns histogram type if all the given fields are of the same histogram type.
+    Return false otherwise, or if any of the fields are not a compatible histogram type.
+    Possible histogram types: measurements, op_breakdown
+
+    :param [str] fields: The list of fields for which you want to generate histograms for.
+    """
+    histogram_type = False
+    for field in fields:
+        if histogram_type is False:
+            if is_measurement(field):
+                histogram_type = "measurements"
+            elif is_span_op_breakdown(field):
+                histogram_type = "op_breakdown"
+            else:
+                return False
+        elif histogram_type == "measurements" and not is_measurement(field):
+            return False
+        elif histogram_type == "op_breakdown" and not is_span_op_breakdown(field):
+            return False
+    return histogram_type
