@@ -75,7 +75,7 @@ describe('TableView > CellActions', function () {
       meta: {
         title: 'string',
         transaction: 'string',
-        'count()': 'integer',
+        count: 'integer',
         timestamp: 'date',
         release: 'string',
       },
@@ -250,5 +250,12 @@ describe('TableView > CellActions', function () {
         environment: eventView.environment,
       }),
     });
+  });
+
+  it('has tooltip on integer value', function () {
+    const wrapper = makeWrapper(initialData, rows, eventView);
+    const tooltip = wrapper.find('Tooltip').at(1);
+
+    expect(tooltip.prop('title')).toBe('9');
   });
 });
