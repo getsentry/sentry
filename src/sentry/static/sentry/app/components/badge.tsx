@@ -2,13 +2,18 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
+import type {Theme} from 'app/utils/theme';
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
+  children?: React.ReactNode;
   text?: string | number | null;
+  type?: keyof Theme['badge'];
   className?: string;
 };
 
-const Badge = styled(({text, ...props}: Props) => <span {...props}>{text}</span>)<Props>`
+const Badge = styled(({children, text, ...props}: Props) => (
+  <span {...props}>{children ?? text}</span>
+))<Props>`
   display: inline-block;
   height: 20px;
   min-width: 20px;
@@ -20,7 +25,7 @@ const Badge = styled(({text, ...props}: Props) => <span {...props}>{text}</span>
   font-weight: 600;
   text-align: center;
   color: #fff;
-  background: ${p => p.theme.badge.default.background};
+  background: ${p => p.theme.badge[p.type ?? 'default'].background};
   transition: background 100ms linear;
 
   position: relative;

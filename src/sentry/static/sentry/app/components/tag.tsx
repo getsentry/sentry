@@ -151,7 +151,7 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
-  color: ${p => (p.type === 'black' ? p.theme.white : p.theme.gray500)};
+  color: ${p => (['black', 'focus'].includes(p.type) ? p.theme.white : p.theme.gray500)};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;
