@@ -115,11 +115,11 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     try {
       const {dataCategory} = this.props;
-      const interval = '1d'; // TODO(org-stats)
-      const dateTimeFormat = interval === '1d' ? 'MMM D' : 'MMM D, HH:mm';
+      const rollup = '1d'; // TODO(org-stats)
+      const dateTimeFormat = rollup === '1d' ? 'MMM D' : 'MMM D, HH:mm';
 
-      const usageStats: UsageStat[] = orgStats.intervals.map(i => {
-        const dateTime = moment(i);
+      const usageStats: UsageStat[] = orgStats.intervals.map(interval => {
+        const dateTime = moment(interval);
 
         return {
           date: dateTime.format(dateTimeFormat),
@@ -137,8 +137,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         }
 
         const stats = this.mapSeriesToStats(dataCategory, group.series);
-        stats.forEach((s, i) => {
-          usageStats[i][outcome] = outcome === Outcome.DROPPED ? {total: s} : s;
+        stats.forEach((stat, i) => {
+          usageStats[i][outcome] = outcome === Outcome.DROPPED ? {total: stat} : stat;
         });
       });
 
@@ -146,18 +146,18 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       let sumAccepted = 0;
       let sumDropped = 0;
       let sumFiltered = 0;
-      usageStats.forEach(s => {
-        s.total = s.accepted + s.filtered + s.dropped.total;
+      usageStats.forEach(stat => {
+        stat.total = stat.accepted + stat.filtered + stat.dropped.total;
 
         // Card Data
-        sumTotal += s.total;
-        sumAccepted += s.accepted;
-        sumDropped += s.dropped.total;
-        sumFiltered += s.filtered;
+        sumTotal += stat.total;
+        sumAccepted += stat.accepted;
+        sumDropped += stat.dropped.total;
+        sumFiltered += stat.filtered;
 
         // Chart Data
-        chartData.accepted.push({value: [s.date, s.accepted]} as any);
-        chartData.dropped.push({value: [s.date, s.dropped.total]} as any);
+        chartData.accepted.push({value: [stat.date, stat.accepted]} as any);
+        chartData.dropped.push({value: [stat.date, stat.dropped.total]} as any);
       });
 
       const formatOptions = {
