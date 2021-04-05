@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Badge from 'app/components/badge';
 import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/links/externalLink';
 import QueryCount from 'app/components/queryCount';
@@ -53,7 +54,11 @@ function SavedSearchTab({
             <TitleTextOverflow>
               {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
             </TitleTextOverflow>
-            <StyledQueryCount isTag count={queryCount} max={1000} />
+            {queryCount > 0 && (
+              <Badge>
+                <QueryCount hideParens count={queryCount} max={1000} />
+              </Badge>
+            )}
           </React.Fragment>
         ) : (
           t('Saved Searches')
@@ -145,8 +150,4 @@ const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`
   :hover {
     color: #2f2936;
   }
-`;
-
-const StyledQueryCount = styled(QueryCount)`
-  color: ${p => p.theme.gray300};
 `;
