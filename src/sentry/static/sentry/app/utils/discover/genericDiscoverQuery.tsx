@@ -43,7 +43,8 @@ export type DiscoverQueryProps = {
    */
   setError?: (msg: string | undefined) => void;
   /**
-   * Sets referrer parameter in the API Payload.
+   * Sets referrer parameter in the API Payload. Set of allowed referrers are defined
+   * on the OrganizationEventsV2Endpoint view.
    */
   referrer?: string;
 };
