@@ -13,9 +13,10 @@ import TimeSince from 'app/components/timeSince';
 import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {getDuration} from 'app/utils/formatters';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
-import {filterTrace} from 'app/utils/performance/quickTrace/utils';
+import {reduceTrace} from 'app/utils/performance/quickTrace/utils';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
@@ -31,6 +32,18 @@ import {
 import TransactionGroup from './transactionGroup';
 import {TraceInfo, TreeDepth} from './types';
 import {getTraceInfo, isRootTransaction} from './utils';
+
+type IndexedFusedTransaction = {
+  transaction: TraceFullDetailed;
+  indexed: string[];
+  tagKeys: string[];
+  tagValues: string[];
+};
+
+type FuseResult = {
+  item: IndexedFusedTransaction;
+  score: number;
+};
 
 type AccType = {
   renderedChildren: React.ReactNode[];
@@ -93,17 +106,46 @@ class TraceDetailsContent extends React.Component<Props, State> {
       return;
     }
 
-    const query = searchQuery.toLowerCase();
-
-    const matched = traces.flatMap(trace =>
-      // TODO(tonyx): this should perform a fuzzy search
-      filterTrace(
+    const transformed = traces.flatMap(trace =>
+      reduceTrace<IndexedFusedTransaction[]>(
         trace,
-        transaction =>
-          transaction['transaction.op'].toLowerCase().includes(query) ||
-          transaction.transaction.toLowerCase().includes(query)
+        (acc, transaction) => {
+          const indexed: string[] = [
+            transaction.event_id,
+            transaction.span_id,
+            transaction['transaction.op'],
+            transaction.transaction,
+            transaction.project_slug,
+          ];
+
+          const tags = transaction.tags ?? [];
+          const tagKeys = tags.map(({key}) => key);
+          const tagValues = tags.map(({value}) => value);
+
+          acc.push({
+            transaction,
+            indexed,
+            tagKeys,
+            tagValues,
+          });
+
+          return acc;
+        },
+        []
       )
     );
+
+    const fuse = await createFuzzySearch(transformed, {
+      keys: ['indexed', 'tagKeys', 'tagValues', 'dataKeys', 'dataValues'],
+      includeMatches: false,
+      threshold: 0.6,
+      location: 0,
+      distance: 100,
+      maxPatternLength: 32,
+    });
+
+    const results = fuse.search<FuseResult>(searchQuery);
+    const matched = results.map(result => result.item.transaction);
 
     this.setState({
       filteredTransactionIds: new Set(matched.map(transaction => transaction.event_id)),
