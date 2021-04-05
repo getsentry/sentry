@@ -38,6 +38,7 @@ type Props = {
   endpointPath: string;
   renderEmptyMessage?: () => React.ReactNode;
   queryParams?: Record<string, number | string | string[] | undefined | null>;
+  statsPeriodSummary?: string;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -181,6 +182,7 @@ class GroupList extends React.Component<Props, State> {
       renderEmptyMessage,
       withPagination,
       useFilteredStats,
+      statsPeriodSummary,
       queryParams,
     } = this.props;
     const {loading, error, groups, memberList, pageLinks} = this.state;
@@ -231,6 +233,7 @@ class GroupList extends React.Component<Props, State> {
                   withChart={withChart}
                   memberList={members}
                   useFilteredStats={useFilteredStats}
+                  statsPeriodSummary={statsPeriodSummary}
                   statsPeriod={statsPeriod}
                 />
               );

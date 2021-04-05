@@ -21,6 +21,7 @@ import {AvatarProject, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
 import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
+import {TimePeriodType} from 'app/views/alerts/rules/details/body';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
@@ -34,12 +35,7 @@ type Props = WithRouterProps & {
   api: Client;
   rule?: IncidentRule;
   incidents?: Incident[];
-  timePeriod: {
-    start: string;
-    end: string;
-    label: string;
-    custom?: boolean;
-  };
+  timePeriod: TimePeriodType;
   organization: Organization;
   projects: Project[] | AvatarProject[];
   metricText: React.ReactNode;

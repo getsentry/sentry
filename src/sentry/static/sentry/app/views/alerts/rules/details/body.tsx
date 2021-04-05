@@ -43,16 +43,18 @@ import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 
+export type TimePeriodType = {
+  start: string;
+  end: string;
+  label: string;
+  custom?: boolean;
+};
+
 type Props = {
   api: Client;
   rule?: IncidentRule;
   incidents?: Incident[];
-  timePeriod: {
-    start: string;
-    end: string;
-    label: string;
-    custom?: boolean;
-  };
+  timePeriod: TimePeriodType;
   organization: Organization;
   location: Location;
   handleTimePeriodChange: (value: string) => void;
@@ -357,8 +359,7 @@ export default class DetailsBody extends React.Component<Props> {
                           projects={((projects as Project[]) || []).filter(project =>
                             rule.projects.includes(project.slug)
                           )}
-                          start={timePeriod.start}
-                          end={timePeriod.end}
+                          timePeriod={timePeriod}
                           filter={queryWithTypeFilter}
                         />
                       )}

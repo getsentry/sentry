@@ -78,6 +78,7 @@ type Props = {
   memberList?: User[];
   showInboxTime?: boolean;
   index?: number;
+  statsPeriodSummary?: string;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -343,13 +344,13 @@ class StreamGroup extends React.Component<Props, State> {
       displayReprocessingLayout,
       showInboxTime,
       useFilteredStats,
+      statsPeriodSummary,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
-    const summary =
-      !!start && !!end
+    const summary = statsPeriodSummary ?? (!!start && !!end
         ? 'time range'
-        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
+        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
     // Use data.filtered to decide on which value to use
     // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
