@@ -33,20 +33,25 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
+import {
+  getSessionTermDescription,
+  SessionTerm,
+} from 'app/views/releases/utils/sessionTerm';
 
 import {getTermHelp, PERFORMANCE_TERM} from '../performance/data';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
+import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
 import ProjectErrorsBasicChart from './charts/projectErrorsBasicChart';
-import ProjectStabilityChart from './charts/projectStabilityChart';
 
-enum DisplayModes {
+export enum DisplayModes {
   APDEX = 'apdex',
   FAILURE_RATE = 'failure_rate',
   TPM = 'tpm',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   STABILITY = 'crash_free',
+  SESSIONS = 'sessions',
 }
 
 type Props = {
@@ -171,6 +176,13 @@ class ProjectCharts extends React.Component<Props, State> {
         disabled: this.otherActiveDisplayModes.includes(DisplayModes.ERRORS),
       },
       {
+        value: DisplayModes.SESSIONS,
+        label: t('Number of Sessions'),
+        disabled:
+          this.otherActiveDisplayModes.includes(DisplayModes.SESSIONS) || !hasSessions,
+        tooltip: !hasSessions ? noHealthTooltip : undefined,
+      },
+      {
         value: DisplayModes.TRANSACTIONS,
         label: t('Number of Transactions'),
         disabled:
@@ -187,6 +199,7 @@ class ProjectCharts extends React.Component<Props, State> {
       case DisplayModes.ERRORS:
         return t('Total Errors');
       case DisplayModes.STABILITY:
+      case DisplayModes.SESSIONS:
         return t('Total Sessions');
       case DisplayModes.APDEX:
       case DisplayModes.FAILURE_RATE:
@@ -351,11 +364,25 @@ class ProjectCharts extends React.Component<Props, State> {
                 />
               )}
               {displayMode === DisplayModes.STABILITY && (
-                <ProjectStabilityChart
+                <ProjectBaseSessionsChart
+                  title={t('Crash Free Sessions')}
+                  help={getSessionTermDescription(SessionTerm.STABILITY, null)}
                   router={router}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
+                  displayMode={displayMode}
+                />
+              )}
+              {displayMode === DisplayModes.SESSIONS && (
+                <ProjectBaseSessionsChart
+                  title={t('Number of Sessions')}
+                  router={router}
+                  api={api}
+                  organization={organization}
+                  onTotalValuesChange={this.handleTotalValuesChange}
+                  displayMode={displayMode}
+                  disablePrevious
                 />
               )}
             </React.Fragment>

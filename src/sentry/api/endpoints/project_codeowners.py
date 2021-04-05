@@ -4,7 +4,8 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, analytics
+from sentry.utils import metrics
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin, ProjectOwnershipSerializer
 from sentry.api.serializers import serialize
@@ -152,6 +153,14 @@ class ProjectCodeOwnersMixin:
             "organizations:import-codeowners", project.organization, actor=request.user
         )
 
+    def track_response_code(self, type, status):
+        if type in ["create", "update"]:
+            metrics.incr(
+                f"codeowners.{type}.http_response",
+                sample_rate=1.0,
+                tags={"status": status},
+            )
+
 
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):
     def get(self, request, project):
@@ -191,6 +200,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         :auth: required
         """
         if not self.has_feature(request, project):
+            self.track_response_code("create", PermissionDenied.status_code)
             raise PermissionDenied
 
         serializer = ProjectCodeOwnerSerializer(
@@ -199,8 +209,17 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         )
         if serializer.is_valid():
             project_codeowners = serializer.save()
+            self.track_response_code("create", status.HTTP_201_CREATED)
+            analytics.record(
+                "codeowners.created",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                codeowners_id=project_codeowners.id,
+            )
             return Response(
                 serialize(project_codeowners, request.user), status=status.HTTP_201_CREATED
             )
 
+        self.track_response_code("create", status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
