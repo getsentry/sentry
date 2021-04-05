@@ -254,6 +254,10 @@ const generateBadgeTheme = alias => ({
     background: colors.green300,
     indicatorColor: colors.green300,
   },
+  review: {
+    background: colors.purple300,
+    indicatorColor: colors.purple300,
+  },
 });
 
 const tag = {
@@ -268,10 +272,6 @@ const tag = {
   highlight: {
     background: colors.purple100,
     iconColor: colors.purple300,
-  },
-  focus: {
-    background: colors.purple300,
-    iconColor: colors.white,
   },
   warning: {
     background: colors.yellow100,

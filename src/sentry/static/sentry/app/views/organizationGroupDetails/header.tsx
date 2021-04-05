@@ -7,6 +7,7 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Badge from 'app/components/badge';
 import Count from 'app/components/count';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -21,7 +22,6 @@ import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import SeenByList from 'app/components/seenByList';
 import ShortId from 'app/components/shortId';
-import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {IconChat} from 'app/icons';
 import {t} from 'app/locale';
@@ -292,17 +292,17 @@ class GroupHeader extends React.Component<Props, State> {
             disabled={disabledTabs.includes(TAB.ACTIVITY)}
           >
             {t('Activity')}
-            <StyledTag>
+            <Badge>
               {group.numComments}
               <IconChat size="xs" />
-            </StyledTag>
+            </Badge>
           </StyledListLink>
           <StyledListLink
             to={`${baseUrl}feedback/${location.search}`}
             isActive={() => currentTab === TAB.USER_FEEDBACK}
             disabled={disabledTabs.includes(TAB.USER_FEEDBACK)}
           >
-            {t('User Feedback')} <Tag>{group.userReportCount}</Tag>
+            {t('User Feedback')} <Badge text={group.userReportCount} />
           </StyledListLink>
           {hasEventAttachments && (
             <ListLink
@@ -380,10 +380,6 @@ const StyledListLink = styled(ListLink)`
     margin-bottom: ${space(0.25)};
     vertical-align: middle;
   }
-`;
-
-const StyledTag = styled(Tag)`
-  margin-left: ${space(0.75)};
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`
