@@ -268,7 +268,7 @@ class TableView extends React.Component<TableViewProps> {
     const value = dataRow[fieldName];
     if (tableData.meta[fieldName] === 'integer' && defined(value)) {
       return (
-        <Tooltip title={value.toLocaleString()} containerDisplayMode="inline">
+        <Tooltip title={value.toLocaleString()} containerDisplayMode="block">
           <CellAction
             column={column}
             dataRow={dataRow}
