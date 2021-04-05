@@ -79,9 +79,7 @@ class GroupEventToolbar extends React.Component<Props> {
         <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
           {results => (
             <React.Fragment>
-              {results.isLoading || results.error || results.trace === null ? (
-                ''
-              ) : (
+              {!results.isLoading && results.error === null && results.trace !== null && (
                 <LinkContainer>
                   <Feature
                     features={['trace-view-summary']}
