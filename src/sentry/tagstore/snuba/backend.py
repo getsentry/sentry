@@ -152,7 +152,7 @@ class SnubaTagStorage(TagStorage):
         limit=1000,
         keys=None,
         include_values_seen=True,
-        dataset=None,
+        include_transactions=False,
         **kwargs,
     ):
         return self.__get_tag_keys_for_projects(
@@ -164,7 +164,7 @@ class SnubaTagStorage(TagStorage):
             limit,
             keys,
             include_values_seen=include_values_seen,
-            dataset=dataset,
+            include_transactions=include_transactions,
         )
 
     def __get_tag_keys_for_projects(
@@ -178,7 +178,7 @@ class SnubaTagStorage(TagStorage):
         keys=None,
         include_values_seen=True,
         use_cache=False,
-        dataset=None,
+        include_transactions=False,
         **kwargs,
     ):
         """Query snuba for tag keys based on projects
@@ -218,7 +218,9 @@ class SnubaTagStorage(TagStorage):
         should_cache = use_cache and group_id is None
         result = None
 
-        dataset = dataset if dataset is not None else Dataset.Discover
+        dataset = Dataset.Events
+        if include_transactions:
+            dataset = Dataset.Discover
 
         if should_cache:
             filtering_strings = [f"{key}={value}" for key, value in filters.items()]
@@ -324,6 +326,7 @@ class SnubaTagStorage(TagStorage):
         end,
         status=TagKeyStatus.VISIBLE,
         use_cache=False,
+        include_transactions=False,
     ):
         MAX_UNSAMPLED_PROJECTS = 50
         # We want to disable FINAL in the snuba query to reduce load.
@@ -342,7 +345,7 @@ class SnubaTagStorage(TagStorage):
             end,
             include_values_seen=False,
             use_cache=use_cache,
-            dataset=Dataset.Discover,
+            include_transactions=include_transactions,
             **optimize_kwargs,
         )
 
