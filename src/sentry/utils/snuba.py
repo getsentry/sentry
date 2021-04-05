@@ -644,6 +644,8 @@ def raw_query(
         is_grouprelease=is_grouprelease,
         **kwargs,
     )
+    if referrer:
+        sentry_sdk.set_tag("query.referrer", referrer)
 
     if use_snql is None:
         use_snql = should_use_snql(referrer)
