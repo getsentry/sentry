@@ -51,7 +51,7 @@ const SidebarPanelItemRoot = styled('div')`
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   background: ${p => p.theme.background};
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(4)};
+  padding: ${space(3)};
 `;
 
 const ImageBox = styled('div')`
