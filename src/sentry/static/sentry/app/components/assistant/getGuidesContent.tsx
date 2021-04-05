@@ -140,7 +140,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         {
           target: 'inbox_guide_review',
           description: t(
-            `Mark Reviewed removes the issue from this list and also removes the label.`
+            `Marking an issue reviewed, resolving it, or ignoring it removes it from this list and removes the label.`
           ),
           nextText: t(`When does this end?`),
           cantDismiss: true,
