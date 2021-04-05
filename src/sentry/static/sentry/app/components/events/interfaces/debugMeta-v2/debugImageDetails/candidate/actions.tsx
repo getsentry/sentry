@@ -16,11 +16,11 @@ import {Organization} from 'app/types';
 import {CandidateDownloadStatus, ImageCandidate} from 'app/types/debugImage';
 
 const noPermissionToDownloadDebugFilesInfo = t(
-  'You do not have permission to download debug files.'
+  'You do not have permission to download debug files'
 );
 
 const noPermissionToDeleteDebugFilesInfo = t(
-  'You do not have permission to download debug files.'
+  'You do not have permission to delete debug files'
 );
 
 const debugFileDeleteConfirmationInfo = t('Are you sure you wish to delete this file?');
