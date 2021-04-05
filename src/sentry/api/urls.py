@@ -358,6 +358,7 @@ from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
+from .endpoints.team_notification_settings_details import TeamNotificationSettingsDetailsEndpoint
 from .endpoints.team_projects import TeamProjectsEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
@@ -371,6 +372,7 @@ from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
+from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
@@ -597,6 +599,11 @@ urlpatterns = [
                     r"^(?P<user_id>[^\/]+)/organizations/$",
                     UserOrganizationsEndpoint.as_view(),
                     name="sentry-api-0-user-organizations",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/notification-settings/$",
+                    UserNotificationSettingsDetailsEndpoint.as_view(),
+                    name="sentry-api-0-user-notification-settings",
                 ),
                 url(
                     r"^(?P<user_id>[^\/]+)/notifications/$",
@@ -1318,6 +1325,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:issues|groups)/trending/$",
                     TeamGroupsTrendingEndpoint.as_view(),
                     name="sentry-api-0-team-groups-trending",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/notification-settings/$",
+                    TeamNotificationSettingsDetailsEndpoint.as_view(),
+                    name="sentry-api-0-user-notification-settings",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/members/$",
