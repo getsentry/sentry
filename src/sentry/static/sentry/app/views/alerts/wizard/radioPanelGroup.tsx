@@ -31,6 +31,7 @@ const RadioPanelGroup = <C extends string>({
         <RadioPanelBody>
           <RadioLineItem role="radio" index={index} aria-checked={value === id}>
             <Radio
+              radioSize="small"
               aria-label={id}
               checked={value === id}
               onChange={(e: React.FormEvent<HTMLInputElement>) => onChange(id, e)}

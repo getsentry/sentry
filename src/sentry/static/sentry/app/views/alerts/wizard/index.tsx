@@ -27,7 +27,7 @@ import {
   AlertWizardRuleTemplates,
   WebVitalAlertTypes,
 } from './options';
-import RadioPanelGroup from './radioGroupPanel';
+import RadioPanelGroup from './radioPanelGroup';
 
 type RouteParams = {
   orgId: string;

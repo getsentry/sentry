@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import RadioGroupPanel from 'app/views/alerts/wizard/radioGroupPanel';
+import RadioGroupPanel from 'app/views/alerts/wizard/radioPanelGroup';
 
 describe('RadioGroupPanel', function () {
   it('calls onChange when clicked', function () {
