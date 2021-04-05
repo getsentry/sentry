@@ -1,3 +1,4 @@
+import {EventTag, Measurement} from 'app/types/event';
 import {
   DiscoverQueryProps,
   GenericChildrenProps,
@@ -21,6 +22,7 @@ export type EventLite = {
 
 export type TraceError = {
   issue: string;
+  issue_id: number;
   event_id: string;
   span: string;
   transaction: string;
@@ -55,6 +57,10 @@ export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
  */
 export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   children: TraceFullDetailed[];
+  environment: string;
+  measurements?: Record<string, Measurement>;
+  tags?: EventTag[];
+  release: string;
   start_timestamp: number;
   timestamp: number;
   'transaction.op': string;

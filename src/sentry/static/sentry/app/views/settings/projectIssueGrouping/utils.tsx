@@ -2,23 +2,20 @@ import React from 'react';
 
 import Alert from 'app/components/alert';
 import {t} from 'app/locale';
-import {EventGroupingConfig, GroupingEnhancementBase, Project} from 'app/types';
+import {EventGroupingConfig, Project} from 'app/types';
 
 export function getGroupingChanges(
   project: Project,
-  groupingConfigs: EventGroupingConfig[],
-  groupingEnhancementBases: GroupingEnhancementBase[]
+  groupingConfigs: EventGroupingConfig[]
 ): {
   updateNotes: string;
   riskLevel: number;
   latestGroupingConfig: EventGroupingConfig | null;
-  latestEnhancementsBase: GroupingEnhancementBase | null;
 } {
   const byId: Record<string, EventGroupingConfig> = {};
   let updateNotes: string = '';
   let riskLevel: number = 0;
   let latestGroupingConfig: EventGroupingConfig | null = null;
-  let latestEnhancementsBase: GroupingEnhancementBase | null = null;
 
   groupingConfigs.forEach(cfg => {
     byId[cfg.id] = cfg;
@@ -42,14 +39,7 @@ export function getGroupingChanges(
     }
   }
 
-  groupingEnhancementBases.forEach(base => {
-    if (base.latest && project.groupingEnhancementsBase !== base.id) {
-      updateNotes += '\n\n' + base.changelog;
-      latestEnhancementsBase = base;
-    }
-  });
-
-  return {updateNotes, riskLevel, latestGroupingConfig, latestEnhancementsBase};
+  return {updateNotes, riskLevel, latestGroupingConfig};
 }
 
 export function getGroupingRisk(

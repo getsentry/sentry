@@ -153,7 +153,6 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
             name=""
             placeholder={DEFAULT_PLACEHOLDER_VALUE}
             value={this.state.threshold}
-            key={name}
             onChange={threshold =>
               this.setStateAndUpdateParents({threshold: threshold.target.value})
             }

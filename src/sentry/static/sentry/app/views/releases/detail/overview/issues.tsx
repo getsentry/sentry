@@ -4,6 +4,7 @@ import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import DiscoverButton from 'app/components/discoverButton';
@@ -217,13 +218,15 @@ class Issues extends React.Component<Props, State> {
             </Button>
 
             <Feature features={['discover-basic']}>
-              <DiscoverButton
-                to={this.getDiscoverUrl()}
-                size="small"
-                data-test-id="discover-button"
-              >
-                {t('Open in Discover')}
-              </DiscoverButton>
+              <GuideAnchor target="release_issues_open_in_discover">
+                <DiscoverButton
+                  to={this.getDiscoverUrl()}
+                  size="small"
+                  data-test-id="discover-button"
+                >
+                  {t('Open in Discover')}
+                </DiscoverButton>
+              </GuideAnchor>
             </Feature>
           </OpenInButtonBar>
         </ControlsWrapper>

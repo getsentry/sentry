@@ -1,6 +1,6 @@
 # Resolved Issue
 
-Sentry marked an issue as resolved
+Sentry marked PROJECT-1 as resolved
 
 
 ## Issue Details

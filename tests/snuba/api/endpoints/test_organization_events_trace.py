@@ -12,7 +12,6 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
     FEATURES = [
         "organizations:trace-view-quick",
         "organizations:trace-view-summary",
-        "organizations:global-views",
     ]
 
     def get_start_end(self, duration):
@@ -26,9 +25,11 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         spans,
         parent_span_id,
         project_id,
+        tags=None,
         duration=4000,
         span_id=None,
         measurements=None,
+        **kwargs,
     ):
         start, end = self.get_start_end(duration)
         data = load_data(
@@ -45,7 +46,9 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         if measurements:
             for key, value in measurements.items():
                 data["measurements"][key]["value"] = value
-        return self.store_event(data, project_id=project_id)
+        if tags is not None:
+            data["tags"] = tags
+        return self.store_event(data, project_id=project_id, **kwargs)
 
     def setUp(self):
         """
@@ -205,27 +208,37 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         assert response.status_code == 404, response.content
 
     def test_no_roots(self):
+        """ Even when there's no root, we return the current event """
         no_root_trace = uuid4().hex
-        event = self.create_event(
+        parent_span_id = uuid4().hex[:16]
+        no_root_event = self.create_event(
             trace=no_root_trace,
             transaction="/not_root/but_only_transaction",
             spans=[],
-            parent_span_id=uuid4().hex[:16],
+            parent_span_id=parent_span_id,
             project_id=self.project.id,
         )
-        self.url = reverse(
+        url = reverse(
             "sentry-api-0-organization-events-trace-light",
             kwargs={"organization_slug": self.project.organization.slug, "trace_id": no_root_trace},
         )
 
         with self.feature(self.FEATURES):
             response = self.client.get(
-                self.url,
-                data={"event_id": event.event_id},
+                url,
+                data={"event_id": no_root_event.event_id},
                 format="json",
             )
 
-        assert response.status_code == 204, response.content
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        event = response.data[0]
+        # Basically know nothing about this event
+        assert event["generation"] is None
+        assert event["parent_event_id"] is None
+        assert event["parent_span_id"] == parent_span_id
+        assert event["event_id"] == no_root_event.event_id
 
     def test_multiple_roots(self):
         self.create_event(
@@ -309,7 +322,6 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         assert event["parent_span_id"] == self.gen1_span_ids[0]
 
     def test_second_generation_with_children(self):
-        root_event_id = self.root_event.event_id
         current_event = self.gen2_events[0].event_id
         child_event_id = self.gen3_event.event_id
 
@@ -322,14 +334,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 3
+        assert len(response.data) == 2
         events = {item["event_id"]: item for item in response.data}
-
-        assert root_event_id in events
-        event = events[root_event_id]
-        assert event["generation"] == 0
-        assert event["parent_event_id"] is None
-        assert event["parent_span_id"] is None
 
         assert current_event in events
         event = events[current_event]
@@ -346,7 +352,6 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         assert event["parent_span_id"] == self.gen2_span_id
 
     def test_third_generation_no_children(self):
-        root_event_id = self.root_event.event_id
         current_event = self.gen3_event.event_id
 
         with self.feature(self.FEATURES):
@@ -358,17 +363,9 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 2
-        events = {item["event_id"]: item for item in response.data}
+        assert len(response.data) == 1
 
-        assert root_event_id in events
-        event = events[root_event_id]
-        assert event["generation"] == 0
-        assert event["parent_event_id"] is None
-        assert event["parent_span_id"] is None
-
-        assert current_event in events
-        event = events[current_event]
+        event = response.data[0]
         assert event["generation"] is None
         # Parent is unknown in this case
         assert event["parent_event_id"] is None
@@ -405,7 +402,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
                 format="json",
             )
 
-        assert len(response.data) == 4
+        assert len(response.data) == 3
         events = {item["event_id"]: item for item in response.data}
 
         for child_event_id in gen3_event_siblings:
@@ -451,6 +448,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             assert event["parent_span_id"] == self.root_span_ids[0]
             assert len(event["errors"]) == 1
             assert event["errors"][0]["event_id"] == error.event_id
+            assert event["errors"][0]["issue_id"] == error.group_id
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -567,6 +565,37 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert root_tags[key[7:]] == value, f"tags - {key}"
         assert root["measurements"]["lcp"]["value"] == 1000
         assert root["measurements"]["fcp"]["value"] == 750
+
+    def test_detailed_trace_with_bad_tags(self):
+        """ Basically test that we're actually using the event serializer's method for tags """
+        trace = uuid4().hex
+        self.create_event(
+            trace=trace,
+            transaction="bad-tags",
+            parent_span_id=None,
+            spans=[],
+            project_id=self.project.id,
+            tags=[["somethinglong" * 250, "somethinglong" * 250]],
+            duration=3000,
+            assert_no_errors=False,
+        )
+
+        url = reverse(
+            self.url_name,
+            kwargs={"organization_slug": self.project.organization.slug, "trace_id": trace},
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                url,
+                data={"project": -1, "detailed": 1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        root = response.data[0]
+        assert root["transaction.status"] == "ok"
+        assert {"key": None, "value": None} in root["tags"]
 
     def test_bad_span_loop(self):
         """Maliciously create a loop in the span structure
@@ -796,12 +825,14 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(gen1_event["errors"]) == 2
         assert {
             "event_id": error.event_id,
+            "issue_id": error.group_id,
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
         } in gen1_event["errors"]
         assert {
             "event_id": error1.event_id,
+            "issue_id": error1.group_id,
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
@@ -835,6 +866,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(root_event["errors"]) == 1
         assert {
             "event_id": default_event.event_id,
+            "issue_id": default_event.group_id,
             "span": self.root_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,

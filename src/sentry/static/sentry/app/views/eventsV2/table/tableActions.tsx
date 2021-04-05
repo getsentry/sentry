@@ -3,6 +3,7 @@ import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import Hovercard from 'app/components/hovercard';
@@ -87,15 +88,17 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
 function renderEditButton(canEdit: boolean, props: Props) {
   const onClick = canEdit ? props.onEdit : undefined;
   return (
-    <Button
-      size="small"
-      disabled={!canEdit}
-      onClick={onClick}
-      data-test-id="grid-edit-enable"
-      icon={<IconStack size="xs" />}
-    >
-      {t('Columns')}
-    </Button>
+    <GuideAnchor target="columns_header_button">
+      <Button
+        size="small"
+        disabled={!canEdit}
+        onClick={onClick}
+        data-test-id="grid-edit-enable"
+        icon={<IconStack size="xs" />}
+      >
+        {t('Columns')}
+      </Button>
+    </GuideAnchor>
   );
 }
 // Placate eslint proptype checking

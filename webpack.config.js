@@ -29,7 +29,13 @@ const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 // We want it in the case where we are running tests and it is in CI,
 // this should not happen in local
 const IS_CI = !!env.CI;
-const IS_ACCEPTANCE_TEST = IS_CI && !!env.VISUAL_SNAPSHOT_ENABLE;
+// We intentionally build in production mode for acceptance tests, so we explicitly use an env var to
+// say that the bundle will be used in acceptance tests. This affects webpack plugins and components
+// with dynamic data that render differently statically in tests.
+//
+// Note, cannot assume it is an acceptance test if `IS_CI` is true, as our image builds has the
+// `CI` env var set.
+const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
@@ -218,8 +224,10 @@ let appConfig = {
   entry: {
     /**
      * Main Sentry SPA
+     *
+     * The order here matters for `getsentry`
      */
-    app: 'app',
+    app: ['app/utils/statics-setup', 'app'],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
@@ -273,7 +281,7 @@ let appConfig = {
             options: {
               // This needs to be `false` because of platformicons package
               esModule: false,
-              name: '[name].[hash:6].[ext]',
+              name: '[folder]/[name].[hash:6].[ext]',
             },
           },
         ],
@@ -401,7 +409,7 @@ if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
 }
 
-if (!IS_PRODUCTION) {
+if (IS_ACCEPTANCE_TEST) {
   appConfig.plugins.push(new LastBuiltPlugin({basePath: __dirname}));
 }
 

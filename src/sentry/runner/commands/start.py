@@ -1,5 +1,7 @@
 import sys
+
 import click
+
 from sentry.runner.decorators import configuration
 
 SERVICES = {

@@ -1,12 +1,14 @@
+import datetime
 import logging
 import os
-import click
 import sys
-import sentry
-import datetime
+
+import click
 import sentry_sdk
-from sentry.utils.imports import import_string
+
+import sentry
 from sentry.utils.compat import map
+from sentry.utils.imports import import_string
 
 # We need to run this here because of a concurrency bug in Python's locale
 # with the lazy initialization.
@@ -113,7 +115,7 @@ def configure():
     or from another invocation of `configure()`. If Click, we're able
     to pass along the Click context object.
     """
-    from .settings import discover_configs, configure
+    from .settings import configure, discover_configs
 
     try:
         ctx = click.get_current_context()

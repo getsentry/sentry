@@ -1,9 +1,9 @@
 __all__ = ["FeatureManager"]
 
 from collections import defaultdict
-from django.conf import settings
 
 import sentry_sdk
+from django.conf import settings
 
 from .base import Feature
 from .exceptions import FeatureNotRegistered

@@ -254,6 +254,10 @@ const generateBadgeTheme = alias => ({
     background: colors.green300,
     indicatorColor: colors.green300,
   },
+  review: {
+    background: colors.purple300,
+    indicatorColor: colors.purple300,
+  },
 });
 
 const tag = {
@@ -500,7 +504,7 @@ const commonTheme = {
 
     // We have an array that maps `number + 1` --> list of `number` colors
     getColorPalette: (length: number) =>
-      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
+      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)] as string[],
 
     previousPeriod: colors.gray200,
     symbolSize: 6,

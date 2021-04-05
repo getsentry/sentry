@@ -1,7 +1,7 @@
 export async function getPreloadedDataPromise(
   name: string,
   slug: string,
-  fallback,
+  fallback: () => Promise<any>,
   isInitialFetch?: boolean
 ) {
   try {

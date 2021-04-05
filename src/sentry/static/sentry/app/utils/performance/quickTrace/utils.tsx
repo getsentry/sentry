@@ -254,6 +254,14 @@ export function makeEventView({
   });
 }
 
+export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: string} {
+  const start = isTransaction(event)
+    ? event.startTimestamp
+    : new Date(event.dateCreated).getTime() / 1000;
+  const end = isTransaction(event) ? event.endTimestamp : start;
+  return getTraceDateTimeRange({start, end});
+}
+
 export function reduceTrace<T>(
   trace: TraceFullDetailed,
   visitor: (acc: T, e: TraceFullDetailed) => T,
@@ -271,14 +279,6 @@ export function reduceTrace<T>(
   }
 
   return result;
-}
-
-export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: string} {
-  const start = isTransaction(event)
-    ? event.startTimestamp
-    : new Date(event.dateCreated).getTime();
-  const end = isTransaction(event) ? event.endTimestamp : start;
-  return getTraceDateTimeRange({start, end});
 }
 
 export function filterTrace(

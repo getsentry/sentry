@@ -4,14 +4,12 @@ import styled from '@emotion/styled';
 import Button from 'app/components/button';
 import NotAvailable from 'app/components/notAvailable';
 import Tooltip from 'app/components/tooltip';
-import {IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Image, ImageStatus} from 'app/types/debugImage';
 
-import Address from '../address';
 import layout from '../layout';
-import {getFileName} from '../utils';
+import {getFileName, getImageAddress} from '../utils';
 
 import Processings from './processings';
 import Status from './status';
@@ -26,10 +24,19 @@ type Props = {
 };
 
 function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
-  const {unwind_status, debug_status, debug_id, code_file, code_id, status} = image;
+  const {
+    unwind_status,
+    debug_status,
+    debug_file,
+    debug_id,
+    code_file,
+    code_id,
+    status,
+  } = image;
 
-  const fileName = getFileName(code_file);
-  const imageAddress = <Address image={image} />;
+  const codeFilename = getFileName(code_file);
+  const debugFilename = getFileName(debug_file);
+  const imageAddress = getImageAddress(image);
 
   return (
     <Wrapper style={style}>
@@ -37,12 +44,17 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
         <Status status={status} />
       </StatusColumn>
       <ImageColumn>
-        {fileName && (
-          <Tooltip title={code_file}>
-            <FileName>{fileName}</FileName>
-          </Tooltip>
-        )}
-        <ImageAddress>{imageAddress}</ImageAddress>
+        <div>
+          {codeFilename && (
+            <FileName>
+              <Tooltip title={code_file}>{codeFilename}</Tooltip>
+            </FileName>
+          )}
+          {codeFilename !== debugFilename && (
+            <CodeFilename>{`(${debugFilename})`}</CodeFilename>
+          )}
+        </div>
+        {imageAddress && <ImageAddress>{imageAddress}</ImageAddress>}
       </ImageColumn>
       <Column>
         {unwind_status || debug_status ? (
@@ -52,19 +64,9 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
         )}
       </Column>
       <DebugFilesColumn>
-        <Button
-          size="xsmall"
-          icon={<IconStack size="xs" />}
-          onClick={() => onOpenImageDetailsModal(code_id, debug_id)}
-        >
+        <Button size="xsmall" onClick={() => onOpenImageDetailsModal(code_id, debug_id)}>
           {t('View')}
         </Button>
-        <Button
-          size="xsmall"
-          icon={<IconStack size="xs" />}
-          onClick={() => onOpenImageDetailsModal(code_id, debug_id)}
-          label={t('View')}
-        />
       </DebugFilesColumn>
     </Wrapper>
   );
@@ -87,21 +89,24 @@ const Column = styled('div')`
   align-items: center;
 `;
 
-// Status Column
 const StatusColumn = styled(Column)`
   max-width: 100%;
   overflow: hidden;
 `;
 
-const FileName = styled('div')`
+const FileName = styled('span')`
   color: ${p => p.theme.textColor};
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSizeMedium};
+  margin-right: ${space(0.5)};
   white-space: pre-wrap;
   word-break: break-all;
 `;
 
-// Image Column
+const CodeFilename = styled('span')`
+  color: ${p => p.theme.subText};
+`;
+
 const ImageColumn = styled(Column)`
   font-family: ${p => p.theme.text.familyMono};
   color: ${p => p.theme.gray300};
@@ -117,38 +122,6 @@ const ImageAddress = styled('div')`
   word-break: break-word;
 `;
 
-// Debug Files Column
 const DebugFilesColumn = styled(Column)`
   justify-content: flex-end;
-
-  > *:first-child {
-    display: none;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    > *:first-child {
-      display: flex;
-    }
-    > *:nth-child(2) {
-      display: none;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    > *:first-child {
-      display: none;
-    }
-    > *:nth-child(2) {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    > *:first-child {
-      display: flex;
-    }
-    > *:nth-child(2) {
-      display: none;
-    }
-  }
 `;

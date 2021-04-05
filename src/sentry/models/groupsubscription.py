@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
-from django.db.models import Q
 from django.utils import timezone
+from typing import Any, Mapping
 
 from sentry.db.models import (
     BaseManager,
@@ -10,6 +10,12 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.helpers import (
+    should_be_participating,
+    transform_to_notification_settings_by_user,
+)
+from sentry.notifications.types import NotificationSettingTypes
 
 
 class GroupSubscriptionReason:
@@ -38,24 +44,6 @@ class GroupSubscriptionReason:
         deploy_setting: "opted to receive all deploy notifications for this organization",
         mentioned: "have been mentioned in this issue",
         team_mentioned: "are a member of a team mentioned in this issue",
-    }
-
-
-def get_user_options(key, user_ids, project, default):
-    from sentry.models import UserOption
-
-    options = {
-        (option.user_id, option.project_id): option.value
-        for option in UserOption.objects.filter(
-            Q(project__isnull=True) | Q(project=project),
-            user_id__in=user_ids,
-            key=key,
-        )
-    }
-
-    return {
-        user_id: options.get((user_id, project.id), options.get((user_id, None), default))
-        for user_id in user_ids
     }
 
 
@@ -122,49 +110,41 @@ class GroupSubscriptionManager(BaseManager):
                 if i == 0:
                     raise e
 
-    def get_participants(self, group):
+    def get_participants(self, group) -> Mapping[Any, GroupSubscriptionReason]:
         """
         Identify all users who are participating with a given issue.
+        :param group: Group object
         """
-        from sentry.models import User
-        from sentry.notifications.legacy_mappings import UserOptionValue
+        from sentry.models import NotificationSetting, User
 
-        users = {
-            user.id: user
-            for user in User.objects.filter(
-                sentry_orgmember_set__teams__in=group.project.teams.all(), is_active=True
-            )
-        }
-
-        subscriptions = {
-            subscription.user_id: subscription
-            for subscription in GroupSubscription.objects.filter(
-                group=group, user_id__in=users.keys()
-            )
-        }
-
-        options = get_user_options(
-            "workflow:notifications",
-            list(users.keys()),
-            group.project,
-            UserOptionValue.participating_only,
+        users = User.objects.get_from_group(group)
+        user_ids = [user.id for user in users]
+        subscriptions = self.filter(group=group, user_id__in=user_ids)
+        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            users=users,
+            parent=group.project,
         )
 
-        excluded_ids = {
-            user_id for user_id, subscription in subscriptions.items() if not subscription.is_active
+        subscriptions_by_user_id = {
+            subscription.user_id: subscription for subscription in subscriptions
         }
-
-        for user_id, option in options.items():
-            if option == UserOptionValue.no_conversations:
-                excluded_ids.add(user_id)
-            elif option == UserOptionValue.participating_only:
-                if user_id not in subscriptions:
-                    excluded_ids.add(user_id)
-
+        notification_settings_by_user = transform_to_notification_settings_by_user(
+            notification_settings, users
+        )
         return {
-            user: getattr(subscriptions.get(user_id), "reason", GroupSubscriptionReason.implicit)
-            for user_id, user in users.items()
-            if user_id not in excluded_ids
+            user: getattr(
+                subscriptions_by_user_id.get(user.id),
+                "reason",
+                GroupSubscriptionReason.implicit,
+            )
+            for user in users
+            if should_be_participating(
+                user,
+                subscriptions_by_user_id,
+                notification_settings_by_user,
+            )
         }
 
 

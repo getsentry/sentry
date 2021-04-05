@@ -7,7 +7,9 @@ const webpack = require('webpack');
 
 const baseConfig = require('../webpack.config');
 
-const commitHash = childProcess.execSync('git rev-parse HEAD').toString().trim();
+const commitHash =
+  process.env.SENTRY_BUILD ||
+  childProcess.execSync('git rev-parse HEAD').toString().trim();
 
 const findLoader = loaderName =>
   baseConfig.module.rules.find(rule => rule.use.loader === loaderName);
@@ -19,7 +21,7 @@ const config = {
 
   target: 'node',
   entry: {
-    config: 'app/chartcuterieConfig',
+    config: 'app/chartcuterie/config',
   },
 
   module: {

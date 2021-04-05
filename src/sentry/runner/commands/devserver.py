@@ -1,7 +1,8 @@
-import click
+import threading
 import types
 from urllib.parse import urlparse
-import threading
+
+import click
 
 from sentry.runner.decorators import configuration, log_options
 
@@ -113,6 +114,7 @@ def devserver(
     os.environ["NODE_ENV"] = "production" if environment.startswith("prod") else environment
 
     from django.conf import settings
+
     from sentry import options
     from sentry.services.http import SentryHTTPServer
 
@@ -281,6 +283,7 @@ def devserver(
 
     import sys
     from subprocess import list2cmdline
+
     from honcho.manager import Manager
     from honcho.printer import Printer
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import {withTheme} from 'emotion-theming';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -16,8 +17,15 @@ import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {percent} from 'app/utils';
 import {getPeriod} from 'app/utils/getPeriod';
+import {Theme} from 'app/utils/theme';
+import {
+  fillChartDataFromSessionsResponse,
+  getTotalsFromSessionsResponse,
+  initSessionsBreakdownChartData,
+} from 'app/views/releases/detail/overview/chart/utils';
 import {getCrashFreePercent} from 'app/views/releases/utils';
 
+import {DisplayModes} from '../projectCharts';
 import {shouldFetchPreviousPeriod} from '../utils';
 
 const omitIgnoredProps = (props: Props) =>
@@ -53,6 +61,10 @@ type Props = {
   organization: Organization;
   selection: GlobalSelection;
   children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
+  onTotalValuesChange: (value: number | null) => void;
+  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
+  theme: Theme;
+  disablePrevious?: boolean;
 };
 
 type State = {
@@ -89,8 +101,15 @@ class SessionsRequest extends React.Component<Props, State> {
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {api, selection} = this.props;
-    const shouldFetchWithPrevious = shouldFetchPreviousPeriod(selection.datetime);
+    const {
+      api,
+      selection,
+      onTotalValuesChange,
+      displayMode,
+      disablePrevious,
+    } = this.props;
+    const shouldFetchWithPrevious =
+      !disablePrevious && shouldFetchPreviousPeriod(selection.datetime);
 
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
@@ -102,11 +121,10 @@ class SessionsRequest extends React.Component<Props, State> {
         query: this.queryParams({shouldFetchWithPrevious}),
       });
 
-      const {
-        timeseriesData,
-        previousTimeseriesData,
-        totalSessions,
-      } = this.transformData(response, {fetchedWithPrevious: shouldFetchWithPrevious});
+      const {timeseriesData, previousTimeseriesData, totalSessions} =
+        displayMode === DisplayModes.SESSIONS
+          ? this.transformSessionCountData(response)
+          : this.transformData(response, {fetchedWithPrevious: shouldFetchWithPrevious});
 
       if (this.unmounting) {
         return;
@@ -118,6 +136,7 @@ class SessionsRequest extends React.Component<Props, State> {
         previousTimeseriesData,
         totalSessions,
       });
+      onTotalValuesChange(totalSessions);
     } catch {
       addErrorMessage(t('Error loading chart data'));
       this.setState({
@@ -167,14 +186,9 @@ class SessionsRequest extends React.Component<Props, State> {
     };
   }
 
-  transformData(
-    responseData: SessionApiResponse,
-    {fetchedWithPrevious = false}
-  ): {
-    timeseriesData: Series[];
-    previousTimeseriesData: Series | null;
-    totalSessions: number;
-  } {
+  transformData(responseData: SessionApiResponse, {fetchedWithPrevious = false}) {
+    const {theme} = this.props;
+
     // Take the floor just in case, but data should always be divisible by 2
     const dataMiddleIndex = Math.floor(responseData.intervals.length / 2);
 
@@ -203,6 +217,7 @@ class SessionsRequest extends React.Component<Props, State> {
     const timeseriesData = [
       {
         seriesName: t('This Period'),
+        color: theme.green300,
         data: responseData.intervals
           .slice(fetchedWithPrevious ? dataMiddleIndex : 0)
           .map((interval, i) => {
@@ -280,6 +295,26 @@ class SessionsRequest extends React.Component<Props, State> {
     };
   }
 
+  transformSessionCountData(responseData: SessionApiResponse) {
+    const totalSessions = getTotalsFromSessionsResponse({
+      response: responseData,
+      field: 'sum(session)',
+    });
+
+    const chartData = fillChartDataFromSessionsResponse({
+      response: responseData,
+      field: 'sum(session)',
+      groupBy: 'session.status',
+      chartData: initSessionsBreakdownChartData(),
+    });
+
+    return {
+      timeseriesData: Object.values(chartData),
+      previousTimeseriesData: null,
+      totalSessions,
+    };
+  }
+
   render() {
     const {children} = this.props;
     const {
@@ -302,4 +337,4 @@ class SessionsRequest extends React.Component<Props, State> {
   }
 }
 
-export default SessionsRequest;
+export default withTheme(SessionsRequest);

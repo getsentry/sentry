@@ -1,17 +1,17 @@
 import logging
 
 from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import ProjectCodeOwners
-from sentry.api.exceptions import ResourceDoesNotExist
 
 from .project_codeowners import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
-
-from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ class ProjectCodeOwnersDetailsEndpoint(
         :auth: required
         """
         if not self.has_feature(request, project):
+            self.track_response_code("update", PermissionDenied.status_code)
             raise PermissionDenied
 
         serializer = ProjectCodeOwnerSerializer(
@@ -58,8 +59,17 @@ class ProjectCodeOwnersDetailsEndpoint(
         if serializer.is_valid():
             updated_codeowners = serializer.save()
 
+            analytics.record(
+                "codeowners.updated",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                codeowners_id=updated_codeowners.id,
+            )
+            self.track_response_code("update", status.HTTP_200_OK)
             return Response(serialize(updated_codeowners, request.user), status=status.HTTP_200_OK)
 
+        self.track_response_code("update", status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, project, codeowners):

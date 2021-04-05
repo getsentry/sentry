@@ -1,9 +1,9 @@
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
-from sentry.models import Organization, OrganizationStatus, User
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
+from sentry.models import Organization, OrganizationStatus, User
 
 
 class UserPermission(SentryPermission):

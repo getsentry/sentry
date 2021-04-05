@@ -72,7 +72,7 @@ class AllTeamsRow extends React.Component<Props, State> {
       loading: true,
     });
 
-    return new Promise((resolve, reject) =>
+    return new Promise<void>((resolve, reject) =>
       joinTeam(
         api,
         {

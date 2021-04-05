@@ -1,7 +1,7 @@
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
 
 

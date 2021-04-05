@@ -49,10 +49,10 @@ function traceVisitor(isRelevant: (transaction: TraceFullDetailed) => boolean) {
 }
 
 export function getTraceInfo(
-  trace: TraceFullDetailed,
+  traces: TraceFullDetailed[],
   isRelevant: (transaction: TraceFullDetailed) => boolean
 ) {
-  return reduceTrace<TraceInfo>(trace, traceVisitor(isRelevant), {
+  const initial = {
     relevantProjectsWithErrors: new Set<string>(),
     relevantProjectsWithTransactions: new Set<string>(),
     relevantErrors: new Set<string>(),
@@ -62,9 +62,24 @@ export function getTraceInfo(
     startTimestamp: Number.MAX_SAFE_INTEGER,
     endTimestamp: 0,
     maxGeneration: 0,
-  });
+  };
+
+  return traces.reduce(
+    (info: TraceInfo, trace: TraceFullDetailed) =>
+      reduceTrace<TraceInfo>(trace, traceVisitor(isRelevant), info),
+    initial
+  );
+}
+
+export function isTraceFullDetailed(transaction): transaction is TraceFullDetailed {
+  return Boolean((transaction as TraceFullDetailed).event_id);
 }
 
 export {getDurationDisplay} from 'app/components/events/interfaces/spans/spanBar';
 
 export {getHumanDuration, toPercent} from 'app/components/events/interfaces/spans/utils';
+
+export function isRootTransaction(trace: TraceFullDetailed): boolean {
+  // Root transactions has no parent_span_id
+  return trace.parent_span_id === null;
+}

@@ -15,11 +15,15 @@ import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/typ
 
 import {MetaData} from './styles';
 
-type Props = {
+type Props = Pick<
+  React.ComponentProps<typeof QuickTrace>,
+  'errorDest' | 'transactionDest'
+> & {
   event: Event;
   location: Location;
   organization: OrganizationSummary;
   quickTrace: QuickTraceQueryChildrenProps;
+  traceSize?: number;
 };
 
 function handleTraceLink(organization: OrganizationSummary) {
@@ -36,12 +40,23 @@ export default function QuickTraceMeta({
   location,
   organization,
   quickTrace: {isLoading, error, trace, type},
+  traceSize,
+  errorDest,
+  transactionDest,
 }: Props) {
   const traceId = event.contexts?.trace?.trace_id ?? null;
   const traceTarget = generateTraceTarget(event, organization);
+  const linkText =
+    traceId === null
+      ? null
+      : t(
+          'Trace ID: %s (%s events)',
+          getShortEventId(traceId),
+          traceSize ? traceSize : '?'
+        );
 
   const body = isLoading ? (
-    <Placeholder height="27px" />
+    <Placeholder height="24px" />
   ) : error || trace === null ? (
     '\u2014'
   ) : (
@@ -52,6 +67,8 @@ export default function QuickTraceMeta({
         location={location}
         organization={organization}
         anchor="right"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     </ErrorBoundary>
   );
@@ -59,6 +76,7 @@ export default function QuickTraceMeta({
   return (
     <MetaData
       headingText={t('Quick Trace')}
+      beta
       tooltipText={t('A minified version of the full trace.')}
       bodyText={body}
       subtext={
@@ -66,7 +84,7 @@ export default function QuickTraceMeta({
           '\u2014'
         ) : (
           <Link to={traceTarget} onClick={() => handleTraceLink(organization)}>
-            {t('Trace ID: %s', getShortEventId(traceId))}
+            {linkText}
           </Link>
         )
       }

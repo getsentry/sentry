@@ -4,9 +4,16 @@ import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'app/components/dropdownLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import {
+  ErrorDestination,
+  generateMultiTransactionsTarget,
+  generateSingleErrorTarget,
+  generateSingleTransactionTarget,
+  TransactionDestination,
+} from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
 import {IconFire} from 'app/icons';
-import {t, tn} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {toTitleCase} from 'app/utils';
@@ -32,14 +39,24 @@ import {
   StyledTruncate,
   TraceConnector,
 } from './styles';
-import {generateMultiEventsTarget, generateSingleEventTarget} from './utils';
 
-type QuickTraceProps = {
+const TOOLTIP_PREFIX = {
+  root: 'root',
+  ancestors: 'ancestor',
+  parent: 'parent',
+  current: '',
+  children: 'child',
+  descendants: 'descendant',
+};
+
+type QuickTraceProps = Pick<
+  EventNodeSelectorProps,
+  'anchor' | 'errorDest' | 'transactionDest'
+> & {
   quickTrace: QuickTraceType;
   event: Event;
   location: Location;
   organization: OrganizationSummary;
-  anchor: 'left' | 'right';
 };
 
 export default function QuickTrace({
@@ -48,6 +65,8 @@ export default function QuickTrace({
   location,
   organization,
   anchor,
+  errorDest,
+  transactionDest,
 }: QuickTraceProps) {
   let parsedQuickTrace;
   try {
@@ -68,22 +87,16 @@ export default function QuickTrace({
         organization={organization}
         events={[root]}
         text={t('Root')}
-        hoverText={<SingleEventHoverText event={root} />}
-        pad="right"
         anchor={anchor}
         nodeKey="root"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     );
     nodes.push(<TraceConnector key="root-connector" />);
   }
 
   if (ancestors?.length) {
-    const ancestorHoverText =
-      ancestors.length === 1 ? (
-        <SingleEventHoverText event={ancestors[0]} />
-      ) : (
-        t('View all ancestor transactions of this event')
-      );
     nodes.push(
       <EventNodeSelector
         key="ancestors-node"
@@ -91,17 +104,16 @@ export default function QuickTrace({
         organization={organization}
         events={ancestors}
         text={tn('%s Ancestor', '%s Ancestors', ancestors.length)}
-        hoverText={ancestorHoverText}
-        extrasTarget={generateMultiEventsTarget(
+        extrasTarget={generateMultiTransactionsTarget(
           event,
           ancestors,
           organization,
-          location,
           'Ancestor'
         )}
-        pad="right"
         anchor={anchor}
         nodeKey="ancestors"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     );
     nodes.push(<TraceConnector key="ancestors-connector" />);
@@ -115,10 +127,10 @@ export default function QuickTrace({
         organization={organization}
         events={[parent]}
         text={t('Parent')}
-        hoverText={<SingleEventHoverText event={parent} />}
-        pad="right"
         anchor={anchor}
         nodeKey="parent"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     );
     nodes.push(<TraceConnector key="parent-connector" />);
@@ -132,20 +144,15 @@ export default function QuickTrace({
       text={t('This %s', toTitleCase(event.type))}
       events={[current]}
       currentEvent={event}
-      pad="left"
       anchor={anchor}
       nodeKey="current"
+      errorDest={errorDest}
+      transactionDest={transactionDest}
     />
   );
 
   if (children.length) {
     nodes.push(<TraceConnector key="children-connector" />);
-    const childHoverText =
-      children.length === 1 ? (
-        <SingleEventHoverText event={children[0]} />
-      ) : (
-        t('View all child transactions of this event')
-      );
     nodes.push(
       <EventNodeSelector
         key="children-node"
@@ -153,29 +160,22 @@ export default function QuickTrace({
         organization={organization}
         events={children}
         text={tn('%s Child', '%s Children', children.length)}
-        hoverText={childHoverText}
-        extrasTarget={generateMultiEventsTarget(
+        extrasTarget={generateMultiTransactionsTarget(
           event,
           children,
           organization,
-          location,
           'Children'
         )}
-        pad="left"
         anchor={anchor}
         nodeKey="children"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     );
   }
 
   if (descendants?.length) {
     nodes.push(<TraceConnector key="descendants-connector" />);
-    const descendantHoverText =
-      descendants.length === 1 ? (
-        <SingleEventHoverText event={descendants[0]} />
-      ) : (
-        t('View all child descendants of this event')
-      );
     nodes.push(
       <EventNodeSelector
         key="descendants-node"
@@ -183,17 +183,16 @@ export default function QuickTrace({
         organization={organization}
         events={descendants}
         text={tn('%s Descendant', '%s Descendants', descendants.length)}
-        hoverText={descendantHoverText}
-        extrasTarget={generateMultiEventsTarget(
+        extrasTarget={generateMultiTransactionsTarget(
           event,
           descendants,
           organization,
-          location,
           'Descendant'
         )}
-        pad="left"
         anchor={anchor}
         nodeKey="descendants"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     );
   }
@@ -230,13 +229,13 @@ type EventNodeSelectorProps = {
   organization: OrganizationSummary;
   events: QuickTraceEvent[];
   text: React.ReactNode;
-  pad: 'left' | 'right';
   currentEvent?: Event;
-  hoverText?: React.ReactNode;
   extrasTarget?: LocationDescriptor;
   numEvents?: number;
   anchor: 'left' | 'right';
-  nodeKey: string;
+  nodeKey: keyof typeof TOOLTIP_PREFIX;
+  errorDest: ErrorDestination;
+  transactionDest: TransactionDestination;
 };
 
 function EventNodeSelector({
@@ -244,12 +243,12 @@ function EventNodeSelector({
   organization,
   events = [],
   text,
-  pad,
   currentEvent,
-  hoverText,
   extrasTarget,
   nodeKey,
   anchor,
+  errorDest,
+  transactionDest,
   numEvents = 5,
 }: EventNodeSelectorProps) {
   const errors: TraceError[] = [];
@@ -278,25 +277,28 @@ function EventNodeSelector({
   }
 
   if (events.length + errors.length === 0) {
-    return (
-      <EventNode pad={pad} type={type}>
-        {text}
-      </EventNode>
-    );
+    return <EventNode type={type}>{text}</EventNode>;
   } else if (events.length + errors.length === 1) {
     /**
      * When there is only 1 event, clicking the node should take the user directly to
      * the event without additional steps.
      */
-    const target = generateSingleEventTarget(
-      events[0] || errors[0],
-      organization,
-      location
+    const hoverText = errors.length ? (
+      t('View the error for this Transaction')
+    ) : (
+      <SingleEventHoverText event={events[0]} />
     );
+    const target = errors.length
+      ? generateSingleErrorTarget(errors[0], organization, location, errorDest)
+      : generateSingleTransactionTarget(
+          events[0],
+          organization,
+          location,
+          transactionDest
+        );
     return (
       <StyledEventNode
         text={text}
-        pad={pad}
         hoverText={hoverText}
         to={target}
         onClick={() => handleNode(nodeKey, organization)}
@@ -308,16 +310,28 @@ function EventNodeSelector({
      * When there is more than 1 event, clicking the node should expand a dropdown to
      * allow the user to select which event to go to.
      */
+    const hoverText = tct('View [eventPrefix] [eventType]', {
+      eventPrefix: TOOLTIP_PREFIX[nodeKey],
+      eventType:
+        errors.length && events.length
+          ? 'events'
+          : events.length
+          ? 'transactions'
+          : 'errors',
+    });
     return (
       <DropdownLink
         caret={false}
-        title={
-          <StyledEventNode text={text} pad={pad} hoverText={hoverText} type={type} />
-        }
+        title={<StyledEventNode text={text} hoverText={hoverText} type={type} />}
         anchorRight={anchor === 'right'}
       >
         {errors.slice(0, numEvents).map((error, i) => {
-          const target = generateSingleEventTarget(error, organization, location);
+          const target = generateSingleErrorTarget(
+            error,
+            organization,
+            location,
+            errorDest
+          );
           return (
             <DropdownNodeItem
               key={error.event_id}
@@ -332,7 +346,12 @@ function EventNodeSelector({
           );
         })}
         {events.slice(0, numEvents).map((event, i) => {
-          const target = generateSingleEventTarget(event, organization, location);
+          const target = generateSingleTransactionTarget(
+            event,
+            organization,
+            location,
+            transactionDest
+          );
           return (
             <DropdownNodeItem
               key={event.event_id}
@@ -412,24 +431,16 @@ function DropdownNodeItem({
 
 type EventNodeProps = {
   text: React.ReactNode;
-  pad: 'left' | 'right';
   hoverText: React.ReactNode;
   to?: LocationDescriptor;
   onClick?: (eventKey: any) => void;
   type?: keyof Theme['tag'];
 };
 
-function StyledEventNode({
-  text,
-  hoverText,
-  pad,
-  to,
-  onClick,
-  type = 'white',
-}: EventNodeProps) {
+function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNodeProps) {
   return (
     <Tooltip position="top" containerDisplayMode="inline-flex" title={hoverText}>
-      <EventNode type={type} pad={pad} icon={null} to={to} onClick={onClick}>
+      <EventNode type={type} icon={null} to={to} onClick={onClick}>
         {text}
       </EventNode>
     </Tooltip>
