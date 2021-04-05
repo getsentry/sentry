@@ -1,11 +1,10 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
-import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 
 import {Client} from 'app/api';
 import PageHeading from 'app/components/pageHeading';
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {DataCategory, Organization} from 'app/types';
 
@@ -46,7 +45,16 @@ class OrganizationStats extends React.Component<Props, State> {
   };
 
   get dataCategoryName() {
-    return capitalize(this.state.dataCategory);
+    switch (this.state.dataCategory) {
+      case DataCategory.ERROR:
+        return t('Errors');
+      case DataCategory.TRANSACTION:
+        return t('Transactions');
+      case DataCategory.ATTACHMENT:
+        return t('Attachments');
+      default:
+        return t('Unknown Data Category');
+    }
   }
 
   render() {
