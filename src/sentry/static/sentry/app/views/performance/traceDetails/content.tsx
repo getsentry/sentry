@@ -335,7 +335,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
     return (
       <TransactionRowMessage>
         {tct(
-          'Limited to a view of counts transactions. To view the full list, go to [discover].',
+          'Limited to a view of [count] transactions. To view the full list, go to [discover].',
           {
             count,
             discover: <Link to={target}>Discover</Link>,
