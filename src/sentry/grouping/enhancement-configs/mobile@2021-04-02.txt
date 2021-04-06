@@ -212,11 +212,6 @@ family:native package:/System/Library/PrivateFrameworks/GPUSupport.framework/** 
 family:native package:libGPUSupportMercury.dylib category=driver
 family:native package:AGXGLDriver category=driver
 
-# If there is a singular frame wedged between two driver frames, consider it a driver frame
-# TODO
-# [ category:driver | .. | category:driver ] category:system category=driver
-# [ category:driver | .. | category:driver ] category:malloc category=driver
-
 family:native function:RtlFreeHeap category=free
 family:native function:RtlFreeUnicodeString category=free
 family:native function:std::_Deallocate category=free
@@ -266,17 +261,15 @@ category:ui +sentinel +prefix
 # removes a lot of noise from the stack especially if most of the called frames
 # failed symbolication, stack scanning was done or to paper over differences in
 # driver versions.
-[ category:driver | .. ] category:driver category=internals
+category:driver | [ category:driver ] category=internals
 
 # Only group by top-level GL operaton, not any helper functions it may have called.
-[ .. | category:gl ] category:gl category=internals
-[ .. | category:av ] category:av category=internals
-# If we have a GL frame, its symbolication is more reliable than any driver frame to group by.
-# todo: find testcase
-# [ .. | category:gl ] category:driver category=internals
+
+[ category:gl ] | category:gl category=internals
+[ category:av ] | category:av  category=internals
 
 # Only group by top-level malloc op, not any helper function it may have called.
-[ .. | category:malloc ] category:malloc category=internals
+[ category:malloc ] | category:malloc category=internals
 
 # abort() and exception raising is technically the culprit for crashes, but not
 # the thing we want to show.
@@ -285,10 +278,10 @@ category:throw +sentinel +prefix ^-group
 # On Windows, _purecall internally aborts when the function pointer is invalid.
 # We want to treat this the same as a segfault happening before calling
 # _purecall.
-category:throw [ .. | function:_purecall ] category=internals
+[ function:_purecall ] | category:throw category=internals
 
 # raise() called by abort() should only group by abort()
-category:throw [ .. | category:throw ] category=internals
+[ category:throw ] | category:throw category=internals
 
 # Thread bases such as `main()` are just noise and are called by noise.
 category:threadbase -group v-group
@@ -322,23 +315,19 @@ family:native function:_INTERNAL* category=internals
 family:native function:*.cold.1 category=indirection
 
 # System frame wedged between two other frames is just noise.
-# TODO: consider removal
-[ !category:system | .. | !category:system ] category:system category=indirection
+[ !category:system ] | category:system | [ !category:system ] category=indirection
 
 # TODO: multi-category / category inheritance
-category:system [ .. | category:free ] category=internals
-category:system [ .. | category:system ] category=internals
-category:system [ .. | category:std ] category=internals
-category:std [ .. | category:std ] category=internals
-category:ui [ .. | category:ui ] category=internals
-category:system [ .. | category:ui ] category=internals
-category:system [ .. | category:internals ] category=internals
-category:system [ .. | category:load ] category=internals
-category:load [ .. | category:load ] category=internals
-# TODO: findtestcase
-# category:system [ .. | category:driver ] category=internals
-category:system [ .. | category:throw ] category=internals
-category:system [ .. | category:gc ] category=internals
-category:gc [ .. | category:gc ] category=internals
-
-category:dtor [ .. | category:dtor ] category=internals
+[ category:free ]       | category:system  category=internals
+[ category:system ]     | category:system  category=internals
+[ category:std ]        | category:system  category=internals
+[ category:std ]        | category:std     category=internals
+[ category:ui ]         | category:ui      category=internals
+[ category:ui ]         | category:system  category=internals
+[ category:internals ]  | category:system  category=internals
+[ category:load ]       | category:system  category=internals
+[ category:load ]       | category:load    category=internals
+[ category:throw ]      | category:system  category=internals
+[ category:gc ]         | category:system  category=internals
+[ category:gc ]         | category:gc      category=internals
+[ category:dtor ]       | category:dtor    category=internals

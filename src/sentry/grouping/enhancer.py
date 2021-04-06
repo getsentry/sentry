@@ -3,8 +3,6 @@ import zlib
 import base64
 import msgpack
 
-from typing import Optional
-
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
@@ -30,10 +28,11 @@ line = _ (comment / rule / empty) newline?
 rule = _ matchers actions
 
 matchers         = matcher+
-matcher          = frame_matcher / range_matcher
+matcher          = frame_matcher / caller_matcher / callee_matcher
 frame_matcher    = _ negation? matcher_type sep argument
 matcher_type     = ident / quoted_ident
-range_matcher    = _ "[" _? frame_matcher? _? "|"? ~r" ?\.\. ?" "|"? _? frame_matcher? _? "]"
+caller_matcher   = _ "[" _ frame_matcher _ "]" _ "|"
+callee_matcher   = _ "|" _ "[" _ frame_matcher _ "]"
 
 actions          = action+
 action           = flag_action / var_action
@@ -139,13 +138,10 @@ class Match:
     @staticmethod
     def _from_config_structure(obj, version):
         val = obj
-        if isinstance(val, list):
-            return RangeMatch(
-                Match._from_config_structure(val[0], version),
-                Match._from_config_structure(val[1], version),
-                val[2],
-                val[3],
-            )
+        if val.startswith("|[") and val.endswith("]"):
+            return CalleeMatch(Match._from_config_structure(val[2:-1]))
+        if val.startswith("[") and val.endswith("]|"):
+            return CallerMatch(Match._from_config_structure(val[1:-2]))
 
         if val.startswith("!"):
             negated = True
@@ -245,54 +241,36 @@ class FrameMatch(Match):
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
 
 
-class RangeMatch(Match):
-    def __init__(
-        self,
-        start: Optional[FrameMatch],
-        end: Optional[FrameMatch],
-        start_neighbouring: bool,
-        end_neighbouring: bool,
-    ):
-        self.start = start
-        self.end = end
-        self.start_neighbouring = start_neighbouring
-        self.end_neighbouring = end_neighbouring
+class CallerMatch(Match):
+    def __init__(self, caller: FrameMatch):
+        self.caller = caller
 
     @property
     def description(self):
-        sn = "| " if self.start_neighbouring else ""
-        en = " |" if self.end_neighbouring else ""
-        start = f" {self.start.description}" if self.start else ""
-        end = f"{self.end.description} " if self.end else ""
-        return f"[{start} {sn}..{en} {end}]"
+        return f"[ {self.caller.description} ] |"
 
     def _to_config_structure(self, version):
-        return [
-            self.start._to_config_structure(version),
-            self.end._to_config_structure(version),
-            self.start_neighbouring,
-            self.end_neighbouring,
-        ]
+        return f"[{self.caller._to_config_structure(version)}]|"
 
     def matches_frame(self, frames, idx, platform, exception_data):
-        if self.end is not None:
-            start_idx = 0 if not self.end_neighbouring else max(0, idx - 1)
+        return idx > 0 and self.caller.matches_frame(frames, idx - 1, platform, exception_data)
 
-            for idx2 in reversed(range(start_idx, idx)):
-                if self.end.matches_frame(frames, idx2, platform, exception_data):
-                    break
-            else:
-                return False
 
-        if self.start is not None:
-            end_idx = len(frames) if not self.start_neighbouring else min(len(frames), idx + 2)
-            for idx2 in range(idx + 1, end_idx):
-                if self.start.matches_frame(frames, idx2, platform, exception_data):
-                    break
-            else:
-                return False
+class CalleeMatch(Match):
+    def __init__(self, caller: FrameMatch):
+        self.caller = caller
 
-        return True
+    @property
+    def description(self):
+        return f"| [ {self.caller.description} ]"
+
+    def _to_config_structure(self, version):
+        return f"|[{self.caller._to_config_structure(version)}]"
+
+    def matches_frame(self, frames, idx, platform, exception_data):
+        return idx < len(frames) - 1 and self.caller.matches_frame(
+            frames, idx + 1, platform, exception_data
+        )
 
 
 class Action:
@@ -609,11 +587,6 @@ class Enhancements:
 class Rule:
     def __init__(self, matchers, actions):
         self.matchers = matchers
-        # FrameMatch matchers are faster than RangeMatch matchers, so apply
-        # them first to bail out early.
-        self._sorted_matchers = sorted(
-            matchers, key=lambda m: 0 if isinstance(m, FrameMatch) else 1
-        )
         self.actions = actions
 
     @property
@@ -639,10 +612,7 @@ class Rule:
         rv = []
 
         for idx, frame in enumerate(frames):
-            if all(
-                m.matches_frame(frames, idx, platform, exception_data)
-                for m in self._sorted_matchers
-            ):
+            if all(m.matches_frame(frames, idx, platform, exception_data) for m in self.matchers):
                 for action in self.actions:
                     rv.append((idx, action))
 
@@ -695,14 +665,13 @@ class EnhancmentsVisitor(NodeVisitor):
     def visit_matcher(self, node, children):
         return children[0]
 
-    def visit_range_matcher(self, node, children):
-        _, _, _, start, _, start_neighbouring, _, end_neighbouring, _, end, _, _ = children
-        return RangeMatch(
-            start[0] if start else None,
-            end[0] if end else None,
-            bool(start_neighbouring),
-            bool(end_neighbouring),
-        )
+    def visit_caller_matcher(self, node, children):
+        _, _, _, inner, _, _, _, _ = children
+        return CallerMatch(inner)
+
+    def visit_callee_matcher(self, node, children):
+        _, _, _, _, _, inner, _, _ = children
+        return CalleeMatch(inner)
 
     def visit_frame_matcher(self, node, children):
         _, negation, ty, _, argument = children

@@ -300,8 +300,7 @@ def test_mechanism_matching():
 def test_range_matching():
     enhancement = Enhancements.from_config_string(
         """
-        # matches in the direction of crashing-frame -> thread-base
-        [ function:baz .. function:foo ] category=bar
+        [ function:foo ] | function:* | [ function:baz ] category=bar
     """
     )
 
@@ -329,8 +328,7 @@ def test_range_matching():
 def test_range_matching_direct():
     enhancement = Enhancements.from_config_string(
         """
-        # matches in the direction of crashing-frame -> thread-base
-        [ function:baz | .. ] function:bar -group
+        function:bar | [ function:baz ] -group
     """
     )
 
