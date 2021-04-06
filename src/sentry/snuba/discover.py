@@ -904,14 +904,12 @@ def histogram_query(
     histogram_function = None
     conditions = []
     if len(fields) > 1:
-        histogram_type = check_histogram_fields(fields)
-        if histogram_type == "measurements":
+        array_column = check_histogram_fields(fields)
+        if array_column == "measurements":
             key_column = "array_join(measurements_key)"
-            array_column = "measurements"
             histogram_function = get_measurement_name
-        elif histogram_type == "op_breakdown":
+        elif array_column == "span_op_breakdowns":
             key_column = "array_join(span_op_breakdowns_key)"
-            array_column = "span_op_breakdowns"
             histogram_function = get_span_op_breakdown_name
         else:
             raise InvalidSearchQuery(
@@ -1153,7 +1151,7 @@ def check_histogram_fields(fields):
     """
     Returns histogram type if all the given fields are of the same histogram type.
     Return false otherwise, or if any of the fields are not a compatible histogram type.
-    Possible histogram types: measurements, op_breakdown
+    Possible histogram types: measurements, span_op_breakdowns
 
     :param [str] fields: The list of fields for which you want to generate histograms for.
     """
@@ -1163,11 +1161,11 @@ def check_histogram_fields(fields):
             if is_measurement(field):
                 histogram_type = "measurements"
             elif is_span_op_breakdown(field):
-                histogram_type = "op_breakdown"
+                histogram_type = "span_op_breakdowns"
             else:
                 return False
         elif histogram_type == "measurements" and not is_measurement(field):
             return False
-        elif histogram_type == "op_breakdown" and not is_span_op_breakdown(field):
+        elif histogram_type == "span_op_breakdowns" and not is_span_op_breakdown(field):
             return False
     return histogram_type
