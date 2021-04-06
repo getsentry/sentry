@@ -174,6 +174,8 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       this.state.width - parseInt(CHART_GRID.right.slice(0, -2), 10) - yAxisSize;
     // Distance from the top of the chart to save for the legend
     const legendPadding = 20;
+    // Shave off the left margin
+    const graphAreaMargin = 7;
 
     const isCritical = trigger.label === 'critical';
     const LINE_STYLE = {
@@ -190,7 +192,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         invisible: position === null,
         draggable: false,
         position: [yAxisSize, position],
-        shape: {y1: 1, y2: 1, x1: 7, x2: graphAreaWidth},
+        shape: {y1: 1, y2: 1, x1: graphAreaMargin, x2: graphAreaWidth},
         style: LINE_STYLE,
       },
 
@@ -206,10 +208,10 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
               position:
                 isResolution !== isInverted
-                  ? [yAxisSize + 7, position + 1]
-                  : [yAxisSize + 7, legendPadding],
+                  ? [yAxisSize + graphAreaMargin, position + 1]
+                  : [yAxisSize + graphAreaMargin, legendPadding],
               shape: {
-                width: graphAreaWidth - 7,
+                width: graphAreaWidth - graphAreaMargin,
                 height:
                   isResolution !== isInverted
                     ? yAxisPosition - position
@@ -273,7 +275,8 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       yAxis: {
         max: this.state.yAxisMax ?? undefined,
         axisLabel: {
-          formatter: (value: number) => axisLabelFormatter(value, data[0].seriesName),
+          formatter: (value: number) =>
+            axisLabelFormatter(value, data.length ? data[0].seriesName : ''),
         },
       },
     };
