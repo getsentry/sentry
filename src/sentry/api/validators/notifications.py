@@ -106,12 +106,12 @@ def validate_provider(provider: str, context: Optional[str] = None) -> ExternalP
 
 
 def validate_value(
-    type: NotificationSettingTypes, value: str, context: Optional[str] = None
+    type: NotificationSettingTypes, value_param: str, context: Optional[str] = None
 ) -> NotificationSettingOptionValues:
     try:
-        value = NotificationSettingOptionValues(value)
+        value = NotificationSettingOptionValues(value_param)
     except ValueError:
-        raise ParameterValidationError(f"Unknown value: {value} in {context}")
+        raise ParameterValidationError(f"Unknown value: {value_param} in {context}")
 
     if not helper_validate(type, value):
         raise ParameterValidationError(f"Invalid value for type {type}: {value} in {context}")
