@@ -180,7 +180,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   position: relative;
   display: flex;
   line-height: 2.2;
-  color: #493e54;
+  color: ${p => p.theme.textColor};
   margin-bottom: ${space(0.5)};
   padding: 0 ${space(1)};
 `;
@@ -190,7 +190,7 @@ const TagBarBackground = styled('div')`
   top: 0;
   bottom: 0;
   left: 0;
-  background: #f6f7f8;
+  background: ${p => p.theme.tagBar};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
