@@ -5,10 +5,10 @@ const path = require('path');
 
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
-const ExtractTextPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
-const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
-const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
+const FixStyleOnlyEntriesPlugin = require('webpack-remove-empty-scripts');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
@@ -159,14 +159,15 @@ supportedLocales
     // multiple expressions.
     //
     // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
-    const groupTest = module =>
+    const groupTest = (module, {chunkGraph}) =>
       localeGroupTests.some(pattern =>
         module.nameForCondition && pattern.test(module.nameForCondition())
           ? true
-          : Array.from(module.chunksIterable).some(c => c.name && pattern.test(c.name))
+          : chunkGraph.getModuleChunks(module).some(c => c.name && pattern.test(c.name))
       );
 
     localeChunkGroups[group] = {
+      chunks: 'initial',
       name: group,
       test: groupTest,
       enforce: true,
@@ -195,7 +196,7 @@ const localeRestrictionPlugins = [
  * Explicit codesplitting cache groups
  */
 const cacheGroups = {
-  vendors: {
+  defaultVendors: {
     name: 'vendor',
     // This `platformicons` check is required otherwise it will get put into this chunk instead
     // of `sentry.css` bundle
@@ -271,7 +272,7 @@ let appConfig = {
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: [ExtractTextPlugin.loader, 'css-loader', 'less-loader'],
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader'],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
@@ -304,12 +305,16 @@ let appConfig = {
      *
      * We discourage the use of global jQuery through eslint rules
      */
-    new webpack.ProvidePlugin({jQuery: 'jquery'}),
+    new webpack.ProvidePlugin({
+      jQuery: 'jquery',
+      process: 'process/browser',
+      Buffer: ['buffer', 'Buffer'],
+    }),
 
     /**
      * Extract CSS into separate files.
      */
-    new ExtractTextPlugin(),
+    new MiniCssExtractPlugin(),
 
     /**
      * Defines environment specific flags.
@@ -333,7 +338,7 @@ let appConfig = {
     /**
      * This removes empty js files for style only entries (e.g. sentry.less)
      */
-    new FixStyleOnlyEntriesPlugin({silent: true}),
+    new FixStyleOnlyEntriesPlugin({verbose: false}),
 
     new SentryInstrumentation(),
 
@@ -375,27 +380,40 @@ let appConfig = {
       ),
     },
 
+    fallback: {
+      vm: false,
+      stream: false,
+      crypto: require.resolve('crypto-browserify'),
+      // `yarn why` says this is only needed in dev deps
+      string_decoder: false,
+    },
+
     modules: ['node_modules'],
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
   },
   output: {
     path: distPath,
     filename: '[name].js',
-
-    // Rename global that is used to async load chunks
-    // Avoids 3rd party js from overwriting the default name (webpackJsonp)
-    jsonpFunction: 'sntryWpJsonp',
     sourceMapFilename: '[name].js.map',
   },
   optimization: {
+    chunkIds: 'named',
+    moduleIds: 'named',
     splitChunks: {
-      chunks: 'all',
+      // Only affect async chunks, otherwise webpack could potentially split our initial chunks
+      // Which means the app will not load because we'd need these additional chunks to be loaded in our
+      // django template.
+      chunks: 'async',
       maxInitialRequests: 5,
       maxAsyncRequests: 7,
       cacheGroups,
     },
+
+    // This only runs in production mode
+    // Grabbed this example from https://github.com/webpack-contrib/css-minimizer-webpack-plugin
+    minimizer: ['...', new CssMinimizerPlugin()],
   },
-  devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
+  devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
 if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
@@ -534,8 +552,6 @@ const minificationPlugins = [
     algorithm: 'gzip',
     test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
   }),
-  new OptimizeCssAssetsPlugin(),
-
   // NOTE: In production mode webpack will automatically minify javascript
   // using the TerserWebpackPlugin.
 ];
