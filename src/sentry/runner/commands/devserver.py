@@ -191,14 +191,6 @@ def devserver(
         os.environ["NODE_OPTIONS"] = (
             os.environ.get("NODE_OPTIONS", "") + " --max-old-space-size=4096"
         ).lstrip()
-
-        # Replace the webpack watcher with the drop-in webpack-dev-server
-        webpack_config = next(w for w in daemons if w[0] == "webpack")[1]
-        webpack_config[0] = os.path.join(
-            *os.path.split(webpack_config[0])[0:-1] + ("webpack-dev-server",)
-        )
-
-        daemons = [w for w in daemons if w[0] != "webpack"] + [("webpack", webpack_config)]
     else:
         # If we are the bare http server, use the http option with uwsgi protocol
         # See https://uwsgi-docs.readthedocs.io/en/latest/HTTP.html
