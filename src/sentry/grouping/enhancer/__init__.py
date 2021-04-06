@@ -102,14 +102,14 @@ class Enhancements:
             bases = []
         self.bases = bases
 
+        self._modifier_rules = [rule for rule in self.iter_rules() if rule.is_modifier]
+        self._updater_rules = [rule for rule in self.iter_rules() if rule.is_updater]
+
     def apply_modifications_to_frame(self, frames, platform, exception_data):
         """This applies the frame modifications to the frames itself.  This
         does not affect grouping.
         """
-        for rule in self.iter_rules():
-
-            if not rule.is_modifier:
-                continue
+        for rule in self._modifier_rules:
 
             for idx, action in rule.get_matching_frame_actions(frames, platform, exception_data):
                 action.apply_modifications_to_frame(frames, idx, rule=rule)
@@ -117,10 +117,7 @@ class Enhancements:
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         stacktrace_state = StacktraceState()
         # Apply direct frame actions and update the stack state alongside
-        for rule in self.iter_rules():
-
-            if not rule.is_updater:
-                continue
+        for rule in self._updater_rules:
 
             for idx, action in rule.get_matching_frame_actions(frames, platform, exception_data):
                 action.update_frame_components_contributions(components, frames, idx, rule=rule)
