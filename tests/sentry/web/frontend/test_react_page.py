@@ -1,5 +1,5 @@
 from django.core.urlresolvers import reverse
-
+from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
 
 
@@ -72,3 +72,22 @@ class ReactPageViewTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/bases/react.html")
         assert resp.context["request"]
+
+    def test_flow_as_invited_user(self):
+        owner = self.create_user("bar@example.com")
+        org = self.create_organization(owner=owner)
+
+        user = self.create_user("foo@example.com")
+        self.create_member(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member.user = None
+
+        self.login_as(user)
+        path = reverse("sentry-organization-settings", args=[org.slug])
+        resp = self.client.get(path)
+        assert resp.status_code == 302
+        # assert resp["Location"] != reverse("sentry-auth-organization", args=[org.slug])
+        # assert resp.redirect_chain == [
+        #     (reverse("sentry-login"), 302),
+        #     ("/organizations/foo/issues/", 302),
+        # ]

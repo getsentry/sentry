@@ -358,6 +358,8 @@ class OrganizationView(BaseView):
                     return False  # user is in invited state, can't set active org
             except Organization.DoesNotExist:
                 pass
+            except OrganizationMember.DoesNotExist:
+                return True
             else:
                 return True
         return False
