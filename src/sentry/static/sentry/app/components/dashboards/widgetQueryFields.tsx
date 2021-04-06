@@ -127,7 +127,7 @@ function WidgetQueryFields({
               fieldOptions={fieldOptions}
               onChange={value => handleChangeField(value, i)}
               filterPrimaryOptions={option => {
-                // Only validate function parameters for timeseries widgets and
+                // Only validate function names for timeseries widgets and
                 // world map widgets.
                 if (
                   !doNotValidateYAxis &&
