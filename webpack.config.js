@@ -305,7 +305,11 @@ let appConfig = {
      *
      * We discourage the use of global jQuery through eslint rules
      */
-    new webpack.ProvidePlugin({jQuery: 'jquery'}),
+    new webpack.ProvidePlugin({
+      jQuery: 'jquery',
+      process: 'process/browser',
+      Buffer: ['buffer', 'Buffer'],
+    }),
 
     /**
      * Extract CSS into separate files.
