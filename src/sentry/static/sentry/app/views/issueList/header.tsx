@@ -97,13 +97,6 @@ function IssueListHeader({
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
             <Button
-              title={t('Send us feedback via email')}
-              size="small"
-              href="mailto:workflow-feedback@sentry.io?subject=Issues Feedback"
-            >
-              Give Feedback
-            </Button>
-            <Button
               size="small"
               title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
               onClick={() => onRealtimeChange(!realtimeActive)}
