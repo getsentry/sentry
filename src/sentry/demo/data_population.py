@@ -5,6 +5,7 @@ import os
 import random
 import requests
 import pytz
+import sentry_sdk
 import time
 
 from collections import defaultdict
@@ -12,6 +13,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from hashlib import sha1
+from functools import wraps
 from uuid import uuid4
 from typing import List
 
@@ -389,6 +391,23 @@ def generate_issue_alert(project):
     project_rules.Creator.run(**data)
 
 
+def catch_and_log_errors(func):
+    """
+    Catches any errors, log them, and wait before continuing
+    """
+
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"{func.__name__}.error", extra={"error": str(e)}, exc_info=True)
+            time.sleep(settings.DEMO_DATA_GEN_PARAMS["ERROR_BACKOFF_TIME"])
+
+    return wrapped
+
+
+@catch_and_log_errors
 def send_session(sid, user_id, dsn, time, release, **kwargs):
     """
     Creates an envelope payload for a session and posts it to Relay
@@ -410,11 +429,9 @@ def send_session(sid, user_id, dsn, time, release, **kwargs):
     core = json.dumps(data)
 
     body = f"{envelope_headers}\n{item_headers}\n{core}"
-
     endpoint = dsn.get_endpoint()
     url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
     resp = requests.post(url=url, data=body)
-    logger.info("send_session.send")
     resp.raise_for_status()
 
 
@@ -1004,6 +1021,7 @@ def populate_connected_event_scenario_3(python_project: Project, quick=False):
 
 
 def populate_sessions(project, error_file, quick=False):
+    logger.info("populate_sessions.start")
     dsn = ProjectKey.objects.get(project=project)
 
     react_error = get_event_from_file(error_file)
@@ -1047,6 +1065,7 @@ def populate_sessions(project, error_file, quick=False):
             }
 
         send_session(sid, transaction_user["id"], dsn, timestamp, version, **data)
+    logger.info("populate_sessions.end")
 
 
 def handle_react_python_scenario(react_project: Project, python_project: Project, quick=False):
@@ -1056,9 +1075,11 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     generate_releases([react_project, python_project], quick=quick)
     generate_alerts(python_project)
     generate_saved_query(react_project, "/productstore", "Product Store")
-    populate_sessions(react_project, "sessions/react_unhandled_exception.json", quick=quick)
-    populate_sessions(python_project, "sessions/python_unhandled_exception.json", quick=quick)
-    populate_connected_event_scenario_1(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_1b(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_2(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_3(python_project, quick=quick)
+    with sentry_sdk.start_span(op="handle_react_python_scenario.populate_sessions"):
+        populate_sessions(react_project, "sessions/react_unhandled_exception.json", quick=quick)
+        populate_sessions(python_project, "sessions/python_unhandled_exception.json", quick=quick)
+    with sentry_sdk.start_span(op="handle_react_python_scenario.populate_connected_events"):
+        populate_connected_event_scenario_1(react_project, python_project, quick=quick)
+        populate_connected_event_scenario_1b(react_project, python_project, quick=quick)
+        populate_connected_event_scenario_2(react_project, python_project, quick=quick)
+        populate_connected_event_scenario_3(python_project, quick=quick)
