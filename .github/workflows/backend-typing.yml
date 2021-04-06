@@ -58,8 +58,6 @@ jobs:
 
       - name: Setup backend typing
         if: steps.changes.outputs.backend == 'true'
-        env:
-          SENTRY_LIGHT_BUILD: 1
         run: |
           python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have `wheel` installed by default
