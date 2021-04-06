@@ -265,11 +265,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
-        assert (
-            response.data["detail"]
-            == "Invalid query. Project %s does not exist or is not an actively selected project."
-            % project.slug
-        )
+        assert response.data[
+            "detail"
+        ] == "Invalid query. Projects %s do not exist or are not actively selected." % [
+            project.slug
+        ]
 
     def test_project_in_query_does_not_exist(self):
         project = self.create_project()
@@ -284,7 +284,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "Invalid query. Project morty does not exist or is not an actively selected project."
+            == "Invalid query. Projects ['morty'] do not exist or are not actively selected."
         )
 
     def test_not_project_in_query_but_in_header(self):
@@ -2475,6 +2475,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "user": {"email": "hello@example.com"},
                 "environment": "prod",
                 "tags": {"random": "123"},
+                "release": "1.0",
             },
             project_id=project_1.id,
         )
@@ -2489,6 +2490,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "environment": "staging",
                 "tags": {"random": "456"},
                 "stacktrace": {"frames": [{"filename": "src/app/group2.py"}]},
+                "release": "1.2",
             },
             project_id=project_2.id,
         )
@@ -2517,13 +2519,24 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
         self.run_test_in_query("message:[group2, group1]", [event_1, event_2], [event_3])
 
-        # TODO: Make sure this is properly validated for perms
-        # self.run_test_in_query(f"issue.id:[{event_1.group_id},{event_2.group_id}]", [event_1, event_2], [event_3])
-        # TODO: Make sure this is properly validated for perms
-        # self.run_test_in_query(f"project_id:[{project_3.id},{project_2.id}]", [event_2, event_3], [event_1])
+        self.run_test_in_query(
+            f"issue.id:[{event_1.group_id},{event_2.group_id}]", [event_1, event_2]
+        )
+        self.run_test_in_query(
+            f"issue:[{event_1.group.qualified_short_id},{event_2.group.qualified_short_id}]",
+            [event_1, event_2],
+        )
+        self.run_test_in_query(
+            f"issue:[{event_1.group.qualified_short_id},{event_2.group.qualified_short_id}, unknown]",
+            [event_1, event_2],
+        )
+        self.run_test_in_query(f"project_id:[{project_3.id},{project_2.id}]", [event_2, event_3])
+        self.run_test_in_query(
+            f"project.name:[{project_3.slug},{project_2.slug}]", [event_2, event_3]
+        )
         self.run_test_in_query("random:[789,456]", [event_2, event_3], [event_1])
-        # TODO: Uncomment once we add this properly to the parser
-        # self.run_test_in_query("tags[random]:[789,456]", [event_2, event_3], [event_1])
+        self.run_test_in_query("tags[random]:[789,456]", [event_2, event_3], [event_1])
+        self.run_test_in_query("release:[1.0,1.2]", [event_1, event_2], [event_3])
 
     def test_in_query_events_stack(self):
         project_1 = self.create_project()

@@ -1093,7 +1093,6 @@ def resolve_condition(cond, column_resolver):
     column_resolver (Function[string]) Function to resolve column names for the
                                        current dataset.
     """
-    # import pdb; pdb.set_trace()
     index = get_function_index(cond)
     # IN/NOT IN conditions are detected as a function but aren't really.
     if index is not None and cond[index] not in ("IN", "NOT IN"):
