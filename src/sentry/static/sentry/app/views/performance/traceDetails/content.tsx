@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import Alert from 'app/components/alert';
+import DiscoverFeature from 'app/components/discover/discoverFeature';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
@@ -338,7 +339,15 @@ class TraceDetailsContent extends React.Component<Props, State> {
           'Limited to a view of [count] transactions. To view the full list, go to [discover].',
           {
             count,
-            discover: <Link to={target}>Discover</Link>,
+            discover: (
+              <DiscoverFeature>
+                {({hasFeature}) => (
+                  <Link disabled={!hasFeature} to={target}>
+                    Discover
+                  </Link>
+                )}
+              </DiscoverFeature>
+            ),
           }
         )}
       </TransactionRowMessage>
