@@ -46,6 +46,7 @@ const TimesTag = ({lastSeen, firstSeen}: Props) => {
 
 const Wrapper = styled('div')`
   display: flex;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
