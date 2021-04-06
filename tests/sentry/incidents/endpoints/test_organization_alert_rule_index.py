@@ -434,6 +434,40 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
 
+    def test_limit_as_1_with_paging_sort_name(self):
+        self.setup_project_and_rules()
+        # Test Limit as 1, no cursor:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "1", "project": self.project_ids, "sort": "name", "asc": 1}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 1
+        self.assert_alert_rule_serialized(self.alert_rule, result[0], skip_dates=True)
+        links = requests.utils.parse_header_links(
+            response.get("link").rstrip(">").replace(">,<", ",<")
+        )
+        next_cursor = links[1]["cursor"]
+        # Test Limit as 1, next page of previous request:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "cursor": next_cursor,
+                "per_page": "1",
+                "project": self.project.id,
+                "sort": "name",
+                "asc": 1,
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 1
+        assert result[0]["id"] == str(self.issue_rule.id)
+        assert result[0]["type"] == "rule"
+
     def test_limit_as_1_with_paging(self):
         self.setup_project_and_rules()
 
