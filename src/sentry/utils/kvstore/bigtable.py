@@ -11,9 +11,9 @@ from google.cloud import bigtable
 from google.cloud.bigtable.row_data import PartialRowData
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.table import Table
+
 from sentry.utils.codecs import Codec, ZlibCodec, ZstdCodec
 from sentry.utils.kvstore.abstract import KVStorage
-
 
 logger = logging.getLogger(__name__)
 

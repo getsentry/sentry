@@ -15,10 +15,6 @@ const queryCounts = {
     count: 22,
     hasMore: false,
   },
-  'is:unresolved is:for_review': {
-    count: 1,
-    hasMore: false,
-  },
   'is:unresolved': {
     count: 1,
     hasMore: false,
@@ -34,7 +30,7 @@ const queryCounts = {
 };
 
 const queryCountsMaxed = {
-  'is:unresolved is:for_review': {
+  'is:unresolved is:for_review assigned_or_suggested:me_or_none': {
     count: 321,
     hasMore: false,
   },
@@ -59,21 +55,6 @@ describe('IssueListHeader', () => {
   });
 
   it('renders active tab with count when query matches inbox', () => {
-    const wrapper = mountWithTheme(
-      <IssueListHeader
-        organization={organization}
-        query="is:unresolved is:for_review"
-        queryCount={0}
-        queryCounts={queryCounts}
-        projectIds={[]}
-        savedSearchList={[]}
-      />
-    );
-    expect(wrapper.find('.active').text()).toBe('For Review 1');
-  });
-
-  it('renders active tab with count when query matches inbox with assigned_or_suggested:me_or_none', () => {
-    organization.features = ['inbox-owners-query'];
     const wrapper = mountWithTheme(
       <IssueListHeader
         organization={organization}
@@ -135,7 +116,7 @@ describe('IssueListHeader', () => {
     );
     const tabs = wrapper.find('li');
     expect(tabs.at(0).text()).toBe('All Unresolved 1');
-    expect(tabs.at(1).text()).toBe('For Review 1');
+    expect(tabs.at(1).text()).toBe('For Review 22');
     expect(tabs.at(2).text()).toBe('Ignored ');
   });
 
@@ -172,7 +153,10 @@ describe('IssueListHeader', () => {
     });
     expect(wrapper.find('Link').at(1).prop('to')).toEqual({
       pathname,
-      query: {query: 'is:unresolved is:for_review', sort: 'inbox'},
+      query: {
+        query: 'is:unresolved is:for_review assigned_or_suggested:me_or_none',
+        sort: 'inbox',
+      },
     });
   });
 
@@ -199,7 +183,10 @@ describe('IssueListHeader', () => {
     });
     expect(wrapper.find('Link').at(1).prop('to')).toEqual({
       pathname,
-      query: {query: 'is:unresolved is:for_review', sort: 'inbox'},
+      query: {
+        query: 'is:unresolved is:for_review assigned_or_suggested:me_or_none',
+        sort: 'inbox',
+      },
     });
   });
 
@@ -221,7 +208,10 @@ describe('IssueListHeader', () => {
     );
     expect(wrapper.find('Link').at(1).prop('to')).toEqual({
       pathname: '/organizations/org-slug/issues/',
-      query: {query: 'is:unresolved is:for_review', sort: 'inbox'},
+      query: {
+        query: 'is:unresolved is:for_review assigned_or_suggested:me_or_none',
+        sort: 'inbox',
+      },
     });
   });
 

@@ -1,14 +1,14 @@
 import re
-
 from datetime import datetime, timedelta
-from typing import Mapping, Any, Union
-from django.http.request import HttpRequest
+from typing import Any, Mapping, Union
 
 import pytz
 from dateutil.parser import parse
+from django.db import connections
+from django.http.request import HttpRequest
+
 from sentry import quotas
 from sentry.constants import MAX_ROLLUP_POINTS
-from django.db import connections
 
 DATE_TRUNC_GROUPERS = {"date": "day", "hour": "hour", "minute": "minute"}
 

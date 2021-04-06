@@ -1,5 +1,4 @@
 import logging
-
 from contextlib import contextmanager
 
 from sentry.utils.locking import UnableToAcquireLock

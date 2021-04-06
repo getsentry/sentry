@@ -4,18 +4,19 @@
 # part of this module. We don't use it directly within the module, but modules
 # that import it from here will. Do not remove.
 
-from simplejson import JSONEncoder, JSONDecodeError, _default_decoder  # NOQA
-from enum import Enum
 import datetime
 import decimal
 import uuid
+from enum import Enum
 from typing import Any
 
-from bitfield.types import BitHandler
 from django.utils.encoding import force_text
 from django.utils.functional import Promise
 from django.utils.html import mark_safe
 from django.utils.timezone import is_aware
+from simplejson import JSONDecodeError, JSONEncoder, _default_decoder  # NOQA
+
+from bitfield.types import BitHandler
 
 
 def better_default_encoder(o):

@@ -43,7 +43,10 @@ const HelpSearchModal = ({
               `}
           renderInput={({getInputProps}) => (
             <InputWrapper>
-              <Input autoFocus {...getInputProps({type: 'text', placeholder})} />
+              <Input
+                autoFocus
+                {...getInputProps({type: 'text', label: placeholder, placeholder})}
+              />
             </InputWrapper>
           )}
           resultFooter={<Hook name="help-modal:footer" {...{organization, closeModal}} />}

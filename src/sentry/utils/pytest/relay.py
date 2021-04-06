@@ -5,10 +5,10 @@ import datetime
 import shutil
 import sys
 import time
-import pytest
 from os import path
-
 from urllib.parse import urlparse
+
+import pytest
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
