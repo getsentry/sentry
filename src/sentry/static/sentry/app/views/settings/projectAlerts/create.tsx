@@ -12,7 +12,12 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
-import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
+import {
+  AlertType as WizardAlertType,
+  AlertWizardAlertNames,
+  WizardRuleTemplate,
+} from 'app/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 import IssueRuleEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
 
@@ -97,11 +102,19 @@ class Create extends React.Component<Props, State> {
       organization,
       project,
       params: {projectId},
+      location,
     } = this.props;
     const {alertType, eventView, wizardTemplate} = this.state;
 
     const hasWizard = organization.features.includes('alert-wizard');
     const shouldShowAlertTypeChooser = hasMetricAlerts && !hasWizard;
+    let wizardAlertType: undefined | WizardAlertType;
+    if (location?.query?.createFromWizard) {
+      wizardAlertType = wizardTemplate
+        ? getAlertTypeFromAggregateDataset(wizardTemplate)
+        : 'issues';
+    }
+
     const title = t('New Alert Rule');
 
     return (
@@ -111,10 +124,14 @@ class Create extends React.Component<Props, State> {
           <BuilderBreadCrumbs
             hasMetricAlerts={hasMetricAlerts}
             orgSlug={organization.slug}
-            title={title}
+            alertName={wizardAlertType && AlertWizardAlertNames[wizardAlertType]}
+            title={wizardAlertType ? t('Create Alert Rule') : title}
+            projectSlug={projectId}
           />
           <StyledPageHeader>
-            <PageHeading>{title}</PageHeading>
+            <PageHeading>
+              {wizardAlertType ? t('Set Alert Conditions') : title}
+            </PageHeading>
           </StyledPageHeader>
           {shouldShowAlertTypeChooser && (
             <AlertTypeChooser

@@ -94,6 +94,7 @@ class AlertWizard extends React.Component<Props, State> {
             <BuilderBreadCrumbs
               hasMetricAlerts={hasMetricAlerts}
               orgSlug={organization.slug}
+              projectSlug={projectId}
               title={t('Create Alert Rule')}
             />
             <StyledPageHeader>

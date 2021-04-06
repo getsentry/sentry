@@ -68,6 +68,7 @@ class ProjectAlertsEditor extends React.Component<Props, State> {
             hasMetricAlerts={hasMetricAlerts}
             orgSlug={organization.slug}
             title={this.getTitle()}
+            projectSlug={project.slug}
           />
           <StyledPageHeader>
             <PageHeading>{this.getTitle()}</PageHeading>
