@@ -652,19 +652,3 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # Ensure the ident was migrated from the legacy identity
         updated_ident = AuthIdentity.objects.get(id=user_ident.id)
         assert updated_ident.ident == "foo@new-domain.com"
-
-    def test_random_org_page_flow_as_invited_user(self):
-        user = self.create_user("bar@example.com")
-        self.create_member(organization=self.organization, user=user)
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
-        member.user = None
-        path = reverse("sentry-organization-settings")
-        resp = self.client.post(path)
-
-        assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
-
-        # assert resp.redirect_chain == [
-        #     (reverse("sentry-login"), 302),
-        #     ("/organizations/foo/issues/", 302),
-        # ]

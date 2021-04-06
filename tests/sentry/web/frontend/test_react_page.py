@@ -74,16 +74,16 @@ class ReactPageViewTest(TestCase):
         assert resp.context["request"]
 
     def test_flow_as_invited_user(self):
-        owner = self.create_user("bar@example.com")
-        org = self.create_organization(owner=owner)
 
         user = self.create_user("foo@example.com")
         self.create_member(organization=self.organization, user=user)
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member.email = "foo@example.com"
         member.user = None
+        member.save()
 
         self.login_as(user)
-        path = reverse("sentry-organization-settings", args=[org.slug])
+        path = reverse("sentry-organization-home", args=[self.organization.slug])
         resp = self.client.get(path)
         assert resp.status_code == 302
         # assert resp["Location"] != reverse("sentry-auth-organization", args=[org.slug])
