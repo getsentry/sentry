@@ -1,18 +1,15 @@
-import pytest
 import random
-
 from collections import namedtuple
 from copy import deepcopy
 from datetime import timedelta
 
+import pytest
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-
 from sentry.utils.samples import load_data
-from sentry.utils.snuba import is_measurement, get_measurement_name
-
+from sentry.utils.snuba import get_measurement_name, is_measurement
 
 HistogramSpec = namedtuple("HistogramSpec", ["start", "end", "fields"])
 

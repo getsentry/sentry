@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
+
 import pytz
 
-from sentry.utils.compat.mock import patch
-
 from sentry.models import Environment, Group, GroupRelease, Release
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils.compat.mock import patch
 from sentry.utils.dates import to_timestamp
 
 

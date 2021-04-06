@@ -1,6 +1,6 @@
 from django.test.client import RequestFactory
 
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from tests.apidocs.util import APIDocsTestCase
 
 
