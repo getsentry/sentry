@@ -11,8 +11,8 @@ import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {OrganizationSummary, Project} from 'app/types';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {TimePeriodType} from 'app/views/alerts/rules/details/body';
+import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 type Props = {
   organization: OrganizationSummary;
