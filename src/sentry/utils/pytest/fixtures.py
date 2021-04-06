@@ -5,19 +5,18 @@ All model-related fixtures defined here require the database, and should imply a
 including ``db`` fixture in the function resolution scope.
 """
 
+import difflib
 import os
 import re
 import sys
-import yaml
-import difflib
-import sentry
-
-import pytest
-import requests
-
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
+import pytest
+import requests
+import yaml
+
+import sentry
 
 # These chars cannot be used in Windows paths so replace them:
 # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions

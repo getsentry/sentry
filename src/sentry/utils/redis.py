@@ -1,8 +1,7 @@
-from copy import deepcopy
 import functools
 import logging
 import posixpath
-
+from copy import deepcopy
 from threading import Lock
 
 import rb
@@ -10,16 +9,16 @@ from django.utils.functional import SimpleLazyObject
 from pkg_resources import resource_string
 from redis.client import Script, StrictRedis
 from redis.connection import ConnectionPool, Encoder
-from redis.exceptions import ConnectionError, BusyLoadingError
+from redis.exceptions import BusyLoadingError, ConnectionError
 from rediscluster import RedisCluster
 from rediscluster.exceptions import ClusterError
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
-from sentry.utils.warnings import DeprecatedSettingWarning
-from sentry.utils.versioning import Version, check_versions
 from sentry.utils.compat import map
+from sentry.utils.versioning import Version, check_versions
+from sentry.utils.warnings import DeprecatedSettingWarning
 
 logger = logging.getLogger(__name__)
 

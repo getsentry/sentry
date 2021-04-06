@@ -1,14 +1,13 @@
-import time
-import hmac
 import base64
 import hashlib
-
+import hmac
+import time
 from datetime import datetime
 from urllib.parse import quote
 
-from sentry.utils.dates import to_timestamp
-
 from django.utils.crypto import constant_time_compare, get_random_string
+
+from sentry.utils.dates import to_timestamp
 
 
 def generate_secret_key(length=32):

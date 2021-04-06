@@ -1,12 +1,11 @@
-import logging
-import threading
 import collections
 import functools
-from queue import Full, PriorityQueue
+import logging
+import threading
 from concurrent.futures import Future
-from concurrent.futures._base import RUNNING, FINISHED
+from concurrent.futures._base import FINISHED, RUNNING
+from queue import Full, PriorityQueue
 from time import time
-
 
 logger = logging.getLogger(__name__)
 

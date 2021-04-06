@@ -6,8 +6,8 @@ from django.db import transaction
 from django.utils.encoding import force_text
 
 from sentry.utils import json
-from sentry.utils.strings import truncatechars
 from sentry.utils.compat import filter
+from sentry.utils.strings import truncatechars
 
 
 def safe_execute(func, *args, **kwargs):

@@ -4,7 +4,6 @@
 # Import the stdlib json instead of sentry.utils.json, since this command is
 # run in setup.py
 import json  # NOQA
-
 import os
 from distutils import log
 from urllib.request import urlopen

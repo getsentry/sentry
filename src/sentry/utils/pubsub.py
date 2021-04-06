@@ -1,8 +1,8 @@
-import redis
 import logging
-
+from queue import Full, Queue
 from threading import Thread
-from queue import Queue, Full
+
+import redis
 
 
 class QueuedPublisherService:

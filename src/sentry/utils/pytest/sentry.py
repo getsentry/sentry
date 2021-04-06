@@ -7,7 +7,6 @@ from sentry_sdk import Hub
 from sentry.utils.compat import mock
 from sentry.utils.warnings import UnsupportedBackend
 
-
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
 )
@@ -15,6 +14,7 @@ TEST_ROOT = os.path.normpath(
 
 def pytest_configure(config):
     import warnings
+
     from django.utils.deprecation import RemovedInDjango20Warning, RemovedInDjango21Warning
 
     # These warnings should be kept in sync with sentry.runner.settings,
@@ -193,10 +193,9 @@ def pytest_configure(config):
         client.flushdb()
 
     # force celery registration
-    from sentry.celery import app  # NOQA
-
     # disable DISALLOWED_IPS
     from sentry import http
+    from sentry.celery import app  # NOQA
 
     http.DISALLOWED_IPS = set()
 
@@ -209,12 +208,12 @@ def register_extensions():
 
     from sentry import integrations
     from sentry.integrations.example import (
-        ExampleIntegrationProvider,
-        AliasedIntegrationProvider,
-        ExampleRepositoryProvider,
-        ServerExampleProvider,
-        FeatureFlagIntegration,
         AlertRuleIntegrationProvider,
+        AliasedIntegrationProvider,
+        ExampleIntegrationProvider,
+        ExampleRepositoryProvider,
+        FeatureFlagIntegration,
+        ServerExampleProvider,
     )
 
     integrations.register(ExampleIntegrationProvider)
@@ -281,8 +280,9 @@ def pytest_collection_modifyitems(config, items):
         # XXX: For some reason tests in `tests/acceptance` are not being
         # marked as snuba, so deselect test cases not a subclass of SnubaTestCase
         if os.environ.get("RUN_SNUBA_TESTS_ONLY"):
-            from sentry.testutils import SnubaTestCase
             import inspect
+
+            from sentry.testutils import SnubaTestCase
 
             if inspect.isclass(item.cls) and not issubclass(item.cls, SnubaTestCase):
                 # No need to group if we are deselecting this

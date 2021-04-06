@@ -1,4 +1,5 @@
 from functools import partial
+
 from yaml import load as _load
 
 try:

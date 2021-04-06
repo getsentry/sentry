@@ -4,20 +4,20 @@
 import logging
 import os
 import sys
-import pytest
-
 from contextlib import contextmanager
 from datetime import datetime
+from urllib.parse import urlparse
+
+import pytest
 from django.utils.text import slugify
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.action_chains import ActionChains
-from urllib.parse import urlparse
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.ui import WebDriverWait
 
-from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.compat import map
+from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger("sentry.testutils")
 

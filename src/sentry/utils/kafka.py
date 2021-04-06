@@ -2,11 +2,10 @@ import atexit
 import logging
 import signal
 
-from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
-from sentry.utils import metrics
-
 from django.conf import settings
 
+from sentry.utils import metrics
+from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 
 logger = logging.getLogger(__name__)

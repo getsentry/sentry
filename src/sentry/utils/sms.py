@@ -1,7 +1,7 @@
 import logging
-import requests
-
 from urllib.parse import quote
+
+import requests
 
 from sentry import options
 

@@ -4,19 +4,18 @@ import time
 from typing import List
 
 from confluent_kafka import (
+    OFFSET_BEGINNING,
+    OFFSET_END,
+    OFFSET_INVALID,
+    OFFSET_STORED,
     Consumer,
     KafkaError,
     KafkaException,
-    OFFSET_BEGINNING,
-    OFFSET_END,
-    OFFSET_STORED,
-    OFFSET_INVALID,
 )
 from confluent_kafka.admin import AdminClient
+from django.conf import settings
 
 from sentry.utils import kafka_config
-
-from django.conf import settings
 
 logger = logging.getLogger("batching-kafka-consumer")
 

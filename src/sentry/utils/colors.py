@@ -1,5 +1,5 @@
-import hashlib
 import colorsys
+import hashlib
 
 
 def get_hashed_color(string, l=0.5, s=0.5):  # noqa: E741

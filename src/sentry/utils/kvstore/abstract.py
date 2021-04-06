@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import Generic, Iterator, Optional, Sequence, Tuple, TypeVar
 
-
 K = TypeVar("K")
 V = TypeVar("V")
 

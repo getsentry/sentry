@@ -1,6 +1,5 @@
-from urllib.parse import urljoin
 import re
-
+from urllib.parse import urljoin
 
 _scheme_re = re.compile(r"^([a-zA-Z0-9-+]+://)(.*)$")
 

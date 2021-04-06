@@ -1,11 +1,9 @@
 import inspect
 import random
 
+import sentry_sdk
 from django.conf import settings
 from django.urls import resolve
-
-import sentry_sdk
-
 from sentry_sdk.client import get_options
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
@@ -74,7 +72,7 @@ UNSAFE_TAG = "_unsafe"
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import configure_scope, push_scope, capture_message, capture_exception  # NOQA
+from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
 
 
 def is_current_event_safe():
@@ -201,9 +199,9 @@ def traces_sampler(sampling_context):
 
 
 def configure_sdk():
-    from sentry_sdk.integrations.logging import LoggingIntegration
-    from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
 
     assert sentry_sdk.Hub.main.client is None

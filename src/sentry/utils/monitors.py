@@ -1,7 +1,8 @@
-from celery.signals import task_prerun, task_postrun
-from django.conf import settings
-from urllib.parse import urlparse
 from time import time
+from urllib.parse import urlparse
+
+from celery.signals import task_postrun, task_prerun
+from django.conf import settings
 
 from sentry.net.http import SafeSession
 from sentry.utils.sdk import capture_exception, configure_scope

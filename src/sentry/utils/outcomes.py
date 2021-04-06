@@ -1,10 +1,11 @@
-from datetime import datetime
-from django.conf import settings
-from enum import IntEnum
 import time
+from datetime import datetime
+from enum import IntEnum
+
+from django.conf import settings
 
 from sentry.constants import DataCategory
-from sentry.utils import json, metrics, kafka_config
+from sentry.utils import json, kafka_config, metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.pubsub import KafkaPublisher
 

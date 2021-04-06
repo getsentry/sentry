@@ -5,7 +5,6 @@ from django.utils import timezone
 from sentry.models.sentryapp import VALID_EVENTS
 from sentry.utils import json, redis
 
-
 BUFFER_SIZE = 100
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 

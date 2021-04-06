@@ -1,17 +1,17 @@
 import os.path
 import random
-import pytz
+from datetime import datetime, timedelta
 from uuid import uuid4
 
-from datetime import datetime, timedelta
+import pytz
 from django.utils import timezone
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
-from sentry.utils.dates import to_timestamp
 from sentry.utils.canonical import CanonicalKeyDict
+from sentry.utils.dates import to_timestamp
 
 epoch = datetime.utcfromtimestamp(0)
 

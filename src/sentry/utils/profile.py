@@ -1,9 +1,8 @@
 import sys
 import time
-
 from cProfile import Profile
-from pstats import Stats
 from functools import update_wrapper
+from pstats import Stats
 
 
 def profile_call(_func, *args, **kwargs):

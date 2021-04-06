@@ -6,7 +6,6 @@ from sentry_sdk.scope import add_global_event_processor
 
 from sentry.utils.safe import get_path
 
-
 SYSTEM_FRAMES = [
     "std::",
     "core::",
