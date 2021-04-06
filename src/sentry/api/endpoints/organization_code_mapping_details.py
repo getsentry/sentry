@@ -28,6 +28,23 @@ class OrganizationCodeMappingDetailsEndpoint(
 
         return (args, kwargs)
 
+    def _get_codeowner_contents(self, config):
+        integration = config.organization_integration.integration
+        install = integration.get_installation(config.organization_integration.organization_id)
+        return install.get_codeowner_file(config.repository, ref=config.default_branch)
+
+    def get(self, request, config_id, organization, config):
+        serialized_config = serialize(config, request.user)
+
+        if request.GET.get("codeowner_contents"):
+            codeowner_contents = self._get_codeowner_contents(config)
+            serialized_config["codeowner_contents"] = codeowner_contents
+
+        return self.respond(
+            serialized_config,
+            status=status.HTTP_200_OK,
+        )
+
     def put(self, request, config_id, organization, config):
         """
         Update a repository project path config
