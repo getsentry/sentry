@@ -19,7 +19,6 @@ import Placeholder from 'app/components/placeholder';
 import ProgressBar from 'app/components/progressBar';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
-import GroupRowActions from 'app/components/stream/groupRowActions';
 import TimeSince from 'app/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
@@ -43,7 +42,7 @@ import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {getTabs, isForReviewQuery} from 'app/views/issueList/utils';
+import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -77,8 +76,6 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
-  onMarkReviewed?: (itemIds: string[]) => void;
-  onDelete?: () => void;
   showInboxTime?: boolean;
   index?: number;
   // TODO(ts): higher order functions break defaultprops export types
@@ -148,7 +145,7 @@ class StreamGroup extends React.Component<Props, State> {
 
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
-      // On the inbox tab and the inbox reason is removed
+      // When searching is:for_review and the inbox reason is removed
       const reviewed =
         state.reviewed ||
         (isForReviewQuery(query) &&
@@ -175,7 +172,7 @@ class StreamGroup extends React.Component<Props, State> {
   trackClick = () => {
     const {query, organization} = this.props;
     const {data} = this.state;
-    if (isForReviewQuery(query)) {
+    if (query === Query.FOR_REVIEW) {
       trackAnalyticsEvent({
         eventKey: 'inbox_tab.issue_clicked',
         eventName: 'Clicked Issue from Inbox Tab',
@@ -345,9 +342,7 @@ class StreamGroup extends React.Component<Props, State> {
       organization,
       displayReprocessingLayout,
       showInboxTime,
-      onMarkReviewed,
       useFilteredStats,
-      onDelete,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -557,18 +552,6 @@ class StreamGroup extends React.Component<Props, State> {
                 onAssign={this.trackAssign}
               />
             </AssigneeWrapper>
-            {canSelect && hasInbox && (
-              <ActionsWrapper>
-                <GroupRowActions
-                  group={data}
-                  orgSlug={organization.slug}
-                  selection={selection}
-                  onDelete={onDelete}
-                  onMarkReviewed={onMarkReviewed}
-                  query={query}
-                />
-              </ActionsWrapper>
-            )}
           </React.Fragment>
         )}
       </Wrapper>
@@ -712,16 +695,6 @@ const AssigneeWrapper = styled('div')`
   width: 80px;
   margin: 0 ${space(2)};
   align-self: center;
-`;
-
-const ActionsWrapper = styled('div')`
-  width: 80px;
-  margin: 0 ${space(2)};
-  align-self: center;
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    display: none;
-  }
 `;
 
 // Reprocessing

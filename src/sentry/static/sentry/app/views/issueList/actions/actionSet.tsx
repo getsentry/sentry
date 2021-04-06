@@ -1,5 +1,4 @@
 import React from 'react';
-import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import ActionLink from 'app/components/actions/actionLink';
@@ -14,8 +13,6 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, ResolutionStatus} from 'app/types';
 import Projects from 'app/utils/projects';
-
-import {isForReviewQuery} from '../utils';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -37,8 +34,6 @@ type Props = {
   onUpdate: (data?: any) => void;
   selectedProjectSlug?: string;
   hasInbox?: boolean;
-  inboxGuideActiveReview: boolean;
-  inboxGuideActiveIgnore: boolean;
 };
 
 function ActionSet({
@@ -57,8 +52,6 @@ function ActionSet({
   onMerge,
   selectedProjectSlug,
   hasInbox,
-  inboxGuideActiveReview,
-  inboxGuideActiveIgnore,
 }: Props) {
   const numIssues = issues.size;
   const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
@@ -70,21 +63,6 @@ function ActionSet({
 
   return (
     <Wrapper hasInbox={hasInbox}>
-      {hasInbox && (
-        <GuideAnchor
-          target="inbox_guide_review"
-          disabled={!inboxGuideActiveReview}
-          position="bottom"
-        >
-          <div className="hidden-sm hidden-xs">
-            <ReviewAction
-              primary={isForReviewQuery(query)}
-              disabled={!anySelected}
-              onUpdate={onUpdate}
-            />
-          </div>
-        </GuideAnchor>
-      )}
       {selectedProjectSlug ? (
         <Projects orgId={orgSlug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -128,11 +106,7 @@ function ActionSet({
         />
       )}
 
-      <GuideAnchor
-        target="inbox_guide_ignore"
-        disabled={!inboxGuideActiveIgnore}
-        position="bottom"
-      >
+      <GuideAnchor target="inbox_guide_ignore" position="bottom">
         <IgnoreActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
@@ -141,6 +115,14 @@ function ActionSet({
           disabled={!anySelected}
         />
       </GuideAnchor>
+
+      {hasInbox && (
+        <GuideAnchor target="inbox_guide_review" position="bottom">
+          <div className="hidden-sm hidden-xs">
+            <ReviewAction disabled={!anySelected} onUpdate={onUpdate} />
+          </div>
+        </GuideAnchor>
+      )}
 
       <div className="hidden-md hidden-sm hidden-xs">
         <ActionLink
@@ -257,28 +239,10 @@ const Wrapper = styled('div')<{hasInbox?: boolean}>`
     width: 50%;
   }
   flex: 1;
-  margin-left: ${space(1)};
-  margin-right: ${space(1)};
+  margin: 0 ${space(1)};
   display: grid;
   gap: ${space(0.5)};
   grid-auto-flow: column;
   justify-content: flex-start;
   white-space: nowrap;
-
-  ${p =>
-    p.hasInbox &&
-    css`
-      animation: 0.15s linear ZoomUp forwards;
-    `};
-
-  @keyframes ZoomUp {
-    0% {
-      opacity: 0;
-      transform: translateY(5px);
-    }
-    100% {
-      opacity: 1;
-      transform: tranlsateY(0);
-    }
-  }
 `;

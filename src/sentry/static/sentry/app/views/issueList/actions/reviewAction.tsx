@@ -6,15 +6,13 @@ import {t} from 'app/locale';
 
 type Props = {
   onUpdate: (data?: any) => void;
-  primary?: boolean;
   disabled?: boolean;
 };
 
-function ReviewAction({disabled, primary, onUpdate}: Props) {
+function ReviewAction({disabled, onUpdate}: Props) {
   return (
     <ActionLink
       type="button"
-      priority={primary ? 'primary' : 'default'}
       disabled={disabled}
       onAction={() => onUpdate({inbox: false})}
       title={t('Mark Reviewed')}
