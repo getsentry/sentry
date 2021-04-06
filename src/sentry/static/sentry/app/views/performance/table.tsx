@@ -146,7 +146,7 @@ class Table extends React.Component<Props, State> {
 
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
-    if (tableMeta[fieldName] === 'integer' && defined(value)) {
+    if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
       return (
         <Tooltip
           title={value.toLocaleString()}
