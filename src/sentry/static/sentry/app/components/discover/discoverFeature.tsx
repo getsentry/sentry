@@ -10,8 +10,8 @@ type Props = {
 };
 
 /**
- * Provide a button that turns itself off if the current organization
- * doesn't have access to discover results.
+ * Provide a component that passes a prop to indicate if the current
+ * organization doesn't have access to discover results.
  */
 function DiscoverFeature({children}: Props) {
   const noFeatureMessage = t('Requires discover feature.');
