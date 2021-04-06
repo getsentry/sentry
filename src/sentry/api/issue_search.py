@@ -13,7 +13,6 @@ from sentry.api.event_search import (
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.utils import (
     parse_actor_or_none_value,
-    parse_actor_value,
     parse_release,
     parse_status_value,
     parse_user_value,
@@ -88,10 +87,6 @@ def parse_search_query(query):
             )
         )
     return IssueSearchVisitor(allow_boolean=False).visit(tree)
-
-
-def convert_actor_value(value, projects, user, environments):
-    return parse_actor_value(projects, value, user)
 
 
 def convert_actor_or_none_value(value, projects, user, environments):

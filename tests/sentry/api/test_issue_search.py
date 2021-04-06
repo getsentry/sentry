@@ -7,7 +7,7 @@ from sentry.api.event_search import (
     SearchValue,
 )
 from sentry.api.issue_search import (
-    convert_actor_value,
+    convert_actor_or_none_value,
     convert_query_values,
     convert_release_value,
     convert_user_value,
@@ -192,20 +192,28 @@ class ConvertStatusValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
-class ConvertActorValueTest(TestCase):
+class ConvertActorOrNoneValueTest(TestCase):
     def test_user(self):
-        assert convert_actor_value("me", [self.project], self.user, None) == convert_user_value(
+        assert convert_actor_or_none_value(
             "me", [self.project], self.user, None
-        )
+        ) == convert_user_value("me", [self.project], self.user, None)
+
+    def test_me_or_none(self):
+        assert convert_actor_or_none_value("me_or_none", [self.project], self.user, None) == [
+            "me_or_none",
+            self.user,
+        ]
 
     def test_team(self):
         assert (
-            convert_actor_value("#%s" % self.team.slug, [self.project], self.user, None)
+            convert_actor_or_none_value("#%s" % self.team.slug, [self.project], self.user, None)
             == self.team
         )
 
     def test_invalid_team(self):
-        assert convert_actor_value("#never_upgrade", [self.project], self.user, None).id == 0
+        assert (
+            convert_actor_or_none_value("#never_upgrade", [self.project], self.user, None).id == 0
+        )
 
 
 class ConvertUserValueTest(TestCase):
