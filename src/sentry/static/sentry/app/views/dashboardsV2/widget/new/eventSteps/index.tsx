@@ -41,7 +41,7 @@ function EventSteps({
     <React.Fragment>
       <BuildStep
         title={t('Begin your search')}
-        description={t('Add another query to compare projects, organizations, etc.')}
+        description={t('Add another query to compare projects, tags, etc.')}
       >
         <Queries
           queries={eventQueries}

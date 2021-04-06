@@ -64,13 +64,7 @@ function Queries({
         const displayDeleteButton = queries.length > 1;
         const displayLegendAlias = !hideLegendAlias;
         return (
-          <Field
-            key={queryIndex}
-            inline={false}
-            style={{paddingRight: 0}}
-            flexibleControlStateSize
-            stacked
-          >
+          <StyledField key={queryIndex} inline={false} flexibleControlStateSize stacked>
             <Fields
               displayDeleteButton={displayDeleteButton}
               displayLegendAlias={displayLegendAlias}
@@ -110,7 +104,7 @@ function Queries({
                 />
               )}
             </Fields>
-          </Field>
+          </StyledField>
         );
       })}
       {canAddNewQuery() && (
@@ -155,4 +149,8 @@ const Fields = styled('div')<{displayDeleteButton: boolean; displayLegendAlias: 
   grid-template-columns: ${fieldsColumns};
   grid-gap: ${space(1)};
   align-items: center;
+`;
+
+const StyledField = styled(Field)`
+  padding-right: 0;
 `;

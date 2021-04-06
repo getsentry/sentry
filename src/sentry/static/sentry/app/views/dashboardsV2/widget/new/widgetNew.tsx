@@ -46,7 +46,7 @@ type Props = AsyncView['props'] &
   };
 
 type State = AsyncView['state'] & {
-  title: 'string';
+  title: string;
   displayType: DisplayType;
   interval: string;
   eventQueries: Widget['queries'];

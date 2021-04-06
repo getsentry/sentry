@@ -43,13 +43,7 @@ function Queries({queries, onRemoveQuery, onAddQuery, onChangeQuery}: Props) {
     <div>
       {queries.map((metricQuery, queryIndex) => {
         return (
-          <Field
-            key={queryIndex}
-            inline={false}
-            style={{paddingRight: 0}}
-            flexibleControlStateSize
-            stacked
-          >
+          <StyledField key={queryIndex} inline={false} flexibleControlStateSize stacked>
             <Fields displayDeleteButton={queries.length > 1}>
               <SmartSearchBar
                 hasRecentSearches
@@ -61,7 +55,7 @@ function Queries({queries, onRemoveQuery, onAddQuery, onChangeQuery}: Props) {
                 onGetTagValues={getTagValue}
                 excludeEnvironment
               />
-              <SelectField
+              <StyledSelectField
                 name="groupBy"
                 placeholder={t('Select Group By')}
                 choices={metricGroupByOptions}
@@ -69,13 +63,12 @@ function Queries({queries, onRemoveQuery, onAddQuery, onChangeQuery}: Props) {
                 onChange={value => {
                   return handleFieldChange(queryIndex, 'groupBy')(value);
                 }}
-                style={{paddingRight: 0, paddingBottom: 0}}
                 inline={false}
                 allowClear={false}
                 flexibleControlStateSize
                 stacked
               />
-              <SelectField
+              <StyledSelectField
                 name="aggregation"
                 placeholder={t('Select Aggregation')}
                 choices={Object.values(Aggregation).map(aggregation => [
@@ -84,7 +77,6 @@ function Queries({queries, onRemoveQuery, onAddQuery, onChangeQuery}: Props) {
                 ])}
                 value={metricQuery.aggregation}
                 onChange={value => handleFieldChange(queryIndex, 'aggregation')(value)}
-                style={{paddingRight: 0, paddingBottom: 0}}
                 inline={false}
                 allowClear={false}
                 flexibleControlStateSize
@@ -104,7 +96,7 @@ function Queries({queries, onRemoveQuery, onAddQuery, onChangeQuery}: Props) {
                 />
               )}
             </Fields>
-          </Field>
+          </StyledField>
         );
       })}
       <Button
@@ -129,4 +121,13 @@ const Fields = styled('div')<{displayDeleteButton: boolean}>`
     p.displayDeleteButton ? '1fr 0.5fr 0.5fr max-content' : '1fr 0.5fr 0.5fr'};
   grid-gap: ${space(1)};
   align-items: center;
+`;
+
+const StyledField = styled(Field)`
+  padding-right: 0;
+`;
+
+const StyledSelectField = styled(SelectField)`
+  padding-right: 0;
+  padding-bottom: 0;
 `;

@@ -1,5 +1,6 @@
 import React from 'react';
 import {components, OptionProps} from 'react-select';
+import styled from '@emotion/styled';
 
 import Highlight from 'app/components/highlight';
 import {t} from 'app/locale';
@@ -28,7 +29,7 @@ function MetricSteps({
         title={t('Choose your y-axis metric')}
         description={t('Determine what type of metric you want to graph by.')}
       >
-        <SelectField
+        <StyledSelectField
           name="metric"
           choices={metrics.map(metric => [metric, metric])}
           placeholder={t('Select metric')}
@@ -51,7 +52,6 @@ function MetricSteps({
               );
             },
           }}
-          style={{paddingRight: 0}}
           inline={false}
           flexibleControlStateSize
           stacked
@@ -60,7 +60,7 @@ function MetricSteps({
       </BuildStep>
       <BuildStep
         title={t('Begin your search')}
-        description={t('Add another query to compare projects, organizations, etc.')}
+        description={t('Add another query to compare projects, tags, etc.')}
       >
         <Queries
           queries={metricQueries}
@@ -74,3 +74,7 @@ function MetricSteps({
 }
 
 export default MetricSteps;
+
+const StyledSelectField = styled(SelectField)`
+  padding-right: 0;
+`;
