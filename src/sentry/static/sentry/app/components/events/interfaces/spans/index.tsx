@@ -11,6 +11,7 @@ import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
+import {objectIsEmpty} from 'app/utils';
 import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
@@ -152,7 +153,7 @@ class SpansInterface extends React.Component<Props, State> {
     });
 
     return (
-      <div>
+      <Container hasErrors={!objectIsEmpty(event.errors)}>
         <DiscoverQuery
           location={location}
           eventView={traceErrorsEventView}
@@ -199,10 +200,22 @@ class SpansInterface extends React.Component<Props, State> {
             );
           }}
         </DiscoverQuery>
-      </div>
+      </Container>
     );
   }
 }
+
+const Container = styled('div')<{hasErrors: boolean}>`
+  ${p =>
+    p.hasErrors &&
+    `
+  padding: ${space(2)} 0;
+
+  @media (min-width: ${p.theme.breakpoints[0]}) {
+    padding: ${space(3)} 0 0 0;
+  }
+  `}
+`;
 
 const Search = styled('div')`
   display: flex;
