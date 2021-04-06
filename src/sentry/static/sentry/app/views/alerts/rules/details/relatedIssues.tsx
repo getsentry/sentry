@@ -18,7 +18,6 @@ type Props = {
   organization: OrganizationSummary;
   rule: IncidentRule;
   projects: Project[];
-  filter: string;
   timePeriod: TimePeriodType;
 };
 
@@ -36,7 +35,7 @@ class RelatedIssues extends React.Component<Props> {
   };
 
   render() {
-    const {rule, projects, filter, organization, timePeriod} = this.props;
+    const {rule, projects, organization, timePeriod} = this.props;
     const {start, end} = timePeriod;
 
     const path = `/organizations/${organization.slug}/issues/`;
@@ -46,7 +45,7 @@ class RelatedIssues extends React.Component<Props> {
       groupStatsPeriod: 'auto',
       limit: 5,
       sort: rule.aggregate === 'count_unique(user)' ? 'user' : 'freq',
-      query: `${rule.query} ${filter}`,
+      query: rule.query,
       project: projects.map(project => project.id),
     };
     const issueSearch = {
