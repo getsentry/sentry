@@ -350,7 +350,12 @@ class OrganizationView(BaseView):
         )
         if not active_organization:
             try:
-                Organization.objects.get_from_cache(slug=organization_slug)
+                organization = Organization.objects.get_from_cache(slug=organization_slug)
+                om = OrganizationMember.objects.get(
+                    organization=organization, email=self.request.user.email
+                )
+                if om.user is None:
+                    return False  # user is in invited state, can't set active org
             except Organization.DoesNotExist:
                 pass
             else:
