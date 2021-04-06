@@ -40,6 +40,7 @@ type Props = WithRouterProps & {
   projects: Project[] | AvatarProject[];
   metricText: React.ReactNode;
   interval: string;
+  filter: React.ReactNode;
   query: string;
   orgId: string;
 };
@@ -370,6 +371,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       projects,
       interval,
       metricText,
+      filter,
       query,
       incidents,
     } = this.props;
@@ -550,8 +552,11 @@ class MetricChart extends React.PureComponent<Props, State> {
             <ChartPanel>
               <PanelBody withPadding>
                 <ChartHeader>
-                  <PresetName>{this.metricPreset?.name ?? t('Custom metric')}</PresetName>
-                  {metricText}
+                  <ChartTitle>
+                    <PresetName>{this.metricPreset?.name ?? t('Custom metric')}</PresetName>
+                    {metricText}
+                  </ChartTitle>
+                  {filter}
                 </ChartHeader>
                 {this.renderChart(
                   timeseriesData,
@@ -575,8 +580,11 @@ const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
 `;
 
-const ChartHeader = styled('header')`
-  margin-bottom: ${space(1)};
+const ChartHeader = styled('div')`
+  margin-bottom: ${space(3)};
+`;
+
+const ChartTitle = styled('header')`
   display: flex;
   flex-direction: row;
 `;

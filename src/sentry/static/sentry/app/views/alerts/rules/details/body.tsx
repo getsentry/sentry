@@ -109,6 +109,22 @@ export default class DetailsBody extends React.Component<Props> {
     return getInterval({start, end}, true);
   }
 
+  getFilter() {
+    const {rule} = this.props;
+    if (!rule) {
+      return null;
+    }
+
+    return (
+      <Filters>
+        <span>
+          {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
+        </span>
+        <span>{rule?.query && <code>{rule?.query}</code>}</span>
+      </Filters>
+    );
+  }
+
   renderTrigger(trigger: Trigger): React.ReactNode {
     const {rule} = this.props;
 
@@ -158,12 +174,7 @@ export default class DetailsBody extends React.Component<Props> {
         <RuleText>{rule.environment ?? 'All'}</RuleText>
 
         <SidebarHeading>{t('Filters')}</SidebarHeading>
-        <Filters>
-          <span>
-            {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
-          </span>
-          <span>{rule?.query && <code>{rule?.query}</code>}</span>
-        </Filters>
+        {this.getFilter()}
 
         <SidebarHeading>{t('Conditions')}</SidebarHeading>
         {criticalTrigger && this.renderTrigger(criticalTrigger)}
@@ -352,6 +363,7 @@ export default class DetailsBody extends React.Component<Props> {
                     projects={projects}
                     metricText={this.getMetricText()}
                     interval={this.getInterval()}
+                    filter={this.getFilter()}
                     query={queryWithTypeFilter}
                     orgId={orgId}
                   />
@@ -509,9 +521,11 @@ const RuleText = styled('div')`
 `;
 
 const Filters = styled('div')`
+  display: inline-flex;
   width: 100%;
   overflow-wrap: break-word;
   font-size: ${p => p.theme.fontSizeMedium};
+  gap: ${space(1)};
 `;
 
 const TriggerCondition = styled('div')`
