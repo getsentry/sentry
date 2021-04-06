@@ -116,14 +116,14 @@ function normalizeQueries(
   queries = queries.map(query => {
     let fields = query.fields.filter(isAggregateField);
 
-    if (isTimeseriesChart && fields.length && fields.length > 3) {
-      // Timeseries charts supports at most 3 fields.
-      fields = fields.slice(0, 3);
-    }
-
     if (isTimeseriesChart || displayType === 'world_map') {
       // Filter out fields that will not generate numeric output types
       fields = fields.filter(field => isLegalYAxisType(aggregateOutputType(field)));
+    }
+
+    if (isTimeseriesChart && fields.length && fields.length > 3) {
+      // Timeseries charts supports at most 3 fields.
+      fields = fields.slice(0, 3);
     }
 
     return {
