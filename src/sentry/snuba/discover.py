@@ -961,10 +961,7 @@ def get_histogram_column(fields, key_column, histogram_params, array_column):
     :param HistogramParms histogram_params: The histogram parameters used.
     :param str array_column: Array column prefix
     """
-    array_column_value = "measurements_value"
-    if array_column:
-        array_column_value = f"{array_column}_value"
-    field = fields[0] if key_column is None else array_column_value
+    field = fields[0] if key_column is None else f"{array_column}_value"
     return f"histogram({field}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})"
 
 
