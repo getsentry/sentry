@@ -1,9 +1,9 @@
-import progressbar
 import re
 
+import progressbar
 from django.db import connections, router
-from sentry import eventstore
 
+from sentry import eventstore
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
