@@ -664,13 +664,25 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
         )
         assert self.adapter.get_send_to_owners(event_single_user, self.project) == {self.user2.id}
 
-    def test_disable_alerts(self):
-        """ Make sure that disabling mail alerts works as expected. """
+    def test_disable_alerts_user_scope(self):
         event_all_users = self.store_event(
             data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
 
-        # Per-project setting.
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user2,
+        )
+
+        assert self.user2.id not in self.adapter.get_send_to_owners(event_all_users, self.project)
+
+    def test_disable_alerts_project_scope(self):
+        event_all_users = self.store_event(
+            data=self.make_event_data("foo.cbl"), project_id=self.project.id
+        )
+
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
@@ -681,15 +693,26 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
 
         assert self.user2.id not in self.adapter.get_send_to_owners(event_all_users, self.project)
 
-        # Clear settings so we can try again another way.
-        NotificationSetting.objects.remove_for_user(self.user2)
+    def test_disable_alerts_multiple_scopes(self):
+        event_all_users = self.store_event(
+            data=self.make_event_data("foo.cbl"), project_id=self.project.id
+        )
 
         # Project-independent setting.
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user2,
+        )
+
+        # Per-project setting.
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
             user=self.user2,
+            project=self.project,
         )
 
         assert self.user2.id not in self.adapter.get_send_to_owners(event_all_users, self.project)
