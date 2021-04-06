@@ -26,7 +26,9 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
         :qparam string type: If set, filter the NotificationSettings to this type.
         :auth required:
         """
-        if not features.has("organizations:incidents", team.organization, actor=request.user):
+        if not features.has(
+            "organizations:notification-platform", team.organization, actor=request.user
+        ):
             raise ResourceDoesNotExist
 
         type_option = validate_type_option(request.GET.get("type"))
@@ -70,7 +72,9 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
 
         :auth required:
         """
-        if not features.has("organizations:incidents", team.organization, actor=request.user):
+        if not features.has(
+            "organizations:notification-platform", team.organization, actor=request.user
+        ):
             raise ResourceDoesNotExist
 
         notification_settings = NotificationSettingsSerializer.validate(request.data, team=team)

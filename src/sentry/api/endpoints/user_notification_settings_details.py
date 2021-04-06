@@ -14,7 +14,7 @@ from sentry.models.notificationsetting import NotificationSetting
 def validate_has_feature(user: Any) -> None:
     if not any(
         [
-            features.has("organizations:incidents", organization, actor=user)
+            features.has("organizations:notification-platform", organization, actor=user)
             for organization in user.get_orgs()
         ]
     ):
