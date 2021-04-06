@@ -6,16 +6,14 @@ import moment from 'moment';
 
 import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import {IconEllipsis, IconUser} from 'app/icons';
+import {IconDelete, IconSettings, IconUser} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -97,42 +95,33 @@ class RuleListRow extends React.Component<Props, State> {
           <Access access={['alerts:write']}>
             {({hasAccess}) => (
               <ButtonBar gap={1}>
-                <DropdownLink
-                  anchorRight
-                  caret={false}
-                  title={
-                    <Button
-                      tooltipProps={{
-                        containerDisplayMode: 'flex',
-                      }}
-                      size="small"
-                      type="button"
-                      aria-label={t('Show more')}
-                      icon={<IconEllipsis size="xs" />}
-                    />
-                  }
+                <Confirm
+                  disabled={!hasAccess || !canEdit}
+                  message={tct(
+                    "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
+                    {
+                      name: rule.name,
+                    }
+                  )}
+                  header={t('Delete Alert Rule?')}
+                  priority="danger"
+                  confirmText={t('Delete Rule')}
+                  onConfirm={() => onDelete(slug, rule)}
                 >
-                  <MenuItemActionLink href={editLink} title={t('Edit')}>
-                    {t('Edit')}
-                  </MenuItemActionLink>
-                  <Confirm
-                    disabled={!hasAccess || !canEdit}
-                    message={tct(
-                      "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
-                      {
-                        name: rule.name,
-                      }
-                    )}
-                    header={t('Delete Alert Rule?')}
-                    priority="danger"
-                    confirmText={t('Delete Rule')}
-                    onConfirm={() => onDelete(slug, rule)}
-                  >
-                    <MenuItemActionLink title={t('Delete')}>
-                      {t('Delete')}
-                    </MenuItemActionLink>
-                  </Confirm>
-                </DropdownLink>
+                  <Button
+                    type="button"
+                    icon={<IconDelete />}
+                    size="small"
+                    title={t('Delete')}
+                  />
+                </Confirm>
+                <Button
+                  size="small"
+                  type="button"
+                  icon={<IconSettings />}
+                  title={t('Edit')}
+                  to={editLink}
+                />
               </ButtonBar>
             )}
           </Access>
