@@ -12,6 +12,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Version from 'app/components/version';
 import {t, tct} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Group, TagWithTopValues} from 'app/types';
 import {percent} from 'app/utils';
@@ -104,19 +105,18 @@ class GroupTags extends React.Component<Props, State> {
 
           return (
             <li key={tagValueIdx} data-test-id={tag.key}>
-              <GlobalSelectionLink
-                className="tag-bar"
+              <TagBarGlobalSelectionLink
                 to={{
                   pathname: `${baseUrl}events/`,
                   query: {query},
                 }}
               >
-                <span className="tag-bar-background" style={{width: pct + '%'}} />
-                <span className="tag-bar-label">{label}</span>
-                <span className="tag-bar-count">
+                <TagBarBackground style={{width: pct + '%'}} />
+                <TagBarLabel>{label}</TagBarLabel>
+                <TagBarCount>
                   <Count value={tagValue.count} />
-                </span>
-              </GlobalSelectionLink>
+                </TagBarCount>
+              </TagBarGlobalSelectionLink>
             </li>
           );
         });
@@ -174,6 +174,35 @@ const Container = styled('div')`
 const TagItem = styled('div')`
   padding: 0 ${space(1)};
   width: 50%;
+`;
+
+const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
+  position: relative;
+  display: flex;
+  line-height: 2.2;
+  color: #493e54;
+  margin-bottom: ${space(0.5)};
+  padding: 0 ${space(1)};
+`;
+
+const TagBarBackground = styled('div')`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: #f6f7f8;
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const TagBarLabel = styled('div')`
+  position: relative;
+  flex-grow: 1;
+  ${overflowEllipsis}
+`;
+
+const TagBarCount = styled('div')`
+  position: relative;
+  padding-left: ${space(2)};
 `;
 
 export default withApi(GroupTags);
