@@ -17,13 +17,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.models import AlertRule
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.snuba.dataset import Dataset
-from sentry.models import (
-    Rule,
-    RuleStatus,
-    Project,
-    OrganizationMemberTeam,
-    Team,
-)
+from sentry.models import Rule, RuleStatus, Project, OrganizationMemberTeam, Team, TeamStatus
 from sentry.utils.cursors import StringCursor, Cursor
 
 
