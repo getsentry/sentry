@@ -24,7 +24,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   trans_duration: t('Transaction Duration'),
   apdex: t('Apdex'),
   failure_rate: t('Failure Rate'),
-  lcp: t('Longest Contentful Paint'),
+  lcp: t('Largest Contentful Paint'),
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
   fcp: t('First Contentful Paint'),
