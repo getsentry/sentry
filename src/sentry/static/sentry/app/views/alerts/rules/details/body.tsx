@@ -43,16 +43,19 @@ import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 
+export type TimePeriodType = {
+  start: string;
+  end: string;
+  period: string;
+  label: string;
+  custom?: boolean;
+};
+
 type Props = {
   api: Client;
   rule?: IncidentRule;
   incidents?: Incident[];
-  timePeriod: {
-    start: string;
-    end: string;
-    label: string;
-    custom?: boolean;
-  };
+  timePeriod: TimePeriodType;
   organization: Organization;
   location: Location;
   handleTimePeriodChange: (value: string) => void;
@@ -106,6 +109,22 @@ export default class DetailsBody extends React.Component<Props> {
     return getInterval({start, end}, true);
   }
 
+  getFilter() {
+    const {rule} = this.props;
+    if (!rule) {
+      return null;
+    }
+
+    return (
+      <Filters>
+        <span>
+          {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
+        </span>
+        <span>{rule?.query && <code>{rule?.query}</code>}</span>
+      </Filters>
+    );
+  }
+
   renderTrigger(trigger: Trigger): React.ReactNode {
     const {rule} = this.props;
 
@@ -155,12 +174,7 @@ export default class DetailsBody extends React.Component<Props> {
         <RuleText>{rule.environment ?? 'All'}</RuleText>
 
         <SidebarHeading>{t('Filters')}</SidebarHeading>
-        <Filters>
-          <span>
-            {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
-          </span>
-          <span>{rule?.query && <code>{rule?.query}</code>}</span>
-        </Filters>
+        {this.getFilter()}
 
         <SidebarHeading>{t('Conditions')}</SidebarHeading>
         {criticalTrigger && this.renderTrigger(criticalTrigger)}
@@ -327,7 +341,11 @@ export default class DetailsBody extends React.Component<Props> {
                     <div>
                       <SidebarHeading noMargin>
                         {t('Time Interval')}
-                        <Tooltip title="This is the time period which the metric is evaluated by.">
+                        <Tooltip
+                          title={t(
+                            'This is the time period which the metric is evaluated by.'
+                          )}
+                        >
                           <IconInfo size="xs" />
                         </Tooltip>
                       </SidebarHeading>
@@ -345,6 +363,7 @@ export default class DetailsBody extends React.Component<Props> {
                     projects={projects}
                     metricText={this.getMetricText()}
                     interval={this.getInterval()}
+                    filter={this.getFilter()}
                     query={queryWithTypeFilter}
                     orgId={orgId}
                   />
@@ -357,8 +376,7 @@ export default class DetailsBody extends React.Component<Props> {
                           projects={((projects as Project[]) || []).filter(project =>
                             rule.projects.includes(project.slug)
                           )}
-                          start={timePeriod.start}
-                          end={timePeriod.end}
+                          timePeriod={timePeriod}
                           filter={queryWithTypeFilter}
                         />
                       )}
@@ -409,6 +427,8 @@ const HeaderContainer = styled('div')`
 `;
 
 const StyledLayoutBody = styled(Layout.Body)`
+  flex-grow: 0;
+  padding-bottom: 0 !important;
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: auto;
   }
@@ -501,9 +521,11 @@ const RuleText = styled('div')`
 `;
 
 const Filters = styled('div')`
+  display: inline-flex;
   width: 100%;
   overflow-wrap: break-word;
   font-size: ${p => p.theme.fontSizeMedium};
+  gap: ${space(1)};
 `;
 
 const TriggerCondition = styled('div')`
