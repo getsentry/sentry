@@ -7,7 +7,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
-from sentry.api.validators.notifications import validate_type_option
+from sentry.api.validators.notifications import validate, validate_type_option
 from sentry.models.notificationsetting import NotificationSetting
 
 
@@ -89,6 +89,7 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
         :auth required:
         """
         validate_has_feature(user)
-        NotificationSetting.objects.update_settings_bulk(request.data, user=user)
+        notification_settings = validate(request.data)
+        NotificationSetting.objects.update_settings_bulk(notification_settings, user=user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

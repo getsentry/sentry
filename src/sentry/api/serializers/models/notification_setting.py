@@ -1,24 +1,8 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, Mapping, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, Mapping
 
-from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers import Serializer
-from sentry.api.validators.notifications import (
-    validate_organizations,
-    validate_projects,
-    validate_provider,
-    validate_scope,
-    validate_scope_type,
-    validate_type,
-    validate_value,
-)
-from sentry.models.integration import ExternalProviders
 from sentry.models.notificationsetting import NotificationSetting
-from sentry.notifications.types import (
-    NotificationScopeType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
 
 
 class NotificationSettingsSerializer(Serializer):  # type: ignore
@@ -88,70 +72,3 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
             data[n.type_str][n.scope_str][n.scope_identifier][n.provider_str] = n.value_str
 
         return data
-
-    @staticmethod
-    def validate(
-        data: Mapping[str, Mapping[str, Mapping[int, Mapping[str, str]]]],
-        user: Optional[Any] = None,
-        team: Optional[Any] = None,
-    ) -> Iterable[
-        Tuple[
-            ExternalProviders,
-            NotificationSettingTypes,
-            NotificationScopeType,
-            int,
-            NotificationSettingOptionValues,
-        ],
-    ]:
-        """
-        Validate some serialized notification settings. If invalid, raise an
-        exception. Otherwise, return them as a list of tuples.
-        """
-        if not data or len(data) < 1:
-            raise ParameterValidationError("Payload required")
-
-        notification_settings_to_update: Dict[
-            Tuple[
-                NotificationSettingTypes,
-                NotificationScopeType,
-                int,
-                ExternalProviders,
-            ],
-            NotificationSettingOptionValues,
-        ] = {}
-        project_ids_to_look_up: Set[int] = set()
-        organization_ids_to_look_up: Set[int] = set()
-        for type_key, notifications_by_type in data.items():
-            type = validate_type(type_key)
-
-            for scope_type_key, notifications_by_scope_type in notifications_by_type.items():
-                scope_type = validate_scope_type(scope_type_key)
-
-                for scope_id, notifications_by_scope_id in notifications_by_scope_type.items():
-                    scope_id = validate_scope(scope_id, scope_type, user)
-
-                    if scope_type == NotificationScopeType.PROJECT:
-                        project_ids_to_look_up.add(scope_id)
-                    elif scope_type == NotificationScopeType.ORGANIZATION:
-                        organization_ids_to_look_up.add(scope_id)
-
-                    for provider_key, value_key in notifications_by_scope_id.items():
-                        provider = validate_provider(provider_key)
-                        value = validate_value(type, value_key)
-
-                        notification_settings_to_update[
-                            (type, scope_type, scope_id, provider)
-                        ] = value
-
-        validate_projects(project_ids_to_look_up, user=user, team=team)
-        validate_organizations(organization_ids_to_look_up, user=user, team=team)
-
-        return {
-            (provider, type, scope_type, scope_id, value)
-            for (
-                type,
-                scope_type,
-                scope_id,
-                provider,
-            ), value in notification_settings_to_update.items()
-        }

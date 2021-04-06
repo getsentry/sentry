@@ -8,7 +8,7 @@ from sentry.api.bases.team import TeamEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
-from sentry.api.validators.notifications import validate_type_option
+from sentry.api.validators.notifications import validate, validate_type_option
 from sentry.models.notificationsetting import NotificationSetting
 
 
@@ -77,7 +77,7 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
         ):
             raise ResourceDoesNotExist
 
-        notification_settings = NotificationSettingsSerializer.validate(request.data, team=team)
+        notification_settings = validate(request.data, team=team)
         NotificationSetting.objects.update_settings_bulk(notification_settings, team.actor_id)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

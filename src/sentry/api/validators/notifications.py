@@ -1,4 +1,4 @@
-from typing import Any, Dict, Mapping, Optional, Set, Union
+from typing import Any, Dict, Iterable, Mapping, Optional, Set, Tuple, Union
 
 from sentry.api.exceptions import ParameterValidationError
 from sentry.models.integration import ExternalProviders
@@ -116,3 +116,69 @@ def validate_value(
     if not helper_validate(type, value):
         raise ParameterValidationError(f"Invalid value for type {type}: {value} in {context}")
     return value
+
+
+def validate(
+    data: Mapping[str, Mapping[str, Mapping[int, Mapping[str, str]]]],
+    user: Optional[Any] = None,
+    team: Optional[Any] = None,
+) -> Iterable[
+    Tuple[
+        ExternalProviders,
+        NotificationSettingTypes,
+        NotificationScopeType,
+        int,
+        NotificationSettingOptionValues,
+    ],
+]:
+    """
+    Validate some serialized notification settings. If invalid, raise an
+    exception. Otherwise, return them as a list of tuples.
+    """
+
+    if not data:
+        raise ParameterValidationError("Payload required")
+
+    notification_settings_to_update: Dict[
+        Tuple[
+            NotificationSettingTypes,
+            NotificationScopeType,
+            int,
+            ExternalProviders,
+        ],
+        NotificationSettingOptionValues,
+    ] = {}
+    project_ids_to_look_up: Set[int] = set()
+    organization_ids_to_look_up: Set[int] = set()
+    for type_key, notifications_by_type in data.items():
+        type = validate_type(type_key)
+
+        for scope_type_key, notifications_by_scope_type in notifications_by_type.items():
+            scope_type = validate_scope_type(scope_type_key)
+
+            for scope_id, notifications_by_scope_id in notifications_by_scope_type.items():
+                scope_id = validate_scope(scope_id, scope_type, user)
+
+                if scope_type == NotificationScopeType.PROJECT:
+                    project_ids_to_look_up.add(scope_id)
+                elif scope_type == NotificationScopeType.ORGANIZATION:
+                    organization_ids_to_look_up.add(scope_id)
+
+                for provider_key, value_key in notifications_by_scope_id.items():
+                    provider = validate_provider(provider_key)
+                    value = validate_value(type, value_key)
+
+                    notification_settings_to_update[(type, scope_type, scope_id, provider)] = value
+
+    validate_projects(project_ids_to_look_up, user=user, team=team)
+    validate_organizations(organization_ids_to_look_up, user=user, team=team)
+
+    return {
+        (provider, type, scope_type, scope_id, value)
+        for (
+            type,
+            scope_type,
+            scope_id,
+            provider,
+        ), value in notification_settings_to_update.items()
+    }
