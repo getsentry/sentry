@@ -686,7 +686,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             # Some random id so its separated from the rest of the trace
             parent_span_id=parent_span_id,
             project_id=self.project.id,
-            # Longer duration means that this even happened first, and should be ordered first
+            # Longer duration means that this event happened first, and should be ordered first
             duration=1250,
         )
         root_sibling_event = self.create_event(

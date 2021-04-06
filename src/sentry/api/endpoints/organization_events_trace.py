@@ -475,7 +475,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 orphans.extend(result)
             elif root:
                 root_traces = result
-        # We sort orphans and roots separately because we always want the root as the first element
+        # We sort orphans and roots separately because we always want the root(s) as the first element(s)
         root_traces.sort(key=child_sort_key)
         orphans.sort(key=child_sort_key)
         return root_traces + orphans
