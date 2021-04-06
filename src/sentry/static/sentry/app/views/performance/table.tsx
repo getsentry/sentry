@@ -146,9 +146,13 @@ class Table extends React.Component<Props, State> {
 
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
-    if (tableMeta[fieldName] === 'integer' && defined(value)) {
+    if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
       return (
-        <Tooltip title={value.toLocaleString()} containerDisplayMode="block">
+        <Tooltip
+          title={value.toLocaleString()}
+          containerDisplayMode="block"
+          position="right"
+        >
           <CellAction
             column={column}
             dataRow={dataRow}
