@@ -3,6 +3,7 @@ import logging
 import functools
 import os
 import random
+import requests
 import pytz
 import time
 
@@ -31,6 +32,7 @@ from sentry.models import (
     CommitFileChange,
     File,
     Project,
+    ProjectKey,
     Release,
     ReleaseFile,
     ReleaseCommit,
@@ -57,6 +59,9 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
+crash_free_rate_by_release = {"3.0": 1.0, "3.1": 0.99, "3.2": 0.9}
+# higher crash rate if we are doing a quick org
+crash_free_rate_by_release_quick = {"3.0": 1.0, "3.1": 0.95, "3.2": 0.75}
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +104,7 @@ def distribution_v1(hour: int) -> int:
 
 def distribution_v2(hour: int) -> int:
     if hour > 18 and hour < 20:
-        return 22
+        return 14
     if hour > 9 and hour < 14:
         return 7
     if hour > 3 and hour < 22:
@@ -117,7 +122,17 @@ def distribution_v3(hour: int) -> int:
     return 1
 
 
-distrubtion_fns = [distribution_v1, distribution_v2, distribution_v3]
+def distribution_v4(hour: int) -> int:
+    if hour > 13 and hour < 20:
+        return 11
+    if hour > 5 and hour < 12:
+        return 7
+    if hour > 3 and hour < 22:
+        return 4
+    return 2
+
+
+distrubtion_fns = [distribution_v1, distribution_v2, distribution_v3, distribution_v4]
 
 
 def gen_measurements(full_duration):
@@ -258,7 +273,7 @@ def generate_releases(projects, quick):
     org_id = org.id
     for i in range(NUM_RELEASES):
         release = Release.objects.create(
-            version=f"V{i + 1}",
+            version=f"3.{i}",
             organization_id=org_id,
             date_added=release_time,
         )
@@ -372,6 +387,35 @@ def generate_issue_alert(project):
         "frequency": 30,
     }
     project_rules.Creator.run(**data)
+
+
+def send_session(sid, user_id, dsn, time, release, **kwargs):
+    """
+    Creates an envelope payload for a session and posts it to Relay
+    """
+    formated_time = time.isoformat()
+    envelope_headers = "{}"
+    item_headers = json.dumps({"type": "session"})
+    data = {
+        "sid": sid,
+        "did": str(user_id),
+        "started": formated_time,
+        "duration": random.randrange(2, 60),
+        "attrs": {
+            "release": release,
+            "environment": "prod",
+        },
+    }
+    data.update(**kwargs)
+    core = json.dumps(data)
+
+    body = f"{envelope_headers}\n{item_headers}\n{core}"
+
+    endpoint = dsn.get_endpoint()
+    url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
+    resp = requests.post(url=url, data=body)
+    logger.info("send_session.send")
+    resp.raise_for_status()
 
 
 def generate_saved_query(project, transaction_title, name):
@@ -592,6 +636,9 @@ def fix_breadrumbs(event_json, quick):
     BREADCRUMB_LOOKBACK_TIME = get_config_var("BREADCRUMB_LOOKBACK_TIME", quick)
     breadcrumbs = event_json.get("breadcrumbs", {}).get("values", [])
     num_breadcrumbs = len(breadcrumbs)
+    if num_breadcrumbs == 0:
+        return
+
     breadcrumb_time_step = BREADCRUMB_LOOKBACK_TIME * 1.0 / num_breadcrumbs
 
     curr_time = event_json["timestamp"] - BREADCRUMB_LOOKBACK_TIME
@@ -637,7 +684,7 @@ def iter_timestamps(disribution_fn_num: int, quick: bool):
                 yield (timestamp, day)
 
 
-def update_context(event, trace):
+def update_context(event, trace=None):
     context = event["contexts"]
     # delete device since we aren't mocking it (yet)
     if "device" in context:
@@ -646,6 +693,11 @@ def update_context(event, trace):
     context.update(**gen_base_context())
     # add our trace info
     base_trace = context.get("trace", {})
+    if not trace:
+        trace = {
+            "trace_id": uuid4().hex,
+            "span_id": uuid4().hex[:16],
+        }
     base_trace.update(**trace)
     context["trace"] = base_trace
 
@@ -755,6 +807,7 @@ def populate_connected_event_scenario_1(
         update_context(local_event, backend_trace)
         fix_error_event(local_event, quick)
         safe_send_event(local_event, quick)
+
     logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)
 
 
@@ -876,6 +929,52 @@ def populate_connected_event_scenario_3(python_project: Project, quick=False):
     logger.info("populate_connected_event_scenario_3.finished", extra=log_extra)
 
 
+def populate_sessions(project, error_file, quick=False):
+    dsn = ProjectKey.objects.get(project=project)
+
+    react_error = get_event_from_file(error_file)
+
+    for (timestamp, day) in iter_timestamps(4, quick):
+        transaction_user = generate_user(quick)
+        sid = uuid4().hex
+        release = get_release_from_time(project.organization_id, timestamp)
+        version = release.version
+
+        # initialize the session
+        session_data = {
+            "init": True,
+        }
+        send_session(sid, transaction_user["id"], dsn, timestamp, version, **session_data)
+
+        # determine if this session should crash or exit with success
+        rate_map = crash_free_rate_by_release_quick if quick else crash_free_rate_by_release
+        threshold = rate_map[version]
+        outcome = random.random()
+        if outcome > threshold:
+            # if crash, make an error for it
+            local_event = copy.deepcopy(react_error)
+            local_event.update(
+                project=project,
+                platform=project.platform,
+                timestamp=timestamp,
+                user=transaction_user,
+                release=version,
+            )
+            update_context(local_event)
+            fix_error_event(local_event, quick)
+            safe_send_event(local_event, quick)
+
+            data = {
+                "status": "crashed",
+            }
+        else:
+            data = {
+                "status": "exited",
+            }
+
+        send_session(sid, transaction_user["id"], dsn, timestamp, version, **data)
+
+
 def handle_react_python_scenario(react_project: Project, python_project: Project, quick=False):
     """
     Handles all data population for the React + Python scenario
@@ -883,6 +982,8 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     generate_releases([react_project, python_project], quick=quick)
     generate_alerts(python_project)
     generate_saved_query(react_project, "/productstore", "Product Store")
+    populate_sessions(react_project, "sessions/react_unhandled_exception.json", quick=quick)
+    populate_sessions(python_project, "sessions/python_unhandled_exception.json", quick=quick)
     populate_connected_event_scenario_1(react_project, python_project, quick=quick)
     populate_connected_event_scenario_2(react_project, python_project, quick=quick)
     populate_connected_event_scenario_3(python_project, quick=quick)
