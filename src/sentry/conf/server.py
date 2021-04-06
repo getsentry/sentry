@@ -1004,7 +1004,7 @@ SENTRY_FEATURES = {
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
-    "projects:race-free-group-creation": False,
+    "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
     # Enable functionality for sampling of events on projects.
@@ -1516,9 +1516,9 @@ SENTRY_WATCHERS = (
         "webpack",
         [
             os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            "serve",
             "--color",
-            "--output-pathinfo",
-            "--watch",
+            "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
                     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")

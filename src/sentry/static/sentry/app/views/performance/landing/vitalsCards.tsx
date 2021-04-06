@@ -156,6 +156,7 @@ function _BackendCards(props: BackendCardsProps) {
       eventView={eventView}
       orgSlug={organization.slug}
       limit={1}
+      referrer="api.performance.vitals-cards"
     >
       {({isLoading: isSummaryLoading, tableData}) => (
         <EventsRequest

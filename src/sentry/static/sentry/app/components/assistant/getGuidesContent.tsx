@@ -154,6 +154,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     },
     {
       guide: 'assigned_or_suggested_guide',
+      dateThreshold: new Date(2021, 4, 1),
       requiredTargets: ['assigned_or_suggested_query'],
       steps: [
         {
