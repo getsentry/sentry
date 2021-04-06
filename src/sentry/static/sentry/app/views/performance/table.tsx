@@ -148,7 +148,11 @@ class Table extends React.Component<Props, State> {
     const value = dataRow[fieldName];
     if (tableMeta[fieldName] === 'integer' && defined(value)) {
       return (
-        <Tooltip title={value.toLocaleString()} containerDisplayMode="block">
+        <Tooltip
+          title={value.toLocaleString()}
+          containerDisplayMode="block"
+          position="right"
+        >
           <CellAction
             column={column}
             dataRow={dataRow}
