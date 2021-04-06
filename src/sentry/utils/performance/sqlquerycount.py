@@ -1,6 +1,5 @@
 import logging
 import threading
-
 from collections import defaultdict
 
 from sentry.debug.utils.patch_context import PatchContext

@@ -1,13 +1,12 @@
 import datetime
-import os
-import os.path
-import sys
-import traceback
 
 # Import the stdlib json instead of sentry.utils.json, since this command is
 # run in setup.py
 import json  # NOQA
-
+import os
+import os.path
+import sys
+import traceback
 from distutils import log
 
 from .base import BaseBuildCommand
