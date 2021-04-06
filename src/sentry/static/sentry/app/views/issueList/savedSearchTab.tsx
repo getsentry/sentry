@@ -55,9 +55,11 @@ function SavedSearchTab({
               {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
             </TitleTextOverflow>
             {queryCount !== undefined && queryCount > 0 && (
-              <Badge>
-                <QueryCount hideParens count={queryCount} max={1000} />
-              </Badge>
+              <div>
+                <Badge>
+                  <QueryCount hideParens count={queryCount} max={1000} />
+                </Badge>
+              </div>
             )}
           </React.Fragment>
         ) : (
