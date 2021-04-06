@@ -69,7 +69,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       statsPeriod: `${dateEnd.diff(dateStart, 'd')}d`, // TODO(org-stats)
       interval: '1d', // TODO(org-stats)
       groupBy: ['category', 'outcome'],
-      field: ['sum(quantity)', 'sum(times_seen)'],
+      field: ['sum(quantity)'],
     };
   }
 
@@ -130,30 +130,41 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         };
       });
 
+      // Tally totals for card data
+      const count: any = {
+        total: 0,
+        accepted: 0,
+        dropped: 0,
+        invalid: 0,
+        filtered: 0,
+      };
+
       orgStats.groups.forEach(group => {
         const {outcome, category} = group.by;
-        if (category !== dataCategory) {
+
+        // HACK The backend enum are singular, but the frontend enums are plural
+        if (!dataCategory.includes(`${category}`)) {
           return;
         }
 
-        const stats = this.mapSeriesToStats(dataCategory, group.series);
-        stats.forEach((stat, i) => {
-          usageStats[i][outcome] = outcome === Outcome.DROPPED ? {total: stat} : stat;
+        count.total += group.totals['sum(quantity)'];
+        count[outcome] += group.totals['sum(quantity)'];
+
+        group.series['sum(quantity)'].forEach((stat, i) => {
+          if (outcome === Outcome.DROPPED || outcome === Outcome.INVALID) {
+            usageStats[i].dropped.total += stat;
+          }
+
+          usageStats[i][outcome] += stat;
         });
       });
 
-      let sumTotal = 0;
-      let sumAccepted = 0;
-      let sumDropped = 0;
-      let sumFiltered = 0;
+      // Invalid data is dropped
+      count.dropped += count.invalid;
+      delete count.invalid;
+
       usageStats.forEach(stat => {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
-
-        // Card Data
-        sumTotal += stat.total;
-        sumAccepted += stat.accepted;
-        sumDropped += stat.dropped.total;
-        sumFiltered += stat.filtered;
 
         // Chart Data
         chartData.accepted.push({value: [stat.date, stat.accepted]} as any);
@@ -167,10 +178,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
       return {
         cardData: {
-          total: formatUsageWithUnits(sumTotal, dataCategory, formatOptions),
-          accepted: formatUsageWithUnits(sumAccepted, dataCategory, formatOptions),
-          dropped: formatUsageWithUnits(sumDropped, dataCategory, formatOptions),
-          filtered: formatUsageWithUnits(sumFiltered, dataCategory, formatOptions),
+          total: formatUsageWithUnits(count.total, dataCategory, formatOptions),
+          accepted: formatUsageWithUnits(count.accepted, dataCategory, formatOptions),
+          dropped: formatUsageWithUnits(count.dropped, dataCategory, formatOptions),
+          filtered: formatUsageWithUnits(count.filtered, dataCategory, formatOptions),
         },
         chartData,
       };
@@ -187,17 +198,6 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         error: err,
       };
     }
-  }
-
-  mapSeriesToStats(dataCategory: DataCategory, series: Record<string, number[]>) {
-    if (
-      dataCategory === DataCategory.ATTACHMENTS ||
-      dataCategory === DataCategory.TRANSACTIONS
-    ) {
-      return series['sum(times_seen)'];
-    }
-
-    return series['sum(quantity)'];
   }
 
   renderCards() {

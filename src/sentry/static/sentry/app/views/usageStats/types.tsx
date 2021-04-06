@@ -1,4 +1,4 @@
-import {MinimalProject} from 'app/types';
+import {MinimalProject, SeriesApi} from 'app/types';
 
 export enum Outcome {
   ACCEPTED = 'accepted',
@@ -10,15 +10,9 @@ export enum Outcome {
 /**
  * Raw response from API endpoint
  */
-export type UsageSeries = {
+export type UsageSeries = SeriesApi & {
   start: string;
   end: string;
-  groups: Array<{
-    by: Record<string, string>;
-    series: Record<string, number[]>;
-    totals: Record<string, number>;
-  }>;
-  intervals: string[];
 };
 
 export type UsageStat = {

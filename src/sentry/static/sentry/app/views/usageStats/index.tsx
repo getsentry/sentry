@@ -5,7 +5,7 @@ import moment from 'moment';
 import PageHeading from 'app/components/pageHeading';
 import {t, tct} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
-import {DataCategory, Organization} from 'app/types';
+import {DataCategory, DataCategoryName, Organization} from 'app/types';
 
 import {OrganizationUsageStats, ProjectUsageStats} from './types';
 import UsageStatsOrg from './usageStatsOrg';
@@ -43,16 +43,8 @@ class OrganizationStats extends React.Component<Props, State> {
   };
 
   get dataCategoryName() {
-    switch (this.state.dataCategory) {
-      case DataCategory.ERRORS:
-        return t('Errors');
-      case DataCategory.TRANSACTIONS:
-        return t('Transactions');
-      case DataCategory.ATTACHMENTS:
-        return t('Attachments');
-      default:
-        return t('Unknown Data Category');
-    }
+    const {dataCategory} = this.state;
+    return DataCategoryName[dataCategory] ?? t('Unknown Data Category');
   }
 
   render() {
