@@ -658,6 +658,7 @@ def raw_snql_query(
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
+    metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
     return bulk_raw_query([query], referrer=referrer, use_cache=use_cache)[0]
 
 
