@@ -37,7 +37,7 @@ class RelatedIssues extends React.Component<Props> {
 
   render() {
     const {rule, projects, filter, organization, timePeriod} = this.props;
-    const {start, end, label} = timePeriod;
+    const {start, end} = timePeriod;
 
     const path = `/organizations/${organization.slug}/issues/`;
     const queryParams = {
@@ -78,8 +78,8 @@ class RelatedIssues extends React.Component<Props> {
             renderEmptyMessage={this.renderEmptyMessage}
             withChart
             withPagination={false}
-            useFilteredStats={true}
-            statsPeriodSummary={label.toLowerCase()}
+            useFilteredStats
+            customStatsPeriod={timePeriod}
           />
         </TableWrapper>
       </React.Fragment>

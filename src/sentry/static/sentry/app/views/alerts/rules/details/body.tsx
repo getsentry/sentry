@@ -46,6 +46,7 @@ import RelatedTransactions from './relatedTransactions';
 export type TimePeriodType = {
   start: string;
   end: string;
+  period: string;
   label: string;
   custom?: boolean;
 };

@@ -21,6 +21,7 @@ import {Group} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import StreamManager from 'app/utils/streamManager';
 import withApi from 'app/utils/withApi';
+import {TimePeriodType} from 'app/views/alerts/rules/details/body';
 
 import GroupListHeader from './groupListHeader';
 
@@ -38,7 +39,7 @@ type Props = {
   endpointPath: string;
   renderEmptyMessage?: () => React.ReactNode;
   queryParams?: Record<string, number | string | string[] | undefined | null>;
-  statsPeriodSummary?: string;
+  customStatsPeriod?: TimePeriodType;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -182,7 +183,7 @@ class GroupList extends React.Component<Props, State> {
       renderEmptyMessage,
       withPagination,
       useFilteredStats,
-      statsPeriodSummary,
+      customStatsPeriod,
       queryParams,
     } = this.props;
     const {loading, error, groups, memberList, pageLinks} = this.state;
@@ -233,7 +234,7 @@ class GroupList extends React.Component<Props, State> {
                   withChart={withChart}
                   memberList={members}
                   useFilteredStats={useFilteredStats}
-                  statsPeriodSummary={statsPeriodSummary}
+                  customStatsPeriod={customStatsPeriod}
                   statsPeriod={statsPeriod}
                 />
               );
