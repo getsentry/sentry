@@ -5,8 +5,7 @@ import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 
 export enum Query {
-  FOR_REVIEW = 'is:unresolved is:for_review',
-  FOR_REVIEW_OWNER = 'is:unresolved is:for_review assigned_or_suggested:me_or_none',
+  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:me_or_none',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   REPROCESSING = 'is:reprocessing',
@@ -42,24 +41,12 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.FOR_REVIEW_OWNER,
-      {
-        name: t('For Review'),
-        analyticsName: 'needs_review',
-        count: true,
-        enabled: organization.features.includes('inbox-owners-query'),
-        tooltipTitle: t(`Unresolved issues that are new or have reopened. Review, ignore,
-        or resolve an issue to move it out of this list. After 7 days these
-        issues are automatically marked as reviewed.`),
-      },
-    ],
-    [
       Query.FOR_REVIEW,
       {
         name: t('For Review'),
         analyticsName: 'needs_review',
         count: true,
-        enabled: !organization.features.includes('inbox-owners-query'),
+        enabled: true,
         tooltipTitle: t(`Unresolved issues that are new or have reopened. Review, ignore,
         or resolve an issue to move it out of this list. After 7 days these
         issues are automatically marked as reviewed.`),
@@ -109,10 +96,7 @@ export function getTabsWithCounts(organization: Organization) {
 }
 
 export function isForReviewQuery(query: string | undefined) {
-  return (
-    query !== undefined &&
-    (query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER)
-  );
+  return !!query && /\bis:for_review\b/.test(query);
 }
 
 // the tab counts will look like 99+
