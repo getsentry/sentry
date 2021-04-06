@@ -349,7 +349,9 @@ class StreamGroup extends React.Component<Props, State> {
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
-    const summary = customStatsPeriod?.label.toLowerCase() ?? (!!start && !!end
+    const summary =
+      customStatsPeriod?.label.toLowerCase() ??
+      (!!start && !!end
         ? 'time range'
         : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
