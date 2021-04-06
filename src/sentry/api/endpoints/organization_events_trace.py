@@ -119,7 +119,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 params=params,
                 query=f"event.type:transaction trace:{trace_id}",
                 # get 1 more so we know if the attempted trace was over 100
-                limit=MAX_TRACE_SIZE + 1,
+                limit=MAX_TRACE_SIZE,
                 referrer="api.trace-view.get-ids",
             )
             if len(result["data"]) == 0:
