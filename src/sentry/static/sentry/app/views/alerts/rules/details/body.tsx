@@ -377,7 +377,6 @@ export default class DetailsBody extends React.Component<Props> {
                             rule.projects.includes(project.slug)
                           )}
                           timePeriod={timePeriod}
-                          filter={queryWithTypeFilter}
                         />
                       )}
                       {rule?.dataset === Dataset.TRANSACTIONS && (
