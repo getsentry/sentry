@@ -8,6 +8,7 @@ import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
 
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
@@ -189,7 +190,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         invisible: position === null,
         draggable: false,
         position: [yAxisSize, position],
-        shape: {y1: 1, y2: 1, x1: 0, x2: graphAreaWidth},
+        shape: {y1: 1, y2: 1, x1: 7, x2: graphAreaWidth},
         style: LINE_STYLE,
       },
 
@@ -205,10 +206,10 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
               position:
                 isResolution !== isInverted
-                  ? [yAxisSize, position + 1]
-                  : [yAxisSize, legendPadding],
+                  ? [yAxisSize + 7, position + 1]
+                  : [yAxisSize + 7, legendPadding],
               shape: {
-                width: graphAreaWidth,
+                width: graphAreaWidth - 7,
                 height:
                   isResolution !== isInverted
                     ? yAxisPosition - position
@@ -263,6 +264,19 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       selected,
     };
 
+    const chartOptions = {
+      tooltip: {
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(value, seriesName);
+        },
+      },
+      yAxis: {
+        max: this.state.yAxisMax ?? undefined,
+        axisLabel: {
+          formatter: (value: number) => axisLabelFormatter(value, data[0].seriesName),
+        },
+      },
+    };
     return (
       <LineChart
         isGroupedByDate
@@ -270,9 +284,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         period={period}
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
-        yAxis={{
-          max: this.state.yAxisMax ?? undefined,
-        }}
+        {...chartOptions}
         legend={legend}
         graphic={Graphic({
           elements: flatten(
