@@ -111,8 +111,9 @@ function SavedSearchMenu({savedSearchList, ...props}: Props) {
         ))
       )}
       <SecondaryMenuHeader>{t('Pre-built searches')}</SecondaryMenuHeader>
+      {/* Could only happen on self-hosted */}
       {commonSearches.length === 0 ? (
-        <EmptyItem>{t('No common searches')}</EmptyItem>
+        <EmptyItem>{t('No pre-built searches yet.')}</EmptyItem>
       ) : (
         commonSearches.map((search, index) => (
           <SavedSearchMenuItem
