@@ -12,7 +12,8 @@ export type AlertType =
   | 'lcp'
   | 'fid'
   | 'cls'
-  | 'fcp';
+  | 'fcp'
+  | 'custom';
 
 export const WebVitalAlertTypes = new Set(['lcp', 'fid', 'cls', 'fcp']);
 
@@ -28,6 +29,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
   fcp: t('First Contentful Paint'),
+  custom: t('Custom Metric'),
 };
 
 export const AlertWizardOptions: {
@@ -49,6 +51,7 @@ export const AlertWizardOptions: {
       'fid',
       'cls',
       'fcp',
+      'custom',
     ],
   },
 ];
@@ -149,6 +152,15 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     examples: [t('When the average FCP of a page is longer than 0.25 seconds.')],
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
   },
+  custom: {
+    description: t(
+      'Alert on metrics which are not listed above, such as first paint (FP) and time to first byte (TTFB).'
+    ),
+    examples: [
+      t('When the 95th percentile FP of a page is longer than 250 milliseconds.'),
+      t('When the average TTFB of a page is longer than 600 millliseconds.'),
+    ],
+  },
 };
 
 export type WizardRuleTemplate = {
@@ -208,6 +220,11 @@ export const AlertWizardRuleTemplates: Record<
   },
   fcp: {
     aggregate: 'p95(measurements.fcp)',
+    dataset: Dataset.TRANSACTIONS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  custom: {
+    aggregate: 'p95(measurements.fp)',
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },

@@ -34,5 +34,5 @@ export function getAlertTypeFromAggregateDataset({
     ([_alertType, identifier]) => identifier && aggregate.includes(identifier)
   );
   const alertType = matchingAlertTypeEntry && (matchingAlertTypeEntry[0] as AlertType);
-  return alertType ? alertType : 'num_errors';
+  return alertType ? alertType : 'custom';
 }
