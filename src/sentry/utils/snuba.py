@@ -644,8 +644,6 @@ def raw_query(
         is_grouprelease=is_grouprelease,
         **kwargs,
     )
-    if referrer:
-        sentry_sdk.set_tag("query.referrer", referrer)
 
     if use_snql is None:
         use_snql = should_use_snql(referrer)
@@ -669,6 +667,7 @@ def bulk_raw_query(
     headers = {}
     if referrer:
         headers["referer"] = referrer
+        sentry_sdk.set_tag("query.referrer", referrer)
 
     # Store the original position of the query so that we can maintain the order
     query_param_list: List[Tuple[int, SnubaQuery]] = list(
