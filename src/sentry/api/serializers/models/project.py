@@ -3,7 +3,6 @@ from datetime import timedelta
 
 import sentry_sdk
 from django.db import connection
-from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
@@ -29,9 +28,12 @@ from sentry.models import (
     ProjectStatus,
     ProjectTeam,
     Release,
-    UserOption,
     UserReport,
 )
+from sentry.models.integration import ExternalProviders
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.notifications.helpers import transform_to_notification_settings_by_parent_id
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
 from sentry.utils.compat import zip
 
@@ -103,7 +105,7 @@ class ProjectSerializer(Serializer):
             result[project] = {"is_member": is_member, "has_access": has_access}
         return result
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         def measure_span(op_tag):
             span = sentry_sdk.start_span(op=f"serialize.get_attrs.project.{op_tag}")
             span.set_data("Object Count", len(item_list))
@@ -117,18 +119,21 @@ class ProjectSerializer(Serializer):
                         user=user, project_id__in=project_ids
                     ).values_list("project_id", flat=True)
                 )
-                user_options = {
-                    (u.project_id, u.key): u.value
-                    for u in UserOption.objects.filter(
-                        Q(user=user, project__in=item_list, key="mail:alert")
-                        | Q(user=user, key="subscribe_by_default", project__isnull=True)
+                (
+                    notification_settings_by_project_id,
+                    default_subscribe,
+                ) = transform_to_notification_settings_by_parent_id(
+                    NotificationSetting.objects.get_for_user_by_projects(
+                        ExternalProviders.EMAIL,
+                        NotificationSettingTypes.ISSUE_ALERTS,
+                        user,
+                        item_list,
                     )
-                }
-                default_subscribe = user_options.get("subscribe_by_default", "1") == "1"
+                )
             else:
                 bookmarks = set()
-                user_options = {}
-                default_subscribe = False
+                notification_settings_by_project_id = {}
+                default_subscribe = None
 
         with measure_span("stats"):
             stats = None
@@ -159,12 +164,14 @@ class ProjectSerializer(Serializer):
 
         with measure_span("other"):
             for project, serialized in result.items():
+                is_subscribed = (
+                    notification_settings_by_project_id.get(project.id, default_subscribe)
+                    == NotificationSettingOptionValues.ALWAYS
+                )
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,
-                        "is_subscribed": bool(
-                            user_options.get((project.id, "mail:alert"), default_subscribe)
-                        ),
+                        "is_subscribed": is_subscribed,
                         "avatar": avatars.get(project.id),
                         "platforms": platforms_by_project[project.id],
                     }
@@ -682,6 +689,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "groupingEnhancements": get_value_with_default("sentry:grouping_enhancements"),
                 "groupingEnhancementsBase": get_value_with_default(
                     "sentry:grouping_enhancements_base"
+                ),
+                "secondaryGroupingExpiry": get_value_with_default(
+                    "sentry:secondary_grouping_expiry"
+                ),
+                "secondaryGroupingConfig": get_value_with_default(
+                    "sentry:secondary_grouping_config"
                 ),
                 "fingerprintingRules": get_value_with_default("sentry:fingerprinting_rules"),
                 "organization": attrs["org"],
