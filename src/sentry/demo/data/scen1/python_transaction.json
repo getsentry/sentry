@@ -14,7 +14,7 @@
     ["device", "Mac"],
     ["device.family", "Mac"],
     ["environment", "prod"],
-    ["http.status_code", "500"],
+    ["http.status_code", "200"],
     ["level", "info"],
     ["runtime", "CPython 2.7.18"],
     ["runtime.name", "CPython"],
