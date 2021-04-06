@@ -103,7 +103,11 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
             <JsonForm
               {...jsonFormProps}
               title={t('Change defaults')}
-              fields={[fields.groupingConfig]}
+              fields={[
+                fields.groupingConfig,
+                fields.secondaryGroupingConfig,
+                fields.secondaryGroupingExpiry,
+              ]}
             />
           </Feature>
 

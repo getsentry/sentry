@@ -1,48 +1,59 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
+import capitalize from 'lodash/capitalize';
 import moment from 'moment-timezone';
 
+import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
-import {IconClock} from 'app/icons';
+import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {BuiltinSymbolSource} from 'app/types/debugFiles';
 import {
   CandidateDownloadStatus,
   ImageCandidate,
+  ImageCandidateInternalOk,
+  ImageCandidateOk,
   ImageCandidateUnApplied,
+  SymbolType,
 } from 'app/types/debugImage';
-import {Theme} from 'app/utils/theme';
 
-import {getSourceTooltipDescription} from '../utils';
+import ProcessingItem from '../../../processing/item';
+import ProcessingList from '../../../processing/list';
+import {INTERNAL_SOURCE} from '../../utils';
 
+import Divider from './divider';
 import Features from './features';
+import ProcessingIcon from './processingIcon';
 
 type Props = {
   candidate: ImageCandidate;
   builtinSymbolSources: Array<BuiltinSymbolSource> | null;
   isInternalSource: boolean;
-  eventDateCreated: string;
-  theme: Theme;
+  hasReprocessWarning: boolean;
+  eventDateReceived?: string;
 };
 
 function Information({
   candidate,
-  builtinSymbolSources,
   isInternalSource,
-  eventDateCreated,
-  theme,
+  hasReprocessWarning,
+  eventDateReceived,
 }: Props) {
   const {source_name, source, location, download} = candidate;
 
-  function getMainInfo() {
-    if (candidate.download.status === CandidateDownloadStatus.UNAPPLIED) {
-      const {symbolType, filename} = candidate as ImageCandidateUnApplied;
+  function getFilenameOrLocation() {
+    if (
+      candidate.download.status === CandidateDownloadStatus.UNAPPLIED ||
+      (candidate.download.status === CandidateDownloadStatus.OK && isInternalSource)
+    ) {
+      const {symbolType, filename} = candidate as
+        | ImageCandidateUnApplied
+        | ImageCandidateInternalOk;
 
-      return symbolType === 'proguard' && filename === 'proguard-mapping'
+      return symbolType === SymbolType.PROGUARD && filename === 'proguard-mapping'
         ? null
         : filename;
     }
@@ -54,81 +65,166 @@ function Information({
     return null;
   }
 
-  function getDetails() {
-    if (candidate.download.status !== CandidateDownloadStatus.UNAPPLIED) {
+  function getTimeSinceTooltipDescription(dateCreated: string) {
+    const dateTime = <DateTime date={dateCreated} />;
+
+    if (candidate.download.status === CandidateDownloadStatus.OK) {
+      return dateTime;
+    }
+
+    const uploadedBeforeEvent = moment(dateCreated).isBefore(eventDateReceived);
+
+    if (uploadedBeforeEvent) {
+      if (hasReprocessWarning) {
+        return (
+          <React.Fragment>
+            {tct(
+              'This debug file was uploaded [when] before this event. To apply new debug information, reprocess this issue.',
+              {
+                when: moment(eventDateReceived).from(dateCreated, true),
+              }
+            )}
+            <DateTimeWrapper>{dateTime}</DateTimeWrapper>
+          </React.Fragment>
+        );
+      }
+
       return (
-        <Tooltip title={getSourceTooltipDescription(source, builtinSymbolSources)}>
-          <strong>{`${t('Source')}: `}</strong>
-          <span data-test-id="source">{source_name ?? t('Unknown')}</span>
-        </Tooltip>
+        <React.Fragment>
+          {tct('This debug file was uploaded [when] before this event.', {
+            when: moment(eventDateReceived).from(dateCreated, true),
+          })}
+          <DateTimeWrapper>{dateTime}</DateTimeWrapper>
+        </React.Fragment>
       );
     }
 
-    const {
-      symbolType,
-      fileType,
-      cpuName,
-      size,
-      dateCreated,
-    } = candidate as ImageCandidateUnApplied;
-
-    const uploadedBeforeEvent = moment(dateCreated).isBefore(eventDateCreated);
+    if (hasReprocessWarning) {
+      <React.Fragment>
+        {tct(
+          'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
+          {
+            when: moment(dateCreated).from(eventDateReceived, true),
+          }
+        )}
+        <DateTimeWrapper>{dateTime}</DateTimeWrapper>
+      </React.Fragment>;
+    }
 
     return (
       <React.Fragment>
-        <Tooltip title={getSourceTooltipDescription(source, builtinSymbolSources)}>
-          <strong>{`${t('Source')}: `}</strong>
-          {source_name ?? t('Unknown')}
-        </Tooltip>
-        <ExtraDetails>
-          <TimeWrapper color={uploadedBeforeEvent ? theme.orange300 : theme.error}>
-            <IconClock size="xs" />
-            <TimeSince
-              date={dateCreated}
-              tooltipTitle={
-                <RelativeTime>
-                  {uploadedBeforeEvent
-                    ? tct(
-                        'This debug file was uploaded [when] before this event. To apply new debug information, reprocess this issue.',
-                        {
-                          when: moment(eventDateCreated).from(dateCreated, true),
-                        }
-                      )
-                    : tct(
-                        'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
-                        {
-                          when: moment(dateCreated).from(eventDateCreated, true),
-                        }
-                      )}
-                </RelativeTime>
-              }
-            />
-          </TimeWrapper>
-          {'|'}
-          <FileSize bytes={size} />
-          {'|'}
-          <span>
-            {symbolType === 'proguard' && cpuName === 'any'
-              ? t('proguard mapping')
-              : `${symbolType}${fileType ? ` ${fileType}` : ''}`}
-          </span>
-        </ExtraDetails>
+        {tct('This debug file was uploaded [when] after this event.', {
+          when: moment(eventDateReceived).from(dateCreated, true),
+        })}
+        <DateTimeWrapper>{dateTime}</DateTimeWrapper>
       </React.Fragment>
     );
   }
 
-  const mainInfo = getMainInfo();
+  function renderProcessingInfo() {
+    if (
+      candidate.download.status !== CandidateDownloadStatus.OK &&
+      candidate.download.status !== CandidateDownloadStatus.DELETED
+    ) {
+      return null;
+    }
+
+    const items: React.ComponentProps<typeof ProcessingList>['items'] = [];
+
+    const {debug, unwind} = candidate as ImageCandidateOk;
+
+    if (debug) {
+      items.push(
+        <ProcessingItem
+          key="symbolication"
+          type="symbolication"
+          icon={<ProcessingIcon processingInfo={debug} />}
+        />
+      );
+    }
+
+    if (unwind) {
+      items.push(
+        <ProcessingItem
+          key="stack_unwinding"
+          type="stack_unwinding"
+          icon={<ProcessingIcon processingInfo={unwind} />}
+        />
+      );
+    }
+
+    if (!items.length) {
+      return null;
+    }
+
+    return (
+      <React.Fragment>
+        <StyledProcessingList items={items} />
+        <Divider />
+      </React.Fragment>
+    );
+  }
+
+  function renderExtraDetails() {
+    if (
+      (candidate.download.status !== CandidateDownloadStatus.UNAPPLIED &&
+        candidate.download.status !== CandidateDownloadStatus.OK) ||
+      source !== INTERNAL_SOURCE
+    ) {
+      return null;
+    }
+
+    const {symbolType, fileType, cpuName, size, dateCreated} = candidate as
+      | ImageCandidateInternalOk
+      | ImageCandidateUnApplied;
+
+    return (
+      <React.Fragment>
+        <Tooltip title={getTimeSinceTooltipDescription(dateCreated)}>
+          <TimeSinceWrapper>
+            {candidate.download.status === CandidateDownloadStatus.UNAPPLIED && (
+              <IconWarning color="red300" size="xs" />
+            )}
+            {tct('Uploaded [timesince]', {
+              timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
+            })}
+          </TimeSinceWrapper>
+        </Tooltip>
+        <Divider />
+        <FileSize bytes={size} />
+        <Divider />
+        <span>
+          {symbolType === SymbolType.PROGUARD && cpuName === 'any'
+            ? t('proguard mapping')
+            : `${symbolType}${fileType ? ` ${fileType}` : ''}`}
+        </span>
+        <Divider />
+      </React.Fragment>
+    );
+  }
+
+  const filenameOrLocation = getFilenameOrLocation();
 
   return (
     <Wrapper>
-      {mainInfo && <div data-test-id="main-info">{mainInfo}</div>}
-      <Details>{getDetails()}</Details>
-      <Features download={download} />
+      <div>
+        <strong data-test-id="source_name">
+          {source_name ? capitalize(source_name) : t('Unknown')}
+        </strong>
+        {filenameOrLocation && (
+          <FilenameOrLocation>{filenameOrLocation}</FilenameOrLocation>
+        )}
+      </div>
+      <Details>
+        {renderExtraDetails()}
+        {renderProcessingInfo()}
+        <Features download={download} />
+      </Details>
     </Wrapper>
   );
 }
 
-export default withTheme(Information);
+export default Information;
 
 const Wrapper = styled('div')`
   white-space: pre-wrap;
@@ -136,30 +232,34 @@ const Wrapper = styled('div')`
   max-width: 100%;
 `;
 
-const Details = styled('div')`
+const FilenameOrLocation = styled('span')`
+  padding-left: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  display: flex;
-  align-items: center;
-  > * :first-child {
-    margin-right: ${space(2)};
-  }
 `;
 
-const ExtraDetails = styled('div')`
+const Details = styled('div')`
   display: grid;
   grid-auto-flow: column;
+  grid-auto-columns: max-content;
   grid-gap: ${space(1)};
+  color: ${p => p.theme.gray400};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const TimeWrapper = styled('div')<{color?: string}>`
+const TimeSinceWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(0.5)};
-  grid-template-columns: min-content 1fr;
+  grid-template-columns: max-content 1fr;
   align-items: center;
-  ${p => p.color && `color: ${p.color}`};
+  grid-gap: ${space(0.5)};
 `;
 
-const RelativeTime = styled('div')`
-  padding-bottom: ${space(0.5)};
+const DateTimeWrapper = styled('div')`
+  padding-top: ${space(1)};
+`;
+
+const StyledProcessingList = styled(ProcessingList)`
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  grid-gap: ${space(1)};
 `;

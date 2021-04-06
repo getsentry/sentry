@@ -287,10 +287,20 @@ def test_attachments_and_userfeedback(
 
         return data
 
-    event_id_to_delete = process_and_save({"message": "hello world"}, seconds_ago=5)
+    # required such that minidump is loaded into attachments cache
+    MINIDUMP_PLACEHOLDER = {
+        "platform": "native",
+        "exception": {"values": [{"mechanism": {"type": "minidump"}, "type": "test bogus"}]},
+    }
+
+    event_id_to_delete = process_and_save(
+        {"message": "hello world", **MINIDUMP_PLACEHOLDER}, seconds_ago=5
+    )
     event_to_delete = eventstore.get_event_by_id(default_project.id, event_id_to_delete)
 
-    event_id = process_and_save({"message": "hello world"})
+    event_id = process_and_save(
+        {"message": "hello world", "platform": "native", **MINIDUMP_PLACEHOLDER}
+    )
     event = eventstore.get_event_by_id(default_project.id, event_id)
 
     for evt in (event, event_to_delete):
@@ -320,7 +330,7 @@ def test_attachments_and_userfeedback(
     new_event = eventstore.get_event_by_id(default_project.id, event_id)
     assert new_event.group_id != event.group_id
 
-    assert new_event.data["extra"]["attachments"] == [["event.attachment", "event.minidump"]]
+    assert new_event.data["extra"]["attachments"] == [["event.minidump"]]
 
     att, mdmp = EventAttachment.objects.filter(project_id=default_project.id).order_by("type")
     assert att.group_id == mdmp.group_id == new_event.group_id
