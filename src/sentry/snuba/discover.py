@@ -474,18 +474,18 @@ def top_events_timeseries(
                 field = FIELD_ALIASES[field].alias
             # Note that because orderby shouldn't be an array field its not included in the values
             values = list(
-                sorted(
-                    {
-                        event.get(field)
-                        for event in top_events["data"]
-                        if field in event and not isinstance(event.get(field), list)
-                    }
-                )
+                {
+                    event.get(field)
+                    for event in top_events["data"]
+                    if field in event and not isinstance(event.get(field), list)
+                }
             )
             if values:
                 # timestamp fields needs special handling, creating a big OR instead
                 if field == "timestamp" or field.startswith("timestamp.to_"):
-                    snuba_filter.conditions.append([[field, "=", value] for value in values])
+                    snuba_filter.conditions.append(
+                        [[field, "=", value] for value in sorted(values)]
+                    )
                 elif None in values:
                     non_none_values = [value for value in values if value is not None]
                     condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]
