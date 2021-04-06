@@ -553,7 +553,9 @@ class MetricChart extends React.PureComponent<Props, State> {
               <PanelBody withPadding>
                 <ChartHeader>
                   <ChartTitle>
-                    <PresetName>{this.metricPreset?.name ?? t('Custom metric')}</PresetName>
+                    <PresetName>
+                      {this.metricPreset?.name ?? t('Custom metric')}
+                    </PresetName>
                     {metricText}
                   </ChartTitle>
                   {filter}
