@@ -86,8 +86,4 @@ class ReactPageViewTest(TestCase):
         path = reverse("sentry-organization-home", args=[self.organization.slug])
         resp = self.client.get(path)
         assert resp.status_code == 302
-        # assert resp["Location"] != reverse("sentry-auth-organization", args=[org.slug])
-        # assert resp.redirect_chain == [
-        #     (reverse("sentry-login"), 302),
-        #     ("/organizations/foo/issues/", 302),
-        # ]
+        assert resp["Location"] == reverse("sentry-login")
