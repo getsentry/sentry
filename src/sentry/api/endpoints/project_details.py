@@ -260,7 +260,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 f"Grouping expiry must be a numerical value, a UNIX timestamp with second resolution, found {type(value)}"
             )
-        if 0 < value - time.time() < (91 * 24 * 3600):
+        if not (0 < value - time.time() < (91 * 24 * 3600)):
             raise serializers.ValidationError(
                 "Grouping expiry must be sometime within the next 90 days and not in the past. Perhaps you specified the timestamp not in seconds?"
             )
@@ -491,7 +491,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get("secondaryGroupingExpiry") is not None:
             if project.update_option(
-                "sentry:secondary_grouping_expiry", result["secondaryGroupingConfig"]
+                "sentry:secondary_grouping_expiry", result["secondaryGroupingExpiry"]
             ):
                 changed_proj_settings["sentry:secondary_grouping_expiry"] = result[
                     "secondaryGroupingExpiry"

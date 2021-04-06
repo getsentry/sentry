@@ -690,6 +690,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "groupingEnhancementsBase": get_value_with_default(
                     "sentry:grouping_enhancements_base"
                 ),
+                "secondaryGroupingExpiry": get_value_with_default(
+                    "sentry:secondary_grouping_expiry"
+                ),
+                "secondaryGroupingConfig": get_value_with_default(
+                    "sentry:secondary_grouping_config"
+                ),
                 "fingerprintingRules": get_value_with_default("sentry:fingerprinting_rules"),
                 "organization": attrs["org"],
                 "plugins": serialize(
