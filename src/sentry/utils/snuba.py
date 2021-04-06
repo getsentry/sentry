@@ -1,29 +1,24 @@
-from collections import namedtuple, OrderedDict
-from copy import deepcopy
+import functools
+import logging
+import os
+import re
+import time
+from collections import OrderedDict, namedtuple
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from copy import deepcopy
 from datetime import datetime, timedelta
 from hashlib import sha1
 from operator import itemgetter
-from typing import Any, Callable, List, Dict, MutableMapping, Mapping, Optional, Sequence, Tuple
-
-from dateutil.parser import parse as parse_datetime
-import logging
-import functools
-import os
-import pytz
-import re
-import time
-import urllib3
-import sentry_sdk
-from sentry_sdk import Hub
-from snuba_sdk.legacy import json_to_snql
-from snuba_sdk.query import Query
-
-from concurrent.futures import ThreadPoolExecutor
-from django.conf import settings
-from django.core.cache import cache
+from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 from urllib.parse import urlparse
 
+import pytz
+import sentry_sdk
+import urllib3
+from dateutil.parser import parse as parse_datetime
+from django.conf import settings
+from django.core.cache import cache
 from sentry.models import (
     Environment,
     Group,
@@ -35,13 +30,15 @@ from sentry.models import (
     ReleaseProject,
 )
 from sentry.net.http import connection_from_url
-from sentry.utils import metrics, json
-from sentry.utils.dates import to_timestamp, outside_retention_with_modified_start
-from sentry.utils.snql import should_use_snql
-from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.events import Columns
+from sentry.utils import json, metrics
 from sentry.utils.compat import map
-
+from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
+from sentry.utils.snql import should_use_snql
+from sentry_sdk import Hub
+from snuba_sdk.legacy import json_to_snql
+from snuba_sdk.query import Query
 
 logger = logging.getLogger(__name__)
 
@@ -627,7 +624,7 @@ def raw_query(
     use_cache=False,
     use_snql=None,
     **kwargs,
-) -> [Dict[str, Any]]:
+) -> Mapping[str, Any]:
     """
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.
@@ -653,13 +650,32 @@ def raw_query(
     )[0]
 
 
-SnubaQuery = Tuple[MutableMapping[str, Any], Callable[[Any], Any], Callable[[Any], Any]]
-SnQLQuery = Tuple[Tuple[Query, Mapping[str, Any]], Callable[[Any], Any], Callable[[Any], Any]]
+def raw_snql_query(
+    query: Query, referrer: Optional[str] = None, use_cache: bool = False,
+) -> Mapping[str, Any]:
+    # XXX (evanh): This function does none of the extra processing that the
+    # other functions do here. It does not add any automatic conditions, format
+    # results, nothing. Use at your own risk.
+    return bulk_raw_query([query], referrer=referrer, use_cache=use_cache)[0]
+
+
+SnubaQuery = Union[Query, MutableMapping[str, Any]]
+Translator = Callable[[Any], Any]
+SnubaQueryBody = Tuple[SnubaQuery, Translator, Translator]
 ResultSet = List[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
 
 
+def get_cache_key(query: SnubaQuery) -> str:
+    if isinstance(query, Query):
+        hashable = str(query)
+    else:
+        hashable = json.dumps(query, sort_keys=True)
+
+    return f"sqc:{sha1(hashable.encode('utf-8')).hexdigest()}"
+
+
 def bulk_raw_query(
-    snuba_param_list: Sequence[SnubaQueryParams],
+    snuba_param_list: Sequence[Union[Query, SnubaQueryParams]],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
     use_snql: Optional[bool] = None,
@@ -668,21 +684,23 @@ def bulk_raw_query(
     if referrer:
         headers["referer"] = referrer
 
+    def _prep_query(query: Union[Query, SnubaQueryParams]) -> SnubaQuery:
+        if isinstance(query, Query):
+            return query, lambda x: x, lambda x: x
+        return _prepare_query_params(query)
+
     # Store the original position of the query so that we can maintain the order
-    query_param_list: List[Tuple[int, SnubaQuery]] = list(
-        enumerate(map(_prepare_query_params, snuba_param_list))
+    query_param_list: List[Tuple[int, SnubaQueryBody]] = list(
+        enumerate(map(_prep_query, snuba_param_list))
     )
 
     results = []
 
     if use_cache:
         # sqc - Snuba Query Cache
-        cache_keys = [
-            f"sqc:{sha1(json.dumps(query_params[0], sort_keys=True).encode('utf-8')).hexdigest()}"
-            for _, query_params in query_param_list
-        ]
+        cache_keys = [get_cache_key(query_params) for _, query_params in query_param_list]
         cache_data = cache.get_many(cache_keys)
-        to_query: List[Tuple[int, SnubaQuery, Optional[str]]] = []
+        to_query: List[Tuple[int, SnubaQueryBody, Optional[str]]] = []
         for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
             cached_result = cache_data.get(cache_key)
             metric_tags = {"referrer": referrer} if referrer else None
@@ -709,25 +727,32 @@ def bulk_raw_query(
 
 
 def _bulk_snuba_query(
-    snuba_param_list: List[SnubaQuery], headers: Mapping[str, str], use_snql: Optional[bool] = None
+    snuba_param_list: Sequence[SnubaQueryBody],
+    headers: Mapping[str, str],
+    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     with sentry_sdk.start_span(
-        op="start_snuba_query",
-        description=f"running {len(snuba_param_list)} snuba queries",
+        op="start_snuba_query", description=f"running {len(snuba_param_list)} snuba queries",
     ) as span:
         span.set_tag("referrer", headers.get("referer", "<unknown>"))
-        query_fn = _snql_query if use_snql else _snuba_query
+        # This is confusing because this function is overloaded right now with three cases:
+        # 1. A legacy JSON query (_snuba_query)
+        # 2. A dryrun SnQL query of a legacy query (_snql_dryrun_query)
+        # 3. A direct SnQL query using the new SDK (_snql_query)
+        query_fn = _snuba_query
+        if isinstance(snuba_param_list[0][0], Query):
+            query_fn = _snql_query
+        elif use_snql:
+            query_fn = _snql_dryrun_query
 
         if len(snuba_param_list) > 1:
             query_results = list(
                 _query_thread_pool.map(
-                    query_fn,
-                    [(params, Hub(Hub.current), headers) for params in snuba_param_list],
+                    query_fn, [(params, Hub(Hub.current), headers) for params in snuba_param_list],
                 )
             )
         else:
-            # No need to submit to the thread pool if we're just performing a
-            # single query
+            # No need to submit to the thread pool if we're just performing a single query
             query_results = [query_fn((snuba_param_list[0], Hub(Hub.current), headers))]
 
     results = []
@@ -800,6 +825,18 @@ def _snuba_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult
 
 
 def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
+    # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
+    # the params here than in the calling function.
+    query_data, thread_hub, headers = params
+    query, forward, reverse = query_data
+    assert isinstance(query, Query)
+    try:
+        return _raw_snql_query(query, thread_hub, headers), forward, reverse
+    except Exception as err:
+        raise SnubaError(err)
+
+
+def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
     # Run the SnQL query in debug/dry_run mode
     # Run the legacy query in debug mode
     # Log any errors in SnQL execution and log if the returned SQL is not the same
@@ -811,8 +848,7 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
         query.validate()  # Call this here just avoid it happening in the async all
     except Exception as e:
         logger.warning(
-            "snuba.snql.parsing.error",
-            extra={"error": str(e), "params": json.dumps(query_params)},
+            "snuba.snql.parsing.error", extra={"error": str(e), "params": json.dumps(query_params)},
         )
         return _snuba_query(params)
 
