@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, cast
 
 import zstandard
+
 from sentry.utils import json
 from sentry.utils.json import JSONData
-
 
 T = TypeVar("T")
 
