@@ -1,18 +1,18 @@
 import math
+from datetime import datetime
+
 import pytest
 import pytz
-
-from datetime import datetime
-from freezegun import freeze_time
 from django.http import QueryDict
+from freezegun import freeze_time
 
 # from sentry.testutils import TestCase
 from sentry.snuba.sessions_v2 import (
-    QueryDefinition,
-    massage_sessions_result,
-    _get_timestamps,
     InvalidParams,
+    QueryDefinition,
+    _get_timestamps,
     get_constrained_date_range,
+    massage_sessions_result,
 )
 
 

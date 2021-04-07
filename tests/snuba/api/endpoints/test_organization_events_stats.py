@@ -1,15 +1,14 @@
 import uuid
-import pytest
-
-from pytz import utc
 from datetime import timedelta
 from uuid import uuid4
 
+import pytest
 from django.core.urlresolvers import reverse
+from pytz import utc
 
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.compat import zip, mock
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock, zip
 from sentry.utils.samples import load_data
 
 

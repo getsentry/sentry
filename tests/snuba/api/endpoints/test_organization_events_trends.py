@@ -2,13 +2,13 @@ from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 
-from sentry.utils.samples import load_data
+from sentry.api.endpoints.organization_events_trends import OrganizationEventsTrendsEndpointBase
+from sentry.api.event_search import get_filter
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.api.event_search import get_filter
-from sentry.api.endpoints.organization_events_trends import OrganizationEventsTrendsEndpointBase
+from sentry.utils.samples import load_data
 
 
 class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):

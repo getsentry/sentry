@@ -1,16 +1,15 @@
 from datetime import timedelta
-from uuid import uuid4
-
 from urllib.parse import quote
+from uuid import uuid4
 
 from django.conf import settings
 from django.utils import timezone
 from exam import fixture
-from sentry.utils.compat.mock import patch, Mock
 
 from sentry.models import (
     Activity,
     ApiToken,
+    ExternalIssue,
     Group,
     GroupAssignee,
     GroupBookmark,
@@ -23,17 +22,17 @@ from sentry.models import (
     GroupStatus,
     GroupSubscription,
     GroupTombstone,
-    ExternalIssue,
     Integration,
-    Release,
     OrganizationIntegration,
+    Release,
     UserOption,
 )
-from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
+from sentry.utils.compat.mock import Mock, patch
 
 
 class GroupListTest(APITestCase, SnubaTestCase):

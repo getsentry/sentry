@@ -1,6 +1,5 @@
 import os
 
-
 from sentry.utils.safe import get_path
 
 

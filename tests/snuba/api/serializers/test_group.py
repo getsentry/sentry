@@ -1,6 +1,6 @@
-import pytz
-
 from datetime import timedelta
+
+import pytz
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
@@ -22,12 +22,9 @@ from sentry.models import (
     UserOption,
 )
 from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
-    NotificationSettingTypes,
-    NotificationSettingOptionValues,
-)
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
 

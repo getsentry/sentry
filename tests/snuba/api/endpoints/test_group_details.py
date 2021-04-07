@@ -1,9 +1,8 @@
-from sentry.utils.compat import mock
-
-from sentry.models import Environment, Release, GroupInboxReason
+from sentry.models import Environment, GroupInboxReason, Release
 from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):

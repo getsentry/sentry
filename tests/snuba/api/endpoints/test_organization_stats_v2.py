@@ -1,13 +1,14 @@
 import functools
+from datetime import datetime, timedelta
+
 import pytz
 from django.core.urlresolvers import reverse
-from datetime import datetime, timedelta
+from freezegun import freeze_time
+from sentry_relay import DataCategory
+
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OutcomesSnubaTest
-from sentry_relay import DataCategory
 from sentry.utils.outcomes import Outcome
-
-from freezegun import freeze_time
 
 
 class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):

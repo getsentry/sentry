@@ -1,17 +1,18 @@
 import time
-import pytz
 from datetime import datetime
 
-from sentry.testutils import SnubaTestCase, TestCase
+import pytz
+
 from sentry.snuba.sessions import (
-    get_oldest_health_data_for_releases,
+    _make_stats,
     check_has_health_data,
+    get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_release_adoption,
     get_release_health_data_overview,
     get_release_sessions_time_bounds,
-    _make_stats,
 )
+from sentry.testutils import SnubaTestCase, TestCase
 
 
 def format_timestamp(dt):

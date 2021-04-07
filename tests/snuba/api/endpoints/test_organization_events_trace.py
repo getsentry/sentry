@@ -1,11 +1,11 @@
-from uuid import uuid4
 from datetime import timedelta
+from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 
-from sentry.utils.samples import load_data
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.samples import load_data
 
 
 class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):

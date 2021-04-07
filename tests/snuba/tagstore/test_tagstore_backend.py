@@ -1,9 +1,9 @@
 from datetime import timedelta
-import pytest
 
+import pytest
 from django.utils import timezone
 
-from sentry.models import Environment, EventUser, ReleaseProjectEnvironment, Release
+from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,

@@ -1,14 +1,14 @@
 import copy
-from unittest import mock
-from datetime import datetime, timedelta
-
-import pytest
 import time
 import uuid
+from datetime import datetime, timedelta
+from unittest import mock
+
+import pytest
 from django.utils import timezone
 
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import snuba
 
 
