@@ -227,11 +227,15 @@ class ReleaseSerializer(Serializer):
         )
 
     def __get_release_data_no_environment(self, project, item_list):
+        if project is not None:
+            project_ids = [project.id]
+        else:
+            project_ids, _ = self.__get_project_id_list(item_list)
 
         group_releases = GroupRelease.objects.filter(release_id__in=[r.id for r in item_list])
 
-        if project is not None:
-            group_releases = group_releases.filter(project_id=project.id)
+        group_releases = group_releases.filter(project_id__in=project_ids)
+
         first_seen = {}
         last_seen = {}
 
