@@ -109,7 +109,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
     const {organization, onSubmitSuccess, onCancel, existingConfig} = this.props;
 
     // endpoint changes if we are making a new row or updating an existing one
-    const baseEndpoint = `/organizations/${organization.slug}/repo-project-path-configs/`;
+    const baseEndpoint = `/organizations/${organization.slug}/code-mappings/`;
     const endpoint = existingConfig
       ? `${baseEndpoint}${existingConfig.id}/`
       : baseEndpoint;

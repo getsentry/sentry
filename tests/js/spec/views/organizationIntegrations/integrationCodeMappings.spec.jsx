@@ -68,10 +68,7 @@ describe('IntegrationCodeMappings', function () {
     Client.clearMockResponses();
 
     mockResponse([
-      [
-        `/organizations/${org.slug}/repo-project-path-configs/`,
-        [pathConfig1, pathConfig2],
-      ],
+      [`/organizations/${org.slug}/code-mappings/`, [pathConfig1, pathConfig2]],
       [`/organizations/${org.slug}/repos/`, repos],
     ]);
 
@@ -102,7 +99,7 @@ describe('IntegrationCodeMappings', function () {
     const stackRoot = 'my/root';
     const sourceRoot = 'hey/dude';
     const defaultBranch = 'release';
-    const url = `/organizations/${org.slug}/repo-project-path-configs/`;
+    const url = `/organizations/${org.slug}/code-mappings/`;
     const createMock = Client.addMockResponse({
       url,
       method: 'POST',
@@ -149,7 +146,7 @@ describe('IntegrationCodeMappings', function () {
     const stackRoot = 'new/root';
     const sourceRoot = 'source/root';
     const defaultBranch = 'master';
-    const url = `/organizations/${org.slug}/repo-project-path-configs/${pathConfig1.id}/`;
+    const url = `/organizations/${org.slug}/code-mappings/${pathConfig1.id}/`;
     const editMock = Client.addMockResponse({
       url,
       method: 'PUT',

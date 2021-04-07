@@ -4,7 +4,7 @@ from sentry.models import Integration, Repository, RepositoryProjectPathConfig
 from sentry.testutils import APITestCase
 
 
-class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
+class OrganizationCodeMappingsTest(APITestCase):
     def setUp(self):
         super().setUp()
 
@@ -21,7 +21,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             name="example", organization_id=self.org.id, integration_id=self.integration.id
         )
         self.url = reverse(
-            "sentry-api-0-organization-repository-project-path-config",
+            "sentry-api-0-organization-code-mappings",
             args=[self.org.slug],
         )
 
