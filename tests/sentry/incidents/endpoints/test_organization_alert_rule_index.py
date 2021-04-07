@@ -771,7 +771,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
     def test_myteams_filter_superuser(self):
         superuser = self.create_user(is_superuser=True)
         another_org = self.create_organization(owner=superuser, name="Rowdy Tiger")
-        self.combined_rules_url = f"/api/0/organizations/{another_org.slug}/combined-rules/"
+        another_org_rules_url = f"/api/0/organizations/{another_org.slug}/combined-rules/"
         another_org_team = self.create_team(organization=another_org, name="Meow Band", members=[])
         another_project = self.create_project(
             organization=another_org, teams=[another_org_team], name="Woof Choir"
@@ -782,7 +782,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=another_org,
             projects=[another_project],
             date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
-            owner=self.team.actor.get_actor_tuple(),
+            owner=another_org_team.actor.get_actor_tuple(),
         )
 
         self.create_issue_alert_rule(
@@ -793,7 +793,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "actions": [],
                 "actionMatch": "all",
                 "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
-                "owner": self.team.actor,
+                "owner": another_org_team.actor,
             }
         )
 
@@ -804,7 +804,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "team": ["myteams"],
             }
             response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
+                path=another_org_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200
         assert len(response.data) == 2
@@ -816,10 +816,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "team": [another_org_team.id],
             }
             response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
+                path=another_org_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200
-        assert len(response.data) == 0  # We are not on this team.
+        assert len(response.data) == 2  # We are not on this team, but we are a superuser.
 
     def test_team_filter_no_access(self):
         self.setup_project_and_rules()

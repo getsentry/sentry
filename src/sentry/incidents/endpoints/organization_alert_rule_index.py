@@ -58,7 +58,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                     # retrieve all teams within the organization
                     myteams = Team.objects.filter(
                         organization=organization, status=TeamStatus.VISIBLE
-                    ).values_list("actor_id", flat=True)
+                    ).values_list("id", flat=True)
                     verified_ids.update(myteams)
                 else:
                     myteams = [t.id for t in request.access.teams]
@@ -76,12 +76,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 if team.id in verified_ids:
                     continue
 
-                if not request.is_superuser() and not request.access.has_team_access(team):
+                if not request.access.has_team_access(team):
                     return Response(
                         f"Error: You do not have permission to access {team.name}",
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-
             team_filter_query = Q(owner_id__in=teams.values_list("actor_id", flat=True))
             if unassigned:
                 team_filter_query = team_filter_query | unassigned
