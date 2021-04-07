@@ -2,9 +2,9 @@ import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 
 export type TraceInfo = {
   /**
-   * The projects in the trace wth a transaction that matched the user condition.
+   * The projects in the trace
    */
-  relevantProjectsWithTransactions: Set<string>;
+  projects: Set<string>;
   /**
    * The errors in the trace.
    */

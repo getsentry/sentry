@@ -18,18 +18,14 @@ export function getTraceDetailsUrl(
   };
 }
 
-function traceVisitor(isRelevant: (transaction: TraceFullDetailed) => boolean) {
+function traceVisitor() {
   return (accumulator: TraceInfo, event: TraceFullDetailed) => {
-    const relevant = isRelevant(event);
-
     for (const error of event.errors ?? []) {
       accumulator.errors.add(error.event_id);
     }
 
     accumulator.transactions.add(event.event_id);
-    if (relevant) {
-      accumulator.relevantProjectsWithTransactions.add(event.project_slug);
-    }
+    accumulator.projects.add(event.project_slug);
 
     accumulator.startTimestamp = Math.min(
       accumulator.startTimestamp,
@@ -43,12 +39,9 @@ function traceVisitor(isRelevant: (transaction: TraceFullDetailed) => boolean) {
   };
 }
 
-export function getTraceInfo(
-  traces: TraceFullDetailed[],
-  isRelevant: (transaction: TraceFullDetailed) => boolean
-) {
+export function getTraceInfo(traces: TraceFullDetailed[]) {
   const initial = {
-    relevantProjectsWithTransactions: new Set<string>(),
+    projects: new Set<string>(),
     errors: new Set<string>(),
     transactions: new Set<string>(),
     startTimestamp: Number.MAX_SAFE_INTEGER,
@@ -58,7 +51,7 @@ export function getTraceInfo(
 
   return traces.reduce(
     (info: TraceInfo, trace: TraceFullDetailed) =>
-      reduceTrace<TraceInfo>(trace, traceVisitor(isRelevant), info),
+      reduceTrace<TraceInfo>(trace, traceVisitor(), info),
     initial
   );
 }

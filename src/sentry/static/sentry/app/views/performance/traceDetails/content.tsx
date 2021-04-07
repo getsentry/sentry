@@ -193,11 +193,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             traceInfo.transactions.size,
             traceInfo.errors.size
           )}
-          subtext={tn(
-            'Across %s project',
-            'Across %s projects',
-            traceInfo.relevantProjectsWithTransactions.size
-          )}
+          subtext={tn('Across %s project', 'Across %s projects', traceInfo.projects.size)}
         />
         <MetaData
           headingText={t('Total Duration')}
@@ -519,7 +515,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
     } else if (error !== null || traces === null || traces.length <= 0) {
       return this.renderTraceNotFound();
     } else {
-      const traceInfo = getTraceInfo(traces, this.isTransactionVisible);
+      const traceInfo = getTraceInfo(traces);
       return (
         <React.Fragment>
           {this.renderTraceWarnings()}
