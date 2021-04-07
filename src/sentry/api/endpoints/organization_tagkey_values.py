@@ -1,3 +1,4 @@
+import sentry_sdk
 from rest_framework.response import Response
 
 from sentry import tagstore
@@ -11,6 +12,8 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization, key):
         if not TAG_KEY_RE.match(key):
             return Response({"detail": f'Invalid tag key format for "{key}"'}, status=400)
+
+        sentry_sdk.set_tag("query.tag_key", key)
 
         try:
             # still used by events v1 which doesn't require global views
