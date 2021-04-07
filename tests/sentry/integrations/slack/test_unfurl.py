@@ -1,13 +1,16 @@
 import pytest
+from django.http.request import QueryDict
 from django.test import RequestFactory
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
+from sentry.integrations.slack.message_builder.discover import build_discover_attachment
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 
 
 @pytest.mark.parametrize(
@@ -21,6 +24,13 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
         (
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/",
             (LinkType.INCIDENTS, {"incident_id": 12345, "org_slug": "org1"}),
+        ),
+        (
+            "https://sentry.io/organizations/org1/discover/results/?project=1&yAxis=count()",
+            (
+                LinkType.DISCOVER,
+                {"org_slug": "org1", "query": QueryDict("project=1&yAxis=count()")},
+            ),
         ),
     ],
 )
@@ -70,10 +80,6 @@ class UnfurlTest(TestCase):
         project1 = self.create_project(organization=self.org)
         alert_rule = self.create_alert_rule()
 
-        project1 = self.create_project(organization=self.org)
-        alert_rule = self.create_alert_rule()
-
-        # Setup incident to be unfurled
         incident = self.create_incident(
             status=2, organization=self.org, projects=[project1], alert_rule=alert_rule
         )
@@ -89,7 +95,35 @@ class UnfurlTest(TestCase):
                 args={"org_slug": self.org.slug, "incident_id": incident.identifier},
             ),
         ]
-
         unfurls = link_handlers[LinkType.INCIDENTS].fn(self.request, self.integration, links)
 
         assert unfurls[links[0].url] == build_incident_attachment(action, incident)
+
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_unfurl_discover(self, mock_generate_chart):
+        project1 = self.create_project(organization=self.org)
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+        )
+        self.store_event(
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+        )
+
+        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={project1.id}&query=&sort=-timestamp&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature("organizations:chart-unfurls"):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
