@@ -1072,13 +1072,16 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     """
     Handles all data population for the React + Python scenario
     """
-    generate_releases([react_project, python_project], quick=quick)
-    generate_alerts(python_project)
-    generate_saved_query(react_project, "/productstore", "Product Store")
+    with sentry_sdk.start_span(op="handle_react_python_scenario", description="pre_event_setup"):
+        generate_releases([react_project, python_project], quick=quick)
+        generate_alerts(python_project)
+        generate_saved_query(react_project, "/productstore", "Product Store")
     with sentry_sdk.start_span(op="handle_react_python_scenario", description="populate_sessions"):
         populate_sessions(react_project, "sessions/react_unhandled_exception.json", quick=quick)
         populate_sessions(python_project, "sessions/python_unhandled_exception.json", quick=quick)
-    with sentry_sdk.start_span(op="handle_react_python_scenario.populate_connected_events"):
+    with sentry_sdk.start_span(
+        op="handle_react_python_scenario", description="populate_connected_events"
+    ):
         populate_connected_event_scenario_1(react_project, python_project, quick=quick)
         populate_connected_event_scenario_1b(react_project, python_project, quick=quick)
         populate_connected_event_scenario_2(react_project, python_project, quick=quick)

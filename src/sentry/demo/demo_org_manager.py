@@ -97,7 +97,16 @@ def create_demo_org(quick=False) -> Organization:
 
 
 def assign_demo_org() -> Tuple[Organization, User]:
-    with sentry_sdk.start_transaction(op="assign_demo_org", name="assign_demo_org", sampled=True):
+    with sentry_sdk.configure_scope() as scope:
+        parent_span_id = scope.span.span_id
+        trace_id = scope.span.trace_id
+    with sentry_sdk.start_transaction(
+        op="assign_demo_org",
+        name="assign_demo_org",
+        parent_span_id=parent_span_id,
+        trace_id=trace_id,
+        sampled=True,
+    ):
         from .tasks import build_up_org_buffer
 
         demo_org = None
