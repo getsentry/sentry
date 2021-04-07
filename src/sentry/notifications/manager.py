@@ -324,3 +324,30 @@ class NotificationsManager(BaseManager):  # type: ignore
         user_ids = project.member_set.values_list("user", flat=True)
         users = User.objects.filter(id__in=user_ids)
         return self.filter_to_subscribed_users(provider, project, users)
+
+    def update_settings_bulk(
+        self,
+        notification_settings: Iterable[Any],
+        target_id: int,
+    ) -> None:
+        """
+        Given a list of _valid_ notification settings as tuples of column
+        values, save them to the DB. This does not execute as a transaction.
+        """
+
+        for (type, scope_type, scope_identifier, provider, value) in notification_settings:
+            # A missing DB row is equivalent to DEFAULT.
+            if value == NotificationSettingOptionValues.DEFAULT:
+                self._filter(provider, type, scope_type, scope_identifier, [target_id]).delete()
+            else:
+                with transaction.atomic():
+                    setting, created = self.get_or_create(
+                        provider=provider.value,
+                        type=type.value,
+                        scope_type=scope_type.value,
+                        scope_identifier=scope_identifier,
+                        target_id=target_id,
+                        defaults={"value": value.value},
+                    )
+                    if not created and setting.value != value.value:
+                        setting.update(value=value.value)

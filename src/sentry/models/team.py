@@ -245,3 +245,13 @@ class Team(Model):
 
     def get_audit_log_data(self):
         return {"id": self.id, "slug": self.slug, "name": self.name, "status": self.status}
+
+    def get_projects(self):
+        from sentry.models import Project, ProjectStatus, ProjectTeam
+
+        return Project.objects.filter(
+            status=ProjectStatus.VISIBLE,
+            id__in=ProjectTeam.objects.filter(
+                team_id=self.id,
+            ).values_list("project_id", flat=True),
+        )
