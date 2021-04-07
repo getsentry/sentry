@@ -19,9 +19,8 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         This takes a list of either Users or Teams (which we will refer to as
         "targets") because both can have Notification Settings. The function
         returns a mapping of targets to flat lists of object to be passed to the
-        `serialize` function. TODO explain why this returns a flat list.
+        `serialize` function.
 
-        TODO Should this take strings instead of enums?
         :param item_list: List of user or team objects whose notification
             settings should be serialized.
         :param user: The user who will be viewing the notification settings.
