@@ -17,14 +17,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withProjects from 'app/utils/withProjects';
 
 import SavedSearchTab from './savedSearchTab';
-import {
-  getTabs,
-  isForReviewQuery,
-  IssueSortOptions,
-  Query,
-  QueryCounts,
-  TAB_MAX_COUNT,
-} from './utils';
+import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type WrapGuideProps = {
   children: React.ReactElement;
@@ -34,9 +27,9 @@ type WrapGuideProps = {
 };
 
 function WrapGuideTabs({children, tabQuery, query, to}: WrapGuideProps) {
-  if (isForReviewQuery(tabQuery)) {
+  if (tabQuery === Query.FOR_REVIEW) {
     return (
-      <GuideAnchor target="inbox_guide_tab" disabled={isForReviewQuery(query)} to={to}>
+      <GuideAnchor target="inbox_guide_tab" disabled={query === Query.FOR_REVIEW} to={to}>
         <GuideAnchor target="for_review_guide_tab">{children}</GuideAnchor>
       </GuideAnchor>
     );
@@ -86,7 +79,7 @@ function IssueListHeader({
 
   function trackTabClick(tabQuery: string) {
     // Clicking on inbox tab and currently another tab is active
-    if (isForReviewQuery(tabQuery) && !isForReviewQuery(query)) {
+    if (tabQuery === Query.FOR_REVIEW && query !== Query.FOR_REVIEW) {
       trackAnalyticsEvent({
         eventKey: 'inbox_tab.clicked',
         eventName: 'Clicked Inbox Tab',
@@ -103,13 +96,6 @@ function IssueListHeader({
         </StyledHeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <Button
-              title={t('Send us feedback via email')}
-              size="small"
-              href="mailto:workflow-feedback@sentry.io?subject=Issues Feedback"
-            >
-              Give Feedback
-            </Button>
             <Button
               size="small"
               title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
@@ -128,7 +114,8 @@ function IssueListHeader({
                 query: {
                   ...queryParms,
                   query: tabQuery,
-                  sort: isForReviewQuery(tabQuery) ? IssueSortOptions.INBOX : sortParam,
+                  sort:
+                    tabQuery === Query.FOR_REVIEW ? IssueSortOptions.INBOX : sortParam,
                 },
                 pathname: `/organizations/${organization.slug}/issues/`,
               };
@@ -147,8 +134,8 @@ function IssueListHeader({
                         {queryCounts[tabQuery]?.count > 0 && (
                           <Badge
                             type={
-                              isForReviewQuery(tabQuery) &&
-                              queryCounts[tabQuery].count > 0
+                              tabQuery === Query.FOR_REVIEW &&
+                              queryCounts[tabQuery]!.count > 0
                                 ? 'review'
                                 : 'default'
                             }

@@ -54,10 +54,12 @@ function SavedSearchTab({
             <TitleTextOverflow>
               {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
             </TitleTextOverflow>
-            {queryCount && (
-              <Badge>
-                <QueryCount hideParens count={queryCount} max={1000} />
-              </Badge>
+            {queryCount !== undefined && queryCount > 0 && (
+              <div>
+                <Badge>
+                  <QueryCount hideParens count={queryCount} max={1000} />
+                </Badge>
+              </div>
             )}
           </React.Fragment>
         ) : (
@@ -99,10 +101,15 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
     display: block;
   }
   & > span > .dropdown-menu {
+    padding: 0;
     margin-top: ${space(1)};
     min-width: 20vw;
     max-width: 25vw;
     z-index: ${p => p.theme.zIndex.globalSelectionHeader};
+
+    :after {
+      border-bottom-color: ${p => p.theme.backgroundSecondary};
+    }
   }
 
   @media (max-width: ${p => p.theme.breakpoints[4]}) {
@@ -115,11 +122,6 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
     & > span > .dropdown-menu {
       max-width: 50vw;
     }
-  }
-
-  /* Fix nav tabs style leaking into menu */
-  * > li {
-    margin: 0;
   }
 `;
 

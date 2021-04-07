@@ -5,13 +5,12 @@ import functools
 import logging
 import time
 from contextlib import contextmanager
+from queue import Queue
+from random import random
+from threading import Thread, local
 from typing import Mapping, Optional
 
 from django.conf import settings
-from random import random
-from threading import Thread, local
-from queue import Queue
-
 
 metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
