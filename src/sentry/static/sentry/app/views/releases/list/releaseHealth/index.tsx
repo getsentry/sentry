@@ -102,6 +102,8 @@ class ReleaseHealth extends React.Component<Props> {
 }
 
 const HiddenProjectsMessage = styled('div')`
+  display: flex;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   padding: 0 ${space(2)};
   border-top: 1px solid ${p => p.theme.border};
