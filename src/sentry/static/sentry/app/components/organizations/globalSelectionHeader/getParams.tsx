@@ -129,7 +129,9 @@ type ParsedParams = {
 };
 
 type InputParams = {
+  localStart?: Date | ParamValue;
   start?: Date | ParamValue;
+  localEnd?: Date | ParamValue;
   end?: Date | ParamValue;
   period?: ParamValue;
   statsPeriod?: ParamValue;
@@ -150,13 +152,26 @@ export function getParams(
     defaultStatsPeriod = DEFAULT_STATS_PERIOD,
   }: GetParamsOptions = {}
 ): ParsedParams {
-  const {start, end, period, statsPeriod, utc, ...otherParams} = params;
+  const {
+    localStart,
+    localEnd,
+    start,
+    end,
+    period,
+    statsPeriod,
+    utc,
+    ...otherParams
+  } = params;
 
   // `statsPeriod` takes precedence for now
   let coercedPeriod = getStatsPeriodValue(statsPeriod) || getStatsPeriodValue(period);
 
-  const dateTimeStart = allowAbsoluteDatetime ? getDateTimeString(start) : null;
-  const dateTimeEnd = allowAbsoluteDatetime ? getDateTimeString(end) : null;
+  const dateTimeStart = allowAbsoluteDatetime
+    ? getDateTimeString(localStart) ?? getDateTimeString(start)
+    : null;
+  const dateTimeEnd = allowAbsoluteDatetime
+    ? getDateTimeString(localEnd) ?? getDateTimeString(end)
+    : null;
 
   if (!(dateTimeStart && dateTimeEnd)) {
     if (!coercedPeriod && !allowEmptyPeriod) {

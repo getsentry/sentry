@@ -129,6 +129,17 @@ describe('getParams', function () {
     ).toEqual({statsPeriod: '14d'});
   });
 
+  it('should return localStart and localEnd even if start and end are provided', function () {
+    expect(
+      getParams({
+        localStart: '2021-10-23T04:28:49+0000',
+        localEnd: '2021-10-26T02:56:17+0000',
+        start: '2019-10-23T04:28:49+0000',
+        end: '2019-10-26T02:56:17+0000',
+      })
+    ).toEqual({start: '2021-10-23T04:28:49.000', end: '2021-10-26T02:56:17.000'});
+  });
+
   it('does not return default statsPeriod if `allowEmptyPeriod` option is passed', function () {
     expect(getParams({}, {allowEmptyPeriod: true})).toEqual({});
   });

@@ -63,9 +63,7 @@ type Props = {
   organization: Organization;
   params: Params;
   traceSlug: string;
-  start: string | undefined;
-  end: string | undefined;
-  statsPeriod: string | undefined;
+  dateSelected: boolean;
   isLoading: boolean;
   error: string | null;
   traces: TraceFullDetailed[] | null;
@@ -518,9 +516,9 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderContent() {
-    const {start, end, statsPeriod, isLoading, error, traces} = this.props;
+    const {dateSelected, isLoading, error, traces} = this.props;
 
-    if (!statsPeriod && (!start || !end)) {
+    if (!dateSelected) {
       return this.renderTraceRequiresDateRangeSelection();
     } else if (isLoading) {
       return this.renderTraceLoading();

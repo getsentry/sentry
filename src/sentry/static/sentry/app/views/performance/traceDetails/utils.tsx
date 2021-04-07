@@ -12,9 +12,15 @@ export function getTraceDetailsUrl(
   dateSelection,
   query: Query
 ): LocationDescriptor {
+  const {start, end, statsPeriod} = dateSelection;
   return {
     pathname: `/organizations/${organization.slug}/performance/trace/${traceSlug}/`,
-    query: {...query, ...dateSelection},
+    query: {
+      ...query,
+      statsPeriod,
+      localStart: start,
+      localEnd: end,
+    },
   };
 }
 

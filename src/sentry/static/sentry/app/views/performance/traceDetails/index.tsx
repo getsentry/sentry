@@ -39,6 +39,7 @@ class TraceSummary extends React.Component<Props> {
     const start = decodeScalar(queryParams.start);
     const end = decodeScalar(queryParams.end);
     const statsPeriod = decodeScalar(queryParams.statsPeriod);
+    const dateSelected = Boolean(statsPeriod || (start && end));
 
     const content = ({
       isLoading,
@@ -54,16 +55,14 @@ class TraceSummary extends React.Component<Props> {
         organization={organization}
         params={params}
         traceSlug={traceSlug}
-        start={start}
-        end={end}
-        statsPeriod={statsPeriod}
+        dateSelected={dateSelected}
         isLoading={isLoading}
         error={error}
         traces={traces}
       />
     );
 
-    if (!statsPeriod && (!start || !end)) {
+    if (!dateSelected) {
       return content({
         isLoading: false,
         error: 'date selection not specified',
