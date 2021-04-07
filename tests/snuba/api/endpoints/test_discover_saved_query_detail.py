@@ -1,7 +1,7 @@
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, NoReverseMatch
 
-from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 
 
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
@@ -32,6 +32,10 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         invalid.set_projects(self.project_ids)
 
         self.query_id_without_access = invalid.id
+
+    def test_invalid_id(self):
+        with self.assertRaises(NoReverseMatch):
+            reverse("sentry-api-0-discover-saved-query-detail", args=[self.org.slug, "not-an-id"])
 
     def test_get(self):
         with self.feature(self.feature_name):
