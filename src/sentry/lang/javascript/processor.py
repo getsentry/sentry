@@ -416,6 +416,18 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
                 get_max_age(result.headers),
             )
 
+            # since the cache.set above can fail we can end up in a situation
+            # where the file is too large for the cache. In that case we abort
+            # the fetch and cache a failure and lock the domain for future
+            # http fetches.
+            if cache.get(cache_key) is None:
+                error = {
+                    "type": EventError.TOO_LARGE_FOR_CACHE,
+                    "url": http.expose_url(url),
+                }
+                http.lock_domain(url, error=error)
+                raise http.CannotFetch(error)
+
     # If we did not get a 200 OK we just raise a cannot fetch here.
     if result.status != 200:
         raise http.CannotFetch(
