@@ -24,15 +24,10 @@ function traceVisitor(isRelevant: (transaction: TraceFullDetailed) => boolean) {
 
     for (const error of event.errors ?? []) {
       accumulator.errors.add(error.event_id);
-      if (relevant) {
-        accumulator.relevantErrors.add(error.event_id);
-        accumulator.relevantProjectsWithErrors.add(error.project_slug);
-      }
     }
 
     accumulator.transactions.add(event.event_id);
     if (relevant) {
-      accumulator.relevantTransactions.add(event.event_id);
       accumulator.relevantProjectsWithTransactions.add(event.project_slug);
     }
 
@@ -53,10 +48,7 @@ export function getTraceInfo(
   isRelevant: (transaction: TraceFullDetailed) => boolean
 ) {
   const initial = {
-    relevantProjectsWithErrors: new Set<string>(),
     relevantProjectsWithTransactions: new Set<string>(),
-    relevantErrors: new Set<string>(),
-    relevantTransactions: new Set<string>(),
     errors: new Set<string>(),
     transactions: new Set<string>(),
     startTimestamp: Number.MAX_SAFE_INTEGER,
