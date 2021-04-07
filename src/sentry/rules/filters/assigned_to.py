@@ -3,25 +3,13 @@ from enum import Enum
 from django import forms
 
 from sentry.mail.actions import MemberTeamForm
+from sentry.notifications.types import ASSIGNEE_CHOICES, AssigneeTargetType
 from sentry.rules.filters.base import EventFilter
 from sentry.utils.cache import cache
 
 
-class AssigneeTargetType(Enum):
-    UNASSIGNED = "Unassigned"
-    TEAM = "Team"
-    MEMBER = "Member"
-
-
-CHOICES = [
-    (AssigneeTargetType.UNASSIGNED.value, "Unassigned"),
-    (AssigneeTargetType.TEAM.value, "Team"),
-    (AssigneeTargetType.MEMBER.value, "Member"),
-]
-
-
 class AssignedToForm(MemberTeamForm):
-    targetType = forms.ChoiceField(choices=CHOICES)
+    targetType = forms.ChoiceField(choices=ASSIGNEE_CHOICES)
 
     teamValue = AssigneeTargetType.TEAM
     memberValue = AssigneeTargetType.MEMBER
@@ -33,7 +21,7 @@ class AssignedToFilter(EventFilter):
     label = "The issue is assigned to {targetType}"
     prompt = "The issue is assigned to {no one/team/member}"
 
-    form_fields = {"targetType": {"type": "assignee", "choices": CHOICES}}
+    form_fields = {"targetType": {"type": "assignee", "choices": ASSIGNEE_CHOICES}}
 
     def get_assignees(self, group):
         cache_key = f"group:{group.id}:assignees"
@@ -44,20 +32,20 @@ class AssignedToFilter(EventFilter):
         return assignee_list
 
     def passes(self, event, state):
-        targetType = AssigneeTargetType(self.get_option("targetType"))
+        target_type = AssigneeTargetType(self.get_option("targetType"))
 
-        if targetType == AssigneeTargetType.UNASSIGNED:
+        if target_type == AssigneeTargetType.UNASSIGNED:
             return len(self.get_assignees(event.group)) == 0
         else:
-            targetId = self.get_option("targetIdentifier", None)
+            target_id = self.get_option("targetIdentifier", None)
 
-            if targetType == AssigneeTargetType.TEAM:
+            if target_type == AssigneeTargetType.TEAM:
                 for assignee in self.get_assignees(event.group):
-                    if assignee.team and assignee.team_id == targetId:
+                    if assignee.team and assignee.team_id == target_id:
                         return True
-            elif targetType == AssigneeTargetType.MEMBER:
+            elif target_type == AssigneeTargetType.MEMBER:
                 for assignee in self.get_assignees(event.group):
-                    if assignee.user and assignee.user_id == targetId:
+                    if assignee.user and assignee.user_id == target_id:
                         return True
             return False
 

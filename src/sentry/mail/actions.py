@@ -1,16 +1,10 @@
 from django import forms
 
 from sentry.mail import mail_adapter
-from sentry.mail.adapter import ActionTargetType
 from sentry.models import Project, User
+from sentry.notifications.types import ActionTargetType, ACTION_CHOICES
 from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics
-
-CHOICES = [
-    (ActionTargetType.ISSUE_OWNERS.value, "Issue Owners"),
-    (ActionTargetType.TEAM.value, "Team"),
-    (ActionTargetType.MEMBER.value, "Member"),
-]
 
 
 class MemberTeamForm(forms.Form):
@@ -82,7 +76,7 @@ class MemberTeamForm(forms.Form):
 
 
 class NotifyEmailForm(MemberTeamForm):
-    targetType = forms.ChoiceField(choices=CHOICES)
+    targetType = forms.ChoiceField(choices=ACTION_CHOICES)
 
     teamValue = ActionTargetType.TEAM
     memberValue = ActionTargetType.MEMBER
@@ -97,7 +91,7 @@ class NotifyEmailAction(EventAction):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.form_fields = {"targetType": {"type": "mailAction", "choices": CHOICES}}
+        self.form_fields = {"targetType": {"type": "mailAction", "choices": ACTION_CHOICES}}
 
     def after(self, event, state):
         extra = {"event_id": event.event_id}
