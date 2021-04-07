@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
+import Badge from 'app/components/badge';
 import CreateAlertButton from 'app/components/createAlertButton';
 import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
@@ -16,7 +17,6 @@ import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 
 import {
@@ -25,7 +25,9 @@ import {
   AlertWizardOptions,
   AlertWizardPanelContent,
   AlertWizardRuleTemplates,
+  WebVitalAlertTypes,
 } from './options';
+import RadioPanelGroup from './radioPanelGroup';
 
 type RouteParams = {
   orgId: string;
@@ -100,16 +102,22 @@ class AlertWizard extends React.Component<Props, State> {
             <StyledPageHeader>
               <PageHeading>{t('What do you want to alert on?')}</PageHeading>
             </StyledPageHeader>
+            <Heading>{t('Errors')}</Heading>
             <WizardBody>
               <WizardOptions>
-                {AlertWizardOptions.map(({categoryHeading, options}) => (
+                {AlertWizardOptions.map(({categoryHeading, options}, i) => (
                   <OptionsWrapper key={categoryHeading}>
-                    <Heading>{categoryHeading}</Heading>
-                    <RadioGroup
-                      choices={options.map(alertType => [
-                        alertType,
-                        AlertWizardAlertNames[alertType],
-                      ])}
+                    {i > 0 && <Heading>{categoryHeading}</Heading>}
+                    <RadioPanelGroup
+                      choices={options.map(alertType => {
+                        return [
+                          alertType,
+                          AlertWizardAlertNames[alertType],
+                          ...(WebVitalAlertTypes.has(alertType)
+                            ? [<StyledBadge key={alertType} text={t('Web Vital')} />]
+                            : []),
+                        ] as [AlertType, string, React.ReactNode];
+                      })}
                       onChange={this.handleChangeAlertOption}
                       value={alertOption}
                       label="alert-option"
@@ -117,8 +125,8 @@ class AlertWizard extends React.Component<Props, State> {
                   </OptionsWrapper>
                 ))}
               </WizardOptions>
-              {panelContent && alertOption && (
-                <WizardPanel>
+              <WizardPanel visible={!!panelContent && !!alertOption}>
+                {panelContent && alertOption && (
                   <WizardPanelBody>
                     <PageHeading>{AlertWizardAlertNames[alertOption]}</PageHeading>
                     <PanelDescription>
@@ -137,9 +145,9 @@ class AlertWizard extends React.Component<Props, State> {
                       ))}
                     </List>
                   </WizardPanelBody>
-                  {this.renderCreateAlertButton()}
-                </WizardPanel>
-              )}
+                )}
+                {this.renderCreateAlertButton()}
+              </WizardPanel>
             </WizardBody>
           </Feature>
         </PageContent>
@@ -164,14 +172,22 @@ const WizardBody = styled('div')`
 
 const WizardOptions = styled('div')`
   flex: 3;
+  margin-right: ${space(4)};
 `;
 
-const WizardPanel = styled(Panel)`
+const StyledBadge = styled(Badge)`
+  color: ${p => p.theme.textColor};
+  font-weight: normal;
+`;
+
+const WizardPanel = styled(Panel)<{visible?: boolean}>`
   padding: ${space(3)};
   flex: 5;
   display: flex;
+  ${p => !p.visible && 'visibility: hidden'};
   flex-direction: column;
   align-items: start;
+  align-self: flex-start;
 `;
 
 const WizardPanelBody = styled(PanelBody)`
