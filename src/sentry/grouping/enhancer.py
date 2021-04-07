@@ -28,7 +28,7 @@ line = _ (comment / rule / empty) newline?
 rule = _ matchers actions
 
 
-matchers         = caller_matcher* frame_matcher+ callee_matcher*
+matchers         = caller_matcher? frame_matcher+ callee_matcher?
 frame_matcher    = _ negation? matcher_type sep argument
 matcher_type     = ident / quoted_ident
 caller_matcher   = _ "[" _ frame_matcher _ "]" _ "|"
