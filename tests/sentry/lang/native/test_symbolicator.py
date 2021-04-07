@@ -120,8 +120,8 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
-        assert redacted["modules"][0]["candidates"] == candidates
+        redact_internal_sources(response)
+        assert response["modules"][0]["candidates"] == candidates
 
     def test_location_debug_id(self):
         debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
@@ -133,9 +133,9 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [{"source": "sentry:microsoft", "download": {"status": "ok"}}]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
 
     def test_notfound_deduplicated(self):
         debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
@@ -152,9 +152,9 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [{"source": "sentry:microsoft", "download": {"status": "notfound"}}]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
 
     def test_notfound_omitted(self):
         debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
@@ -171,9 +171,9 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [{"source": "sentry:microsoft", "download": {"status": "ok"}}]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
 
     def test_multiple_notfound_filtered(self):
         debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
@@ -200,12 +200,12 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [
             {"source": "sentry:microsoft", "download": {"status": "ok"}},
             {"source": "sentry:apple", "download": {"status": "ok"}},
         ]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
 
     def test_sentry_project(self):
         debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
@@ -217,7 +217,7 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [
             {
                 "source": "sentry:project",
@@ -225,7 +225,7 @@ class TestInternalSourcesRedaction:
                 "download": {"status": "ok"},
             },
         ]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
 
     def test_sentry_project_notfound_no_location(self):
         # For sentry:project status=notfound the location needs to be removed
@@ -238,9 +238,9 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [{"source": "sentry:project", "download": {"status": "notfound"}}]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
 
 
 class TestAliasReversion:
