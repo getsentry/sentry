@@ -1,9 +1,8 @@
-from sentry.utils.snuba import Dataset, aliased_query, get_snuba_column_name, get_function_index
-
 # TODO(mark) Once this import is removed, transform_data should not
 # be exported.
 from sentry import eventstore
 from sentry.snuba.discover import transform_data
+from sentry.utils.snuba import Dataset, aliased_query, get_function_index, get_snuba_column_name
 
 
 def parse_columns_in_functions(col, context=None, index=None):

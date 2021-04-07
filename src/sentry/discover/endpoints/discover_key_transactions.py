@@ -3,8 +3,8 @@ from rest_framework.response import Response
 
 from sentry.api.bases import KeyTransactionBase
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.discover.models import KeyTransaction
 from sentry.discover.endpoints.serializers import KeyTransactionSerializer
+from sentry.discover.models import KeyTransaction
 
 
 class KeyTransactionPermission(OrganizationPermission):
