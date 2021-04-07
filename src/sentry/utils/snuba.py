@@ -665,6 +665,7 @@ def bulk_raw_query(
     headers = {}
     if referrer:
         headers["referer"] = referrer
+        sentry_sdk.set_tag("query.referrer", referrer)
 
     # Store the original position of the query so that we can maintain the order
     query_param_list: List[Tuple[int, SnubaQuery]] = list(
