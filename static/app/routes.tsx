@@ -1171,7 +1171,7 @@ function routes() {
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "DashboardsV2Container" */ 'app/views/dashboardsV2'
+                /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
               )
             }
             component={errorHandler(LazyLoad)}
@@ -1180,15 +1180,6 @@ function routes() {
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="widget/new/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget/new'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1869,15 +1860,16 @@ function routes() {
             path="/organizations/:orgId/dashboards/:dashboardId/"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "DashboardsV2Container" */ 'app/views/dashboardsV2'
+                /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
               )
             }
             component={errorHandler(LazyLoad)}
           >
-            <IndexRoute
+            <Route
+              path="widget/new/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
+                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget/new'
                 )
               }
               component={errorHandler(LazyLoad)}
