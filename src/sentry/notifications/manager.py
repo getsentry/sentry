@@ -2,6 +2,8 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
+from collections import defaultdict
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 from sentry.db.models.manager import BaseManager
 from sentry.models.integration import ExternalProviders
@@ -9,8 +11,8 @@ from sentry.notifications.helpers import (
     get_scope,
     get_scope_type,
     get_target_id,
-    should_user_be_notified,
     transform_to_notification_settings_by_user,
+    where_should_user_be_notified,
     validate,
 )
 from sentry.notifications.legacy_mappings import (
@@ -268,7 +270,6 @@ class NotificationsManager(BaseManager):  # type: ignore
 
     def get_for_users_by_parent(
         self,
-        provider: ExternalProviders,
         type: NotificationSettingTypes,
         parent: Any,
         users: List[Any],
@@ -287,7 +288,6 @@ class NotificationsManager(BaseManager):  # type: ignore
                 scope_type=NotificationScopeType.USER.value,
                 scope_identifier__in=[user.id for user in users],
             ),
-            provider=provider.value,
             type=type.value,
             target__in=[user.actor.id for user in users],
         )
@@ -299,18 +299,21 @@ class NotificationsManager(BaseManager):  # type: ignore
         users: List[Any],
     ) -> List[Any]:
         """
-        Filters a list of users down to the users who are subscribed to email
-        alerts. We check both the project level settings and global default settings.
+        Filters a list of users down to the users who are subscribed to alerts.
+        We check both the project level settings and global default settings.
         """
         notification_settings = self.get_for_users_by_parent(
-            provider, NotificationSettingTypes.ISSUE_ALERTS, parent=project, users=users
+            NotificationSettingTypes.ISSUE_ALERTS, parent=project, users=users
         )
         notification_settings_by_user = transform_to_notification_settings_by_user(
             notification_settings, users
         )
-        return [
-            user for user in users if should_user_be_notified(notification_settings_by_user, user)
-        ]
+        mapping = defaultdict(list)
+        for user in users:
+            providers = where_should_user_be_notified(notification_settings_by_user, user)
+            for provider in providers:
+                mapping[provider].append(user)
+        return mapping
 
     def get_notification_recipients(self, provider: ExternalProviders, project: Any) -> List[Any]:
         """

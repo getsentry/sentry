@@ -247,7 +247,6 @@ class MailAdapter:
         user_ids = project.member_set.values_list("user", flat=True)
         users = User.objects.filter(id__in=user_ids)
         notification_settings = NotificationSetting.objects.get_for_users_by_parent(
-            provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
             parent=project,
             users=users,

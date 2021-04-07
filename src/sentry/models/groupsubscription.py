@@ -11,7 +11,6 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.helpers import (
     should_be_participating,
     transform_to_notification_settings_by_user,
@@ -122,7 +121,6 @@ class GroupSubscriptionManager(BaseManager):
         user_ids = [user.id for user in users]
         subscriptions = self.filter(group=group, user_id__in=user_ids)
         notification_settings = NotificationSetting.objects.get_for_users_by_parent(
-            ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             users=users,
             parent=group.project,
