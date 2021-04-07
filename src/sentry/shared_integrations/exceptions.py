@@ -35,19 +35,47 @@ class ApiError(Exception):
     def from_response(cls, response, url=None):
         if response.status_code == 401:
             return ApiUnauthorized(response.text)
+        if 300 <= response.status_code < 500:
+            return UnrecoverableApiError(response.text, code=response.status_code, url=url)
         return cls(response.text, response.status_code, url=url)
+
+
+class UnrecoverableApiError(ApiError):
+    pass
+
+
+class RetryableApiError(ApiError):
+    pass
+
+
+def wrapRetryableApiError(func):
+    def wrapper(*args, **kwargs):
+        error = func(*args, **kwargs)
+        return RetryableApiError(error.text, code=error.code, url=error.url)
+
+    return wrapper
+
+
+def wrapUnrecoverableApiError(func):
+    def wrapper(*args, **kwargs):
+        exc = func(*args, **kwargs)
+        return UnrecoverableApiError(exc.text, exc.code, url=exc.url)
+
+    return wrapper
 
 
 class ApiHostError(ApiError):
     code = 503
 
     @classmethod
+    @wrapRetryableApiError
     def from_exception(cls, exception):
         if getattr(exception, "request"):
             return cls.from_request(exception.request)
         return cls("Unable to reach host")
 
     @classmethod
+    @wrapRetryableApiError
     def from_request(cls, request):
         host = urlparse(request.url).netloc
         return cls(f"Unable to reach host: {host}")
@@ -57,12 +85,14 @@ class ApiTimeoutError(ApiError):
     code = 504
 
     @classmethod
+    @wrapRetryableApiError
     def from_exception(cls, exception):
         if getattr(exception, "request"):
             return cls.from_request(exception.request)
         return cls("Timed out reaching host")
 
     @classmethod
+    @wrapRetryableApiError
     def from_request(cls, request):
         host = urlparse(request.url).netloc
         return cls(f"Timed out attempting to reach host: {host}")

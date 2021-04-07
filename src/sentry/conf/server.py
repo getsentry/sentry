@@ -14,7 +14,7 @@ import tempfile
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
-
+from sentry.shared_integrations.exceptions import UnrecoverableApiError, RetryableApiError
 from datetime import timedelta
 from urllib.parse import urlparse
 
@@ -1749,6 +1749,7 @@ SENTRY_SDK_CONFIG = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
+    "ignore_errors": [UnrecoverableApiError, RetryableApiError],
 }
 
 # Callable to bind additional context for the Sentry SDK

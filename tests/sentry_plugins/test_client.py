@@ -6,9 +6,9 @@ from sentry.testutils import TestCase
 
 from sentry.shared_integrations.exceptions import (
     ApiError,
-    ApiHostError,
     ApiUnauthorized,
     UnsupportedResponseType,
+    RetryableApiError,
 )
 from sentry_plugins.client import ApiClient, AuthApiClient
 
@@ -89,7 +89,7 @@ class AuthApiClientTest(TestCase):
 
     @responses.activate
     def test_invalid_host(self):
-        with pytest.raises(ApiHostError):
+        with pytest.raises(RetryableApiError):
             AuthApiClient().get("http://example.com")
 
     @responses.activate
