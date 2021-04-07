@@ -77,5 +77,13 @@ describe('IssueListSavedSearchMenu', () => {
       modal.find('Modal Button[priority="primary"] button').simulate('click');
       expect(onDelete).toHaveBeenCalledWith(savedSearchList[1]);
     });
+
+    it('hides is:unresolved with inbox flag', () => {
+      expect(wrapper.find('MenuItem')).toHaveLength(2);
+      wrapper.setProps({
+        organization: TestStubs.Organization({features: ['inbox']}),
+      });
+      expect(wrapper.find('MenuItem')).toHaveLength(1);
+    });
   });
 });
