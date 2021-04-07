@@ -648,7 +648,7 @@ def fix_breadrumbs(event_json, quick):
         curr_time += breadcrumb_time_step
 
 
-def iter_timestamps(disribution_fn_num: int, quick: bool):
+def iter_timestamps(disribution_fn_num: int, quick: bool, starting_release: int = 0):
     """
     Yields a series of ordered timestamps and the day in a tuple
     """
@@ -660,11 +660,20 @@ def iter_timestamps(disribution_fn_num: int, quick: bool):
     MAX_DAYS = config["MAX_DAYS"]
     SCALE_FACTOR = config["SCALE_FACTOR"]
     BASE_OFFSET = config["BASE_OFFSET"]
-
+    NUM_RELEASES = config["NUM_RELEASES"]
     start_time = timezone.now() - timedelta(days=MAX_DAYS)
+
+    # offset by the release time
+    hourly_release_cadence = MAX_DAYS * 24.0 / NUM_RELEASES
+    start_time += timedelta(hours=hourly_release_cadence * starting_release)
 
     for day in range(MAX_DAYS):
         for hour in range(24):
+            # quit when we start to populate events in the future
+            end_time = start_time + timedelta(days=day, hours=hour + 1)
+            if end_time > timezone.now():
+                return
+
             base = distribution_fn(hour)
             # determine the number of events we want in this hour
             num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
@@ -1003,6 +1012,40 @@ def populate_connected_event_scenario_3(python_project: Project, quick=False):
     logger.info("populate_connected_event_scenario_3.finished", extra=log_extra)
 
 
+def populate_generic_error(
+    project: Project, file_path, dist_number, starting_release=0, quick=False
+):
+    """
+    This function populates a single Back-end error
+    Occurrance times and durations are randomized
+    """
+    error = get_event_from_file(file_path)
+    log_extra = {
+        "organization_slug": project.organization.slug,
+        "file_path": file_path,
+        "quick": quick,
+    }
+    logger.info("populate_generic_error.start", extra=log_extra)
+
+    for (timestamp, day) in iter_timestamps(dist_number, quick, starting_release):
+        transaction_user = generate_user(quick)
+        release = get_release_from_time(project.organization_id, timestamp)
+        release_sha = release.version
+
+        local_event = copy.deepcopy(error)
+        local_event.update(
+            project=project,
+            platform=project.platform,
+            timestamp=timestamp,
+            user=transaction_user,
+            release=release_sha,
+        )
+        update_context(local_event)
+        fix_error_event(local_event, quick)
+        safe_send_event(local_event, quick)
+    logger.info("populate_generic_error.finished", extra=log_extra)
+
+
 def populate_sessions(project, error_file, quick=False):
     dsn = ProjectKey.objects.get(project=project)
 
@@ -1061,4 +1104,9 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     populate_connected_event_scenario_1(react_project, python_project, quick=quick)
     populate_connected_event_scenario_1b(react_project, python_project, quick=quick)
     populate_connected_event_scenario_2(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_3(python_project, quick=quick)
+    populate_generic_error(
+        python_project, "scen3/python_error.json", 3, starting_release=1, quick=quick
+    )
+    populate_generic_error(
+        python_project, "scen4/python_error.json", 4, starting_release=2, quick=quick
+    )
