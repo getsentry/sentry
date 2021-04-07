@@ -281,7 +281,9 @@ def generate_releases(projects, quick):
             release.add_project(project)
 
         # TODO: unhardcode params when we add more scenarios
-        raw_commits = generate_commits(["components/ShoppingCart.js", "flask/app.py"], ["js", "py"])
+        raw_commits = generate_commits(
+            ["components/ShoppingCart.js", "flask/app.py", "purchase.py"], ["js", "py"]
+        )
 
         repo, _ = Repository.objects.get_or_create(
             organization_id=org.id,
