@@ -1,19 +1,7 @@
-from enum import Enum
-
-from django import forms
-
-from sentry.mail.actions import MemberTeamForm
+from sentry.mail.forms.assigned_to import AssignedToForm
 from sentry.notifications.types import ASSIGNEE_CHOICES, AssigneeTargetType
 from sentry.rules.filters.base import EventFilter
 from sentry.utils.cache import cache
-
-
-class AssignedToForm(MemberTeamForm):
-    targetType = forms.ChoiceField(choices=ASSIGNEE_CHOICES)
-
-    teamValue = AssigneeTargetType.TEAM
-    memberValue = AssigneeTargetType.MEMBER
-    targetTypeEnum = AssigneeTargetType
 
 
 class AssignedToFilter(EventFilter):
