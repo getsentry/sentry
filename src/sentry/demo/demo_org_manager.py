@@ -98,8 +98,12 @@ def create_demo_org(quick=False) -> Organization:
 
 def assign_demo_org() -> Tuple[Organization, User]:
     with sentry_sdk.configure_scope() as scope:
-        parent_span_id = scope.span.span_id
-        trace_id = scope.span.trace_id
+        try:
+            parent_span_id = scope.span.span_id
+            trace_id = scope.span.trace_id
+        except AttributeError:
+            parent_span_id = None
+            trace_id = None
     with sentry_sdk.start_transaction(
         op="assign_demo_org",
         name="assign_demo_org",
