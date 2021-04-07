@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
+import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
 import {SpanBarTitle} from 'app/components/events/interfaces/spans/spanBar';
 import {SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {Panel} from 'app/components/panels';
@@ -15,6 +16,13 @@ import {defined} from 'app/utils';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {appendTagCondition} from 'app/utils/queryString';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+
+export {
+  DividerSpacer,
+  ScrollBarContainer as ScrollbarContainer,
+  VirtualScrollBar,
+  VirtualScrollBarGrip,
+} from 'app/components/events/interfaces/spans/header';
 
 export {
   ConnectorBar,
@@ -50,6 +58,13 @@ export const SearchContainer = styled('div')`
 
 export const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
+`;
+
+export const TraceViewHeaderContainer = styled(SecondaryHeader)`
+  position: static;
+  top: auto;
+  border-top: none;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 export const TraceDetailHeader = styled('div')`
