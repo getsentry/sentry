@@ -2,6 +2,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import ExternalTeam
 from sentry.testutils import APITestCase
+from sentry.types.integrations import ExternalProviders, get_provider_string
 
 
 class ExternalTeamTest(APITestCase):
@@ -55,12 +56,12 @@ class ExternalTeamTest(APITestCase):
     def test_create_existing_association(self):
         self.external_team = ExternalTeam.objects.create(
             team_id=str(self.team.id),
-            provider=ExternalTeam.get_provider_enum("github"),
+            provider=ExternalProviders.GITHUB,
             external_name="@getsentry/ecosystem",
         )
         data = {
             "externalName": self.external_team.external_name,
-            "provider": ExternalTeam.get_provider_string(self.external_team.provider),
+            "provider": get_provider_string(self.external_team.provider),
         }
         with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, data)

@@ -2,6 +2,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import ExternalTeam
 from sentry.testutils import APITestCase
+from sentry.types.integrations import ExternalProviders
 
 
 class ExternalTeamDetailsTest(APITestCase):
@@ -12,7 +13,7 @@ class ExternalTeamDetailsTest(APITestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.external_team = ExternalTeam.objects.create(
             team_id=str(self.team.id),
-            provider=ExternalTeam.get_provider_enum("github"),
+            provider=ExternalProviders.GITHUB,
             external_name="@getsentry/ecosystem",
         )
         self.url = reverse(
