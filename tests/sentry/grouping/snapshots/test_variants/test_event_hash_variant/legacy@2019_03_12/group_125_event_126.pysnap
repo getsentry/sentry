@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T21:59:08.059443Z'
+created: '2021-04-02T09:10:50.505122Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,7 +8,7 @@ app:
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
-        stacktrace
+        stacktrace*
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "start"
@@ -51,37 +51,37 @@ app:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "functional"
             function*
               "std::__1::function<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "functional"
             function*
               "std::__1::__function::__value_func<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "functional"
             function*
               "std::__1::__function::__func<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "functional"
             function*
               "std::__1::__function::__alloc_func<T>::operator()"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "__functional_base"
             function*
               "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "type_traits"
             function*
               "std::__1::__invoke<T>"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "Src/Initialize.cpp"
             function*
@@ -119,7 +119,7 @@ app:
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "_CFBundleDlfcnLoadBundle"
-          frame (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "dlopen"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -139,15 +139,15 @@ app:
               "ImageLoaderMachOCompressed::rebase"
         type*
           "EXC_BAD_ACCESS / 0x00000032"
-        value*
+        value (stacktrace and type take precedence)
           "Fatal Error: EXC_BAD_ACCESS / 0x00000032"
 --------------------------------------------------------------------------
 system:
-  hash: "1ebad25e044202ba36f79689f4532957"
+  hash: "c470859cd6d1e38f3bd089877a7b8b97"
   component:
     system*
       exception*
-        stacktrace
+        stacktrace*
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "start"
@@ -190,37 +190,37 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "functional"
             function*
               "std::__1::function<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "functional"
             function*
               "std::__1::__function::__value_func<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "functional"
             function*
               "std::__1::__function::__func<T>::operator()"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "functional"
             function*
               "std::__1::__function::__alloc_func<T>::operator()"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             filename*
               "__functional_base"
             function*
               "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             filename*
               "type_traits"
             function*
               "std::__1::__invoke<T>"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "Src/Initialize.cpp"
             function*
@@ -258,7 +258,7 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "_CFBundleDlfcnLoadBundle"
-          frame (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "dlopen"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -278,5 +278,5 @@ system:
               "ImageLoaderMachOCompressed::rebase"
         type*
           "EXC_BAD_ACCESS / 0x00000032"
-        value*
+        value (stacktrace and type take precedence)
           "Fatal Error: EXC_BAD_ACCESS / 0x00000032"

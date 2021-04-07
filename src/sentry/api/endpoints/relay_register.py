@@ -1,23 +1,21 @@
-from rest_framework.response import Response
-from rest_framework import serializers, status
-
 from django.conf import settings
 from django.utils import timezone
+from rest_framework import serializers, status
+from rest_framework.response import Response
+from sentry_relay import (
+    UnpackErrorSignatureExpired,
+    create_register_challenge,
+    is_version_supported,
+    validate_register_response,
+)
 
 from sentry import options
 from sentry.api.authentication import is_internal_relay
-from sentry.utils import json
-from sentry.models import Relay, RelayUsage
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
+from sentry.models import Relay, RelayUsage
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-
-from sentry_relay import (
-    create_register_challenge,
-    validate_register_response,
-    is_version_supported,
-    UnpackErrorSignatureExpired,
-)
+from sentry.utils import json
 
 
 class RelayIdSerializer(serializers.Serializer):

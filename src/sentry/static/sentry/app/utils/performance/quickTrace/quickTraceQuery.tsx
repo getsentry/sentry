@@ -1,15 +1,13 @@
 import React from 'react';
-import * as Sentry from '@sentry/react';
 
 import {Event} from 'app/types/event';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
-import TraceFullQuery from 'app/utils/performance/quickTrace/traceFullQuery';
+import {TraceFullQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'app/utils/performance/quickTrace/traceLiteQuery';
 import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   getTraceTimeRangeFromEvent,
-  isTransaction,
 } from 'app/utils/performance/quickTrace/utils';
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
@@ -41,8 +39,6 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
       traceId={traceId}
       start={start}
       end={end}
-      // TODO(wmak): Trace Lite doesn't return errors
-      shouldSkipQuery={!isTransaction(event)}
       {...props}
     >
       {traceLiteResults => (
@@ -51,17 +47,19 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
             if (
               !traceFullResults.isLoading &&
               traceFullResults.error === null &&
-              traceFullResults.trace !== null
+              traceFullResults.traces !== null
             ) {
-              try {
-                const trace = flattenRelevantPaths(event, traceFullResults.trace);
-                return children({
-                  ...traceFullResults,
-                  trace,
-                });
-              } catch (error) {
-                Sentry.setTag('current.trace_id', traceId);
-                Sentry.captureException(error);
+              for (const subtrace of traceFullResults.traces) {
+                try {
+                  const trace = flattenRelevantPaths(event, subtrace);
+                  return children({
+                    ...traceFullResults,
+                    trace,
+                  });
+                } catch {
+                  // let this fall through and check the next subtrace
+                  // or use the trace lite results
+                }
               }
             }
 

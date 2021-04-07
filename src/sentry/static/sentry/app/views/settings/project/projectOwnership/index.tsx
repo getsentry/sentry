@@ -2,6 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -14,6 +15,7 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import CodeOwners from 'app/views/settings/project/projectOwnership/codeowners';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
 type Props = {
@@ -107,7 +109,9 @@ class ProjectOwnership extends AsyncView<Props, State> {
             />
           </PanelBody>
         </Panel>
-
+        <Feature features={['import-codeowners']}>
+          <CodeOwners {...this.props} />
+        </Feature>
         <Form
           apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}
           apiMethod="PUT"

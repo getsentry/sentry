@@ -1,4 +1,5 @@
 import sys
+
 import click
 
 # If this changes, make sure to also update in the `__doc__`

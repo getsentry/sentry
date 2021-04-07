@@ -1,6 +1,7 @@
 from copy import copy
-from django.contrib import admin
+
 from django.conf.urls import include, url
+from django.contrib import admin
 
 from sentry.auth.superuser import is_active_superuser
 

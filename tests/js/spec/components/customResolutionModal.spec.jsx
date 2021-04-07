@@ -21,8 +21,8 @@ describe('CustomResolutionModal', function () {
         Header={p => p.children}
         Body={p => p.children}
         Footer={p => p.children}
-        orgId="org-slug"
-        projectId="project-slug"
+        orgSlug="org-slug"
+        projectSlug="project-slug"
         onSelected={onSelected}
         closeModal={jest.fn()}
       />,

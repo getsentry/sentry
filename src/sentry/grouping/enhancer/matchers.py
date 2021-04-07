@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
@@ -63,13 +61,10 @@ class Match:
     @staticmethod
     def _from_config_structure(obj, version):
         val = obj
-        if isinstance(val, list):
-            return RangeMatch(
-                Match._from_config_structure(val[0], version),
-                Match._from_config_structure(val[1], version),
-                val[2],
-                val[3],
-            )
+        if val.startswith("|[") and val.endswith("]"):
+            return CalleeMatch(Match._from_config_structure(val[2:-1]))
+        if val.startswith("[") and val.endswith("]|"):
+            return CallerMatch(Match._from_config_structure(val[1:-2]))
 
         if val.startswith("!"):
             negated = True
@@ -92,6 +87,7 @@ class FrameMatch(Match):
 
     @classmethod
     def from_key(cls, key, pattern, negated):
+
         instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]
@@ -102,6 +98,7 @@ class FrameMatch(Match):
 
     @classmethod
     def _from_key(cls, key, pattern, negated):
+
         subclass = {
             "package": PackageMatch,
             "path": PathMatch,
@@ -247,58 +244,33 @@ class ExceptionMechanismMatch(ExceptionFieldMatch):
     field_path = ["mechanism", "type"]
 
 
-class RangeMatch(Match):
-    def __init__(
-        self,
-        start: Optional[FrameMatch],
-        end: Optional[FrameMatch],
-        start_neighbouring: bool,
-        end_neighbouring: bool,
-    ):
-        super().__init__()
-        self.start = start
-        self.end = end
-        self.start_neighbouring = start_neighbouring
-        self.end_neighbouring = end_neighbouring
-
-        self.keys = tuple()
-        if self.start:
-            self.keys += self.start.keys
-        if self.end:
-            self.keys += self.end.keys
+class CallerMatch(Match):
+    def __init__(self, caller: FrameMatch):
+        self.caller = caller
 
     @property
     def description(self):
-        sn = "| " if self.start_neighbouring else ""
-        en = " |" if self.end_neighbouring else ""
-        start = f" {self.start.description}" if self.start else ""
-        end = f"{self.end.description} " if self.end else ""
-        return f"[{start} {sn}..{en} {end}]"
+        return f"[ {self.caller.description} ] |"
 
     def _to_config_structure(self, version):
-        return [
-            self.start._to_config_structure(version),
-            self.end._to_config_structure(version),
-            self.start_neighbouring,
-            self.end_neighbouring,
-        ]
+        return f"[{self.caller._to_config_structure(version)}]|"
 
     def matches_frame(self, frames, idx, platform, exception_data):
-        if self.end is not None:
-            start_idx = 0 if not self.end_neighbouring else max(0, idx - 1)
+        return idx > 0 and self.caller.matches_frame(frames, idx - 1, platform, exception_data)
 
-            for idx2 in reversed(range(start_idx, idx)):
-                if self.end.matches_frame(frames, idx2, platform, exception_data):
-                    break
-            else:
-                return False
 
-        if self.start is not None:
-            end_idx = len(frames) if not self.start_neighbouring else min(len(frames), idx + 2)
-            for idx2 in range(idx + 1, end_idx):
-                if self.start.matches_frame(frames, idx2, platform, exception_data):
-                    break
-            else:
-                return False
+class CalleeMatch(Match):
+    def __init__(self, caller: FrameMatch):
+        self.caller = caller
 
-        return True
+    @property
+    def description(self):
+        return f"| [ {self.caller.description} ]"
+
+    def _to_config_structure(self, version):
+        return f"|[{self.caller._to_config_structure(version)}]"
+
+    def matches_frame(self, frames, idx, platform, exception_data):
+        return idx < len(frames) - 1 and self.caller.matches_frame(
+            frames, idx + 1, platform, exception_data
+        )

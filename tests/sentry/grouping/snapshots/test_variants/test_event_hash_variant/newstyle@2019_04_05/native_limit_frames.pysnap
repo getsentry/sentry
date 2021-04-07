@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:39:20.978404Z'
+created: '2020-11-12T10:57:03.291902Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app:
           "log_demo"
 --------------------------------------------------------------------------
 system:
-  hash: "8f4c7709e4af98d3c47ce3519690e6d9"
+  hash: "31f85aded5e85e51fb740d675fbfeccc"
   component:
     system*
       exception*
@@ -30,10 +30,10 @@ system:
           frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
             function* (isolated function)
               "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
-          frame*
+          frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
             function* (isolated function)
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             function*
               "<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()"
         type (ignored because exception is synthetic)

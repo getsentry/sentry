@@ -1,40 +1,39 @@
-import React from 'react';
 import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import {BuiltinSymbolSource} from 'app/types/debugFiles';
 import {
   CandidateDownloadStatus,
-  CandidateFeatures,
   ImageCandidate,
+  ImageFeature,
 } from 'app/types/debugImage';
 
 import {INTERNAL_SOURCE} from '../utils';
 
-export function getFeatureLabel(type: keyof CandidateFeatures) {
+export function getImageFeatureDescription(type: ImageFeature) {
   switch (type) {
-    case 'has_debug_info':
+    case ImageFeature.has_debug_info:
       return {
         label: t('debug'),
         description: t(
           'Debug information provides function names and resolves inlined frames during symbolication'
         ),
       };
-    case 'has_sources':
+    case ImageFeature.has_sources:
       return {
         label: t('sources'),
         description: t(
           'Source code information allows Sentry to display source code context for stack frames'
         ),
       };
-    case 'has_symbols':
+    case ImageFeature.has_symbols:
       return {
         label: t('symtab'),
         description: t(
           'Symbol tables are used as a fallback when full debug information is not available'
         ),
       };
-    case 'has_unwind_info':
+    case ImageFeature.has_unwind_info:
       return {
         label: t('unwind'),
         description: t(
@@ -70,7 +69,10 @@ export function getSourceTooltipDescription(
   return t('This debug information file is from a custom symbol server');
 }
 
-export function getStatusTooltipDescription(candidate: ImageCandidate) {
+export function getStatusTooltipDescription(
+  candidate: ImageCandidate,
+  hasReprocessWarning: boolean
+) {
   const {download, location, source} = candidate;
 
   switch (download.status) {
@@ -92,22 +94,7 @@ export function getStatusTooltipDescription(candidate: ImageCandidate) {
       };
     }
     case CandidateDownloadStatus.NOT_FOUND: {
-      const {details} = download;
-      return {
-        label: (
-          <React.Fragment>
-            {t('No debug file was not found at this location')}
-            {':'}
-          </React.Fragment>
-        ),
-        description: (
-          <React.Fragment>
-            <p>{location}</p>
-            {details && <p>{details}</p>}
-          </React.Fragment>
-        ),
-        disabled: !location || source === INTERNAL_SOURCE,
-      };
+      return {};
     }
     case CandidateDownloadStatus.NO_PERMISSION: {
       const {details} = download;
@@ -124,9 +111,13 @@ export function getStatusTooltipDescription(candidate: ImageCandidate) {
     }
     case CandidateDownloadStatus.UNAPPLIED: {
       return {
-        label: t(
-          'This issue was processed before this debug information file was available. To apply new debug information, reprocess this issue. '
-        ),
+        label: hasReprocessWarning
+          ? t(
+              'This issue was processed before this debug information file was available. To apply new debug information, reprocess this issue.'
+            )
+          : t(
+              'This issue was processed before this debug information file was available'
+            ),
       };
     }
     default: {

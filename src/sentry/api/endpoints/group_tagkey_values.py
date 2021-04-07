@@ -14,6 +14,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         ```````````````````
 
         Return a list of values associated with this key for an issue.
+        When paginated can return at most 1000 values.
 
         :pparam string issue_id: the ID of the issue to retrieve.
         :pparam string key: the tag key to look the values up for.

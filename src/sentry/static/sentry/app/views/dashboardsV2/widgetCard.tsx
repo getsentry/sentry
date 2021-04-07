@@ -20,6 +20,7 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -74,7 +75,7 @@ class WidgetCard extends React.Component<Props> {
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
             <StyledIconGrabbable
-              color="gray500"
+              color="textColor"
               {...draggableProps?.listeners}
               {...draggableProps?.attributes}
             />
@@ -85,7 +86,7 @@ class WidgetCard extends React.Component<Props> {
               onEdit();
             }}
           >
-            <IconEdit color="gray500" />
+            <IconEdit color="textColor" />
           </IconClick>
           <IconClick
             data-test-id="widget-delete"
@@ -93,7 +94,7 @@ class WidgetCard extends React.Component<Props> {
               onDelete();
             }}
           >
-            <IconDelete color="gray500" />
+            <IconDelete color="textColor" />
           </IconClick>
         </IconContainer>
       </ToolbarPanel>
@@ -126,6 +127,11 @@ class WidgetCard extends React.Component<Props> {
             key="open-discover"
             onClick={event => {
               event.preventDefault();
+              trackAnalyticsEvent({
+                eventKey: 'dashboards2.tablewidget.open_in_discover',
+                eventName: 'Dashboards2: Table Widget - Open in Discover',
+                organization_id: parseInt(this.props.organization.id, 10),
+              });
               browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
             }}
           >
@@ -239,7 +245,7 @@ const ToolbarPanel = styled('div')`
   justify-content: flex-end;
   align-items: flex-start;
 
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: ${p => p.theme.overlayBackgroundAlpha};
   border-radius: ${p => p.theme.borderRadius};
 `;
 

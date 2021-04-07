@@ -74,7 +74,7 @@ class CategorizationInput:
             return _pre_scrub_event(json.load(f))
 
 
-CONFIG = load_grouping_config(get_default_grouping_config_dict())
+CONFIG = load_grouping_config(get_default_grouping_config_dict("mobile:2021-02-12"))
 
 
 def get_stacktrace_render(data):

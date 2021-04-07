@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:53:39.338250Z'
+created: '2021-04-02T09:10:50.851227Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -81,7 +81,7 @@ app:
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "-[NSOpenGLContext flushBuffer]"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "CGLFlushDrawable"
           frame (frame considered in-app because no frame is in-app)
@@ -99,7 +99,7 @@ app:
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "IntelCommandBuffer::getNew"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "gpusSubmitDataBuffers"
           frame (frame considered in-app because no frame is in-app)
@@ -111,7 +111,7 @@ app:
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "gpusGenerateCrashLog.cold.1"
-          frame (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "abort"
           frame (frame considered in-app because no frame is in-app)
@@ -153,7 +153,7 @@ app:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "CGLTexImageIOSurface2D"
           frame (frame considered in-app because no frame is in-app)
@@ -171,7 +171,7 @@ app:
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "IntelCommandBuffer::getNew"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "gpusSubmitDataBuffers"
           frame (frame considered in-app because no frame is in-app)
@@ -183,7 +183,7 @@ app:
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "gpusGenerateCrashLog.cold.1"
-          frame (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -272,7 +272,7 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "-[NSOpenGLContext flushBuffer]"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame
             function (function name is not used if module or filename are available)
               "CGLFlushDrawable"
           frame
@@ -290,7 +290,7 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "IntelCommandBuffer::getNew"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             function (function name is not used if module or filename are available)
               "gpusSubmitDataBuffers"
           frame
@@ -302,7 +302,7 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "gpusGenerateCrashLog.cold.1"
-          frame (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "abort"
           frame
@@ -344,7 +344,7 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame
             function (function name is not used if module or filename are available)
               "CGLTexImageIOSurface2D"
           frame
@@ -362,7 +362,7 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "IntelCommandBuffer::getNew"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             function (function name is not used if module or filename are available)
               "gpusSubmitDataBuffers"
           frame
@@ -374,7 +374,7 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "gpusGenerateCrashLog.cold.1"
-          frame (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))

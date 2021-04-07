@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Badge from 'app/components/badge';
 import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/links/externalLink';
 import QueryCount from 'app/components/queryCount';
@@ -17,6 +18,7 @@ type Props = {
   savedSearchList: SavedSearch[];
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
+  sort: string;
   isActive?: boolean;
   query?: string;
   queryCount?: number;
@@ -30,8 +32,11 @@ function SavedSearchTab({
   onSavedSearchDelete,
   query,
   queryCount,
+  sort,
 }: Props) {
-  const savedSearch = savedSearchList.find(search => query === search.query);
+  const savedSearch = savedSearchList.find(
+    search => search.query === query && search.sort === sort
+  );
   const tooltipTitle = tct(
     `Create [link:saved searches] to quickly access other types of issues that you care about.`,
     {
@@ -49,7 +54,11 @@ function SavedSearchTab({
             <TitleTextOverflow>
               {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
             </TitleTextOverflow>
-            <StyledQueryCount isTag count={queryCount} max={1000} />
+            {queryCount && (
+              <Badge>
+                <QueryCount hideParens count={queryCount} max={1000} />
+              </Badge>
+            )}
           </React.Fragment>
         ) : (
           t('Saved Searches')
@@ -73,6 +82,7 @@ function SavedSearchTab({
           onSavedSearchSelect={onSavedSearchSelect}
           onSavedSearchDelete={onSavedSearchDelete}
           query={query}
+          sort={sort}
         />
       </StyledDropdownLink>
     </TabWrapper>
@@ -140,8 +150,4 @@ const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`
   :hover {
     color: #2f2936;
   }
-`;
-
-const StyledQueryCount = styled(QueryCount)`
-  color: ${p => p.theme.gray300};
 `;

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:39:02.427980Z'
+created: '2021-04-02T09:10:51.843353Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -39,7 +39,7 @@ app:
               "OpenAdapter10"
             function (function name is not used if module or filename are available)
               "OpenAdapter10"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
         type*
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value*
@@ -81,7 +81,7 @@ system:
               "OpenAdapter10"
             function (function name is not used if module or filename are available)
               "OpenAdapter10"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
         type*
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value*

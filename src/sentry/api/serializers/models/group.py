@@ -1,22 +1,20 @@
 import functools
 import itertools
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
 import pytz
-import logging
-
+import sentry_sdk
 from django.conf import settings
-from django.db.models import Min, Q
+from django.db.models import Min
 from django.utils import timezone
 
-import sentry_sdk
-
 from sentry import tagstore, tsdb
-from sentry.app import env
 from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
@@ -32,27 +30,33 @@ from sentry.models import (
     GroupMeta,
     GroupResolution,
     GroupSeen,
-    GroupSnooze,
     GroupShare,
+    GroupSnooze,
     GroupStatus,
     GroupSubscription,
     GroupSubscriptionReason,
     Integration,
+    NotificationSetting,
     SentryAppInstallationToken,
     User,
-    UserOption,
-    UserOptionValue,
 )
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
+from sentry.models.integration import ExternalProviders
+from sentry.reprocessing2 import get_progress
+from sentry.notifications.types import (
+    NotificationScopeType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils import snuba
+from sentry.utils.cache import cache
+from sentry.utils.compat import map, zip
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
-from sentry.utils.compat import map, zip
 from sentry.utils.snuba import Dataset, raw_query
-from sentry.reprocessing2 import get_progress
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",
@@ -135,30 +139,49 @@ class GroupSerializerBase(Serializer):
 
     def _get_group_snuba_stats(self, item_list, seen_stats):
         start = self._get_start_from_seen_stats(seen_stats)
+        unhandled = {}
+
+        cache_keys = []
+        for item in item_list:
+            cache_keys.append("group-mechanism-handled:%d" % item.id)
+
+        cache_data = cache.get_many(cache_keys)
+        for item, cache_key in zip(item_list, cache_keys):
+            unhandled[item.id] = cache_data.get(cache_key)
 
         filter_keys = {}
         for item in item_list:
+            if unhandled.get(item.id) is not None:
+                continue
             filter_keys.setdefault("project_id", []).append(item.project_id)
             filter_keys.setdefault("group_id", []).append(item.id)
 
-        rv = raw_query(
-            dataset=Dataset.Events,
-            selected_columns=[
-                "group_id",
-                [
-                    "argMax",
-                    [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
-                    "unhandled",
+        if filter_keys:
+            rv = raw_query(
+                dataset=Dataset.Events,
+                selected_columns=[
+                    "group_id",
+                    [
+                        "argMax",
+                        [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
+                        "unhandled",
+                    ],
                 ],
-            ],
-            groupby=["group_id"],
-            filter_keys=filter_keys,
-            start=start,
-            orderby="group_id",
-            referrer="group.unhandled-flag",
-        )
+                groupby=["group_id"],
+                filter_keys=filter_keys,
+                start=start,
+                orderby="group_id",
+                referrer="group.unhandled-flag",
+            )
+            for x in rv["data"]:
+                unhandled[x["group_id"]] = x["unhandled"]
 
-        return {x["group_id"]: {"unhandled": x["unhandled"]} for x in rv["data"]}
+                # cache the handled flag for 60 seconds.  This is broadly in line with
+                # the time we give for buffer flushes so the user experience is somewhat
+                # consistent here.
+                cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
+
+        return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
 
     def _get_subscriptions(self, item_list, user):
         """
@@ -178,16 +201,17 @@ class GroupSerializerBase(Serializer):
 
         # Fetch the options for each project -- we'll need this to identify if
         # a user has totally disabled workflow notifications for a project.
-        # NOTE: This doesn't use `values_list` because that bypasses field
-        # value decoding, so the `value` field would not be unpickled.
-        options = {
-            option.project_id: option.value
-            for option in UserOption.objects.filter(
-                Q(project__in=projects.keys()) | Q(project__isnull=True),
-                user=user,
-                key="workflow:notifications",
+        options = {}
+        notification_settings = NotificationSetting.objects.get_for_user_by_projects(
+            ExternalProviders.EMAIL, NotificationSettingTypes.WORKFLOW, user, projects
+        )
+        for notification_setting in notification_settings:
+            key = (
+                notification_setting.scope_identifier
+                if notification_setting.scope_type == NotificationScopeType.PROJECT.value
+                else None
             )
-        }
+            options[key] = notification_setting.value
 
         # If there is a subscription record associated with the group, we can
         # just use that to know if a user is subscribed or not, as long as
@@ -199,8 +223,10 @@ class GroupSerializerBase(Serializer):
                     itertools.chain.from_iterable(
                         map(
                             lambda project__groups: project__groups[1]
-                            if not options.get(project__groups[0].id, options.get(None))
-                            == UserOptionValue.no_conversations
+                            if not (
+                                options.get(project__groups[0].id, options.get(None))
+                                == NotificationSettingOptionValues.NEVER.value
+                            )
                             else [],
                             projects.items(),
                         )
@@ -213,7 +239,9 @@ class GroupSerializerBase(Serializer):
         # This is the user's default value for any projects that don't have
         # the option value specifically recorded. (The default
         # "participating_only" value is convention.)
-        global_default_workflow_option = options.get(None, UserOptionValue.participating_only)
+        global_default_workflow_option = options.get(
+            None, NotificationSettingOptionValues.SUBSCRIBE_ONLY.value
+        )
 
         results = {}
         for project, groups in projects.items():
@@ -226,17 +254,22 @@ class GroupSerializerBase(Serializer):
                     results[group.id] = (subscription.is_active, subscription)
                 else:
                     results[group.id] = (
-                        (project_default_workflow_option == UserOptionValue.all_conversations, None)
-                        if project_default_workflow_option != UserOptionValue.no_conversations
+                        (
+                            project_default_workflow_option
+                            == NotificationSettingOptionValues.ALWAYS.value,
+                            None,
+                        )
+                        if project_default_workflow_option
+                        != NotificationSettingOptionValues.NEVER.value
                         else disabled
                     )
 
         return results
 
     def get_attrs(self, item_list, user):
-        from sentry.plugins.base import plugins
         from sentry.integrations import IntegrationFeatures
         from sentry.models import PlatformExternalIssue
+        from sentry.plugins.base import plugins
 
         GroupMeta.objects.populate_cache(item_list)
 

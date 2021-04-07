@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:53:38.797635Z'
+created: '2021-04-02T09:10:50.925451Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,7 +25,7 @@ app:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
             function*
@@ -36,7 +36,7 @@ app:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
             function*
@@ -47,47 +47,47 @@ app:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "mac"
             function*
               "std::__1::map<T>::~map"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "map"
             function*
               "std::__1::map<T>::~map"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "__tree"
             function*
               "std::__1::__tree<T>::~__tree"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored due to recursion)
             filename*
               "__tree"
             function*
               "std::__1::__tree<T>::~__tree"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "__tree"
             function*
               "std::__1::__tree<T>::destroy"
-          frame* (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::destroy<T>"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::__destroy<T>"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "mac"
             function*
               "std::__1::pair<T>::~pair"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "utility"
             function*
@@ -116,13 +116,13 @@ app:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "std::__1::thread::~thread"
-          frame (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "std::terminate"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "std::__terminate"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -131,7 +131,7 @@ app:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "abort_message"
-          frame (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -144,7 +144,7 @@ app:
           "Fatal Error: 0x00000000 / 0x00000000"
 --------------------------------------------------------------------------
 system:
-  hash: "45dda8c639019ac14abe24b5f0111774"
+  hash: "f0671c4012732af1040a25d09e12afca"
   component:
     system*
       exception*
@@ -165,7 +165,7 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
             function*
@@ -176,7 +176,7 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
             function*
@@ -187,47 +187,47 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             filename*
               "mac"
             function*
               "std::__1::map<T>::~map"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             filename*
               "map"
             function*
               "std::__1::map<T>::~map"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             filename*
               "__tree"
             function*
               "std::__1::__tree<T>::~__tree"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored due to recursion)
             filename*
               "__tree"
             function*
               "std::__1::__tree<T>::~__tree"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             filename*
               "__tree"
             function*
               "std::__1::__tree<T>::destroy"
-          frame* (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame*
             filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::destroy<T>"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::__destroy<T>"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             filename*
               "mac"
             function*
               "std::__1::pair<T>::~pair"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             filename*
               "utility"
             function*
@@ -256,13 +256,13 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "std::__1::thread::~thread"
-          frame (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "std::terminate"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "std::__terminate"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -271,7 +271,7 @@ system:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "abort_message"
-          frame (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))

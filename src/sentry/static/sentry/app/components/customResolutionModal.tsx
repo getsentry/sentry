@@ -12,8 +12,8 @@ import {Release} from 'app/types';
 
 type Props = ModalRenderProps & {
   onSelected: ({inRelease: string}) => void;
-  orgId: string;
-  projectId?: string;
+  orgSlug: string;
+  projectSlug?: string;
 };
 
 type State = {
@@ -55,10 +55,18 @@ class CustomResolutionModal extends React.Component<Props, State> {
     }));
 
   render() {
-    const {orgId, projectId, closeModal, onSelected, Header, Body, Footer} = this.props;
-    const url = projectId
-      ? `/projects/${orgId}/${projectId}/releases/`
-      : `/organizations/${orgId}/releases/`;
+    const {
+      orgSlug,
+      projectSlug,
+      closeModal,
+      onSelected,
+      Header,
+      Body,
+      Footer,
+    } = this.props;
+    const url = projectSlug
+      ? `/projects/${orgSlug}/${projectSlug}/releases/`
+      : `/organizations/${orgSlug}/releases/`;
 
     const onSubmit = (e: React.FormEvent) => {
       e.preventDefault();

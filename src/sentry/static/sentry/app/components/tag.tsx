@@ -68,7 +68,7 @@ function Tag({
   };
 
   const tag = (
-    <Tooltip title={tooltipText} containerDisplayMode="inline">
+    <Tooltip title={tooltipText} containerDisplayMode="inline-flex">
       <Background type={type}>
         {tagIcon()}
 
@@ -151,15 +151,12 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
-  color: ${p => (p.type === 'black' ? p.theme.white : p.theme.gray500)};
+  color: ${p => (['black', 'focus'].includes(p.type) ? p.theme.white : p.theme.gray500)};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   line-height: ${TAG_HEIGHT};
-  a:hover & {
-    color: ${p => p.theme.gray500};
-  }
 `;
 
 const DismissButton = styled(Button)`

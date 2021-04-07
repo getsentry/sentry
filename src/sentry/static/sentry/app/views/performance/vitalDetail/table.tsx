@@ -210,7 +210,7 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    if (field.startsWith('key_transaction') || field.startsWith('user_misery')) {
+    if (field.startsWith('key_transaction')) {
       return rendered;
     }
 
@@ -381,6 +381,7 @@ class Table extends React.Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           limit={10}
+          referrer="api.performance.vital-detail"
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>

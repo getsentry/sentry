@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:54:00.628967Z'
+created: '2021-04-02T10:31:52.701001Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -112,7 +112,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (non app frame)
             function*
               "abort"
           frame (non app frame)
@@ -127,21 +127,21 @@ app:
           "0x40000015 / 0x00000001"
 --------------------------------------------------------------------------
 system:
-  hash: "28f1b76e3bcdfa5e5e1671e6a919a506"
+  hash: "aeefa28dbbcc272df254d59c98aad03c"
   component:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame*
             function*
               "RtlUserThreadStart"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame*
             function*
               "BaseThreadInitThunk"
           frame*
             function*
               "TppWorkerThread"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "RtlpTpWorkCallback"
           frame*
@@ -153,7 +153,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "function_template.hpp"
             function*
@@ -164,7 +164,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "function_template.hpp"
             function*
@@ -175,7 +175,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "function_template.hpp"
             function*
@@ -186,7 +186,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "function_template.hpp"
             function*
@@ -194,7 +194,7 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "function_template.hpp"
             function*
@@ -235,13 +235,13 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame*
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame*
             function*
               "raise"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame*
             filename*
               "crashpad_client_win.cc"
             function*

@@ -1,4 +1,4 @@
-from sentry.models import User, Team
+from sentry.models import Team, User
 
 from .base import ActivityEmail
 

@@ -1,6 +1,3 @@
-from django.core.urlresolvers import reverse
-from exam import fixture
-
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     Authenticator,
@@ -11,46 +8,46 @@ from sentry.models import (
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 
 
-class OrganizationsListTest(APITestCase):
-    path = "/api/0/organizations/"
+class OrganizationIndexTest(APITestCase):
+    endpoint = "sentry-api-0-organizations"
 
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+
+
+class OrganizationsListTest(OrganizationIndexTest):
     def test_membership(self):
-        org = self.create_organization(owner=self.user)
-        self.login_as(user=self.user)
-        response = self.client.get(f"{self.path}")
-        assert response.status_code == 200
+        org = self.organization  # force creation
+        response = self.get_success_response()
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org.id)
 
     def test_show_all_with_superuser(self):
-        org = self.organization
-        self.login_as(user=self.create_user(is_superuser=True), superuser=True)
-        response = self.client.get(f"{self.path}?show=all")
-        assert response.status_code == 200
+        org = self.organization  # force creation
+        user = self.create_user(is_superuser=True)
+        self.login_as(user=user, superuser=True)
+
+        response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 2
         assert response.data[0]["id"] == str(org.id)
 
     def test_show_all_without_superuser(self):
-        self.create_organization(owner=self.user)
-        self.login_as(user=self.create_user(is_superuser=False))
-        response = self.client.get(f"{self.path}?show=all")
-        assert response.status_code == 200
+        response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 0
 
     def test_ownership(self):
         org = self.create_organization(name="A", owner=self.user)
-        user2 = self.create_user(email="user2@example.com")
         org2 = self.create_organization(name="B", owner=self.user)
+
+        user2 = self.create_user(email="user2@example.com")
         org3 = self.create_organization(name="C", owner=user2)
         self.create_organization(name="D", owner=user2)
 
         self.create_member(user=user2, organization=org2, role="owner")
-
         self.create_member(user=self.user, organization=org3, role="owner")
 
-        self.login_as(user=self.user)
-        response = self.client.get(f"{self.path}?owner=1")
-        assert response.status_code == 200
+        response = self.get_success_response(qs_params={"owner": 1})
         assert len(response.data) == 3
         assert response.data[0]["organization"]["id"] == str(org.id)
         assert response.data[0]["singleOwner"] is True
@@ -61,105 +58,87 @@ class OrganizationsListTest(APITestCase):
 
     def test_status_query(self):
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        self.login_as(user=self.user)
-        response = self.client.get(f"{self.path}?query=status:pending_deletion")
-        assert response.status_code == 200
+
+        response = self.get_success_response(qs_params={"query": "status:pending_deletion"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org.id)
-        response = self.client.get(f"{self.path}?query=status:deletion_in_progress")
-        assert response.status_code == 200
+
+        response = self.get_success_response(qs_params={"query": "status:deletion_in_progress"})
         assert len(response.data) == 0
-        response = self.client.get(f"{self.path}?query=status:invalid_status")
-        assert response.status_code == 200
+
+        response = self.get_success_response(qs_params={"query": "status:invalid_status"})
         assert len(response.data) == 0
 
     def test_member_id_query(self):
-        org = self.create_organization(owner=self.user)
+        org = self.organization  # force creation
         self.create_organization(owner=self.user)
-        self.login_as(user=self.user)
 
-        response = self.client.get(f"{self.path}?member=1")
-        assert response.status_code == 200
+        response = self.get_success_response(qs_params={"member": 1})
         assert len(response.data) == 2
 
         om = OrganizationMember.objects.get(organization=org, user=self.user)
-        response = self.client.get(f"{self.path}?query=member_id:{om.id}")
-        assert response.status_code == 200
+        response = self.get_success_response(qs_params={"query": f"member_id:{om.id}"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org.id)
 
-        response = self.client.get(f"{self.path}?query=member_id:{om.id + 10}")
-        assert response.status_code == 200
+        response = self.get_success_response(qs_params={"query": f"member_id:{om.id + 10}"})
         assert len(response.data) == 0
 
 
-class OrganizationsCreateTest(APITestCase):
-    path = "/api/0/organizations/"
+class OrganizationsCreateTest(OrganizationIndexTest):
+    method = "post"
 
     def test_missing_params(self):
-        self.login_as(user=self.user)
-        resp = self.client.post(self.path)
-        assert resp.status_code == 400
+        self.get_error_response(status_code=400)
 
     def test_valid_params(self):
-        self.login_as(user=self.user)
+        data = {"name": "hello world", "slug": "foobar"}
+        response = self.get_success_response(**data)
 
-        resp = self.client.post(self.path, data={"name": "hello world", "slug": "foobar"})
-        assert resp.status_code == 201, resp.content
-        org = Organization.objects.get(id=resp.data["id"])
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
         assert org.name == "hello world"
         assert org.slug == "foobar"
 
-        resp = self.client.post(self.path, data={"name": "hello world", "slug": "foobar"})
-        assert resp.status_code == 409, resp.content
+        self.get_error_response(status_code=409, **data)
 
     def test_without_slug(self):
-        self.login_as(user=self.user)
+        data = {"name": "hello world"}
+        response = self.get_success_response(**data)
 
-        resp = self.client.post(self.path, data={"name": "hello world"})
-        assert resp.status_code == 201, resp.content
-        org = Organization.objects.get(id=resp.data["id"])
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
         assert org.slug == "hello-world"
 
     def test_required_terms_with_terms_url(self):
-        self.login_as(user=self.user)
-
+        data = {"name": "hello world"}
         with self.settings(PRIVACY_URL=None, TERMS_URL="https://example.com/terms"):
-            resp = self.client.post(self.path, data={"name": "hello world"})
-            assert resp.status_code == 201, resp.content
+            self.get_success_response(**data)
 
         with self.settings(TERMS_URL=None, PRIVACY_URL="https://example.com/privacy"):
-            resp = self.client.post(self.path, data={"name": "hello world"})
-            assert resp.status_code == 201, resp.content
+            self.get_success_response(**data)
 
         with self.settings(
             TERMS_URL="https://example.com/terms", PRIVACY_URL="https://example.com/privacy"
         ):
-            resp = self.client.post(self.path, data={"name": "hello world", "agreeTerms": False})
-            assert resp.status_code == 400, resp.content
+            data = {"name": "hello world", "agreeTerms": False}
+            self.get_error_response(status_code=400, **data)
 
-            resp = self.client.post(self.path, data={"name": "hello world", "agreeTerms": True})
-            assert resp.status_code == 201, resp.content
+            data = {"name": "hello world", "agreeTerms": True}
+            self.get_success_response(**data)
 
 
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
+    endpoint = "sentry-organization-home"
+
     def setUp(self):
         self.org_2fa = self.create_organization(owner=self.create_user())
         self.enable_org_2fa(self.org_2fa)
         self.no_2fa_user = self.create_user()
         self.create_member(organization=self.org_2fa, user=self.no_2fa_user, role="member")
 
-    @fixture
-    def path(self):
-        return reverse("sentry-organization-home", kwargs={"organization_slug": self.org_2fa.slug})
-
-    def assert_can_access_org_home(self):
-        response = self.client.get(self.path)
-        assert response.status_code == 200
-
     def assert_redirected_to_2fa(self):
-        response = self.client.get(self.path)
-        assert response.status_code == 302
+        response = self.get_success_response(self.org_2fa.slug, status_code=302)
         assert self.path_2fa in response.url
 
     def test_preexisting_members_must_enable_2fa(self):
@@ -167,7 +146,7 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.assert_redirected_to_2fa()
 
         TotpInterface().enroll(self.no_2fa_user)
-        self.assert_can_access_org_home()
+        self.get_success_response(self.org_2fa.slug)
 
     def test_new_member_must_enable_2fa(self):
         new_user = self.create_user()
@@ -177,12 +156,12 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.assert_redirected_to_2fa()
 
         TotpInterface().enroll(new_user)
-        self.assert_can_access_org_home()
+        self.get_success_response(self.org_2fa.slug)
 
     def test_member_disable_all_2fa_blocked(self):
         TotpInterface().enroll(self.no_2fa_user)
         self.login_as(self.no_2fa_user)
-        self.assert_can_access_org_home()
+        self.get_success_response(self.org_2fa.slug)
 
         Authenticator.objects.get(user=self.no_2fa_user).delete()
         self.assert_redirected_to_2fa()
@@ -190,4 +169,4 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
     def test_superuser_can_access_org_home(self):
         user = self.create_user(is_superuser=True)
         self.login_as(user, superuser=True)
-        self.assert_can_access_org_home()
+        self.get_success_response(self.org_2fa.slug)

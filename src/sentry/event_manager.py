@@ -1,35 +1,40 @@
 import logging
+from datetime import datetime, timedelta
 from io import BytesIO
 import ipaddress
+import copy
+import time
 
-from datetime import datetime, timedelta
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from django.db import connection, IntegrityError, router, transaction
+from django.db import IntegrityError, connection, router, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
-import sentry_sdk
 
-from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb, options
+from sentry import buffer, eventstore, eventstream, eventtypes, features, options, quotas, tsdb
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
-    DataCategory,
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
+    DataCategory,
 )
+from sentry.culprit import generate_culprit
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
-    get_grouping_config_dict_for_project,
-    get_grouping_config_dict_for_event_data,
-    load_grouping_config,
+    GroupingConfigNotFound,
     apply_server_fingerprinting,
     get_fingerprinting_config_for_project,
-    GroupingConfigNotFound,
+    get_grouping_config_dict_for_event_data,
+    get_grouping_config_dict_for_project,
+    load_grouping_config,
 )
+from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models import (
+    CRASH_REPORT_TYPES,
     Activity,
     Environment,
     EventAttachment,
@@ -43,6 +48,7 @@ from sentry.models import (
     GroupRelease,
     GroupResolution,
     GroupStatus,
+    Organization,
     Project,
     ProjectKey,
     Release,
@@ -51,28 +57,23 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
     UserReport,
-    Organization,
-    CRASH_REPORT_TYPES,
     get_crashreport_key,
 )
 from sentry.plugins.base import plugins
-from sentry import quotas
+from sentry.reprocessing2 import (
+    delete_old_primary_hash,
+    is_reprocessed_event,
+    save_unprocessed_event,
+)
 from sentry.signals import first_event_received, issue_unresolved
-from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.dates import to_timestamp, to_datetime
+from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
-from sentry.culprit import generate_culprit
-from sentry.reprocessing2 import (
-    save_unprocessed_event,
-    is_reprocessed_event,
-    delete_old_primary_hash,
-)
+from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 logger = logging.getLogger("sentry.events")
 
@@ -329,47 +330,34 @@ class EventManager:
                 except ProjectKey.DoesNotExist:
                     pass
 
-        with metrics.timer("event_manager.load_grouping_config"):
-            # At this point we want to normalize the in_app values in case the
-            # clients did not set this appropriately so far.
-            grouping_config = load_grouping_config(
-                get_grouping_config_dict_for_event_data(job["data"], project)
-            )
-
-        with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
-            normalize_stacktraces_for_grouping(job["data"], grouping_config)
-
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
-        with metrics.timer("event_manager.apply_server_fingerprinting"):
-            # The active grouping config was put into the event in the
-            # normalize step before.  We now also make sure that the
-            # fingerprint was set to `'{{ default }}' just in case someone
-            # removed it from the payload.  The call to get_hashes will then
-            # look at `grouping_config` to pick the right parameters.
-            job["data"]["fingerprint"] = job["data"].get("fingerprint") or ["{{ default }}"]
-            apply_server_fingerprinting(
-                job["data"],
-                get_fingerprinting_config_for_project(project),
-                allow_custom_title=features.has(
-                    "organizations:custom-event-title", project.organization, actor=None
-                ),
+        secondary_flat_hashes = []
+
+        try:
+            if (project.get_option("sentry:secondary_grouping_expiry") or 0) >= time.time():
+                with metrics.timer("event_manager.secondary_grouping"):
+                    secondary_event = copy.deepcopy(job["event"])
+                    secondary_grouping_config = get_grouping_config_dict_for_project(
+                        project, secondary=True
+                    )
+                    _calculate_event_grouping(project, secondary_event, secondary_grouping_config)
+                    secondary_flat_hashes.extend(secondary_event.data["hashes"])
+        except Exception:
+            sentry_sdk.capture_exception()
+
+        with metrics.timer("event_manager.load_grouping_config"):
+            # At this point we want to normalize the in_app values in case the
+            # clients did not set this appropriately so far.
+            grouping_config = get_grouping_config_dict_for_event_data(
+                job["event"].data.data, project
             )
 
-        with metrics.timer("event_manager.event.get_hashes"):
-            # Here we try to use the grouping config that was requested in the
-            # event.  If that config has since been deleted (because it was an
-            # experimental grouping config) we fall back to the default.
-            try:
-                flat_hashes, hierarchical_hashes = job["event"].get_hashes()
-            except GroupingConfigNotFound:
-                job["data"]["grouping_config"] = get_grouping_config_dict_for_project(project)
-                flat_hashes, hierarchical_hashes = job["event"].get_hashes()
+        _calculate_event_grouping(project, job["event"], grouping_config)
 
-        job["data"]["hashes"] = flat_hashes
-        if hierarchical_hashes:
-            job["data"]["hierarchical_hashes"] = hierarchical_hashes
+        flat_hashes = job["event"].data["hashes"] + secondary_flat_hashes
+        hierarchical_hashes = job["event"].data.get("hierarchical_hashes") or []
 
         _materialize_metadata_many(jobs)
 
@@ -1105,6 +1093,9 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
         # make sure it still exists
         first_release = kwargs.pop("first_release", None)
 
+        if project.id in (options.get("store.load-shed-group-creation-projects") or ()):
+            raise HashDiscarded("Load shedding group creation")
+
         short_id = project.next_short_id()
 
         with transaction.atomic():
@@ -1581,6 +1572,46 @@ def _materialize_event_metrics(jobs):
                 metrics.incr(f"event_manager.save.event_metrics.{metric_name}")
 
         job["event_metrics"] = event_metrics
+
+
+@metrics.wraps("save_event.calculate_event_grouping")
+def _calculate_event_grouping(project, event, grouping_config):
+    """
+    Main entrypoint for modifying/enhancing and grouping an event, writes
+    hashes back into event payload.
+    """
+
+    with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
+        normalize_stacktraces_for_grouping(event.data.data, load_grouping_config(grouping_config))
+
+    with metrics.timer("event_manager.apply_server_fingerprinting"):
+        # The active grouping config was put into the event in the
+        # normalize step before.  We now also make sure that the
+        # fingerprint was set to `'{{ default }}' just in case someone
+        # removed it from the payload.  The call to get_hashes will then
+        # look at `grouping_config` to pick the right parameters.
+        event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
+        apply_server_fingerprinting(
+            event.data.data,
+            get_fingerprinting_config_for_project(project),
+            allow_custom_title=features.has(
+                "organizations:custom-event-title", project.organization, actor=None
+            ),
+        )
+
+    with metrics.timer("event_manager.event.get_hashes"):
+        # Here we try to use the grouping config that was requested in the
+        # event.  If that config has since been deleted (because it was an
+        # experimental grouping config) we fall back to the default.
+        try:
+            flat_hashes, hierarchical_hashes = event.get_hashes(grouping_config)
+        except GroupingConfigNotFound:
+            event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
+            flat_hashes, hierarchical_hashes = event.get_hashes()
+
+    event.data["hashes"] = flat_hashes
+    if hierarchical_hashes:
+        event.data["hierarchical_hashes"] = hierarchical_hashes
 
 
 @metrics.wraps("event_manager.save_transaction_events")

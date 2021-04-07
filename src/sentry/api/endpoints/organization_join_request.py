@@ -1,16 +1,15 @@
 import logging
 
-from rest_framework import serializers
-from rest_framework.response import Response
 from django.db import IntegrityError
 from django.db.models import Q
+from rest_framework import serializers
+from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
 from sentry.app import ratelimiter
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 from sentry.signals import join_request_created
-
 from sentry.tasks.members import send_invite_request_notification_email
 
 logger = logging.getLogger(__name__)

@@ -2,7 +2,6 @@ import os
 import zlib
 import base64
 import msgpack
-import inspect
 
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
@@ -13,7 +12,7 @@ from sentry.utils.strings import unescape_string
 
 from .actions import Action, FlagAction, VarAction
 from .exceptions import InvalidEnhancerConfig
-from .matchers import Match, ExceptionFieldMatch, FrameMatch, RangeMatch
+from .matchers import Match, ExceptionFieldMatch, FrameMatch, CalleeMatch, CallerMatch
 
 
 # Grammar is defined in EBNF syntax.
@@ -27,10 +26,11 @@ line = _ (comment / rule / empty) newline?
 rule = _ matchers actions
 
 matchers         = matcher+
-matcher          = frame_matcher / range_matcher
+matcher          = frame_matcher / caller_matcher / callee_matcher
 frame_matcher    = _ negation? matcher_type sep argument
 matcher_type     = ident / quoted_ident
-range_matcher    = _ "[" _? frame_matcher? _? "|"? ~r" ?\.\. ?" "|"? _? frame_matcher? _? "]"
+caller_matcher   = _ "[" _ frame_matcher _ "]" _ "|"
+callee_matcher   = _ "|" _ "[" _ frame_matcher _ "]"
 
 actions          = action+
 action           = flag_action / var_action
@@ -91,10 +91,9 @@ class StacktraceState:
 
 
 class Enhancements:
-    def __init__(self, rules, changelog=None, version=None, bases=None, id=None):
+    def __init__(self, rules, version=None, bases=None, id=None):
         self.id = id
         self.rules = rules
-        self.changelog = changelog
         if version is None:
             version = LATEST_VERSION
         self.version = version
@@ -110,7 +109,6 @@ class Enhancements:
         does not affect grouping.
         """
         for rule in self._modifier_rules:
-
             for idx, action in rule.get_matching_frame_actions(frames, platform, exception_data):
                 action.apply_modifications_to_frame(frames, idx, rule=rule)
 
@@ -181,7 +179,6 @@ class Enhancements:
     def as_dict(self, with_rules=False):
         rv = {
             "id": self.id,
-            "changelog": self.changelog,
             "bases": self.bases,
             "latest": projectoptions.lookup_well_known_key(
                 "sentry:grouping_enhancements_base"
@@ -255,19 +252,12 @@ class Rule:
         self.matchers = matchers
 
         self._exception_matchers = []
-        frame_matchers = []
-        other_matchers = []
+        self._other_matchers = []
         for matcher in matchers:
             if isinstance(matcher, ExceptionFieldMatch):
                 self._exception_matchers.append(matcher)
-            elif isinstance(matcher, FrameMatch):
-                frame_matchers.append(matcher)
             else:
-                other_matchers.append(matcher)
-
-        # FrameMatch matchers are faster than RangeMatch matchers, so apply
-        # them first to bail out early.
-        self._sorted_matchers = frame_matchers + other_matchers
+                self._other_matchers.append(matcher)
 
         self.actions = actions
         self.is_updater = any(action.is_updater for action in actions)
@@ -302,13 +292,9 @@ class Rule:
 
         # 2 - Check if frame matchers match
         for idx, frame in enumerate(frames):
-            matches = True
-            for m in self._sorted_matchers:
-                if not m.matches_frame(frames, idx, platform, exception_data):
-                    matches = False
-                    break
-
-            if matches:
+            if all(
+                m.matches_frame(frames, idx, platform, exception_data) for m in self._other_matchers
+            ):
                 for action in self.actions:
                     rv.append((idx, action))
 
@@ -336,25 +322,14 @@ class EnhancmentsVisitor(NodeVisitor):
         self.bases = bases
         self.id = id
 
-    def visit_comment(self, node, children):
-        return node.text
-
     def visit_enhancements(self, node, children):
-        changelog = []
         rules = []
-        in_header = True
         for child in children:
-            if isinstance(child, str):
-                if in_header and child[:2] == "##":
-                    changelog.append(child[2:].rstrip())
-                else:
-                    in_header = False
-            elif child is not None:
+            if not isinstance(child, str) and child is not None:
                 rules.append(child)
-                in_header = False
+
         return Enhancements(
             rules,
-            inspect.cleandoc("\n".join(changelog)).rstrip() or None,
             bases=self.bases,
             id=self.id,
         )
@@ -372,18 +347,16 @@ class EnhancmentsVisitor(NodeVisitor):
     def visit_matcher(self, node, children):
         return children[0]
 
-    def visit_range_matcher(self, node, children):
-        _, _, _, start, _, start_neighbouring, _, end_neighbouring, _, end, _, _ = children
-        return RangeMatch(
-            start[0] if start else None,
-            end[0] if end else None,
-            bool(start_neighbouring),
-            bool(end_neighbouring),
-        )
+    def visit_caller_matcher(self, node, children):
+        _, _, _, inner, _, _, _, _ = children
+        return CallerMatch(inner)
+
+    def visit_callee_matcher(self, node, children):
+        _, _, _, _, _, inner, _, _ = children
+        return CalleeMatch(inner)
 
     def visit_frame_matcher(self, node, children):
         _, negation, ty, _, argument = children
-
         return FrameMatch.from_key(ty, argument, bool(negation))
 
     def visit_matcher_type(self, node, children):

@@ -13,15 +13,17 @@ import Link from 'app/components/links/link';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Pagination from 'app/components/pagination';
 import {PanelTable, PanelTableHeader} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconArrow, IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
+import {GlobalSelection, Organization, Project, Team} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTeams from 'app/utils/withTeams';
 
 import AlertHeader from '../list/header';
@@ -30,14 +32,12 @@ import {isIssueAlert} from '../utils';
 import Filter from './filter';
 import RuleListRow from './row';
 
-const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {
-  asc: false,
-  field: 'date_added',
-};
 const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
+const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
+  selection: GlobalSelection;
   teams: Team[];
 };
 
@@ -88,11 +88,24 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
   handleChangeFilter = (activeFilters: Set<string>) => {
     const {router, location} = this.props;
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
     router.push({
       pathname: location.pathname,
       query: {
-        ...location.query,
+        ...currentQuery,
         team: [...activeFilters],
+      },
+    });
+  };
+
+  handleChangeSearch = (name: string) => {
+    const {router, location} = this.props;
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...currentQuery,
+        name,
       },
     });
   };
@@ -171,6 +184,11 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             </List>
           )}
         </Filter>
+        <StyledSearchBar
+          placeholder={t('Search by name')}
+          query={location.query?.name}
+          onSearch={this.handleChangeSearch}
+        />
       </FilterWrapper>
     );
   }
@@ -188,43 +206,68 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       flatten(ruleList?.map(({projects}) => projects))
     );
 
-    const sort = {
-      ...DEFAULT_SORT,
+    const sort: {asc: boolean; field: 'date_added' | 'name'} = {
       asc: query.asc === '1',
-      // Currently only supported sorting field is 'date_added'
+      field: query.sort || 'date_added',
     };
+    const {cursor: _cursor, page: _page, ...currentQuery} = query;
 
     const userTeams = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
     return (
       <StyledLayoutBody>
         <Layout.Main fullWidth>
-          <Feature features={['organizations:team-alerts-ownership']}>
+          <Feature
+            organization={organization}
+            features={['organizations:team-alerts-ownership']}
+          >
             {({hasFeature}) => (
               <React.Fragment>
                 {hasFeature && this.renderFilterBar()}
                 <StyledPanelTable
                   headers={[
                     t('Type'),
-                    t('Alert Name'),
+                    // eslint-disable-next-line react/jsx-key
+                    <StyledSortLink
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...currentQuery,
+                          asc: sort.field === 'name' && sort.asc ? undefined : '1',
+                          sort: 'name',
+                        },
+                      }}
+                    >
+                      {t('Alert Name')}{' '}
+                      {sort.field === 'name' && (
+                        <IconArrow
+                          color="gray300"
+                          size="xs"
+                          direction={sort.asc ? 'up' : 'down'}
+                        />
+                      )}
+                    </StyledSortLink>,
                     t('Project'),
                     ...(hasFeature ? [t('Team')] : []),
                     t('Created By'),
                     // eslint-disable-next-line react/jsx-key
                     <StyledSortLink
                       to={{
-                        pathname: `/organizations/${orgId}/alerts/rules/`,
+                        pathname: location.pathname,
                         query: {
-                          ...query,
-                          asc: sort.asc ? undefined : '1',
+                          ...currentQuery,
+                          asc: sort.field === 'date_added' && sort.asc ? undefined : '1',
+                          sort: 'date_added',
                         },
                       }}
                     >
                       {t('Created')}{' '}
-                      <IconArrow
-                        color="gray300"
-                        size="xs"
-                        direction={sort.asc ? 'up' : 'down'}
-                      />
+                      {sort.field === 'date_added' && (
+                        <IconArrow
+                          color="gray300"
+                          size="xs"
+                          direction={sort.asc ? 'up' : 'down'}
+                        />
+                      )}
                     </StyledSortLink>,
                     t('Actions'),
                   ]}
@@ -266,7 +309,11 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
-        <GlobalSelectionHeader organization={organization} showDateSelector={false}>
+        <GlobalSelectionHeader
+          organization={organization}
+          showDateSelector={false}
+          showEnvironmentSelector={false}
+        >
           <AlertHeader organization={organization} router={router} activeTab="rules" />
           {this.renderList()}
         </GlobalSelectionHeader>
@@ -277,6 +324,24 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
 class AlertRulesListContainer extends React.Component<Props> {
   componentDidMount() {
+    const {organization, router, location, selection} = this.props;
+    const query: Record<string, string | number | string[] | number[]> = {
+      project: selection.projects,
+      // TODO(workflow): Support environments from global selection header
+      // environment: selection.environments,
+    };
+
+    if (organization.features.includes('team-alerts-ownership')) {
+      query.team = ALERT_LIST_QUERY_DEFAULT_TEAMS;
+    }
+
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        ...location.query,
+      },
+    });
     this.trackView();
   }
 
@@ -302,7 +367,7 @@ class AlertRulesListContainer extends React.Component<Props> {
   }
 }
 
-export default withTeams(AlertRulesListContainer);
+export default withGlobalSelection(withTeams(AlertRulesListContainer));
 
 const StyledLayoutBody = styled(Layout.Body)`
   margin-bottom: -20px;
@@ -322,7 +387,13 @@ const TeamName = styled('div')`
 `;
 
 const FilterWrapper = styled('div')`
+  display: flex;
   margin-bottom: ${space(1.5)};
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
+  margin-left: ${space(1.5)};
 `;
 
 const List = styled('ul')`

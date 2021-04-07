@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory, PlainRoute, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -61,23 +62,34 @@ class DashboardDetail extends React.Component<Props, State> {
     if (!dashboard) {
       return;
     }
+
     trackAnalyticsEvent({
       eventKey: 'dashboards2.edit.start',
       eventName: 'Dashboards2: Edit start',
       organization_id: parseInt(this.props.organization.id, 10),
     });
+
     this.setState({
       dashboardState: 'edit',
       modifiedDashboard: cloneDashboard(dashboard),
     });
   };
 
-  onRouteLeave = (): string | undefined => {
+  onRouteLeave = (nextLocation?: Location) => {
+    const {organization} = this.props;
+
+    if (
+      nextLocation?.pathname ===
+      `/organizations/${organization.slug}/dashboards/widget/new/`
+    ) {
+      return undefined;
+    }
+
     if (!['view', 'pending_delete'].includes(this.state.dashboardState)) {
       return UNSAVED_MESSAGE;
     }
-    // eslint-disable-next-line consistent-return
-    return;
+
+    return undefined;
   };
 
   onUnload = (event: BeforeUnloadEvent) => {
@@ -283,7 +295,6 @@ class DashboardDetail extends React.Component<Props, State> {
     const {modifiedDashboard, dashboardState} = this.state;
 
     const isEditing = ['edit', 'create', 'pending_delete'].includes(dashboardState);
-    const canEdit = organization.features.includes('dashboards-edit');
 
     return (
       <GlobalSelectionHeader
@@ -322,7 +333,6 @@ class DashboardDetail extends React.Component<Props, State> {
                     onCommit={this.onCommit({dashboard, reloadData})}
                     onDelete={this.onDelete(dashboard)}
                     dashboardState={dashboardState}
-                    canEdit={canEdit}
                   />
                 </StyledPageHeader>
                 {error ? (

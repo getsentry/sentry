@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:39:07.113899Z'
+created: '2021-04-02T10:31:44.504030Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,14 +22,14 @@ app:
             function*
               "OpenAdapter10"
           frame (non app frame)
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value*
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
-  hash: "c85e23e804b52ea4b9f290ba838e77a0"
+  hash: "6fcc3bb4fac6aa6e81bb6d0faf40b0dd"
   component:
     system*
       exception*
@@ -37,17 +37,17 @@ system:
           frame*
             function*
               "CUseCountedObject<T>::UCDestroy"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "CContext::LUCBeginLayerDestruction"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "OpenAdapter10"
           frame
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (ignored due to recursion)
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value (ignored because stacktrace takes precedence)

@@ -213,3 +213,40 @@ class RuleProcessorTestFilters(TestCase):
         assert len(futures) == 1
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
+
+    def test_latest_release(self):
+        # setup an alert rule with 1 conditions and no filters that passes
+        self.create_release(project=self.project, version="2021-02.newRelease")
+
+        self.event = self.store_event(
+            data={"release": "2021-02.newRelease"}, project_id=self.project.id
+        )
+
+        Rule.objects.filter(project=self.event.project).delete()
+        self.rule = Rule.objects.create(
+            project=self.event.project,
+            data={
+                "actions": [EMAIL_ACTION_DATA],
+                "filter_match": "any",
+                "conditions": [
+                    {
+                        "id": "sentry.rules.filters.latest_release.LatestReleaseFilter",
+                        "name": "The event is from the latest release",
+                    },
+                ],
+            },
+        )
+
+        rp = RuleProcessor(
+            self.event,
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            has_reappeared=False,
+        )
+        results = list(rp.apply())
+        assert len(results) == 1
+        callback, futures = results[0]
+        assert len(futures) == 1
+        assert futures[0].rule == self.rule
+        assert futures[0].kwargs == {}

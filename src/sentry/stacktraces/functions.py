@@ -146,7 +146,6 @@ def trim_native_function_name(function, normalize_lambdas=True):
         .replace("operator()", "operator◯")
         .replace(" -> ", " ⟿ ")
         .replace("`anonymous namespace'", "〔anonymousnamespace〕")
-        .replace("(anonymous namespace)", "〔anonymousnamespace〕")
     )
 
     # normalize C++ lambdas.  This is necessary because different

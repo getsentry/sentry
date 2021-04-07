@@ -1,5 +1,5 @@
 ---
-created: '2021-03-23T23:34:28.472674Z'
+created: '2020-02-26T19:54:28.397519Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,14 +9,14 @@ app:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
             lineno (function takes precedence)
               288
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "exe_common.inl"
             function*
@@ -50,19 +50,19 @@ app:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: "9a26090c76c687d2bc8b24155f6d0ae1"
+  hash: "f133068802b8a7f6162e0c7d8fc6b984"
   component:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame*
             filename*
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
             lineno (function takes precedence)
               288
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame*
             filename*
               "exe_common.inl"
             function*

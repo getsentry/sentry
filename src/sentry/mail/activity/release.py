@@ -1,8 +1,7 @@
 from collections import defaultdict
 from itertools import chain
 
-
-from django.db.models import Count, Q
+from django.db.models import Count
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -10,8 +9,9 @@ from sentry.models import (
     Deploy,
     Environment,
     Group,
-    GroupSubscriptionReason,
     GroupLink,
+    GroupSubscriptionReason,
+    NotificationSetting,
     ProjectTeam,
     Release,
     ReleaseCommit,
@@ -19,13 +19,17 @@ from sentry.models import (
     Team,
     User,
     UserEmail,
-    UserOption,
-    UserOptionValue,
 )
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.types import (
+    NotificationSettingOptionValues,
+    NotificationScopeType,
+    NotificationSettingTypes,
+)
+from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityEmail
-from sentry.utils.compat import zip
 
 
 class ReleaseActivityEmail(ActivityEmail):
@@ -124,43 +128,52 @@ class ReleaseActivityEmail(ActivityEmail):
 
         # get all the involved users' settings for deploy-emails (user default
         # saved without org set)
-        user_options = UserOption.objects.filter(
-            Q(organization=self.organization) | Q(organization=None),
-            user__in=users,
-            key="deploy-emails",
+        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            users=users,
+            parent=self.organization,
         )
 
+        actor_mapping = {user.actor: user for user in users}
+
         options_by_user_id = defaultdict(dict)
-        for uoption in user_options:
-            key = "default" if uoption.organization is None else "org"
-            options_by_user_id[uoption.user_id][key] = uoption.value
+        for notification_setting in notification_settings:
+            key = (
+                "default"
+                if notification_setting.scope_type == NotificationScopeType.USER.value
+                else "org"
+            )
+            user_option = actor_mapping.get(notification_setting.target)
+            if user_option:
+                options_by_user_id[user_option.id][key] = notification_setting.value
 
         # and couple them with the the users' setting value for deploy-emails
         # prioritize user/org specific, then user default, then product default
-        users_with_options = []
+        users_with_options = {}
         for user in users:
             options = options_by_user_id.get(user.id, {})
-            users_with_options.append(
-                (
-                    user,
-                    options.get(
-                        "org", options.get("default", UserOptionValue.committed_deploys_only)
-                    ),
-                )
+            users_with_options[user] = (
+                options.get("org")  # org-specific
+                or options.get("default")  # user default
+                or NotificationSettingOptionValues.COMMITTED_ONLY.value  # product default
             )
 
         # filter down to members which have been seen in the commit log:
         participants_committed = {
             user: GroupSubscriptionReason.committed
-            for user, option in users_with_options
-            if option == UserOptionValue.committed_deploys_only and user.id in self.user_ids
+            for user, option in users_with_options.items()
+            if (
+                option == NotificationSettingOptionValues.COMMITTED_ONLY.value
+                and user.id in self.user_ids
+            )
         }
 
         # or who opt into all deploy emails:
         participants_opted = {
             user: GroupSubscriptionReason.deploy_setting
-            for user, option in users_with_options
-            if option == UserOptionValue.all_deploys
+            for user, option in users_with_options.items()
+            if option == NotificationSettingOptionValues.ALWAYS.value
         }
 
         # merge the two type of participants

@@ -1,10 +1,10 @@
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
+from sentry import tagstore
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.tagstore.base import TAG_KEY_RE
-from sentry import tagstore
 
 
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):

@@ -3,6 +3,7 @@ import {InjectedRouter, Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Badge from 'app/components/badge';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import * as Layout from 'app/components/layouts/thirds';
@@ -47,6 +48,7 @@ function WrapGuideTabs({children, tabQuery, query, to}: WrapGuideProps) {
 type Props = {
   organization: Organization;
   query: string;
+  sort: string;
   queryCounts: QueryCounts;
   realtimeActive: boolean;
   orgSlug: Organization['slug'];
@@ -61,6 +63,7 @@ type Props = {
 function IssueListHeader({
   organization,
   query,
+  sort,
   queryCount,
   queryCounts,
   realtimeActive,
@@ -141,19 +144,21 @@ function IssueListHeader({
                         delay={1000}
                       >
                         {queryName}{' '}
-                        {queryCounts[tabQuery] && (
-                          <StyledQueryCount
-                            isTag
-                            tagProps={{
-                              type:
-                                isForReviewQuery(tabQuery) &&
-                                queryCounts[tabQuery].count > 0
-                                  ? 'warning'
-                                  : 'default',
-                            }}
-                            count={queryCounts[tabQuery].count}
-                            max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                          />
+                        {queryCounts[tabQuery]?.count > 0 && (
+                          <Badge
+                            type={
+                              isForReviewQuery(tabQuery) &&
+                              queryCounts[tabQuery].count > 0
+                                ? 'review'
+                                : 'default'
+                            }
+                          >
+                            <QueryCount
+                              hideParens
+                              count={queryCounts[tabQuery].count}
+                              max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                            />
+                          </Badge>
                         )}
                       </Tooltip>
                     </WrapGuideTabs>
@@ -165,6 +170,7 @@ function IssueListHeader({
           <SavedSearchTab
             organization={organization}
             query={query}
+            sort={sort}
             savedSearchList={savedSearchList}
             onSavedSearchSelect={onSavedSearchSelect}
             onSavedSearchDelete={onSavedSearchDelete}
@@ -203,8 +209,4 @@ const TabLayoutHeader = styled(Layout.Header)`
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   margin-bottom: 0;
   margin-right: ${space(2)};
-`;
-
-const StyledQueryCount = styled(QueryCount)`
-  color: ${p => p.theme.gray300};
 `;

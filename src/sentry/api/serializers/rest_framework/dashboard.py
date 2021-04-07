@@ -3,18 +3,18 @@ from datetime import datetime, timedelta
 from django.db.models import Max
 from rest_framework import serializers
 
-from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.event_search import (
-    resolve_field_list,
+    InvalidSearchQuery,
     get_filter,
     get_function_alias,
-    InvalidSearchQuery,
+    resolve_field_list,
 )
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models import (
-    DashboardWidget,
-    DashboardWidgetQuery,
-    DashboardWidgetDisplayTypes,
     Dashboard,
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
 )
 from sentry.utils.dates import parse_stats_period
 

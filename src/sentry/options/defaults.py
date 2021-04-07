@@ -110,6 +110,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
+# Backend chart rendering via chartcuterie
+register("chart-rendering.enabled", default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "chart-rendering.chartcuterie",
+    default={"url": "http://localhost:7901"},
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -185,6 +193,7 @@ register("snuba.search.max-chunk-size", default=2000)
 register("snuba.search.max-total-chunk-time-seconds", default=30.0)
 register("snuba.search.hits-sample-size", default=100)
 register("snuba.track-outcomes-sample-rate", default=0.0)
+register("snuba.snql.referrer-rate", default=0.0)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register("snuba.tagstore.cache-tagkeys-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
@@ -287,3 +296,10 @@ register("store.nodestore-stats-sample-rate", default=0.0)  # unused
 register("store.reprocessing-force-disable", default=False)
 
 register("store.race-free-group-creation-force-disable", default=False)
+
+
+# Killswitch for dropping events if they were to create groups
+register("store.load-shed-group-creation-projects", type=Sequence, default=[])
+
+# Killswitch for dropping events in ingest consumer or really anywhere
+register("store.load-shed-pipeline-projects", type=Sequence, default=[])

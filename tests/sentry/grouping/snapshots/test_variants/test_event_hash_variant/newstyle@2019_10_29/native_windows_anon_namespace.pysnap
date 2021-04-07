@@ -1,5 +1,5 @@
 ---
-created: '2021-03-23T23:35:09.900477Z'
+created: '2020-02-26T19:54:42.929939Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -40,17 +40,17 @@ app:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: "46b84e4da51648cc9f9741abd2bdad51"
+  hash: "15d397771f229af8dc42783542f81dd4"
   component:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame*
             filename*
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame*
             filename*
               "exe_common.inl"
             function*

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T19:01:37.446534Z'
+created: '2021-04-02T10:31:47.508066Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -27,14 +27,14 @@ app:
           frame (non app frame)
             function*
               "OpenAdapter10"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value*
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
-  hash: "2e0d26cae5986fcda5edf66612a78268"
+  hash: "a6befffdc310c28b165bbceb1c0f59a8"
   component:
     system*
       exception*
@@ -48,16 +48,16 @@ system:
           frame*
             function*
               "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "CContext::LUCBeginLayerDestruction"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "OpenAdapter10"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value (ignored because stacktrace takes precedence)

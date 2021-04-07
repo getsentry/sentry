@@ -1,72 +1,71 @@
 import logging
-
 from collections import defaultdict
 from datetime import timedelta
 from uuid import uuid4
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
-
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import eventstream, features
-from sentry.app import ratelimiter
+from sentry import eventstream, features, search
 from sentry.api.base import audit_logger
 from sentry.api.fields import ActorField
+from sentry.api.issue_search import InvalidSearchQuery, convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import SUBSCRIPTION_REASON_MAP
+from sentry.app import ratelimiter
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    ActorTuple,
+    TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
+    ActorTuple,
     Commit,
+    Environment,
     Group,
     GroupAssignee,
+    GroupBookmark,
     GroupHash,
     GroupInboxReason,
     GroupLink,
-    GroupStatus,
-    GroupTombstone,
     GroupResolution,
-    GroupBookmark,
     GroupSeen,
     GroupShare,
     GroupSnooze,
+    GroupStatus,
     GroupSubscription,
     GroupSubscriptionReason,
+    GroupTombstone,
     Release,
-    remove_group_from_inbox,
     Repository,
-    TOMBSTONE_FIELDS_FROM_GROUP,
     Team,
     User,
     UserOption,
+    remove_group_from_inbox,
 )
-from sentry.models.groupinbox import add_group_to_inbox, GroupInboxRemoveAction
-from sentry.models.group import looks_like_short_id, STATUS_UPDATE_CHOICES
-from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
+from sentry.models.group import STATUS_UPDATE_CHOICES, looks_like_short_id
+from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, add_group_to_inbox
 from sentry.signals import (
+    advanced_search_feature_gated,
     issue_deleted,
     issue_ignored,
     issue_mark_reviewed,
-    issue_unignored,
     issue_resolved,
+    issue_unignored,
     issue_unresolved,
-    advanced_search_feature_gated,
 )
 from sentry.tasks.deletion import delete_groups as delete_groups_task
-from sentry.utils.hashlib import md5_text
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.cursors import Cursor
-from sentry.utils.functional import extract_lazy_object
 from sentry.utils.compat import zip
+from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.functional import extract_lazy_object
+from sentry.utils.hashlib import md5_text
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -98,7 +97,7 @@ def build_query_params_from_request(request, organization, projects, environment
                 parse_search_query(query), projects, request.user, environments
             )
         except InvalidSearchQuery as e:
-            raise ValidationError(f"Your search query could not be parsed: {e}")
+            raise ValidationError(f"Error parsing search query: {e}")
 
         validate_search_filter_permissions(organization, search_filters, request.user)
         query_kwargs["search_filters"] = search_filters
@@ -342,6 +341,9 @@ def _delete_groups(request, project, group_list, delete_type):
     transaction_id = uuid4().hex
 
     GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
+    # We remove `GroupInbox` rows here so that they don't end up influencing queries for
+    # `Group` instances that are pending deletion
+    GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
     delete_groups_task.apply_async(
         kwargs={
@@ -429,44 +431,43 @@ def self_subscribe_and_assign_issue(acting_user, group):
             return ActorTuple(type=User, id=acting_user.id)
 
 
-def track_update_groups(function):
-    def wrapper(request, projects, *args, **kwargs):
-        from sentry.utils import snuba
+def track_slo_response(name):
+    def inner_func(function):
+        def wrapper(request, *args, **kwargs):
+            from sentry.utils import snuba
 
-        try:
-            response = function(request, projects, *args, **kwargs)
-        except snuba.RateLimitExceeded:
+            try:
+                response = function(request, *args, **kwargs)
+            except snuba.RateLimitExceeded:
+                metrics.incr(
+                    f"{name}.slo.http_response",
+                    sample_rate=1.0,
+                    tags={
+                        "status": 429,
+                        "detail": "snuba.RateLimitExceeded",
+                        "func": function,
+                    },
+                )
+                raise
+            except Exception:
+                metrics.incr(
+                    f"{name}.slo.http_response",
+                    sample_rate=1.0,
+                    tags={"status": 500, "detail": "Exception"},
+                )
+                # Continue raising the error now that we've incr the metric
+                raise
+
             metrics.incr(
-                "group.update.http_response",
+                f"{name}.slo.http_response",
                 sample_rate=1.0,
-                tags={
-                    "status": 429,
-                    "detail": "group_index:track_update_groups:snuba.RateLimitExceeded",
-                },
+                tags={"status": response.status_code, "detail": "response"},
             )
-            raise
-        except Exception:
-            metrics.incr(
-                "group.update.http_response",
-                sample_rate=1.0,
-                tags={"status": 500, "detail": "group_index:track_update_groups:Exception"},
-            )
-            # Continue raising the error now that we've incr the metric
-            raise
+            return response
 
-        serializer = GroupValidator(
-            data=request.data,
-            partial=True,
-            context={"project": projects[0], "access": getattr(request, "access", None)},
-        )
-        results = dict(serializer.validated_data) if serializer.is_valid() else {}
-        tags = {key: True for key in results.keys()}
-        tags["status"] = response.status_code
-        tags["detail"] = "group_index:track_update_groups:response"
-        metrics.incr("group.update.http_response", sample_rate=1.0, tags=tags)
-        return response
+        return wrapper
 
-    return wrapper
+    return inner_func
 
 
 def rate_limit_endpoint(limit=1, window=1):
@@ -492,9 +493,7 @@ def rate_limit_endpoint(limit=1, window=1):
     return inner
 
 
-@track_update_groups
-def update_groups(request, projects, organization_id, search_fn, has_inbox=False):
-    group_ids = request.GET.getlist("id")
+def update_groups(request, group_ids, projects, organization_id, search_fn, has_inbox=False):
     if group_ids:
         group_list = Group.objects.filter(
             project__organization_id=organization_id, project__in=projects, id__in=group_ids
@@ -505,7 +504,6 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
             return Response(status=204)
     else:
         group_list = None
-
     # TODO(jess): We may want to look into refactoring GroupValidator
     # to support multiple projects, but this is pretty complicated
     # because of the assignee validation. Punting on this for now.
@@ -1032,3 +1030,25 @@ def calculate_stats_period(stats_period, start, end):
         stats_period_start = None
         stats_period_end = None
     return stats_period, stats_period_start, stats_period_end
+
+
+def prep_search(cls, request, project, extra_query_kwargs=None):
+    try:
+        environment = cls._get_environment_from_request(request, project.organization_id)
+    except Environment.DoesNotExist:
+        # XXX: The 1000 magic number for `max_hits` is an abstraction leak
+        # from `sentry.api.paginator.BasePaginator.get_result`.
+        result = CursorResult([], None, None, hits=0, max_hits=1000)
+        query_kwargs = {}
+    else:
+        environments = [environment] if environment is not None else environment
+        query_kwargs = build_query_params_from_request(
+            request, project.organization, [project], environments
+        )
+        if extra_query_kwargs is not None:
+            assert "environment" not in extra_query_kwargs
+            query_kwargs.update(extra_query_kwargs)
+
+        query_kwargs["environments"] = environments
+        result = search.query(**query_kwargs)
+    return result, query_kwargs

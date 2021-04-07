@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:53:37.852480Z'
+created: '2021-04-02T09:10:50.690678Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,7 +8,7 @@ app:
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
-        stacktrace
+        stacktrace*
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "_dispatch_root_queues_init_once"
@@ -33,7 +33,7 @@ app:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
             function*
@@ -47,7 +47,7 @@ app:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame* (frame considered in-app because no frame is in-app)
             filename*
               "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
             function*
@@ -99,15 +99,15 @@ app:
               "_INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T>"
         type*
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
-        value*
+        value (stacktrace and type take precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 system:
-  hash: "6f4e0b1cef47a64deadb07777bb652db"
+  hash: "b02fb88218293d772c2e20c8f6ab387a"
   component:
     system*
       exception*
-        stacktrace
+        stacktrace*
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "_dispatch_root_queues_init_once"
@@ -132,7 +132,7 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
             function*
@@ -146,7 +146,7 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             filename*
               "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
             function*
@@ -198,5 +198,5 @@ system:
               "_INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T>"
         type*
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
-        value*
+        value (stacktrace and type take precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"

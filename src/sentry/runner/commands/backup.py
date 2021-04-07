@@ -1,13 +1,11 @@
-import click
+from io import StringIO
 
+import click
 from django.apps import apps
 from django.core import management, serializers
 from django.db import connection
 
-from io import StringIO
-
 from sentry.runner.decorators import configuration
-
 
 EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
 
