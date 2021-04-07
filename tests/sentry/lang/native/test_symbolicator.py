@@ -2,6 +2,7 @@ import copy
 
 import pytest
 
+from sentry.lang.native import symbolicator
 from sentry.lang.native.symbolicator import (
     get_sources_for_project,
     redact_internal_sources,
@@ -240,3 +241,65 @@ class TestInternalSourcesRedaction:
         redacted = redact_internal_sources(response)
         expected = [{"source": "sentry:project", "download": {"status": "notfound"}}]
         assert redacted["modules"][0]["candidates"] == expected
+
+
+class TestAliasReversion:
+    @pytest.fixture
+    def builtin_sources(self):
+        return {
+            "ios": {
+                "id": "sentry:ios",
+                "name": "Apple",
+                "type": "alias",
+                "sources": ["ios-source", "tvos-source"],
+            },
+            "ios-source": {
+                "id": "sentry:ios-source",
+                "name": "iOS",
+                "type": "gcs",
+            },
+            "tvos-source": {
+                "id": "sentry:tvos-source",
+                "name": "TvOS",
+                "type": "gcs",
+            },
+        }
+
+    def test_reverse_aliases(self, builtin_sources):
+        reverse_aliases = symbolicator.reverse_aliases_map(builtin_sources)
+        expected = {"sentry:ios-source": "sentry:ios", "sentry:tvos-source": "sentry:ios"}
+        assert reverse_aliases == expected
+
+    def test_merge_candidates(self, builtin_sources):
+        event = {
+            "modules": [
+                {
+                    "candidates": [
+                        {
+                            "source": "sentry:ios-source",
+                            "location": "http://example.com/prefix/path0",
+                            "download": {"status": "notfound"},
+                        },
+                        {
+                            "source": "sentry:tvos-source",
+                            "location": "http://example.com/prefix/path1",
+                            "download": {"status": "ok"},
+                        },
+                    ]
+                }
+            ]
+        }
+        candidates = [
+            {
+                "source": "sentry:ios",
+                "location": "http://example.com/prefix/path0",
+                "download": {"status": "notfound"},
+            },
+            {
+                "source": "sentry:ios",
+                "location": "http://example.com/prefix/path1",
+                "download": {"status": "ok"},
+            },
+        ]
+        symbolicator.reverse_source_aliases(event, builtin_sources)
+        assert event["modules"][0]["candidates"] == candidates
