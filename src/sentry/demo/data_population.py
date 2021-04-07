@@ -974,49 +974,11 @@ def populate_connected_event_scenario_2(
     logger.info("populate_connected_event_scenario_2.finished", extra=log_extra)
 
 
-def populate_connected_event_scenario_3(python_project: Project, quick=False):
-    """
-    This function populates a single Back-end error
-    Occurrance times and durations are randomized
-    """
-    python_error = get_event_from_file("scen3/python_error.json")
-    log_extra = {
-        "organization_slug": python_project.organization.slug,
-        "quick": quick,
-    }
-    logger.info("populate_connected_event_scenario_3.start", extra=log_extra)
-
-    for (timestamp, day) in iter_timestamps(3, quick):
-        transaction_user = generate_user(quick)
-        trace_id = uuid4().hex
-        release = get_release_from_time(python_project.organization_id, timestamp)
-        release_sha = release.version
-
-        backend_trace = {
-            "trace_id": trace_id,
-            "span_id": uuid4().hex[:16],
-        }
-
-        # python error
-        local_event = copy.deepcopy(python_error)
-        local_event.update(
-            project=python_project,
-            platform=python_project.platform,
-            timestamp=timestamp,
-            user=transaction_user,
-            release=release_sha,
-        )
-        update_context(local_event, backend_trace)
-        fix_error_event(local_event, quick)
-        safe_send_event(local_event, quick)
-    logger.info("populate_connected_event_scenario_3.finished", extra=log_extra)
-
-
 def populate_generic_error(
     project: Project, file_path, dist_number, starting_release=0, quick=False
 ):
     """
-    This function populates a single Back-end error
+    This function populates a single error
     Occurrance times and durations are randomized
     """
     error = get_event_from_file(file_path)
