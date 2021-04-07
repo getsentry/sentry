@@ -394,7 +394,7 @@ export function fillChartDataFromSessionsResponse({
     response.groups.forEach(group => {
       const value = group.series[field][index];
 
-      chartData[groupBy === null ? 0 : group.by[groupBy]].data.push({
+      chartData[groupBy === null ? 0 : group.by[groupBy]]?.data.push({
         name: interval,
         value: typeof valueFormatter === 'function' ? valueFormatter(value) : value,
       });
