@@ -1,11 +1,11 @@
-from uuid import uuid4
 from datetime import timedelta
+from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 
-from sentry.utils.samples import load_data
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.samples import load_data
 
 
 class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
@@ -651,7 +651,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 spans=[],
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
-                duration=500,
+                duration=525,
             ).event_id,
             self.create_event(
                 trace=self.trace_id,
@@ -675,8 +675,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.assert_trace_data(response.data[0], gen2_no_children=False)
         gen2_parent = response.data[0]["children"][1]["children"][0]
         assert len(gen2_parent["children"]) == 2
-        for child in gen2_parent["children"]:
-            assert child["event_id"] in gen3_event_siblings
+        assert [child["event_id"] for child in gen2_parent["children"]] == gen3_event_siblings
 
     def test_with_orphan_siblings(self):
         parent_span_id = uuid4().hex[:16]
@@ -687,7 +686,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             # Some random id so its separated from the rest of the trace
             parent_span_id=parent_span_id,
             project_id=self.project.id,
-            duration=1000,
+            # Longer duration means that this event happened first, and should be ordered first
+            duration=1250,
         )
         root_sibling_event = self.create_event(
             trace=self.trace_id,
@@ -711,8 +711,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         # The first item of the response should be the main trace
         main, *orphans = response.data
         self.assert_trace_data(main)
-        assert root_event.event_id in [orphan["event_id"] for orphan in orphans]
-        assert root_sibling_event.event_id in [orphan["event_id"] for orphan in orphans]
+        assert [root_event.event_id, root_sibling_event.event_id] == [
+            orphan["event_id"] for orphan in orphans
+        ]
 
     def test_with_orphan_trace(self):
         orphan_span_ids = {

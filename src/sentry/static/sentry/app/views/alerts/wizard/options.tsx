@@ -12,9 +12,9 @@ export type AlertType =
   | 'lcp'
   | 'fid'
   | 'cls'
-  | 'fp'
-  | 'fcp'
-  | 'ttfb';
+  | 'fcp';
+
+export const WebVitalAlertTypes = new Set(['lcp', 'fid', 'cls', 'fcp']);
 
 export const AlertWizardAlertNames: Record<AlertType, string> = {
   issues: t('Issues'),
@@ -27,9 +27,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   lcp: t('Longest Contentful Paint'),
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
-  fp: t('First Paint'),
   fcp: t('First Contentful Paint'),
-  ttfb: t('Time to First Byte'),
 };
 
 export const AlertWizardOptions: {
@@ -50,9 +48,7 @@ export const AlertWizardOptions: {
       'lcp',
       'fid',
       'cls',
-      'fp',
       'fcp',
-      'ttfb',
     ],
   },
 ];
@@ -146,27 +142,11 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     examples: [t('When the CLS of a page is more than 0.5.')],
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
   },
-  fp: {
-    description: t(
-      'First Paint (FP), like Largest Contentful Paint (LCP), measures loading performance. Specifically, it marks the point when the first pixel renders on the screen. We recommend an FP of less than 500 milliseconds.'
-    ),
-    examples: [
-      t('When the 95th percentile FP of a page is longer than 250 milliseconds.'),
-    ],
-    docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
-  },
   fcp: {
     description: t(
       'First Contentful Paint (FCP), like Largest Contentful Paint (LCP), measures loading performance. Specifically, it marks the point when content such as text and images can first be seen on a page.'
     ),
     examples: [t('When the average FCP of a page is longer than 0.25 seconds.')],
-    docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
-  },
-  ttfb: {
-    description: t(
-      "Measures the time it takes for a user's browser to receive the first byte of page content. This includes time spent on DNS lookup, connection negotiation, network latency, and unloading the previous document."
-    ),
-    examples: [t('When the average TTFB of a page is longer than 600 millliseconds.')],
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
   },
 };
@@ -226,18 +206,8 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
-  fp: {
-    aggregate: 'p95(measurements.fp)',
-    dataset: Dataset.TRANSACTIONS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
   fcp: {
     aggregate: 'p95(measurements.fcp)',
-    dataset: Dataset.TRANSACTIONS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
-  ttfb: {
-    aggregate: 'p95(measurements.ttfb)',
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },

@@ -859,7 +859,7 @@ const WindowSelection = styled('div')`
   opacity: 0.1;
 `;
 
-const SecondaryHeader = styled('div')`
+export const SecondaryHeader = styled('div')`
   position: absolute;
   top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
   left: 0;
@@ -870,12 +870,12 @@ const SecondaryHeader = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
 `;
 
-const DividerSpacer = styled('div')`
+export const DividerSpacer = styled('div')`
   width: 1px;
   background-color: ${p => p.theme.border};
 `;
 
-const ScrollBarContainer = styled('div')`
+export const ScrollBarContainer = styled('div')`
   display: flex;
   align-items: center;
   width: 100%;
@@ -903,7 +903,7 @@ const RightSidePane = styled('div')`
   top: 0;
 `;
 
-const VirtualScrollBar = styled('div')`
+export const VirtualScrollBar = styled('div')`
   height: 8px;
   width: 0;
   padding-left: 4px;
@@ -914,7 +914,7 @@ const VirtualScrollBar = styled('div')`
   cursor: grab;
 `;
 
-const VirtualScrollBarGrip = styled('div')`
+export const VirtualScrollBarGrip = styled('div')`
   height: 8px;
   width: 100%;
   border-radius: 20px;

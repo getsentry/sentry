@@ -1,13 +1,13 @@
 from datetime import timedelta
-from dateutil.parser import parse as parse_datetime
 from uuid import uuid4
 
+from dateutil.parser import parse as parse_datetime
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
 from sentry import options
 from sentry.models import (
-    add_group_to_inbox,
+    GROUP_OWNER_TYPE,
     Activity,
     ApiToken,
     ExternalIssue,
@@ -20,26 +20,25 @@ from sentry.models import (
     GroupLink,
     GroupOwner,
     GroupOwnerType,
-    GROUP_OWNER_TYPE,
+    GroupResolution,
     GroupSeen,
     GroupShare,
     GroupSnooze,
     GroupStatus,
-    GroupResolution,
     GroupSubscription,
     GroupTombstone,
     Integration,
     OrganizationIntegration,
-    UserOption,
     Release,
+    UserOption,
+    add_group_to_inbox,
     remove_group_from_inbox,
 )
-from sentry.utils import json
-from sentry.utils.compat.mock import patch, Mock
-
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils import json
+from sentry.utils.compat.mock import Mock, patch
 
 
 class GroupListTest(APITestCase, SnubaTestCase):

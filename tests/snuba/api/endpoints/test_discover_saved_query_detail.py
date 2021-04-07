@@ -1,7 +1,8 @@
-from sentry.testutils import APITestCase, SnubaTestCase
 from django.core.urlresolvers import reverse, NoReverseMatch
 
+from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):

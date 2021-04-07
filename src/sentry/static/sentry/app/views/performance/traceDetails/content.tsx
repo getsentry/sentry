@@ -5,8 +5,10 @@ import {Location} from 'history';
 
 import Alert from 'app/components/alert';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
+import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import TimeSince from 'app/components/timeSince';
@@ -21,17 +23,22 @@ import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
 import {
+  DividerSpacer,
+  ScrollbarContainer,
   SearchContainer,
   StyledPanel,
   StyledSearchBar,
   TraceDetailBody,
   TraceDetailHeader,
   TraceViewContainer,
+  TraceViewHeaderContainer,
   TransactionRowMessage,
+  VirtualScrollBar,
+  VirtualScrollBarGrip,
 } from './styles';
 import TransactionGroup from './transactionGroup';
 import {TraceInfo, TreeDepth} from './types';
-import {getTraceInfo, isRootTransaction} from './utils';
+import {getTraceInfo, isRootTransaction, toPercent} from './utils';
 
 type IndexedFusedTransaction = {
   transaction: TraceFullDetailed;
@@ -76,6 +83,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
   };
 
   traceViewRef = React.createRef<HTMLDivElement>();
+  virtualScrollbarContainerRef = React.createRef<HTMLDivElement>();
 
   renderTraceLoading() {
     return <LoadingIndicator />;
@@ -233,23 +241,29 @@ class TraceDetailsContent extends React.Component<Props, State> {
     if (roots === 0 && orphans > 0) {
       warning = (
         <Alert type="info" icon={<IconInfo size="md" />}>
-          {t(
-            'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-          )}
+          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+            {t(
+              'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+            )}
+          </ExternalLink>
         </Alert>
       );
     } else if (roots === 1 && orphans > 0) {
       warning = (
         <Alert type="info" icon={<IconInfo size="md" />}>
-          {t(
-            'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-          )}
+          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+            {t(
+              'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+            )}
+          </ExternalLink>
         </Alert>
       );
     } else if (roots > 1) {
       warning = (
         <Alert type="info" icon={<IconInfo size="md" />}>
-          {t('Multiple root transactions have been found with this trace ID.')}
+          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#multiple-roots">
+            {t('Multiple root transactions have been found with this trace ID.')}
+          </ExternalLink>
         </Alert>
       );
     }
@@ -432,36 +446,69 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
     const traceView = (
       <TraceDetailBody>
-        <StyledPanel>
-          <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-            <TraceViewContainer ref={this.traceViewRef}>
-              <TransactionGroup
-                location={location}
-                organization={organization}
-                traceInfo={traceInfo}
-                transaction={{
-                  traceSlug,
-                  generation: 0,
-                  'transaction.duration':
-                    traceInfo.endTimestamp - traceInfo.startTimestamp,
-                  children: traces,
-                  start_timestamp: traceInfo.startTimestamp,
-                  timestamp: traceInfo.endTimestamp,
-                }}
-                continuingDepths={[]}
-                isOrphan={false}
-                isLast={false}
-                index={0}
-                isVisible
-                renderedChildren={transactionGroups}
-              />
-              {this.renderInfoMessage({
-                isVisible: true,
-                numberOfHiddenTransactionsAbove,
-              })}
-            </TraceViewContainer>
-          </DividerHandlerManager.Provider>
-        </StyledPanel>
+        <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
+          <DividerHandlerManager.Consumer>
+            {({dividerPosition}) => (
+              <ScrollbarManager.Provider
+                dividerPosition={dividerPosition}
+                interactiveLayerRef={this.virtualScrollbarContainerRef}
+              >
+                <StyledPanel>
+                  <TraceViewHeaderContainer>
+                    <ScrollbarContainer
+                      ref={this.virtualScrollbarContainerRef}
+                      style={{
+                        // the width of this component is shrunk to compensate for half of the width of the divider line
+                        width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                      }}
+                    >
+                      <ScrollbarManager.Consumer>
+                        {({virtualScrollbarRef, onDragStart}) => {
+                          return (
+                            <VirtualScrollBar
+                              data-type="virtual-scrollbar"
+                              ref={virtualScrollbarRef}
+                              onMouseDown={onDragStart}
+                            >
+                              <VirtualScrollBarGrip />
+                            </VirtualScrollBar>
+                          );
+                        }}
+                      </ScrollbarManager.Consumer>
+                    </ScrollbarContainer>
+                    <DividerSpacer />
+                  </TraceViewHeaderContainer>
+                  <TraceViewContainer ref={this.traceViewRef}>
+                    <TransactionGroup
+                      location={location}
+                      organization={organization}
+                      traceInfo={traceInfo}
+                      transaction={{
+                        traceSlug,
+                        generation: 0,
+                        'transaction.duration':
+                          traceInfo.endTimestamp - traceInfo.startTimestamp,
+                        children: traces,
+                        start_timestamp: traceInfo.startTimestamp,
+                        timestamp: traceInfo.endTimestamp,
+                      }}
+                      continuingDepths={[]}
+                      isOrphan={false}
+                      isLast={false}
+                      index={0}
+                      isVisible
+                      renderedChildren={transactionGroups}
+                    />
+                    {this.renderInfoMessage({
+                      isVisible: true,
+                      numberOfHiddenTransactionsAbove,
+                    })}
+                  </TraceViewContainer>
+                </StyledPanel>
+              </ScrollbarManager.Provider>
+            )}
+          </DividerHandlerManager.Consumer>
+        </DividerHandlerManager.Provider>
       </TraceDetailBody>
     );
 
