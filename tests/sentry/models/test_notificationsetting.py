@@ -1,5 +1,5 @@
 from sentry.models import NotificationSetting
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.notifications.types import NotificationSettingTypes, NotificationSettingOptionValues
 from sentry.testutils import TestCase
 

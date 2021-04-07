@@ -3,7 +3,7 @@ from sentry.models import (
     UserEmail,
     UserOption,
 )
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,

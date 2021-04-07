@@ -8,7 +8,7 @@ from urllib.parse import urlparse, urlencode, urlunparse, parse_qs
 from sentry import digests, ratelimits
 from sentry.exceptions import PluginError
 from sentry.models import NotificationSetting
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config

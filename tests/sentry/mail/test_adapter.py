@@ -25,7 +25,7 @@ from sentry.models import (
     User,
     UserReport,
 )
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.notifications.types import (
     NotificationSettingTypes,
     NotificationSettingOptionValues,

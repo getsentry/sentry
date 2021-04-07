@@ -14,7 +14,7 @@ from sentry.models import (
     NotificationSetting,
     UserOption,
 )
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.notifications.types import (
     NotificationSettingTypes,
     NotificationSettingOptionValues,

@@ -5,7 +5,7 @@ from sentry.models import (
     GroupSubscriptionReason,
     NotificationSetting,
 )
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.notifications.types import (
     NotificationSettingTypes,
     NotificationSettingOptionValues,

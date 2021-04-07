@@ -25,7 +25,7 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.notifications.helpers import transform_to_notification_settings_by_user
 from sentry.notifications.types import (
     NotificationScopeType,

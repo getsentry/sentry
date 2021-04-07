@@ -6,7 +6,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserNotificationsSerializer
 from sentry.models import NotificationSetting, Project, UserEmail, UserOption
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.notifications.legacy_mappings import (
     get_option_value_from_int,
     get_type_from_fine_tuning_key,

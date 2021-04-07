@@ -37,7 +37,7 @@ from sentry.models import (
     ProjectStatus,
     ProjectTeam,
 )
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.notifications.legacy_mappings import get_option_value_from_boolean
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.tasks.deletion import delete_project

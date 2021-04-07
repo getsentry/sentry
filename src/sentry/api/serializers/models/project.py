@@ -30,7 +30,7 @@ from sentry.models import (
     Release,
     UserReport,
 )
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.helpers import transform_to_notification_settings_by_parent_id
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes

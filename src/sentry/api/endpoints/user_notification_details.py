@@ -7,7 +7,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import Serializer, serialize
 from sentry.models import NotificationSetting, UserOption
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.notifications.legacy_mappings import (
     USER_OPTION_SETTINGS,
     get_option_value_from_int,

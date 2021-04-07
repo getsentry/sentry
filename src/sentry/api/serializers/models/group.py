@@ -42,7 +42,7 @@ from sentry.models import (
 )
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.reprocessing2 import get_progress
 from sentry.notifications.types import (
     NotificationScopeType,
