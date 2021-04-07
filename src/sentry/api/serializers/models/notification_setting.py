@@ -2,7 +2,6 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, Mapping
 
 from sentry.api.serializers import Serializer
-from sentry.models.notificationsetting import NotificationSetting
 
 
 class NotificationSettingsSerializer(Serializer):  # type: ignore
@@ -14,7 +13,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
 
     def get_attrs(
         self, item_list: Iterable[Any], user: Any, **kwargs: Any
-    ) -> Mapping[Any, Iterable[NotificationSetting]]:
+    ) -> Mapping[Any, Iterable[Any]]:
         """
         This takes a list of either Users or Teams (which we will refer to as
         "targets") because both can have Notification Settings. The function
@@ -28,6 +27,8 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
             - type: NotificationSettingTypes enum value. e.g. WORKFLOW, DEPLOY.
             - provider: ExternalProvider enum value. e.g. SLACK, EMAIL.
         """
+        from sentry.models import NotificationSetting
+
         actor_mapping = {target.actor_id: target for target in item_list}
         filter_kwargs = dict(target_ids=actor_mapping.keys())
 
