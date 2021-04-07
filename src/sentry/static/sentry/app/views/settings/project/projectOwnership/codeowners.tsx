@@ -1,9 +1,12 @@
 import React from 'react';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import {IconDelete} from 'app/icons';
-import {Organization, Project} from 'app/types';
+import {t} from 'app/locale';
+import {CodeOwners, Organization, Project} from 'app/types';
 import RulesPanel from 'app/views/settings/project/projectOwnership/rulesPanel';
 
 type Props = AsyncComponent['props'] & {
@@ -13,7 +16,7 @@ type Props = AsyncComponent['props'] & {
 
 type State = {} & AsyncComponent['state'];
 
-class CodeOwners extends AsyncComponent<Props, State> {
+class CodeOwnersPanel extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, project} = this.props;
     return [
@@ -23,6 +26,25 @@ class CodeOwners extends AsyncComponent<Props, State> {
       ],
     ];
   }
+
+  handleDelete = async (codeowner: CodeOwners) => {
+    const {organization, project} = this.props;
+    const endpoint = `/api/0/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`;
+    try {
+      await this.api.requestPromise(endpoint, {
+        method: 'DELETE',
+      });
+      // remove config and update state
+      const {codeowners} = this.state;
+      this.setState({
+        codeowners: codeowners.filter(config => config.id !== codeowner.id),
+      });
+      addSuccessMessage(t('Deletion successful'));
+    } catch {
+      //no 4xx errors should happen on delete
+      addErrorMessage(t('An error occurred'));
+    }
+  };
 
   renderBody() {
     const {codeowners} = this.state;
@@ -43,7 +65,13 @@ class CodeOwners extends AsyncComponent<Props, State> {
             repoName={repoName}
             readOnly
             controls={[
-              <Button key="delete" icon={<IconDelete size="xs" />} size="xsmall" />,
+              <Confirm
+                onConfirm={() => this.handleDelete(codeowner)}
+                message={t('Are you sure you want to remove this CodeOwners?')}
+                key="confirm-delete"
+              >
+                <Button key="delete" icon={<IconDelete size="xs" />} size="xsmall" />
+              </Confirm>,
             ]}
           />
         </React.Fragment>
@@ -52,4 +80,4 @@ class CodeOwners extends AsyncComponent<Props, State> {
   }
 }
 
-export default CodeOwners;
+export default CodeOwnersPanel;

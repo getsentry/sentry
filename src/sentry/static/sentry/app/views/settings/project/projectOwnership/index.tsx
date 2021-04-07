@@ -13,7 +13,7 @@ import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import CodeOwners from 'app/views/settings/project/projectOwnership/codeowners';
+import CodeOwnersPanel from 'app/views/settings/project/projectOwnership/codeowners';
 import RulesPanel from 'app/views/settings/project/projectOwnership/rulesPanel';
 
 type Props = {
@@ -112,7 +112,7 @@ tags.sku_class:enterprise #enterprise`;
           ]}
         />
         <Feature features={['import-codeowners']}>
-          <CodeOwners {...this.props} />
+          <CodeOwnersPanel {...this.props} />
         </Feature>
         <Form
           apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}

@@ -1984,3 +1984,11 @@ export type IssueOwnership = {
   isActive: boolean;
   autoAssignment: boolean;
 };
+
+export type CodeOwners = {
+  id: string;
+  raw: string;
+  dateCreated: string;
+  dateUpdated: string;
+  provider: 'github' | 'gitlab';
+};
