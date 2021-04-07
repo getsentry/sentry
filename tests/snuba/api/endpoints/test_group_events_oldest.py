@@ -1,6 +1,6 @@
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class GroupEventsOldestTest(APITestCase, SnubaTestCase):

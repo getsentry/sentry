@@ -84,6 +84,9 @@ def delete_initializing_orgs(**kwargs):
         logger.info("delete_initializing_orgs.delete", extra={"organization_slug": org.slug})
         delete_organization.apply_async(kwargs={"object_id": org.id})
 
+    # build up the org buffer at the end to replace the orgs being removed
+    build_up_org_buffer()
+
 
 @instrumented_task(
     name="sentry.demo.tasks.build_up_org_buffer",

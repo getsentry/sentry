@@ -36,7 +36,7 @@ describe('StacktraceLinkModal', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/repo-project-path-configs/`,
+      url: `/organizations/${org.slug}/code-mappings/`,
       method: 'POST',
       statusCode,
     });

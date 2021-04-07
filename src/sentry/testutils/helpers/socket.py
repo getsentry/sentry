@@ -1,4 +1,5 @@
 import ipaddress
+
 from sentry.net import socket as net_socket
 
 __all__ = ["override_blacklist"]

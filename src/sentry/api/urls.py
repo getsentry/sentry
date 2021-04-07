@@ -175,6 +175,8 @@ from .endpoints.organization_integration_repository_project_path_config_details 
 from .endpoints.organization_integration_repository_project_path_configs import (
     OrganizationIntegrationRepositoryProjectPathConfigEndpoint,
 )
+from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
+from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from .endpoints.organization_integration_request import OrganizationIntegrationRequestEndpoint
 from .endpoints.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
@@ -731,6 +733,16 @@ urlpatterns = [
                     OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-repository-project-path-config-details",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/code-mappings/$",
+                    OrganizationCodeMappingsEndpoint.as_view(),
+                    name="sentry-api-0-organization-code-mappings",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/$",
+                    OrganizationCodeMappingDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-code-mapping-details",
+                ),
                 # Discover
                 url(
                     r"^(?P<organization_slug>[^\/]+)/discover/query/$",
@@ -743,7 +755,7 @@ urlpatterns = [
                     name="sentry-api-0-discover-saved-queries",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/discover/saved/(?P<query_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/discover/saved/(?P<query_id>\d+)/$",
                     DiscoverSavedQueryDetailEndpoint.as_view(),
                     name="sentry-api-0-discover-saved-query-detail",
                 ),
@@ -784,7 +796,7 @@ urlpatterns = [
                     name="sentry-api-0-short-id-lookup",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/eventids/(?P<event_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/eventids/(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     EventIdLookupEndpoint.as_view(),
                     name="sentry-api-0-event-id-lookup",
                 ),
@@ -930,12 +942,12 @@ urlpatterns = [
                     name="sentry-api-0-organization-event-baseline",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventsTraceLightEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trace-light",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events-trace/(?P<trace_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/events-trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventsTraceEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trace",
                 ),

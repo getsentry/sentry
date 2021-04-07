@@ -1,7 +1,7 @@
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, NoReverseMatch
 
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
 
 
@@ -61,3 +61,13 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
         resp = self.client.get(url, format="json")
 
         assert resp.status_code == 429
+
+    def test_invalid_event_id(self):
+        with self.assertRaises(NoReverseMatch):
+            reverse(
+                "sentry-api-0-event-id-lookup",
+                kwargs={
+                    "organization_slug": self.org.slug,
+                    "event_id": "not-an-event",
+                },
+            )
