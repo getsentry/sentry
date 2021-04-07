@@ -285,7 +285,13 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
             }
         )
         self.transaction["contexts"]["trace"].update(
-            {"status": "unknown_error", "parent_span_id": "9000cec7cc0779c1", "op": "bar.server"}
+            {
+                "status": "unknown_error",
+                "trace": "a" * 32,
+                "span": "abcd1234abcd1234",
+                "parent_span_id": "9000cec7cc0779c1",
+                "op": "bar.server",
+            }
         )
         self.store_event(
             self.transaction,
@@ -332,18 +338,11 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         )
         self.run_test("transaction", qs_params={"query": "city"}, expected=[("/city_by_code/", 1)])
 
-    def test_parent_span(self):
-        self.run_test(
-            "trace.parent_span", expected=[("9000cec7cc0779c1", 1), ("8988cec7cc0779c1", 1)]
-        )
-        self.run_test(
-            "trace.parent_span",
-            qs_params={"query": "cec7cc"},
-            expected=[("9000cec7cc0779c1", 1), ("8988cec7cc0779c1", 1)],
-        )
-        self.run_test(
-            "trace.parent_span", qs_params={"query": "9000"}, expected=[("9000cec7cc0779c1", 1)]
-        )
+    def test_invalid_keys(self):
+        self.run_test("trace.parent_span", expected=[])
+        self.run_test("trace.span", expected=[])
+        self.run_test("trace", expected=[])
+        self.run_test("event_id", expected=[])
 
     def test_boolean_fields(self):
         self.run_test("error.handled", expected=[("true", None), ("false", None)])
