@@ -1,7 +1,5 @@
 from time import time
 
-import click
-
 from sentry.runner import configure
 
 configure()
@@ -19,30 +17,35 @@ from tests.sentry.grouping import grouping_input as grouping_inputs
 
 
 def main():
-    print("Loading test cases...")
-    test_cases = [
-        (get_default_grouping_config_dict(config_name), grouping_input)
-        for config_name in CONFIGURATIONS.keys()
-        for grouping_input in grouping_inputs
+    configs = [
+        get_default_grouping_config_dict(config_name)
+        for config_name in sorted(CONFIGURATIONS.keys())
     ]
 
-    print("Grouping...")
+    print("STRATEGY                    TIME (s)  AVG. TIME (s)")
+    for config in configs:
+        test_configuration(config)
+
+
+def test_configuration(config):
     start_time = time()
-    with click.progressbar(test_cases) as progress_bar:
-        for grouping_config, grouping_input in progress_bar:
 
-            glob_match.cache_clear()
-            trim_function_name.cache_clear()
+    for grouping_input in grouping_inputs:
 
-            event = grouping_input.create_event(grouping_config)
+        glob_match.cache_clear()
+        trim_function_name.cache_clear()
 
-            # Make sure we don't need to touch the DB here because this would
-            # break stuff later on.
-            event.project = None
+        event = grouping_input.create_event(config)
 
-            event.get_hashes()
+        # Make sure we don't need to touch the DB here because this would
+        # break stuff later on.
+        event.project = None
 
-    print(f"Took {time() - start_time} seconds.")
+        event.get_hashes()
+
+    delta = time() - start_time
+    avg = delta / len(grouping_inputs)
+    print(f"{config['id']:<25} {delta:>10.03f}{avg:>15.03f}")
 
 
 if __name__ == "__main__":
