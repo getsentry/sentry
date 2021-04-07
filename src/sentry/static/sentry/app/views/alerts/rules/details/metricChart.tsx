@@ -21,6 +21,7 @@ import {AvatarProject, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
 import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
+import {TimePeriodType} from 'app/views/alerts/rules/details/body';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
@@ -34,16 +35,12 @@ type Props = WithRouterProps & {
   api: Client;
   rule?: IncidentRule;
   incidents?: Incident[];
-  timePeriod: {
-    start: string;
-    end: string;
-    label: string;
-    custom?: boolean;
-  };
+  timePeriod: TimePeriodType;
   organization: Organization;
   projects: Project[] | AvatarProject[];
   metricText: React.ReactNode;
   interval: string;
+  filter: React.ReactNode;
   query: string;
   orgId: string;
 };
@@ -374,6 +371,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       projects,
       interval,
       metricText,
+      filter,
       query,
       incidents,
     } = this.props;
@@ -554,8 +552,13 @@ class MetricChart extends React.PureComponent<Props, State> {
             <ChartPanel>
               <PanelBody withPadding>
                 <ChartHeader>
-                  <PresetName>{this.metricPreset?.name ?? t('Custom metric')}</PresetName>
-                  {metricText}
+                  <ChartTitle>
+                    <PresetName>
+                      {this.metricPreset?.name ?? t('Custom metric')}
+                    </PresetName>
+                    {metricText}
+                  </ChartTitle>
+                  {filter}
                 </ChartHeader>
                 {this.renderChart(
                   timeseriesData,
@@ -579,8 +582,11 @@ const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
 `;
 
-const ChartHeader = styled('header')`
-  margin-bottom: ${space(1)};
+const ChartHeader = styled('div')`
+  margin-bottom: ${space(3)};
+`;
+
+const ChartTitle = styled('header')`
   display: flex;
   flex-direction: row;
 `;

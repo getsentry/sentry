@@ -4,8 +4,9 @@ Generic way to sign and unsign data for use in urls.
 
 import base64
 
-from django.utils.encoding import force_bytes, force_text
 from django.core.signing import TimestampSigner
+from django.utils.encoding import force_bytes, force_text
+
 from sentry.utils.json import dumps, loads
 
 SALT = "sentry-generic-signing"

@@ -166,7 +166,8 @@ class MailAdapter:
 
     def get_sendable_users(self, project):
         """ @deprecated Do not change this function, it is being used in getsentry. """
-        return self.get_sendable_user_ids(project)
+        users = self.get_sendable_user_objects(project)
+        return [user.id for user in users]
 
     def should_notify(self, target_type, group):
         metrics.incr("mail_adapter.should_notify")
@@ -260,8 +261,12 @@ class MailAdapter:
         for user in users:
             settings = notification_settings_by_user.get(user)
             if settings:
-                setting = settings.get(NotificationScopeType.PROJECT)
-                if setting == NotificationSettingOptionValues.NEVER:
+                # Check per-project settings first, fallback to project-independent settings.
+                project_setting = settings.get(NotificationScopeType.PROJECT)
+                user_setting = settings.get(NotificationScopeType.USER)
+                if project_setting == NotificationSettingOptionValues.NEVER or (
+                    not project_setting and user_setting == NotificationSettingOptionValues.NEVER
+                ):
                     output.add(user.id)
         return output
 

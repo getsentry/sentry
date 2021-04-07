@@ -1,17 +1,16 @@
 # NOTE: This is run external to sentry as well as part of the setup
 # process.  Thus we do not want to import non stdlib things here.
 
+# Import the stdlib json instead of sentry.utils.json, since this command is
+# run at build time
+import json  # NOQA
+import logging
 import multiprocessing
 import multiprocessing.dummy
 import os
 import sys
-import logging
 import time
 from urllib.request import urlopen
-
-# Import the stdlib json instead of sentry.utils.json, since this command is
-# run at build time
-import json  # NOQA
 
 import sentry
 

@@ -22,6 +22,7 @@ export default ShortId;
 
 const Wrapper = styled('div')`
   display: flex;
+  align-items: center;
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: ${p => p.theme.fontSizeExtraSmall};

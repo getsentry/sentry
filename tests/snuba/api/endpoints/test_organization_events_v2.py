@@ -1,8 +1,10 @@
+from base64 import b64encode
 from pytz import utc
 import pytest
 
 from django.core.urlresolvers import reverse
 
+from sentry.models import ApiKey
 from sentry.discover.models import KeyTransaction
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -38,6 +40,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_api_key_request(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        # Project ID cannot be inffered when using an org API key, so that must
+        # be passed in the parameters
+        api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+        query = {"field": ["project.name", "environment"], "project": [project.id]}
+
+        url = reverse(
+            "sentry-api-0-organization-eventsv2",
+            kwargs={"organization_slug": self.organization.slug},
+        )
+        response = self.client.get(
+            url,
+            query,
+            format="json",
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode("utf-8")),
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["project.name"] == project.slug
 
     def test_performance_view_feature(self):
         self.store_event(

@@ -44,6 +44,20 @@ class Cursor:
         return cls(*bits)
 
 
+class StringCursor(Cursor):
+    @classmethod
+    def from_string(cls, value):
+        bits = value.rsplit(":", 2)
+        if len(bits) != 3:
+            raise ValueError
+        try:
+            value = bits[0]
+            bits = value, int(bits[1]), int(bits[2])
+        except (TypeError, ValueError):
+            raise ValueError
+        return cls(*bits)
+
+
 class CursorResult(Sequence):
     def __init__(self, results, next, prev, hits=None, max_hits=None):
         self.results = results
