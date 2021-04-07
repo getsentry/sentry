@@ -36,7 +36,11 @@ import {
 import {getTransactionDetailsUrl} from '../utils';
 
 import TransactionSummaryCharts from './charts';
-import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from './filter';
+import Filter, {
+  filterToSearchConditions,
+  filterToString,
+  SpanOperationBreakdownFilter,
+} from './filter';
 import TransactionHeader, {Tab} from './header';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
@@ -54,17 +58,17 @@ type Props = {
   error: string | null;
   totalValues: Record<string, number> | null;
   projects: Project[];
+  onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 };
 
 type State = {
   incompatibleAlertNotice: React.ReactNode;
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 };
 
 class SummaryContent extends React.Component<Props, State> {
   state: State = {
     incompatibleAlertNotice: null,
-    spanOperationBreakdownFilter: SpanOperationBreakdownFilter.None,
   };
 
   handleSearch = (query: string) => {
@@ -155,12 +159,6 @@ class SummaryContent extends React.Component<Props, State> {
     });
   };
 
-  onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
-    this.setState({
-      spanOperationBreakdownFilter: newFilter,
-    });
-  };
-
   render() {
     let {eventView} = this.props;
     const {
@@ -171,14 +169,17 @@ class SummaryContent extends React.Component<Props, State> {
       isLoading,
       error,
       totalValues,
+      onChangeFilter,
+      spanOperationBreakdownFilter,
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
     const totalCount = totalValues === null ? null : totalValues.count;
 
     const spanOperationBreakdownConditions = filterToSearchConditions(
-      this.state.spanOperationBreakdownFilter
+      spanOperationBreakdownFilter
     );
+
     if (spanOperationBreakdownConditions) {
       eventView = eventView.clone();
       eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
@@ -194,6 +195,11 @@ class SummaryContent extends React.Component<Props, State> {
           return Number.isFinite(totalValues[alias]);
         })
       );
+
+    const durationTableTitle =
+      spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
+        ? t('duration')
+        : `${filterToString(spanOperationBreakdownFilter)} duration`;
 
     return (
       <React.Fragment>
@@ -216,8 +222,8 @@ class SummaryContent extends React.Component<Props, State> {
             <Search>
               <Filter
                 organization={organization}
-                currentFilter={this.state.spanOperationBreakdownFilter}
-                onChangeFilter={this.onChangeFilter}
+                currentFilter={spanOperationBreakdownFilter}
+                onChangeFilter={onChangeFilter}
               />
               <StyledSearchBar
                 organization={organization}
@@ -233,7 +239,7 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               eventView={eventView}
               totalValues={totalCount}
-              currentFilter={this.state.spanOperationBreakdownFilter}
+              currentFilter={spanOperationBreakdownFilter}
             />
             <TransactionsList
               location={location}
@@ -244,11 +250,11 @@ class SummaryContent extends React.Component<Props, State> {
                   ? [
                       t('event id'),
                       t('user'),
-                      t('duration'),
+                      durationTableTitle,
                       t('trace id'),
                       t('timestamp'),
                     ]
-                  : [t('event id'), t('user'), t('duration'), t('timestamp')]
+                  : [t('event id'), t('user'), durationTableTitle, t('timestamp')]
               }
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
