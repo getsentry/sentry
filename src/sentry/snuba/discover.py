@@ -45,7 +45,7 @@ __all__ = (
     "transform_data",
     "zerofill",
     "histogram_query",
-    "check_histogram_fields",
+    "check_multihistogram_fields",
 )
 
 
@@ -904,7 +904,7 @@ def histogram_query(
     histogram_function = None
     conditions = []
     if len(fields) > 1:
-        array_column = check_histogram_fields(fields)
+        array_column = check_multihistogram_fields(fields)
         if array_column == "measurements":
             key_column = "array_join(measurements_key)"
             histogram_function = get_measurement_name

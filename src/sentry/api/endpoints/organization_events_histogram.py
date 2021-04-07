@@ -25,7 +25,7 @@ class HistogramSerializer(serializers.Serializer):
         if len(fields) > 1:
             # Due to how the data is stored in snuba, multihistograms
             # are only possible when they are all measurements or all span op breakdowns.
-            histogram_type = discover.check_histogram_fields(fields)
+            histogram_type = discover.check_multihistogram_fields(fields)
             if not histogram_type:
                 detail = "You can only generate histogram for one column at a time unless they are all measurements or all span op breakdowns."
                 raise serializers.ValidationError(detail)
