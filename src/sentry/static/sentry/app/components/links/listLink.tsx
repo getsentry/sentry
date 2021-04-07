@@ -1,10 +1,10 @@
 import React from 'react';
-import {Link} from 'react-router';
+import {Link, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
+import * as qs from 'query-string';
 
 type DefaultProps = {
   index: boolean;
@@ -12,7 +12,8 @@ type DefaultProps = {
   disabled: boolean;
 };
 
-type Props = DefaultProps &
+type Props = WithRouterProps &
+  DefaultProps &
   React.ComponentProps<typeof Link> & {
     query?: string;
     // If supplied by parent component, decides whether link element
@@ -24,10 +25,6 @@ type Props = DefaultProps &
 class ListLink extends React.Component<Props> {
   static displayName = 'ListLink';
 
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
-  };
-
   static defaultProps: DefaultProps = {
     activeClassName: 'active',
     index: false,
@@ -37,7 +34,14 @@ class ListLink extends React.Component<Props> {
   isActive = () => {
     const {isActive, to, query, index} = this.props;
 
-    return (isActive || this.context.router.isActive)({pathname: to, query}, index);
+    if (typeof to !== 'string') {
+      return false;
+    }
+
+    const parsedQuery = query ? qs.parse(query) : undefined;
+    const activeFn = isActive ?? this.props.router.isActive;
+
+    return activeFn({pathname: to, query: parsedQuery}, index);
   };
 
   getClassName = () => {
@@ -69,7 +73,7 @@ class ListLink extends React.Component<Props> {
   }
 }
 
-export default ListLink;
+export default withRouter(ListLink);
 
 const StyledLi = styled('li', {
   shouldForwardProp: prop => prop !== 'disabled',
