@@ -205,7 +205,8 @@ const aliases = {
   /**
    * Tag progress bars
    */
-  tagBar: colors.purple100,
+  tagBarHover: colors.purple200,
+  tagBar: colors.gray200,
 } as const;
 
 const generateAlertTheme = alias => ({
@@ -569,7 +570,8 @@ const darkAliases = {
   badgeBackground: colors.gray400,
   alertBackgroundAlpha: 0.1,
   overlayBackgroundAlpha: 'rgba(18, 9, 23, 0.7)',
-  tagBar: colors.purple300,
+  tagBarHover: colors.purple300,
+  tagBar: colors.gray400,
 } as const;
 
 export const lightTheme = {
