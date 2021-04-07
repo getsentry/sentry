@@ -45,7 +45,11 @@ class ExternalTeam(DefaultFieldsModel, ExternalProviderMixin):
 class ExternalUser(DefaultFieldsModel, ExternalProviderMixin):
     __core__ = False
 
-    organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
+    actor = FlexibleForeignKey(
+        "sentry.Actor", db_index=True, unique=False, null=False, on_delete=models.CASCADE
+    )
+    organization = FlexibleForeignKey("sentry.Organization")
+    integration = FlexibleForeignKey("sentry.Integration")
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.GITHUB, "github"),
@@ -56,6 +60,10 @@ class ExternalUser(DefaultFieldsModel, ExternalProviderMixin):
     )
     # external_name => the Github/Gitlab username. Column name is vague to be reused for more external user identities.
     external_name = models.TextField()
+    external_id = models.TextField()
+
+    # deprecated
+    organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
 
     class Meta:
         app_label = "sentry"
