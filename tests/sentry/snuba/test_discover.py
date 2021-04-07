@@ -2505,6 +2505,83 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
             referrer=None,
         )
 
+    @patch("sentry.snuba.discover.raw_query")
+    def test_timestamp_fields(self, mock_query):
+        timestamp1 = before_now(days=2, minutes=5)
+        timestamp2 = before_now(minutes=2)
+        top_events = {
+            "data": [
+                {
+                    "timestamp": iso_format(timestamp1),
+                    "timestamp.to_hour": iso_format(timestamp1.replace(minute=0, second=0)),
+                    "timestamp.to_day": iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                },
+                {
+                    "timestamp": iso_format(timestamp2),
+                    "timestamp.to_hour": iso_format(timestamp2.replace(minute=0, second=0)),
+                    "timestamp.to_day": iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                },
+            ]
+        }
+        start = before_now(days=3, minutes=10)
+        end = before_now(minutes=1)
+        discover.top_events_timeseries(
+            selected_columns=["timestamp", "timestamp.to_day", "timestamp.to_hour", "count()"],
+            params={
+                "start": start,
+                "end": end,
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+            top_events=top_events,
+            timeseries_columns=["count()"],
+            user_query="",
+            orderby=["count()"],
+            limit=10000,
+            organization=self.organization,
+        )
+        mock_query.assert_called_with(
+            aggregations=[["count", None, "count"]],
+            conditions=[
+                # Each timestamp field should generated a nested condition.
+                # Within each, the conditions will be ORed together.
+                [
+                    ["timestamp", "=", iso_format(timestamp1)],
+                    ["timestamp", "=", iso_format(timestamp2)],
+                ],
+                [
+                    [
+                        "timestamp.to_day",
+                        "=",
+                        iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                    ],
+                    [
+                        "timestamp.to_day",
+                        "=",
+                        iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                    ],
+                ],
+                [
+                    ["timestamp.to_hour", "=", iso_format(timestamp1.replace(minute=0, second=0))],
+                    ["timestamp.to_hour", "=", iso_format(timestamp2.replace(minute=0, second=0))],
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            selected_columns=[
+                "timestamp",
+                ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
+                ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
+            ],
+            start=start,
+            end=end,
+            rollup=3600,
+            orderby=["time", "timestamp", "timestamp.to_day", "timestamp.to_hour"],
+            groupby=["time", "timestamp", "timestamp.to_day", "timestamp.to_hour"],
+            dataset=Dataset.Discover,
+            limit=10000,
+            referrer=None,
+        )
+
 
 def format_project_event(project_slug, event_id):
     return f"{project_slug}:{event_id}"

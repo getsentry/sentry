@@ -458,7 +458,7 @@ def top_events_timeseries(
     ) as span:
         span.set_data("query", user_query)
         snuba_filter, translated_columns = get_timeseries_snuba_filter(
-            list(set(timeseries_columns + selected_columns)),
+            list(sorted(set(timeseries_columns + selected_columns))),
             user_query,
             params,
             rollup,
@@ -481,9 +481,11 @@ def top_events_timeseries(
                 }
             )
             if values:
-                # timestamp needs special handling, creating a big OR instead
-                if field == "timestamp":
-                    snuba_filter.conditions.append([["timestamp", "=", value] for value in values])
+                # timestamp fields needs special handling, creating a big OR instead
+                if field == "timestamp" or field.startswith("timestamp.to_"):
+                    snuba_filter.conditions.append(
+                        [[field, "=", value] for value in sorted(values)]
+                    )
                 elif None in values:
                     non_none_values = [value for value in values if value is not None]
                     condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]

@@ -1505,3 +1505,39 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 400
         assert "zero duration" in response.data["detail"]
+
+    def test_top_events_timestamp_fields(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "timestamp", "timestamp.to_hour", "timestamp.to_day"],
+                    "topEvents": 5,
+                },
+            )
+        assert response.status_code == 200
+        data = response.data
+        assert len(data) == 3
+
+        # these are the timestamps corresponding to the events stored
+        timestamps = [
+            self.day_ago + timedelta(minutes=2),
+            self.day_ago + timedelta(hours=1, minutes=2),
+            self.day_ago + timedelta(minutes=4),
+        ]
+        timestamp_hours = [timestamp.replace(minute=0, second=0) for timestamp in timestamps]
+        timestamp_days = [timestamp.replace(hour=0, minute=0, second=0) for timestamp in timestamps]
+
+        for ts, ts_hr, ts_day in zip(timestamps, timestamp_hours, timestamp_days):
+            key = f"{iso_format(ts)}+00:00,{iso_format(ts_day)}+00:00,{iso_format(ts_hr)}+00:00"
+            count = sum(
+                e["count"] for e in self.event_data if e["data"]["timestamp"] == iso_format(ts)
+            )
+            results = data[key]
+            assert [{"count": count}] in [attrs for time, attrs in results["data"]]
