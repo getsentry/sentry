@@ -9,6 +9,7 @@ import * as DividerHandlerManager from 'app/components/events/interfaces/spans/d
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -270,23 +271,29 @@ class TraceDetailsContent extends React.Component<Props, State> {
     if (roots === 0 && orphans > 0) {
       warning = (
         <Alert type="info" icon={<IconInfo size="md" />}>
-          {t(
-            'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-          )}
+          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+            {t(
+              'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+            )}
+          </ExternalLink>
         </Alert>
       );
     } else if (roots === 1 && orphans > 0) {
       warning = (
         <Alert type="info" icon={<IconInfo size="md" />}>
-          {t(
-            'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-          )}
+          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+            {t(
+              'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+            )}
+          </ExternalLink>
         </Alert>
       );
     } else if (roots > 1) {
       warning = (
         <Alert type="info" icon={<IconInfo size="md" />}>
-          {t('Multiple root transactions have been found with this trace ID.')}
+          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#multiple-roots">
+            {t('Multiple root transactions have been found with this trace ID.')}
+          </ExternalLink>
         </Alert>
       );
     }

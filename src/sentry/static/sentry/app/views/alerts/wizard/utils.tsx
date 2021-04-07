@@ -16,9 +16,7 @@ const alertTypeIdentifiers: Record<Dataset, Partial<Record<AlertType, string>>> 
     lcp: 'measurements.lcp',
     fid: 'measurements.fid',
     cls: 'measurements.cls',
-    fp: 'measurements.fp',
     fcp: 'measurements.fcp',
-    ttfb: 'measurements.ttfb',
   },
 };
 

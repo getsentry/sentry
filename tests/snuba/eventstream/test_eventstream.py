@@ -1,15 +1,14 @@
-from datetime import datetime, timedelta
-import time
 import logging
-from sentry.utils.compat.mock import patch, Mock
-from sentry.utils.samples import load_data
-
+import time
+from datetime import datetime, timedelta
 
 from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.utils import snuba, json
+from sentry.utils import json, snuba
+from sentry.utils.compat.mock import Mock, patch
+from sentry.utils.samples import load_data
 
 
 class SnubaEventStreamTest(TestCase, SnubaTestCase):

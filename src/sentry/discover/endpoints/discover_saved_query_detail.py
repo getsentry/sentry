@@ -1,13 +1,13 @@
-from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
-from sentry.api.serializers import serialize
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.bases import OrganizationEndpoint, NoProjects
 from sentry import features
+from sentry.api.bases import NoProjects, OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
-from sentry.discover.models import DiscoverSavedQuery
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
+from sentry.discover.models import DiscoverSavedQuery
 
 
 class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
