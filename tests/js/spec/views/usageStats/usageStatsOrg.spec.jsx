@@ -26,11 +26,9 @@ export const mockData = {
         outcome: 'accepted',
       },
       totals: {
-        'sum(times_seen)': 28000,
         'sum(quantity)': 28000,
       },
       series: {
-        'sum(times_seen)': [1000, 2000, 3000, 4000, 5000, 6000, 7000],
         'sum(quantity)': [1000, 2000, 3000, 4000, 5000, 6000, 7000],
       },
     },
@@ -40,11 +38,9 @@ export const mockData = {
         category: 'transaction',
       },
       totals: {
-        'sum(times_seen)': 28,
         'sum(quantity)': 28,
       },
       series: {
-        'sum(times_seen)': [1, 2, 3, 4, 5, 6, 7],
         'sum(quantity)': [1, 2, 3, 4, 5, 6, 7],
       },
     },
@@ -54,11 +50,9 @@ export const mockData = {
         outcome: 'accepted',
       },
       totals: {
-        'sum(times_seen)': 28,
         'sum(quantity)': 28,
       },
       series: {
-        'sum(times_seen)': [1, 2, 3, 4, 5, 6, 7],
         'sum(quantity)': [1, 2, 3, 4, 5, 6, 7],
       },
     },
@@ -107,7 +101,7 @@ describe('UsageStatsOrg', function () {
           statsPeriod: '7d',
           interval: '1d',
           groupBy: ['category', 'outcome'],
-          field: ['sum(quantity)', 'sum(times_seen)'],
+          field: ['sum(quantity)'],
         },
       })
     );
