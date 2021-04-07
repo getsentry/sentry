@@ -32,6 +32,10 @@ def is_root(item):
     return item.get("root", "0") == "1"
 
 
+def child_sort_key(item):
+    return [item["start_timestamp"], item["timestamp"]]
+
+
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
         return features.has(
@@ -119,7 +123,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 params=params,
                 query=f"event.type:transaction trace:{trace_id}",
                 # get 1 more so we know if the attempted trace was over 100
-                limit=MAX_TRACE_SIZE + 1,
+                limit=MAX_TRACE_SIZE,
                 referrer="api.trace-view.get-ids",
             )
             if len(result["data"]) == 0:
@@ -348,12 +352,19 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             event["_meta"] = {}
             event["tags"], event["_meta"]["tags"] = get_tags_with_meta(nodestore_event)
 
-    def update_generations(self, event):
+    def update_children(self, event):
+        """Updates the childrens of subtraces
+
+        - Generation could be incorrect from orphans where we've had to reconnect back to an orphan event that's
+          already been encountered
+        - Sorting children events by timestamp
+        """
         parents = [event]
         iteration = 0
         while parents and iteration < MAX_TRACE_SIZE:
             iteration += 1
             parent = parents.pop()
+            parent["children"].sort(key=child_sort_key)
             for child in parent["children"]:
                 child["generation"] = parent["generation"] + 1
                 parents.append(child)
@@ -455,11 +466,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     )
                     break
 
-        results = []
-        for result in results_map.values():
-            # Only need to update generation values when there are orphans since otherwise we stepped through in order
-            if has_orphans:
-                for root in result:
-                    self.update_generations(root)
-            results.extend(result)
-        return results
+        root_traces = []
+        orphans = []
+        for index, result in enumerate(results_map.values()):
+            for subtrace in result:
+                self.update_children(subtrace)
+            if index > 0 or root is None:
+                orphans.extend(result)
+            elif root:
+                root_traces = result
+        # We sort orphans and roots separately because we always want the root(s) as the first element(s)
+        root_traces.sort(key=child_sort_key)
+        orphans.sort(key=child_sort_key)
+        return root_traces + orphans
