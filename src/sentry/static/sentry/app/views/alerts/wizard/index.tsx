@@ -107,7 +107,7 @@ class AlertWizard extends React.Component<Props, State> {
               <WizardOptions>
                 {AlertWizardOptions.map(({categoryHeading, options}, i) => (
                   <OptionsWrapper key={categoryHeading}>
-                    {!!i && <Heading>{categoryHeading}</Heading>}
+                    {i > 0 && <Heading>{categoryHeading}</Heading>}
                     <RadioPanelGroup
                       choices={options.map(alertType => {
                         return [
