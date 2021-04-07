@@ -1,20 +1,15 @@
 from collections import defaultdict
-from typing import (
-    Any,
-    DefaultDict,
-    Dict,
-    List,
-)
+from typing import Any, DefaultDict, Dict, List
 
 from sentry.api.base import Endpoint
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.web.decorators import transaction_start
 from sentry.utils import json
+from sentry.web.decorators import transaction_start
 
 from .client import SlackClient
 from .requests import SlackEventRequest, SlackRequestError
-from .unfurl import LinkType, UnfurlableUrl, match_link, link_handlers
-from .utils import parse_link, logger
+from .unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
+from .utils import logger, parse_link
 
 
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will

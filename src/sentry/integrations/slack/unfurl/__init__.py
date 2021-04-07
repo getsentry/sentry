@@ -5,7 +5,7 @@ from django.http.request import HttpRequest
 
 from sentry.models import Integration
 
-UnfurledUrl = Any
+UnfurledUrl = Mapping
 ArgsMapper = Callable[[str, Mapping[str, str]], Mapping[str, Any]]
 
 
@@ -54,5 +54,4 @@ def match_link(link: str):
 
         args = handler.arg_mapper(link, match.groupdict())
         return link_type, args
-
     return None, None
