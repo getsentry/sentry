@@ -5,6 +5,7 @@ class Config(AppConfig):
     name = "sentry.demo"
 
     def ready(self):
-        from .tasks import build_up_org_buffer
+        from .tasks import delete_initializing_orgs
 
-        build_up_org_buffer.apply_async()
+        # also rebuilds the org buffer
+        delete_initializing_orgs.apply_async()
