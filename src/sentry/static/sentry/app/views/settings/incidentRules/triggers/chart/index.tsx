@@ -311,6 +311,10 @@ class TriggersChart extends React.PureComponent<Props, State> {
                           ])}
                           onChange={this.handleStatsPeriodChange}
                         />
+                        <React.Fragment>
+                          <SectionHeading>{t('Y-Axis')}</SectionHeading>
+                          <SectionValue>{aggregate}</SectionValue>
+                        </React.Fragment>
                       </InlineContainer>
                     </ChartControls>
                   </React.Fragment>
@@ -346,4 +350,5 @@ const PeriodSelectControl = styled(SelectControl)`
   font-weight: normal;
   text-transform: none;
   border: 0;
+  margin-right: ${space(2)};
 `;
