@@ -37,6 +37,7 @@ import {getTransactionDetailsUrl} from '../utils';
 
 import TransactionSummaryCharts from './charts';
 import Filter, {
+  filterToField,
   filterToSearchConditions,
   filterToString,
   SpanOperationBreakdownFilter,
@@ -267,6 +268,7 @@ class SummaryContent extends React.Component<Props, State> {
               handleOpenInDiscoverClick={this.handleDiscoverViewClick}
               {...getTransactionsListSort(location, {
                 p95: totalValues?.p95 ?? 0,
+                spanOperationBreakdownFilter,
               })}
               forceLoading={isLoading}
             />
@@ -353,23 +355,58 @@ function generateTransactionLink(transactionName: string) {
   };
 }
 
-function getFilterOptions({p95}: {p95: number}): DropdownOption[] {
+function getFilterOptions({
+  p95,
+  spanOperationBreakdownFilter,
+}: {
+  p95: number;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+}): DropdownOption[] {
+  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+    return [
+      {
+        sort: {kind: 'asc', field: 'transaction.duration'},
+        value: TransactionFilterOptions.FASTEST,
+        label: t('Fastest Transactions'),
+      },
+      {
+        query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
+        sort: {kind: 'desc', field: 'transaction.duration'},
+        value: TransactionFilterOptions.SLOW,
+        label: t('Slow Transactions (p95)'),
+      },
+      {
+        sort: {kind: 'desc', field: 'transaction.duration'},
+        value: TransactionFilterOptions.OUTLIER,
+        label: t('Outlier Transactions (p100)'),
+      },
+      {
+        sort: {kind: 'desc', field: 'timestamp'},
+        value: TransactionFilterOptions.RECENT,
+        label: t('Recent Transactions'),
+      },
+    ];
+  }
+
+  const field = filterToField(spanOperationBreakdownFilter)!;
+  const operationName = filterToString(spanOperationBreakdownFilter);
+
   return [
     {
-      sort: {kind: 'asc', field: 'transaction.duration'},
+      sort: {kind: 'asc', field},
       value: TransactionFilterOptions.FASTEST,
-      label: t('Fastest Transactions'),
+      label: t('Fastest %s Operations', operationName),
     },
     {
       query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
-      sort: {kind: 'desc', field: 'transaction.duration'},
+      sort: {kind: 'desc', field},
       value: TransactionFilterOptions.SLOW,
-      label: t('Slow Transactions (p95)'),
+      label: t('Slow %s Operations (p95)', operationName),
     },
     {
-      sort: {kind: 'desc', field: 'transaction.duration'},
+      sort: {kind: 'desc', field},
       value: TransactionFilterOptions.OUTLIER,
-      label: t('Outlier Transactions (p100)'),
+      label: t('Outlier %s Operations (p100)', operationName),
     },
     {
       sort: {kind: 'desc', field: 'timestamp'},
@@ -381,7 +418,7 @@ function getFilterOptions({p95}: {p95: number}): DropdownOption[] {
 
 function getTransactionsListSort(
   location: Location,
-  options: {p95: number}
+  options: {p95: number; spanOperationBreakdownFilter: SpanOperationBreakdownFilter}
 ): {selected: DropdownOption; options: DropdownOption[]} {
   const sortOptions = getFilterOptions(options);
   const urlParam = decodeScalar(
