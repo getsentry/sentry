@@ -13,13 +13,13 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
 type Props = {
-  text: string;
-  onSetText: (label: string) => void;
+  value: string;
+  onChange: (value: string) => void;
 };
 
-function EditableText({text, onSetText}: Props) {
+function EditableText({value, onChange}: Props) {
   const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState(text);
+  const [inputValue, setInputValue] = useState(value);
 
   const isEmpty = !inputValue.trim();
 
@@ -33,24 +33,24 @@ function EditableText({text, onSetText}: Props) {
   // check to see if the user clicked outside of this component
   useOnClickOutside(wrapperRef, () => {
     if (isEditing && !isEmpty) {
-      onSetText(inputValue);
+      onChange(inputValue);
       setIsEditing(false);
     }
   });
 
   const onEnter = useCallback(() => {
     if (enter && !isEmpty) {
-      onSetText(inputValue);
+      onChange(inputValue);
       setIsEditing(false);
     }
-  }, [enter, inputValue, onSetText]);
+  }, [enter, inputValue, onChange]);
 
   const onEsc = useCallback(() => {
     if (esc) {
-      setInputValue(text);
+      setInputValue(value);
       setIsEditing(false);
     }
-  }, [esc, text]);
+  }, [esc, value]);
 
   // focus the cursor in the input field on edit start
   useEffect(() => {
@@ -71,14 +71,13 @@ function EditableText({text, onSetText}: Props) {
     }
   }, [onEnter, onEsc, isEditing]); // watch the Enter and Escape key presses
 
-  const handleInputChange = useCallback(
-    event => {
-      setInputValue(event.target.value);
-    },
-    [setInputValue]
-  );
+  function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setInputValue(event.target.value);
+  }
 
-  const handleContentClick = useCallback(() => setIsEditing(true), [setIsEditing]);
+  function handleContentClick() {
+    setIsEditing(true);
+  }
 
   return (
     <Wrapper ref={wrapperRef}>

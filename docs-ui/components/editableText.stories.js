@@ -13,7 +13,7 @@ export default {
 export const _EditableText = () => {
   return (
     <Container>
-      <EditableText text="Editable Text" onSetText={action('onChange')} />
+      <EditableText value="Editable Text" onChange={action('onChange')} />
     </Container>
   );
 };
