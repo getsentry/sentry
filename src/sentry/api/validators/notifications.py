@@ -68,7 +68,6 @@ def validate_provider_option(provider: Optional[str]) -> Optional[ExternalProvid
     return validate_provider(provider) if provider else None
 
 
-# TODO MARCOS FIRST fix contexts!
 def validate_type(type: str, context: Optional[List[str]] = None) -> NotificationSettingTypes:
     try:
         return NotificationSettingTypes(type)
