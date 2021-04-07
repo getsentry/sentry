@@ -4,9 +4,7 @@ import uuid
 from django.utils.encoding import force_text
 
 
-INVALID_EVENT_DETAILS = (
-    "{} ID must be a valid UUID hex (32-36 characters long, containing only digits, dashes, or a-f characters)"
-)
+INVALID_EVENT_DETAILS = "{} ID must be a valid UUID hex (32-36 characters long, containing only digits, dashes, or a-f characters)"
 
 
 def validate_ip(value, required=True):
