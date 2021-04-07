@@ -734,6 +734,8 @@ class SnubaTagStorage(TagStorage):
         #               but does work with !=. However, for consistency sake we disallow it
         #               entirely, furthermore, suggesting an event_id is not a very useful feature
         #               as they are not human readable.
+        # trace.*:      The same logic of event_id not being useful applies to the trace fields
+        #               which are all also non human readable ids
         # timestamp:    This is a DateTime which disallows us to use both LIKE and != on it when
         #               searching. Suggesting a timestamp can potentially be useful but as it does
         #               work at all, we opt to disable it here. A potential solution can be to
@@ -743,7 +745,11 @@ class SnubaTagStorage(TagStorage):
         # time:         This is a column computed from timestamp so it suffers the same issues
         if snuba_key in {"group_id"}:
             snuba_key = f"tags[{snuba_key}]"
-        if snuba_key in {"event_id", "timestamp", "time"}:
+        if snuba_key in {"event_id", "timestamp", "time"} or key in {
+            "trace",
+            "trace.span",
+            "trace.parent_span",
+        }:
             return SequencePaginator([])
 
         # These columns have fixed values and we don't need to emit queries to find out the
