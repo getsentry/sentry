@@ -142,9 +142,21 @@ class TransactionsList extends React.Component<Props> {
     });
   };
 
+  getEventView() {
+    const {eventView, selected} = this.props;
+
+    const sortedEventView = eventView.withSorts([selected.sort]);
+    if (selected.query) {
+      const query = tokenizeSearch(sortedEventView.query);
+      selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
+      sortedEventView.query = stringifyQueryObject(query);
+    }
+
+    return sortedEventView;
+  }
+
   renderHeader(): React.ReactNode {
     const {
-      eventView,
       organization,
       selected,
       options,
@@ -184,9 +196,7 @@ class TransactionsList extends React.Component<Props> {
             <GuideAnchor target="release_transactions_open_in_discover">
               <DiscoverButton
                 onClick={handleOpenInDiscoverClick}
-                to={eventView
-                  .withSorts([selected.sort])
-                  .getResultsViewUrlTarget(organization.slug)}
+                to={this.getEventView().getResultsViewUrlTarget(organization.slug)}
                 size="small"
                 data-test-id="discover-open"
               >
@@ -201,10 +211,8 @@ class TransactionsList extends React.Component<Props> {
 
   renderTransactionTable(): React.ReactNode {
     const {
-      eventView,
       location,
       organization,
-      selected,
       handleCellAction,
       cursorName,
       limit,
@@ -213,14 +221,10 @@ class TransactionsList extends React.Component<Props> {
       baseline,
       forceLoading,
     } = this.props;
-    const sortedEventView = eventView.withSorts([selected.sort]);
-    const columnOrder = sortedEventView.getColumns();
+
+    const eventView = this.getEventView();
+    const columnOrder = eventView.getColumns();
     const cursor = decodeScalar(location.query?.[cursorName]);
-    if (selected.query) {
-      const query = tokenizeSearch(sortedEventView.query);
-      selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
-      sortedEventView.query = stringifyQueryObject(query);
-    }
 
     const baselineTransactionName = organization.features.includes(
       'transaction-comparison'
@@ -231,7 +235,7 @@ class TransactionsList extends React.Component<Props> {
     let tableRenderer = ({isLoading, pageLinks, tableData, baselineData}) => (
       <React.Fragment>
         <TransactionsTable
-          eventView={sortedEventView}
+          eventView={eventView}
           organization={organization}
           location={location}
           isLoading={isLoading}
@@ -279,7 +283,7 @@ class TransactionsList extends React.Component<Props> {
     return (
       <DiscoverQuery
         location={location}
-        eventView={sortedEventView}
+        eventView={eventView}
         orgSlug={organization.slug}
         limit={limit}
         cursor={cursor}
