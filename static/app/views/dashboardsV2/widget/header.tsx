@@ -11,9 +11,10 @@ type Props = {
   title: string;
   orgSlug: string;
   onChangeTitle: (title: string) => void;
+  onSave: (event: React.MouseEvent) => void;
 };
 
-function Header({title, orgSlug, onChangeTitle}: Props) {
+function Header({title, orgSlug, onChangeTitle, onSave}: Props) {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -46,7 +47,9 @@ function Header({title, orgSlug, onChangeTitle}: Props) {
           >
             {t('Give Feedback')}
           </Button>
-          <Button priority="primary">{t('Save Widget')}</Button>
+          <Button priority="primary" onClick={onSave}>
+            {t('Save Widget')}
+          </Button>
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>

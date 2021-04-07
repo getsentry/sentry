@@ -9,6 +9,7 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
 import {Series} from 'app/types/echarts';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {
   fillChartDataFromSessionsResponse,
   getInterval,
@@ -17,6 +18,16 @@ import {roundDuration} from 'app/views/releases/utils';
 
 import {MetricQuery} from './types';
 import {getBreakdownChartData} from './utils';
+
+type RequestQuery = {
+  field: string;
+  interval: string;
+  query?: string;
+  start?: string;
+  end?: string;
+  period?: string;
+  utc?: string;
+};
 
 type ChildrenArgs = {
   isLoading: boolean;
@@ -27,7 +38,7 @@ type ChildrenArgs = {
 type Props = {
   api: Client;
   organization: Organization;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   queries: MetricQuery[];
   environments: GlobalSelection['environments'];
   datetime: GlobalSelection['datetime'];
@@ -39,7 +50,7 @@ type Props = {
 function StatsRequest({
   api,
   organization,
-  projectId,
+  projectSlug,
   queries,
   environments,
   datetime,
@@ -53,7 +64,7 @@ function StatsRequest({
 
   useEffect(() => {
     fetchData();
-  }, [projectId, environments, datetime, queries, yAxis]);
+  }, [projectSlug, environments, datetime, queries, yAxis]);
 
   function fetchData() {
     if (!yAxis) {
@@ -68,16 +79,51 @@ function StatsRequest({
 
     setIsLoading(true);
 
-    const promises = queriesWithAggregation.map(({aggregation, groupBy}) => {
-      return api.requestPromise(`/organizations/${organization.slug}/sessions/`, {
-        query: {
-          project: projectId,
-          environment: environments,
-          groupBy: groupBy || null,
-          field: `${aggregation}(${yAxis})`,
-          interval: getInterval(datetime),
-          ...getParams(pick(location.query, Object.values(URL_PARAM))),
-        },
+    const requestExtraParams = getParams(
+      pick(
+        location.query,
+        Object.values(URL_PARAM).filter(param => param !== URL_PARAM.PROJECT)
+      )
+    );
+
+    const promises = queriesWithAggregation.map(({aggregation, groupBy, tags}) => {
+      const query: RequestQuery = {
+        field: `${aggregation}(${yAxis})`,
+        interval: getInterval(datetime),
+        ...requestExtraParams,
+      };
+
+      if (tags) {
+        const tagsWithDoubleQuotes = tags
+          .split(' ')
+          .filter(tag => !!tag)
+          .map(tag => {
+            const [key, value] = tag.split(':');
+
+            if (key && value) {
+              return `${key}:"${value}"`;
+            }
+
+            return '';
+          })
+          .filter(tag => !!tag);
+
+        if (!!tagsWithDoubleQuotes.length) {
+          query.query = stringifyQueryObject(new QueryResults(tagsWithDoubleQuotes));
+        }
+      }
+
+      const metricDataEndpoint = `/projects/${organization.slug}/${projectSlug}/metrics/data/`;
+
+      if (!!groupBy.length) {
+        const groupByParameter = [...groupBy].join('&groupBy=');
+        return api.requestPromise(`${metricDataEndpoint}?groupBy=${groupByParameter}`, {
+          query,
+        });
+      }
+
+      return api.requestPromise(metricDataEndpoint, {
+        query,
       });
     });
 
@@ -93,22 +139,24 @@ function StatsRequest({
 
   function getChartData(sessionReponses: SessionApiResponse[]) {
     if (!sessionReponses.length || !yAxis) {
+      setIsLoading(false);
       return;
     }
 
-    const seriesData = sessionReponses.map((sessionReponse, index) => {
-      const {aggregation, groupBy} = queries[index];
+    const seriesData = sessionReponses.map((sessionResponse, index) => {
+      const {aggregation, groupBy, legend} = queries[index];
       const field = `${aggregation}(${yAxis})`;
 
       const breakDownChartData = getBreakdownChartData({
-        response: sessionReponse,
-        groupBy: groupBy || null,
+        response: sessionResponse,
+        legend: !!legend ? legend : `Query ${index + 1}`,
+        groupBy: !!groupBy.length ? groupBy[0] : undefined,
       });
 
       const chartData = fillChartDataFromSessionsResponse({
-        response: sessionReponse,
+        response: sessionResponse,
         field,
-        groupBy: groupBy || null,
+        groupBy: !!groupBy.length ? groupBy[0] : null,
         chartData: breakDownChartData,
         valueFormatter:
           yAxis === 'session.duration'
