@@ -3,13 +3,13 @@ from collections import defaultdict
 from django.core.cache import cache
 from django.db.models import Sum
 
-from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
     Commit,
     CommitAuthor,
     Deploy,
+    GroupRelease,
     ProjectPlatform,
     Release,
     ReleaseProject,
@@ -227,27 +227,26 @@ class ReleaseSerializer(Serializer):
         )
 
     def __get_release_data_no_environment(self, project, item_list):
-        if project is not None:
-            project_ids = [project.id]
-            specialized = True
-            organization_id = project.organization_id
-        else:
-            project_ids, specialized = self.__get_project_id_list(item_list)
-            organization_id = item_list[0].organization_id
 
+        group_releases = GroupRelease.objects.filter(release_id__in=[r.id for r in item_list])
+
+        if project is not None:
+            group_releases = group_releases.filter(project_id=project.id)
         first_seen = {}
         last_seen = {}
-        tag_values = tagstore.get_release_tags(
-            organization_id,
-            project_ids,
-            environment_id=None,
-            versions=[o.version for o in item_list],
-        )
-        for tv in tag_values:
-            first_val = first_seen.get(tv.value)
-            last_val = last_seen.get(tv.value)
-            first_seen[tv.value] = min(tv.first_seen, first_val) if first_val else tv.first_seen
-            last_seen[tv.value] = max(tv.last_seen, last_val) if last_val else tv.last_seen
+
+        for group_release in group_releases:
+            release = Release.objects.get(id=group_release.release_id)
+            if (
+                release.version not in first_seen
+                or first_seen[release.version] > group_release.first_seen
+            ):
+                first_seen[release.version] = group_release.first_seen
+            if (
+                release.version not in last_seen
+                or last_seen[release.version] < group_release.last_seen
+            ):
+                last_seen[release.version] = group_release.last_seen
 
         group_counts_by_release = {}
         if project is not None:
@@ -260,6 +259,7 @@ class ReleaseSerializer(Serializer):
                 release__in=item_list, new_groups__isnull=False
             ).values_list("project_id", "release_id", "new_groups"):
                 group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
+
         return first_seen, last_seen, group_counts_by_release
 
     def __get_release_data_with_environments(self, project, item_list, environments):
