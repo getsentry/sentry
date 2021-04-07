@@ -311,10 +311,6 @@ class TriggersChart extends React.PureComponent<Props, State> {
                           ])}
                           onChange={this.handleStatsPeriodChange}
                         />
-                        <React.Fragment>
-                          <SectionHeading>{t('Y-Axis')}</SectionHeading>
-                          <SectionValue>{aggregate}</SectionValue>
-                        </React.Fragment>
                       </InlineContainer>
                     </ChartControls>
                   </React.Fragment>
