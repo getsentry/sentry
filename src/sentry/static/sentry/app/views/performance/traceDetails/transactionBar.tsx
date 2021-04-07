@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
+import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
@@ -192,7 +193,10 @@ class TransactionBar extends React.Component<Props, State> {
     );
   }
 
-  renderTitle() {
+  renderTitle(
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps
+  ) {
+    const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
     const {organization, transaction} = this.props;
     const left = this.getCurrentOffset();
 
@@ -231,7 +235,7 @@ class TransactionBar extends React.Component<Props, State> {
     );
 
     return (
-      <TransactionBarTitleContainer>
+      <TransactionBarTitleContainer ref={generateContentSpanBarRef()}>
         {this.renderToggle()}
         <TransactionBarTitle
           style={{
@@ -356,8 +360,10 @@ class TransactionBar extends React.Component<Props, State> {
 
   renderHeader({
     dividerHandlerChildrenProps,
+    scrollbarManagerChildrenProps,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
     const {index} = this.props;
     const {showDetail} = this.state;
@@ -374,7 +380,7 @@ class TransactionBar extends React.Component<Props, State> {
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
         >
-          {this.renderTitle()}
+          {this.renderTitle(scrollbarManagerChildrenProps)}
         </TransactionRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
         <TransactionRowCell
@@ -404,11 +410,20 @@ class TransactionBar extends React.Component<Props, State> {
         showBorder={showDetail}
         cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
       >
-        <DividerHandlerManager.Consumer>
-          {dividerHandlerChildrenProps =>
-            this.renderHeader({dividerHandlerChildrenProps})
-          }
-        </DividerHandlerManager.Consumer>
+        <ScrollbarManager.Consumer>
+          {scrollbarManagerChildrenProps => {
+            return (
+              <DividerHandlerManager.Consumer>
+                {dividerHandlerChildrenProps =>
+                  this.renderHeader({
+                    dividerHandlerChildrenProps,
+                    scrollbarManagerChildrenProps,
+                  })
+                }
+              </DividerHandlerManager.Consumer>
+            );
+          }}
+        </ScrollbarManager.Consumer>
         {isTraceFullDetailed(transaction) && isVisible && showDetail && (
           <TransactionDetail
             location={location}
