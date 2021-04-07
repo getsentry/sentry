@@ -1,7 +1,6 @@
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
 
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_DEFAULTS,
     SUBSCRIPTION_REASON_MAP,
@@ -10,6 +9,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.types.integrations import ExternalProviders
 
 
 def _get_setting_mapping_from_mapping(

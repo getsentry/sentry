@@ -25,7 +25,6 @@ from sentry.models import (
     User,
     UserReport,
 )
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
@@ -33,6 +32,7 @@ from sentry.plugins.base import Notification
 from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock
 from sentry.utils.email import MessageBuilder
 

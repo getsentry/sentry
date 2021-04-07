@@ -229,3 +229,7 @@ class Integration(DefaultFieldsModel):
             )
 
             return org_integration
+
+
+# REQUIRED for migrations to run
+from sentry.types.integrations import ExternalProviders  # NOQA
