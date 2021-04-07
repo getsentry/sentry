@@ -31,6 +31,10 @@ class DemoMiddleware:
                 {"detail": "Organization creation disabled in demo mode"}, status=400
             )
 
+        # at this point, don't care about any API routes
+        if path.startswith("/api/"):
+            return
+
         # backdoor to allow logins
         disable_login = request.GET.get("allow_login") != "1"
         # don't want people to see the login page in demo mode

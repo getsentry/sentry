@@ -7,13 +7,15 @@ import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/grid
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
+import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
 import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment} from 'app/utils/discover/fields';
+import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
@@ -140,6 +142,27 @@ class Table extends React.Component<Props, State> {
     if (field.startsWith('key_transaction')) {
       // don't display per cell actions for key_transaction
       return rendered;
+    }
+
+    const fieldName = getAggregateAlias(field);
+    const value = dataRow[fieldName];
+    if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
+      return (
+        <Tooltip
+          title={value.toLocaleString()}
+          containerDisplayMode="block"
+          position="right"
+        >
+          <CellAction
+            column={column}
+            dataRow={dataRow}
+            handleCellAction={this.handleCellAction(column)}
+            allowActions={allowActions}
+          >
+            {rendered}
+          </CellAction>
+        </Tooltip>
+      );
     }
 
     return (
@@ -298,6 +321,7 @@ class Table extends React.Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           setError={setError}
+          referrer="api.performance.landing-table"
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>

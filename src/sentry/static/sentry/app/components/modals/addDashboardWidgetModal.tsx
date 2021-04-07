@@ -18,7 +18,11 @@ import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
-import {isAggregateField} from 'app/utils/discover/fields';
+import {
+  aggregateOutputType,
+  isAggregateField,
+  isLegalYAxisType,
+} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -111,6 +115,11 @@ function normalizeQueries(
   // Filter out non-aggregate fields
   queries = queries.map(query => {
     let fields = query.fields.filter(isAggregateField);
+
+    if (isTimeseriesChart || displayType === 'world_map') {
+      // Filter out fields that will not generate numeric output types
+      fields = fields.filter(field => isLegalYAxisType(aggregateOutputType(field)));
+    }
 
     if (isTimeseriesChart && fields.length && fields.length > 3) {
       // Timeseries charts supports at most 3 fields.

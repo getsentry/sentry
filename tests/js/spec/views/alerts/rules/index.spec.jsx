@@ -111,6 +111,33 @@ describe('OrganizationRuleList', () => {
     );
   });
 
+  it('sorts by name', async () => {
+    const wrapper = await createWrapper();
+
+    const nameHeader = wrapper.find('StyledSortLink').first();
+    expect(nameHeader.text()).toContain('Alert Name');
+    expect(nameHeader.props().to).toEqual(
+      expect.objectContaining({
+        query: {
+          sort: 'name',
+          asc: '1',
+        },
+      })
+    );
+
+    wrapper.setProps({
+      location: {query: {asc: '1', sort: 'name'}, search: '?asc=1&sort=name`'},
+    });
+
+    expect(wrapper.find('StyledSortLink').first().props().to).toEqual(
+      expect.objectContaining({
+        query: {
+          sort: 'name',
+        },
+      })
+    );
+  });
+
   it('disables the new alert button for members', async () => {
     const noAccessOrg = {
       ...organization,

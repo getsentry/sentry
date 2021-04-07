@@ -1,8 +1,8 @@
 import cProfile
-from io import StringIO
-import re
 import pstats
+import re
 import sys
+from io import StringIO
 
 from django.conf import settings
 from django.http import HttpResponse

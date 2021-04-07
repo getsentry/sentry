@@ -61,9 +61,9 @@
         "type": "default",
         "category": "console",
         "level": "info",
-        "message": "BACKEND is:  https://aj-flask-m3uuizd7iq-uc.a.run.app",
+        "message": "BACKEND is:  https://app.example.com",
         "data": {
-          "arguments": ["BACKEND is: ", "https://aj-flask-m3uuizd7iq-uc.a.run.app"],
+          "arguments": ["BACKEND is: ", "https://app.example.com"],
           "logger": "console"
         }
       },
@@ -72,9 +72,9 @@
         "type": "default",
         "category": "console",
         "level": "info",
-        "message": "BACKEND is:  https://aj-flask-m3uuizd7iq-uc.a.run.app",
+        "message": "BACKEND is:  https://app.example.com",
         "data": {
-          "arguments": ["BACKEND is: ", "https://aj-flask-m3uuizd7iq-uc.a.run.app"],
+          "arguments": ["BACKEND is: ", "https://app.example.com"],
           "logger": "console"
         }
       },
@@ -86,7 +86,7 @@
         "data": {
           "method": "GET",
           "status_code": 200,
-          "url": "https://aj-flask-m3uuizd7iq-uc.a.run.app/tools"
+          "url": "https://app.example.com/tools"
         }
       },
       {
@@ -741,7 +741,7 @@
         "data": {
           "method": "POST",
           "status_code": 500,
-          "url": "https://aj-flask-m3uuizd7iq-uc.a.run.app/checkout"
+          "url": "https://app.example.com/checkout"
         }
       },
       {
@@ -949,6 +949,7 @@
       "trace_id": "39ecb9f463bb4982a6d76e426915d3ab",
       "span_id": "ac7e3ef6047fd004",
       "op": "pageload",
+      "status": "internal_error",
       "type": "trace"
     }
   },
@@ -1003,7 +1004,7 @@
     {
       "timestamp": 1615321055.54,
       "start_timestamp": 1615321051.711,
-      "description": "POST https://aj-flask-m3uuizd7iq-uc.a.run.app/checkout",
+      "description": "POST https://app.example.com/checkout",
       "op": "http",
       "span_id": "a2254b6b8281d31d",
       "parent_span_id": "ac7e3ef6047fd004",
@@ -1013,7 +1014,7 @@
       "data": {
         "method": "POST",
         "type": "fetch",
-        "url": "https://aj-flask-m3uuizd7iq-uc.a.run.app/checkout"
+        "url": "https://app.example.com/checkout"
       }
     },
     {
