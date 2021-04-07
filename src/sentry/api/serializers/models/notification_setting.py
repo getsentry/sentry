@@ -58,12 +58,26 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
     ) -> Mapping[str, Mapping[str, Mapping[int, Mapping[str, str]]]]:
         """
         Convert a user or team's NotificationSettings to a python object comprised of primitives.
+        Example: {
+            "workflow": {
+                "project": {
+                    1: {
+                        "email": "always",
+                        "slack": "always"
+                    },
+                    2: {
+                        "email": "subscribe_only",
+                        "slack": "subscribe_only"
+                    }
+                }
+            }
+        }
 
         :param obj: A user or team.
         :param attrs: The `obj` target's NotificationSettings
         :param user: The user who will be viewing the NotificationSettings.
         :param kwargs: Currently unused but the same `kwargs` as `get_attrs`.
-        :returns A mapping
+        :returns A mapping. See example.
         """
         data: Dict[str, Dict[str, Dict[int, Dict[str, str]]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(dict))

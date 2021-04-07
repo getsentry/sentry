@@ -54,8 +54,7 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
               - scope_type (str),
               - scope_identifier (int)
               - provider (str)
-            Example:
-            {
+            Example: {
                 "workflow": {
                     "project": {
                         1: {

@@ -64,8 +64,7 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
               - scope_type (str),
               - scope_identifier (int or str)
               - provider (str)
-            Example:
-            {
+            Example: {
                 "workflow": {
                     "user": {
                         "me": {
