@@ -1144,9 +1144,9 @@ def normalize_histogram_results(fields, key_column, histogram_params, results, a
     return new_data
 
 
-def check_histogram_fields(fields):
+def check_multihistogram_fields(fields):
     """
-    Returns histogram type if all the given fields are of the same histogram type.
+    Returns multihistogram type if all the given fields are of the same histogram type.
     Return false otherwise, or if any of the fields are not a compatible histogram type.
     Possible histogram types: measurements, span_op_breakdowns
 
