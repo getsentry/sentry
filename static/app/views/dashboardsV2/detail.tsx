@@ -1,7 +1,6 @@
 import React from 'react';
 import {browserHistory, PlainRoute, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -108,16 +107,7 @@ class DashboardDetail extends React.Component<Props, State> {
     });
   };
 
-  onRouteLeave = (nextLocation?: Location) => {
-    const {organization} = this.props;
-
-    if (
-      nextLocation?.pathname ===
-      `/organizations/${organization.slug}/dashboards/widget/new/`
-    ) {
-      return undefined;
-    }
-
+  onRouteLeave = () => {
     if (!['view', 'pending_delete'].includes(this.state.dashboardState)) {
       return UNSAVED_MESSAGE;
     }
@@ -167,7 +157,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
     const {api, organization, location} = this.props;
-    if (!dashboard?.id) {
+    if (!dashboard?.id || dashboard.id === 'default-overview') {
       return;
     }
 
@@ -216,29 +206,28 @@ class DashboardDetail extends React.Component<Props, State> {
     switch (dashboardState) {
       case 'create': {
         if (modifiedDashboard) {
-          createDashboard(api, organization.slug, {
-            ...modifiedDashboard,
-            id: '',
-          }).then((newDashboard: DashboardDetails) => {
-            addSuccessMessage(t('Dashboard created'));
-            trackAnalyticsEvent({
-              eventKey: 'dashboards2.create.complete',
-              eventName: 'Dashboards2: Create complete',
-              organization_id: parseInt(organization.id, 10),
-            });
-            this.setState({
-              dashboardState: 'view',
-              modifiedDashboard: null,
-            });
+          createDashboard(api, organization.slug, modifiedDashboard).then(
+            (newDashboard: DashboardDetails) => {
+              addSuccessMessage(t('Dashboard created'));
+              trackAnalyticsEvent({
+                eventKey: 'dashboards2.create.complete',
+                eventName: 'Dashboards2: Create complete',
+                organization_id: parseInt(organization.id, 10),
+              });
+              this.setState({
+                dashboardState: 'view',
+                modifiedDashboard: null,
+              });
 
-            // redirect to new dashboard
-            browserHistory.replace({
-              pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
-              query: {
-                ...location.query,
-              },
-            });
-          });
+              // redirect to new dashboard
+              browserHistory.replace({
+                pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
+                query: {
+                  ...location.query,
+                },
+              });
+            }
+          );
         }
 
         break;

@@ -115,7 +115,7 @@ function StatsRequest({
 
       const metricDataEndpoint = `/projects/${organization.slug}/${projectSlug}/metrics/data/`;
 
-      if (!!groupBy.length) {
+      if (!!groupBy?.length) {
         const groupByParameter = [...groupBy].join('&groupBy=');
         return api.requestPromise(`${metricDataEndpoint}?groupBy=${groupByParameter}`, {
           query,
@@ -143,36 +143,36 @@ function StatsRequest({
       return;
     }
 
-    const seriesData = sessionReponses.map((sessionResponse, index) => {
-      const {aggregation, groupBy, legend} = queries[index];
-      const field = `${aggregation}(${yAxis})`;
+    // const seriesData = sessionReponses.map((sessionResponse, index) => {
+    //   const {aggregation, groupBy, legend} = queries[index];
+    //   const field = `${aggregation}(${yAxis})`;
 
-      const breakDownChartData = getBreakdownChartData({
-        response: sessionResponse,
-        legend: !!legend ? legend : `Query ${index + 1}`,
-        groupBy: !!groupBy.length ? groupBy[0] : undefined,
-      });
+    //   const breakDownChartData = getBreakdownChartData({
+    //     response: sessionResponse,
+    //     legend: !!legend ? legend : `Query ${index + 1}`,
+    //     groupBy: !!groupBy.length ? groupBy[0] : undefined,
+    //   });
 
-      const chartData = fillChartDataFromSessionsResponse({
-        response: sessionResponse,
-        field,
-        groupBy: !!groupBy.length ? groupBy[0] : null,
-        chartData: breakDownChartData,
-        valueFormatter:
-          yAxis === 'session.duration'
-            ? duration => roundDuration(duration ? duration / 1000 : 0)
-            : undefined,
-      });
+    //   const chartData = fillChartDataFromSessionsResponse({
+    //     response: sessionResponse,
+    //     field,
+    //     groupBy: !!groupBy.length ? groupBy[0] : null,
+    //     chartData: breakDownChartData,
+    //     valueFormatter:
+    //       yAxis === 'session.duration'
+    //         ? duration => roundDuration(duration ? duration / 1000 : 0)
+    //         : undefined,
+    //   });
 
-      return [...Object.values(chartData)];
-    });
+    //   return [...Object.values(chartData)];
+    // });
 
-    const newSeries = seriesData.reduce((mergedSeries, chartDataSeries) => {
-      return mergedSeries.concat(chartDataSeries);
-    }, []);
+    // const newSeries = seriesData.reduce((mergedSeries, chartDataSeries) => {
+    //   return mergedSeries.concat(chartDataSeries);
+    // }, []);
 
-    setSeries(newSeries);
-    setIsLoading(false);
+    // setSeries(newSeries);
+    // setIsLoading(false);
   }
 
   return children({isLoading, errored, series});

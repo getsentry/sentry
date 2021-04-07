@@ -1859,9 +1859,7 @@ function routes() {
           <Route
             path="/organizations/:orgId/dashboards/:dashboardId/"
             componentPromise={() =>
-              import(
-                /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
-              )
+              import(/* webpackChunkName: "DashboardsV2" */ 'app/views/dashboardsV2')
             }
             component={errorHandler(LazyLoad)}
           >

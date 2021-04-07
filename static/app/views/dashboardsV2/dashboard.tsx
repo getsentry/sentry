@@ -144,7 +144,7 @@ class Dashboard extends React.Component<Props> {
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && (
               <AddWidget
-                dashboardId={dashboard.id}
+                dashboardId={dashboard.id || 'default-overview'}
                 orgSlug={organization.slug}
                 orgFeatures={organization.features}
                 onClick={this.handleStartAdd}
