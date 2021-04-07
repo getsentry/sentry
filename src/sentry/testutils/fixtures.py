@@ -1,8 +1,8 @@
-from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
-from sentry.incidents.models import IncidentActivityType
-
 import pytest
 from django.utils.functional import cached_property
+
+from sentry.incidents.models import IncidentActivityType
+from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 

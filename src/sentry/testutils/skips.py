@@ -1,9 +1,9 @@
-from django.conf import settings
-from urllib.parse import urlparse
 import os
 import socket
-import pytest
+from urllib.parse import urlparse
 
+import pytest
+from django.conf import settings
 
 _service_status = {}
 
