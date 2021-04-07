@@ -2,21 +2,20 @@
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
 
-from django.conf.global_settings import *  # NOQA
-
 import os
 import os.path
 import re
 import socket
 import sys
 import tempfile
+from datetime import timedelta
+from urllib.parse import urlparse
+
+from django.conf.global_settings import *  # NOQA
 
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
-
-from datetime import timedelta
-from urllib.parse import urlparse
 
 
 def gettext_noop(s):
@@ -839,6 +838,8 @@ SENTRY_FEATURES = {
     "organizations:api-keys": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
+    # Enable unfurling charts using the Chartcuterie service
+    "organizations:chart-unfurls": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
