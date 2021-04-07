@@ -791,7 +791,7 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     // Remove inbox tab specific sort
-    if (query.sort === IssueSortOptions.INBOX && !isForReviewQuery(query.query)) {
+    if (query.sort === IssueSortOptions.INBOX && query.query !== Query.FOR_REVIEW) {
       delete query.sort;
     }
 

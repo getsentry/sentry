@@ -5,11 +5,7 @@ import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-import {
-  getSortLabel,
-  isForReviewQuery,
-  IssueSortOptions,
-} from 'app/views/issueList/utils';
+import {getSortLabel, IssueSortOptions, Query} from 'app/views/issueList/utils';
 
 type Props = {
   sort: string;
@@ -57,7 +53,7 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
     <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
       <React.Fragment>
         <Feature features={['inbox']}>
-          {isForReviewQuery(query) && getMenuItem(IssueSortOptions.INBOX)}
+          {query === Query.FOR_REVIEW && getMenuItem(IssueSortOptions.INBOX)}
         </Feature>
         {getMenuItem(IssueSortOptions.DATE)}
         {getMenuItem(IssueSortOptions.NEW)}
