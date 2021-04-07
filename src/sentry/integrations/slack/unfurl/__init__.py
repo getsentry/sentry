@@ -1,13 +1,9 @@
 import enum
-from typing import (
-    Any,
-    Callable,
-    List,
-    Mapping,
-    NamedTuple,
-    Pattern,
-)
+from typing import Any, Callable, List, Mapping, NamedTuple, Pattern
 
+from django.http.request import HttpRequest
+
+from sentry.models import Integration
 
 UnfurledUrl = Any
 ArgsMapper = Callable[[str, Mapping[str, str]], Mapping[str, Any]]
@@ -26,7 +22,7 @@ class UnfurlableUrl(NamedTuple):
 class Handler(NamedTuple):
     matcher: Pattern
     arg_mapper: ArgsMapper
-    fn: Callable[[Any, Any, List[UnfurlableUrl]], UnfurledUrl]
+    fn: Callable[[HttpRequest, Integration, List[UnfurlableUrl]], UnfurledUrl]
 
 
 def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
@@ -41,8 +37,8 @@ def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
     return type_coercer
 
 
-from .issues import handler as issues_handler
 from .incidents import handler as incidents_handler
+from .issues import handler as issues_handler
 
 link_handlers = {
     LinkType.ISSUES: issues_handler,

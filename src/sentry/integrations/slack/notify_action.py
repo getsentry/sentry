@@ -4,21 +4,14 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
 from sentry.rules.actions.base import IntegrationEventAction
-from sentry.shared_integrations.exceptions import (
-    ApiError,
-    DuplicateDisplayNameError,
-)
-from sentry.utils import metrics, json
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.utils import json, metrics
 
 from .client import SlackClient
-from .utils import (
-    build_group_attachment,
-    get_channel_id,
-    strip_channel_name,
-    validate_channel_id,
-)
+from .utils import get_channel_id, strip_channel_name, validate_channel_id
 
 logger = logging.getLogger("sentry.rules")
 

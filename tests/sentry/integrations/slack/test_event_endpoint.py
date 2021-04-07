@@ -1,14 +1,16 @@
-import responses
 from urllib.parse import parse_qsl
-from sentry.utils.compat.mock import patch
 
-from sentry.utils import json
+import responses
+
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
-from sentry.integrations.slack.utils import build_group_attachment, build_incident_attachment
+from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
+from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils import json
 from sentry.utils.compat import filter
+from sentry.utils.compat.mock import patch
 
 UNSET = object()
 
@@ -133,15 +135,18 @@ class LinkSharedEventTest(BaseEventTest):
         org2 = self.create_organization(name="biz")
         project1 = self.create_project(organization=self.org)
         project2 = self.create_project(organization=org2)
-        min_ago = iso_format(before_now(minutes=1))
+
+        # Setup groups to be unfurled
         group1 = self.create_group(project=project1)
         group2 = self.create_group(project=project2)
+        min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={"fingerprint": ["group3"], "timestamp": min_ago}, project_id=project1.id
         )
         group3 = event.group
         alert_rule = self.create_alert_rule()
 
+        # Setup incident to be unfurled
         incident = self.create_incident(
             status=2, organization=self.org, projects=[project1], alert_rule=alert_rule
         )
