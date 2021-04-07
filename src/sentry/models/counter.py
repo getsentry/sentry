@@ -1,4 +1,5 @@
-from django.db import connection, connections
+from django.conf import settings
+from django.db import connections, transaction
 from django.db.models.signals import post_migrate
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField
@@ -22,22 +23,28 @@ class Counter(Model):
         return increment_project_counter(project, delta)
 
 
-def increment_project_counter(project, delta=1):
+def increment_project_counter(project, delta=1, using="default"):
     """This method primarily exists so that south code can use it."""
     if delta <= 0:
         raise ValueError("There is only one way, and that's up.")
 
-    cur = connection.cursor()
-    try:
-        cur.execute(
-            """
-            select sentry_increment_project_counter(%s, %s)
-        """,
-            [project.id, delta],
-        )
-        return cur.fetchone()[0]
-    finally:
-        cur.close()
+    # To prevent the statement_timeout leaking into the session we need to use
+    # set local which can be used only within a transaction
+    with transaction.atomic(using=using):
+        cur = connections[using].cursor()
+        try:
+            if settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT:
+                cur.execute(
+                    "set local statement_timeout = %s",
+                    [settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT],
+                )
+            cur.execute(
+                "select sentry_increment_project_counter(%s, %s)",
+                [project.id, delta],
+            )
+            return cur.fetchone()[0]
+        finally:
+            cur.close()
 
 
 # this must be idempotent because it seems to execute twice

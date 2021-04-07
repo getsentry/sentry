@@ -2143,6 +2143,12 @@ SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
+# Timeout for the project counter statement execution.
+# In case of contention on the project counter, prevent workers saturation with
+# save_event tasks from single project.
+# Value is in milliseconds. Set to `None` to disable.
+SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 3000
+
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
 
