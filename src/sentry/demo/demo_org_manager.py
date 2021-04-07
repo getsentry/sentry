@@ -31,9 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_demo_org(quick=False) -> Organization:
-    with sentry_sdk.start_transaction(
-        op="create_demo_org", name="create_demo_org", sampled=True
-    ):
+    with sentry_sdk.start_transaction(op="create_demo_org", name="create_demo_org", sampled=True):
         sentry_sdk.set_tag("quick", quick)
         # wrap the main org setup in transaction
         with transaction.atomic():
