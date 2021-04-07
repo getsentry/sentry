@@ -188,11 +188,14 @@ class TraceDetailsContent extends React.Component<Props, State> {
           tooltipText={t(
             'The number of transactions and errors there are in this trace.'
           )}
-          bodyText={t(
-            '%s Transactions  |  %s Errors',
-            traceInfo.transactions.size,
-            traceInfo.errors.size
-          )}
+          bodyText={tct('[transactions]  |  [errors]', {
+            transactions: tn(
+              '%s Transaction',
+              '%s Transactions',
+              traceInfo.transactions.size
+            ),
+            errors: tn('%s Error', '%s Errors', traceInfo.errors.size),
+          })}
           subtext={tn('Across %s project', 'Across %s projects', traceInfo.projects.size)}
         />
         <MetaData
