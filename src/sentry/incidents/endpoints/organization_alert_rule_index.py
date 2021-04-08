@@ -1,24 +1,22 @@
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
 
-from django.db.models import Q
-
 from sentry import features
-
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAlertRulePermission
+from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
-    OffsetPaginator,
-    CombinedQuerysetPaginator,
     CombinedQuerysetIntermediary,
+    CombinedQuerysetPaginator,
+    OffsetPaginator,
 )
-from sentry.api.serializers import serialize, CombinedRuleSerializer
+from sentry.api.serializers import CombinedRuleSerializer, serialize
 from sentry.auth.superuser import is_active_superuser
-from sentry.incidents.models import AlertRule
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.models import AlertRule
+from sentry.models import OrganizationMemberTeam, Project, Rule, RuleStatus, Team, TeamStatus
 from sentry.snuba.dataset import Dataset
-from sentry.models import Rule, RuleStatus, Project, OrganizationMemberTeam, Team, TeamStatus
-from sentry.utils.cursors import StringCursor, Cursor
+from sentry.utils.cursors import Cursor, StringCursor
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
