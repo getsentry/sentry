@@ -1,4 +1,5 @@
 from collections import OrderedDict
+
 from django import forms
 
 from sentry import tagstore

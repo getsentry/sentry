@@ -29,7 +29,6 @@ by the rule's logic. Each rule condition may be associated with a form.
 """
 
 import logging
-
 from collections import namedtuple
 
 # Encapsulates a reference to the callback, including arguments. The `key`

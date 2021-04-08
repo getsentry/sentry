@@ -1,8 +1,9 @@
-from django import forms
 from enum import Enum
 
-from sentry.rules.filters.base import EventFilter
+from django import forms
+
 from sentry.mail.actions import MemberTeamForm
+from sentry.rules.filters.base import EventFilter
 from sentry.utils.cache import cache
 
 
