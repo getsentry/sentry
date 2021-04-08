@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from sentry.auth.superuser import logger, Superuser
+from sentry.auth.superuser import Superuser, logger
 
 
 class SuperuserMiddleware:
