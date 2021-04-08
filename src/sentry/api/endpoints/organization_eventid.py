@@ -19,13 +19,10 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           event ID should be looked up in.
-        :param string event_id: the event ID to look up.
+        :param string event_id: the event ID to look up. validated by a
+                                regex in the URL.
         :auth: required
         """
-        # Largely copied from ProjectGroupIndexEndpoint
-        if len(event_id) != 32:
-            return Response({"detail": "Event ID must be 32 characters."}, status=400)
-
         project_slugs_by_id = dict(
             Project.objects.filter(organization=organization).values_list("id", "slug")
         )

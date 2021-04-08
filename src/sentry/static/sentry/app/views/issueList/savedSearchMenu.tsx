@@ -93,7 +93,14 @@ type Props = {
 
 function SavedSearchMenu({savedSearchList, ...props}: Props) {
   const savedSearches = savedSearchList.filter(search => !search.isGlobal);
-  const commonSearches = savedSearchList.filter(search => search.isGlobal);
+  let globalSearches = savedSearchList.filter(search => search.isGlobal);
+
+  if (props.organization.features?.includes('inbox')) {
+    // Hide "Unresolved Issues" since they have a unresolved tab
+    globalSearches = globalSearches.filter(
+      search => !search.isPinned && search.query !== 'is:unresolved'
+    );
+  }
 
   return (
     <React.Fragment>
@@ -110,16 +117,16 @@ function SavedSearchMenu({savedSearchList, ...props}: Props) {
           />
         ))
       )}
-      <SecondaryMenuHeader>{t('Pre-built searches')}</SecondaryMenuHeader>
+      <SecondaryMenuHeader>{t('Recommended searches')}</SecondaryMenuHeader>
       {/* Could only happen on self-hosted */}
-      {commonSearches.length === 0 ? (
-        <EmptyItem>{t('No pre-built searches yet.')}</EmptyItem>
+      {globalSearches.length === 0 ? (
+        <EmptyItem>{t('No recommended searches yet.')}</EmptyItem>
       ) : (
-        commonSearches.map((search, index) => (
+        globalSearches.map((search, index) => (
           <SavedSearchMenuItem
             key={search.id}
             search={search}
-            isLast={index === commonSearches.length - 1}
+            isLast={index === globalSearches.length - 1}
             {...props}
           />
         ))

@@ -1,7 +1,7 @@
 import hashlib
-import jwt
-
 from urllib.parse import quote
+
+import jwt
 
 from sentry.shared_integrations.exceptions import ApiError
 

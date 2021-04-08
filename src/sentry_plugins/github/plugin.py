@@ -1,25 +1,23 @@
 import logging
+from uuid import uuid4
 
 from django.conf.urls import url
 from rest_framework.response import Response
-from uuid import uuid4
-
-from social_auth.models import UserSocialAuth
 
 from sentry import options
 from sentry.app import locks
 from sentry.exceptions import PluginError
-from sentry.models import Integration, Organization, OrganizationOption, Repository
-from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
-from sentry.plugins import providers
-from sentry.utils.http import absolute_uri
-
-from sentry_plugins.base import CorePluginMixin
-from sentry.shared_integrations.constants import ERR_UNAUTHORIZED, ERR_INTERNAL
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.models import Integration, Organization, OrganizationOption, Repository
+from sentry.plugins import providers
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
+from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.http import absolute_uri
+from sentry_plugins.base import CorePluginMixin
+from social_auth.models import UserSocialAuth
 
-from .client import GitHubClient, GitHubAppsClient
+from .client import GitHubAppsClient, GitHubClient
 
 API_ERRORS = {
     404: "GitHub returned a 404 Not Found error. If this repository exists, ensure"

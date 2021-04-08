@@ -1,10 +1,10 @@
 import calendar
 import datetime
-import jwt
 import time
 
-from sentry import options
+import jwt
 
+from sentry import options
 from sentry_plugins.client import ApiClient, AuthApiClient
 
 

@@ -1,20 +1,18 @@
 from base64 import b64encode
-from pytz import utc
+
 import pytest
-
 from django.core.urlresolvers import reverse
+from pytz import utc
 
-from sentry.models import ApiKey
 from sentry.discover.models import KeyTransaction
-
+from sentry.models import ApiKey
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-
 from sentry.utils import json
+from sentry.utils.compat import mock, zip
 from sentry.utils.samples import load_data
-from sentry.utils.compat import zip, mock
-from sentry.utils.snuba import RateLimitExceeded, QueryIllegalTypeOfArgument, QueryExecutionError
+from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):

@@ -10,6 +10,7 @@ from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.snuba import discover
+from sentry.utils.validators import is_event_id, INVALID_EVENT_DETAILS
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
@@ -93,6 +94,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         detailed = request.GET.get("detailed", "0") == "1"
         event_id = request.GET.get("event_id")
+
+        # Only need to validate event_id as trace_id is validated in the URL
+        if event_id and not is_event_id(event_id):
+            return Response({"detail": INVALID_EVENT_DETAILS.format("Event")}, status=400)
 
         # selected_columns is a set list, since we only want to include the minimum to render the trace
         selected_columns = [

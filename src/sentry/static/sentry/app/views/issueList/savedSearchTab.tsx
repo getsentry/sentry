@@ -3,10 +3,8 @@ import styled from '@emotion/styled';
 
 import Badge from 'app/components/badge';
 import DropdownLink from 'app/components/dropdownLink';
-import ExternalLink from 'app/components/links/externalLink';
 import QueryCount from 'app/components/queryCount';
-import Tooltip from 'app/components/tooltip';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
@@ -37,36 +35,26 @@ function SavedSearchTab({
   const savedSearch = savedSearchList.find(
     search => search.query === query && search.sort === sort
   );
-  const tooltipTitle = tct(
-    `Create [link:saved searches] to quickly access other types of issues that you care about.`,
-    {
-      link: (
-        <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/#organization-wide-saved-searches" />
-      ),
-    }
-  );
 
   const title = (
-    <Tooltip title={tooltipTitle} position="bottom" isHoverable delay={1000}>
-      <TitleWrapper>
-        {isActive ? (
-          <React.Fragment>
-            <TitleTextOverflow>
-              {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
-            </TitleTextOverflow>
-            {queryCount !== undefined && queryCount > 0 && (
-              <div>
-                <Badge>
-                  <QueryCount hideParens count={queryCount} max={1000} />
-                </Badge>
-              </div>
-            )}
-          </React.Fragment>
-        ) : (
-          t('Saved Searches')
-        )}
-      </TitleWrapper>
-    </Tooltip>
+    <TitleWrapper>
+      {isActive ? (
+        <React.Fragment>
+          <TitleTextOverflow>
+            {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
+          </TitleTextOverflow>
+          {queryCount !== undefined && queryCount > 0 && (
+            <div>
+              <Badge>
+                <QueryCount hideParens count={queryCount} max={1000} />
+              </Badge>
+            </div>
+          )}
+        </React.Fragment>
+      ) : (
+        t('Saved Searches')
+      )}
+    </TitleWrapper>
   );
 
   return (
@@ -114,11 +102,11 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
 
   @media (max-width: ${p => p.theme.breakpoints[4]}) {
     & > span > .dropdown-menu {
-      max-width: 35vw;
+      max-width: 30vw;
     }
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     & > span > .dropdown-menu {
       max-width: 50vw;
     }

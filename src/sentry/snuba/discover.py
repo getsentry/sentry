@@ -22,6 +22,7 @@ from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
     Dataset,
     get_measurement_name,
+    get_span_op_breakdown_name,
     naiveify_datetime,
     raw_query,
     resolve_snuba_aliases,
@@ -30,6 +31,8 @@ from sentry.utils.snuba import (
     SNUBA_OR,
     SnubaTSResult,
     to_naive_timestamp,
+    is_measurement,
+    is_span_op_breakdown,
 )
 
 __all__ = (
@@ -42,6 +45,7 @@ __all__ = (
     "transform_data",
     "zerofill",
     "histogram_query",
+    "check_multihistogram_fields",
 )
 
 
@@ -458,7 +462,7 @@ def top_events_timeseries(
     ) as span:
         span.set_data("query", user_query)
         snuba_filter, translated_columns = get_timeseries_snuba_filter(
-            list(set(timeseries_columns + selected_columns)),
+            list(sorted(set(timeseries_columns + selected_columns))),
             user_query,
             params,
             rollup,
@@ -481,9 +485,11 @@ def top_events_timeseries(
                 }
             )
             if values:
-                # timestamp needs special handling, creating a big OR instead
-                if field == "timestamp":
-                    snuba_filter.conditions.append([["timestamp", "=", value] for value in values])
+                # timestamp fields needs special handling, creating a big OR instead
+                if field == "timestamp" or field.startswith("timestamp.to_"):
+                    snuba_filter.conditions.append(
+                        [[field, "=", value] for value in sorted(values)]
+                    )
                 elif None in values:
                     non_none_values = [value for value in values if value is not None]
                     condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]
@@ -869,7 +875,9 @@ def histogram_query(
     """
     API for generating histograms for numeric columns.
 
-    A multihistogram is possible only if the columns are all measurements.
+    A multihistogram is possible only if the columns are all array columns.
+    Array columns are columns whose values are nested arrays.
+    Measurements and span op breakdowns are examples of array columns.
     The resulting histograms will have their bins aligned.
 
     :param [str] fields: The list of fields for which you want to generate histograms for.
@@ -894,24 +902,34 @@ def histogram_query(
     )
 
     key_column = None
+    array_column = None
+    histogram_function = None
     conditions = []
     if len(fields) > 1:
-        key_column = "array_join(measurements_key)"
+        array_column = check_multihistogram_fields(fields)
+        if array_column == "measurements":
+            key_column = "array_join(measurements_key)"
+            histogram_function = get_measurement_name
+        elif array_column == "span_op_breakdowns":
+            key_column = "array_join(span_op_breakdowns_key)"
+            histogram_function = get_span_op_breakdown_name
+        else:
+            raise InvalidSearchQuery(
+                "multihistogram expected either all measurements or all breakdowns"
+            )
+
         key_alias = get_function_alias(key_column)
-        measurements = []
-        for f in fields:
-            measurement = get_measurement_name(f)
-            if measurement is None:
-                raise InvalidSearchQuery(f"multihistogram expected all measurements, received: {f}")
-            measurements.append(measurement)
-        conditions.append([key_alias, "IN", measurements])
+        field_names = [histogram_function(field) for field in fields]
+        conditions.append([key_alias, "IN", field_names])
 
     histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
-    histogram_column = get_histogram_column(fields, key_column, histogram_params)
+    histogram_column = get_histogram_column(fields, key_column, histogram_params, array_column)
     histogram_alias = get_function_alias(histogram_column)
 
     if min_value is None or max_value is None:
-        return normalize_histogram_results(fields, key_column, histogram_params, {"data": []})
+        return normalize_histogram_results(
+            fields, key_column, histogram_params, {"data": []}, array_column
+        )
     # make sure to bound the bins to get the desired range of results
     if min_value is not None:
         min_bin = histogram_params.start_offset
@@ -932,26 +950,26 @@ def histogram_query(
         functions_acl=["array_join", "histogram"],
     )
 
-    return normalize_histogram_results(fields, key_column, histogram_params, results)
+    return normalize_histogram_results(fields, key_column, histogram_params, results, array_column)
 
 
-def get_histogram_column(fields, key_column, histogram_params):
+def get_histogram_column(fields, key_column, histogram_params, array_column):
     """
     Generate the histogram column string.
 
     :param [str] fields: The list of fields for which you want to generate the histograms for.
     :param str key_column: The column for the key name. This is only set when generating a
-        multihistogram of measurement values. Otherwise, it should be `None`.
+        multihistogram of array values. Otherwise, it should be `None`.
     :param HistogramParms histogram_params: The histogram parameters used.
+    :param str array_column: Array column prefix
     """
-
-    field = fields[0] if key_column is None else "measurements_value"
+    field = fields[0] if key_column is None else f"{array_column}_value"
     return f"histogram({field}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})"
 
 
 def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     """
-    Compute the parameters to use for measurements histogram. Using the provided
+    Compute the parameters to use for the histogram. Using the provided
     arguments, ensure that the generated histogram encapsolates the desired range.
 
     :param int num_buckets: The number of buckets the histogram should contain.
@@ -994,7 +1012,7 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
 
 def find_histogram_min_max(fields, min_value, max_value, user_query, params, data_filter=None):
     """
-    Find the min/max value of the specified measurements. If either min/max is already
+    Find the min/max value of the specified fields. If either min/max is already
     specified, it will be used and not queried for.
 
     :param [str] fields: The list of fields for which you want to generate the histograms for.
@@ -1079,7 +1097,7 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
     return min_value, max_value
 
 
-def normalize_histogram_results(fields, key_column, histogram_params, results):
+def normalize_histogram_results(fields, key_column, histogram_params, results, array_column):
     """
     Normalizes the histogram results by renaming the columns to key and bin
     and make sure to zerofill any missing values.
@@ -1090,20 +1108,21 @@ def normalize_histogram_results(fields, key_column, histogram_params, results):
     :param HistogramParms histogram_params: The histogram parameters used.
     :param any results: The results from the histogram query that may be missing
         bins and needs to be normalized.
+    :param str array_column: Array column prefix
     """
 
     # `key_name` is only used when generating a multi histogram of measurement values.
     # It contains the name of the corresponding measurement for that row.
     key_name = None if key_column is None else get_function_alias(key_column)
-    histogram_column = get_histogram_column(fields, key_column, histogram_params)
+    histogram_column = get_histogram_column(fields, key_column, histogram_params, array_column)
     bin_name = get_function_alias(histogram_column)
 
     # zerofill and rename the columns while making sure to adjust for precision
     bucket_maps = {field: {} for field in fields}
     for row in results["data"]:
         # Fall back to the first field name if there is no `key_name`,
-        # otherwise, this is a measurement name and format it as such.
-        key = fields[0] if key_name is None else f"measurements.{row[key_name]}"
+        # otherwise, this is an array value name and format it as such.
+        key = fields[0] if key_name is None else f"{array_column}.{row[key_name]}"
         # we expect the bin the be an integer, this is because all floating
         # point values are rounded during the calculation
         bucket = int(row[bin_name])
@@ -1125,3 +1144,27 @@ def normalize_histogram_results(fields, key_column, histogram_params, results):
             new_data[field].append(row)
 
     return new_data
+
+
+def check_multihistogram_fields(fields):
+    """
+    Returns multihistogram type if all the given fields are of the same histogram type.
+    Return false otherwise, or if any of the fields are not a compatible histogram type.
+    Possible histogram types: measurements, span_op_breakdowns
+
+    :param [str] fields: The list of fields for which you want to generate histograms for.
+    """
+    histogram_type = False
+    for field in fields:
+        if histogram_type is False:
+            if is_measurement(field):
+                histogram_type = "measurements"
+            elif is_span_op_breakdown(field):
+                histogram_type = "span_op_breakdowns"
+            else:
+                return False
+        elif histogram_type == "measurements" and not is_measurement(field):
+            return False
+        elif histogram_type == "span_op_breakdowns" and not is_span_op_breakdown(field):
+            return False
+    return histogram_type

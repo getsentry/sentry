@@ -79,7 +79,7 @@ function Information({
         return (
           <React.Fragment>
             {tct(
-              'This debug file was uploaded [when] before this event. To apply new debug information, reprocess this issue.',
+              'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate. To apply new debug information, reprocess this issue.',
               {
                 when: moment(eventDateReceived).from(dateCreated, true),
               }
@@ -91,9 +91,12 @@ function Information({
 
       return (
         <React.Fragment>
-          {tct('This debug file was uploaded [when] before this event.', {
-            when: moment(eventDateReceived).from(dateCreated, true),
-          })}
+          {tct(
+            'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate.',
+            {
+              when: moment(eventDateReceived).from(dateCreated, true),
+            }
+          )}
           <DateTimeWrapper>{dateTime}</DateTimeWrapper>
         </React.Fragment>
       );

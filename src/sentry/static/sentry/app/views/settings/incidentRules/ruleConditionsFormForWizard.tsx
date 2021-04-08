@@ -26,15 +26,15 @@ import MetricField from './metricField';
 import {Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
-  [TimeWindow.ONE_MINUTE]: t('1 minute window'),
-  [TimeWindow.FIVE_MINUTES]: t('5 minute window'),
-  [TimeWindow.TEN_MINUTES]: t('10 minute window'),
-  [TimeWindow.FIFTEEN_MINUTES]: t('15 minute window'),
-  [TimeWindow.THIRTY_MINUTES]: t('30 minute window'),
-  [TimeWindow.ONE_HOUR]: t('1 hour window'),
-  [TimeWindow.TWO_HOURS]: t('2 hour window'),
-  [TimeWindow.FOUR_HOURS]: t('4 hour window'),
-  [TimeWindow.ONE_DAY]: t('24 hour window'),
+  [TimeWindow.ONE_MINUTE]: t('1 minute'),
+  [TimeWindow.FIVE_MINUTES]: t('5 minute'),
+  [TimeWindow.TEN_MINUTES]: t('10 minute'),
+  [TimeWindow.FIFTEEN_MINUTES]: t('15 minute'),
+  [TimeWindow.THIRTY_MINUTES]: t('30 minute'),
+  [TimeWindow.ONE_HOUR]: t('1 hour'),
+  [TimeWindow.TWO_HOURS]: t('2 hour'),
+  [TimeWindow.FOUR_HOURS]: t('4 hour'),
+  [TimeWindow.ONE_DAY]: t('24 hour'),
 };
 
 type Props = {
@@ -145,11 +145,11 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
                     }}
                     inline={false}
                     flexibleControlStateSize
-                    columnWidth={250}
+                    columnWidth={200}
                     inFieldLabels
                     required
                   />
-                  <FormRowText>{t('over a')}</FormRowText>
+                  <FormRowText>{t('Time Interval')}</FormRowText>
                   <Tooltip
                     title={t(
                       'Triggers are evaluated every minute regardless of this value.'
@@ -160,7 +160,7 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
                       style={{
                         ...formElemBaseStyle,
                         flex: 1,
-                        minWidth: 180,
+                        minWidth: 130,
                       }}
                       choices={Object.entries(TIME_WINDOW_MAP)}
                       required

@@ -1,15 +1,14 @@
-import requests
+from urllib.parse import urlencode
 
+import requests
 from django.conf.urls import url
 from django.utils.encoding import force_text
 from rest_framework.response import Response
 
-from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint, PluginError
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.utils import json
 from sentry.integrations import FeatureDescription, IntegrationFeatures
-from urllib.parse import urlencode
-
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2, PluginError
+from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
 
