@@ -5,6 +5,14 @@ import {
 } from 'app/utils/discover/genericDiscoverQuery';
 
 /**
+ * Suggestions that we might be missing a service
+ */
+export type MissingService = {
+  child?: string;
+  parent?: string;
+};
+
+/**
  * `EventLite` represents the type of a simplified event from
  * the `events-trace` and `events-trace-light` endpoints.
  */
@@ -18,6 +26,7 @@ export type EventLite = {
   project_slug: string;
   parent_event_id: string | null;
   parent_span_id: string | null;
+  missing_service?: MissingService;
 };
 
 export type TraceError = {

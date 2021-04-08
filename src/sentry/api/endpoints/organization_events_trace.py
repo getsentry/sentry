@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlparse
 from collections import OrderedDict, defaultdict, deque
 
 import sentry_sdk
@@ -81,6 +82,18 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 parent_map[item[key]].append(item)
         return parent_map
 
+    def check_missing_service(self, child, domain, event):
+        # Skip the method prefix on http spans
+        child_domain = child["description"].split()[-1]
+        # string contains is significantly faster than urlparse
+        if (
+            domain in child_domain and urlparse(child_domain).netloc == domain
+        ) or child_domain.startswith("/"):
+            event["missing_service"] = {"child": "HTTP call to a service in the same domain"}
+            # don't do this check anymore
+            return False
+        return True
+
     def get(self, request, organization, trace_id):
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -157,7 +170,15 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         errors = self.get_errors(organization, trace_id, params, current_transaction, event_id)
 
         return Response(
-            self.serialize(result["data"], errors, root, warning_extra, event_id, detailed)
+            self.serialize(
+                result["data"],
+                errors,
+                root,
+                warning_extra,
+                event_id,
+                detailed=detailed,
+                check_missing=len(result["data"]) == 1,
+            )
         )
 
 
@@ -238,6 +259,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         warning_extra,
         event_id,
         detailed=False,
+        check_missing=False,
     ):
         """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
         snuba_event, nodestore_event = self.get_current_transaction(transactions, errors, event_id)
@@ -277,6 +299,11 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                 snuba_event, root["id"] if is_root_child else None, current_generation
             )
             trace_results.append(current_event)
+            domain = None
+            if check_missing:
+                url = nodestore_event.data.get("request", {}).get("url")
+                if url:
+                    domain = urlparse(url).netloc
 
             spans = nodestore_event.data.get("spans", [])
             # Need to include the transaction as a span as well
@@ -287,6 +314,8 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     current_event["errors"].extend(
                         [self.serialize_error(error) for error in error_map.pop(span["span_id"])]
                     )
+                if check_missing and span["op"] == "http":
+                    check_missing = self.check_missing_service(span, domain, current_event)
                 if span["span_id"] in parent_map:
                     child_events = parent_map.pop(span["span_id"])
                     trace_results.extend(
@@ -377,6 +406,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         warning_extra,
         event_id,
         detailed=False,
+        check_missing=False,
     ):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
         parent_map = self.construct_span_map(transactions, "trace.parent_span")
@@ -432,6 +462,13 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 # Need to include the transaction as a span as well
                 spans.append({"span_id": previous_event["span_id"]})
 
+                domain = None
+                if check_missing:
+                    with sentry_sdk.start_span(op="parse", description="domain"):
+                        url = nodestore_event.data.get("request", {}).get("url")
+                        if url:
+                            domain = urlparse(url).netloc
+
                 for child in spans:
                     if child["span_id"] in error_map:
                         previous_event["errors"].extend(
@@ -443,6 +480,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     # We need to connect back to an existing orphan trace
                     if has_orphans and child["span_id"] in results_map:
                         previous_event["children"].extend(results_map.pop(child["span_id"]))
+                    if check_missing and child.get("op") == "http":
+                        check_missing = self.check_missing_service(child, domain, previous_event)
+
                     if child["span_id"] not in parent_map:
                         continue
                     # Avoid potential span loops by popping, so we don't traverse the same nodes twice

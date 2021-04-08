@@ -19,6 +19,7 @@ import {Event} from 'app/types/event';
 import {toTitleCase} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getDuration} from 'app/utils/formatters';
+import localStorage from 'app/utils/localStorage';
 import {
   QuickTrace as QuickTraceType,
   QuickTraceEvent,
@@ -33,6 +34,7 @@ import {
   DropdownItemSubContainer,
   ErrorNodeContent,
   EventNode,
+  ExternalDropdownLink,
   QuickTraceContainer,
   SectionSubtext,
   SingleEventHoverText,
@@ -150,6 +152,10 @@ export default function QuickTrace({
       transactionDest={transactionDest}
     />
   );
+
+  if (current?.missing_service?.child) {
+    nodes.push(<MissingServiceNode anchor={anchor} organization={organization} />);
+  }
 
   if (children.length) {
     nodes.push(<TraceConnector key="children-connector" />);
@@ -445,4 +451,63 @@ function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNo
       </EventNode>
     </Tooltip>
   );
+}
+
+type MissingServiceProps = Pick<QuickTraceProps, 'anchor' | 'organization'>;
+type MissingServiceState = {
+  hideMissing: boolean;
+};
+
+const HIDE_MISSING_SERVICE_KEY = 'quick-trace:hide-missing-services';
+
+function readMissingServiceState() {
+  const value = localStorage.getItem(HIDE_MISSING_SERVICE_KEY);
+  return value === '1';
+}
+
+class MissingServiceNode extends React.Component<
+  MissingServiceProps,
+  MissingServiceState
+> {
+  state: MissingServiceState = {
+    hideMissing: readMissingServiceState(),
+  };
+
+  dismissMissingService = () => {
+    const {organization} = this.props;
+    localStorage.setItem(HIDE_MISSING_SERVICE_KEY, '1');
+    this.setState({hideMissing: true});
+    trackAnalyticsEvent({
+      eventKey: 'quick_trace.hide.missing-service',
+      eventName: 'Quick Trace: Missing Service Clicked',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
+  render() {
+    const {hideMissing} = this.state;
+    const {anchor} = this.props;
+    if (hideMissing) {
+      return <React.Fragment />;
+    }
+    return (
+      <React.Fragment>
+        <TraceConnector />
+        <DropdownLink
+          caret={false}
+          title={<EventNode type="white">???</EventNode>}
+          anchorRight={anchor === 'right'}
+        >
+          <DropdownItem first width="small">
+            <ExternalDropdownLink href="https://docs.sentry.io/platforms/javascript/performance/connect-services/">
+              Connect to a service
+            </ExternalDropdownLink>
+          </DropdownItem>
+          <DropdownItem onSelect={this.dismissMissingService} width="small">
+            Dismiss
+          </DropdownItem>
+        </DropdownLink>
+      </React.Fragment>
+    );
+  }
 }
