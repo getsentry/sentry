@@ -1,7 +1,7 @@
 import json  # noqa
 import os
 
-from flask import Flask, redirect, url_for, request, session
+from flask import Flask, redirect, request, session, url_for
 from flask_oauth import OAuth
 
 BASE_URL = os.environ.get("BASE_URL", "http://dev.getsentry.net:8000")
@@ -42,7 +42,7 @@ def index():
             url_for("login")
         )
 
-    from urllib2 import Request, urlopen, URLError
+    from urllib2 import Request, URLError, urlopen
 
     headers = {"Authorization": f"Bearer {access_token}"}
     req = Request(f"{BASE_URL}/api/0/organizations/", None, headers)
