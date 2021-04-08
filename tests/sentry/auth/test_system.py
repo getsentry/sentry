@@ -1,4 +1,4 @@
-from sentry.auth.system import is_system_auth, SystemToken
+from sentry.auth.system import SystemToken, is_system_auth
 from sentry.testutils import TestCase
 
 

@@ -1,6 +1,6 @@
-from sentry.testutils import APITestCase
-from sentry.features import OrganizationFeature
 from sentry import features
+from sentry.features import OrganizationFeature
+from sentry.testutils import APITestCase
 
 
 class OrganizationConfigIntegrationsTest(APITestCase):

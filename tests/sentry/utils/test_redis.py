@@ -1,18 +1,19 @@
 import functools
 import logging
-from sentry.utils.compat import mock
+from unittest import TestCase
+
 import pytest
+from django.utils.functional import SimpleLazyObject
 
 from sentry.exceptions import InvalidConfiguration
-from unittest import TestCase
+from sentry.utils.compat import mock
 from sentry.utils.redis import (
     ClusterManager,
+    _RedisCluster,
     _shared_pool,
     get_cluster_from_options,
-    _RedisCluster,
     logger,
 )
-from django.utils.functional import SimpleLazyObject
 
 # Silence connection warnings
 logger.setLevel(logging.ERROR)

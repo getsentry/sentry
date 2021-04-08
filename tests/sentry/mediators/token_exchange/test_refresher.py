@@ -1,9 +1,8 @@
-from sentry.utils.compat.mock import patch
-
 from sentry.coreapi import APIUnauthorized
-from sentry.models import ApiApplication, ApiToken, SentryApp, SentryAppInstallation
 from sentry.mediators.token_exchange import GrantExchanger, Refresher
+from sentry.models import ApiApplication, ApiToken, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class TestRefresher(TestCase):

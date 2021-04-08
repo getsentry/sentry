@@ -1,10 +1,10 @@
 import datetime
-import time
 import logging
+import random
+import time
+
 import msgpack
 import pytest
-import random
-
 from confluent_kafka import KafkaError
 from django.conf import settings
 from django.test import override_settings

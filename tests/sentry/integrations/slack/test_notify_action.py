@@ -1,11 +1,11 @@
-import responses
-
 from urllib.parse import parse_qs
 
-from sentry.utils import json
+import responses
+
+from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
-from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.utils import json
 
 
 class SlackNotifyActionTest(RuleTestCase):

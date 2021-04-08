@@ -6,9 +6,8 @@ service. Most tests live in tests/symbolicator/
 
 import pytest
 
-from sentry.models.eventerror import EventError
-
 from sentry.lang.native.processing import _merge_image
+from sentry.models.eventerror import EventError
 
 
 def test_merge_symbolicator_image_empty():

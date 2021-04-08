@@ -4,7 +4,7 @@ from django.http import HttpRequest
 
 from sentry.models import User
 from sentry.testutils import TestCase
-from sentry.utils.auth import EmailAuthBackend, login, get_login_redirect
+from sentry.utils.auth import EmailAuthBackend, get_login_redirect, login
 
 
 class EmailAuthBackendTest(TestCase):

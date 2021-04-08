@@ -1,8 +1,6 @@
-from sentry.utils.compat.mock import Mock
-
-from sentry.testutils import TestCase
-
 from sentry.api.base import Endpoint
+from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock
 
 
 class EndpointTest(TestCase):

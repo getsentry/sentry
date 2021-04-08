@@ -1,4 +1,5 @@
 from selenium.common.exceptions import TimeoutException
+
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.retries import TimedRetryPolicy
 

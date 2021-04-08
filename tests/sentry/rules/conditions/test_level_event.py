@@ -1,5 +1,5 @@
-from sentry.testutils.cases import RuleTestCase
 from sentry.rules.conditions.level import LevelCondition, MatchType
+from sentry.testutils.cases import RuleTestCase
 
 
 class LevelConditionTest(RuleTestCase):

@@ -1,16 +1,14 @@
-import pytz
-
 from datetime import datetime
+
+import pytz
 from django.utils import timezone
 
-from sentry.models import GroupInboxReason, AssistantActivity
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from tests.acceptance.page_objects.issue_list import IssueListPage
+from sentry.models import AssistantActivity, GroupInboxReason
 from sentry.models.groupinbox import add_group_to_inbox
-
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
-
+from tests.acceptance.page_objects.issue_list import IssueListPage
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
