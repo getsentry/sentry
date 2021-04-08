@@ -1,8 +1,8 @@
 import pickle
 import threading
+from datetime import datetime
 from time import time
 
-from datetime import datetime
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
