@@ -530,13 +530,6 @@ class EventView {
     };
   }
 
-  resolveQueryParams(location: Location): Query {
-    const eventViewQuery = this.generateQueryStringObject();
-    const locationQuery = location.query;
-
-    return {...eventViewQuery, ...locationQuery};
-  }
-
   getGlobalSelectionQuery(): Query {
     const {
       environments: environment,
