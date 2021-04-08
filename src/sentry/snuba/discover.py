@@ -787,7 +787,7 @@ def get_performance_facets(
             referrer=referrer,
         )
         counts = [r["count"] for r in key_names["data"]]
-        if not counts:
+        if len(counts) != 1:
             return []
 
     results = []
