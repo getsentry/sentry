@@ -1,6 +1,7 @@
+from enum import IntEnum, unique
+
 from django.conf import settings
 from django.core.cache import cache
-from enum import IntEnum, unique
 
 from sentry import options
 from sentry.utils.json import prune_empty_keys
