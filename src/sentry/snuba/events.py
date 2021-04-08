@@ -1,5 +1,5 @@
-from enum import Enum
 from collections import namedtuple
+from enum import Enum
 
 Column = namedtuple("Column", "group_name event_name transaction_name discover_name alias")
 

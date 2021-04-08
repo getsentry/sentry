@@ -1,12 +1,13 @@
-from typing import List, Tuple, Optional, Dict, Any
-from datetime import datetime, timedelta
 import itertools
 import math
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
 import pytz
 
 from sentry.api.event_search import get_filter
 from sentry.api.utils import get_date_range_from_params
-from sentry.utils.dates import parse_stats_period, to_timestamp, to_datetime
+from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 from sentry.utils.snuba import Dataset, raw_query, resolve_condition
 
 """

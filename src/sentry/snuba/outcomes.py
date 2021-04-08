@@ -1,19 +1,21 @@
-from typing import Any, Dict, List, Optional, Tuple, Sequence, Mapping, MutableMapping
 from abc import ABC, abstractmethod
+from datetime import datetime
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+
 from django.http import QueryDict
-from sentry.utils.snuba import raw_query
-from .dataset import Dataset
 from sentry_relay import DataCategory
 
+from sentry.search.utils import InvalidQuery
 from sentry.snuba.sessions_v2 import (
+    InvalidField,
+    SimpleGroupBy,
     get_constrained_date_range,
     massage_sessions_result,
-    SimpleGroupBy,
-    InvalidField,
 )
 from sentry.utils.outcomes import Outcome
-from datetime import datetime
-from sentry.search.utils import InvalidQuery
+from sentry.utils.snuba import raw_query
+
+from .dataset import Dataset
 
 """
 The new Outcomes API defines a "metrics"-like interface which is can be used in
