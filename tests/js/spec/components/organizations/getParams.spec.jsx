@@ -129,7 +129,7 @@ describe('getParams', function () {
     ).toEqual({statsPeriod: '14d'});
   });
 
-  it('should return pageStart and pageEnd even if start and end are provided', function () {
+  it('should use pageStart and pageEnd to override start and end', function () {
     expect(
       getParams(
         {
