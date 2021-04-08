@@ -86,8 +86,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         # Skip the method prefix on http spans
         child_domain = child["description"].split()[-1]
         # string contains is significantly faster than urlparse
-        if (
-            domain in child_domain and urlparse(child_domain).netloc == domain
+        if any(
+            value in child_domain and urlparse(child_domain).netloc == value
+            for value in [domain, "127.0.0.1", "localhost"]
         ) or child_domain.startswith("/"):
             event["missing_service"] = {"child": "HTTP call to a service in the same domain"}
             # don't do this check anymore
