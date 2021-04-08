@@ -386,6 +386,59 @@ class EventView {
     });
   }
 
+  static fromSavedQueryOrLocation(
+    saved: SavedQuery | undefined,
+    location: Location
+  ): EventView {
+    let fields = decodeFields(location);
+    const {start, end, statsPeriod} = location.query;
+    const id = decodeScalar(location.query.id);
+
+    if (saved) {
+      if (fields.length === 0) {
+        fields = saved.fields.map((field, i) => {
+          const width =
+            saved.widths && saved.widths[i]
+              ? Number(saved.widths[i])
+              : COL_WIDTH_UNDEFINED;
+
+          return {field, width};
+        });
+      }
+      const {savedStart, savedEnd, savedStatsPeriod} = getParams({
+        start: saved.start,
+        end: saved.end,
+        statsPeriod: saved.range,
+      });
+      return new EventView({
+        id: id || saved.id,
+        name: decodeScalar(location.query.name) || saved.name,
+        fields,
+        query: decodeQuery(location) || queryStringFromSavedQuery(saved),
+        project: decodeProjects(location) || saved.projects,
+        start: decodeScalar(start) || decodeScalar(savedStart),
+        end: decodeScalar(end) || decodeScalar(savedEnd),
+        statsPeriod: decodeScalar(statsPeriod) || decodeScalar(savedStatsPeriod),
+        sorts: decodeSorts(location) || fromSorts(saved.orderby),
+        environment:
+          collectQueryStringByKey(location.query, 'environment') ||
+          collectQueryStringByKey(
+            {
+              environment: saved.environment as string[],
+            },
+            'environment'
+          ),
+        yAxis: decodeScalar(location.query.yAxis) || saved.yAxis,
+        display: decodeScalar(location.query.display) || saved.display,
+        interval: decodeScalar(location.query.interval),
+        createdBy: saved.createdBy,
+        expired: saved.expired,
+        additionalConditions: new QueryResults([]),
+      });
+    }
+    return EventView.fromLocation(location);
+  }
+
   isEqualTo(other: EventView): boolean {
     const keys = [
       'id',
@@ -473,6 +526,13 @@ class EventView {
         utc: true,
       },
     };
+  }
+
+  resolveQueryParams(location: Location): Query {
+    const eventViewQuery = this.generateQueryStringObject();
+    const locationQuery = location.query;
+
+    return {...eventViewQuery, ...locationQuery};
   }
 
   getGlobalSelectionQuery(): Query {
@@ -972,6 +1032,19 @@ class EventView {
     return {
       pathname: `/organizations/${slug}/discover/results/`,
       query: this.generateQueryStringObject(),
+    };
+  }
+
+  getInitialResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
+    const output = {id: this.id, interval: this.interval};
+    for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+      if (this[field] && this[field].length) {
+        output[field] = this[field];
+      }
+    }
+    return {
+      pathname: `/organizations/${slug}/discover/results/`,
+      query: cloneDeep(output as any),
     };
   }
 

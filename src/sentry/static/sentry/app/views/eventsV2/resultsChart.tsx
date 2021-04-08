@@ -54,7 +54,8 @@ class ResultsChart extends React.Component<ResultsChartProps> {
       ? getUtcToLocalDateObject(globalSelection.datetime.end)
       : null;
 
-    const {utc} = getParams(location.query);
+    const query = eventView.resolveQueryParams(location);
+    const {utc} = getParams(query);
     const apiPayload = eventView.getEventsAPIPayload(location);
     const display = eventView.getDisplayMode();
     const isTopEvents =

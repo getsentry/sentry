@@ -30,7 +30,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
       ? {
           pathname: getDiscoverLandingUrl(organization),
           query: {
-            ...location.query,
+            ...eventView.resolveQueryParams(location),
             ...eventView.generateBlankQueryStringObject(),
             ...eventView.getGlobalSelectionQuery(),
           },
