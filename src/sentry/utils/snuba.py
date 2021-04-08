@@ -674,6 +674,7 @@ def get_cache_key(query: SnubaQuery) -> str:
     else:
         hashable = json.dumps(query, sort_keys=True)
 
+    # sqc - Snuba Query Cache
     return f"sqc:{sha1(hashable.encode('utf-8')).hexdigest()}"
 
 
@@ -700,7 +701,6 @@ def bulk_raw_query(
     results = []
 
     if use_cache:
-        # sqc - Snuba Query Cache
         cache_keys = [get_cache_key(query_params) for _, query_params in query_param_list]
         cache_data = cache.get_many(cache_keys)
         to_query: List[Tuple[int, SnubaQueryBody, Optional[str]]] = []
@@ -848,7 +848,9 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
     query_data, thread_hub, headers = params
     query_params, forward, reverse = query_data
     og_debug = query_params.get("debug", False)
+    referrer = headers.get("referer", "<unknown>")
     try:
+        metrics.incr("snuba.snql.dryrun.incoming", tags={"referrer": referrer})
         query = json_to_snql(query_params, query_params["dataset"])
         query.validate()  # Call this here just avoid it happening in the async all
     except Exception as e:
@@ -914,6 +916,8 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
                 "legacy": legacy_data["sql"],
             },
         )
+    else:
+        metrics.incr("snuba.snql.dryrun.success", tags={"referrer": referrer})
 
     return legacy_result
 
