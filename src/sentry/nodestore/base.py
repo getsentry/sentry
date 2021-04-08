@@ -1,13 +1,11 @@
 from threading import local
 
 import sentry_sdk
+from django.core.cache import InvalidCacheBackendError, caches
 
-from django.core.cache import caches, InvalidCacheBackendError
-
-from sentry.utils.cache import memoize
 from sentry.utils import json
+from sentry.utils.cache import memoize
 from sentry.utils.services import Service
-
 
 # Cache an instance of the encoder we want to use
 json_dumps = json.JSONEncoder(
