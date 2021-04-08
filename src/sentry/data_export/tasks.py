@@ -1,42 +1,39 @@
+import codecs
 import csv
 import logging
 import tempfile
-import codecs
-
 from hashlib import sha1
 
-from celery.task import current
+import sentry_sdk
 from celery.exceptions import MaxRetriesExceededError
+from celery.task import current
 from django.core.files.base import ContentFile
-from django.db import transaction, IntegrityError
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-import sentry_sdk
-
 from sentry.models import (
-    AssembleChecksumMismatch,
     DEFAULT_BLOB_SIZE,
+    MAX_FILE_SIZE,
+    AssembleChecksumMismatch,
     File,
     FileBlob,
     FileBlobIndex,
-    MAX_FILE_SIZE,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import capture_exception
 
 from .base import (
+    EXPORTED_ROWS_LIMIT,
+    MAX_BATCH_SIZE,
+    SNUBA_MAX_RESULTS,
     ExportError,
     ExportQueryType,
-    EXPORTED_ROWS_LIMIT,
-    SNUBA_MAX_RESULTS,
-    MAX_BATCH_SIZE,
 )
 from .models import ExportedData, ExportedDataBlob
-from .utils import handle_snuba_errors
 from .processors.discover import DiscoverProcessor
 from .processors.issues_by_tag import IssuesByTagProcessor
-
+from .utils import handle_snuba_errors
 
 logger = logging.getLogger(__name__)
 
