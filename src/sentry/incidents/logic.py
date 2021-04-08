@@ -24,35 +24,32 @@ from sentry.incidents.models import (
     IncidentActivity,
     IncidentActivityType,
     IncidentProject,
-    IncidentSnapshot,
-    IncidentTrigger,
-    PendingIncidentSnapshot,
     IncidentSeen,
+    IncidentSnapshot,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
+    IncidentTrigger,
+    PendingIncidentSnapshot,
     TimeSeriesSnapshot,
     TriggerStatus,
 )
-from sentry.models import Integration, Project, PagerDutyService, SentryApp
+from sentry.models import Integration, PagerDutyService, Project, SentryApp
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
-    bulk_enable_snuba_subscriptions,
-    bulk_disable_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
+    bulk_disable_snuba_subscriptions,
+    bulk_enable_snuba_subscriptions,
     create_snuba_query,
     update_snuba_query,
 )
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.compat import zip
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import bulk_raw_query, is_measurement, SnubaQueryParams, SnubaTSResult
-from sentry.shared_integrations.exceptions import (
-    DuplicateDisplayNameError,
-)
-
+from sentry.utils.snuba import SnubaQueryParams, SnubaTSResult, bulk_raw_query, is_measurement
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time

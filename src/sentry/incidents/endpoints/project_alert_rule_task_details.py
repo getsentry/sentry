@@ -3,8 +3,8 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
-from sentry.integrations.slack import tasks
 from sentry.incidents.models import AlertRule
+from sentry.integrations.slack import tasks
 
 
 class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):

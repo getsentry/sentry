@@ -1,13 +1,13 @@
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.bases.incident import IncidentPermission, IncidentEndpoint
+from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.list import ListField
 from sentry.api.serializers.rest_framework.mentions import (
-    extract_user_ids_from_mentions,
     MentionsMixin,
+    extract_user_ids_from_mentions,
 )
 from sentry.incidents.logic import create_incident_activity
 from sentry.incidents.models import IncidentActivityType

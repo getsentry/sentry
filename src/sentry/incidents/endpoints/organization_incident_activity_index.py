@@ -1,4 +1,4 @@
-from sentry.api.bases.incident import IncidentPermission, IncidentEndpoint
+from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import get_incident_activity
