@@ -4,12 +4,12 @@ from django.core.urlresolvers import reverse
 from django.template.defaultfilters import pluralize
 
 from sentry.incidents.models import (
+    INCIDENT_STATUS,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
-    TriggerStatus,
     IncidentStatus,
     IncidentTrigger,
-    INCIDENT_STATUS,
+    TriggerStatus,
 )
 from sentry.models.integration import ExternalProviders
 from sentry.models.notificationsetting import NotificationSetting
