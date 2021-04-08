@@ -1,14 +1,13 @@
 import ipaddress
 from typing import Any
+from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
-from uuid import uuid4
 
 from sentry import options
 from sentry.utils.cache import memoize
-
 
 INTERNAL_NETWORKS = [
     ipaddress.ip_network(str(net), strict=False) for net in settings.INTERNAL_SYSTEM_IPS

@@ -1,7 +1,6 @@
-from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes
-from sentry.auth.providers.saml2.views import make_simple_setup
 from sentry.auth.providers.saml2.forms import URLMetadataForm
-
+from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
+from sentry.auth.providers.saml2.views import make_simple_setup
 
 SelectIdP = make_simple_setup(URLMetadataForm, "sentry_auth_auth0/select-idp.html")
 

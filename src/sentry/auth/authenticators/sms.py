@@ -4,7 +4,7 @@ from sentry.utils.decorators import classproperty
 from sentry.utils.otp import TOTP
 from sentry.utils.sms import send_sms, sms_available
 
-from .base import AuthenticatorInterface, ActivationMessageResult, OtpMixin
+from .base import ActivationMessageResult, AuthenticatorInterface, OtpMixin
 
 
 class SmsInterface(OtpMixin, AuthenticatorInterface):

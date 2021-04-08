@@ -12,8 +12,8 @@ In Sentry a user must achieve the following to be treated as a superuser:
 
 import ipaddress
 import logging
-
 from datetime import datetime, timedelta
+
 from django.conf import settings
 from django.core.signing import BadSignature
 from django.utils import timezone

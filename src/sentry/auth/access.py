@@ -2,10 +2,9 @@ __all__ = ["from_user", "from_member", "DEFAULT"]
 
 import warnings
 
+import sentry_sdk
 from django.conf import settings
 from django.utils.functional import cached_property
-
-import sentry_sdk
 
 from sentry import roles
 from sentry.auth.superuser import is_active_superuser
@@ -17,8 +16,8 @@ from sentry.models import (
     Project,
     ProjectStatus,
     SentryApp,
-    UserPermission,
     Team,
+    UserPermission,
 )
 
 

@@ -1,9 +1,9 @@
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Provider, OAuth2Login
+from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 
 from .client import GitHubApiError, GitHubClient
-from .constants import AUTHORIZE_URL, ACCESS_TOKEN_URL, CLIENT_ID, CLIENT_SECRET, SCOPE
-from .views import ConfirmEmail, FetchUser, SelectOrganization, GitHubConfigureView
+from .constants import ACCESS_TOKEN_URL, AUTHORIZE_URL, CLIENT_ID, CLIENT_SECRET, SCOPE
+from .views import ConfirmEmail, FetchUser, GitHubConfigureView, SelectOrganization
 
 
 class GitHubOAuth2Provider(OAuth2Provider):

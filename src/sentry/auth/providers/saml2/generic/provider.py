@@ -1,6 +1,6 @@
 from sentry.auth.providers.saml2.provider import SAML2Provider
 
-from .views import SAML2ConfigureView, SelectIdP, MapAttributes
+from .views import MapAttributes, SAML2ConfigureView, SelectIdP
 
 
 class GenericSAML2Provider(SAML2Provider):

@@ -1,7 +1,7 @@
 from django.core.cache import cache
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.utils.otp import generate_secret_key, TOTP
+from sentry.utils.otp import TOTP, generate_secret_key
 
 
 class ActivationResult:

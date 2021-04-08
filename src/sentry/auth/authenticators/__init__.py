@@ -1,6 +1,6 @@
 from .base import AuthenticatorInterface  # NOQA
-from .sms import SmsInterface
 from .recovery_code import RecoveryCodeInterface
+from .sms import SmsInterface
 from .totp import TotpInterface
 from .u2f import U2fInterface
 

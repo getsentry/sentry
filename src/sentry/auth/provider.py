@@ -3,7 +3,6 @@ from collections import namedtuple
 
 from django.utils.encoding import force_text, python_2_unicode_compatible
 
-
 from .view import ConfigureView
 
 
