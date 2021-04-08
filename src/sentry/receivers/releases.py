@@ -10,14 +10,14 @@ from sentry.models import (
     GroupAssignee,
     GroupInboxRemoveAction,
     GroupLink,
+    GroupStatus,
     GroupSubscription,
     GroupSubscriptionReason,
-    GroupStatus,
-    Release,
-    remove_group_from_inbox,
-    Repository,
     PullRequest,
+    Release,
+    Repository,
     UserOption,
+    remove_group_from_inbox,
 )
 from sentry.signals import issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
