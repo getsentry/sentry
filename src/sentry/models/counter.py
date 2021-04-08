@@ -1,7 +1,7 @@
 from django.db import connection, connections
 from django.db.models.signals import post_migrate
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField
+from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
 class Counter(Model):

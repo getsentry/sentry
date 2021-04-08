@@ -2,7 +2,7 @@ import warnings
 from collections import defaultdict
 
 from django.conf import settings
-from django.db import connections, IntegrityError, models, router, transaction
+from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -25,11 +25,11 @@ class TeamManager(BaseManager):
         """
         from sentry.auth.superuser import is_active_superuser
         from sentry.models import (
+            OrganizationMember,
             OrganizationMemberTeam,
             Project,
             ProjectStatus,
             ProjectTeam,
-            OrganizationMember,
         )
 
         if not user.is_authenticated():
