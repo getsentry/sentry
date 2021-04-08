@@ -99,6 +99,21 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
 
+    def test_bad_params_reverse_min_max(self):
+        for array_column in ARRAY_COLUMNS:
+            query = {
+                "query": "event.type:transaction",
+                "project": [self.project.id],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "numBuckets": 10,
+                "precision": 0,
+                "min": 10,
+                "max": 5,
+            }
+
+            response = self.do_request(query)
+            assert response.data == {"non_field_errors": ["min cannot be greater than max."]}
+
     def test_bad_params_missing_fields(self):
         query = {
             "project": [self.project.id],
