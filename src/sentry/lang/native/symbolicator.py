@@ -1,24 +1,22 @@
-import sys
-import jsonschema
-import logging
-import time
 import base64
-
-from django.conf import settings
-from django.core.urlresolvers import reverse
-
-from requests.exceptions import RequestException
+import logging
+import sys
+import time
 from urllib.parse import urljoin
 
+import jsonschema
 import sentry_sdk
+from django.conf import settings
+from django.core.urlresolvers import reverse
+from requests.exceptions import RequestException
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
-from sentry.utils import json, metrics
+from sentry.models import Organization
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
-from sentry.models import Organization
+from sentry.utils import json, metrics
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
