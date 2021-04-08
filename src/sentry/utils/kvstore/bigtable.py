@@ -1,27 +1,21 @@
 import enum
 import logging
 import struct
-import zlib
 from datetime import timedelta
 from threading import Lock
-from typing import Any, Callable, Iterator, Mapping, NamedTuple, Optional, Sequence, Tuple, cast
+from typing import Any, Iterator, Mapping, Optional, Sequence, Tuple, cast
 
-import zstandard
 from django.utils import timezone
 from google.api_core import exceptions, retry
 from google.cloud import bigtable
 from google.cloud.bigtable.row_data import PartialRowData
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.table import Table
+
+from sentry.utils.codecs import Codec, ZlibCodec, ZstdCodec
 from sentry.utils.kvstore.abstract import KVStorage
 
-
 logger = logging.getLogger(__name__)
-
-
-class CompressionStrategy(NamedTuple):
-    compress: Callable[[bytes], bytes]
-    decompress: Callable[[bytes], bytes]
 
 
 class BigtableError(Exception):
@@ -58,25 +52,16 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         COMPRESSED_ZLIB = 1 << 0
         COMPRESSED_ZSTD = 1 << 1
 
-    compression_strategies: Mapping[str, Tuple[Flags, CompressionStrategy]] = {
-        "zlib": (
-            Flags.COMPRESSED_ZLIB,
-            CompressionStrategy(compress=zlib.compress, decompress=zlib.decompress),
-        ),
-        "zstd": (
-            Flags.COMPRESSED_ZSTD,
-            CompressionStrategy(
-                compress=lambda x: cast(bytes, zstandard.ZstdCompressor().compress(x)),
-                decompress=lambda x: cast(bytes, zstandard.ZstdDecompressor().decompress(x)),
-            ),
-        ),
+    compression_strategies: Mapping[str, Tuple[Flags, Codec[bytes, bytes]]] = {
+        "zlib": (Flags.COMPRESSED_ZLIB, ZlibCodec()),
+        "zstd": (Flags.COMPRESSED_ZSTD, ZstdCodec()),
     }
 
     def __init__(
         self,
+        instance: str,
+        table_name: str,
         project: Optional[str] = None,
-        instance: str = "sentry",
-        table_name: str = "nodestore",
         client_options: Optional[Mapping[Any, Any]] = None,
         default_ttl: Optional[timedelta] = None,
         compression: Optional[str] = None,
@@ -177,7 +162,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             # after the first one matches. Good luck!
             for compression_flag, strategy in self.compression_strategies.values():
                 if compression_flag in flags:
-                    value = strategy.decompress(value)
+                    value = strategy.decode(value)
                     break
 
         return value
@@ -227,7 +212,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         if self.compression:
             compression_flag, strategy = self.compression_strategies[self.compression]
             flags |= compression_flag
-            value = strategy.compress(value)
+            value = strategy.encode(value)
 
         # Only need to write the column at all if any flags are enabled. And if
         # so, pack it into a single byte.

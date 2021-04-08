@@ -1,14 +1,14 @@
 import uuid
+from datetime import datetime, timedelta
+from hashlib import md5
 
 import pytest
 import pytz
-from datetime import datetime, timedelta
 from django.utils import timezone
-from hashlib import md5
 
 from sentry import options
 from sentry.api.event_search import InvalidSearchQuery
-from sentry.api.issue_search import convert_query_values, IssueSearchVisitor, parse_search_query
+from sentry.api.issue_search import IssueSearchVisitor, convert_query_values, parse_search_query
 from sentry.models import (
     Environment,
     Group,
@@ -19,12 +19,12 @@ from sentry.models import (
     GroupSubscription,
     Integration,
 )
-from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import mock
-from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
+from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError
 
 
 def date_to_query_format(date):
@@ -1010,6 +1010,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             "totals": True,
             "turbo": False,
             "sample": 1,
+            "use_snql": None,
         }
 
         self.make_query(search_filter_query="status:unresolved")

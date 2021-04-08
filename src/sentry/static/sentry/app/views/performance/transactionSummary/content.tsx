@@ -216,8 +216,14 @@ class SummaryContent extends React.Component<Props, State> {
               eventView={eventView}
               titles={
                 organization.features.includes('trace-view-summary')
-                  ? [t('id'), t('user'), t('duration'), t('trace id'), t('timestamp')]
-                  : [t('id'), t('user'), t('duration'), t('timestamp')]
+                  ? [
+                      t('event id'),
+                      t('user'),
+                      t('duration'),
+                      t('trace id'),
+                      t('timestamp'),
+                    ]
+                  : [t('event id'), t('user'), t('duration'), t('timestamp')]
               }
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
@@ -256,6 +262,7 @@ class SummaryContent extends React.Component<Props, State> {
               organization={organization}
               location={location}
               isLoading={isLoading}
+              hasWebVitals={hasWebVitals}
               error={error}
               totals={totalValues}
               transactionName={transactionName}

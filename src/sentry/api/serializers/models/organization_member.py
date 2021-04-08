@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus, ExternalUser
+from sentry.models import ExternalUser, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 
 
 @register(OrganizationMember)

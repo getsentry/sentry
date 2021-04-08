@@ -231,7 +231,6 @@ export type Project = {
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
-  groupingEnhancementsBase: string;
   groupingConfig: string;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
@@ -936,7 +935,7 @@ export type GroupStats = GroupFiltered & {
   id: string;
 };
 
-type BaseGroupStatusReprocessing = {
+export type BaseGroupStatusReprocessing = {
   status: 'reprocessing';
   statusDetails: {
     pendingEvents: number;
@@ -1793,13 +1792,6 @@ export type EventGroupingConfig = {
   latest: boolean;
   risk: number;
   strategies: string[];
-};
-
-export type GroupingEnhancementBase = {
-  latest: boolean;
-  id: string;
-  changelog: string;
-  bases: any[]; // TODO(ts): not sure what this is
 };
 
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';

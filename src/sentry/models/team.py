@@ -133,12 +133,11 @@ class Team(Model):
             lock = locks.get("slug:team", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
-            super().save(*args, **kwargs)
-        else:
-            super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     @property
     def member_set(self):
+        """ :returns a QuerySet of all Users that belong to this Team """
         return self.organization.member_set.filter(
             organizationmemberteam__team=self,
             organizationmemberteam__is_active=True,
@@ -246,3 +245,13 @@ class Team(Model):
 
     def get_audit_log_data(self):
         return {"id": self.id, "slug": self.slug, "name": self.name, "status": self.status}
+
+    def get_projects(self):
+        from sentry.models import Project, ProjectStatus, ProjectTeam
+
+        return Project.objects.filter(
+            status=ProjectStatus.VISIBLE,
+            id__in=ProjectTeam.objects.filter(
+                team_id=self.id,
+            ).values_list("project_id", flat=True),
+        )

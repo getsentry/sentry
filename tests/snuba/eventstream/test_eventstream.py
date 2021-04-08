@@ -1,13 +1,14 @@
-from datetime import datetime, timedelta
-import time
 import logging
-from sentry.utils.compat.mock import patch, Mock
+import time
+from datetime import datetime, timedelta
 
 from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.utils import snuba, json
+from sentry.utils import json, snuba
+from sentry.utils.compat.mock import Mock, patch
+from sentry.utils.samples import load_data
 
 
 class SnubaEventStreamTest(TestCase, SnubaTestCase):
@@ -27,6 +28,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "tags": [],
         }
         manager = EventManager(raw_event)
+        manager.normalize()
+        return manager.save(self.project.id)
+
+    def __build_transaction_event(self):
+        manager = EventManager(load_data("transaction"))
         manager.normalize()
         return manager.save(self.project.id)
 
@@ -82,8 +88,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
     @patch("sentry.eventstream.insert")
     def test_issueless(self, mock_eventstream_insert):
         now = datetime.utcnow()
-        event = self.__build_event(now)
-
+        event = self.__build_transaction_event()
         event.group_id = None
         insert_args = ()
         insert_kwargs = {
@@ -99,11 +104,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
 
         self.__produce_event(*insert_args, **insert_kwargs)
         result = snuba.raw_query(
+            dataset=snuba.Dataset.Transactions,
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
-            selected_columns=["event_id", "group_id"],
+            selected_columns=["event_id"],
             groupby=None,
             filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
         )
         assert len(result["data"]) == 1
-        assert result["data"][0]["group_id"] is None

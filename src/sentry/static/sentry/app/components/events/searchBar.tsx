@@ -91,8 +91,13 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
    */
   prepareQuery = query => query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
 
-  getTagList(measurements) {
+  getTagList(
+    measurements: Parameters<
+      React.ComponentProps<typeof Measurements>['children']
+    >[0]['measurements']
+  ) {
     const {fields, organization, tags, omitTags} = this.props;
+
     const functionTags = fields
       ? Object.fromEntries(
           fields

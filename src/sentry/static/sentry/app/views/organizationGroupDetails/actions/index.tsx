@@ -230,11 +230,6 @@ class Actions extends React.Component<Props, State> {
 
     return (
       <Wrapper>
-        {orgFeatures.has('inbox') && (
-          <Tooltip disabled={!!group.inbox} title={t('Issue has been reviewed')}>
-            <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox} />
-          </Tooltip>
-        )}
         <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
           <ResolveActions
             disabled={disabled}
@@ -257,6 +252,14 @@ class Actions extends React.Component<Props, State> {
             disabled={disabled}
           />
         </GuideAnchor>
+        {orgFeatures.has('inbox') && (
+          <Tooltip
+            disabled={!!group.inbox || disabled}
+            title={t('Issue has been reviewed')}
+          >
+            <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
+          </Tooltip>
+        )}
         <DeleteAction
           disabled={disabled}
           organization={organization}

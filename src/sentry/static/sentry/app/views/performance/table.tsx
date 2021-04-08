@@ -146,9 +146,13 @@ class Table extends React.Component<Props, State> {
 
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
-    if (tableMeta[fieldName] === 'integer' && defined(value)) {
+    if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
       return (
-        <Tooltip title={value.toLocaleString()} containerDisplayMode="inline">
+        <Tooltip
+          title={value.toLocaleString()}
+          containerDisplayMode="block"
+          position="right"
+        >
           <CellAction
             column={column}
             dataRow={dataRow}
@@ -317,6 +321,7 @@ class Table extends React.Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           setError={setError}
+          referrer="api.performance.landing-table"
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>

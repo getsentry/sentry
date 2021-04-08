@@ -21,7 +21,7 @@ const config = {
 
   target: 'node',
   entry: {
-    config: 'app/chartcuterieConfig',
+    config: 'app/chartcuterie/config',
   },
 
   module: {
@@ -40,7 +40,6 @@ const config = {
     libraryTarget: 'commonjs2',
   },
 
-  devtool: 'none',
   optimization: {minimize: false},
 };
 

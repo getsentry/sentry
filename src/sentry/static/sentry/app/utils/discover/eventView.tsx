@@ -11,6 +11,7 @@ import {EventQuery} from 'app/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {DEFAULT_PER_PAGE} from 'app/constants';
+import {t} from 'app/locale';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
 import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
@@ -28,6 +29,7 @@ import {
   generateFieldAsString,
   getAggregateAlias,
   isAggregateField,
+  isLegalYAxisType,
   Sort,
 } from './fields';
 import {
@@ -1096,11 +1098,7 @@ class EventView {
     return uniqBy(
       this.getAggregateFields()
         // Only include aggregates that make sense to be graphable (eg. not string or date)
-        .filter((field: Field) =>
-          ['number', 'integer', 'duration', 'percentage'].includes(
-            aggregateOutputType(field.field)
-          )
-        )
+        .filter((field: Field) => isLegalYAxisType(aggregateOutputType(field.field)))
         .map((field: Field) => ({label: field.field, value: field.field}))
         .concat(CHART_AXIS_OPTIONS),
       'value'
@@ -1139,13 +1137,21 @@ class EventView {
 
       if (item.value === DisplayModes.TOP5 || item.value === DisplayModes.DAILYTOP5) {
         if (this.getAggregateFields().length === 0) {
-          return {...item, disabled: true};
+          return {
+            ...item,
+            disabled: true,
+            tooltip: t('Add a function that groups events to use this view.'),
+          };
         }
       }
 
       if (item.value === DisplayModes.DAILY || item.value === DisplayModes.DAILYTOP5) {
         if (this.getDays() < 1) {
-          return {...item, disabled: true};
+          return {
+            ...item,
+            disabled: true,
+            tooltip: t('Change the date rage to at least 1 day to use this view.'),
+          };
         }
       }
 

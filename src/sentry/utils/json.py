@@ -4,18 +4,19 @@
 # part of this module. We don't use it directly within the module, but modules
 # that import it from here will. Do not remove.
 
-from simplejson import JSONEncoder, JSONDecodeError, _default_decoder  # NOQA
-from enum import Enum
 import datetime
 import decimal
 import uuid
+from enum import Enum
 from typing import Any
 
-from bitfield.types import BitHandler
 from django.utils.encoding import force_text
 from django.utils.functional import Promise
 from django.utils.html import mark_safe
 from django.utils.timezone import is_aware
+from simplejson import JSONDecodeError, JSONEncoder, _default_decoder  # NOQA
+
+from bitfield.types import BitHandler
 
 
 def better_default_encoder(o):
@@ -84,23 +85,26 @@ _default_escaped_encoder = JSONEncoderForHTML(
 )
 
 
-def dump(value, fp, **kwargs):
+JSONData = Any  # https://github.com/python/typing/issues/182
+
+
+def dump(value: JSONData, fp, **kwargs):
     for chunk in _default_encoder.iterencode(value):
         fp.write(chunk)
 
 
-def dumps(value, escape=False, **kwargs):
+def dumps(value: JSONData, escape: bool = False, **kwargs) -> str:
     # Legacy use. Do not use. Use dumps_htmlsafe
     if escape:
         return _default_escaped_encoder.encode(value)
     return _default_encoder.encode(value)
 
 
-def load(fp, **kwargs):
+def load(fp, **kwargs) -> str:
     return loads(fp.read())
 
 
-def loads(value: str, **kwargs) -> Any:
+def loads(value: str, **kwargs) -> JSONData:
     return _default_decoder.decode(value)
 
 

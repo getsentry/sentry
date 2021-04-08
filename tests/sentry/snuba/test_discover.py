@@ -10,6 +10,8 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import Dataset
 
+ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
+
 
 class QueryIntegrationTest(SnubaTestCase, TestCase):
     def setUp(self):
@@ -515,23 +517,25 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         # using private functions in an aggregation without access should error
         with pytest.raises(InvalidSearchQuery, match="histogram: no access to private function"):
-            discover.query(
-                selected_columns=["histogram(measurements_value, 1,0,1)"],
-                query="histogram(measurements_value, 1,0,1):>0",
-                params={"project_id": [self.project.id]},
-                use_aggregate_conditions=True,
-            )
+            for array_column in ARRAY_COLUMNS:
+                discover.query(
+                    selected_columns=[f"histogram({array_column}_value, 1,0,1)"],
+                    query=f"histogram({array_column}_value, 1,0,1):>0",
+                    params={"project_id": [self.project.id]},
+                    use_aggregate_conditions=True,
+                )
 
         # using private functions in an aggregation without access should error
         # with auto aggregation on
         with pytest.raises(InvalidSearchQuery, match="histogram: no access to private function"):
-            discover.query(
-                selected_columns=["count()"],
-                query="histogram(measurements_value, 1,0,1):>0",
-                params={"project_id": [self.project.id]},
-                auto_aggregations=True,
-                use_aggregate_conditions=True,
-            )
+            for array_column in ARRAY_COLUMNS:
+                discover.query(
+                    selected_columns=["count()"],
+                    query=f"histogram({array_column}_value, 1,0,1):>0",
+                    params={"project_id": [self.project.id]},
+                    auto_aggregations=True,
+                    use_aggregate_conditions=True,
+                )
 
     def test_any_function(self):
         data = load_data("transaction", timestamp=before_now(seconds=3))
@@ -550,6 +554,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["any_transaction"] == "a" * 32
         assert data[0]["any_user_id"] is None
         assert data[0]["count"] == 1
+
+    def test_reflective_types(self):
+        results = discover.query(
+            selected_columns=[
+                "p50(measurements.lcp)",
+                "p50(measurements.foo)",
+                "p50(span_op_breakdowns.foo)",
+            ],
+            query="event.type:transaction",
+            params={"project_id": [self.project.id]},
+            use_aggregate_conditions=True,
+        )
+
+        assert results["meta"] == {
+            "p50_measurements_lcp": "duration",
+            "p50_measurements_foo": "number",
+            "p50_span_op_breakdowns_foo": "duration",
+        }
 
 
 class QueryTransformTest(TestCase):
@@ -1625,131 +1647,159 @@ class QueryTransformTest(TestCase):
 
     @patch("sentry.snuba.discover.raw_query")
     def test_find_histogram_min_max(self, mock_query):
-        # no rows returned from snuba
-        mock_query.side_effect = [{"meta": [], "data": []}]
-        values = discover.find_histogram_min_max(
-            ["measurements.foo"], None, None, "", {"project_id": [self.project.id]}
-        )
-        assert values == (None, None)
+        for array_column in ARRAY_COLUMNS:
+            # no rows returned from snuba
+            mock_query.side_effect = [{"meta": [], "data": []}]
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
+            )
+            assert values == (None, None), f"failing for {array_column}"
 
-        # more than 2 rows returned snuba
-        mock_query.side_effect = [{"meta": [], "data": [{}, {}]}]
-        values = discover.find_histogram_min_max(
-            ["measurements.foo"], None, None, "", {"project_id": [self.project.id]}
-        )
-        assert values == (None, None)
+            # more than 2 rows returned snuba
+            mock_query.side_effect = [{"meta": [], "data": [{}, {}]}]
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
+            )
+            assert values == (None, None), f"failing for {array_column}"
 
-        # None rows are returned from snuba
-        mock_query.side_effect = [
-            {
-                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
-                "data": [{"min_measurements_foo": None, "max_measurements_foo": None}],
-            },
-        ]
-        values = discover.find_histogram_min_max(
-            ["measurements.foo"], None, None, "", {"project_id": [self.project.id]}
-        )
-        assert values == (None, None)
+            # None rows are returned from snuba
+            mock_query.side_effect = [
+                {
+                    "meta": [
+                        {"name": f"min_{array_column}_foo"},
+                        {"name": f"max_{array_column}_foo"},
+                    ],
+                    "data": [{f"min_{array_column}_foo": None, f"max_{array_column}_foo": None}],
+                },
+            ]
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
+            )
+            assert values == (None, None), f"failing for {array_column}"
 
-        # use the given min/max
-        values = discover.find_histogram_min_max(
-            ["measurements.foo"], 1, 2, "", {"project_id": [self.project.id]}
-        )
-        assert values == (1, 2)
+            # use the given min/max
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo"], 1, 2, "", {"project_id": [self.project.id]}
+            )
+            assert values == (1, 2), f"failing for {array_column}"
 
-        # use the given min, but query for max
-        mock_query.side_effect = [
-            {"meta": [{"name": "max_measurements_foo"}], "data": [{"max_measurements_foo": 3.45}]},
-        ]
-        values = discover.find_histogram_min_max(
-            ["measurements.foo"], 1.23, None, "", {"project_id": [self.project.id]}
-        )
-        assert values == (1.23, 3.45)
+            # use the given min, but query for max
+            mock_query.side_effect = [
+                {
+                    "meta": [{"name": f"max_{array_column}_foo"}],
+                    "data": [{f"max_{array_column}_foo": 3.45}],
+                },
+            ]
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo"], 1.23, None, "", {"project_id": [self.project.id]}
+            )
+            assert values == (
+                1.23,
+                3.45,
+            ), f"failing for {array_column}"
 
-        # use the given max, but query for min
-        mock_query.side_effect = [
-            {"meta": [{"name": "min_measurements_foo"}], "data": [{"min_measurements_foo": 1.23}]},
-        ]
-        values = discover.find_histogram_min_max(
-            ["measurements.foo"], None, 3.45, "", {"project_id": [self.project.id]}
-        )
-        assert values == (1.23, 3.45)
+            # use the given max, but query for min
+            mock_query.side_effect = [
+                {
+                    "meta": [{"name": f"min_{array_column}_foo"}],
+                    "data": [{f"min_{array_column}_foo": 1.23}],
+                },
+            ]
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo"], None, 3.45, "", {"project_id": [self.project.id]}
+            )
+            assert values == (
+                1.23,
+                3.45,
+            ), f"failing for {array_column}"
 
-        # single min/max returned from snuba
-        mock_query.side_effect = [
-            {
-                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
-                "data": [{"min_measurements_foo": 1.23, "max_measurements_foo": 3.45}],
-            },
-        ]
-        values = discover.find_histogram_min_max(
-            ["measurements.foo"], None, None, "", {"project_id": [self.project.id]}
-        )
-        assert values == (1.23, 3.45)
+            # single min/max returned from snuba
+            mock_query.side_effect = [
+                {
+                    "meta": [
+                        {"name": f"min_{array_column}_foo"},
+                        {"name": f"max_{array_column}_foo"},
+                    ],
+                    "data": [{f"min_{array_column}_foo": 1.23, f"max_{array_column}_foo": 3.45}],
+                },
+            ]
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
+            )
+            assert values == (
+                1.23,
+                3.45,
+            ), f"failing for {array_column}"
 
-        # multiple min/max returned from snuba
-        mock_query.side_effect = [
-            {
-                "meta": [
-                    {"name": "min_measurements_foo"},
-                    {"name": "min_measurements_bar"},
-                    {"name": "min_measurements_baz"},
-                    {"name": "max_measurements_foo"},
-                    {"name": "max_measurements_bar"},
-                    {"name": "max_measurements_baz"},
-                ],
-                "data": [
-                    {
-                        "min_measurements_foo": 1.23,
-                        "min_measurements_bar": 1.34,
-                        "min_measurements_baz": 1.45,
-                        "max_measurements_foo": 3.45,
-                        "max_measurements_bar": 3.56,
-                        "max_measurements_baz": 3.67,
-                    }
-                ],
-            },
-        ]
-        values = discover.find_histogram_min_max(
-            ["measurements.foo", "measurements.bar", "measurements.baz"],
-            None,
-            None,
-            "",
-            {"project_id": [self.project.id]},
-        )
-        assert values == (1.23, 3.67)
+            # multiple min/max returned from snuba
+            mock_query.side_effect = [
+                {
+                    "meta": [
+                        {"name": f"min_{array_column}_foo"},
+                        {"name": f"min_{array_column}_bar"},
+                        {"name": f"min_{array_column}_baz"},
+                        {"name": f"max_{array_column}_foo"},
+                        {"name": f"max_{array_column}_bar"},
+                        {"name": f"max_{array_column}_baz"},
+                    ],
+                    "data": [
+                        {
+                            f"min_{array_column}_foo": 1.23,
+                            f"min_{array_column}_bar": 1.34,
+                            f"min_{array_column}_baz": 1.45,
+                            f"max_{array_column}_foo": 3.45,
+                            f"max_{array_column}_bar": 3.56,
+                            f"max_{array_column}_baz": 3.67,
+                        }
+                    ],
+                },
+            ]
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo", f"{array_column}.bar", f"{array_column}.baz"],
+                None,
+                None,
+                "",
+                {"project_id": [self.project.id]},
+            )
+            assert values == (
+                1.23,
+                3.67,
+            ), f"failing for {array_column}"
 
-        # multiple min/max with some Nones returned from snuba
-        mock_query.side_effect = [
-            {
-                "meta": [
-                    {"name": "min_measurements_foo"},
-                    {"name": "min_measurements_bar"},
-                    {"name": "min_measurements_baz"},
-                    {"name": "max_measurements_foo"},
-                    {"name": "max_measurements_bar"},
-                    {"name": "max_measurements_baz"},
-                ],
-                "data": [
-                    {
-                        "min_measurements_foo": 1.23,
-                        "min_measurements_bar": None,
-                        "min_measurements_baz": 1.45,
-                        "max_measurements_foo": 3.45,
-                        "max_measurements_bar": None,
-                        "max_measurements_baz": 3.67,
-                    }
-                ],
-            },
-        ]
-        values = discover.find_histogram_min_max(
-            ["measurements.foo", "measurements.bar", "measurements.baz"],
-            None,
-            None,
-            "",
-            {"project_id": [self.project.id]},
-        )
-        assert values == (1.23, 3.67)
+            # multiple min/max with some Nones returned from snuba
+            mock_query.side_effect = [
+                {
+                    "meta": [
+                        {"name": f"min_{array_column}_foo"},
+                        {"name": f"min_{array_column}_bar"},
+                        {"name": f"min_{array_column}_baz"},
+                        {"name": f"max_{array_column}_foo"},
+                        {"name": f"max_{array_column}_bar"},
+                        {"name": f"max_{array_column}_baz"},
+                    ],
+                    "data": [
+                        {
+                            f"min_{array_column}_foo": 1.23,
+                            f"min_{array_column}_bar": None,
+                            f"min_{array_column}_baz": 1.45,
+                            f"max_{array_column}_foo": 3.45,
+                            f"max_{array_column}_bar": None,
+                            f"max_{array_column}_baz": 3.67,
+                        }
+                    ],
+                },
+            ]
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo", f"{array_column}.bar", f"{array_column}.baz"],
+                None,
+                None,
+                "",
+                {"project_id": [self.project.id]},
+            )
+            assert values == (
+                1.23,
+                3.67,
+            ), f"failing for {array_column}"
 
     def test_find_histogram_params(self):
         # min and max is None
@@ -1770,447 +1820,473 @@ class QueryTransformTest(TestCase):
         assert discover.find_histogram_params(10, 10, 20, 100) == (9, 120, 1000, 100)
 
     def test_normalize_histogram_results_empty(self):
-        results = {
-            "meta": {
-                "array_join_measurements_key": "string",
-                "histogram_measurements_value_1_0_1": "number",
-                "count": "integer",
-            },
-            "data": [],
-        }
-        normalized_results = discover.normalize_histogram_results(
-            ["measurements.foo"],
-            "array_join(measurements_key)",
-            discover.HistogramParams(3, 1, 0, 1),
-            results,
-        )
-        assert normalized_results == {
-            "measurements.foo": [
-                {"bin": 0, "count": 0},
-                {"bin": 1, "count": 0},
-                {"bin": 2, "count": 0},
-            ],
-        }
+        for array_column in ARRAY_COLUMNS:
+            results = {
+                "meta": {
+                    f"array_join_{array_column}_key": "string",
+                    f"histogram_{array_column}_value_1_0_1": "number",
+                    "count": "integer",
+                },
+                "data": [],
+            }
+            normalized_results = discover.normalize_histogram_results(
+                [f"{array_column}.foo"],
+                f"array_join({array_column}_key)",
+                discover.HistogramParams(3, 1, 0, 1),
+                results,
+                array_column,
+            )
+            assert normalized_results == {
+                f"{array_column}.foo": [
+                    {"bin": 0, "count": 0},
+                    {"bin": 1, "count": 0},
+                    {"bin": 2, "count": 0},
+                ],
+            }, f"failing for {array_column}"
 
     def test_normalize_histogram_results_empty_multiple(self):
-        results = {
-            "meta": {
-                "array_join_measurements_key": "string",
-                "histogram_measurements_value_1_0_1": "number",
-                "count": "integer",
-            },
-            "data": [],
-        }
-        normalized_results = discover.normalize_histogram_results(
-            ["measurements.bar", "measurements.foo"],
-            "array_join(measurements_key)",
-            discover.HistogramParams(3, 1, 0, 1),
-            results,
-        )
-        assert normalized_results == {
-            "measurements.bar": [
-                {"bin": 0, "count": 0},
-                {"bin": 1, "count": 0},
-                {"bin": 2, "count": 0},
-            ],
-            "measurements.foo": [
-                {"bin": 0, "count": 0},
-                {"bin": 1, "count": 0},
-                {"bin": 2, "count": 0},
-            ],
-        }
+        for array_column in ARRAY_COLUMNS:
+            results = {
+                "meta": {
+                    f"array_join_{array_column}_key": "string",
+                    f"histogram_{array_column}_value_1_0_1": "number",
+                    "count": "integer",
+                },
+                "data": [],
+            }
+            normalized_results = discover.normalize_histogram_results(
+                [f"{array_column}.bar", f"{array_column}.foo"],
+                f"array_join({array_column}_key)",
+                discover.HistogramParams(3, 1, 0, 1),
+                results,
+                array_column,
+            )
+            assert normalized_results == {
+                f"{array_column}.bar": [
+                    {"bin": 0, "count": 0},
+                    {"bin": 1, "count": 0},
+                    {"bin": 2, "count": 0},
+                ],
+                f"{array_column}.foo": [
+                    {"bin": 0, "count": 0},
+                    {"bin": 1, "count": 0},
+                    {"bin": 2, "count": 0},
+                ],
+            }, f"failing for {array_column}"
 
     def test_normalize_histogram_results_full(self):
-        results = {
-            "meta": {
-                "array_join_measurements_key": "string",
-                "histogram_measurements_value_1_0_1": "number",
-                "count": "integer",
-            },
-            "data": [
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_1_0_1": 0,
-                    "count": 3,
+        for array_column in ARRAY_COLUMNS:
+            results = {
+                "meta": {
+                    f"array_join_{array_column}_key": "string",
+                    f"histogram_{array_column}_value_1_0_1": "number",
+                    "count": "integer",
                 },
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_1_0_1": 1,
-                    "count": 2,
-                },
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_1_0_1": 2,
-                    "count": 1,
-                },
-            ],
-        }
-        normalized_results = discover.normalize_histogram_results(
-            ["measurements.foo"],
-            "array_join(measurements_key)",
-            discover.HistogramParams(3, 1, 0, 1),
-            results,
-        )
-        assert normalized_results == {
-            "measurements.foo": [
-                {"bin": 0, "count": 3},
-                {"bin": 1, "count": 2},
-                {"bin": 2, "count": 1},
-            ],
-        }
-
-    def test_normalize_histogram_results_full_multiple(self):
-        results = {
-            "meta": {
-                "array_join_measurements_key": "string",
-                "histogram_measurements_value_1_0_1": "number",
-                "count": "integer",
-            },
-            "data": [
-                {
-                    "array_join_measurements_key": "bar",
-                    "histogram_measurements_value_1_0_1": 0,
-                    "count": 1,
-                },
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_1_0_1": 0,
-                    "count": 3,
-                },
-                {
-                    "array_join_measurements_key": "bar",
-                    "histogram_measurements_value_1_0_1": 1,
-                    "count": 2,
-                },
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_1_0_1": 1,
-                    "count": 2,
-                },
-                {
-                    "array_join_measurements_key": "bar",
-                    "histogram_measurements_value_1_0_1": 2,
-                    "count": 3,
-                },
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_1_0_1": 2,
-                    "count": 1,
-                },
-            ],
-        }
-        normalized_results = discover.normalize_histogram_results(
-            ["measurements.bar", "measurements.foo"],
-            "array_join(measurements_key)",
-            discover.HistogramParams(3, 1, 0, 1),
-            results,
-        )
-        assert normalized_results == {
-            "measurements.bar": [
-                {"bin": 0, "count": 1},
-                {"bin": 1, "count": 2},
-                {"bin": 2, "count": 3},
-            ],
-            "measurements.foo": [
-                {"bin": 0, "count": 3},
-                {"bin": 1, "count": 2},
-                {"bin": 2, "count": 1},
-            ],
-        }
-
-    def test_normalize_histogram_results_partial(self):
-        results = {
-            "meta": {
-                "array_join_measurements_key": "string",
-                "histogram_measurements_value_1_0_1": "number",
-                "count": "integer",
-            },
-            "data": [
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_1_0_1": 0,
-                    "count": 3,
-                },
-            ],
-        }
-        normalized_results = discover.normalize_histogram_results(
-            ["measurements.foo"],
-            "array_join(measurements_key)",
-            discover.HistogramParams(3, 1, 0, 1),
-            results,
-        )
-        assert normalized_results == {
-            "measurements.foo": [
-                {"bin": 0, "count": 3},
-                {"bin": 1, "count": 0},
-                {"bin": 2, "count": 0},
-            ],
-        }
-
-    def test_normalize_histogram_results_partial_multiple(self):
-        results = {
-            "meta": {
-                "array_join_measurements_key": "string",
-                "histogram_measurements_value_1_0_1": "number",
-                "count": "integer",
-            },
-            "data": [
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_1_0_1": 0,
-                    "count": 3,
-                },
-                {
-                    "array_join_measurements_key": "bar",
-                    "histogram_measurements_value_1_0_1": 2,
-                    "count": 3,
-                },
-            ],
-        }
-        normalized_results = discover.normalize_histogram_results(
-            ["measurements.bar", "measurements.foo"],
-            "array_join(measurements_key)",
-            discover.HistogramParams(3, 1, 0, 1),
-            results,
-        )
-        assert normalized_results == {
-            "measurements.bar": [
-                {"bin": 0, "count": 0},
-                {"bin": 1, "count": 0},
-                {"bin": 2, "count": 3},
-            ],
-            "measurements.foo": [
-                {"bin": 0, "count": 3},
-                {"bin": 1, "count": 0},
-                {"bin": 2, "count": 0},
-            ],
-        }
-
-    def test_normalize_histogram_results_ignore_unexpected_rows(self):
-        results = {
-            "meta": {
-                "array_join_measurements_key": "string",
-                "histogram_measurements_value_1_0_1": "number",
-                "count": "integer",
-            },
-            "data": [
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_1_0_1": 0,
-                    "count": 3,
-                },
-                # this row shouldn't be used because "baz" isn't an expected measurement
-                {
-                    "array_join_measurements_key": "baz",
-                    "histogram_measurements_value_1_0_1": 1,
-                    "count": 3,
-                },
-                {
-                    "array_join_measurements_key": "bar",
-                    "histogram_measurements_value_1_0_1": 2,
-                    "count": 3,
-                },
-                # this row shouldn't be used because 3 isn't an expected bin
-                {
-                    "array_join_measurements_key": "bar",
-                    "histogram_measurements_value_1_0_1": 3,
-                    "count": 3,
-                },
-            ],
-        }
-        normalized_results = discover.normalize_histogram_results(
-            ["measurements.bar", "measurements.foo"],
-            "array_join(measurements_key)",
-            discover.HistogramParams(3, 1, 0, 1),
-            results,
-        )
-        assert normalized_results == {
-            "measurements.bar": [
-                {"bin": 0, "count": 0},
-                {"bin": 1, "count": 0},
-                {"bin": 2, "count": 3},
-            ],
-            "measurements.foo": [
-                {"bin": 0, "count": 3},
-                {"bin": 1, "count": 0},
-                {"bin": 2, "count": 0},
-            ],
-        }
-
-    def test_normalize_histogram_results_adjust_for_precision(self):
-        results = {
-            "meta": {
-                "array_join_measurements_key": "string",
-                "histogram_measurements_value_25_0_100": "number",
-                "count": "integer",
-            },
-            "data": [
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_25_0_100": 0,
-                    "count": 3,
-                },
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_25_0_100": 25,
-                    "count": 2,
-                },
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_25_0_100": 50,
-                    "count": 1,
-                },
-                {
-                    "array_join_measurements_key": "foo",
-                    "histogram_measurements_value_25_0_100": 75,
-                    "count": 1,
-                },
-            ],
-        }
-        normalized_results = discover.normalize_histogram_results(
-            ["measurements.foo"],
-            "array_join(measurements_key)",
-            discover.HistogramParams(4, 25, 0, 100),
-            results,
-        )
-        assert normalized_results == {
-            "measurements.foo": [
-                {"bin": 0, "count": 3},
-                {"bin": 0.25, "count": 2},
-                {"bin": 0.50, "count": 1},
-                {"bin": 0.75, "count": 1},
-            ],
-        }
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_query(self, mock_query):
-        mock_query.side_effect = [
-            {
-                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
                 "data": [
                     {
-                        "min_measurements_bar": 2,
-                        "min_measurements_foo": 0,
-                        "max_measurements_bar": 2,
-                        "max_measurements_foo": 2,
-                    }
-                ],
-            },
-            {
-                "meta": [
-                    {"name": "array_join_measurements_key", "type": "String"},
-                    {"name": "histogram_measurements_value_1_0_1", "type": "Float64"},
-                    {"name": "count", "type": "UInt64"},
-                ],
-                "data": [
-                    {
-                        "array_join_measurements_key": "bar",
-                        "histogram_measurements_value_1_0_1": 0,
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_1_0_1": 0,
                         "count": 3,
                     },
                     {
-                        "array_join_measurements_key": "foo",
-                        "histogram_measurements_value_1_0_1": 0,
-                        "count": 3,
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_1_0_1": 1,
+                        "count": 2,
                     },
                     {
-                        "array_join_measurements_key": "foo",
-                        "histogram_measurements_value_1_0_1": 2,
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_1_0_1": 2,
                         "count": 1,
                     },
                 ],
-            },
-        ]
-        results = discover.histogram_query(
-            ["measurements.bar", "measurements.foo"], "", {"project_id": [self.project.id]}, 3, 0
-        )
-        assert results == {
-            "measurements.bar": [
-                {"bin": 0, "count": 3},
-                {"bin": 1, "count": 0},
-                {"bin": 2, "count": 0},
-            ],
-            "measurements.foo": [
-                {"bin": 0, "count": 3},
-                {"bin": 1, "count": 0},
-                {"bin": 2, "count": 1},
-            ],
-        }
+            }
+            normalized_results = discover.normalize_histogram_results(
+                [f"{array_column}.foo"],
+                f"array_join({array_column}_key)",
+                discover.HistogramParams(3, 1, 0, 1),
+                results,
+                array_column,
+            )
+            assert normalized_results == {
+                f"{array_column}.foo": [
+                    {"bin": 0, "count": 3},
+                    {"bin": 1, "count": 2},
+                    {"bin": 2, "count": 1},
+                ],
+            }, f"failing for {array_column}"
 
-    def test_histogram_query_with_bad_fields(self):
-        with pytest.raises(InvalidSearchQuery) as err:
-            discover.histogram_query(
-                ["measurements.bar", "transaction.duration"],
+    def test_normalize_histogram_results_full_multiple(self):
+        for array_column in ARRAY_COLUMNS:
+            results = {
+                "meta": {
+                    f"array_join_{array_column}_key": "string",
+                    f"histogram_{array_column}_value_1_0_1": "number",
+                    "count": "integer",
+                },
+                "data": [
+                    {
+                        f"array_join_{array_column}_key": "bar",
+                        f"histogram_{array_column}_value_1_0_1": 0,
+                        "count": 1,
+                    },
+                    {
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_1_0_1": 0,
+                        "count": 3,
+                    },
+                    {
+                        f"array_join_{array_column}_key": "bar",
+                        f"histogram_{array_column}_value_1_0_1": 1,
+                        "count": 2,
+                    },
+                    {
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_1_0_1": 1,
+                        "count": 2,
+                    },
+                    {
+                        f"array_join_{array_column}_key": "bar",
+                        f"histogram_{array_column}_value_1_0_1": 2,
+                        "count": 3,
+                    },
+                    {
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_1_0_1": 2,
+                        "count": 1,
+                    },
+                ],
+            }
+            normalized_results = discover.normalize_histogram_results(
+                [f"{array_column}.bar", f"{array_column}.foo"],
+                f"array_join({array_column}_key)",
+                discover.HistogramParams(3, 1, 0, 1),
+                results,
+                array_column,
+            )
+            assert normalized_results == {
+                f"{array_column}.bar": [
+                    {"bin": 0, "count": 1},
+                    {"bin": 1, "count": 2},
+                    {"bin": 2, "count": 3},
+                ],
+                f"{array_column}.foo": [
+                    {"bin": 0, "count": 3},
+                    {"bin": 1, "count": 2},
+                    {"bin": 2, "count": 1},
+                ],
+            }, f"failing for {array_column}"
+
+    def test_normalize_histogram_results_partial(self):
+        for array_column in ARRAY_COLUMNS:
+            results = {
+                "meta": {
+                    f"array_join_{array_column}_key": "string",
+                    f"histogram_{array_column}_value_1_0_1": "number",
+                    "count": "integer",
+                },
+                "data": [
+                    {
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_1_0_1": 0,
+                        "count": 3,
+                    },
+                ],
+            }
+            normalized_results = discover.normalize_histogram_results(
+                [f"{array_column}.foo"],
+                f"array_join({array_column}_key)",
+                discover.HistogramParams(3, 1, 0, 1),
+                results,
+                array_column,
+            )
+            assert normalized_results == {
+                f"{array_column}.foo": [
+                    {"bin": 0, "count": 3},
+                    {"bin": 1, "count": 0},
+                    {"bin": 2, "count": 0},
+                ],
+            }, f"failing for {array_column}"
+
+    def test_normalize_histogram_results_partial_multiple(self):
+        for array_column in ARRAY_COLUMNS:
+            results = {
+                "meta": {
+                    f"array_join_{array_column}_key": "string",
+                    f"histogram_{array_column}_value_1_0_1": "number",
+                    "count": "integer",
+                },
+                "data": [
+                    {
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_1_0_1": 0,
+                        "count": 3,
+                    },
+                    {
+                        f"array_join_{array_column}_key": "bar",
+                        f"histogram_{array_column}_value_1_0_1": 2,
+                        "count": 3,
+                    },
+                ],
+            }
+            normalized_results = discover.normalize_histogram_results(
+                [f"{array_column}.bar", f"{array_column}.foo"],
+                f"array_join({array_column}_key)",
+                discover.HistogramParams(3, 1, 0, 1),
+                results,
+                array_column,
+            )
+            assert normalized_results == {
+                f"{array_column}.bar": [
+                    {"bin": 0, "count": 0},
+                    {"bin": 1, "count": 0},
+                    {"bin": 2, "count": 3},
+                ],
+                f"{array_column}.foo": [
+                    {"bin": 0, "count": 3},
+                    {"bin": 1, "count": 0},
+                    {"bin": 2, "count": 0},
+                ],
+            }, f"failing for {array_column}"
+
+    def test_normalize_histogram_results_ignore_unexpected_rows(self):
+        for array_column in ARRAY_COLUMNS:
+            results = {
+                "meta": {
+                    f"array_join_{array_column}_key": "string",
+                    f"histogram_{array_column}_value_1_0_1": "number",
+                    "count": "integer",
+                },
+                "data": [
+                    {
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_1_0_1": 0,
+                        "count": 3,
+                    },
+                    # this row shouldn't be used because "baz" isn't an expected array_column
+                    {
+                        f"array_join_{array_column}_key": "baz",
+                        f"histogram_{array_column}_value_1_0_1": 1,
+                        "count": 3,
+                    },
+                    {
+                        f"array_join_{array_column}_key": "bar",
+                        f"histogram_{array_column}_value_1_0_1": 2,
+                        "count": 3,
+                    },
+                    # this row shouldn't be used because 3 isn't an expected bin
+                    {
+                        f"array_join_{array_column}_key": "bar",
+                        f"histogram_{array_column}_value_1_0_1": 3,
+                        "count": 3,
+                    },
+                ],
+            }
+            normalized_results = discover.normalize_histogram_results(
+                [f"{array_column}.bar", f"{array_column}.foo"],
+                f"array_join({array_column}_key)",
+                discover.HistogramParams(3, 1, 0, 1),
+                results,
+                array_column,
+            )
+            assert normalized_results == {
+                f"{array_column}.bar": [
+                    {"bin": 0, "count": 0},
+                    {"bin": 1, "count": 0},
+                    {"bin": 2, "count": 3},
+                ],
+                f"{array_column}.foo": [
+                    {"bin": 0, "count": 3},
+                    {"bin": 1, "count": 0},
+                    {"bin": 2, "count": 0},
+                ],
+            }, f"failing for {array_column}"
+
+    def test_normalize_histogram_results_adjust_for_precision(self):
+        for array_column in ARRAY_COLUMNS:
+            results = {
+                "meta": {
+                    f"array_join_{array_column}_key": "string",
+                    f"histogram_{array_column}_value_25_0_100": "number",
+                    "count": "integer",
+                },
+                "data": [
+                    {
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_25_0_100": 0,
+                        "count": 3,
+                    },
+                    {
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_25_0_100": 25,
+                        "count": 2,
+                    },
+                    {
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_25_0_100": 50,
+                        "count": 1,
+                    },
+                    {
+                        f"array_join_{array_column}_key": "foo",
+                        f"histogram_{array_column}_value_25_0_100": 75,
+                        "count": 1,
+                    },
+                ],
+            }
+            normalized_results = discover.normalize_histogram_results(
+                [f"{array_column}.foo"],
+                f"array_join({array_column}_key)",
+                discover.HistogramParams(4, 25, 0, 100),
+                results,
+                array_column,
+            )
+            assert normalized_results == {
+                f"{array_column}.foo": [
+                    {"bin": 0, "count": 3},
+                    {"bin": 0.25, "count": 2},
+                    {"bin": 0.50, "count": 1},
+                    {"bin": 0.75, "count": 1},
+                ],
+            }, f"failing for {array_column}"
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_query(self, mock_query):
+        for array_column in ARRAY_COLUMNS:
+            mock_query.side_effect = [
+                {
+                    "meta": [
+                        {"name": f"min_{array_column}_foo"},
+                        {"name": f"max_{array_column}_foo"},
+                    ],
+                    "data": [
+                        {
+                            f"min_{array_column}_bar": 2,
+                            f"min_{array_column}_foo": 0,
+                            f"max_{array_column}_bar": 2,
+                            f"max_{array_column}_foo": 2,
+                        }
+                    ],
+                },
+                {
+                    "meta": [
+                        {"name": f"array_join_{array_column}_key", "type": "String"},
+                        {"name": f"histogram_{array_column}_value_1_0_1", "type": "Float64"},
+                        {"name": "count", "type": "UInt64"},
+                    ],
+                    "data": [
+                        {
+                            f"array_join_{array_column}_key": "bar",
+                            f"histogram_{array_column}_value_1_0_1": 0,
+                            "count": 3,
+                        },
+                        {
+                            f"array_join_{array_column}_key": "foo",
+                            f"histogram_{array_column}_value_1_0_1": 0,
+                            "count": 3,
+                        },
+                        {
+                            f"array_join_{array_column}_key": "foo",
+                            f"histogram_{array_column}_value_1_0_1": 2,
+                            "count": 1,
+                        },
+                    ],
+                },
+            ]
+            results = discover.histogram_query(
+                [f"{array_column}.bar", f"{array_column}.foo"],
                 "",
                 {"project_id": [self.project.id]},
                 3,
                 0,
             )
-        assert "multihistogram expected all measurements, received: transaction.duration" in str(
-            err
-        )
+            assert results == {
+                f"{array_column}.bar": [
+                    {"bin": 0, "count": 3},
+                    {"bin": 1, "count": 0},
+                    {"bin": 2, "count": 0},
+                ],
+                f"{array_column}.foo": [
+                    {"bin": 0, "count": 3},
+                    {"bin": 1, "count": 0},
+                    {"bin": 2, "count": 1},
+                ],
+            }, f"failing for {array_column}"
+
+    def test_histogram_query_with_bad_fields(self):
+        for array_column in ARRAY_COLUMNS:
+            with pytest.raises(InvalidSearchQuery) as err:
+                discover.histogram_query(
+                    [f"{array_column}.bar", "transaction.duration"],
+                    "",
+                    {"project_id": [self.project.id]},
+                    3,
+                    0,
+                )
+            assert "multihistogram expected either all measurements or all breakdowns" in str(
+                err
+            ), f"failing for {array_column}"
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_query_with_optionals(self, mock_query):
-        mock_query.side_effect = [
-            {
-                "meta": [
-                    {"name": "array_join_measurements_key", "type": "String"},
-                    {"name": "histogram_measurements_value_5_5_10", "type": "Float64"},
-                    {"name": "count", "type": "UInt64"},
+        for array_column in ARRAY_COLUMNS:
+            mock_query.side_effect = [
+                {
+                    "meta": [
+                        {"name": f"array_join_{array_column}_key", "type": "String"},
+                        {"name": f"histogram_{array_column}_value_5_5_10", "type": "Float64"},
+                        {"name": "count", "type": "UInt64"},
+                    ],
+                    "data": [
+                        # this row shouldn't be used because it lies outside the boundary
+                        {
+                            f"array_join_{array_column}_key": "foo",
+                            f"histogram_{array_column}_value_5_5_10": 0,
+                            "count": 1,
+                        },
+                        {
+                            f"array_join_{array_column}_key": "foo",
+                            f"histogram_{array_column}_value_5_5_10": 5,
+                            "count": 3,
+                        },
+                        {
+                            f"array_join_{array_column}_key": "bar",
+                            f"histogram_{array_column}_value_5_5_10": 10,
+                            "count": 2,
+                        },
+                        {
+                            f"array_join_{array_column}_key": "foo",
+                            f"histogram_{array_column}_value_5_5_10": 15,
+                            "count": 1,
+                        },
+                        # this row shouldn't be used because it lies outside the boundary
+                        {
+                            f"array_join_{array_column}_key": "bar",
+                            f"histogram_{array_column}_value_5_5_10": 30,
+                            "count": 2,
+                        },
+                    ],
+                },
+            ]
+            results = discover.histogram_query(
+                [f"{array_column}.bar", f"{array_column}.foo"],
+                "",
+                {"project_id": [self.project.id]},
+                3,
+                1,
+                0.5,
+                2,
+            )
+            assert results == {
+                f"{array_column}.bar": [
+                    {"bin": 0.5, "count": 0},
+                    {"bin": 1.0, "count": 2},
+                    {"bin": 1.5, "count": 0},
                 ],
-                "data": [
-                    # this row shouldn't be used because it lies outside the boundary
-                    {
-                        "array_join_measurements_key": "foo",
-                        "histogram_measurements_value_5_5_10": 0,
-                        "count": 1,
-                    },
-                    {
-                        "array_join_measurements_key": "foo",
-                        "histogram_measurements_value_5_5_10": 5,
-                        "count": 3,
-                    },
-                    {
-                        "array_join_measurements_key": "bar",
-                        "histogram_measurements_value_5_5_10": 10,
-                        "count": 2,
-                    },
-                    {
-                        "array_join_measurements_key": "foo",
-                        "histogram_measurements_value_5_5_10": 15,
-                        "count": 1,
-                    },
-                    # this row shouldn't be used because it lies outside the boundary
-                    {
-                        "array_join_measurements_key": "bar",
-                        "histogram_measurements_value_5_5_10": 30,
-                        "count": 2,
-                    },
+                f"{array_column}.foo": [
+                    {"bin": 0.5, "count": 3},
+                    {"bin": 1.0, "count": 0},
+                    {"bin": 1.5, "count": 1},
                 ],
-            },
-        ]
-        results = discover.histogram_query(
-            ["measurements.bar", "measurements.foo"],
-            "",
-            {"project_id": [self.project.id]},
-            3,
-            1,
-            0.5,
-            2,
-        )
-        assert results == {
-            "measurements.bar": [
-                {"bin": 0.5, "count": 0},
-                {"bin": 1.0, "count": 2},
-                {"bin": 1.5, "count": 0},
-            ],
-            "measurements.foo": [
-                {"bin": 0.5, "count": 3},
-                {"bin": 1.0, "count": 0},
-                {"bin": 1.5, "count": 1},
-            ],
-        }
+            }, f"failing for {array_column}"
 
 
 class TimeseriesBase(SnubaTestCase, TestCase):
@@ -2487,6 +2563,83 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
             referrer=None,
         )
 
+    @patch("sentry.snuba.discover.raw_query")
+    def test_timestamp_fields(self, mock_query):
+        timestamp1 = before_now(days=2, minutes=5)
+        timestamp2 = before_now(minutes=2)
+        top_events = {
+            "data": [
+                {
+                    "timestamp": iso_format(timestamp1),
+                    "timestamp.to_hour": iso_format(timestamp1.replace(minute=0, second=0)),
+                    "timestamp.to_day": iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                },
+                {
+                    "timestamp": iso_format(timestamp2),
+                    "timestamp.to_hour": iso_format(timestamp2.replace(minute=0, second=0)),
+                    "timestamp.to_day": iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                },
+            ]
+        }
+        start = before_now(days=3, minutes=10)
+        end = before_now(minutes=1)
+        discover.top_events_timeseries(
+            selected_columns=["timestamp", "timestamp.to_day", "timestamp.to_hour", "count()"],
+            params={
+                "start": start,
+                "end": end,
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+            top_events=top_events,
+            timeseries_columns=["count()"],
+            user_query="",
+            orderby=["count()"],
+            limit=10000,
+            organization=self.organization,
+        )
+        mock_query.assert_called_with(
+            aggregations=[["count", None, "count"]],
+            conditions=[
+                # Each timestamp field should generated a nested condition.
+                # Within each, the conditions will be ORed together.
+                [
+                    ["timestamp", "=", iso_format(timestamp1)],
+                    ["timestamp", "=", iso_format(timestamp2)],
+                ],
+                [
+                    [
+                        "timestamp.to_day",
+                        "=",
+                        iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                    ],
+                    [
+                        "timestamp.to_day",
+                        "=",
+                        iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                    ],
+                ],
+                [
+                    ["timestamp.to_hour", "=", iso_format(timestamp1.replace(minute=0, second=0))],
+                    ["timestamp.to_hour", "=", iso_format(timestamp2.replace(minute=0, second=0))],
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            selected_columns=[
+                "timestamp",
+                ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
+                ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
+            ],
+            start=start,
+            end=end,
+            rollup=3600,
+            orderby=["time", "timestamp", "timestamp.to_day", "timestamp.to_hour"],
+            groupby=["time", "timestamp", "timestamp.to_day", "timestamp.to_hour"],
+            dataset=Dataset.Discover,
+            limit=10000,
+            referrer=None,
+        )
+
 
 def format_project_event(project_slug, event_id):
     return f"{project_slug}:{event_id}"
@@ -2731,7 +2884,6 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
             }
         ):
             result = discover.get_performance_facets("", params)
-            self.wait_for_event_count(self.project.id, 2)
 
             assert len(result) == 12
             for r in result:

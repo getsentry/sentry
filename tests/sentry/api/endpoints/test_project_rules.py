@@ -1,3 +1,5 @@
+import responses
+
 from django.core.urlresolvers import reverse
 from unittest.mock import patch
 
@@ -150,6 +152,7 @@ class CreateProjectRuleTest(APITestCase):
         assert rule.label == "hello world"
         assert rule.environment_id is None
 
+    @responses.activate
     def test_slack_channel_id_saved(self):
         self.login_as(user=self.user)
 
@@ -165,6 +168,15 @@ class CreateProjectRuleTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-rules",
             kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channel": {"name": "team-team-team", "id": "CSVK0921"}}
+            ),
         )
         response = self.client.post(
             url,

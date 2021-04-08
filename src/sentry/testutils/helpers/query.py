@@ -1,7 +1,5 @@
 import sqlparse
-
 from sqlparse.tokens import DML
-
 
 __all__ = ("parse_queries",)
 

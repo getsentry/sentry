@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'app/components/charts/styles';
+import FeatureBadge from 'app/components/featureBadge';
 import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
 
@@ -10,9 +11,16 @@ type MetaDataProps = {
   tooltipText: string;
   bodyText: React.ReactNode;
   subtext: React.ReactNode;
+  beta?: boolean;
 };
 
-export function MetaData({headingText, tooltipText, bodyText, subtext}: MetaDataProps) {
+export function MetaData({
+  headingText,
+  tooltipText,
+  bodyText,
+  subtext,
+  beta,
+}: MetaDataProps) {
   return (
     <HeaderInfo>
       <StyledSectionHeading>
@@ -23,6 +31,7 @@ export function MetaData({headingText, tooltipText, bodyText, subtext}: MetaData
           containerDisplayMode="block"
           title={tooltipText}
         />
+        {beta && <StyledFeatureBadge type="beta" />}
       </StyledSectionHeading>
       <SectionBody>{bodyText}</SectionBody>
       <SectionSubtext>{subtext}</SectionSubtext>
@@ -39,9 +48,13 @@ const StyledSectionHeading = styled(SectionHeading)`
 `;
 
 const SectionBody = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   padding: ${space(0.5)} 0;
   max-height: 32px;
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin: 0;
 `;
 
 export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`

@@ -516,6 +516,35 @@ class FetchFileTest(TestCase):
         assert result == result2
 
     @responses.activate
+    def test_too_large_for_cache(self):
+        # make the cache fail
+        domain_key = http.get_domain_key("http://example.com")
+
+        original_get = cache.get
+
+        def cache_get(key):
+            if key == domain_key:
+                return original_get(key)
+
+        with patch("sentry.utils.cache.cache.get", side_effect=cache_get):
+            responses.add(
+                responses.GET,
+                "http://example.com",
+                body=b"Stuff",
+                content_type="application/json; charset=utf-8",
+            )
+
+            with pytest.raises(http.CannotFetch) as exc:
+                fetch_file("http://example.com")
+
+            assert exc.value.data["type"] == EventError.TOO_LARGE_FOR_CACHE
+
+            assert cache.get(domain_key) == {
+                "type": "too_large_for_cache",
+                "url": "http://example.com",
+            }
+
+    @responses.activate
     def test_truncated(self):
         url = truncatechars("http://example.com", 3)
         with pytest.raises(http.CannotFetch) as exc:

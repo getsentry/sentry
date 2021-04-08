@@ -5,28 +5,19 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
-import Feature from 'app/components/acl/feature';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkLine from 'app/components/charts/components/markLine';
-import MarkPoint from 'app/components/charts/components/markPoint';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import DiscoverButton from 'app/components/discoverButton';
 import Placeholder from 'app/components/placeholder';
-import Tag from 'app/components/tag';
-import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
-import {
-  formatAbbreviatedNumber,
-  formatFloat,
-  formatPercentage,
-  getDuration,
-} from 'app/utils/formatters';
+import {formatAbbreviatedNumber, formatFloat, getDuration} from 'app/utils/formatters';
 import getDynamicText from 'app/utils/getDynamicText';
 import {HistogramData} from 'app/utils/performance/histogram/types';
 import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
@@ -160,9 +151,8 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   renderSummary() {
-    const {vitalDetails: vital, colors, eventView, organization, min, max} = this.props;
-    const summary = this.summary;
-    const {slug, name, description, poorThreshold} = vital;
+    const {vitalDetails: vital, eventView, organization, min, max} = this.props;
+    const {slug, name, description} = vital;
 
     const column = `measurements.${slug}`;
 
@@ -194,15 +184,8 @@ class VitalCard extends React.Component<Props, State> {
 
     return (
       <CardSummary>
-        {!this.showVitalColours() && <Indicator color={colors[0]} />}
         <SummaryHeading>
           <CardSectionHeading>{`${name} (${slug.toUpperCase()})`}</CardSectionHeading>
-          {summary === null || this.showVitalColours() ? null : summary <
-            poorThreshold ? (
-            <Tag>{t('Pass')}</Tag>
-          ) : (
-            <StyledTag>{t('Fail')}</StyledTag>
-          )}
         </SummaryHeading>
         <StatNumber>
           {getDynamicText({
@@ -295,12 +278,6 @@ class VitalCard extends React.Component<Props, State> {
       if (baselineSeries !== null) {
         allSeries.push(baselineSeries);
       }
-      if (!this.showVitalColours()) {
-        const failureSeries = this.getFailureSeries();
-        if (failureSeries !== null) {
-          allSeries.push(failureSeries);
-        }
-      }
     }
 
     const vitalData =
@@ -319,19 +296,17 @@ class VitalCard extends React.Component<Props, State> {
         {zoomRenderProps => (
           <Container>
             <TransparentLoadingMask visible={isLoading} />
-            <Feature features={['organizations:performance-vitals-overview']}>
-              <PercentContainer>
-                <VitalBar
-                  isLoading={isLoading}
-                  data={vitalData}
-                  vital={vital}
-                  showBar={false}
-                  showStates={false}
-                  showVitalPercentNames={false}
-                  showDurationDetail={false}
-                />
-              </PercentContainer>
-            </Feature>
+            <PercentContainer>
+              <VitalBar
+                isLoading={isLoading}
+                data={vitalData}
+                vital={vital}
+                showBar={false}
+                showStates={false}
+                showVitalPercentNames={false}
+                showDurationDetail={false}
+              />
+            </PercentContainer>
             {getDynamicText({
               value: (
                 <BarChart
@@ -476,134 +451,6 @@ class VitalCard extends React.Component<Props, State> {
     };
   }
 
-  getFailureSeries() {
-    const {theme, chartData, vitalDetails: vital} = this.props;
-    const failureRate = this.failureRate;
-    const {poorThreshold, type} = vital;
-    if (this.state.refDataRect === null || this.state.refPixelRect === null) {
-      return null;
-    }
-
-    let failureBucket = findNearestBucketIndex(chartData, poorThreshold);
-    if (failureBucket === null) {
-      return null;
-    }
-    failureBucket = failureBucket === -1 ? 0 : failureBucket;
-
-    // since we found the failure bucket, the failure threshold is
-    // visible on the graph, so let's draw the fail region
-    const failurePixel = mapPoint(
-      {
-        // subtract 0.5 from the x here to ensure that the boundary of
-        // the failure region lies between buckets
-        x: failureBucket - 0.5,
-        y: 0,
-      },
-      this.state.refDataRect!,
-      this.state.refPixelRect!
-    );
-    if (failurePixel === null) {
-      return null;
-    }
-
-    const topRightPixel = mapPoint(
-      {
-        // subtract 0.5 to get on the right side of the right most bar
-        x: chartData.length - 0.5,
-        y: Math.max(...chartData.map(data => data.count)) || 1,
-      },
-      this.state.refDataRect!,
-      this.state.refPixelRect!
-    );
-    if (topRightPixel === null) {
-      return null;
-    }
-
-    // Using a MarkArea means that hovering over the interior of the area
-    // will trigger the tooltip for the MarkArea, making it impossible to
-    // see outliers with the tooltip. So we get around this using lines.
-    const markLine = MarkLine({
-      animation: false,
-      data: [
-        // left
-        [
-          {x: failurePixel.x, y: failurePixel.y},
-          {x: failurePixel.x, y: topRightPixel.y},
-        ] as any,
-        // top
-        [
-          {x: failurePixel.x, y: topRightPixel.y},
-          {x: topRightPixel.x, y: topRightPixel.y},
-        ] as any,
-        // right
-        [
-          {x: topRightPixel.x, y: topRightPixel.y},
-          {x: topRightPixel.x, y: failurePixel.y},
-        ] as any,
-        // We do not draw the bottom line of the the box because it
-        // partially obscures possible outliers.
-      ],
-      label: {
-        show: false,
-      },
-      lineStyle: {
-        color: theme.red300,
-        type: 'dashed',
-        width: 1.5,
-        // prevent each individual line from looking emphasized
-        // by styling it the same as the unemphasized line
-        emphasis: {
-          color: theme.red300,
-          type: 'dashed',
-          width: 1.5,
-        },
-      },
-    });
-
-    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
-    // if we add it in the constructor. So we opt to add it here so typescript
-    // doesn't complain.
-    (markLine as any).tooltip = {
-      formatter: () =>
-        [
-          '<div class="tooltip-series tooltip-series-solo">',
-          '<span class="tooltip-label">',
-          '<strong>',
-          t(
-            'Fails threshold at %s.',
-            type === 'duration'
-              ? getDuration(poorThreshold / 1000, 2, true)
-              : formatFloat(poorThreshold, 2)
-          ),
-          '</strong>',
-          '</span>',
-          '</div>',
-          '<div class="tooltip-arrow"></div>',
-        ].join(''),
-    };
-
-    const markPoint = MarkPoint({
-      animationDuration: 200,
-      data: [{x: topRightPixel.x - 16, y: topRightPixel.y + 16}] as any,
-      itemStyle: {color: theme.red300},
-      silent: true,
-      symbol: `path://${FIRE_SVG_PATH}`,
-      symbolKeepAspect: true,
-      symbolSize: [14, 16],
-      label: {
-        formatter: formatPercentage(failureRate, 0),
-        position: 'left',
-      },
-    });
-
-    return {
-      seriesName: t('Failure Region'),
-      data: [],
-      markLine,
-      markPoint,
-    };
-  }
-
   render() {
     return (
       <Card>
@@ -613,20 +460,6 @@ class VitalCard extends React.Component<Props, State> {
     );
   }
 }
-
-type IndicatorProps = {
-  color: string;
-};
-
-const Indicator = styled('div')<IndicatorProps>`
-  position: absolute;
-  top: 20px;
-  left: 0px;
-  width: 6px;
-  height: 20px;
-  border-radius: 0 3px 3px 0;
-  background-color: ${p => p.color};
-`;
 
 const SummaryHeading = styled('div')`
   display: flex;
@@ -642,15 +475,6 @@ const PercentContainer = styled('div')`
   top: ${space(2)};
   right: ${space(3)};
   z-index: 2;
-`;
-
-const StyledTag = styled(Tag)`
-  div {
-    background-color: ${p => p.theme.red300};
-  }
-  span {
-    color: ${p => p.theme.white};
-  }
 `;
 
 export default withTheme(VitalCard);

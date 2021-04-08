@@ -1,6 +1,5 @@
 from django.db.models import F
 from django.utils import timezone
-
 from rest_framework import serializers
 from rest_framework.response import Response
 

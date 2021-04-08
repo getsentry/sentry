@@ -38,6 +38,8 @@ type Props = {
   triggers: Trigger[];
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
@@ -192,6 +194,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
       resolveThreshold,
       thresholdType,
       environment,
+      header,
+      footer,
     } = this.props;
     const {statsPeriod, totalEvents} = this.state;
 
@@ -258,6 +262,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                       <ChartPlaceholder />
                     ) : (
                       <React.Fragment>
+                        {header}
                         <TransparentLoadingMask visible={reloading} />
                         <ThresholdsChart
                           period={statsPeriod}
@@ -271,11 +276,17 @@ class TriggersChart extends React.PureComponent<Props, State> {
                     )}
                     <ChartControls>
                       <InlineContainer>
-                        <SectionHeading>{t('Total Events')}</SectionHeading>
-                        {totalEvents !== null ? (
-                          <SectionValue>{totalEvents.toLocaleString()}</SectionValue>
+                        {footer ? (
+                          footer
                         ) : (
-                          <SectionValue>&mdash;</SectionValue>
+                          <React.Fragment>
+                            <SectionHeading>{t('Total Events')}</SectionHeading>
+                            {totalEvents !== null ? (
+                              <SectionValue>{totalEvents.toLocaleString()}</SectionValue>
+                            ) : (
+                              <SectionValue>&mdash;</SectionValue>
+                            )}
+                          </React.Fragment>
                         )}
                       </InlineContainer>
                       <InlineContainer>
@@ -335,4 +346,5 @@ const PeriodSelectControl = styled(SelectControl)`
   font-weight: normal;
   text-transform: none;
   border: 0;
+  margin-right: ${space(2)};
 `;

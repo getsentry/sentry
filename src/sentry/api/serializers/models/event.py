@@ -1,11 +1,12 @@
 from datetime import datetime
+
 from django.utils import timezone
 from sentry_relay import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event
 from sentry.models import EventAttachment, EventError, Release, UserReport
-from sentry.sdk_updates import get_suggested_updates, SdkSetupState
+from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.utils.compat import zip
 from sentry.utils.json import prune_empty_keys
@@ -284,6 +285,7 @@ class EventSerializer(Serializer):
             "startTimestamp": obj.data.get("start_timestamp"),
             "endTimestamp": obj.data.get("timestamp"),
             "measurements": obj.data.get("measurements"),
+            "breakdowns": obj.data.get("breakdowns"),
         }
 
     def __serialize_error_attrs(self, attrs, obj):
