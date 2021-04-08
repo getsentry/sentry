@@ -1,7 +1,7 @@
-from bitfield import BitField
 from django.db import models
 from django.utils import timezone
 
+from bitfield import BitField
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     EncryptedJsonField,
