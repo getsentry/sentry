@@ -1,20 +1,15 @@
 import logging
-
 from datetime import timedelta
+
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.models import (
-    User,
-    Organization,
-    OrganizationStatus,
-)
+from sentry.models import Organization, OrganizationStatus, User
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.deletion import delete_organization
 
-from .models import DemoOrgStatus, DemoOrganization
 from .demo_org_manager import create_demo_org
-
+from .models import DemoOrganization, DemoOrgStatus
 
 logger = logging.getLogger(__name__)
 

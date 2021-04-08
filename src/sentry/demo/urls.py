@@ -1,7 +1,8 @@
 from django.conf.urls import url
 
-from sentry.web.frontend.react_page import ReactPageView
 from sentry.conf.urls import urlpatterns as conf_urlpatterns
+from sentry.web.frontend.react_page import ReactPageView
+
 from .demo_start import DemoStartView
 
 # add the demo start route at the head of the urls

@@ -1,31 +1,31 @@
 import copy
-import logging
 import functools
+import logging
 import os
 import random
-import requests
-import pytz
-import sentry_sdk
 import time
-
 from collections import defaultdict
 from datetime import timedelta
+from functools import wraps
+from hashlib import sha1
+from typing import List
+from uuid import uuid4
+
+import pytz
+import requests
+import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
-from hashlib import sha1
-from functools import wraps
-from uuid import uuid4
-from typing import List
 
 from sentry.api.utils import get_date_range_from_params
-from sentry.discover.models import DiscoverSavedQuery
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.discover.models import DiscoverSavedQuery
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
 )
+from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.interfaces.user import User as UserInterface
 from sentry.mediators import project_rules
 from sentry.models import (
@@ -36,21 +36,15 @@ from sentry.models import (
     Project,
     ProjectKey,
     Release,
-    ReleaseFile,
     ReleaseCommit,
+    ReleaseFile,
     Repository,
     Team,
 )
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_timestamp
-from sentry.utils.samples import (
-    random_geo,
-    random_ip,
-    create_sample_event_basic,
-    random_normal,
-)
+from sentry.utils.samples import create_sample_event_basic, random_geo, random_ip, random_normal
 from sentry.utils.snuba import SnubaError
-
 
 commit_message_base_messages = [
     "feat: Do something to",
