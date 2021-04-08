@@ -1,7 +1,7 @@
 from django.utils import timezone
 
-from sentry.signals import issue_unignored
 from sentry.models import Group, GroupSnooze, GroupStatus
+from sentry.signals import issue_unignored
 from sentry.tasks.base import instrumented_task
 
 
