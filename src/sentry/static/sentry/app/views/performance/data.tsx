@@ -401,6 +401,11 @@ function generateFrontendPageloadPerformanceEventView(
   const searchQuery = decodeScalar(query.query, '');
   const conditions = tokenizeSearch(searchQuery);
 
+  // This is not an override condition since we want the duration to appear in the search bar as a default.
+  if (!conditions.hasTag('transaction.duration')) {
+    conditions.setTagValues('transaction.duration', ['<15m']);
+  }
+
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
@@ -451,6 +456,11 @@ function generateFrontendOtherPerformanceEventView(
 
   const searchQuery = decodeScalar(query.query, '');
   const conditions = tokenizeSearch(searchQuery);
+
+  // This is not an override condition since we want the duration to appear in the search bar as a default.
+  if (!conditions.hasTag('transaction.duration')) {
+    conditions.setTagValues('transaction.duration', ['<15m']);
+  }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
