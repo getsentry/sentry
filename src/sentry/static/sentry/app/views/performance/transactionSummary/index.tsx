@@ -30,6 +30,7 @@ import {
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
 
 import SummaryContent from './content';
+import {filterToField, SpanOperationBreakdownFilter} from './filter';
 
 type Props = {
   api: Client;
@@ -42,6 +43,7 @@ type Props = {
 };
 
 type State = {
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   eventView: EventView | undefined;
 };
 
@@ -51,10 +53,12 @@ type TotalValues = Record<string, number>;
 
 class TransactionSummary extends React.Component<Props, State> {
   state: State = {
+    spanOperationBreakdownFilter: SpanOperationBreakdownFilter.None,
     eventView: generateSummaryEventView(
       this.props.location,
       getTransactionName(this.props.location),
-      this.props.organization
+      this.props.organization,
+      SpanOperationBreakdownFilter.None
     ),
   };
 
@@ -64,7 +68,8 @@ class TransactionSummary extends React.Component<Props, State> {
       eventView: generateSummaryEventView(
         nextProps.location,
         getTransactionName(nextProps.location),
-        nextProps.organization
+        nextProps.organization,
+        prevState.spanOperationBreakdownFilter
       ),
     };
   }
@@ -86,6 +91,12 @@ class TransactionSummary extends React.Component<Props, State> {
       addRoutePerformanceContext(selection);
     }
   }
+
+  onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
+    this.setState({
+      spanOperationBreakdownFilter: newFilter,
+    });
+  };
 
   getDocumentTitle(): string {
     const name = getTransactionName(this.props.location);
@@ -213,6 +224,10 @@ class TransactionSummary extends React.Component<Props, State> {
                       isLoading={isLoading}
                       error={error}
                       totalValues={totals}
+                      onChangeFilter={this.onChangeFilter}
+                      spanOperationBreakdownFilter={
+                        this.state.spanOperationBreakdownFilter
+                      }
                     />
                   );
                 }}
@@ -232,7 +247,8 @@ const StyledPageContent = styled(PageContent)`
 function generateSummaryEventView(
   location: Location,
   transactionName: string | undefined,
-  organization: Organization
+  organization: Organization,
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter
 ): EventView | undefined {
   if (transactionName === undefined) {
     return undefined;
@@ -262,14 +278,27 @@ function generateSummaryEventView(
     );
   }
 
+  let durationField = 'transaction.duration';
+
+  if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
+    durationField = filterToField(spanOperationBreakdownFilter)!;
+  }
+
+  const fields = organization.features.includes('trace-view-summary')
+    ? ['id', 'user.display', durationField, 'trace', 'timestamp']
+    : ['id', 'user.display', durationField, 'timestamp'];
+
+  if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
+    // Add transaction.duration field so that the span op breakdown can be compared against it.
+    fields.push('transaction.duration');
+  }
+
   return EventView.fromNewQueryWithLocation(
     {
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: organization.features.includes('trace-view-summary')
-        ? ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp']
-        : ['id', 'user.display', 'transaction.duration', 'timestamp'],
+      fields,
       query: stringifyQueryObject(conditions),
       projects: [],
     },

@@ -574,6 +574,7 @@ export const TRACING_FIELDS = [
 ];
 
 export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
+export const SPAN_OP_BREAKDOWN_PATTERN = /^span_op_breakdowns\.ops\.([a-zA-Z0-9-_.]+)$/;
 
 export function isMeasurement(field: string): boolean {
   const results = field.match(MEASUREMENT_PATTERN);
@@ -815,4 +816,16 @@ export function fieldAlignment(
  */
 export function isLegalYAxisType(match: ColumnType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
+}
+
+export function isSpanOperationBreakdownField(field: string) {
+  return field.startsWith('span_op_breakdowns.');
+}
+
+export function getSpanOperationName(field: string): string | null {
+  const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);
+  if (results && results.length >= 2) {
+    return results[1];
+  }
+  return null;
 }

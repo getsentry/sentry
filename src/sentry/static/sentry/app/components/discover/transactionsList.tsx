@@ -451,8 +451,14 @@ class TransactionsTable extends React.PureComponent<TableProps> {
       baselineData,
       handleBaselineClick,
       handleCellAction,
+      titles,
     } = this.props;
     const fields = eventView.getFields();
+
+    if (titles && titles.length) {
+      // Slice to match length of given titles
+      columnOrder = columnOrder.slice(0, titles.length);
+    }
 
     const resultsRow = columnOrder.map((column, index) => {
       const field = String(column.key);
