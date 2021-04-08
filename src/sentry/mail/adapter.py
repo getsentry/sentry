@@ -231,7 +231,6 @@ class MailAdapter:
                         sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
                     ).values_list("id", flat=True)
                 )
-
             return send_to - self.disabled_users_from_project(project)
         else:
             metrics.incr(
@@ -262,7 +261,11 @@ class MailAdapter:
             if settings:
                 # Check per-project settings first, fallback to project-independent settings.
                 project_setting = settings.get(NotificationScopeType.PROJECT)
+                if project_setting:
+                    project_setting = project_setting[ExternalProviders.EMAIL]
                 user_setting = settings.get(NotificationScopeType.USER)
+                if user_setting:
+                    user_setting = user_setting[ExternalProviders.EMAIL]
                 if project_setting == NotificationSettingOptionValues.NEVER or (
                     not project_setting and user_setting == NotificationSettingOptionValues.NEVER
                 ):
@@ -525,6 +528,8 @@ class MailAdapter:
         group = Group.objects.get(id=payload["report"]["issue"]["id"])
 
         participants = GroupSubscription.objects.get_participants(group=group)
+        if participants:
+            participants = participants[ExternalProviders.EMAIL]
 
         if not participants:
             return
