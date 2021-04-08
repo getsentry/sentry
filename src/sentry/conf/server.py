@@ -2,21 +2,20 @@
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
 
-from django.conf.global_settings import *  # NOQA
-
 import os
 import os.path
 import re
 import socket
 import sys
 import tempfile
+from datetime import timedelta
+from urllib.parse import urlparse
+
+from django.conf.global_settings import *  # NOQA
 
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
-
-from datetime import timedelta
-from urllib.parse import urlparse
 
 
 def gettext_noop(s):
