@@ -1,4 +1,5 @@
 from symbolic import SourceView
+
 from sentry.utils.strings import codec_lookup
 
 __all__ = ["SourceCache", "SourceMapCache"]

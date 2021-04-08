@@ -1,5 +1,5 @@
-import re
 import logging
+import re
 
 from sentry.attachments import attachment_cache
 from sentry.stacktraces.processing import find_stacktraces_in_data
