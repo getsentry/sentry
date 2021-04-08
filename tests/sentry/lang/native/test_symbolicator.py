@@ -2,6 +2,7 @@ import copy
 
 import pytest
 
+from sentry.lang.native import symbolicator
 from sentry.lang.native.symbolicator import (
     get_sources_for_project,
     redact_internal_sources,
@@ -119,8 +120,8 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
-        assert redacted["modules"][0]["candidates"] == candidates
+        redact_internal_sources(response)
+        assert response["modules"][0]["candidates"] == candidates
 
     def test_location_debug_id(self):
         debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
@@ -132,9 +133,9 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [{"source": "sentry:microsoft", "download": {"status": "ok"}}]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
 
     def test_notfound_deduplicated(self):
         debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
@@ -151,9 +152,9 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [{"source": "sentry:microsoft", "download": {"status": "notfound"}}]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
 
     def test_notfound_omitted(self):
         debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
@@ -170,9 +171,9 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [{"source": "sentry:microsoft", "download": {"status": "ok"}}]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
 
     def test_multiple_notfound_filtered(self):
         debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
@@ -199,12 +200,12 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [
             {"source": "sentry:microsoft", "download": {"status": "ok"}},
             {"source": "sentry:apple", "download": {"status": "ok"}},
         ]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
 
     def test_sentry_project(self):
         debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
@@ -216,7 +217,7 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [
             {
                 "source": "sentry:project",
@@ -224,7 +225,7 @@ class TestInternalSourcesRedaction:
                 "download": {"status": "ok"},
             },
         ]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
 
     def test_sentry_project_notfound_no_location(self):
         # For sentry:project status=notfound the location needs to be removed
@@ -237,6 +238,68 @@ class TestInternalSourcesRedaction:
             },
         ]
         response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
+        redact_internal_sources(response)
         expected = [{"source": "sentry:project", "download": {"status": "notfound"}}]
-        assert redacted["modules"][0]["candidates"] == expected
+        assert response["modules"][0]["candidates"] == expected
+
+
+class TestAliasReversion:
+    @pytest.fixture
+    def builtin_sources(self):
+        return {
+            "ios": {
+                "id": "sentry:ios",
+                "name": "Apple",
+                "type": "alias",
+                "sources": ["ios-source", "tvos-source"],
+            },
+            "ios-source": {
+                "id": "sentry:ios-source",
+                "name": "iOS",
+                "type": "gcs",
+            },
+            "tvos-source": {
+                "id": "sentry:tvos-source",
+                "name": "TvOS",
+                "type": "gcs",
+            },
+        }
+
+    def test_reverse_aliases(self, builtin_sources):
+        reverse_aliases = symbolicator.reverse_aliases_map(builtin_sources)
+        expected = {"sentry:ios-source": "sentry:ios", "sentry:tvos-source": "sentry:ios"}
+        assert reverse_aliases == expected
+
+    def test_merge_candidates(self, builtin_sources):
+        event = {
+            "modules": [
+                {
+                    "candidates": [
+                        {
+                            "source": "sentry:ios-source",
+                            "location": "http://example.com/prefix/path0",
+                            "download": {"status": "notfound"},
+                        },
+                        {
+                            "source": "sentry:tvos-source",
+                            "location": "http://example.com/prefix/path1",
+                            "download": {"status": "ok"},
+                        },
+                    ]
+                }
+            ]
+        }
+        candidates = [
+            {
+                "source": "sentry:ios",
+                "location": "http://example.com/prefix/path0",
+                "download": {"status": "notfound"},
+            },
+            {
+                "source": "sentry:ios",
+                "location": "http://example.com/prefix/path1",
+                "download": {"status": "ok"},
+            },
+        ]
+        symbolicator.reverse_source_aliases(event, builtin_sources)
+        assert event["modules"][0]["candidates"] == candidates
