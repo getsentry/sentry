@@ -9,6 +9,9 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
 
     frames_iter = list(zip(frames, components))
     if not inverted_hierarchy:
+        # frames are sorted in a way where the crashing frame is at the end of
+        # the list. In "non-inverted" mode we want to start at the crashing
+        # frame, in inverted mode we want to start at the threadbase
         frames_iter = reversed(frames_iter)
 
     frames_iter = iter(frames_iter)
