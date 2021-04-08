@@ -81,7 +81,7 @@ function WidgetQueryFields({
         data-test-id="columns"
         label={t('Columns')}
         inline={false}
-        style={{padding: `8px 0`, ...(style ?? {})}}
+        style={{padding: `${space(1)} 0`, ...(style ?? {})}}
         error={errors?.fields}
         flexibleControlStateSize
         stacked
@@ -112,7 +112,7 @@ function WidgetQueryFields({
       data-test-id="y-axis"
       label={t('Y-Axis')}
       inline={false}
-      style={{padding: `16px 0 24px 0`, ...(style ?? {})}}
+      style={{padding: `${space(2)} 0 24px 0`, ...(style ?? {})}}
       flexibleControlStateSize
       error={errors?.fields}
       required
