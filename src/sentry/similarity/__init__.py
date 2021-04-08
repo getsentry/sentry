@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 
+from sentry import features as feature_flags
 from sentry.interfaces.stacktrace import Frame
 from sentry.similarity.backends.dummy import DummyIndexBackend
 from sentry.similarity.backends.metrics import MetricsWrapper
@@ -20,7 +21,6 @@ from sentry.utils import redis
 from sentry.utils.compat import map
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
-from sentry import features as feature_flags
 
 logger = logging.getLogger(__name__)
 
