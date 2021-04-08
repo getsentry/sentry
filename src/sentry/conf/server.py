@@ -2147,7 +2147,7 @@ SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 # In case of contention on the project counter, prevent workers saturation with
 # save_event tasks from single project.
 # Value is in milliseconds. Set to `None` to disable.
-SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 3000
+SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
