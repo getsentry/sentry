@@ -1,6 +1,6 @@
 import errno
-from io import BytesIO
 import os
+from io import BytesIO
 
 from sentry import options
 from sentry.models import ReleaseFile

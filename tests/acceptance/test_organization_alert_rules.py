@@ -1,7 +1,7 @@
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.models import Rule
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
 FEATURE_NAME = ["organizations:incidents"]
 

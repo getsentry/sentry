@@ -1,12 +1,11 @@
 import responses
-
 from exam import fixture
+
 from sentry.models import Repository
 from sentry.testutils import PluginTestCase
-from social_auth.models import UserSocialAuth
-
 from sentry_plugins.bitbucket.plugin import BitbucketRepositoryProvider
-from sentry_plugins.bitbucket.testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH
+from sentry_plugins.bitbucket.testutils import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE
+from social_auth.models import UserSocialAuth
 
 
 class BitbucketPluginTest(PluginTestCase):

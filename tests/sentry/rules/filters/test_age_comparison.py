@@ -1,6 +1,6 @@
-import pytz
 from datetime import datetime, timedelta
 
+import pytz
 from django.utils import timezone
 
 from sentry.rules.filters.age_comparison import AgeComparisonFilter

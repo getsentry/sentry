@@ -1,14 +1,14 @@
 from datetime import timedelta
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from sentry.utils.compat.mock import patch
 
 import pytest
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from sentry.models import ScheduledJob
 from sentry.models.scheduledjob import schedule_jobs
-from sentry.testutils import TestCase
 from sentry.tasks.scheduler import enqueue_scheduled_jobs
+from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class EnqueueScheduledJobsTest(TestCase):

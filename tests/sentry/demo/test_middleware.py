@@ -1,5 +1,4 @@
 import pytest
-
 from django.core.urlresolvers import reverse
 from django.test import override_settings
 
@@ -7,7 +6,6 @@ from sentry.demo.settings import MIDDLEWARE_CLASSES
 from sentry.testutils import APITestCase
 from sentry.utils import auth
 from sentry.utils.compat import mock
-
 
 orig_login = auth.login
 

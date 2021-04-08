@@ -1,8 +1,9 @@
-import responses
 from urllib.parse import parse_qs
 
-from sentry.testutils import TestCase
+import responses
+
 from sentry.models import OrganizationMember
+from sentry.testutils import TestCase
 
 
 class VercelExtensionConfigurationTest(TestCase):

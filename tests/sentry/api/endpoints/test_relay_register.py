@@ -3,12 +3,11 @@ from uuid import uuid4
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils import timezone
+from sentry_relay import generate_key_pair
 
-from sentry.utils import json
 from sentry.models import Relay, RelayUsage
 from sentry.testutils import APITestCase
-
-from sentry_relay import generate_key_pair
+from sentry.utils import json
 
 
 class RelayRegisterTest(APITestCase):

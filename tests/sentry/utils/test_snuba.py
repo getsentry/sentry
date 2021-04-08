@@ -1,23 +1,22 @@
 import unittest
-
 from datetime import datetime, timedelta
-from django.utils import timezone
 
 import pytest
 import pytz
+from django.utils import timezone
 
-from sentry.models import GroupRelease, Release, Project
+from sentry.models import GroupRelease, Project, Release
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
 from sentry.utils.snuba import (
-    _prepare_query_params,
-    get_query_params_to_update_for_projects,
-    get_snuba_translators,
-    get_json_type,
-    get_snuba_column_name,
     Dataset,
     SnubaQueryParams,
     UnqualifiedQueryError,
+    _prepare_query_params,
+    get_json_type,
+    get_query_params_to_update_for_projects,
+    get_snuba_column_name,
+    get_snuba_translators,
     quantize_time,
 )
 

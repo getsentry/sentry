@@ -1,10 +1,10 @@
-import pytest
 import logging
-
 from datetime import datetime
+
+import pytest
 from django.conf import settings
 
-from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
+from sentry.constants import DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 from sentry.event_manager import EventManager
 
 

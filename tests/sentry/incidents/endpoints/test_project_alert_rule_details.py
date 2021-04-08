@@ -1,17 +1,17 @@
 from exam import fixture
-from sentry.utils.compat.mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    AlertRuleStatus,
     Incident,
     IncidentStatus,
 )
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 
 
 class AlertRuleDetailsBase:

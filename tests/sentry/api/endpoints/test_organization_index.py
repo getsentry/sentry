@@ -1,10 +1,5 @@
 from sentry.auth.authenticators import TotpInterface
-from sentry.models import (
-    Authenticator,
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-)
+from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 
 

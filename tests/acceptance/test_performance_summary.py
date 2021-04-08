@@ -1,10 +1,10 @@
-import pytz
-
 from urllib.parse import urlencode
-from sentry.utils.compat.mock import patch
+
+import pytz
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
 from .page_objects.transaction_summary import TransactionSummaryPage

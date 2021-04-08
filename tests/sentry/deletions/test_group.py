@@ -1,6 +1,8 @@
-from sentry.utils.compat import mock
 from uuid import uuid4
 
+from sentry import nodestore
+from sentry.deletions.defaults.group import EventDataDeletionTask
+from sentry.eventstore.models import Event
 from sentry.models import (
     EventAttachment,
     File,
@@ -11,12 +13,10 @@ from sentry.models import (
     GroupRedirect,
     UserReport,
 )
-from sentry import nodestore
-from sentry.deletions.defaults.group import EventDataDeletionTask
-from sentry.eventstore.models import Event
 from sentry.tasks.deletion import delete_groups
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):

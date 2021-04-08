@@ -1,12 +1,11 @@
 import copy
 
-from sentry.utils.compat.mock import patch
-
-from sentry.api.serializers import serialize, ExternalEventSerializer
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.models import Integration, PagerDutyService
+from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 
 # external_id is the account name in pagerduty
 EXTERNAL_ID = "example-pagerduty"

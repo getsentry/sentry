@@ -1,5 +1,6 @@
-import responses
 import time
+
+import responses
 
 from sentry.integrations.msteams.utils import get_channel_id
 from sentry.models import Integration

@@ -1,18 +1,19 @@
+from datetime import datetime
+
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.models import (
-    GroupAssignee,
-    Release,
-    Environment,
     Deploy,
-    ReleaseProjectEnvironment,
-    OrganizationOnboardingTask,
+    Environment,
+    GroupAssignee,
     OnboardingTask,
     OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+    Release,
+    ReleaseProjectEnvironment,
 )
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
-from datetime import datetime
 
 
 class DashboardTest(AcceptanceTestCase, SnubaTestCase):
