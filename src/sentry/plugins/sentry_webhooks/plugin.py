@@ -1,17 +1,17 @@
 import logging
-from requests.exceptions import ReadTimeout, ConnectionError
-import sentry
 
 from django import forms
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+from requests.exceptions import ConnectionError, ReadTimeout
 
+import sentry
 from sentry.exceptions import PluginError
-from sentry.plugins.bases import notify
 from sentry.http import is_valid_url, safe_urlopen
-from sentry.utils.safe import safe_execute
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases import notify
 from sentry.utils.compat import filter
+from sentry.utils.safe import safe_execute
 
 DESCRIPTION = """
 Trigger outgoing HTTP POST requests from Sentry.

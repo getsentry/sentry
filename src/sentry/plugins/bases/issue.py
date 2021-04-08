@@ -1,7 +1,6 @@
 from django import forms
 from django.conf import settings
 from django.utils.html import format_html
-from social_auth.models import UserSocialAuth
 
 from sentry.models import Activity, GroupMeta
 from sentry.plugins.base.v1 import Plugin
@@ -9,6 +8,7 @@ from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+from social_auth.models import UserSocialAuth
 
 
 class NewIssueForm(forms.Form):

@@ -12,7 +12,6 @@ from sentry.signals import repo_linked
 
 from .base import ProviderMixin
 
-
 logger = getLogger("sentry.integrations")
 
 

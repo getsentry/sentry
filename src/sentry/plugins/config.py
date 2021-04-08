@@ -2,6 +2,7 @@ __all__ = ["PluginConfigMixin"]
 
 
 from collections import OrderedDict
+
 from django import forms
 from rest_framework import serializers
 
