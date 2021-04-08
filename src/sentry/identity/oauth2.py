@@ -1,18 +1,19 @@
 __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 
 import logging
+from time import time
 from urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
-from time import time
-from requests.exceptions import SSLError
+
 from django.views.decorators.csrf import csrf_exempt
+from requests.exceptions import SSLError
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.pipeline import PipelineView
 
 from .base import Provider
 
