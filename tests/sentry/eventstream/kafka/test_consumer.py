@@ -6,9 +6,9 @@ from contextlib import contextmanager
 
 import pytest
 
-
 try:
     from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
+
     from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 except ImportError:
     pass

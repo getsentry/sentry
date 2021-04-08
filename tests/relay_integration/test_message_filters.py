@@ -1,12 +1,12 @@
-from sentry.testutils import TransactionTestCase, RelayStoreHelper
-from sentry.models.projectoption import ProjectOption
-from sentry.utils.safe import set_path
 from sentry.ingest.inbound_filters import (
-    _localhost_filter,
     _browser_extensions_filter,
-    _web_crawlers_filter,
     _legacy_browsers_filter,
+    _localhost_filter,
+    _web_crawlers_filter,
 )
+from sentry.models.projectoption import ProjectOption
+from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.utils.safe import set_path
 
 
 class FilterTests(RelayStoreHelper, TransactionTestCase):

@@ -1,5 +1,5 @@
-from sentry.testutils.cases import RuleTestCase
 from sentry.rules.conditions.regression_event import RegressionEventCondition
+from sentry.testutils.cases import RuleTestCase
 
 
 class RegressionEventConditionTest(RuleTestCase):

@@ -1,28 +1,27 @@
-import responses
 import time
 
+import responses
 from django.http import HttpResponse
 
-from sentry.utils.compat.mock import patch
-
+from sentry.integrations.msteams.card_builder import build_linking_card
+from sentry.integrations.msteams.link_identity import build_linking_url
+from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models import (
-    AuthProvider,
     AuthIdentity,
-    Integration,
-    OrganizationIntegration,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
+    AuthProvider,
     Group,
     GroupAssignee,
     GroupStatus,
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    Integration,
+    OrganizationIntegration,
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.utils import json
-from sentry.integrations.msteams.card_builder import build_linking_card
-from sentry.integrations.msteams.utils import ACTION_TYPE
-from sentry.integrations.msteams.link_identity import build_linking_url
+from sentry.utils.compat.mock import patch
 
 
 class BaseEventTest(APITestCase):

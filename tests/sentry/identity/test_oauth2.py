@@ -1,6 +1,5 @@
 import responses
 from exam import fixture
-from sentry.utils.compat.mock import Mock
 from requests.exceptions import SSLError
 
 import sentry.identity
@@ -8,6 +7,7 @@ from sentry.identity.oauth2 import OAuth2CallbackView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock
 
 
 class OAuth2CallbackViewTest(TestCase):

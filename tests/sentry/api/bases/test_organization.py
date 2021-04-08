@@ -10,7 +10,7 @@ from rest_framework.exceptions import PermissionDenied
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist, TwoFactorRequired
 from sentry.api.utils import MAX_STATS_PERIOD
-from sentry.auth.access import from_request, NoAccess
+from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import ApiKey, Organization
 from sentry.testutils import TestCase

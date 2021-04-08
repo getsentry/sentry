@@ -1,12 +1,13 @@
-from django.core.urlresolvers import reverse
-from django.test import override_settings
+import logging
 from urllib.parse import quote, urlencode
 from uuid import uuid4
-import logging
+
+from django.core.urlresolvers import reverse
+from django.test import override_settings
 
 from sentry.models import Environment, UserReport
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 @override_settings(ROOT_URLCONF="sentry.conf.urls")

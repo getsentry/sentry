@@ -1,21 +1,18 @@
-import responses
-
-from exam import fixture
 from uuid import uuid4
 
+import responses
+from exam import fixture
+
+from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
+from sentry.integrations.slack.tasks import (
+    RedisRuleStatus,
+    find_channel_id_for_alert_rule,
+    find_channel_id_for_rule,
+)
+from sentry.models import Integration, Rule
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
-from sentry.models import Integration, Rule
-from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleTriggerAction,
-)
-from sentry.integrations.slack.tasks import (
-    find_channel_id_for_rule,
-    find_channel_id_for_alert_rule,
-    RedisRuleStatus,
-)
-from sentry.testutils.cases import TestCase
 
 
 class SlackTasksTest(TestCase):

@@ -1,17 +1,15 @@
-import responses
 import pytest
-
+import responses
 from exam import fixture
 
-
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
 from sentry.models import Identity, IdentityProvider, Integration, PullRequest, Repository
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationRepositoryTestCase
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.utils import json
 
-from .testutils import COMPARE_RESPONSE, COMMIT_LIST_RESPONSE, COMMIT_DIFF_RESPONSE
+from .testutils import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 
 
 class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):

@@ -1,6 +1,5 @@
 from django.core.urlresolvers import reverse
 from django.db import models
-from sentry.utils.compat.mock import patch
 
 from sentry.auth.authenticators import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
@@ -13,6 +12,7 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):

@@ -1,5 +1,5 @@
-from sentry.testutils import APITestCase
 from sentry.models import InviteStatus
+from sentry.testutils import APITestCase
 
 
 class TeamMembersTest(APITestCase):

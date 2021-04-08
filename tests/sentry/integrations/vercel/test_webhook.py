@@ -1,13 +1,14 @@
 import hashlib
 import hmac
+
 import responses
 
 from sentry import VERSION
 from sentry.models import (
     Integration,
     OrganizationIntegration,
-    SentryAppInstallationForProvider,
     SentryAppInstallation,
+    SentryAppInstallationForProvider,
     SentryAppInstallationToken,
 )
 from sentry.testutils import APITestCase
@@ -15,7 +16,7 @@ from sentry.testutils.helpers import override_options
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .testutils import EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, DEPLOYMENT_WEBHOOK_NO_COMMITS
+from .testutils import DEPLOYMENT_WEBHOOK_NO_COMMITS, EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE
 
 signature = "74b587857986545361e8a4253b74cd6224d34869"
 secret = "AiK52QASLJXmCXX3X9gO2Zyh"

@@ -2,18 +2,18 @@ import functools
 
 import pytest
 from django.core import mail
-from sentry.utils.compat.mock import patch
 
 from sentry import options
 from sentry.models import GroupEmailThread, User, UserOption
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.email import (
     ListResolver,
     MessageBuilder,
+    create_fake_email,
     default_list_type_handlers,
     get_from_email_domain,
     get_mail_backend,
-    create_fake_email,
     send_mail,
 )
 

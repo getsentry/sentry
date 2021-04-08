@@ -1,14 +1,13 @@
 import responses
-
-from sentry.utils.compat.mock import patch
-from exam import fixture
 from django.test import RequestFactory
+from exam import fixture
 
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.models import Integration, ExternalIssue
+from sentry.models import ExternalIssue, Integration
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
+from sentry.utils.compat.mock import patch
 
 
 class GitHubIssueBasicTest(TestCase):

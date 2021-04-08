@@ -1,8 +1,7 @@
-from sentry.utils.compat.mock import patch
-
 from sentry.mediators.sentry_app_installation_tokens import Destroyer
-from sentry.models import AuditLogEntry, ApiToken, SentryAppInstallationToken, SentryAppInstallation
+from sentry.models import ApiToken, AuditLogEntry, SentryAppInstallation, SentryAppInstallationToken
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class TestDestroyer(TestCase):

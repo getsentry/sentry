@@ -1,17 +1,16 @@
 import copy
+from datetime import timedelta
+from urllib.parse import urlencode
+
 import pytest
 import pytz
-from sentry.utils.compat.mock import patch
-from datetime import timedelta
-
-from urllib.parse import urlencode
 from selenium.webdriver.common.keys import Keys
 
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
+from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
-from sentry.testutils.helpers.datetime import iso_format, before_now, timestamp_format
-
 
 FEATURE_NAMES = [
     "organizations:discover-basic",

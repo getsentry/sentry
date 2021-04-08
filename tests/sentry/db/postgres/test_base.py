@@ -1,7 +1,8 @@
 import pytest
-from sentry.testutils import TestCase
+from django.utils.encoding import force_bytes, force_text
+
 from sentry.constants import MAX_CULPRIT_LENGTH
-from django.utils.encoding import force_text, force_bytes
+from sentry.testutils import TestCase
 from sentry.utils.compat import map
 
 

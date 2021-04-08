@@ -5,17 +5,17 @@ from hashlib import sha256
 from urllib.parse import urlencode
 
 from sentry import options
-from sentry.utils import json
-from sentry.utils.compat import mock
-from sentry.utils.cache import memoize
-from sentry.testutils import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.integrations.slack.requests import (
-    SlackRequest,
-    SlackEventRequest,
     SlackActionRequest,
+    SlackEventRequest,
+    SlackRequest,
     SlackRequestError,
 )
+from sentry.testutils import TestCase
+from sentry.testutils.helpers import override_options
+from sentry.utils import json
+from sentry.utils.cache import memoize
+from sentry.utils.compat import mock
 
 
 def set_signature(secret, data):

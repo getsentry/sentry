@@ -1,14 +1,12 @@
 import re
-
 from uuid import uuid4
 
 from django.core.urlresolvers import reverse
+from sentry_relay.auth import generate_key_pair
 
-from sentry.utils import safe, json
 from sentry.models.relay import Relay
 from sentry.testutils import APITestCase
-
-from sentry_relay.auth import generate_key_pair
+from sentry.utils import json, safe
 
 
 def _get_all_keys(config):

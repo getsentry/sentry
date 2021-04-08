@@ -1,11 +1,12 @@
-import responses
-import time
 import re
+import time
 
-from sentry.utils import json
+import responses
+
+from sentry.integrations.msteams import MsTeamsNotifyServiceAction
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
-from sentry.integrations.msteams import MsTeamsNotifyServiceAction
+from sentry.utils import json
 
 
 class MsTeamsNotifyActionTest(RuleTestCase):

@@ -1,9 +1,9 @@
 from sentry.models import (
+    Identity,
+    IdentityProvider,
     Integration,
     OrganizationIntegration,
     Repository,
-    Identity,
-    IdentityProvider,
 )
 from sentry.testutils import APITestCase
 

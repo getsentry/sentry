@@ -1,10 +1,11 @@
-import responses
 import pytest
+import responses
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import Identity
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
+
 from .testutils import GitLabTestCase
 
 

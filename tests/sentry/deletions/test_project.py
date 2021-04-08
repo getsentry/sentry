@@ -10,11 +10,11 @@ from sentry.models import (
     GroupMeta,
     GroupResolution,
     Project,
+    ProjectDebugFile,
     Release,
     ReleaseCommit,
     Repository,
     ScheduledDeletion,
-    ProjectDebugFile,
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase

@@ -1,17 +1,18 @@
 from datetime import datetime
-from django.utils import timezone
-from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
-from sentry.testutils import APITestCase
 from uuid import uuid4
 
-from .testutils import (
-    PUSH_EVENT_EXAMPLE_INSTALLATION,
-    PULL_REQUEST_OPENED_EVENT_EXAMPLE,
-    PULL_REQUEST_EDITED_EVENT_EXAMPLE,
-    PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
-)
+from django.utils import timezone
 
+from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
+from sentry.testutils import APITestCase
 from sentry.utils.compat.mock import patch
+
+from .testutils import (
+    PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
+    PULL_REQUEST_EDITED_EVENT_EXAMPLE,
+    PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+    PUSH_EVENT_EXAMPLE_INSTALLATION,
+)
 
 
 class WebhookTest(APITestCase):

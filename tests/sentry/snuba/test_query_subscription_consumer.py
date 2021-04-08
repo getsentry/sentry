@@ -7,8 +7,6 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from exam import fixture, patcher
 
-from sentry.utils import json
-from sentry.utils.compat import mock
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
@@ -19,6 +17,8 @@ from sentry.snuba.query_subscription_consumer import (
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
+from sentry.utils.compat import mock
 
 
 class BaseQuerySubscriptionTest:

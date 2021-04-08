@@ -1,13 +1,13 @@
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import (
-    DetailedAlertRuleSerializer,
     CombinedRuleSerializer,
+    DetailedAlertRuleSerializer,
 )
-from sentry.models import Rule
 from sentry.incidents.logic import create_alert_rule_trigger
-from sentry.incidents.models import AlertRuleThresholdType, AlertRule
+from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.models import Rule
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.testutils import TestCase, APITestCase
+from sentry.testutils import APITestCase, TestCase
 
 
 class BaseAlertRuleSerializerTest:

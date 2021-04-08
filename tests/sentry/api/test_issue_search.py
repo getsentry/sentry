@@ -1,7 +1,7 @@
 from sentry.api.event_search import (
-    InvalidSearchQuery,
     AggregateFilter,
     AggregateKey,
+    InvalidSearchQuery,
     SearchFilter,
     SearchKey,
     SearchValue,

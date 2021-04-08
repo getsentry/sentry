@@ -1,11 +1,13 @@
-import responses
 import copy
 
-from sentry.shared_integrations.exceptions import IntegrationError
+import responses
+
 from sentry.models import ExternalIssue
-from sentry.utils.http import absolute_uri
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.http import absolute_uri
+
 from .testutils import GitLabTestCase
 
 

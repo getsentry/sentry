@@ -1,8 +1,8 @@
 from datetime import timedelta
+
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone
-from sentry.utils.compat.mock import Mock, patch
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -22,6 +22,7 @@ from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.utils.auth import mark_sso_complete
+from sentry.utils.compat.mock import Mock, patch
 
 UNSET = object()
 

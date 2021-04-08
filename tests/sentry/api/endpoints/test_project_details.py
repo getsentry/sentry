@@ -1,5 +1,9 @@
 import pytest
 
+from sentry.api.endpoints.project_details import (
+    DynamicSamplingConditionSerializer,
+    DynamicSamplingSerializer,
+)
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
     AuditLogEntry,
@@ -16,10 +20,6 @@ from sentry.models import (
     ProjectTeam,
     Rule,
     UserOption,
-)
-from sentry.api.endpoints.project_details import (
-    DynamicSamplingSerializer,
-    DynamicSamplingConditionSerializer,
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature

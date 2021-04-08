@@ -1,7 +1,6 @@
-from sentry.utils.compat.mock import patch
-
 from sentry.metrics.statsd import StatsdMetricsBackend
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class StatsdMetricsBackendTest(TestCase):

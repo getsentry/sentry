@@ -1,6 +1,6 @@
 from sentry.tsdb.base import TSDBModel
+from sentry.tsdb.redissnuba import READ, method_specifications, selector_func
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.tsdb.redissnuba import selector_func, method_specifications, READ
 
 
 def get_callargs(model):

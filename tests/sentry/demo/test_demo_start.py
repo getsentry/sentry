@@ -1,5 +1,5 @@
-from django.test.utils import override_settings
 from django.core import signing
+from django.test.utils import override_settings
 from exam import fixture
 
 from sentry.demo.demo_start import MEMBER_ID_COOKIE

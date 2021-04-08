@@ -1,7 +1,6 @@
 import json
 import os
 import shutil
-
 from collections import defaultdict
 
 from sentry.utils.numbers import base32_encode

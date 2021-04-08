@@ -4,7 +4,8 @@ from contextlib import contextmanager
 import pytest
 from google.oauth2.credentials import Credentials
 from google.rpc.status_pb2 import Status
-from sentry.nodestore.bigtable.backend import BigtableNodeStorage, BigtableKVStorage
+
+from sentry.nodestore.bigtable.backend import BigtableKVStorage, BigtableNodeStorage
 from sentry.utils.compat import mock
 
 

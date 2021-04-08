@@ -5,8 +5,8 @@ from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
-from sentry.snuba.models import QueryDatasets
 from sentry.incidents.logic import subscribe_to_incident
+from sentry.snuba.models import QueryDatasets
 from sentry.testutils import TestCase
 
 

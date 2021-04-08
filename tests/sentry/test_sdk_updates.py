@@ -1,7 +1,6 @@
 import pytest
 
-from sentry.sdk_updates import SdkSetupState, SdkIndexState, get_suggested_updates
-
+from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
 
 PYTHON_INDEX_STATE = SdkIndexState(sdk_versions={"sentry.python": "0.9.1"})
 

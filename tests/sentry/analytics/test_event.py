@@ -1,10 +1,11 @@
 from datetime import datetime
-from sentry.utils.compat.mock import patch
+
 import pytest
 import pytz
 
 from sentry.analytics import Attribute, Event, Map
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class ExampleEvent(Event):

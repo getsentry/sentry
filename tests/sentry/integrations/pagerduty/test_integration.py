@@ -1,14 +1,14 @@
-import responses
+from urllib.parse import urlencode, urlparse
 
 import pytest
-from sentry import options
-from sentry.utils import json
+import responses
 
-from urllib.parse import urlencode, urlparse
-from sentry.models import Integration, OrganizationIntegration, PagerDutyService
-from sentry.testutils import IntegrationTestCase
+from sentry import options
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
+from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.testutils import IntegrationTestCase
+from sentry.utils import json
 
 
 class PagerDutyIntegrationTest(IntegrationTestCase):

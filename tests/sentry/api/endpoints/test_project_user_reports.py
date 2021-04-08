@@ -1,10 +1,11 @@
 from datetime import timedelta
-from django.utils import timezone
 from uuid import uuid4
 
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from django.utils import timezone
+
 from sentry.models import EventUser, GroupStatus, UserReport
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import map
 
 

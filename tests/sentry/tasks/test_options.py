@@ -1,11 +1,10 @@
-from sentry.utils.compat.mock import patch
-
 from datetime import timedelta
 
 from sentry.models import Option
-from sentry.options import default_store, default_manager
+from sentry.options import default_manager, default_store
 from sentry.tasks.options import sync_options
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class SyncOptionsTest(TestCase):

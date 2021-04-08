@@ -2,8 +2,8 @@ from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 
-from sentry.utils.compat.mock import patch
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 
 
 class ProjectRuleTaskDetailsTest(APITestCase):

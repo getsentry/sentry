@@ -1,14 +1,15 @@
 import pytest
 
-from sentry.models import Commit, CommitAuthor, PullRequest, GroupLink
+from sentry.models import Commit, CommitAuthor, GroupLink, PullRequest
 from sentry.utils import json
+
 from .testutils import (
-    GitLabTestCase,
-    WEBHOOK_TOKEN,
     EXTERNAL_ID,
     MERGE_REQUEST_OPENED_EVENT,
     PUSH_EVENT,
     PUSH_EVENT_IGNORED_COMMIT,
+    WEBHOOK_TOKEN,
+    GitLabTestCase,
 )
 
 

@@ -1,5 +1,5 @@
 from sentry.mediators.service_hooks import Creator
-from sentry.mediators.service_hooks.creator import expand_events, consolidate_events
+from sentry.mediators.service_hooks.creator import consolidate_events, expand_events
 from sentry.models import ServiceHook
 from sentry.testutils import TestCase
 

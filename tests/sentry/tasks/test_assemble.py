@@ -1,21 +1,20 @@
-import os
 import io
+import os
 from hashlib import sha1
 
 from django.core.files.base import ContentFile
 
-
-from sentry.testutils import TestCase
+from sentry.models import FileBlob, FileBlobOwner, ReleaseFile
+from sentry.models.debugfile import ProjectDebugFile
 from sentry.tasks.assemble import (
+    AssembleTask,
+    ChunkFileState,
     assemble_artifacts,
     assemble_dif,
     assemble_file,
     get_assemble_status,
-    AssembleTask,
-    ChunkFileState,
 )
-from sentry.models import FileBlob, FileBlobOwner, ReleaseFile
-from sentry.models.debugfile import ProjectDebugFile
+from sentry.testutils import TestCase
 
 
 class BaseAssembleTest(TestCase):

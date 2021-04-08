@@ -1,5 +1,4 @@
 from sentry.models import Activity, Commit, Deploy, Environment, Release, ReleaseHeadCommit
-
 from sentry.testutils import TestCase
 
 

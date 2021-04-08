@@ -1,5 +1,3 @@
-from sentry.utils.compat.mock import patch
-
 from django.core import mail
 
 import sentry
@@ -8,7 +6,8 @@ from sentry.digests.notifications import event_to_record
 from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 
 
 class DeliverDigestTest(TestCase):

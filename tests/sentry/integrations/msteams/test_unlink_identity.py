@@ -1,6 +1,8 @@
-import responses
 import time
 
+import responses
+
+from sentry.integrations.msteams.unlink_identity import build_unlinking_url
 from sentry.models import (
     Identity,
     IdentityProvider,
@@ -9,7 +11,6 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import TestCase
-from sentry.integrations.msteams.unlink_identity import build_unlinking_url
 from sentry.utils.signing import unsign
 
 

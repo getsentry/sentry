@@ -1,8 +1,8 @@
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.db.models import F
-from sentry.utils.compat.mock import patch
 
+from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import (
     Authenticator,
     AuthProvider,
@@ -11,12 +11,9 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
-from sentry.auth.authenticators import (
-    TotpInterface,
-    RecoveryCodeInterface,
-)
 from sentry.testutils import APITestCase
 from sentry.utils.compat import map
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationMemberTestBase(APITestCase):

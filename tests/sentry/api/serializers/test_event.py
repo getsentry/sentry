@@ -1,9 +1,9 @@
-from sentry.api.serializers import serialize, SimpleEventSerializer
+from sentry.api.serializers import SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import SharedEventSerializer
 from sentry.models import EventError
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
-from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class EventSerializerTest(TestCase):

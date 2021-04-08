@@ -1,15 +1,15 @@
 from django.http import Http404
-from sentry.utils.compat.mock import patch
 
-from sentry.testutils import TestCase
 from sentry.api.bases.sentryapps import (
-    SentryAppPermission,
     SentryAppBaseEndpoint,
-    SentryAppInstallationPermission,
     SentryAppInstallationBaseEndpoint,
+    SentryAppInstallationPermission,
+    SentryAppPermission,
     add_integration_platform_metric_tag,
 )
+from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
+from sentry.utils.compat.mock import patch
 
 
 class SentryAppPermissionTest(TestCase):

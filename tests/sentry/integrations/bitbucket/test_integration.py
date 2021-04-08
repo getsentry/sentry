@@ -1,11 +1,10 @@
-import responses
+from urllib.parse import quote
 
+import responses
 from django.core.urlresolvers import reverse
 
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-
-from urllib.parse import quote
 
 
 class BitbucketIntegrationTest(APITestCase):

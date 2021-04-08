@@ -1,15 +1,14 @@
 import pytest
 import responses
 
-from sentry.utils.compat.mock import Mock
-from sentry.testutils import TestCase
-
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
     ApiUnauthorized,
     UnsupportedResponseType,
 )
+from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock
 from sentry_plugins.client import ApiClient, AuthApiClient
 
 

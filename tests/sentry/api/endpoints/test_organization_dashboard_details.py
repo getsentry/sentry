@@ -1,10 +1,11 @@
 from django.core.urlresolvers import reverse
+
 from sentry.models import (
     Dashboard,
     DashboardTombstone,
     DashboardWidget,
-    DashboardWidgetQuery,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 from sentry.utils.compat import zip

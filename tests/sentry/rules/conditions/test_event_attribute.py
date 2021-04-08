@@ -1,5 +1,5 @@
-from sentry.testutils.cases import RuleTestCase
 from sentry.rules.conditions.event_attribute import EventAttributeCondition, MatchType
+from sentry.testutils.cases import RuleTestCase
 
 
 class EventAttributeConditionTest(RuleTestCase):

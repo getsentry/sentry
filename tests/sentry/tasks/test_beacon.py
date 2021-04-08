@@ -1,15 +1,15 @@
 import platform
-import responses
-import sentry
-
-from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
+import responses
+
+import sentry
 from sentry import options
 from sentry.models import Broadcast
-from sentry.testutils import TestCase
 from sentry.tasks.beacon import BEACON_URL, send_beacon
+from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.utils.compat.mock import patch
 
 
 class SendBeaconTest(TestCase):

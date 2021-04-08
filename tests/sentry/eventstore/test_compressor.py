@@ -1,6 +1,6 @@
 import copy
 
-from sentry.eventstore.compressor import deduplicate, assemble
+from sentry.eventstore.compressor import assemble, deduplicate
 
 
 def _assert_roundtrip(data, assert_extra_keys=None):

@@ -1,5 +1,6 @@
-from symbolic import SourceMapView, SourceMapTokenMatch
 from unittest import TestCase
+
+from symbolic import SourceMapTokenMatch, SourceMapView
 
 from sentry.utils import json
 

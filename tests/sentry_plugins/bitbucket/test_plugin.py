@@ -1,14 +1,12 @@
 import responses
-
-from exam import fixture
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
+from exam import fixture
+
 from sentry.plugins.bases.issue2 import PluginError
 from sentry.testutils import PluginTestCase
-
-from social_auth.models import UserSocialAuth
-
 from sentry_plugins.bitbucket.plugin import BitbucketPlugin
+from social_auth.models import UserSocialAuth
 
 
 class BitbucketPluginTest(PluginTestCase):

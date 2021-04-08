@@ -1,5 +1,5 @@
-from social_auth.models import UserSocialAuth
 from sentry.testutils import APITestCase
+from social_auth.models import UserSocialAuth
 
 
 class UserSocialIdentityDetailsEndpointTest(APITestCase):

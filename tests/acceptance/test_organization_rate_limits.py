@@ -1,7 +1,7 @@
 from django.utils import timezone
-from sentry.utils.compat.mock import Mock, patch
 
 from sentry.testutils import AcceptanceTestCase
+from sentry.utils.compat.mock import Mock, patch
 
 
 class OrganizationRateLimitsTest(AcceptanceTestCase):

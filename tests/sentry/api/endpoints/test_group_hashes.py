@@ -1,12 +1,11 @@
 import copy
-
 from urllib.parse import urlencode
 
+from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models import GroupHash
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.eventstream.snuba import SnubaEventStream
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class GroupHashesTest(APITestCase, SnubaTestCase):

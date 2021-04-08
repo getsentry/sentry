@@ -1,6 +1,7 @@
 from datetime import timedelta
-from django.utils import timezone
+
 from django.test import RequestFactory
+from django.utils import timezone
 from exam import fixture
 
 from sentry.middleware.user import UserActiveMiddleware

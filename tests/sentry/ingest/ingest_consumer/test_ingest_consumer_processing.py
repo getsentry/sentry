@@ -1,16 +1,17 @@
-import uuid
-import pytest
 import time
+import uuid
 
-from sentry.utils import json
+import pytest
+
+from sentry.event_manager import EventManager
 from sentry.ingest.ingest_consumer import (
-    process_event,
     process_attachment_chunk,
+    process_event,
     process_individual_attachment,
     process_userreport,
 )
-from sentry.event_manager import EventManager
 from sentry.models import EventAttachment, EventUser, File, UserReport
+from sentry.utils import json
 
 
 def get_normalized_event(data, project):

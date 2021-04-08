@@ -1,7 +1,7 @@
 import unittest
+from datetime import datetime
 
 import pytz
-from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.api.endpoints.project_release_details import ReleaseSerializer

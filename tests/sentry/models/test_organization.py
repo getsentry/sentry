@@ -1,6 +1,7 @@
 import copy
-from sentry.utils.compat import mock
+from uuid import uuid4
 
+from django.core import mail
 from django.db import models
 
 from sentry.api.endpoints.organization_details import (
@@ -19,8 +20,8 @@ from sentry.models import (
     Integration,
     Organization,
     OrganizationAvatar,
-    OrganizationMember,
     OrganizationIntegration,
+    OrganizationMember,
     OrganizationMemberTeam,
     OrganizationOption,
     Project,
@@ -32,8 +33,7 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import TestCase
-from django.core import mail
-from uuid import uuid4
+from sentry.utils.compat import mock
 
 
 class OrganizationTest(TestCase):

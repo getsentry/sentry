@@ -1,14 +1,14 @@
 import pytest
 
 from sentry.ownership.grammar import (
-    Rule,
     Matcher,
     Owner,
-    parse_rules,
+    Rule,
+    convert_codeowners_syntax,
     dump_schema,
     load_schema,
     parse_code_owners,
-    convert_codeowners_syntax,
+    parse_rules,
 )
 
 fixture_data = """

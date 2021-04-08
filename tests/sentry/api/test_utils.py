@@ -3,11 +3,7 @@ import datetime
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.api.utils import (
-    get_date_range_from_params,
-    InvalidParams,
-    MAX_STATS_PERIOD,
-)
+from sentry.api.utils import MAX_STATS_PERIOD, InvalidParams, get_date_range_from_params
 from sentry.testutils import TestCase
 
 

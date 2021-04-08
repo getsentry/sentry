@@ -1,5 +1,5 @@
-from sentry.testutils import AcceptanceTestCase
 from sentry.models import SentryAppInstallation
+from sentry.testutils import AcceptanceTestCase
 from tests.acceptance.page_objects.organization_integration_settings import (
     OrganizationSentryAppDetailViewPage,
 )

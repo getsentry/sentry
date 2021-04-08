@@ -1,5 +1,5 @@
-from sentry.models import Integration, Identity, IdentityProvider
 from sentry.integrations import IntegrationInstallation
+from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils import TestCase
 
 

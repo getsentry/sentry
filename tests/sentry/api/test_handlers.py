@@ -5,8 +5,8 @@ from django.test import override_settings
 from rest_framework.permissions import AllowAny
 
 from sentry.api.base import Endpoint
-from sentry.utils.snuba import RateLimitExceeded
 from sentry.testutils import APITestCase
+from sentry.utils.snuba import RateLimitExceeded
 
 
 class RateLimitedEndpoint(Endpoint):

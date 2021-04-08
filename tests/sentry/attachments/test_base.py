@@ -1,6 +1,6 @@
 import copy
 
-from sentry.attachments.base import CachedAttachment, BaseAttachmentCache
+from sentry.attachments.base import BaseAttachmentCache, CachedAttachment
 
 
 class InMemoryCache:

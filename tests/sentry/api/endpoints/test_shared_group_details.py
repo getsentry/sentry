@@ -1,6 +1,6 @@
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import GroupShare
+from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class SharedGroupDetailsTest(APITestCase):

@@ -1,13 +1,12 @@
 from django.conf import settings
 from django.test import override_settings
 
-from sentry.demo.tasks import delete_users_orgs, build_up_org_buffer, delete_initializing_orgs
-from sentry.demo.models import DemoOrganization, DemoUser, DemoOrgStatus
+from sentry.demo.models import DemoOrganization, DemoOrgStatus, DemoUser
+from sentry.demo.tasks import build_up_org_buffer, delete_initializing_orgs, delete_users_orgs
 from sentry.models import Organization, User
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.compat import mock
-
 
 # fix buffer size at 3
 ORG_BUFFER_SIZE = 3

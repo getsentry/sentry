@@ -1,5 +1,5 @@
-from sentry.testutils import TestCase
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
+from sentry.testutils import TestCase
 
 
 class DiscoverSavedQueryTest(TestCase):

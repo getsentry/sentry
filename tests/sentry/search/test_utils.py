@@ -1,6 +1,6 @@
-import pytest
-from sentry.utils.compat import mock
 from datetime import datetime, timedelta
+
+import pytest
 from django.utils import timezone
 
 from sentry.models import (
@@ -12,16 +12,17 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.testutils import TestCase
 from sentry.search.base import ANY
 from sentry.search.utils import (
-    parse_query,
+    InvalidQuery,
+    convert_user_tag_to_query,
     get_latest_release,
     get_numeric_field_value,
-    convert_user_tag_to_query,
+    parse_query,
     tokenize_query,
-    InvalidQuery,
 )
+from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 def test_get_numeric_field_value():

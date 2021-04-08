@@ -1,6 +1,6 @@
+from sentry.models import GroupAssignee
 from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.testutils.cases import RuleTestCase
-from sentry.models import GroupAssignee
 
 
 class AssignedToFilter(RuleTestCase):

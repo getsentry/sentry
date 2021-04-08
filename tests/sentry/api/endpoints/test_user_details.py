@@ -1,9 +1,4 @@
-from sentry.models import (
-    Organization,
-    OrganizationStatus,
-    User,
-    UserOption,
-)
+from sentry.models import Organization, OrganizationStatus, User, UserOption
 from sentry.testutils import APITestCase
 
 

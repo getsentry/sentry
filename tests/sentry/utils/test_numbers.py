@@ -1,8 +1,8 @@
 from sentry.utils.numbers import (
-    base36_encode,
-    base36_decode,
-    base32_encode,
     base32_decode,
+    base32_encode,
+    base36_decode,
+    base36_encode,
     format_bytes,
 )
 

@@ -1,19 +1,19 @@
-from sentry.utils.compat import mock
 import unittest
 
-from exam import fixture
 from django.http import HttpRequest
+from exam import fixture
 
 from sentry import options
 from sentry.models import Project
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 from sentry.utils.http import (
+    absolute_uri,
+    get_origins,
+    heuristic_decode,
     is_same_domain,
     is_valid_origin,
-    get_origins,
-    absolute_uri,
     origin_from_request,
-    heuristic_decode,
 )
 
 

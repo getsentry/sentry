@@ -1,16 +1,16 @@
 from django.core.urlresolvers import reverse
 
-from sentry.utils import json
 from sentry.models import (
+    Commit,
+    CommitFileChange,
     File,
     Release,
     ReleaseCommit,
     ReleaseFile,
     Repository,
-    Commit,
-    CommitFileChange,
 )
 from sentry.testutils import APITestCase
+from sentry.utils import json
 
 
 class ReleaseMetaTest(APITestCase):

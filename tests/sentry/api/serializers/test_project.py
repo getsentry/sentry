@@ -1,6 +1,6 @@
+import datetime
 from datetime import timedelta
 
-import datetime
 from django.db.models import F
 from django.utils import timezone
 from exam import fixture
@@ -8,10 +8,10 @@ from exam import fixture
 from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
-    bulk_fetch_project_latest_releases,
+    ProjectSummarySerializer,
     ProjectWithOrganizationSerializer,
     ProjectWithTeamSerializer,
-    ProjectSummarySerializer,
+    bulk_fetch_project_latest_releases,
 )
 from sentry.models import (
     Deploy,
@@ -22,10 +22,10 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     UserReport,
 )
-from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.samples import load_data
 from sentry.utils.compat import mock
+from sentry.utils.samples import load_data
 
 
 class ProjectSerializerTest(TestCase):

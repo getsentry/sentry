@@ -1,5 +1,6 @@
-from exam import fixture
 from urllib.parse import parse_qs, urlparse
+
+from exam import fixture
 
 from sentry.models import ApiApplication, ApiAuthorization, ApiGrant, ApiToken
 from sentry.testutils import TestCase

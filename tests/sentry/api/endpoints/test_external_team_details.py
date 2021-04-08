@@ -1,4 +1,5 @@
 from django.core.urlresolvers import reverse
+
 from sentry.models import ExternalTeam
 from sentry.testutils import APITestCase
 

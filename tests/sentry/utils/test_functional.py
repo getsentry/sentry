@@ -1,5 +1,6 @@
-from sentry.utils.functional import compact
 from unittest import TestCase
+
+from sentry.utils.functional import compact
 
 
 class CompactTest(TestCase):

@@ -1,36 +1,36 @@
 import errno
-import pytest
 import re
-import responses
 import unittest
-from symbolic import SourceMapTokenMatch
-
 from copy import deepcopy
 from io import BytesIO
-from sentry.utils.compat.mock import MagicMock, patch, ANY, call
+
+import pytest
+import responses
 from requests.exceptions import RequestException
+from symbolic import SourceMapTokenMatch
 
 from sentry import http, options
+from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_exception
 from sentry.lang.javascript.processor import (
-    cache,
-    get_release_file_cache_key,
-    get_release_file_cache_key_meta,
-    JavaScriptStacktraceProcessor,
-    discover_sourcemap,
-    fetch_sourcemap,
-    fetch_file,
-    generate_module,
-    trim_line,
-    fetch_release_file,
-    UnparseableSourcemap,
-    get_max_age,
     CACHE_CONTROL_MAX,
     CACHE_CONTROL_MIN,
+    JavaScriptStacktraceProcessor,
+    UnparseableSourcemap,
+    cache,
+    discover_sourcemap,
+    fetch_file,
+    fetch_release_file,
+    fetch_sourcemap,
+    generate_module,
+    get_max_age,
+    get_release_file_cache_key,
+    get_release_file_cache_key_meta,
     should_retry_fetch,
+    trim_line,
 )
-from sentry.lang.javascript.errormapping import rewrite_exception, REACT_MAPPING_URL
-from sentry.models import File, Release, ReleaseFile, EventError
+from sentry.models import EventError, File, Release, ReleaseFile
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import ANY, MagicMock, call, patch
 from sentry.utils.strings import truncatechars
 
 base64_sourcemap = "data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0="

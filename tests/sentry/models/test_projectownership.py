@@ -1,7 +1,7 @@
-from sentry.testutils import TestCase
-from sentry.models import ActorTuple, ProjectOwnership, User, Team
+from sentry.models import ActorTuple, ProjectOwnership, Team, User
 from sentry.models.projectownership import resolve_actors
-from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.testutils import TestCase
 from sentry.utils.cache import cache
 
 

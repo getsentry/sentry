@@ -1,7 +1,6 @@
-from sentry.utils.compat import mock
 from base64 import b64encode
-
 from datetime import timedelta
+
 from django.utils import timezone
 
 from sentry.models import (
@@ -9,21 +8,22 @@ from sentry.models import (
     ApiKey,
     Environment,
     Group,
-    GroupHash,
     GroupAssignee,
     GroupBookmark,
+    GroupHash,
+    GroupMeta,
     GroupResolution,
     GroupSeen,
     GroupSnooze,
-    GroupSubscription,
     GroupStatus,
+    GroupSubscription,
     GroupTombstone,
-    GroupMeta,
-    Release,
     Integration,
+    Release,
 )
-from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.plugins.base import plugins
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
 
 

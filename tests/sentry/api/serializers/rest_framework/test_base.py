@@ -5,8 +5,8 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework.base import (
     CamelSnakeModelSerializer,
     CamelSnakeSerializer,
-    convert_dict_key_case,
     camel_to_snake_case,
+    convert_dict_key_case,
     snake_to_camel_case,
 )
 

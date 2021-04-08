@@ -1,6 +1,5 @@
-from sentry.utils import json
-
 from sentry.testutils import AcceptanceTestCase
+from sentry.utils import json
 
 
 class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):

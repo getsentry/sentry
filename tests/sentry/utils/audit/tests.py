@@ -4,8 +4,8 @@ from sentry.models import (
     ApiKey,
     AuditLogEntryEvent,
     DeletedOrganization,
-    DeletedTeam,
     DeletedProject,
+    DeletedTeam,
     Organization,
     OrganizationStatus,
 )

@@ -1,9 +1,10 @@
 from django.db import models
+
 from sentry.db.models import (
-    Model,
-    BoundedIntegerField,
     BoundedBigIntegerField,
+    BoundedIntegerField,
     BoundedPositiveIntegerField,
+    Model,
 )
 from sentry.testutils import TestCase
 

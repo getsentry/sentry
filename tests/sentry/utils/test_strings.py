@@ -1,14 +1,14 @@
-import sys
 import functools
+import sys
 
 from sentry.utils.strings import (
+    codec_lookup,
     is_valid_dot_atom,
+    oxfordize_list,
     soft_break,
     soft_hyphenate,
     tokens_from_name,
-    codec_lookup,
     truncatechars,
-    oxfordize_list,
 )
 
 ZWSP = "\u200b"  # zero width space

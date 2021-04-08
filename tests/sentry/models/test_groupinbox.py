@@ -1,12 +1,12 @@
-from sentry.testutils import TestCase
 from sentry.models import (
     Activity,
-    add_group_to_inbox,
     GroupInbox,
     GroupInboxReason,
     GroupInboxRemoveAction,
+    add_group_to_inbox,
     remove_group_from_inbox,
 )
+from sentry.testutils import TestCase
 from sentry.utils.compat.mock import patch
 
 

@@ -1,9 +1,9 @@
+from sentry.constants import SentryAppStatus
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     build_action_response,
 )
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models.integration import Integration, PagerDutyService
-from sentry.constants import SentryAppStatus
 from sentry.testutils import APITestCase
 
 SERVICES = [

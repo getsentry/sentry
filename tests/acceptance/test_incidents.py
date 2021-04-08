@@ -1,5 +1,5 @@
-from django.utils import timezone
 import pytz
+from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now

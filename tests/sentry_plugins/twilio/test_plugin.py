@@ -1,12 +1,13 @@
-import responses
+from urllib.parse import parse_qs
 
+import responses
 from exam import fixture
+
 from sentry.models import Rule
 from sentry.plugins.base import Notification
-from sentry.testutils import TestCase, PluginTestCase
-from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin
-from urllib.parse import parse_qs
+from sentry.testutils import PluginTestCase, TestCase
 from sentry.utils.compat import map
+from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin
 
 
 class TwilioConfigurationFormTest(TestCase):

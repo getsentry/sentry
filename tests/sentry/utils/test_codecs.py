@@ -1,4 +1,5 @@
 import pytest
+
 from sentry.utils.codecs import BytesCodec, JSONCodec, ZlibCodec, ZstdCodec
 
 

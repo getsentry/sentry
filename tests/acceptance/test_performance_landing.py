@@ -1,11 +1,10 @@
 import pytz
-
-from sentry.utils.compat.mock import patch
-
 from django.db.models import F
+
 from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
 from .page_objects.base import BasePage

@@ -4,6 +4,7 @@ from typing import Optional
 
 import pytest
 from google.oauth2.credentials import Credentials
+
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 

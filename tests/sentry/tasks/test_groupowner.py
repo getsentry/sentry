@@ -1,11 +1,11 @@
 from django.utils import timezone
 
-from sentry.tasks.groupowner import process_suspect_commits, PREFERRED_GROUP_OWNER_AGE
-from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import Repository
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.utils.committers import get_serialized_event_file_committers, get_frame_paths
+from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_commits
+from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.committers import get_frame_paths, get_serialized_event_file_committers
 from sentry.utils.compat.mock import patch
 
 

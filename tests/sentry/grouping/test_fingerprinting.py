@@ -1,8 +1,7 @@
 import pytest
 
-from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.grouping.api import get_default_grouping_config_dict
-
+from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from tests.sentry.grouping import with_fingerprint_input
 
 GROUPING_CONFIG = get_default_grouping_config_dict()

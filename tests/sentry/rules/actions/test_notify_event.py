@@ -1,8 +1,7 @@
-from sentry.utils.compat.mock import MagicMock
-
-from sentry.testutils.cases import RuleTestCase
 from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.rules.actions.services import LegacyPluginService
+from sentry.testutils.cases import RuleTestCase
+from sentry.utils.compat.mock import MagicMock
 
 
 class NotifyEventActionTest(RuleTestCase):

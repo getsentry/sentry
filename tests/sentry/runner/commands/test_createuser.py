@@ -1,7 +1,7 @@
 from sentry import roles
-from sentry.testutils import CliTestCase
+from sentry.models import OrganizationMember, User
 from sentry.runner.commands.createuser import createuser
-from sentry.models import User, OrganizationMember
+from sentry.testutils import CliTestCase
 
 
 class CreateUserTest(CliTestCase):

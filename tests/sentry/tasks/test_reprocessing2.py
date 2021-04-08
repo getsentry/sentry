@@ -1,19 +1,20 @@
+import uuid
 from io import BytesIO
 from time import time
+
 import pytest
-import uuid
 
 from sentry import eventstore
 from sentry.attachments import attachment_cache
-from sentry.models import Group, GroupAssignee, Activity, EventAttachment, File, UserReport
 from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
+from sentry.models import Activity, EventAttachment, File, Group, GroupAssignee, UserReport
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.cache import cache_key_for_event
 
 

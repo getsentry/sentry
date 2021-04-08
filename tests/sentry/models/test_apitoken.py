@@ -1,8 +1,9 @@
 from datetime import timedelta
+
 from django.utils import timezone
 
-from sentry.testutils import TestCase
 from sentry.models import ApiToken
+from sentry.testutils import TestCase
 
 
 class ApiTokenTest(TestCase):

@@ -1,14 +1,12 @@
-import responses
-
 from urllib.parse import urlencode
 
+import responses
 
 from sentry.integrations.msteams import MsTeamsIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 from sentry.utils.compat.mock import patch
 from sentry.utils.signing import sign
-
 
 team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
 

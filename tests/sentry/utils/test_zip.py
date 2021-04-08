@@ -1,4 +1,4 @@
-from sentry.utils.zip import is_unsafe_path, find_common_prefix
+from sentry.utils.zip import find_common_prefix, is_unsafe_path
 
 
 def test_is_unsafe_path():

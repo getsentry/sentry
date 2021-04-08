@@ -1,6 +1,6 @@
-import responses
+from urllib.parse import parse_qs, urlencode, urlparse
 
-from urllib.parse import urlparse, urlencode, parse_qs
+import responses
 
 from sentry.integrations.vsts import VstsIntegrationProvider
 from sentry.testutils import IntegrationTestCase

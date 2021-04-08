@@ -1,9 +1,8 @@
-from sentry.utils.compat import mock
 import pytest
-
 from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import HTTPError, ReadTimeoutError
 
+from sentry.utils.compat import mock
 from sentry.utils.snuba import RetrySkipTimeout
 
 

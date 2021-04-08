@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 from django.utils import timezone
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType

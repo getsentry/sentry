@@ -1,7 +1,7 @@
 from django.http import HttpRequest
+from rest_framework.exceptions import APIException
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from rest_framework.exceptions import APIException
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import APITestCase
 

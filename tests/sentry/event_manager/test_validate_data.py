@@ -1,8 +1,8 @@
-import pytest
-
 from datetime import datetime, timedelta
 
-from sentry.constants import MAX_VERSION_LENGTH, MAX_CULPRIT_LENGTH
+import pytest
+
+from sentry.constants import MAX_CULPRIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.event_manager import EventManager
 
 

@@ -1,12 +1,13 @@
-from exam import fixture
 from datetime import timedelta
 
 from django.utils import timezone
+from exam import fixture
+
 from sentry.api.serializers import serialize
-from sentry.incidents.models import IncidentStatus
 from sentry.incidents.logic import update_incident_status
-from sentry.testutils import APITestCase
+from sentry.incidents.models import IncidentStatus
 from sentry.snuba.models import QueryDatasets
+from sentry.testutils import APITestCase
 
 
 class IncidentListEndpointTest(APITestCase):

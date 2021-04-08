@@ -1,8 +1,9 @@
 from datetime import datetime
+
 from django.utils import timezone
+
 from sentry.models import Commit, CommitAuthor, Repository
 from sentry.testutils import APITestCase, TestCase
-
 from sentry_plugins.bitbucket.endpoints.webhook import parse_raw_user_email, parse_raw_user_name
 from sentry_plugins.bitbucket.testutils import PUSH_EVENT_EXAMPLE
 

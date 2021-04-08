@@ -1,6 +1,7 @@
-from .util import invalid_schema_with_error_message
-from sentry.testutils import TestCase
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
+from sentry.testutils import TestCase
+
+from .util import invalid_schema_with_error_message
 
 
 class TestSchemaValidation(TestCase):

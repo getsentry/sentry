@@ -1,9 +1,9 @@
 import responses
-from sentry.utils.compat import mock
 
-from sentry.testutils import TestCase
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.models import Integration, Repository
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class GitHubAppsClientTest(TestCase):

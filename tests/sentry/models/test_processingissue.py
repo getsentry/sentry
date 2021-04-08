@@ -1,4 +1,4 @@
-from sentry.models import ProcessingIssue, EventError, RawEvent, EventProcessingIssue
+from sentry.models import EventError, EventProcessingIssue, ProcessingIssue, RawEvent
 from sentry.testutils import TestCase
 
 

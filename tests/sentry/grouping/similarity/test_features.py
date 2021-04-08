@@ -1,16 +1,14 @@
 import pytest
 
-from sentry.models import Group, Project
+import sentry.similarity
+from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
-from sentry.utils.compat import zip
+from sentry.models import Group, Project
 from sentry.utils import json
-from sentry import eventstore
-
-import sentry.similarity
-
-from tests.sentry.grouping import with_grouping_input, with_fingerprint_input
+from sentry.utils.compat import zip
+from tests.sentry.grouping import with_fingerprint_input, with_grouping_input
 
 
 def create_event(data, group_id=123):

@@ -1,13 +1,13 @@
 from exam import mock
 
+from sentry import features
+from sentry.features import OrganizationFeature
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
 from tests.acceptance.page_objects.organization_integration_settings import (
     ExampleIntegrationSetupWindowElement,
     OrganizationIntegrationDetailViewPage,
 )
-from sentry.features import OrganizationFeature
-from sentry import features
 
 
 class OrganizationIntegrationDetailView(AcceptanceTestCase):

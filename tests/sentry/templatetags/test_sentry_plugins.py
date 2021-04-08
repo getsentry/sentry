@@ -1,8 +1,8 @@
-from sentry.utils.compat.mock import MagicMock
 from django.template import engines
 
 from sentry.plugins.base.v2 import Plugin2
 from sentry.testutils import PluginTestCase
+from sentry.utils.compat.mock import MagicMock
 
 
 class SamplePlugin(Plugin2):

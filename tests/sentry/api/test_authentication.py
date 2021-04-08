@@ -1,5 +1,4 @@
 import pytest
-
 from django.http import HttpRequest
 from rest_framework.exceptions import AuthenticationFailed
 

@@ -6,9 +6,9 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from exam import patcher
 from freezegun import freeze_time
-from sentry.utils.compat.mock import Mock, patch
 
 from sentry.db.models.manager import BaseManager
+from sentry.incidents.logic import delete_alert_rule, update_alert_rule
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
@@ -22,8 +22,8 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.incidents.logic import delete_alert_rule, update_alert_rule
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock, patch
 
 
 class FetchForOrganizationTest(TestCase):

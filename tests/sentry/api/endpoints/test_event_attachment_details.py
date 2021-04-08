@@ -2,7 +2,7 @@ from io import BytesIO
 
 from sentry.models import EventAttachment, File
 from sentry.testutils import APITestCase, PermissionTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class CreateAttachmentMixin:

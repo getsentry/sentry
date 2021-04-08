@@ -8,9 +8,9 @@ from sentry.digests.utilities import (
 )
 from sentry.mail.adapter import ActionTargetType
 from sentry.models import ActorTuple, OrganizationMemberTeam, ProjectOwnership, Team, User
-from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 def sort_records(records):

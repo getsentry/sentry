@@ -1,8 +1,8 @@
-import responses
-
 from urllib.parse import parse_qs, urlencode, urlparse
 
-from sentry.integrations.slack import SlackIntegrationProvider, SlackIntegration
+import responses
+
+from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,

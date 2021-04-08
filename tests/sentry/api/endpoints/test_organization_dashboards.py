@@ -1,8 +1,8 @@
 from django.core.urlresolvers import reverse
 
-from sentry.utils.compat import zip
 from sentry.models import Dashboard, DashboardTombstone
 from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.utils.compat import zip
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):

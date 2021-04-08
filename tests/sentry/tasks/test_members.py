@@ -1,8 +1,8 @@
 from django.core import mail
 
 from sentry.models import InviteStatus, OrganizationMember
-from sentry.testutils import TestCase
 from sentry.tasks.members import send_invite_request_notification_email
+from sentry.testutils import TestCase
 
 
 class InviteRequestNotificationTest(TestCase):

@@ -1,15 +1,14 @@
 import pytest
-from sentry.utils.compat import mock
-
-from django.test import override_settings
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.test import override_settings
 from django.utils.http import urlquote
 from exam import fixture
 
-from sentry import options, newsletter
-from sentry.testutils import TestCase
+from sentry import newsletter, options
 from sentry.models import OrganizationMember, User
+from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior

@@ -1,9 +1,9 @@
 from django.test import RequestFactory
 from exam import fixture
 
-from sentry.testutils import TestCase
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models import UserIP
+from sentry.testutils import TestCase
 from sentry.utils.auth import login
 
 

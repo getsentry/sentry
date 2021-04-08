@@ -1,17 +1,16 @@
 import responses
 
-from sentry.utils.compat.mock import patch
-
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.sentry_app_installations import Creator
 from sentry.models import (
+    ApiGrant,
     AuditLogEntry,
     AuditLogEntryEvent,
-    ApiGrant,
     ServiceHook,
     ServiceHookProject,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class TestCreator(TestCase):

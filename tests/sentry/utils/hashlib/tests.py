@@ -1,8 +1,8 @@
-import pytest
-
-from sentry.utils.hashlib import md5_text, sha1_text, hash_values
 from unittest import TestCase
 
+import pytest
+
+from sentry.utils.hashlib import hash_values, md5_text, sha1_text
 
 HASHLIB_VALUES_TESTS = (
     ("seed", None, "75a0ad233bd9a091d9d26bacbe2f377e"),

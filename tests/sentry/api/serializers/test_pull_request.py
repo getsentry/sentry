@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from sentry.api.serializers import serialize
 from sentry.integrations.github.repository import GitHubRepositoryProvider
-from sentry.models import PullRequest, CommitAuthor, Release, Repository
+from sentry.models import CommitAuthor, PullRequest, Release, Repository
 from sentry.plugins.base import bindings
 from sentry.testutils import TestCase
 

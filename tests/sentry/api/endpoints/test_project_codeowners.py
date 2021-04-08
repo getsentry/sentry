@@ -1,7 +1,7 @@
 from django.core.urlresolvers import reverse
 
-from sentry.testutils import APITestCase
 from sentry.models import Integration, ProjectCodeOwners
+from sentry.testutils import APITestCase
 
 
 class ProjectCodeOwnersEndpointTestCase(APITestCase):
