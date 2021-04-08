@@ -230,6 +230,10 @@ class ProjectCharts extends React.Component<Props, State> {
       return '6h';
     }
 
+    if (diffInMinutes === TWENTY_FOUR_HOURS) {
+      return '1h';
+    }
+
     if (diffInMinutes <= ONE_HOUR) {
       return '1m';
     }
@@ -327,7 +331,7 @@ class ProjectCharts extends React.Component<Props, State> {
                 (hasDiscover ? (
                   <ProjectBaseEventsChart
                     title={t('Number of Errors')}
-                    query="event.type:error"
+                    query="!event.type:transaction"
                     yAxis="count()"
                     field={[`count()`]}
                     api={api}
