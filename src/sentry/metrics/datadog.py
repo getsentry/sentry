@@ -1,6 +1,6 @@
 __all__ = ["DatadogMetricsBackend"]
 
-from datadog import initialize, ThreadStats
+from datadog import ThreadStats, initialize
 from datadog.util.hostname import get_hostname
 
 from sentry.utils.cache import memoize
