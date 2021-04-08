@@ -1,4 +1,5 @@
 from threading import Lock
+
 from sentry.utils.imports import import_string
 
 
