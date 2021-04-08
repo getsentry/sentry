@@ -1,11 +1,11 @@
 import logging
+from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import uuid4
 
-from urllib.parse import urlparse, urlencode, urlunparse
-from sentry.http import safe_urlread
 from sentry.coreapi import APIError
+from sentry.http import safe_urlread
 from sentry.mediators import Mediator, Param
-from sentry.mediators.external_requests.util import validate, send_and_save_sentry_app_request
+from sentry.mediators.external_requests.util import send_and_save_sentry_app_request, validate
 from sentry.utils import json
 from sentry.utils.cache import memoize
 

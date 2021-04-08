@@ -1,14 +1,14 @@
 from collections import Iterable
-from django.utils import timezone
+
 from django.db.models import Q
+from django.utils import timezone
 
 from sentry import analytics
-from sentry.coreapi import APIError
 from sentry.constants import SentryAppStatus
-from sentry.mediators import Mediator, Param
-from sentry.mediators import service_hooks
+from sentry.coreapi import APIError
+from sentry.mediators import Mediator, Param, service_hooks
 from sentry.mediators.param import if_param
-from sentry.models import SentryAppComponent, ServiceHook, SentryAppInstallation, ApiToken
+from sentry.models import ApiToken, SentryAppComponent, SentryAppInstallation, ServiceHook
 from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
 
 

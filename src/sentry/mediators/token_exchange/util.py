@@ -1,6 +1,6 @@
 from datetime import timedelta
-from django.utils import timezone
 
+from django.utils import timezone
 
 TOKEN_LIFE_IN_HOURS = 8
 
