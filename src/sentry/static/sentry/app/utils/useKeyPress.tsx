@@ -21,12 +21,12 @@ function useKeyPress(targetKey: React.KeyboardEvent['key']) {
 
   // Add event listeners
   useEffect(() => {
-    document.addEventListener('keydown', downHandler);
-    document.addEventListener('keyup', upHandler);
+    window.addEventListener('keydown', downHandler);
+    window.addEventListener('keyup', upHandler);
     // Remove event listeners on cleanup
     return () => {
-      document.removeEventListener('keydown', downHandler);
-      document.removeEventListener('keyup', upHandler);
+      window.removeEventListener('keydown', downHandler);
+      window.removeEventListener('keyup', upHandler);
     };
   }, []); // Empty array ensures that effect is only run on mount and unmount
 
