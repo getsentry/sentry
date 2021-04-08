@@ -11,39 +11,39 @@ enabled.
 """
 
 import logging
-import requests
 import threading
-
-from requests_oauthlib import OAuth1
-from django.contrib.auth import authenticate
-from django.utils.crypto import get_random_string, constant_time_compare
 from urllib.error import HTTPError
-from urllib.request import Request
 from urllib.parse import urlencode
-from social_auth.models import UserSocialAuth
-from social_auth.utils import (
-    setting,
-    model_to_ctype,
-    ctype_to_model,
-    clean_partial_pipeline,
-    url_add_parameters,
-    dsa_urlopen,
-    parse_qs,
-)
-from social_auth.exceptions import (
-    StopPipeline,
-    AuthFailed,
-    AuthCanceled,
-    AuthUnknownError,
-    AuthTokenError,
-    AuthMissingParameter,
-    AuthStateMissing,
-    AuthStateForbidden,
-    BackendError,
-)
+from urllib.request import Request
+
+import requests
+from django.contrib.auth import authenticate
+from django.utils.crypto import constant_time_compare, get_random_string
+from requests_oauthlib import OAuth1
 
 from sentry.utils import json
 from sentry.utils.compat import map
+from social_auth.exceptions import (
+    AuthCanceled,
+    AuthFailed,
+    AuthMissingParameter,
+    AuthStateForbidden,
+    AuthStateMissing,
+    AuthTokenError,
+    AuthUnknownError,
+    BackendError,
+    StopPipeline,
+)
+from social_auth.models import UserSocialAuth
+from social_auth.utils import (
+    clean_partial_pipeline,
+    ctype_to_model,
+    dsa_urlopen,
+    model_to_ctype,
+    parse_qs,
+    setting,
+    url_add_parameters,
+)
 
 PIPELINE = setting(
     "SOCIAL_AUTH_PIPELINE",

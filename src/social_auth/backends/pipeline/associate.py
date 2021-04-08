@@ -1,7 +1,7 @@
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 
-from social_auth.models import UserSocialAuth
 from social_auth.exceptions import AuthException
+from social_auth.models import UserSocialAuth
 
 
 def associate_by_email(details, user=None, *args, **kwargs):

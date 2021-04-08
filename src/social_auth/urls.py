@@ -2,7 +2,6 @@ from django.conf.urls import url
 
 from social_auth.views import auth, complete
 
-
 urlpatterns = [
     # authentication
     url(
