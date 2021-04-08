@@ -1,10 +1,10 @@
+from urllib.parse import quote
+
 from django.core.urlresolvers import reverse
 
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
-from urllib.parse import quote
-
 
 API_VERSION = "/api/v4"
 

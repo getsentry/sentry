@@ -6,10 +6,11 @@ from django.utils.translation import ugettext as _
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.web.helpers import render_to_response
+
 from . import default_manager
 
 
