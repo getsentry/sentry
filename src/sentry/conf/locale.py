@@ -1,6 +1,6 @@
 import os
-import sentry
 
+import sentry
 from sentry.utils import json
 
 
