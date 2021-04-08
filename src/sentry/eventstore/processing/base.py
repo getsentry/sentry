@@ -4,7 +4,6 @@ from typing import Any, Optional
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kvstore.abstract import KVStorage
 
-
 DEFAULT_TIMEOUT = 60 * 60 * 24
 
 
