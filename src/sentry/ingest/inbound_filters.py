@@ -1,9 +1,9 @@
 from rest_framework import serializers
 
 from sentry import tsdb
-from sentry.relay.utils import to_camel_case_name
 from sentry.api.fields.multiplechoice import MultipleChoiceField
 from sentry.models.projectoption import ProjectOption
+from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
 
 
