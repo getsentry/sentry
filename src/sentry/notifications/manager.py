@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
@@ -242,7 +242,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         provider: ExternalProviders,
         project: Any,
         users: List[Any],
-    ) -> DefaultDict[Any, List[Any]]:
+    ) -> Mapping[ExternalProviders, List[Any]]:
         """
         Filters a list of users down to the users by provider who are subscribed to alerts.
         We check both the project level settings and global default settings.
@@ -262,7 +262,7 @@ class NotificationsManager(BaseManager):  # type: ignore
 
     def get_notification_recipients(
         self, provider: ExternalProviders, project: Any
-    ) -> DefaultDict[Any, List[Any]]:
+    ) -> Mapping[ExternalProviders, List[Any]]:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of
