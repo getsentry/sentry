@@ -1,5 +1,0 @@
-transaction - abcdef123456789
-    |
-    +--- browser - stuff1 [----------------] 500ms
-    +--- http - stuff2    [----------------] 500ms
-    +--- http - stuff3    [----------------] 500ms
