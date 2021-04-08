@@ -1698,6 +1698,22 @@ class QueryTransformTest(TestCase):
                 3.45,
             ), f"failing for {array_column}"
 
+            # use the given min, but query for max. the given min will be out of range
+            # of the queried max
+            mock_query.side_effect = [
+                {
+                    "meta": [{"name": f"max_{array_column}_foo"}],
+                    "data": [{f"max_{array_column}_foo": 3.45}],
+                },
+            ]
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo"], 3.5, None, "", {"project_id": [self.project.id]}
+            )
+            assert values == (
+                3.5,
+                3.5,
+            ), f"failing for {array_column}"
+
             # use the given max, but query for min
             mock_query.side_effect = [
                 {
