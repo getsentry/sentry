@@ -192,18 +192,16 @@ class TransactionsList extends React.Component<Props> {
           ))}
         </DropdownControl>
         {!this.isTrend() && (
-          <HeaderButtonContainer>
-            <GuideAnchor target="release_transactions_open_in_discover">
-              <DiscoverButton
-                onClick={handleOpenInDiscoverClick}
-                to={this.getEventView().getResultsViewUrlTarget(organization.slug)}
-                size="small"
-                data-test-id="discover-open"
-              >
-                {t('Open in Discover')}
-              </DiscoverButton>
-            </GuideAnchor>
-          </HeaderButtonContainer>
+          <GuideAnchor target="release_transactions_open_in_discover">
+            <DiscoverButton
+              onClick={handleOpenInDiscoverClick}
+              to={this.getEventView().getResultsViewUrlTarget(organization.slug)}
+              size="small"
+              data-test-id="discover-open"
+            >
+              {t('Open in Discover')}
+            </DiscoverButton>
+          </GuideAnchor>
         )}
       </React.Fragment>
     );
@@ -598,11 +596,6 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
   margin-bottom: ${space(1)};
-`;
-
-const HeaderButtonContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
