@@ -34,6 +34,8 @@ def increment_project_counter(project, delta=1, using="default"):
         cur = connections[using].cursor()
         try:
             if settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT:
+                # WARNING: This is not a proper fix and should be removed once
+                #          we have better way of generating next_short_id.
                 cur.execute(
                     "set local statement_timeout = %s",
                     [settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT],
