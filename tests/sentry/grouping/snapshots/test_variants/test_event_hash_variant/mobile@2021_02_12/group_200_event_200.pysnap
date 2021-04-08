@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T19:03:43.208751Z'
+created: '2021-04-08T09:28:25.221976Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,6 +25,8 @@ app-depth-1:
               "destructor'"
             package (ignored because function takes precedence)
               "winhttp.dll"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------

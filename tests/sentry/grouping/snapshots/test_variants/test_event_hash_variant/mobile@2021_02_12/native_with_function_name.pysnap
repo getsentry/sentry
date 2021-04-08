@@ -1,5 +1,5 @@
 ---
-created: '2021-04-06T11:58:23.970482Z'
+created: '2021-04-08T09:28:25.449495Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -23,6 +23,8 @@ app-depth-1:
               "`anonymous namespace'::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------

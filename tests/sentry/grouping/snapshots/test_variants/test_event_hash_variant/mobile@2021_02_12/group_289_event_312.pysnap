@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:53:49.748836Z'
+created: '2021-04-08T09:28:27.921056Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,6 +25,8 @@ app-depth-1:
               "glDeleteTextures_Exec"
             package (ignored because function takes precedence)
               "glengine"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------

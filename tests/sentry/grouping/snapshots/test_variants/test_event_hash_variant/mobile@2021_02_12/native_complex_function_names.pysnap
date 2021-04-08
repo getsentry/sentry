@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:39:13.126190Z'
+created: '2021-04-08T09:28:24.194436Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,6 +13,8 @@ app-depth-1:
           frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+        type (ignored because exception is synthetic)
+          "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------

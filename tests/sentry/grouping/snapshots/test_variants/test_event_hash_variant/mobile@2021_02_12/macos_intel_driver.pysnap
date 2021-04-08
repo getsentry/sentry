@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T19:03:39.784679Z'
+created: '2021-04-08T09:28:28.980239Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,6 +25,8 @@ app-depth-1:
               "CGLTexImageIOSurface2D"
             package (ignored because function takes precedence)
               "opengl"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------

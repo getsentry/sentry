@@ -1,10 +1,10 @@
 ---
-created: '2021-03-24T14:27:25.556907Z'
+created: '2021-04-08T09:28:26.588459Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "75c06f01cb4cb57f79d076bcdece59e7"
+  hash: "8916e86cfaa7898cdeece0f4d8035ba5"
   tree_label: "Get"
   component:
     app-depth-1*
@@ -17,6 +17,8 @@ app-depth-1:
               "valuescontroller.cs"
             function*
               "Get"
+        type*
+          "System.Exception"
         value (ignored because stacktrace takes precedence)
           "sync exception"
 --------------------------------------------------------------------------
@@ -318,18 +320,9 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
-      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
         "An unhandled exception has occurred while executing the request."
---------------------------------------------------------------------------
-exception-type:
-  hash: "d1546df68cd784043f201b7375878b7a"
-  tree_label: "System.Exception"
-  component:
-    exception-type*
-      exception-type*
-        type*
-          "System.Exception"
 --------------------------------------------------------------------------
 system:
   hash: "4ccd0f1953483581ba360c7518f90332"

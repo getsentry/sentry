@@ -543,9 +543,7 @@ def single_exception(exception, context, **meta):
     rv = {}
 
     for variant, stacktrace_component in stacktrace_variants.items():
-        values = [stacktrace_component]
-        if not context["hierarchical_grouping"] or variant != "app-depth-1":
-            values.append(type_component)
+        values = [stacktrace_component, type_component]
 
         if ns_error_component is not None:
             values.append(ns_error_component)
@@ -583,11 +581,6 @@ def single_exception(exception, context, **meta):
             values.append(value_component)
 
         rv[variant] = GroupingComponent(id="exception", values=values)
-
-    if context["hierarchical_grouping"] and type_component.contributes:
-        rv["exception-type"] = GroupingComponent(
-            id="exception-type", values=[type_component], tree_label=exception.type
-        )
 
     return rv
 

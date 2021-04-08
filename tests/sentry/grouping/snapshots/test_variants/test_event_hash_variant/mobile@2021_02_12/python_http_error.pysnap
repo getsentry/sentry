@@ -1,10 +1,10 @@
 ---
-created: '2021-03-18T11:30:03.674476Z'
+created: '2021-04-08T09:28:25.549331Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "3119c9f55de6b4b9ac6f1a7f7d05b86e"
+  hash: "92dfcda18050570bb1aabce4f35dc0a1"
   tree_label: "send_notification"
   component:
     app-depth-1*
@@ -19,6 +19,8 @@ app-depth-1:
               "send_notification"
             context-line*
               "resp.raise_for_status()"
+        type*
+          "HTTPError"
         value (ignored because stacktrace takes precedence)
           "<int> Client Error: Too Many Requests for url: <url>"
 --------------------------------------------------------------------------
@@ -103,18 +105,9 @@ app-depth-3:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-2/app-depth-3/exception-type/system takes precedence)
-      message (exception of app-depth-1/app-depth-2/app-depth-3/exception-type/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/app-depth-3/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-3/system takes precedence)
         "%s.process_error"
---------------------------------------------------------------------------
-exception-type:
-  hash: "28e2aeb21c361fc1c2d3d5a7c964812f"
-  tree_label: "HTTPError"
-  component:
-    exception-type*
-      exception-type*
-        type*
-          "HTTPError"
 --------------------------------------------------------------------------
 system:
   hash: "133db3f366b1327dab4e661f66dfb961"
