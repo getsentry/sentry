@@ -340,9 +340,8 @@ const CreateAlertButton = withApi(
       const hasWizard = organization.features.includes('alert-wizard');
       const createAlertUrl = (providedProj: string) => {
         const alertsBaseUrl = `/organizations/${organization.slug}/alerts/${providedProj}`;
-        return `${alertsBaseUrl}/${hasWizard ? 'wizard' : 'new'}/${
-          referrer ? `?referrer=${referrer}` : ''
-        }`;
+        const subUrl = hasWizard ? 'wizard' : 'new';
+        return `${alertsBaseUrl}/${subUrl}/${referrer ? `?referrer=${referrer}` : ''}`;
       };
 
       function handleClickWithoutProject(event: React.MouseEvent) {
