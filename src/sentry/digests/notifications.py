@@ -1,13 +1,12 @@
 import functools
-from functools import reduce
 import itertools
 import logging
-
 from collections import OrderedDict, defaultdict, namedtuple
+from functools import reduce
 
 from sentry.app import tsdb
 from sentry.digests import Record
-from sentry.models import Project, Group, GroupStatus, Rule
+from sentry.models import Group, GroupStatus, Project, Rule
 from sentry.utils.dates import to_timestamp
 
 logger = logging.getLogger("sentry.digests")

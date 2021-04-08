@@ -1,16 +1,16 @@
 import logging
 import time
-
 from contextlib import contextmanager
+
 from redis.client import ResponseError
 
 from sentry.digests import Record, ScheduleEntry
 from sentry.digests.backends.base import Backend, InvalidState
+from sentry.utils.compat import map
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_script
 from sentry.utils.versioning import Version
-from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.digests")
 
