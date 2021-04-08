@@ -39,7 +39,6 @@ import TransactionSummaryCharts from './charts';
 import Filter, {
   filterToField,
   filterToSearchConditions,
-  filterToString,
   SpanOperationBreakdownFilter,
 } from './filter';
 import TransactionHeader, {Tab} from './header';
@@ -200,7 +199,7 @@ class SummaryContent extends React.Component<Props, State> {
     const durationTableTitle =
       spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
         ? t('duration')
-        : `${filterToString(spanOperationBreakdownFilter)} duration`;
+        : `${spanOperationBreakdownFilter} duration`;
 
     return (
       <React.Fragment>
@@ -389,7 +388,7 @@ function getFilterOptions({
   }
 
   const field = filterToField(spanOperationBreakdownFilter)!;
-  const operationName = filterToString(spanOperationBreakdownFilter);
+  const operationName = spanOperationBreakdownFilter;
 
   return [
     {
