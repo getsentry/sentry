@@ -18,12 +18,7 @@ import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogr
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
-import {
-  filterToColour,
-  filterToField,
-  filterToString,
-  SpanOperationBreakdownFilter,
-} from './filter';
+import {filterToColour, filterToField, SpanOperationBreakdownFilter} from './filter';
 
 const NUM_BUCKETS = 50;
 const QUERY_KEYS = [
@@ -217,7 +212,7 @@ class LatencyChart extends React.Component<Props, State> {
       currentFilter === SpanOperationBreakdownFilter.None
         ? t('Duration Distribution')
         : tct('Span Operation Distribution - [operationName]', {
-            operationName: filterToString(currentFilter) as string,
+            operationName: currentFilter,
           });
 
     return (

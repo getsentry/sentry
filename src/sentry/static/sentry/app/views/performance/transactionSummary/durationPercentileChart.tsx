@@ -18,12 +18,7 @@ import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
 import {Theme} from 'app/utils/theme';
 
-import {
-  filterToColour,
-  filterToField,
-  filterToString,
-  SpanOperationBreakdownFilter,
-} from './filter';
+import {filterToColour, filterToField, SpanOperationBreakdownFilter} from './filter';
 
 const QUERY_KEYS = [
   'environment',
@@ -210,7 +205,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
       currentFilter === SpanOperationBreakdownFilter.None
         ? t('Duration Percentiles')
         : tct('Span Operation Percentiles - [operationName]', {
-            operationName: filterToString(currentFilter) as string,
+            operationName: currentFilter,
           });
 
     return (

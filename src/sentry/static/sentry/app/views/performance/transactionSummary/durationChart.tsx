@@ -27,7 +27,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import {filterToField, filterToString, SpanOperationBreakdownFilter} from './filter';
+import {filterToField, SpanOperationBreakdownFilter} from './filter';
 
 const QUERY_KEYS = [
   'environment',
@@ -144,7 +144,7 @@ class DurationChart extends React.Component<Props> {
       currentFilter === SpanOperationBreakdownFilter.None
         ? t('Duration Breakdown')
         : tct('Span Operation Breakdown - [operationName]', {
-            operationName: filterToString(currentFilter) as string,
+            operationName: currentFilter,
           });
 
     return (

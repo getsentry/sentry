@@ -14,11 +14,11 @@ import {OrganizationSummary} from 'app/types';
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
 export enum SpanOperationBreakdownFilter {
-  None,
-  Http,
-  Db,
-  Browser,
-  Resource,
+  None = 'none',
+  Http = 'http',
+  Db = 'db',
+  Browser = 'browser',
+  Resource = 'resource',
 }
 
 const OPTIONS: SpanOperationBreakdownFilter[] = [
@@ -52,7 +52,7 @@ class Filter extends React.Component<Props> {
             {currentFilter === SpanOperationBreakdownFilter.None
               ? t('Filter')
               : tct('Filter - [operationName]', {
-                  operationName: filterToString(currentFilter) as string,
+                  operationName: currentFilter,
                 })}
           </FilterLabel>
         </React.Fragment>
@@ -95,7 +95,7 @@ class Filter extends React.Component<Props> {
             </Header>
             <List>
               {Array.from([...OPTIONS], (filterOption, index) => {
-                const operationName = filterToString(filterOption);
+                const operationName = filterOption;
                 return (
                   <ListItem key={String(index)} isChecked={false}>
                     <OperationDot backgroundColor={pickSpanBarColour(operationName)} />
@@ -216,27 +216,12 @@ const OperationName = styled('div')`
   ${overflowEllipsis};
 `;
 
-export function filterToString(option: SpanOperationBreakdownFilter): string {
-  switch (option) {
-    case SpanOperationBreakdownFilter.Http:
-      return 'http';
-    case SpanOperationBreakdownFilter.Db:
-      return 'db';
-    case SpanOperationBreakdownFilter.Browser:
-      return 'browser';
-    case SpanOperationBreakdownFilter.Resource:
-      return 'resource';
-    default:
-      throw Error(`Unknown option: ${option}`);
-  }
-}
-
 export function filterToField(option: SpanOperationBreakdownFilter) {
   switch (option) {
     case SpanOperationBreakdownFilter.None:
       return undefined;
     default: {
-      return `span_op_breakdowns.ops.${filterToString(option)}`;
+      return `span_op_breakdowns.ops.${option}`;
     }
   }
 }
@@ -256,7 +241,7 @@ export function filterToColour(option: SpanOperationBreakdownFilter) {
     case SpanOperationBreakdownFilter.None:
       return pickSpanBarColour('');
     default: {
-      return pickSpanBarColour(filterToString(option));
+      return pickSpanBarColour(option);
     }
   }
 }
