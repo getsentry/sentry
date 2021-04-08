@@ -22,8 +22,8 @@ from sentry.models import (
 )
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
-    NotificationSettingOptionValues,
     NotificationScopeType,
+    NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
 from sentry.utils.compat import zip

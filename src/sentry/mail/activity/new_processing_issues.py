@@ -1,8 +1,4 @@
-from sentry.models import (
-    EventError,
-    GroupSubscriptionReason,
-    NotificationSetting,
-)
+from sentry.models import EventError, GroupSubscriptionReason, NotificationSetting
 from sentry.models.integration import ExternalProviders
 from sentry.utils.http import absolute_uri
 
