@@ -1,28 +1,27 @@
 import functools
-from collections import defaultdict, Iterable, OrderedDict
-from dateutil.parser import parse as parse_datetime
-from pytz import UTC
+from collections import Iterable, OrderedDict, defaultdict
 
+from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
+from pytz import UTC
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_ALIAS
-from sentry.models import Project, ReleaseProjectEnvironment
 from sentry.api.utils import default_start_end_dates
+from sentry.models import Project, ReleaseProjectEnvironment
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
     TagKeyNotFound,
     TagValueNotFound,
 )
-from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
-from sentry.utils import snuba, metrics
-from sentry.utils.hashlib import md5_text
+from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
+from sentry.utils import metrics, snuba
 from sentry.utils.dates import to_timestamp
-from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-
+from sentry.utils.hashlib import md5_text
 
 SEEN_COLUMN = "timestamp"
 
