@@ -150,7 +150,7 @@ const Wrapper = styled('div')`
       opacity: 1;
     }
     ${Label} {
-      border: 1px solid ${p => p.theme.gray300};
+      border-color: ${p => p.theme.gray300};
     }
     ${InnerLabel} {
       border-bottom-color: transparent;
