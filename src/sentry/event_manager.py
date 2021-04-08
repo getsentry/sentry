@@ -936,6 +936,10 @@ def _save_aggregate2(event, flat_hashes, hierarchical_hashes, release, **kwargs)
     existing_group_id = _find_group_id(all_hashes)
 
     if existing_group_id is None:
+
+        if project.id in (options.get("store.load-shed-group-creation-projects") or ()):
+            raise HashDiscarded("Load shedding group creation")
+
         with sentry_sdk.start_span(
             op="event_manager.create_group_transaction"
         ) as span, metrics.timer(
