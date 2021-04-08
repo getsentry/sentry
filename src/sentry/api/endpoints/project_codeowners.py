@@ -1,5 +1,5 @@
 import logging
-
+from django.db.models import Exists, OuterRef
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -17,6 +17,7 @@ from sentry.models import (
     ProjectCodeOwners,
     RepositoryProjectPathConfig,
     UserEmail,
+    OrganizationMember,
 )
 from sentry.ownership.grammar import convert_codeowners_syntax, parse_code_owners
 
@@ -48,7 +49,13 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         teamnames, usernames, emails = parse_code_owners(attrs["raw"])
 
         # Check if there exists Sentry users with the emails listed in CODEOWNERS
-        user_emails = UserEmail.objects.filter(email__in=emails)
+        user_emails = UserEmail.objects.annotate(
+            user_in_org=Exists(
+                OrganizationMember.objects.filter(
+                    user=OuterRef("user"), organization=self.context["project"].organization
+                )
+            )
+        ).filter(email__in=emails, user_in_org=True)
         user_emails_diff = self._validate_association(emails, user_emails, "emails")
 
         external_association_err.extend(user_emails_diff)
