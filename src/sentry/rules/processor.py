@@ -1,10 +1,10 @@
 import logging
-
 from collections import namedtuple
 from datetime import timedelta
+from random import randrange
+
 from django.core.cache import cache
 from django.utils import timezone
-from random import randrange
 
 from sentry import analytics
 from sentry.models import GroupRuleStatus, Rule
