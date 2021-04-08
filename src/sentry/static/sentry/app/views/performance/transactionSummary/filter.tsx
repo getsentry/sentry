@@ -85,26 +85,33 @@ class Filter extends React.Component<Props> {
               event.stopPropagation();
             }}
           >
-            <Header>
+            <Header
+              onClick={event => {
+                event.stopPropagation();
+                onChangeFilter(SpanOperationBreakdownFilter.None);
+              }}
+            >
               <HeaderTitle>{t('Operation')}</HeaderTitle>
               <Radio
                 radioSize="small"
                 checked={SpanOperationBreakdownFilter.None === currentFilter}
-                onChange={() => onChangeFilter(SpanOperationBreakdownFilter.None)}
               />
             </Header>
             <List>
               {Array.from([...OPTIONS], (filterOption, index) => {
                 const operationName = filterOption;
                 return (
-                  <ListItem key={String(index)} isChecked={false}>
+                  <ListItem
+                    key={String(index)}
+                    isChecked={false}
+                    onClick={event => {
+                      event.stopPropagation();
+                      onChangeFilter(filterOption);
+                    }}
+                  >
                     <OperationDot backgroundColor={pickSpanBarColour(operationName)} />
                     <OperationName>{operationName}</OperationName>
-                    <Radio
-                      radioSize="small"
-                      checked={filterOption === currentFilter}
-                      onChange={() => onChangeFilter(filterOption)}
-                    />
+                    <Radio radioSize="small" checked={filterOption === currentFilter} />
                   </ListItem>
                 );
               })}
