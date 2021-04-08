@@ -106,15 +106,13 @@ function ActionSet({
         />
       )}
 
-      <GuideAnchor target="inbox_guide_ignore" position="bottom">
-        <IgnoreActions
-          onUpdate={onUpdate}
-          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-          confirmMessage={confirm(ConfirmAction.IGNORE, true)}
-          confirmLabel={label('ignore')}
-          disabled={!anySelected}
-        />
-      </GuideAnchor>
+      <IgnoreActions
+        onUpdate={onUpdate}
+        shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+        confirmMessage={confirm(ConfirmAction.IGNORE, true)}
+        confirmLabel={label('ignore')}
+        disabled={!anySelected}
+      />
 
       {hasInbox && (
         <GuideAnchor target="inbox_guide_review" position="bottom">
