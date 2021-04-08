@@ -1,9 +1,8 @@
 import logging
 
 from sentry.tasks.post_process import post_process_group
-from sentry.utils.services import Service
 from sentry.utils.cache import cache_key_for_event
-
+from sentry.utils.services import Service
 
 logger = logging.getLogger(__name__)
 
