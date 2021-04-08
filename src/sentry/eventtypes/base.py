@@ -1,7 +1,7 @@
 from warnings import warn
 
-from sentry.utils.strings import truncatechars, strip
 from sentry.utils.safe import get_path
+from sentry.utils.strings import strip, truncatechars
 
 # Note: Detecting eventtypes is implemented in the Relay Rust library.
 
