@@ -597,7 +597,6 @@ class TransactionsTable extends React.PureComponent<TableProps> {
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  grid-gap: ${space(1)};
   margin-bottom: ${space(1)};
 `;
 
@@ -620,7 +619,7 @@ const BodyCellContainer = styled('div')`
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0;
+  margin: 0 0 0 ${space(1)};
 `;
 
 export default TransactionsList;
