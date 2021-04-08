@@ -40,20 +40,22 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{}, {}>;
 
-const AdminLayout: React.FC<Props> = ({children, ...props}) => (
-  <DocumentTitle title="Sentry Admin">
-    <Page>
-      <SettingsLayout renderNavigation={AdminNavigation} {...props}>
-        {children}
-      </SettingsLayout>
-    </Page>
-  </DocumentTitle>
-);
+function AdminLayout({children, ...props}: Props) {
+  return (
+    <DocumentTitle title="Sentry Admin">
+      <Page>
+        <SettingsLayout renderNavigation={AdminNavigation} {...props}>
+          {children}
+        </SettingsLayout>
+      </Page>
+    </DocumentTitle>
+  );
+}
+
+export default AdminLayout;
 
 const Page = styled('div')`
   display: flex;
   flex-grow: 1;
   margin-bottom: -20px;
 `;
-
-export default AdminLayout;
