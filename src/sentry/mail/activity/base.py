@@ -1,12 +1,19 @@
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse, urlunparse
 
 from django.core.urlresolvers import reverse
 from django.utils.html import escape, mark_safe
 
 from sentry import options
-from sentry.models import GroupSubscription, ProjectOption, UserAvatar, UserOption
-from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import GroupSubscriptionReason
+from sentry.models import (
+    ExternalProviders,
+    GroupSubscription,
+    GroupSubscriptionReason,
+    ProjectOption,
+    UserAvatar,
+    UserOption,
+)
+from sentry.notifications.slack import get_integrations, send_slack_message_to_user
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
@@ -212,7 +219,35 @@ class ActivityEmail:
 
         return mark_safe(description.format(**context))
 
-    def send(self):
+    @staticmethod
+    def get_unsubscribe_link(user_id: int, group_id: int) -> str:
+        return generate_signed_link(
+            user_id,
+            "sentry-account-email-unsubscribe-issue",
+            kwargs={"issue_id": group_id},
+        )
+
+    def update_user_context_from_group(
+        self,
+        user: Any,
+        reason: GroupSubscriptionReason,
+        context: Dict[str, Any],
+        group: Optional[Any],
+    ) -> Any:
+        if group:
+            context.update(
+                {
+                    "reason": GroupSubscriptionReason.descriptions.get(
+                        reason, "are subscribed to this issue"
+                    ),
+                    "unsubscribe_link": self.get_unsubscribe_link(user.id, group.id),
+                }
+            )
+        user_context = self.get_user_context(user)
+        user_context.update(context)
+        return user_context
+
+    def send(self) -> None:
         if not self.should_email():
             return
 
@@ -220,6 +255,7 @@ class ActivityEmail:
         if not participants:
             return
 
+        organization = self.organization
         activity = self.activity
         project = self.project
         group = self.group
@@ -232,35 +268,27 @@ class ActivityEmail:
         email_type = self.get_email_type()
         headers = self.get_headers()
 
-        for user, reason in participants.items():
-            if group:
-                context.update(
-                    {
-                        "reason": GroupSubscriptionReason.descriptions.get(
-                            reason, "are subscribed to this issue"
-                        ),
-                        "unsubscribe_link": generate_signed_link(
-                            user.id,
-                            "sentry-account-email-unsubscribe-issue",
-                            kwargs={"issue_id": group.id},
-                        ),
-                    }
-                )
-            user_context = self.get_user_context(user)
-            if user_context:
-                user_context.update(context)
-            else:
-                user_context = context
+        for provider, mapping in participants.items():
+            if provider == ExternalProviders.SLACK:
+                integrations = get_integrations(organization, ExternalProviders.SLACK)
+                for integration in integrations:
+                    for user, reason in mapping.items():
+                        send_slack_message_to_user(
+                            organization, integration, project, user, activity, group, context
+                        )
+            elif provider == ExternalProviders.EMAIL:
+                for user, reason in mapping.items():
+                    user_context = self.update_user_context_from_group(user, reason, context, group)
 
-            msg = MessageBuilder(
-                subject=self.get_subject_with_prefix(),
-                template=template,
-                html_template=html_template,
-                headers=headers,
-                type=email_type,
-                context=user_context,
-                reference=activity,
-                reply_reference=group,
-            )
-            msg.add_users([user.id], project=project)
-            msg.send_async()
+                    msg = MessageBuilder(
+                        subject=self.get_subject_with_prefix(),
+                        template=template,
+                        html_template=html_template,
+                        headers=headers,
+                        type=email_type,
+                        context=user_context,
+                        reference=activity,
+                        reply_reference=group,
+                    )
+                    msg.add_users([user.id], project=project)
+                    msg.send_async()

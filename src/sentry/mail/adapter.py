@@ -26,6 +26,7 @@ from sentry.models import (
 )
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.helpers import transform_to_notification_settings_by_user
+from sentry.notifications.slack import get_integrations, send_slack_message_to_user
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeType,
@@ -177,6 +178,7 @@ class MailAdapter:
             group.project
         )
 
+    # TODO MARCOS 1
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
         Returns a list of user IDs for the users that should receive
@@ -189,6 +191,7 @@ class MailAdapter:
 
         send_to = []
         if target_type == ActionTargetType.ISSUE_OWNERS:
+            # TODO MARCOS 3
             if not event:
                 send_to = self.get_send_to_all_in_project(project)
             else:
@@ -200,6 +203,9 @@ class MailAdapter:
         return set(send_to)
 
     def get_send_to_owners(self, event, project):
+        """
+        TODO MARCOS 5
+        """
         owners, _ = ProjectOwnership.get_owners(project.id, event.data)
         if owners != ProjectOwnership.Everyone:
             if not owners:
@@ -306,6 +312,9 @@ class MailAdapter:
         return {user.id}
 
     def get_send_to_all_in_project(self, project):
+        """
+        TODO MARCOS 4
+        """
         cache_key = f"mail:send_to:{project.pk}"
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
@@ -413,35 +422,46 @@ class MailAdapter:
             "X-SMTPAPI": json.dumps({"category": "issue_alert_email"}),
         }
 
-        for user_id in self.get_send_to(
+        providers_to_user_ids = self.get_send_to(
             project=project,
             target_type=target_type,
             target_identifier=target_identifier,
             event=event,
-        ):
-            logger.info(
-                "mail.adapter.notify.mail_user",
-                extra={
-                    "target_type": target_type,
-                    "target_identifier": target_identifier,
-                    "group": group.id,
-                    "project_id": project.id,
-                    "user_id": user_id,
-                },
-            )
+        )
+        for provider, user_ids in providers_to_user_ids.items():
+            if provider == ExternalProviders.SLACK:
+                integrations = get_integrations(org, ExternalProviders.SLACK)
+                for integration in integrations:
+                    users = User.objects.filter(id__in=user_ids)
+                    for user in users:
+                        send_slack_message_to_user(
+                            org, integration, project, user, None, group, context
+                        )
+            elif provider == ExternalProviders.EMAIL:
+                for user_id in user_ids:
+                    logger.info(
+                        "mail.adapter.notify.mail_user",
+                        extra={
+                            "target_type": target_type,
+                            "target_identifier": target_identifier,
+                            "group": group.id,
+                            "project_id": project.id,
+                            "user_id": user_id,
+                        },
+                    )
 
-            self.add_unsubscribe_link(context, user_id, project, "alert_email")
-            self._send_mail(
-                subject=subject,
-                template=template,
-                html_template=html_template,
-                project=project,
-                reference=group,
-                headers=headers,
-                type="notify.error",
-                context=context,
-                send_to=[user_id],
-            )
+                    self.add_unsubscribe_link(context, user_id, project, "alert_email")
+                    self._send_mail(
+                        subject=subject,
+                        template=template,
+                        html_template=html_template,
+                        project=project,
+                        reference=group,
+                        headers=headers,
+                        type="notify.error",
+                        context=context,
+                        send_to=[user_id],
+                    )
 
     def get_digest_subject(self, group, counts, date):
         return "{short_id} - {count} new {noun} since {date}".format(
