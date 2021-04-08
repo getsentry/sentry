@@ -500,11 +500,11 @@ class MissingServiceNode extends React.Component<
         >
           <DropdownItem first width="small">
             <ExternalDropdownLink href="https://docs.sentry.io/platforms/javascript/performance/connect-services/">
-              Connect to a service
+              {t('Connect to a service')}
             </ExternalDropdownLink>
           </DropdownItem>
           <DropdownItem onSelect={this.dismissMissingService} width="small">
-            Dismiss
+            {t('Dismiss')}
           </DropdownItem>
         </DropdownLink>
       </React.Fragment>
