@@ -29,6 +29,8 @@ class ExternalTeam(DefaultFieldsModel, ExternalProviderMixin):
         choices=(
             (ExternalProviders.GITHUB, "github"),
             (ExternalProviders.GITLAB, "gitlab"),
+            (ExternalProviders.EMAIL, "email"),
+            (ExternalProviders.SLACK, "slack"),
         ),
     )
     # external_name => the Github/Gitlab team name. Column name is vague to be reused for more external team identities.
@@ -48,6 +50,8 @@ class ExternalUser(DefaultFieldsModel, ExternalProviderMixin):
         choices=(
             (ExternalProviders.GITHUB, "github"),
             (ExternalProviders.GITLAB, "gitlab"),
+            (ExternalProviders.EMAIL, "email"),
+            (ExternalProviders.SLACK, "slack"),
         ),
     )
     # external_name => the Github/Gitlab username. Column name is vague to be reused for more external user identities.
@@ -57,4 +61,3 @@ class ExternalUser(DefaultFieldsModel, ExternalProviderMixin):
         app_label = "sentry"
         db_table = "sentry_externaluser"
         unique_together = (("organizationmember", "provider", "external_name"),)
-
