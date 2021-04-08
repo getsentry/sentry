@@ -1,9 +1,8 @@
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
 from collections import defaultdict
-from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
 
 from sentry.db.models.manager import BaseManager
 from sentry.models.integration import ExternalProviders
