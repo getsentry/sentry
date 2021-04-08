@@ -1,8 +1,8 @@
+from collections import defaultdict
 from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
-from collections import defaultdict
 
 from sentry.db.models.manager import BaseManager
 from sentry.models.integration import ExternalProviders
@@ -11,8 +11,8 @@ from sentry.notifications.helpers import (
     get_scope_type,
     get_target_id,
     transform_to_notification_settings_by_user,
-    where_should_user_be_notified,
     validate,
+    where_should_user_be_notified,
 )
 from sentry.notifications.types import (
     NotificationScopeType,
