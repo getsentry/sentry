@@ -3,8 +3,8 @@ import math
 import re
 import warnings
 from collections import namedtuple
-from enum import Enum
 from datetime import timedelta
+from enum import Enum
 
 from django.db import models
 from django.utils import timezone
@@ -205,7 +205,7 @@ class GroupManager(BaseManager):
         )
 
     def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import HashDiscarded, EventManager
+        from sentry.event_manager import EventManager, HashDiscarded
 
         manager = EventManager(kwargs)
         manager.normalize()

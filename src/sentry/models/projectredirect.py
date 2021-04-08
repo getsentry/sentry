@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import Model, FlexibleForeignKey
+from sentry.db.models import FlexibleForeignKey, Model
 
 
 class ProjectRedirect(Model):

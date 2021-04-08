@@ -6,7 +6,6 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.hashlib import md5_text
 
-
 MAX_RECENT_SEARCHES = 30
 
 

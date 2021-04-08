@@ -1,18 +1,18 @@
 import hmac
+from hashlib import sha256
+from uuid import uuid4
 
 from django.db import models
 from django.utils import timezone
-from hashlib import sha256
-from uuid import uuid4
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     ArrayField,
-    Model,
     BaseManager,
     BoundedPositiveIntegerField,
     EncryptedTextField,
     FlexibleForeignKey,
+    Model,
     sane_repr,
 )
 from sentry.models import SentryApp

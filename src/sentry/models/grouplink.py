@@ -3,11 +3,11 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
-    Model,
-    sane_repr,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     JSONField,
+    Model,
+    sane_repr,
 )
 
 

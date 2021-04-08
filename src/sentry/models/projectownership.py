@@ -1,5 +1,5 @@
 import operator
-
+from functools import reduce
 
 from django.db import models
 from django.db.models import Q
@@ -11,7 +11,6 @@ from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.ownership.grammar import load_schema
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from functools import reduce
 
 READ_CACHE_DURATION = 3600
 
@@ -199,8 +198,7 @@ def resolve_actors(owners, project_id):
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
-    from sentry.models import ActorTuple
-    from sentry.models import User, Team
+    from sentry.models import ActorTuple, Team, User
 
     if not owners:
         return {}

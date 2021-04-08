@@ -1,10 +1,9 @@
 from django.db import models
 from django.utils import timezone
+from django.utils.functional import cached_property
+from sentry_relay import PublicKey
 
 from sentry.db.models import Model
-from django.utils.functional import cached_property
-
-from sentry_relay import PublicKey
 
 
 class RelayUsage(Model):

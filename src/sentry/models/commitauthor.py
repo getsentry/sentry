@@ -1,7 +1,7 @@
 from django.db import models
-from sentry.db.models.manager import BaseManager
 
 from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models.manager import BaseManager
 
 
 class CommitAuthorManager(BaseManager):

@@ -8,7 +8,6 @@ from django.utils.functional import cached_property
 
 from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
 
-
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
 

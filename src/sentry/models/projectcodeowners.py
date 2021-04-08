@@ -3,7 +3,7 @@ import logging
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, DefaultFieldsModel, JSONField, sane_repr
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, JSONField, sane_repr
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)

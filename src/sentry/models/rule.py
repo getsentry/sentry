@@ -1,12 +1,13 @@
+from enum import Enum
+
 from django.db import models
 from django.utils import timezone
-from enum import Enum
 
 from sentry.db.models import (
     BoundedPositiveIntegerField,
-    Model,
     FlexibleForeignKey,
     GzippedDictField,
+    Model,
     sane_repr,
 )
 from sentry.db.models.manager import BaseManager

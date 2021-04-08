@@ -2,19 +2,18 @@ import logging
 from enum import Enum
 from typing import Optional
 
-from django.db import models, IntegrityError
+from django.db import IntegrityError, models
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     EncryptedJsonField,
     FlexibleForeignKey,
     Model,
-    DefaultFieldsModel,
 )
 from sentry.signals import integration_added
-
 
 logger = logging.getLogger(__name__)
 

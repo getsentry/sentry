@@ -1,17 +1,17 @@
-import petname
-
-from django.db import models
-from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 from urllib.parse import urlparse
 from uuid import uuid4
 
+import petname
+from django.db import models
+from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
+
 from sentry.db.models import (
-    Model,
     BaseManager,
     BoundedPositiveIntegerField,
     EncryptedTextField,
     FlexibleForeignKey,
+    Model,
     sane_repr,
 )
 

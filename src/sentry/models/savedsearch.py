@@ -3,8 +3,8 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.models.search_common import SearchType
 from sentry.db.models.fields.text import CharField
+from sentry.models.search_common import SearchType
 
 
 class SortOptions:

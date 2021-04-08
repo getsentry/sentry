@@ -1,12 +1,11 @@
-import jsonschema
 import logging
-
 from enum import Enum
 
+import jsonschema
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, JSONField
+from sentry.db.models import FlexibleForeignKey, JSONField, Model
 from sentry.models import Activity
 from sentry.signals import inbox_in, inbox_out
 

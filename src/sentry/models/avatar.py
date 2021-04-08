@@ -1,8 +1,9 @@
-from django.utils.encoding import force_bytes
-from django.db import models, transaction
 from io import BytesIO
-from PIL import Image
 from uuid import uuid4
+
+from django.db import models, transaction
+from django.utils.encoding import force_bytes
+from PIL import Image
 
 from sentry.db.models import FlexibleForeignKey, Model
 from sentry.utils.cache import cache

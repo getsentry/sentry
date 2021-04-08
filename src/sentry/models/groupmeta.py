@@ -4,9 +4,9 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
-from sentry.exceptions import CacheNotPopulated
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
+from sentry.exceptions import CacheNotPopulated
 
 ERR_CACHE_MISISNG = "Cache not populated for instance id=%s"
 

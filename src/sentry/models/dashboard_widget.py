@@ -2,9 +2,9 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
+    ArrayField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    ArrayField,
     Model,
     sane_repr,
 )
