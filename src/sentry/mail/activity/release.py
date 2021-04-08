@@ -20,7 +20,6 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
@@ -129,7 +128,6 @@ class ReleaseActivityEmail(ActivityEmail):
         # get all the involved users' settings for deploy-emails (user default
         # saved without org set)
         notification_settings = NotificationSetting.objects.get_for_users_by_parent(
-            ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             users=users,
             parent=self.organization,

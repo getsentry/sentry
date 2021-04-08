@@ -1,6 +1,7 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
+from sentry.models.integration import ExternalProviders
 from sentry.notifications.legacy_mappings import get_legacy_value
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -9,94 +10,102 @@ from sentry.notifications.types import (
 )
 
 
-def _get_setting_value_from_mapping(
+def _get_setting_mapping_from_mapping(
     notification_settings_by_user: Mapping[
-        Any, Mapping[NotificationScopeType, NotificationSettingOptionValues]
+        Any,
+        Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
     user: Any,
     type: NotificationSettingTypes,
-    default: NotificationSettingOptionValues,
-) -> NotificationSettingOptionValues:
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    # XXX(CEO): may not respect granularity of a setting for Slack a setting for email
+    # but we'll worry about that later since we don't have a FE for it yet
     specific_scope = get_scope_type(type)
-    notification_settings_option = notification_settings_by_user.get(user)
-    if notification_settings_option:
-        notification_setting_option = notification_settings_option.get(
+    notification_settings_mapping = notification_settings_by_user.get(user)
+    if notification_settings_mapping:
+        notification_setting_option = notification_settings_mapping.get(
             specific_scope
-        ) or notification_settings_option.get(NotificationScopeType.USER)
+        ) or notification_settings_mapping.get(NotificationScopeType.USER)
         if notification_setting_option:
             return notification_setting_option
-    return default
+    return {ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS}
 
 
-def should_user_be_notified(
+def where_should_user_be_notified(
     notification_settings_by_user: Mapping[
-        Any, Mapping[NotificationScopeType, NotificationSettingOptionValues]
+        Any,
+        Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
     user: Any,
-) -> bool:
+) -> List[ExternalProviders]:
     """
     Given a mapping of default and specific notification settings by user,
-    determine if a user should receive an ISSUE_ALERT notification.
+    return the list of providers after verifying the user has opted into this notification.
     """
-    return (
-        _get_setting_value_from_mapping(
-            notification_settings_by_user,
-            user,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-        )
-        == NotificationSettingOptionValues.ALWAYS
+    mapping = _get_setting_mapping_from_mapping(
+        notification_settings_by_user,
+        user,
+        NotificationSettingTypes.ISSUE_ALERTS,
+    )
+    return list(
+        filter(lambda elem: mapping[elem] == NotificationSettingOptionValues.ALWAYS, mapping)
     )
 
 
-def should_be_participating(
+def where_should_be_participating(
     user: Any,
     subscriptions_by_user_id: Mapping[int, Any],
     notification_settings_by_user: Mapping[
-        Any, Mapping[NotificationScopeType, NotificationSettingOptionValues]
+        Any,
+        Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-) -> bool:
+) -> List[ExternalProviders]:
     """
     Given a mapping of users to subscriptions and a mapping of default and
-    specific notification settings by user, determine if a user should receive
+    specific notification settings by user, determine where a user should receive
     a WORKFLOW notification. Unfortunately, this algorithm does not respect
     NotificationSettingOptionValues.ALWAYS. If the user is unsubscribed from
     the group, that overrides their notification preferences.
     """
-    value = _get_setting_value_from_mapping(
+    mapping = _get_setting_mapping_from_mapping(
         notification_settings_by_user,
         user,
         NotificationSettingTypes.WORKFLOW,
-        NotificationSettingOptionValues.SUBSCRIBE_ONLY,
     )
-
-    if value == NotificationSettingOptionValues.NEVER:
-        return False
-
-    subscription = subscriptions_by_user_id.get(user.id)
-    if subscription:
-        return bool(subscription.is_active)
-
-    return value == NotificationSettingOptionValues.ALWAYS
+    output = []
+    for provider, value in mapping.items():
+        subscription = subscriptions_by_user_id.get(user.id)
+        if (subscription and not subscription.is_active) or (
+            value == NotificationSettingOptionValues.NEVER
+        ):
+            continue
+        if (subscription and subscription.is_active) or (
+            value == NotificationSettingOptionValues.ALWAYS
+        ):
+            output.append(provider)
+    return output
 
 
 def transform_to_notification_settings_by_user(
     notification_settings: Iterable[Any],
     users: Iterable[Any],
-) -> Mapping[Any, Mapping[NotificationScopeType, NotificationSettingOptionValues]]:
+) -> Mapping[
+    Any, Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]]
+]:
     """
     Given a unorganized list of notification settings, create a mapping of
     users to a map of notification scopes to setting values.
     """
     actor_mapping = {user.actor_id: user for user in users}
     notification_settings_by_user: Dict[
-        Any, Dict[NotificationScopeType, NotificationSettingOptionValues]
-    ] = defaultdict(dict)
+        Any, Dict[NotificationScopeType, Dict[ExternalProviders, NotificationSettingOptionValues]]
+    ] = defaultdict(lambda: defaultdict(dict))
     for notification_setting in notification_settings:
         user = actor_mapping.get(notification_setting.target_id)
-        notification_settings_by_user[user][
-            NotificationScopeType(notification_setting.scope_type)
-        ] = NotificationSettingOptionValues(notification_setting.value)
+        scope_type = NotificationScopeType(notification_setting.scope_type)
+        value = NotificationSettingOptionValues(notification_setting.value)
+        provider = ExternalProviders(notification_setting.provider)
+        notification_settings_by_user[user][scope_type][provider] = value
     return notification_settings_by_user
 
 

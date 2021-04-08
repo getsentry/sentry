@@ -298,7 +298,7 @@ class FilterToSubscribedUsersTest(TestCase):
         assert (
             NotificationSetting.objects.filter_to_subscribed_users(
                 ExternalProviders.EMAIL, self.project, users
-            )
+            )[ExternalProviders.EMAIL]
             == expected_users
         )
 
