@@ -513,7 +513,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
         return Response(self.serialize(result["data"][0]))
 
     def serialize(self, results):
-        return results
         return {
             # Values can be null if there's no result
             "projects": results.get("projects") or 0,
