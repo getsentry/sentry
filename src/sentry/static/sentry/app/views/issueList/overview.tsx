@@ -647,11 +647,15 @@ class IssueListOverview extends React.Component<Props, State> {
           issuesLoading: false,
         });
 
-        Sentry.setExtras({
-          status: err?.status,
-          detail: err?.responseJSON?.detail,
-        });
-        Sentry.captureException(new Error('Error loading issues'));
+        if (!err?.status || err.status >= 500) {
+          Sentry.withScope(scope => {
+            scope.setExtras({
+              status: err?.status,
+              detail: err?.responseJSON?.detail,
+            });
+            Sentry.captureException(new Error('Error loading issues'));
+          });
+        }
       },
       complete: () => {
         if (this.currentRequestId !== currentRequestId) {
