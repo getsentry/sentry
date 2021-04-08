@@ -1,7 +1,7 @@
 import logging
+from uuid import uuid4
 
 from django.db import transaction
-from uuid import uuid4
 
 from sentry.models import OrganizationOption
 

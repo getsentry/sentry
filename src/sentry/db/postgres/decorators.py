@@ -1,5 +1,4 @@
 import sys
-
 from functools import wraps
 
 from .exceptions import TransactionAborted

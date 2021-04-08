@@ -1,15 +1,14 @@
 import datetime
-
 from decimal import Decimal
 
-from django.core.exceptions import ValidationError
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.lookups import Exact, IExact, In, Contains, IContains
+from django.db.models.lookups import Contains, Exact, IContains, IExact, In
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.utils import json
 from sentry.db.models.utils import Creator
+from sentry.utils import json
 
 
 def default(o):
