@@ -453,9 +453,11 @@ export class Client {
         try {
           responseText = await response.text();
         } catch (error) {
+          ok = false;
           if (error.name === 'AbortError') {
-            ok = false;
             errorReason = 'Request was aborted';
+          } else {
+            errorReason = error.toString();
           }
         }
 

@@ -1,0 +1,164 @@
+[
+	{
+		"event_id": "dbe8ac157c7346de86f29b2b0f0f074a",
+		"span_id": "b06377e53dc3b7be",
+		"transaction": "/api/0/organizations/{organization_slug}/eventsv2/",
+		"transaction.duration": 123,
+		"transaction.op": "http.server",
+		"project_id": 1,
+		"project_slug": "sentry",
+		"parent_event_id": null,
+		"parent_span_id": "931069fe403fdb2a",
+		"generation": 0,
+		"errors": [],
+		"children": [
+			{
+				"event_id": "bd78c331edba4d54b300f5ab2db3a110",
+				"span_id": "b76465e04fb027f7",
+				"transaction": "unqualified_query_view__discover__api.discover.query-table",
+				"transaction.duration": 38,
+				"transaction.op": "http.server",
+				"project_id": 300688,
+				"project_slug": "snuba",
+				"parent_event_id": "dbe8ac157c7346de86f29b2b0f0f074a",
+				"parent_span_id": "a58da4250b32756e",
+				"generation": 1,
+				"errors": [
+					{
+						"event_id": "41649477479245ea8d227e32dd74cdd9",
+						"issue_id": 2323425292,
+						"span": "b76465e04fb027f7",
+						"project_id": 300688,
+						"project_slug": "snuba"
+					}
+				],
+				"children": [],
+				"timestamp": 1617797615.161513,
+				"start_timestamp": 1617797615.123181
+			}
+		],
+		"timestamp": 1617797615.167261,
+		"start_timestamp": 1617797615.043779
+	},
+	{
+		"event_id": "677d9c59d92b4f89bc1a0ce375b66297",
+		"span_id": "b2c0b1a25f63fe36",
+		"transaction": "unqualified_query_view__discover__api.organization-event-stats",
+		"transaction.duration": 24,
+		"transaction.op": "http.server",
+		"project_id": 300688,
+		"project_slug": "snuba",
+		"parent_event_id": null,
+		"parent_span_id": "94b08588f196a7e9",
+		"generation": 0,
+		"errors": [
+			{
+				"event_id": "ca1a79ca582743b69a9f34d2255b3c26",
+				"issue_id": 2322684219,
+				"span": "b2c0b1a25f63fe36",
+				"project_id": 300688,
+				"project_slug": "snuba"
+			}
+		],
+		"children": [],
+		"timestamp": 1617797615.11844,
+		"start_timestamp": 1617797615.093758
+	},
+	{
+		"event_id": "18ad980a88fd4085968994e25640f119",
+		"span_id": "ac6100a75568ea66",
+		"transaction": "/api/0/organizations/{organization_slug}/events-facets/",
+		"transaction.duration": 119,
+		"transaction.op": "http.server",
+		"project_id": 1,
+		"project_slug": "sentry",
+		"parent_event_id": null,
+		"parent_span_id": "ae496322ec240756",
+		"generation": 0,
+		"errors": [],
+		"children": [
+			{
+				"event_id": "60fdfec3b0584688ade0d7fdefe163a4",
+				"span_id": "9b4bc87820e0917d",
+				"transaction": "unqualified_query_view__discover__api.organization-events-facets.top-tags",
+				"transaction.duration": 27,
+				"transaction.op": "http.server",
+				"project_id": 300688,
+				"project_slug": "snuba",
+				"parent_event_id": null,
+				"parent_span_id": "b0899d34af275e6b",
+				"generation": 1,
+				"errors": [
+					{
+						"event_id": "f3515ed6eaaa4c5eaf995e457ebd9047",
+						"issue_id": 2322684219,
+						"span": "9b4bc87820e0917d",
+						"project_id": 300688,
+						"project_slug": "snuba"
+					}
+				],
+				"children": [],
+				"timestamp": 1617797615.389668,
+				"start_timestamp": 1617797615.36218
+			}
+		],
+		"timestamp": 1617797615.397199,
+		"start_timestamp": 1617797615.277854
+	},
+	{
+		"event_id": "94fcb1b424aa4fb395a3a73e72211484",
+		"span_id": "b46eda0b8c707c80",
+		"transaction": "unqualified_query_view__discover__api.organization-events-meta",
+		"transaction.duration": 22,
+		"transaction.op": "http.server",
+		"project_id": 300688,
+		"project_slug": "snuba",
+		"parent_event_id": null,
+		"parent_span_id": "99f56f5bf0713a8f",
+		"generation": 0,
+		"errors": [
+			{
+				"event_id": "aff8a30baac4496ea87012ed860b857a",
+				"issue_id": 2322684219,
+				"span": "b46eda0b8c707c80",
+				"project_id": 300688,
+				"project_slug": "snuba"
+			}
+		],
+		"children": [],
+		"timestamp": 1617797615.354148,
+		"start_timestamp": 1617797615.332072
+	},
+	{
+		"event_id": "163e7b7242b245e682d31ff73900719d",
+		"span_id": "ac6b5605b027dcbe",
+		"transaction": "/api/0/organizations/{organization_slug}/recent-searches/",
+		"transaction.duration": 59,
+		"transaction.op": "http.server",
+		"project_id": 1,
+		"project_slug": "sentry",
+		"parent_event_id": null,
+		"parent_span_id": "99fbb8b253893768",
+		"generation": 0,
+		"errors": [],
+		"children": [],
+		"timestamp": 1617797618.585115,
+		"start_timestamp": 1617797618.525213
+	},
+	{
+		"event_id": "08a192f7b2a1497985d20be13c3dcdd5",
+		"span_id": "8a8ab1f17ae7a5fb",
+		"transaction": "/api/0/organizations/{organization_slug}/recent-searches/",
+		"transaction.duration": 64,
+		"transaction.op": "http.server",
+		"project_id": 1,
+		"project_slug": "sentry",
+		"parent_event_id": null,
+		"parent_span_id": "83d7e370231f717d",
+		"generation": 0,
+		"errors": [],
+		"children": [],
+		"timestamp": 1617797620.087056,
+		"start_timestamp": 1617797620.022622
+	}
+]
