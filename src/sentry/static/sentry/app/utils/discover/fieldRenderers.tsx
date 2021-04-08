@@ -496,7 +496,7 @@ const spanOperationBreakdownRenderer = (field: string) => (
   const operationName = getSpanOperationName(field) ?? 'op';
 
   return (
-    <div style={{outline: '1px solod red'}}>
+    <div style={{position: 'relative'}}>
       <SpanBarRectangle
         spanBarHatch={false}
         style={{
