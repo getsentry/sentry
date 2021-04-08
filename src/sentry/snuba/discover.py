@@ -1,38 +1,37 @@
-import math
-import sentry_sdk
 import logging
-
+import math
 from collections import namedtuple
+
+import sentry_sdk
 
 from sentry import options
 from sentry.api.event_search import (
     FIELD_ALIASES,
+    InvalidSearchQuery,
     get_filter,
     get_function_alias,
     get_json_meta_type,
     is_function,
-    InvalidSearchQuery,
     resolve_field_list,
 )
-
 from sentry.models import Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
-    Dataset,
-    get_measurement_name,
-    get_span_op_breakdown_name,
-    naiveify_datetime,
-    raw_query,
-    resolve_snuba_aliases,
-    resolve_column,
     SNUBA_AND,
     SNUBA_OR,
+    Dataset,
     SnubaTSResult,
-    to_naive_timestamp,
+    get_measurement_name,
+    get_span_op_breakdown_name,
     is_measurement,
     is_span_op_breakdown,
+    naiveify_datetime,
+    raw_query,
+    resolve_column,
+    resolve_snuba_aliases,
+    to_naive_timestamp,
 )
 
 __all__ = (
