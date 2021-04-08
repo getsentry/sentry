@@ -2,8 +2,8 @@ __all__ = ("Message",)
 
 
 from sentry.interfaces.base import Interface
-from sentry.utils.json import prune_empty_keys
 from sentry.utils import json
+from sentry.utils.json import prune_empty_keys
 
 
 def stringify(value):

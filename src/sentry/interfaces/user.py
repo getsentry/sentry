@@ -2,8 +2,8 @@ __all__ = ("User",)
 
 
 from sentry.interfaces.base import Interface
-from sentry.utils.json import prune_empty_keys
 from sentry.interfaces.geo import Geo
+from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
 
 

@@ -1,9 +1,9 @@
 __all__ = ("Breadcrumbs",)
 
 from sentry.interfaces.base import Interface
+from sentry.utils.dates import parse_timestamp, to_datetime, to_timestamp
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
-from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
 
 
 class Breadcrumbs(Interface):
