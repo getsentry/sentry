@@ -266,7 +266,7 @@ class TableView extends React.Component<TableViewProps> {
 
     const fieldName = getAggregateAlias(columnKey);
     const value = dataRow[fieldName];
-    if (tableData.meta[fieldName] === 'integer' && defined(value)) {
+    if (tableData.meta[fieldName] === 'integer' && defined(value) && value > 999) {
       return (
         <Tooltip
           title={value.toLocaleString()}
