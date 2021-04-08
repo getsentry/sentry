@@ -1,7 +1,7 @@
-import uuid
 import bisect
-
+import uuid
 from datetime import datetime
+
 from pytz import utc
 
 
