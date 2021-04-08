@@ -1,14 +1,13 @@
 import inspect
 
-from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
+from parsimonious.grammar import Grammar, NodeVisitor
 
-from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.grouping.utils import get_rule_bool
-from sentry.utils.safe import get_path
+from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.glob import glob_match
+from sentry.utils.safe import get_path
 from sentry.utils.strings import unescape_string
-
 
 VERSION = 1
 

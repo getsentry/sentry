@@ -1,5 +1,5 @@
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy, produces_variants
+from sentry.grouping.strategies.base import produces_variants, strategy
 
 
 @strategy(id="template:v1", interfaces=["template"], score=1100)

@@ -1,24 +1,23 @@
 import re
 
-from sentry.grouping.strategies.base import GroupingContext, DEFAULT_GROUPING_ENHANCEMENTS_BASE
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.component import GroupingComponent
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
+from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
+from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.utils import (
+    expand_title_template,
+    hash_from_values,
+    is_default_fingerprint_var,
+    resolve_fingerprint_values,
+)
 from sentry.grouping.variants import (
+    HIERARCHICAL_VARIANTS,
     ChecksumVariant,
-    FallbackVariant,
     ComponentVariant,
     CustomFingerprintVariant,
+    FallbackVariant,
     SaltedComponentVariant,
-    HIERARCHICAL_VARIANTS,
 )
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
-from sentry.grouping.utils import (
-    is_default_fingerprint_var,
-    hash_from_values,
-    resolve_fingerprint_values,
-    expand_title_template,
-)
-
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 

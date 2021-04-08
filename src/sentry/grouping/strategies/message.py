@@ -2,9 +2,8 @@ import re
 from itertools import islice
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy, produces_variants
+from sentry.grouping.strategies.base import produces_variants, strategy
 from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder
-
 
 _irrelevant_re = re.compile(
     r"""(?x)
