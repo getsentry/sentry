@@ -157,9 +157,9 @@ def gen_measurements(full_duration):
     Generate measurements that are random but based on the full duration
     """
     return {
-        "fp": {"value": duration_ms - random_normal(400, 100, 100)},
-        "fcp": {"value": duration_ms - random_normal(400, 100, 100)},
-        "lcp": {"value": duration_ms + random_normal(400, 100, 100)},
+        "fp": {"value": duration_ms * random.uniform(0.8, 0.95)},
+        "fcp": {"value": duration_ms * random.uniform(0.8, 0.95)},
+        "lcp": {"value": duration_ms * random.uniform(1.05, 1.2)},
         "fid": {"value": random_normal(5, 2, 1)},
     }
 
@@ -701,9 +701,6 @@ def iter_timestamps(disribution_fn_num: int, quick: bool, starting_release: int 
     NUM_RELEASES = config["NUM_RELEASES"]
     start_time = timezone.now() - timedelta(days=MAX_DAYS)
 
-    # ensure each event has at least on full cycle per release
-    hour_multiplier = max(1, NUM_RELEASES * 1.0 / MAX_DAYS)
-
     # offset by the release time
     hourly_release_cadence = MAX_DAYS * 24.0 / NUM_RELEASES
     start_time += timedelta(hours=hourly_release_cadence * starting_release)
@@ -715,9 +712,7 @@ def iter_timestamps(disribution_fn_num: int, quick: bool, starting_release: int 
             if end_time > timezone.now():
                 return
 
-            # need to map the hour if we have releases less than a day long
-            mapped_hour = int(hour * hour_multiplier) % 24
-            base = distribution_fn(mapped_hour)
+            base = distribution_fn(hour)
             # determine the number of events we want in this hour
             num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
             timestamps = []
