@@ -55,7 +55,7 @@ def should_user_be_notified(
         Any, Mapping[NotificationScopeType, NotificationSettingOptionValues]
     ],
     user: Any,
-) -> bool:
+) -> Any:
     """
     Given a mapping of default and specific notification settings by user,
     determine if a user should receive an ISSUE_ALERT notification.
@@ -122,7 +122,7 @@ def should_be_participating(
     if subscription:
         return bool(subscription.is_active)
 
-    return value == NotificationSettingOptionValues.ALWAYS
+    return bool(value == NotificationSettingOptionValues.ALWAYS)
 
 
 def where_should_be_participating(
