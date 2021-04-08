@@ -1,10 +1,11 @@
 from collections import namedtuple
 from typing import Any, Iterable, List, Mapping, Optional, Tuple
+
 from sentry.notifications.types import (
     FineTuningAPIKey,
     NotificationScopeType,
-    NotificationSettingTypes,
     NotificationSettingOptionValues,
+    NotificationSettingTypes,
     UserOptionsSettingsKey,
 )
 
@@ -201,8 +202,8 @@ def get_parent_mappings(
     notification_settings: Iterable[Any],
 ) -> Tuple[Mapping[int, Any], Mapping[int, Any]]:
     """ Prefetch a list of Project or Organization objects for the Serializer. """
-    from sentry.models.project import Project
     from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
     project_ids = []
     organization_ids = []

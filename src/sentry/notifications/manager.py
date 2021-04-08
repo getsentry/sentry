@@ -1,6 +1,7 @@
+from typing import Any, Dict, Iterable, List, Optional, Union
+
 from django.db import transaction
 from django.db.models import Q, QuerySet
-from typing import Any, Dict, Iterable, List, Optional, Union
 
 from sentry.db.models.manager import BaseManager
 from sentry.models.integration import ExternalProviders
@@ -12,15 +13,15 @@ from sentry.notifications.helpers import (
     transform_to_notification_settings_by_user,
     validate,
 )
-from sentry.notifications.types import (
-    NotificationScopeType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
 from sentry.notifications.legacy_mappings import (
     KEYS_TO_LEGACY_KEYS,
     get_legacy_key,
     get_legacy_value,
+)
+from sentry.notifications.types import (
+    NotificationScopeType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
 )
 
 
