@@ -1641,10 +1641,13 @@ class Column(FunctionArg):
 
     def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
+        if self.allowed_columns is not None:
+            if value in self.allowed_columns or snuba_column in self.allowed_columns:
+                return snuba_column
+            else:
+                raise InvalidFunctionArgument(f"{value} is not an allowed column")
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
-        elif self.allowed_columns is not None and snuba_column not in self.allowed_columns:
-            raise InvalidFunctionArgument(f"{value} is not an allowed column")
         return snuba_column
 
 
@@ -2399,9 +2402,9 @@ FUNCTIONS = {
         Function(
             "count_if",
             required_args=[
-                FieldColumn("column"),
+                ColumnNoLookup("column", allowed_columns=["event.type", "http.status_code"]),
                 ConditionArg("condition"),
-                StringArg("value", unquote=True, unescape_quotes=True),
+                StringArg("value"),
             ],
             aggregate=[
                 "countIf",

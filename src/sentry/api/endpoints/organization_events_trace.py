@@ -500,8 +500,8 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
             result = discover.query(
                 selected_columns=[
                     "count_unique(project_id) as projects",
-                    'count_if(event.type, equals, "transaction") as transactions',
-                    'count_if(event.type, notEquals, "transaction") as errors',
+                    "count_if(event.type, equals, transaction) as transactions",
+                    "count_if(event.type, notEquals, transaction) as errors",
                 ],
                 params=params,
                 query=f"trace:{trace_id}",
@@ -513,6 +513,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
         return Response(self.serialize(result["data"][0]))
 
     def serialize(self, results):
+        return results
         return {
             # Values can be null if there's no result
             "projects": results.get("projects") or 0,
