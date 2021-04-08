@@ -3,6 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
@@ -281,8 +282,9 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   private _poller: any;
-  private _lastRequest: any;
-  private _lastStatsRequest: any;
+  private currentRequestId?: symbol;
+  private _lastRequest?: ReturnType<Client['request']>;
+  private _lastStatsRequest?: ReturnType<Client['request']>;
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
@@ -404,7 +406,7 @@ class IssueListOverview extends React.Component<Props, State> {
     );
   }
 
-  fetchStats = (groups: string[]) => {
+  fetchStats = (currentRequestId: symbol, groups: string[]) => {
     // If we have no groups to fetch, just skip stats
     if (!groups.length) {
       return;
@@ -422,6 +424,10 @@ class IssueListOverview extends React.Component<Props, State> {
       method: 'GET',
       data: qs.stringify(requestParams),
       success: data => {
+        if (this.currentRequestId !== currentRequestId) {
+          return;
+        }
+
         if (!data) {
           return;
         }
@@ -429,17 +435,22 @@ class IssueListOverview extends React.Component<Props, State> {
         GroupActions.populateStats(groups, data);
       },
       error: err => {
+        if (this.currentRequestId !== currentRequestId) {
+          return;
+        }
+
         this.setState({
           error: parseApiError(err),
         });
       },
-      complete: () => {
-        this._lastStatsRequest = null;
-      },
     });
   };
 
-  fetchCounts = async (currentQueryCount: number, fetchAllCounts: boolean) => {
+  fetchCounts = async (
+    currentRequestId: symbol,
+    currentQueryCount: number,
+    fetchAllCounts: boolean
+  ) => {
     const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = {..._queryCounts};
@@ -475,6 +486,10 @@ class IssueListOverview extends React.Component<Props, State> {
           }
         );
 
+        if (this.currentRequestId !== currentRequestId) {
+          return;
+        }
+
         // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
         queryCounts = {
           ...queryCounts,
@@ -484,6 +499,10 @@ class IssueListOverview extends React.Component<Props, State> {
           })),
         };
       } catch (e) {
+        if (this.currentRequestId !== currentRequestId) {
+          return;
+        }
+
         this.setState({
           error: parseApiError(e),
         });
@@ -554,19 +573,21 @@ class IssueListOverview extends React.Component<Props, State> {
     }
     requestParams.collapse = 'stats';
 
-    if (this._lastRequest) {
-      this._lastRequest.cancel();
-    }
-    if (this._lastStatsRequest) {
-      this._lastStatsRequest.cancel();
-    }
-
+    this._lastRequest?.cancel();
+    this._lastStatsRequest?.cancel();
     this._poller.disable();
+    const currentRequestId = Symbol('overviewSearchId');
+    this.currentRequestId = currentRequestId;
 
     this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
       data: qs.stringify(requestParams),
       success: (data, _, jqXHR) => {
+        if (this.currentRequestId !== currentRequestId) {
+          // invariant: a different request was initiated after this request
+          return;
+        }
+
         if (!jqXHR) {
           return;
         }
@@ -591,7 +612,10 @@ class IssueListOverview extends React.Component<Props, State> {
         }
 
         this._streamManager.push(data);
-        this.fetchStats(data.map((group: BaseGroup) => group.id));
+        this.fetchStats(
+          currentRequestId,
+          data.map((group: BaseGroup) => group.id)
+        );
 
         const hits = jqXHR.getResponseHeader('X-Hits');
         const queryCount =
@@ -602,7 +626,7 @@ class IssueListOverview extends React.Component<Props, State> {
         const pageLinks = jqXHR.getResponseHeader('Link');
 
         if (this.props.organization.features.includes('inbox')) {
-          this.fetchCounts(queryCount, fetchAllCounts);
+          this.fetchCounts(currentRequestId, queryCount, fetchAllCounts);
         }
 
         this.setState({
@@ -614,13 +638,25 @@ class IssueListOverview extends React.Component<Props, State> {
         });
       },
       error: err => {
+        if (this.currentRequestId !== currentRequestId) {
+          return;
+        }
+
         this.setState({
           error: parseApiError(err),
           issuesLoading: false,
         });
+
+        Sentry.setExtras({
+          status: err?.status,
+          detail: err?.responseJSON?.detail,
+        });
+        Sentry.captureException(new Error('Error loading issues'));
       },
       complete: () => {
-        this._lastRequest = null;
+        if (this.currentRequestId !== currentRequestId) {
+          return;
+        }
 
         this.resumePolling();
       },
