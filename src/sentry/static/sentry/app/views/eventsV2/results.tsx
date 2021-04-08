@@ -99,15 +99,6 @@ class Results extends React.Component<Props, State> {
     isLoading: this.savedQueryIsLoading(),
   };
 
-  savedQueryIsLoading() {
-    const {location, savedQuery} = this.props;
-    if (location.query.id) {
-      return !savedQuery;
-    } else {
-      return false;
-    }
-  }
-
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
@@ -213,6 +204,15 @@ class Results extends React.Component<Props, State> {
       this.setState({totalValues: totals});
     } catch (err) {
       Sentry.captureException(err);
+    }
+  }
+
+  savedQueryIsLoading() {
+    const {location, savedQuery} = this.props;
+    if (location.query.id) {
+      return !savedQuery;
+    } else {
+      return false;
     }
   }
 
