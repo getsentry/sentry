@@ -1,7 +1,9 @@
+from typing import Any, Mapping
+
+from collections import defaultdict
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
-from typing import Any, Mapping
 
 from sentry.db.models import (
     BaseManager,
@@ -10,9 +12,8 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.helpers import (
-    should_be_participating,
+    where_should_be_participating,
     transform_to_notification_settings_by_user,
 )
 from sentry.notifications.types import NotificationSettingTypes
@@ -62,7 +63,7 @@ class GroupSubscriptionManager(BaseManager):
             pass
 
     def subscribe_actor(self, group, actor, reason=GroupSubscriptionReason.unknown):
-        from sentry.models import User, Team
+        from sentry.models import Team, User
 
         if isinstance(actor, User):
             return self.subscribe(group, actor, reason)
@@ -121,31 +122,33 @@ class GroupSubscriptionManager(BaseManager):
         user_ids = [user.id for user in users]
         subscriptions = self.filter(group=group, user_id__in=user_ids)
         notification_settings = NotificationSetting.objects.get_for_users_by_parent(
-            ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             users=users,
             parent=group.project,
         )
-
         subscriptions_by_user_id = {
             subscription.user_id: subscription for subscription in subscriptions
         }
         notification_settings_by_user = transform_to_notification_settings_by_user(
             notification_settings, users
         )
-        return {
-            user: getattr(
-                subscriptions_by_user_id.get(user.id),
-                "reason",
-                GroupSubscriptionReason.implicit,
-            )
-            for user in users
-            if should_be_participating(
+        result = defaultdict(dict)
+
+        for user in users:
+            providers = where_should_be_participating(
                 user,
                 subscriptions_by_user_id,
                 notification_settings_by_user,
             )
-        }
+            for provider in providers:
+                value = getattr(
+                    subscriptions_by_user_id.get(user.id),
+                    "reason",
+                    GroupSubscriptionReason.implicit,
+                )
+                result[provider][user] = value
+
+        return result
 
 
 class GroupSubscription(Model):

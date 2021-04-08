@@ -1,5 +1,6 @@
-import pytest
 import time
+
+import pytest
 
 from sentry.digests import Record
 from sentry.digests.backends.base import InvalidState

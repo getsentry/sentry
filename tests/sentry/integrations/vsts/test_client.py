@@ -1,11 +1,12 @@
-import responses
-
-from urllib.parse import parse_qs
 from time import time
+from urllib.parse import parse_qs
+
+import responses
 
 from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json
+
 from .testutils import VstsIntegrationTestCase
 
 

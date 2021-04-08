@@ -47,7 +47,7 @@ const lerp = (start: number, end: number, needle: number) => {
 type Props = {
   children: React.ReactNode;
   dividerPosition: number;
-  dragProps: DragManagerChildrenProps;
+  dragProps?: DragManagerChildrenProps;
 
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
@@ -79,8 +79,10 @@ export class Provider extends React.Component<Props, State> {
       this.props.dividerPosition !== prevProps.dividerPosition;
 
     const viewWindowChanged =
-      prevProps.dragProps.viewWindowStart !== this.props.dragProps.viewWindowStart ||
-      prevProps.dragProps.viewWindowEnd !== this.props.dragProps.viewWindowEnd;
+      prevProps.dragProps &&
+      this.props.dragProps &&
+      (prevProps.dragProps.viewWindowStart !== this.props.dragProps.viewWindowStart ||
+        prevProps.dragProps.viewWindowEnd !== this.props.dragProps.viewWindowEnd);
 
     if (dividerPositionChanged || viewWindowChanged) {
       this.initializeScrollState();

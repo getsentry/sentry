@@ -1,28 +1,27 @@
-from collections import namedtuple, OrderedDict
-from copy import deepcopy
+import functools
+import logging
+import os
+import re
+import time
+from collections import OrderedDict, namedtuple
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from copy import deepcopy
 from datetime import datetime, timedelta
 from hashlib import sha1
 from operator import itemgetter
-from typing import Any, Callable, List, Dict, MutableMapping, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from urllib.parse import urlparse
 
-from dateutil.parser import parse as parse_datetime
-import logging
-import functools
-import os
 import pytz
-import re
-import time
-import urllib3
 import sentry_sdk
+import urllib3
+from dateutil.parser import parse as parse_datetime
+from django.conf import settings
+from django.core.cache import cache
 from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import Query
-
-from concurrent.futures import ThreadPoolExecutor
-from django.conf import settings
-from django.core.cache import cache
-from urllib.parse import urlparse
 
 from sentry.models import (
     Environment,
@@ -35,13 +34,12 @@ from sentry.models import (
     ReleaseProject,
 )
 from sentry.net.http import connection_from_url
-from sentry.utils import metrics, json
-from sentry.utils.dates import to_timestamp, outside_retention_with_modified_start
-from sentry.utils.snql import should_use_snql
-from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.events import Columns
+from sentry.utils import json, metrics
 from sentry.utils.compat import map
-
+from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
+from sentry.utils.snql import should_use_snql
 
 logger = logging.getLogger(__name__)
 
@@ -715,7 +713,11 @@ def _bulk_snuba_query(
         op="start_snuba_query",
         description=f"running {len(snuba_param_list)} snuba queries",
     ) as span:
-        span.set_tag("referrer", headers.get("referer", "<unknown>"))
+        query_referrer = headers.get("referer", "<unknown>")
+        # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
+        # but we still want to know a general sense of how referrers impact performance
+        span.set_tag("query.referrer", query_referrer)
+        sentry_sdk.set_tag("query.referrer", query_referrer)
         query_fn = _snql_query if use_snql else _snuba_query
 
         if len(snuba_param_list) > 1:

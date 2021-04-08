@@ -2,19 +2,18 @@ import logging
 
 from django.utils.translation import ugettext_lazy as _
 
-
 from sentry import options
 from sentry.integrations import (
-    IntegrationInstallation,
-    IntegrationFeatures,
-    IntegrationProvider,
-    IntegrationMetadata,
     FeatureDescription,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
 )
 from sentry.pipeline import PipelineView
 
 from .card_builder import build_installation_confirmation_message
-from .client import get_token_data, MsTeamsClient
+from .client import MsTeamsClient, get_token_data
 
 logger = logging.getLogger("sentry.integrations.msteams")
 

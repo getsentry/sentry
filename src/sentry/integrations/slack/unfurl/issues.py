@@ -1,17 +1,13 @@
 import re
 from typing import List
 
+from django.http.request import HttpRequest
+
 from sentry import eventstore
-from sentry.models import Group, Project
-from sentry.integrations.slack.utils import build_group_attachment
+from sentry.integrations.slack.message_builder.issues import build_group_attachment
+from sentry.models import Group, Integration, Project
 
-from . import (
-    Handler,
-    UnfurlableUrl,
-    UnfurledUrl,
-    make_type_coercer,
-)
-
+from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
 map_issue_args = make_type_coercer(
     {
@@ -21,7 +17,9 @@ map_issue_args = make_type_coercer(
 )
 
 
-def unfurl_issues(request, integration, links: List[UnfurlableUrl]) -> UnfurledUrl:
+def unfurl_issues(
+    request: HttpRequest, integration: Integration, links: List[UnfurlableUrl]
+) -> UnfurledUrl:
     """
     Returns a map of the attachments used in the response we send to Slack
     for a particular issue by the URL of the yet-unfurled links a user included

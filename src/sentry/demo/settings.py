@@ -4,7 +4,6 @@ from datetime import timedelta
 
 from sentry.conf.server import *
 
-
 """
 To get this file to load, add the follwing to your sentry.conf.py file:
 

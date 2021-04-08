@@ -1,7 +1,6 @@
-from time import time
-from datetime import timedelta
-
 import logging
+from datetime import timedelta
+from time import time
 
 from sentry import analytics, features
 from sentry.models import (
@@ -11,15 +10,14 @@ from sentry.models import (
     GroupLink,
     GroupStatus,
     Integration,
-    Organization,
     ObjectStatus,
+    Organization,
     OrganizationIntegration,
     Repository,
     User,
 )
-
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.models.apitoken import generate_token
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 
 logger = logging.getLogger("sentry.tasks.integrations")

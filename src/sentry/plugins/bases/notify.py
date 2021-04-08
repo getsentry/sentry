@@ -1,17 +1,18 @@
 import logging
-from django import forms
-from requests.exceptions import SSLError, HTTPError
 from typing import Set
 from urllib.error import HTTPError as UrllibHTTPError
-from urllib.parse import urlparse, urlencode, urlunparse, parse_qs
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+from django import forms
+from requests.exceptions import HTTPError, SSLError
 
 from sentry import digests, ratelimits
 from sentry.exceptions import PluginError
 from sentry.models import NotificationSetting
 from sentry.models.integration import ExternalProviders
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
+from sentry.shared_integrations.exceptions import ApiError
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -136,7 +137,7 @@ class NotificationPlugin(Plugin):
         if self.get_conf_key() == "mail":
             return NotificationSetting.objects.get_notification_recipients(
                 ExternalProviders.EMAIL, project
-            )
+            )[ExternalProviders.EMAIL]
 
         return self.get_notification_recipients(project, "%s:alert" % self.get_conf_key())
 

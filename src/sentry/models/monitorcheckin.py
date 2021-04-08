@@ -2,11 +2,11 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model,
     BaseManager,
     BoundedPositiveIntegerField,
     EncryptedJsonField,
     FlexibleForeignKey,
+    Model,
     UUIDField,
     sane_repr,
 )

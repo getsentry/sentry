@@ -1,15 +1,16 @@
-import dateutil.parser
 import hashlib
 import hmac
 import logging
 
+import dateutil.parser
 from django.db import IntegrityError, transaction
-from django.http import HttpResponse, Http404
+from django.http import Http404, HttpResponse
+from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from django.utils import timezone
+
 from sentry import options
 from sentry.models import (
     Commit,
@@ -18,14 +19,13 @@ from sentry.models import (
     Integration,
     Organization,
     OrganizationOption,
+    PullRequest,
     Repository,
     User,
-    PullRequest,
 )
 from sentry.plugins.providers import RepositoryProvider
-from sentry.utils import json
-
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils import json
 from sentry_plugins.github.client import GitHubClient
 
 logger = logging.getLogger("sentry.webhooks")

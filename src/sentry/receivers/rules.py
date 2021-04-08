@@ -1,6 +1,5 @@
-from sentry.signals import project_created
-
 from sentry.models import Rule
+from sentry.signals import project_created
 
 DEFAULT_RULE_LABEL = "Send a notification for new issues"
 DEFAULT_RULE_DATA = {

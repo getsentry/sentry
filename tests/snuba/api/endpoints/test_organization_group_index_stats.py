@@ -1,5 +1,4 @@
 from sentry.models import GroupStatus
-
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format

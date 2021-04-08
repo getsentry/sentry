@@ -1,15 +1,15 @@
 from requests.exceptions import RequestException
+
 from sentry import analytics
-from sentry.mediators import Mediator, Param
-from sentry.mediators import service_hooks, sentry_app_installation_tokens
+from sentry.mediators import Mediator, Param, sentry_app_installation_tokens, service_hooks
+from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.models import (
     ApiToken,
     AuditLogEntryEvent,
+    SentryAppInstallationForProvider,
     SentryAppInstallationToken,
     ServiceHook,
-    SentryAppInstallationForProvider,
 )
-from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.utils.audit import create_audit_entry
 
 

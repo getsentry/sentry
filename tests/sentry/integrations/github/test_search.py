@@ -1,8 +1,9 @@
-import responses
-
 from datetime import datetime, timedelta
+
+import responses
 from django.core.urlresolvers import reverse
-from sentry.models import Integration, Identity, IdentityProvider
+
+from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils import APITestCase
 
 

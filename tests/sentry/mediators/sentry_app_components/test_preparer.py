@@ -1,7 +1,6 @@
-from sentry.utils.compat.mock import patch, call
-
 from sentry.mediators.sentry_app_components import Preparer
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import call, patch
 
 
 class TestPreparerIssueLink(TestCase):

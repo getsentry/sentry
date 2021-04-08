@@ -1,9 +1,9 @@
 import os.path
 
 from sentry.models import Activity
-from sentry.services.smtp import SentrySMTPServer, STATUS
+from sentry.services.smtp import STATUS, SentrySMTPServer
 from sentry.testutils import TestCase
-from sentry.utils.email import group_id_to_email, email_to_group_id, _CaseInsensitiveSigner
+from sentry.utils.email import _CaseInsensitiveSigner, email_to_group_id, group_id_to_email
 
 fixture = open(os.path.dirname(os.path.realpath(__file__)) + "/email.txt").read()
 

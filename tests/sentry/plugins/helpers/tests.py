@@ -1,6 +1,6 @@
-from sentry.utils.compat import mock
-from sentry.plugins.helpers import set_option, unset_option, get_option
+from sentry.plugins.helpers import get_option, set_option, unset_option
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class SentryPluginTest(TestCase):

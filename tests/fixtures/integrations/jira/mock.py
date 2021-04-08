@@ -1,5 +1,5 @@
-from tests.fixtures.integrations.jira.stub_client import StubJiraApiClient
 from tests.fixtures.integrations import MockService
+from tests.fixtures.integrations.jira.stub_client import StubJiraApiClient
 
 DEFAULT_PROJECT_ID = "10000"
 

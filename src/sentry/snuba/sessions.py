@@ -1,10 +1,10 @@
-import pytz
 from datetime import datetime, timedelta
 
-from sentry.utils.snuba import raw_query, parse_snuba_datetime, QueryOutsideRetentionError
-from sentry.utils.dates import to_timestamp, to_datetime
-from sentry.snuba.dataset import Dataset
+import pytz
 
+from sentry.snuba.dataset import Dataset
+from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.snuba import QueryOutsideRetentionError, parse_snuba_datetime, raw_query
 
 DATASET_BUCKET = 3600
 

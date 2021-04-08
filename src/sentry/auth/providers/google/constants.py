@@ -1,6 +1,5 @@
 from django.conf import settings
 
-
 AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth"
 
 ACCESS_TOKEN_URL = "https://www.googleapis.com/oauth2/v4/token"
