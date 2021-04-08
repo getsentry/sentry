@@ -1,9 +1,9 @@
 import hmac
 import logging
-
-from django.utils.crypto import constant_time_compare
 from functools import wraps
 from hashlib import sha256
+
+from django.utils.crypto import constant_time_compare
 from rest_framework.response import Response
 
 from sentry import options
