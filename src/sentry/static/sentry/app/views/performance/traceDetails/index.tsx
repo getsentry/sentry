@@ -35,7 +35,9 @@ class TraceSummary extends React.Component<Props> {
   renderContent() {
     const {location, organization, params} = this.props;
     const traceSlug = this.getTraceSlug();
-    const queryParams = getParams(location.query);
+    const queryParams = getParams(location.query, {
+      allowAbsolutePageDatetime: true,
+    });
     const start = decodeScalar(queryParams.start);
     const end = decodeScalar(queryParams.end);
     const statsPeriod = decodeScalar(queryParams.statsPeriod);

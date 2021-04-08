@@ -129,9 +129,9 @@ type ParsedParams = {
 };
 
 type InputParams = {
-  localStart?: Date | ParamValue;
+  pageStart?: Date | ParamValue;
+  pageEnd?: Date | ParamValue;
   start?: Date | ParamValue;
-  localEnd?: Date | ParamValue;
   end?: Date | ParamValue;
   period?: ParamValue;
   statsPeriod?: ParamValue;
@@ -142,6 +142,7 @@ type InputParams = {
 type GetParamsOptions = {
   allowEmptyPeriod?: boolean;
   allowAbsoluteDatetime?: boolean;
+  allowAbsolutePageDatetime?: boolean;
   defaultStatsPeriod?: string;
 };
 export function getParams(
@@ -149,12 +150,13 @@ export function getParams(
   {
     allowEmptyPeriod = false,
     allowAbsoluteDatetime = true,
+    allowAbsolutePageDatetime = false,
     defaultStatsPeriod = DEFAULT_STATS_PERIOD,
   }: GetParamsOptions = {}
 ): ParsedParams {
   const {
-    localStart,
-    localEnd,
+    pageStart,
+    pageEnd,
     start,
     end,
     period,
@@ -167,10 +169,14 @@ export function getParams(
   let coercedPeriod = getStatsPeriodValue(statsPeriod) || getStatsPeriodValue(period);
 
   const dateTimeStart = allowAbsoluteDatetime
-    ? getDateTimeString(localStart) ?? getDateTimeString(start)
+    ? allowAbsolutePageDatetime
+      ? getDateTimeString(pageStart) ?? getDateTimeString(start)
+      : getDateTimeString(start)
     : null;
   const dateTimeEnd = allowAbsoluteDatetime
-    ? getDateTimeString(localEnd) ?? getDateTimeString(end)
+    ? allowAbsolutePageDatetime
+      ? getDateTimeString(pageEnd) ?? getDateTimeString(end)
+      : getDateTimeString(end)
     : null;
 
   if (!(dateTimeStart && dateTimeEnd)) {

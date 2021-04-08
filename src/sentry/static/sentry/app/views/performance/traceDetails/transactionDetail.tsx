@@ -1,13 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import Link from 'app/components/links/link';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -131,7 +132,7 @@ class TransactionDetail extends React.Component<Props> {
       organization,
       eventSlug,
       transaction.transaction,
-      location.query
+      omit(location.query, Object.values(PAGE_URL_PARAM))
     );
 
     return (
@@ -147,7 +148,7 @@ class TransactionDetail extends React.Component<Props> {
     const target = transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
       transaction: transaction.transaction,
-      query: location.query,
+      query: omit(location.query, Object.values(PAGE_URL_PARAM)),
       projectID: String(transaction.project_id),
     });
 
