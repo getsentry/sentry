@@ -167,6 +167,7 @@ def get_legacy_object(
     type = NotificationSettingTypes(notification_setting.type)
     key = get_legacy_key(type)
     value = NotificationSettingOptionValues(notification_setting.value)
+    scope_type = NotificationScopeType(notification_setting.scope_type)
 
     data = {
         "key": key,
@@ -176,9 +177,9 @@ def get_legacy_object(
         "organization": None,
     }
 
-    if notification_setting.scope_type == NotificationScopeType.PROJECT.value:
+    if scope_type == NotificationScopeType.PROJECT:
         data["project"] = parent_mapping.get(notification_setting.scope_identifier)
-    if notification_setting.scope_type == NotificationScopeType.ORGANIZATION.value:
+    if scope_type == NotificationScopeType.ORGANIZATION:
         data["organization"] = organization_mapping.get(notification_setting.scope_identifier)
 
     return LegacyUserOptionClone(**data)
