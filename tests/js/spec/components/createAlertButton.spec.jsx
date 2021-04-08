@@ -12,6 +12,13 @@ const onIncompatibleQueryMock = jest.fn();
 const onCloseMock = jest.fn();
 const onSuccessMock = jest.fn();
 
+jest.mock('app/actionCreators/navigation', () => ({
+  ...jest.requireActual('app/actionCreators/navigation'),
+  navigateTo: jest.fn(),
+}));
+
+import {navigateTo} from 'app/actionCreators/navigation';
+
 function generateWrappedComponent(organization, eventView) {
   return mountWithTheme(
     <CreateAlertFromViewButton
@@ -26,12 +33,9 @@ function generateWrappedComponent(organization, eventView) {
   );
 }
 
-function generateWrappedComponentButton(organization, showPermissionGuide) {
+function generateWrappedComponentButton(organization, extraProps) {
   return mountWithTheme(
-    <CreateAlertButton
-      organization={organization}
-      showPermissionGuide={showPermissionGuide}
-    />
+    <CreateAlertButton organization={organization} {...extraProps} />
   );
 }
 
@@ -206,7 +210,9 @@ describe('CreateAlertFromViewButton', () => {
       access: [],
     };
 
-    const wrapper = generateWrappedComponentButton(noAccessOrg, true);
+    const wrapper = generateWrappedComponentButton(noAccessOrg, {
+      showPermissionGuide: true,
+    });
 
     const guide = wrapper.find('GuideAnchor');
     expect(guide.props().target).toBe('alerts_write_member');
@@ -218,10 +224,57 @@ describe('CreateAlertFromViewButton', () => {
       access: ['org:write'],
     };
 
-    const wrapper = generateWrappedComponentButton(adminAccessOrg, true);
+    const wrapper = generateWrappedComponentButton(adminAccessOrg, {
+      showPermissionGuide: true,
+    });
 
     const guide = wrapper.find('GuideAnchor');
     expect(guide.props().target).toBe('alerts_write_owner');
     expect(guide.props().onFinish).toBeDefined();
+  });
+
+  it('redirects to alert builder with no project', async () => {
+    const wrapper = generateWrappedComponentButton(organization);
+    wrapper.simulate('click');
+    expect(navigateTo).toHaveBeenCalledWith(
+      `/organizations/org-slug/alerts/:projectId/new/`,
+      undefined
+    );
+  });
+
+  it('redirects to alert builder with a project', async () => {
+    const wrapper = generateWrappedComponentButton(organization, {
+      projectSlug: 'proj-slug',
+    });
+
+    expect(wrapper.find('Button').props().to).toBe(
+      `/organizations/org-slug/alerts/proj-slug/new/`
+    );
+  });
+
+  it('redirects to the alert wizard w/ feature flag with no project', async () => {
+    const wizardOrg = {
+      ...organization,
+      features: ['alert-wizard'],
+    };
+
+    const wrapper = generateWrappedComponentButton(wizardOrg);
+    wrapper.simulate('click');
+    expect(navigateTo).toHaveBeenCalledWith(
+      `/organizations/org-slug/alerts/:projectId/wizard/`,
+      undefined
+    );
+  });
+
+  it('redirects to the alert wizard with a project', async () => {
+    const wizardOrg = {
+      ...organization,
+      features: ['alert-wizard'],
+    };
+
+    const wrapper = generateWrappedComponentButton(wizardOrg, {projectSlug: 'proj-slug'});
+    expect(wrapper.find('Button').props().to).toBe(
+      `/organizations/org-slug/alerts/proj-slug/wizard/`
+    );
   });
 });
