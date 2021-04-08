@@ -309,6 +309,8 @@ def post_process_group(
             except Exception:
                 logger.exception("Failed to process suspect commits")
 
+            process_categories(event)
+
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = {"event.created"}
                 if has_alert:
@@ -357,6 +359,28 @@ def post_process_group(
 
         with metrics.timer("tasks.post_process.delete_event_cache"):
             event_processing_store.delete_by_key(cache_key)
+
+
+def process_categories(event):
+    from sentry.models.groupcategory import GroupCategory
+
+    for category in _extract_categories_from_event(event):
+        GroupCategory.objects.create(group_id=event.group_id, category=category)
+
+
+categories = ["database", "io", "celery", "file"]
+
+
+def _extract_categories_from_event(event):
+    """
+    Dummy logic, no need to review this, just assume it is correct for the purposes of
+    MCH and that it is fast.
+    """
+    import random
+
+    count = random.randint(1, len(categories))
+    for i in range(count):
+        yield categories[(event.group_id + i) % count]
 
 
 def process_snoozes(group):
