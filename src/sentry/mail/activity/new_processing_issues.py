@@ -29,7 +29,7 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
     def get_participants(self):
         users = NotificationSetting.objects.get_notification_recipients(
             ExternalProviders.EMAIL, self.project
-        )
+        )[ExternalProviders.EMAIL]
         return {user: GroupSubscriptionReason.processing_issue for user in users}
 
     def get_context(self):

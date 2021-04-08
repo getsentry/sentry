@@ -11,6 +11,7 @@ from sentry.models import (
     UserAvatar,
     UserOption,
 )
+from sentry.models.integration import ExternalProviders
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
@@ -40,7 +41,9 @@ class ActivityEmail:
         if not self.group:
             return []
 
-        participants = GroupSubscription.objects.get_participants(group=self.group)
+        participants = GroupSubscription.objects.get_participants(group=self.group)[
+            ExternalProviders.EMAIL
+        ]
 
         if self.activity.user is not None and self.activity.user in participants:
             receive_own_activity = (
