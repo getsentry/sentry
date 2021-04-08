@@ -1,4 +1,3 @@
-// eslint-disable-next-line sentry/no-react-hooks
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 

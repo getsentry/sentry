@@ -1,5 +1,4 @@
 // hook from https://usehooks.com/useKeyPress/
-// eslint-disable-next-line sentry/no-react-hooks
 import {useEffect, useState} from 'react';
 
 function useKeyPress(targetKey: React.KeyboardEvent['key']) {

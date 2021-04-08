@@ -1,5 +1,4 @@
 // hook from https://usehooks.com/useOnClickOutside/
-// eslint-disable-next-line sentry/no-react-hooks
 import React, {useEffect} from 'react';
 
 function useOnClickOutside<T extends HTMLElement = HTMLElement>(
