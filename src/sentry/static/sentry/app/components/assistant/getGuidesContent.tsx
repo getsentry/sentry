@@ -135,6 +135,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         {
           target: 'inbox_guide_reason',
           description: t(`These labels explain why an issue needs review.`),
+          nextText: t(`When does this end?`),
           cantDismiss: true,
         },
         {
@@ -142,12 +143,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           description: t(
             `Marking an issue reviewed, resolving it, or ignoring it removes it from this list and removes the label.`
           ),
-          nextText: t(`When does this end?`),
-          cantDismiss: true,
-        },
-        {
-          target: 'inbox_guide_ignore',
-          description: t(`Resolving or ignoring an issue also marks it reviewed.`),
           nextText: t(`Make It Stop Already`),
         },
       ],
