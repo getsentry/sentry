@@ -6,8 +6,8 @@ from sentry.integrations.atlassian_connect import (
 )
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
-from sentry.utils.signing import sign
 from sentry.utils.http import absolute_uri
+from sentry.utils.signing import sign
 
 from .base_hook import JiraBaseHook
 

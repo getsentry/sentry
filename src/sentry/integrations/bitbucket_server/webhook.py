@@ -1,13 +1,13 @@
 import logging
-
-
 from datetime import datetime
+
 from django.db import IntegrityError, transaction
-from django.http import HttpResponse, Http404
+from django.http import Http404, HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
+
 from sentry.models import Commit, CommitAuthor, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
