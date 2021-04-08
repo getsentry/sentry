@@ -2,7 +2,8 @@ import logging
 
 from django.conf import settings
 
-from sentry.cache.redis import RedisClusterCache, RbCache
+from sentry.cache.redis import RbCache, RedisClusterCache
+
 from .base import BaseAttachmentCache
 
 logger = logging.getLogger(__name__)
