@@ -1,5 +1,6 @@
 from exam import fixture
 from django.core.urlresolvers import reverse
+from django.test import override_settings
 
 from sentry.models import (
     AuthIdentity,
@@ -652,3 +653,17 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # Ensure the ident was migrated from the legacy identity
         updated_ident = AuthIdentity.objects.get(id=user_ident.id)
         assert updated_ident.ident == "foo@new-domain.com"
+
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    def test_flow_as_invited_user(self):
+        user = self.create_user("foor@example.com")
+        self.create_member(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member.email = "foor@example.com"
+        member.user = None
+        member.save()
+        self.login_as(user)
+        resp = self.client.post(
+            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
+        )
+        assert resp.redirect_chain[0] == (reverse("sentry-login"), 302)
