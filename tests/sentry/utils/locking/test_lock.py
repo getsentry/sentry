@@ -1,7 +1,8 @@
 import unittest
-from sentry.utils.compat import mock
+
 import pytest
 
+from sentry.utils.compat import mock
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.lock import Lock

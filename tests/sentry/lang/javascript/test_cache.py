@@ -1,5 +1,6 @@
-from sentry.lang.javascript.cache import SourceCache
 from unittest import TestCase
+
+from sentry.lang.javascript.cache import SourceCache
 
 
 class BasicCacheTest(TestCase):

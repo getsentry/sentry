@@ -1,6 +1,6 @@
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.discover.utils import transform_aliases_and_query
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class TransformAliasesAndQueryTest(SnubaTestCase, TestCase):

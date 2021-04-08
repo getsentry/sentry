@@ -1,15 +1,15 @@
-import responses
 import datetime
-
-from django.utils import timezone
-from exam import fixture
 from time import time
 
-from sentry.testutils import IntegrationRepositoryTestCase, TestCase
-from sentry.models import Identity, IdentityProvider, Integration, Repository
-from sentry.integrations.vsts.repository import VstsRepositoryProvider
+import responses
+from django.utils import timezone
+from exam import fixture
 
-from .testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DETAILS_EXAMPLE, FILE_CHANGES_EXAMPLE
+from sentry.integrations.vsts.repository import VstsRepositoryProvider
+from sentry.models import Identity, IdentityProvider, Integration, Repository
+from sentry.testutils import IntegrationRepositoryTestCase, TestCase
+
+from .testutils import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 
 
 class VisualStudioRepositoryProviderTest(TestCase):

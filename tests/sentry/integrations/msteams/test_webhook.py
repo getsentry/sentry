@@ -1,26 +1,25 @@
-import jwt
-import responses
-
 from copy import deepcopy
 from urllib.parse import urlencode
 
-from sentry.models import Integration, Identity, IdentityProvider
+import jwt
+import responses
+
+from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils import APITestCase
 from sentry.utils.compat import mock
 
 from .test_helpers import (
-    GENERIC_EVENT,
+    DECODED_TOKEN,
+    EXAMPLE_MENTIONED,
+    EXAMPLE_PERSONAL_MEMBER_ADDED,
     EXAMPLE_TEAM_MEMBER_ADDED,
     EXAMPLE_TEAM_MEMBER_REMOVED,
-    EXAMPLE_PERSONAL_MEMBER_ADDED,
-    EXAMPLE_MENTIONED,
     EXAMPLE_UNLINK_COMMAND,
+    GENERIC_EVENT,
     OPEN_ID_CONFIG,
-    WELL_KNOWN_KEYS,
-    DECODED_TOKEN,
     TOKEN,
+    WELL_KNOWN_KEYS,
 )
-
 
 webhook_url = "/extensions/msteams/webhook/"
 team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"

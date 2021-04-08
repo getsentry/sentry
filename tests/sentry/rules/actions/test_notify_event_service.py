@@ -1,10 +1,9 @@
 from django.utils import timezone
 
-from sentry.utils.compat.mock import MagicMock, patch
-
-from sentry.testutils.cases import RuleTestCase
 from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
 from sentry.tasks.sentry_apps import notify_sentry_app
+from sentry.testutils.cases import RuleTestCase
+from sentry.utils.compat.mock import MagicMock, patch
 
 
 class NotifyEventServiceActionTest(RuleTestCase):

@@ -1,7 +1,8 @@
 import datetime
+
 import pytz
 
-from sentry.utils.dates import to_datetime, to_timestamp, parse_stats_period
+from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 
 
 def test_timestamp_conversions():

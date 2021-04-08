@@ -1,10 +1,10 @@
-import pytz
-
-from sentry.utils.compat.mock import patch
 from datetime import datetime, timedelta
+
+import pytz
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 

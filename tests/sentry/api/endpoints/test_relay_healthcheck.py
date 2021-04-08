@@ -1,5 +1,5 @@
-from django.test import Client
 from django.core.urlresolvers import reverse
+from django.test import Client
 
 
 def test_healthcheck_endpoint():

@@ -2,8 +2,8 @@ import pytest
 
 from sentry.models import ProjectKey
 from sentry.relay.config import get_project_config
-from sentry.utils.safe import get_path
 from sentry.testutils.helpers import Feature
+from sentry.utils.safe import get_path
 
 PII_CONFIG = """
 {
