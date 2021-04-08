@@ -27,6 +27,13 @@ repos:
       entry: black
       language: system
       types: [python]
+    # Configuration for isort exists in pyproject.toml,
+    # but we let pre-commit take care of the file filtering.
+    - id: isort
+      name: isort
+      entry: isort
+      language: system
+      types: [python]
     # Configuration for flake8 exists in setup.cfg,
     # but we let pre-commit take care of the file filtering.
     - id: flake8
