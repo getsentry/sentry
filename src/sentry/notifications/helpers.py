@@ -1,6 +1,7 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
 
+from sentry.api.serializers.models.group import SUBSCRIPTION_REASON_MAP
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_DEFAULTS,
@@ -117,6 +118,7 @@ def transform_to_notification_settings_by_user(
     return notification_settings_by_user
 
 
+# TODO MARCOS 2
 def transform_to_notification_settings_by_parent_id(
     notification_settings: Iterable[Any],
 ) -> Tuple[
@@ -130,15 +132,14 @@ def transform_to_notification_settings_by_parent_id(
     notification_settings_by_parent_id = {}
     notification_setting_user_default = None
     for notification_setting in notification_settings:
-        if notification_setting.scope_type == NotificationScopeType.USER.value:
-            notification_setting_user_default = NotificationSettingOptionValues(
-                notification_setting.value
-            )
+        scope_type = NotificationScopeType(notification_setting.scope_type)
+        value = NotificationSettingOptionValues(notification_setting.value)
+
+        if scope_type == NotificationScopeType.USER:
+            notification_setting_user_default = value
         else:
             key = int(notification_setting.scope_identifier)
-            notification_settings_by_parent_id[key] = NotificationSettingOptionValues(
-                notification_setting.value
-            )
+            notification_settings_by_parent_id[key] = value
     return notification_settings_by_parent_id, notification_setting_user_default
 
 
@@ -186,3 +187,108 @@ def get_target_id(user: Optional[Any] = None, team: Optional[Any] = None) -> int
         return int(team.actor_id)
 
     raise Exception("target must be either a user or a team")
+
+
+def get_subscription_from_attributes(
+    attrs: Mapping[str, Any]
+) -> Tuple[bool, Optional[Mapping[str, Union[str, bool]]]]:
+    subscription_details = None
+    is_disabled, is_subscribed, subscription = attrs["subscription"]
+    if is_disabled:
+        subscription_details = {"disabled": True}
+    elif subscription and subscription.is_active:
+        subscription_details = {
+            "reason": SUBSCRIPTION_REASON_MAP.get(subscription.reason, "unknown")
+        }
+
+    return is_subscribed, subscription_details
+
+
+def get_groups_for_query(
+    groups_by_project: Mapping[Any, Set[Any]],
+    notification_settings_by_key: Mapping[int, NotificationSettingOptionValues],
+    global_default_workflow_option: NotificationSettingOptionValues,
+) -> Set[Any]:
+    """
+    If there is a subscription record associated with the group, we can just use
+    that to know if a user is subscribed or not, as long as notifications aren't
+    disabled for the project.
+    """
+    # Although this can be done with a comprehension, looping for clarity.
+    output = set()
+    for project, groups in groups_by_project.items():
+        value = notification_settings_by_key.get(project.id, global_default_workflow_option)
+        if value != NotificationSettingOptionValues.NEVER:
+            output |= groups
+    return output
+
+
+def collect_groups_by_project(groups: Iterable[Any]) -> Mapping[Any, Set[Any]]:
+    """
+    Collect all of the projects to look up, and keep a set of groups that are
+    part of that project. (Note that the common -- but not only -- case here is
+    that all groups are part of the same project.)
+    """
+    projects = defaultdict(set)
+    for group in groups:
+        projects[group.project].add(group)
+    return projects
+
+
+def get_notification_settings_by_key(
+    notification_settings: Iterable[Any],
+) -> Tuple[Mapping[int, NotificationSettingOptionValues], NotificationSettingOptionValues]:
+    """
+    Fetch the options for each project -- we'll need this to identify if a user
+    has totally disabled workflow notifications for a project.
+    """
+    # This is the user's default value for any projects that don't have the
+    # option value specifically recorded. (The default "participating_only"
+    # value is convention.)
+    global_default_workflow_option = NotificationSettingOptionValues.SUBSCRIBE_ONLY
+
+    # TODO MARCOS 1
+    options = {}
+    for notification_setting in notification_settings:
+        scope_type = NotificationScopeType(notification_setting.scope_type)
+        value = NotificationSettingOptionValues(notification_setting.value)
+        if scope_type != NotificationScopeType.PROJECT:
+            global_default_workflow_option = value
+        else:
+            options[notification_setting.scope_identifier] = value
+
+    return options, global_default_workflow_option
+
+
+def get_user_subscriptions_for_groups(
+    groups_by_project: Mapping[Any, Set[Any]],
+    notification_settings_by_key: Mapping[int, NotificationSettingOptionValues],
+    subscriptions_by_group_id: Mapping[int, Any],
+    global_default_workflow_option: NotificationSettingOptionValues,
+) -> Mapping[int, Tuple[bool, bool, Optional[Any]]]:
+    """
+    Takes collected data and returns a mapping of group IDs to a two-tuple of
+    (subscribed: bool, subscription: Optional[GroupSubscription]).
+    """
+    results = {}
+    for project, groups in groups_by_project.items():
+        project_default_workflow_option = notification_settings_by_key.get(
+            project.id, global_default_workflow_option
+        )
+        for group in groups:
+            subscription = subscriptions_by_group_id.get(group.id)
+
+            is_disabled = False
+            if subscription:
+                is_active = subscription.is_active
+            elif project_default_workflow_option == NotificationSettingOptionValues.NEVER:
+                is_active = False
+                is_disabled = True
+            else:
+                is_active = (
+                    project_default_workflow_option == NotificationSettingOptionValues.ALWAYS
+                )
+
+            results[group.id] = (is_disabled, is_active, subscription)
+
+    return results
