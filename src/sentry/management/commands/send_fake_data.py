@@ -51,6 +51,7 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         from django.conf import settings
+
         from sentry.app import client
         from sentry.models import Project
 
