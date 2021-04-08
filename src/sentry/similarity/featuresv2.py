@@ -3,8 +3,8 @@ import logging
 
 from django.conf import settings
 
-from sentry.similarity.features import FeatureSet
 from sentry.similarity.encoder import Encoder
+from sentry.similarity.features import FeatureSet
 
 logger = logging.getLogger(__name__)
 
