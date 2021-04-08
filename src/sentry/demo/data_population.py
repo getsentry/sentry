@@ -172,14 +172,12 @@ def gen_frontend_duration(day, quick):
     config = get_config(quick)
     DAY_DURATION_IMPACT = config["DAY_DURATION_IMPACT"]
     MAX_DAYS = config["MAX_DAYS"]
-    BASE_FRONTEND_DURATION = config["BASE_FRONTEND_DURATION"]
     MIN_FRONTEND_DURATION = config["MIN_FRONTEND_DURATION"]
-    DURATION_SIGMA = config["DURATION_SIGMA"]
     day_weight = DAY_DURATION_IMPACT * day / MAX_DAYS
-    return (
-        random_normal(BASE_FRONTEND_DURATION - day_weight, DURATION_SIGMA, MIN_FRONTEND_DURATION)
-        / 1000.0
-    )
+
+    alpha = config["DURATION_ALPHA"]
+    beta = config["DURATION_BETA"]
+    return MIN_FRONTEND_DURATION / 1000.0 + random.gammavariate(alpha, beta) / (1 + day_weight)
 
 
 @functools.lru_cache(maxsize=None)
@@ -703,6 +701,9 @@ def iter_timestamps(disribution_fn_num: int, quick: bool, starting_release: int 
     NUM_RELEASES = config["NUM_RELEASES"]
     start_time = timezone.now() - timedelta(days=MAX_DAYS)
 
+    # ensure each event has at least on full cycle per release
+    hour_multiplier = max(1, NUM_RELEASES * 1.0 / MAX_DAYS)
+
     # offset by the release time
     hourly_release_cadence = MAX_DAYS * 24.0 / NUM_RELEASES
     start_time += timedelta(hours=hourly_release_cadence * starting_release)
@@ -714,7 +715,9 @@ def iter_timestamps(disribution_fn_num: int, quick: bool, starting_release: int 
             if end_time > timezone.now():
                 return
 
-            base = distribution_fn(hour)
+            # need to map the hour if we have releases less than a day long
+            mapped_hour = int(hour * hour_multiplier) % 24
+            base = distribution_fn(mapped_hour)
             # determine the number of events we want in this hour
             num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
             timestamps = []
@@ -824,7 +827,7 @@ def populate_connected_event_scenario_1(
 
         # python transaction
         old_span_id = python_transaction["contexts"]["trace"]["span_id"]
-        backend_duration = frontend_duration - random_normal(0.3, 0.1, 0.1)
+        backend_duration = frontend_duration * random.uniform(0.8, 0.95)
 
         backend_trace = {
             "trace_id": trace_id,
@@ -910,7 +913,7 @@ def populate_connected_event_scenario_1b(
 
         # python transaction
         old_span_id = python_transaction["contexts"]["trace"]["span_id"]
-        backend_duration = frontend_duration - random_normal(0.3, 0.1, 0.1)
+        backend_duration = frontend_duration * random.uniform(0.8, 0.95)
 
         backend_trace = {
             "trace_id": trace_id,
@@ -990,7 +993,7 @@ def populate_connected_event_scenario_2(
 
         # python transaction
         old_span_id = python_transaction["contexts"]["trace"]["span_id"]
-        backend_duration = frontend_duration - random_normal(0.3, 0.1, 0.1)
+        backend_duration = frontend_duration * random.uniform(0.8, 0.95)
 
         backend_trace = {
             "trace_id": trace_id,
@@ -1103,10 +1106,15 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     with sentry_sdk.start_span(op="handle_react_python_scenario", description="pre_event_setup"):
         generate_releases([react_project, python_project], quick=quick)
         generate_alerts(python_project)
-        generate_saved_query(react_project, "/productstore", "Product Store")
-    with sentry_sdk.start_span(op="handle_react_python_scenario", description="populate_sessions"):
-        populate_sessions(react_project, "sessions/react_unhandled_exception.json", quick=quick)
-        populate_sessions(python_project, "sessions/python_unhandled_exception.json", quick=quick)
+        generate_saved_query(react_project, "/productstore", "Product Store by Browser")
+    if not get_config_var("DISABLE_SESSIONS", quick):
+        with sentry_sdk.start_span(
+            op="handle_react_python_scenario", description="populate_sessions"
+        ):
+            populate_sessions(react_project, "sessions/react_unhandled_exception.json", quick=quick)
+            populate_sessions(
+                python_project, "sessions/python_unhandled_exception.json", quick=quick
+            )
     with sentry_sdk.start_span(
         op="handle_react_python_scenario", description="populate_connected_events"
     ):
