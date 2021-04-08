@@ -182,28 +182,19 @@ class TraceDetailsContent extends React.Component<Props, State> {
     return (
       <TraceDetailHeader>
         <MetaData
-          headingText={t('Transactions')}
-          tooltipText={t('All the transactions that are a part of this trace.')}
-          bodyText={t(
-            '%s of %s',
-            traceInfo.relevantTransactions.size,
-            traceInfo.transactions.size
+          headingText={t('Event Breakdown')}
+          tooltipText={t(
+            'The number of transactions and errors there are in this trace.'
           )}
-          subtext={tn(
-            'Across %s project',
-            'Across %s projects',
-            traceInfo.relevantProjectsWithTransactions.size
-          )}
-        />
-        <MetaData
-          headingText={t('Errors')}
-          tooltipText={t('All the errors that are a part of this trace.')}
-          bodyText={t('%s of %s', traceInfo.relevantErrors.size, traceInfo.errors.size)}
-          subtext={tn(
-            'Across %s project',
-            'Across %s projects',
-            traceInfo.relevantProjectsWithErrors.size
-          )}
+          bodyText={tct('[transactions]  |  [errors]', {
+            transactions: tn(
+              '%s Transaction',
+              '%s Transactions',
+              traceInfo.transactions.size
+            ),
+            errors: tn('%s Error', '%s Errors', traceInfo.errors.size),
+          })}
+          subtext={tn('Across %s project', 'Across %s projects', traceInfo.projects.size)}
         />
         <MetaData
           headingText={t('Total Duration')}
@@ -238,7 +229,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
     if (roots === 0 && orphans > 0) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="md" />}>
+        <Alert type="info" icon={<IconInfo size="sm" />}>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
@@ -248,7 +239,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       );
     } else if (roots === 1 && orphans > 0) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="md" />}>
+        <Alert type="info" icon={<IconInfo size="sm" />}>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
@@ -258,7 +249,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       );
     } else if (roots > 1) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="md" />}>
+        <Alert type="info" icon={<IconInfo size="sm" />}>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#multiple-roots">
             {t('Multiple root transactions have been found with this trace ID.')}
           </ExternalLink>
@@ -525,12 +516,12 @@ class TraceDetailsContent extends React.Component<Props, State> {
     } else if (error !== null || traces === null || traces.length <= 0) {
       return this.renderTraceNotFound();
     } else {
-      const traceInfo = getTraceInfo(traces, this.isTransactionVisible);
+      const traceInfo = getTraceInfo(traces);
       return (
         <React.Fragment>
-          {this.renderSearchBar()}
-          {this.renderTraceHeader(traceInfo)}
           {this.renderTraceWarnings()}
+          {this.renderTraceHeader(traceInfo)}
+          {this.renderSearchBar()}
           {this.renderTraceView(traceInfo)}
         </React.Fragment>
       );

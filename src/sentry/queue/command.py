@@ -1,7 +1,7 @@
-import celery
 import os
 import sys
 
+import celery
 from django.core.management.base import BaseCommand
 
 

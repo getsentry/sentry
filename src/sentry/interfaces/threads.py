@@ -1,6 +1,6 @@
 from sentry.interfaces.base import Interface
-from sentry.utils.json import prune_empty_keys
 from sentry.interfaces.stacktrace import Stacktrace
+from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import trim
 
 __all__ = ("Threads",)

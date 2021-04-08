@@ -4,7 +4,7 @@ import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'app/types';
-import {escape} from 'app/utils';
+import {defined, escape} from 'app/utils';
 import {parsePeriodToHours} from 'app/utils/dates';
 import {decodeList} from 'app/utils/queryString';
 
@@ -121,9 +121,9 @@ export function getSeriesSelection(
 }
 
 export function isMultiSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats | null
+  data: MultiSeriesEventsStats | EventsStats | null | undefined
 ): data is MultiSeriesEventsStats {
-  return data !== null && data.data === undefined && data.totals === undefined;
+  return defined(data) && data.data === undefined && data.totals === undefined;
 }
 
 // If dimension is a number convert it to pixels, otherwise use dimension
