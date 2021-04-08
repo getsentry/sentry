@@ -134,7 +134,21 @@ def distribution_v4(hour: int) -> int:
     return 2
 
 
-distrubtion_fns = [distribution_v1, distribution_v2, distribution_v3, distribution_v4]
+def distribution_v5(hour: int) -> int:
+    if hour == 3:
+        return 10
+    if hour < 5:
+        return 3
+    return 1
+
+
+distrubtion_fns = [
+    distribution_v1,
+    distribution_v2,
+    distribution_v3,
+    distribution_v4,
+    distribution_v5,
+]
 
 
 def gen_measurements(full_duration):
@@ -284,7 +298,13 @@ def generate_releases(projects, quick):
 
         # TODO: unhardcode params when we add more scenarios
         raw_commits = generate_commits(
-            ["components/ShoppingCart.js", "flask/app.py", "purchase.py"], ["js", "py"]
+            [
+                "components/ShoppingCart.js",
+                "components/Form.js",
+                "flask/app.py",
+                "purchase.py",
+            ],
+            ["js", "py"],
         )
 
         repo, _ = Repository.objects.get_or_create(
@@ -498,6 +518,7 @@ def clean_event(event_json):
         "event_id",
         "project",
         "tags",
+        "sdk",
     ]
     for field in fields_to_delete:
         if field in event_json:
@@ -1092,9 +1113,16 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
         populate_connected_event_scenario_1(react_project, python_project, quick=quick)
         populate_connected_event_scenario_1b(react_project, python_project, quick=quick)
         populate_connected_event_scenario_2(react_project, python_project, quick=quick)
+    with sentry_sdk.start_span(op="handle_react_python_scenario", description="populate_errors"):
         populate_generic_error(
-            python_project, "scen3/python_error.json", 3, starting_release=1, quick=quick
+            react_project, "errors/react/get_card_info.json", 3, starting_release=1, quick=quick
         )
         populate_generic_error(
-            python_project, "scen4/python_error.json", 4, starting_release=2, quick=quick
+            python_project, "errors/python/cert_error.json", 5, starting_release=1, quick=quick
+        )
+        populate_generic_error(
+            react_project, "errors/react/func_undefined.json", 2, starting_release=2, quick=quick
+        )
+        populate_generic_error(
+            python_project, "errors/python/concat_str_none.json", 4, starting_release=2, quick=quick
         )

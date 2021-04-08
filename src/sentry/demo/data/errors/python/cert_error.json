@@ -1,0 +1,239 @@
+{
+    "event_id": "a2e7f993075a4437a730b9cdfbb760af",
+    "project": 1781880,
+    "release": "3.4",
+    "dist": null,
+    "platform": "python",
+    "message": "",
+    "datetime": "2021-03-24T17:00:03.000000Z",
+    "tags": [
+      ["demo-automation", "replay"],
+      ["environment", "prod"],
+      ["handled", "no"],
+      ["level", "error"],
+      ["mechanism", "excepthook"],
+      ["runtime", "CPython 3.7.7"],
+      ["runtime.name", "CPython"],
+      ["release", "3.4"],
+      ["user", "email:gp2b@yahoo.com"],
+      ["server_name", "vigorous-hydrangea"]
+    ],
+    "_metrics": {"bytes.ingested.event": 4761, "bytes.stored.event": 5520},
+    "breadcrumbs": {
+      "values": [
+        {
+          "timestamp": 1605261646.28,
+          "type": "default",
+          "category": "app",
+          "level": "debug",
+          "message": "Response 200 OK"
+        },
+        {
+          "timestamp": 1605261628.364,
+          "type": "http",
+          "category": "http",
+          "level": "info",
+          "data": {"method": "GET", "url": "/checkout/cart/"}
+        },
+        {
+          "timestamp": 1587032848.235907,
+          "type": "default",
+          "category": "query",
+          "level": "info",
+          "message": "SELECT * FROM current_user"
+        },
+        {
+          "timestamp": 1605261628.466,
+          "type": "default",
+          "category": "app",
+          "level": "debug",
+          "message": "GET \"/checkout/cart/\", parameters={}"
+        },
+        {
+          "timestamp": 1605261628.467,
+          "type": "default",
+          "category": "app",
+          "level": "debug",
+          "message": "Accept=[application/json, application/*+json]"
+        },
+        {
+          "timestamp": 1605261646.28,
+          "type": "default",
+          "category": "app",
+          "level": "debug",
+          "message": "Response 200 OK"
+        }
+      ]
+    },
+    "contexts": {
+      "runtime": {
+        "name": "CPython",
+        "version": "3.7.7",
+        "build": "3.7.7 (default, Mar 10 2020, 15:43:33) \n[Clang 11.0.0 (clang-1100.0.33.17)]",
+        "type": "runtime"
+      }
+    },
+    "culprit": "__main__ in send_shipment_job",
+    "environment": "prod",
+    "exception": {
+      "values": [
+        {
+          "type": "SSLError",
+          "value": "('The certificate belonging to https://app.example.com has expired.',)",
+          "module": "ssl",
+          "stacktrace": {
+            "frames": [
+              {
+                "function": "<module>",
+                "module": "__main__",
+                "filename": "purchase.py",
+                "abs_path": "/empowerplant/purchase.py",
+                "lineno": 36,
+                "pre_context": [
+                  "    generate_invoice(status)",
+                  "    return 200",
+                  "",
+                  "main(request={",
+                  "    \"ccno\": ****************,"
+                ],
+                "context_line": "    \"cart\": [11.69, 4.95, 5.99],",
+                "post_context": ["})"],
+                "in_app": true,
+                "vars": {
+                  "__annotations__": {},
+                  "__builtins__": "<module 'builtins' (built-in)>",
+                  "__cached__": "None",
+                  "__doc__": "None",
+                  "__file__": "'purchase.py'",
+                  "__loader__": "<_frozen_importlib_external.SourceFileLoader object at 0x107f5c850>",
+                  "__name__": "'__main__'",
+                  "__package__": "None",
+                  "__spec__": "None",
+                  "init": "<function _init at 0x1088598c0>"
+                },
+                "data": {"orig_in_app": 1}
+              },
+              {
+                "function": "main",
+                "module": "__main__",
+                "filename": "purchase.py",
+                "abs_path": "/empowerplant/purchase.py",
+                "lineno": 28,
+                "pre_context": [
+                  "    status = charge(ccno, sum(request.get(\"cart\")))",
+                  "    if not status:",
+                  "        return 500",
+                  "",
+                  "    send_shipment_job("
+                ],
+                "context_line": "        server=\"https://app.example.com\"",
+                "post_context": [
+                  "    )",
+                  "",
+                  "    generate_invoice(status)",
+                  "    return 200",
+                  ""
+                ],
+                "in_app": true,
+                "vars": {
+                  "ccno": "****************",
+                  "request": {"cart": ["11.69", "4.95", "5.99"], "ccno": "****************"},
+                  "status": "True"
+                },
+                "data": {"orig_in_app": 1}
+              },
+              {
+                "function": "send_shipment_job",
+                "module": "__main__",
+                "filename": "purchase.py",
+                "abs_path": "/empowerplant/purchase.py",
+                "lineno": 16,
+                "pre_context": [
+                  "def generate_invoice(status):",
+                  "    pass",
+                  "",
+                  "def send_shipment_job(server):",
+                  "    import ssl"
+                ],
+                "context_line": "    raise ssl.SSLError(f\"The certificate belonging to {server} has expired.\")",
+                "post_context": [
+                  "",
+                  "def main(request):",
+                  "    ccno = request.get(\"ccno\")",
+                  "    if not validate_ccno(ccno):",
+                  "        return 400"
+                ],
+                "in_app": true,
+                "vars": {
+                  "server": "'https://app.example.com'",
+                  "ssl": "<module 'ssl' from '/Cellar/python/3.7.7/Frameworks/Python.framework/Versions/3.7/lib/python3.7/ssl.py'>"
+                },
+                "data": {"orig_in_app": 1}
+              }
+            ]
+          },
+          "mechanism": {"type": "excepthook", "handled": false}
+        }
+      ]
+    },
+    "extra": {"sys.argv": ["purchase.py"]},
+    "fingerprint": ["{{ default }}"],
+    "grouping_config": {
+      "enhancements": "eJybzDhxY3J-bm5-npWRgaGlroGxrpHxBABcTQcY",
+      "id": "newstyle:2019-05-08"
+    },
+    "hashes": ["28931e6975b60b4899bf3342627e2ecf"],
+    "key_id": "961637",
+    "level": "error",
+    "location": "purchase.py",
+    "logger": "",
+    "metadata": {
+      "filename": "purchase.py",
+      "function": "send_shipment_job",
+      "type": "SSLError",
+      "value": "('The certificate belonging to https://app.example.com has expired.',)"
+    },
+    "modules": {
+      "anyjson": "0.3.3",
+      "attrs": "19.1.0",
+      "cookies": "2.2.1",
+      "coverage": "4.5.4",
+      "docker": "3.7.0",
+      "email-reply-parser": "0.2.0",
+      "ipaddress": "1.0.22",
+      "librabbitmq": "1.6.1",
+      "path.py": "4.3",
+      "py": "1.8.0",
+      "pytest": "4.6.5",
+      "pytest-django": "3.5.1",
+      "python-memcached": "1.59",
+      "pyvat": "1.3.1",
+      "querystring-parser": "1.2.3",
+      "requests-oauthlib": "1.2.0",
+      "responses": "0.8.1",
+      "six": "1.10.0",
+      "stripe": "1.66.0",
+      "xmlsec": "1.3.3"
+    },
+    "received": 1616605229.797187,
+    "sdk": {
+      "name": "sentry.python",
+      "version": "0.14.3",
+      "integrations": [
+        "argv",
+        "atexit",
+        "dedupe",
+        "excepthook",
+        "logging",
+        "modules",
+        "stdlib",
+        "threading"
+      ],
+      "packages": [{"name": "pypi:sentry-sdk", "version": "0.14.3"}]
+    },
+    "timestamp": 1616605203.0,
+    "title": "SSLError: ('The certificate belonging to https://app.example.com has expired.',)",
+    "type": "error",
+    "user": {"email": "gp2b@yahoo.com"},
+    "version": "7"
+  }
