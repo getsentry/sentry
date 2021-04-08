@@ -1,9 +1,9 @@
 import requests
 
-from sentry.utils import json
 from sentry.http import safe_urlopen
+from sentry.utils import json
 
-from .utils import get_basic_auth, remove_trailing_slashes, add_query_params
+from .utils import add_query_params, get_basic_auth, remove_trailing_slashes
 
 ACCESS_TOKEN_NAME = "Sentry"
 DEFAULT_SENTRY_SOURCE = "sentry"

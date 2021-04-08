@@ -1,10 +1,9 @@
 from time import time
 
 import jwt
-
 from django.db import models
 
-from sentry.db.models import Model, FlexibleForeignKey
+from sentry.db.models import FlexibleForeignKey, Model
 from sentry_plugins.jira_ac.utils import get_query_hash
 
 

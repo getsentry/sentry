@@ -2,10 +2,10 @@ import logging
 import re
 from hashlib import md5 as _md5
 
-from sentry.utils.cache import cache
 from django.utils.encoding import force_bytes
 
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.cache import cache
 from sentry_plugins.client import ApiClient
 
 log = logging.getLogger(__name__)

@@ -1,8 +1,7 @@
-import sentry_plugins
 import sys
 
+import sentry_plugins
 from sentry.exceptions import InvalidIdentity, PluginError
-
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,

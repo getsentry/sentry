@@ -1,5 +1,6 @@
-from sentry.plugins import providers
 from urllib.parse import urlparse
+
+from sentry.plugins import providers
 
 from .mixins import VisualStudioMixin
 

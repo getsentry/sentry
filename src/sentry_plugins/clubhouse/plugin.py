@@ -2,12 +2,11 @@ from django.conf.urls import url
 from rest_framework.response import Response
 
 from sentry.exceptions import PluginError
-from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.utils.http import absolute_uri
-
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
-from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import ClubhouseClient
 

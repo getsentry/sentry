@@ -3,9 +3,8 @@ from uuid import uuid4
 from sentry.app import locks
 from sentry.models import OrganizationOption
 from sentry.plugins import providers
-from sentry.utils.http import absolute_uri
-
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.http import absolute_uri
 
 from .endpoints.webhook import parse_raw_user_email, parse_raw_user_name
 from .mixins import BitbucketMixin

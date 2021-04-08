@@ -1,6 +1,5 @@
 from sentry_plugins.client import ApiClient
 
-
 ORG_BOARD_PATH = "/organizations/%s/boards"
 MEMBER_ORG_PATH = "/members/me/organizations"
 LISTS_OF_BOARD_PATH = "/boards/%s/lists"

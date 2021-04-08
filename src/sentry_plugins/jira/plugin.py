@@ -1,27 +1,19 @@
 import logging
 import re
+from urllib.parse import parse_qs, quote_plus, unquote_plus, urlencode, urlsplit, urlunsplit
 
 from django.conf import settings
 from django.conf.urls import url
 from rest_framework.response import Response
-from urllib.parse import (
-    parse_qs,
-    quote_plus,
-    unquote_plus,
-    urlencode,
-    urlsplit,
-    urlunsplit,
-)
 
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.models import GroupMeta
-from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint, PluginError
-from sentry.utils.http import absolute_uri
-
-from sentry_plugins.base import CorePluginMixin
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2, PluginError
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.utils.http import absolute_uri
+from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.jira.client import JiraClient
 from sentry_plugins.utils import get_secret_field_config
-from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 logger = logging.getLogger(__name__)
 

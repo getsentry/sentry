@@ -1,15 +1,14 @@
 from django import forms
-from django.utils.translation import ugettext_lazy as _
 from django.http import HttpResponse
+from django.utils.translation import ugettext_lazy as _
 from requests.exceptions import RequestException
 
-
 import sentry
-from sentry_plugins.base import CorePluginMixin
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.base import JSONResponse
 from sentry.plugins.bases.issue import IssuePlugin, NewIssueForm
 from sentry.utils.http import absolute_uri
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry_plugins.base import CorePluginMixin
 
 from .client import TeamworkClient
 
