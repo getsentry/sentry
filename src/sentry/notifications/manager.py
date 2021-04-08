@@ -189,14 +189,13 @@ class NotificationsManager(BaseManager):  # type: ignore
 
     def get_for_user_by_projects(
         self,
-        provider: ExternalProviders,
         type: NotificationSettingTypes,
         user: Any,
         parents: List[Any],
     ) -> QuerySet:
         """
-        Find all of a user's notification settings for a list of projects or organizations.
-        This will include the user's  setting.
+        Find all of a user's notification settings for a list of projects or
+        organizations. This will include the user's parent-independent setting.
         """
         scope_type = get_scope_type(type)
         return self.filter(
@@ -208,7 +207,6 @@ class NotificationsManager(BaseManager):  # type: ignore
                 scope_type=NotificationScopeType.USER.value,
                 scope_identifier=user.id,
             ),
-            provider=provider.value,
             type=type.value,
             target=user.actor,
         )
@@ -239,7 +237,6 @@ class NotificationsManager(BaseManager):  # type: ignore
 
     def filter_to_subscribed_users(
         self,
-        provider: ExternalProviders,
         project: Any,
         users: List[Any],
     ) -> Mapping[ExternalProviders, List[Any]]:
@@ -260,9 +257,7 @@ class NotificationsManager(BaseManager):  # type: ignore
                 mapping[provider].append(user)
         return mapping
 
-    def get_notification_recipients(
-        self, provider: ExternalProviders, project: Any
-    ) -> Mapping[ExternalProviders, List[Any]]:
+    def get_notification_recipients(self, project: Any) -> Mapping[ExternalProviders, List[Any]]:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of
@@ -274,7 +269,7 @@ class NotificationsManager(BaseManager):  # type: ignore
 
         user_ids = project.member_set.values_list("user", flat=True)
         users = User.objects.filter(id__in=user_ids)
-        return self.filter_to_subscribed_users(provider, project, users)
+        return self.filter_to_subscribed_users(project, users)
 
     def update_settings_bulk(
         self,
