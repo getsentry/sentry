@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import * as navigation from 'app/actionCreators/navigation';
 import CreateAlertButton, {
   CreateAlertFromViewButton,
 } from 'app/components/createAlertButton';
@@ -11,13 +12,6 @@ import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'app/views/eventsV2/data';
 const onIncompatibleQueryMock = jest.fn();
 const onCloseMock = jest.fn();
 const onSuccessMock = jest.fn();
-
-jest.mock('app/actionCreators/navigation', () => ({
-  ...jest.requireActual('app/actionCreators/navigation'),
-  navigateTo: jest.fn(),
-}));
-
-import {navigateTo} from 'app/actionCreators/navigation';
 
 function generateWrappedComponent(organization, eventView) {
   return mountWithTheme(
@@ -234,9 +228,11 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('redirects to alert builder with no project', async () => {
+    jest.spyOn(navigation, 'navigateTo');
+
     const wrapper = generateWrappedComponentButton(organization);
     wrapper.simulate('click');
-    expect(navigateTo).toHaveBeenCalledWith(
+    expect(navigation.navigateTo).toHaveBeenCalledWith(
       `/organizations/org-slug/alerts/:projectId/new/`,
       undefined
     );
@@ -253,6 +249,7 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('redirects to the alert wizard w/ feature flag with no project', async () => {
+    jest.spyOn(navigation, 'navigateTo');
     const wizardOrg = {
       ...organization,
       features: ['alert-wizard'],
@@ -260,7 +257,7 @@ describe('CreateAlertFromViewButton', () => {
 
     const wrapper = generateWrappedComponentButton(wizardOrg);
     wrapper.simulate('click');
-    expect(navigateTo).toHaveBeenCalledWith(
+    expect(navigation.navigateTo).toHaveBeenCalledWith(
       `/organizations/org-slug/alerts/:projectId/wizard/`,
       undefined
     );
