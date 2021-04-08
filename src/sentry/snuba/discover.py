@@ -784,10 +784,10 @@ def get_performance_facets(
             orderby=["-count"],
             dataset=Dataset.Discover,
             limit=limit,
-            referrer=referrer,
+            referrer="{}.{}".format(referrer, "all_transactions"),
         )
         counts = [r["count"] for r in key_names["data"]]
-        if len(counts) != 1:
+        if len(counts) != 1 or counts[0] == 0:
             return []
 
     results = []
@@ -799,7 +799,8 @@ def get_performance_facets(
     # Dynamically sample so at least 10000 transactions are selected
     transaction_count = key_names["data"][0]["count"]
     sampling_enabled = transaction_count > 10000
-    target_sample = 10000 * (math.log(transaction_count, 10) - 3)  # Log growth starting at 10,000
+    # Log growth starting at 10,000
+    target_sample = 10000 * (math.log(transaction_count, 10) - 3)
 
     dynamic_sample_rate = 0 if transaction_count <= 0 else (target_sample / transaction_count)
     options_sample_rate = (
@@ -807,19 +808,18 @@ def get_performance_facets(
     )
 
     sample_rate = options_sample_rate if sampling_enabled else None
-    sample_multiplier = sample_rate if sample_rate else 1
 
     excluded_tags = [
         "tags_key",
         "NOT IN",
-        ["trace", "trace.ctx", "trace.span", "project", "browser"],
+        ["trace", "trace.ctx", "trace.span", "project", "browser", "celery_task_id"],
     ]
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
         conditions = snuba_filter.conditions
         aggregate_comparison = transaction_aggregate * 1.01 if transaction_aggregate else 0
         having = [excluded_tags]
-        if orderby and orderby in ("-sumdelta", "aggregate", "-aggregate"):
+        if orderby and orderby in ("sumdelta", "-sumdelta", "aggregate", "-aggregate"):
             having.append(["aggregate", ">", aggregate_comparison])
 
         if orderby is None:
@@ -853,7 +853,7 @@ def get_performance_facets(
             groupby=["tags_key", "tags_value"],
             having=having,
             dataset=Dataset.Discover,
-            referrer=referrer,
+            referrer="{}.{}".format(referrer, "tag_values"),
             sample=sample_rate,
             turbo=sample_rate is not None,
             limitby=[5, "tags_key"],
@@ -861,12 +861,12 @@ def get_performance_facets(
         results.extend(
             [
                 PerformanceFacetResult(
-                    r["tags_key"],
-                    r["tags_value"],
-                    float(r["aggregate"]),
-                    float(r["cnt"] / transaction_count),
-                    float(r["aggregate"] / transaction_aggregate),
-                    float(r["sumdelta"]),
+                    key=r["tags_key"],
+                    value=r["tags_value"],
+                    performance=float(r["aggregate"]),
+                    frequency=float(r["cnt"] / transaction_count),
+                    comparison=float(r["aggregate"] / transaction_aggregate),
+                    sumdelta=float(r["sumdelta"]),
                 )
                 for r in tag_values["data"]
             ]
