@@ -1,12 +1,12 @@
-from sentry.utils.compat.mock import patch
 from hashlib import sha1
 
-from django.core.urlresolvers import reverse
 from django.core.files.base import ContentFile
+from django.core.urlresolvers import reverse
 
 from sentry.models import ApiToken, FileBlob, FileBlobOwner
+from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils import APITestCase
-from sentry.tasks.assemble import assemble_artifacts, ChunkFileState
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationReleaseAssembleTest(APITestCase):

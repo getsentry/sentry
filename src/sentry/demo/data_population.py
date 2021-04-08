@@ -1,31 +1,31 @@
 import copy
-import logging
 import functools
+import logging
 import os
 import random
-import requests
-import pytz
-import sentry_sdk
 import time
-
 from collections import defaultdict
 from datetime import timedelta
+from functools import wraps
+from hashlib import sha1
+from typing import List
+from uuid import uuid4
+
+import pytz
+import requests
+import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
-from hashlib import sha1
-from functools import wraps
-from uuid import uuid4
-from typing import List
 
 from sentry.api.utils import get_date_range_from_params
-from sentry.discover.models import DiscoverSavedQuery
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.discover.models import DiscoverSavedQuery
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
 )
+from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.interfaces.user import User as UserInterface
 from sentry.mediators import project_rules
 from sentry.models import (
@@ -36,21 +36,15 @@ from sentry.models import (
     Project,
     ProjectKey,
     Release,
-    ReleaseFile,
     ReleaseCommit,
+    ReleaseFile,
     Repository,
     Team,
 )
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_timestamp
-from sentry.utils.samples import (
-    random_geo,
-    random_ip,
-    create_sample_event_basic,
-    random_normal,
-)
+from sentry.utils.samples import create_sample_event_basic, random_geo, random_ip, random_normal
 from sentry.utils.snuba import SnubaError
-
 
 commit_message_base_messages = [
     "feat: Do something to",
@@ -134,7 +128,21 @@ def distribution_v4(hour: int) -> int:
     return 2
 
 
-distrubtion_fns = [distribution_v1, distribution_v2, distribution_v3, distribution_v4]
+def distribution_v5(hour: int) -> int:
+    if hour == 3:
+        return 10
+    if hour < 5:
+        return 3
+    return 1
+
+
+distrubtion_fns = [
+    distribution_v1,
+    distribution_v2,
+    distribution_v3,
+    distribution_v4,
+    distribution_v5,
+]
 
 
 def gen_measurements(full_duration):
@@ -283,7 +291,15 @@ def generate_releases(projects, quick):
             release.add_project(project)
 
         # TODO: unhardcode params when we add more scenarios
-        raw_commits = generate_commits(["components/ShoppingCart.js", "flask/app.py"], ["js", "py"])
+        raw_commits = generate_commits(
+            [
+                "components/ShoppingCart.js",
+                "components/Form.js",
+                "flask/app.py",
+                "purchase.py",
+            ],
+            ["js", "py"],
+        )
 
         repo, _ = Repository.objects.get_or_create(
             organization_id=org.id,
@@ -496,6 +512,7 @@ def clean_event(event_json):
         "event_id",
         "project",
         "tags",
+        "sdk",
     ]
     for field in fields_to_delete:
         if field in event_json:
@@ -665,7 +682,7 @@ def fix_breadrumbs(event_json, quick):
         curr_time += breadcrumb_time_step
 
 
-def iter_timestamps(disribution_fn_num: int, quick: bool):
+def iter_timestamps(disribution_fn_num: int, quick: bool, starting_release: int = 0):
     """
     Yields a series of ordered timestamps and the day in a tuple
     """
@@ -677,11 +694,20 @@ def iter_timestamps(disribution_fn_num: int, quick: bool):
     MAX_DAYS = config["MAX_DAYS"]
     SCALE_FACTOR = config["SCALE_FACTOR"]
     BASE_OFFSET = config["BASE_OFFSET"]
-
+    NUM_RELEASES = config["NUM_RELEASES"]
     start_time = timezone.now() - timedelta(days=MAX_DAYS)
+
+    # offset by the release time
+    hourly_release_cadence = MAX_DAYS * 24.0 / NUM_RELEASES
+    start_time += timedelta(hours=hourly_release_cadence * starting_release)
 
     for day in range(MAX_DAYS):
         for hour in range(24):
+            # quit when we start to populate events in the future
+            end_time = start_time + timedelta(days=day, hours=hour + 1)
+            if end_time > timezone.now():
+                return
+
             base = distribution_fn(hour)
             # determine the number of events we want in this hour
             num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
@@ -982,42 +1008,38 @@ def populate_connected_event_scenario_2(
     logger.info("populate_connected_event_scenario_2.finished", extra=log_extra)
 
 
-def populate_connected_event_scenario_3(python_project: Project, quick=False):
+def populate_generic_error(
+    project: Project, file_path, dist_number, starting_release=0, quick=False
+):
     """
-    This function populates a single Back-end error
+    This function populates a single error
     Occurrance times and durations are randomized
     """
-    python_error = get_event_from_file("scen3/python_error.json")
+    error = get_event_from_file(file_path)
     log_extra = {
-        "organization_slug": python_project.organization.slug,
+        "organization_slug": project.organization.slug,
+        "file_path": file_path,
         "quick": quick,
     }
-    logger.info("populate_connected_event_scenario_3.start", extra=log_extra)
+    logger.info("populate_generic_error.start", extra=log_extra)
 
-    for (timestamp, day) in iter_timestamps(3, quick):
+    for (timestamp, day) in iter_timestamps(dist_number, quick, starting_release):
         transaction_user = generate_user(quick)
-        trace_id = uuid4().hex
-        release = get_release_from_time(python_project.organization_id, timestamp)
+        release = get_release_from_time(project.organization_id, timestamp)
         release_sha = release.version
 
-        backend_trace = {
-            "trace_id": trace_id,
-            "span_id": uuid4().hex[:16],
-        }
-
-        # python error
-        local_event = copy.deepcopy(python_error)
+        local_event = copy.deepcopy(error)
         local_event.update(
-            project=python_project,
-            platform=python_project.platform,
+            project=project,
+            platform=project.platform,
             timestamp=timestamp,
             user=transaction_user,
             release=release_sha,
         )
-        update_context(local_event, backend_trace)
+        update_context(local_event)
         fix_error_event(local_event, quick)
         safe_send_event(local_event, quick)
-    logger.info("populate_connected_event_scenario_3.finished", extra=log_extra)
+    logger.info("populate_generic_error.finished", extra=log_extra)
 
 
 def populate_sessions(project, error_file, quick=False):
@@ -1085,4 +1107,16 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
         populate_connected_event_scenario_1(react_project, python_project, quick=quick)
         populate_connected_event_scenario_1b(react_project, python_project, quick=quick)
         populate_connected_event_scenario_2(react_project, python_project, quick=quick)
-        populate_connected_event_scenario_3(python_project, quick=quick)
+    with sentry_sdk.start_span(op="handle_react_python_scenario", description="populate_errors"):
+        populate_generic_error(
+            react_project, "errors/react/get_card_info.json", 3, starting_release=1, quick=quick
+        )
+        populate_generic_error(
+            python_project, "errors/python/cert_error.json", 5, starting_release=1, quick=quick
+        )
+        populate_generic_error(
+            react_project, "errors/react/func_undefined.json", 2, starting_release=2, quick=quick
+        )
+        populate_generic_error(
+            python_project, "errors/python/concat_str_none.json", 4, starting_release=2, quick=quick
+        )

@@ -1,6 +1,6 @@
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.discover import DiscoverProcessor
-from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils import SnubaTestCase, TestCase
 
 
 class DiscoverProcessorTest(TestCase, SnubaTestCase):

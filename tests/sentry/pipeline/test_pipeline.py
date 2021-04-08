@@ -1,7 +1,7 @@
 from django.http import HttpRequest
 
+from sentry.pipeline import Pipeline, PipelineProvider, PipelineView
 from sentry.testutils import TestCase
-from sentry.pipeline import PipelineProvider, PipelineView, Pipeline
 
 
 class PipelineStep(PipelineView):

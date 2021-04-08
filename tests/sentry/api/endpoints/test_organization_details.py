@@ -1,7 +1,7 @@
-import dateutil
+from base64 import b64encode
 from datetime import datetime
 
-from base64 import b64encode
+import dateutil
 from django.core import mail
 from pytz import UTC
 

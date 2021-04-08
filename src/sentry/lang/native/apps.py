@@ -5,7 +5,8 @@ class Config(AppConfig):
     name = "sentry.lang.native"
 
     def ready(self):
-        from .plugin import NativePlugin
         from sentry.plugins.base import register
+
+        from .plugin import NativePlugin
 
         register(NativePlugin)

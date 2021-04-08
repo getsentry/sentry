@@ -1,4 +1,5 @@
-from collections import Counter, defaultdict, OrderedDict
+from collections import Counter, OrderedDict, defaultdict
+
 from sentry.models import ActorTuple, OrganizationMemberTeam, ProjectOwnership, Team, User
 
 

@@ -1,13 +1,13 @@
 import logging
-from sentry.utils.compat import mock
+
 import pytest
 
 from sentry import eventstore
+from sentry.eventstore.base import EventStorage
 from sentry.eventstore.models import Event
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.eventstore.base import EventStorage
-
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
 

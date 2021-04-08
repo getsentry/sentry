@@ -1,15 +1,14 @@
-from copy import copy
 import logging
+from copy import copy
 from datetime import datetime
 from uuid import uuid4
 
+from django.db import models
+from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from django.db import models
-from django.db.models.query_utils import DeferredAttribute
-
 from sentry import roles
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required

@@ -1,11 +1,9 @@
-from sentry.utils.compat.mock import patch
-
 from sentry.constants import (
-    get_integration_id_for_marketing_slug,
-    get_integration_id_for_event,
     INTEGRATION_ID_TO_PLATFORM_DATA,
+    get_integration_id_for_event,
+    get_integration_id_for_marketing_slug,
 )
-
+from sentry.utils.compat.mock import patch
 
 mock_integration_ids = {
     "java": {},

@@ -1,6 +1,5 @@
 from sentry.grouping.utils import hash_from_values
 
-
 DEFAULT_HINTS = {"salt": "a static salt"}
 
 # When a component ID appears here it has a human readable name which also

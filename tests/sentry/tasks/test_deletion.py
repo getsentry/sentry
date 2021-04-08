@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -48,7 +47,8 @@ from sentry.tasks.deletion import (
     revoke_api_tokens,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 
 
 class DeleteOrganizationTest(TestCase):

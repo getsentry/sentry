@@ -1,4 +1,5 @@
 import copy
+
 import pytest
 
 from sentry.datascrubbing import scrub_data

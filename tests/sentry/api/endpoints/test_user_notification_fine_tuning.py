@@ -1,13 +1,6 @@
-from sentry.models import (
-    NotificationSetting,
-    UserEmail,
-    UserOption,
-)
+from sentry.models import NotificationSetting, UserEmail, UserOption
 from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase
 
 

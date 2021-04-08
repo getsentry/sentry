@@ -1,10 +1,10 @@
-from sentry.utils.compat.mock import patch
 from datetime import datetime, timedelta
 
 from sentry.coreapi import APIUnauthorized
-from sentry.models import ApiApplication, SentryApp, SentryAppInstallation, ApiGrant
 from sentry.mediators.token_exchange import GrantExchanger
+from sentry.models import ApiApplication, ApiGrant, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class TestGrantExchanger(TestCase):

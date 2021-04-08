@@ -18,7 +18,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
@@ -26,6 +26,8 @@ import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
+
+import {filterToField, SpanOperationBreakdownFilter} from './filter';
 
 const QUERY_KEYS = [
   'environment',
@@ -45,9 +47,24 @@ type Props = ReactRouter.WithRouterProps &
     location: Location;
     organization: OrganizationSummary;
     queryExtra: Query;
+    currentFilter: SpanOperationBreakdownFilter;
   };
 
-const YAXIS_VALUES = ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
+function generateYAxisValues(filter: SpanOperationBreakdownFilter) {
+  if (filter === SpanOperationBreakdownFilter.None) {
+    return ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
+  }
+
+  const field = filterToField(filter);
+
+  return [
+    `p50(${field})`,
+    `p75(${field})`,
+    `p95(${field})`,
+    `p99(${field})`,
+    `p100(${field})`,
+  ];
+}
 
 /**
  * Fetch and render a stacked area chart that shows duration
@@ -81,6 +98,7 @@ class DurationChart extends React.Component<Props> {
       statsPeriod,
       router,
       queryExtra,
+      currentFilter,
     } = this.props;
 
     const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
@@ -122,10 +140,17 @@ class DurationChart extends React.Component<Props> {
       },
     };
 
+    const headerTitle =
+      currentFilter === SpanOperationBreakdownFilter.None
+        ? t('Duration Breakdown')
+        : tct('Span Operation Breakdown - [operationName]', {
+            operationName: currentFilter,
+          });
+
     return (
       <React.Fragment>
         <HeaderTitleLegend>
-          {t('Duration Breakdown')}
+          {headerTitle}
           <QuestionTooltip
             size="sm"
             position="top"
@@ -154,7 +179,7 @@ class DurationChart extends React.Component<Props> {
               showLoading={false}
               query={query}
               includePrevious={false}
-              yAxis={YAXIS_VALUES}
+              yAxis={generateYAxisValues(currentFilter)}
               partial
             >
               {({results, errored, loading, reloading}) => {
