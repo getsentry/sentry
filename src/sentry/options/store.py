@@ -1,12 +1,12 @@
 import logging
-
 from collections import namedtuple
-from time import time
 from random import random
+from time import time
 
-from django.db.utils import ProgrammingError, OperationalError
+from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 from django.utils.functional import cached_property
+
 from sentry.utils.hashlib import md5_text
 
 Key = namedtuple("Key", ("name", "default", "type", "flags", "ttl", "grace", "cache_key"))
