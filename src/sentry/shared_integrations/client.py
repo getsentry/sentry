@@ -1,20 +1,20 @@
 import logging
-import requests
-import sentry_sdk
-
 from collections import OrderedDict
 
-from django.core.cache import cache
+import requests
+import sentry_sdk
 from bs4 import BeautifulSoup
+from django.core.cache import cache
 from django.utils.functional import cached_property
-from requests.exceptions import ConnectionError, Timeout, HTTPError
-from sentry.http import build_session
-from sentry.utils import metrics, json
-from sentry.utils.hashlib import md5_text
-from sentry.utils.decorators import classproperty
-from sentry.api.client import ApiClient
+from requests.exceptions import ConnectionError, HTTPError, Timeout
 
-from .exceptions import ApiHostError, ApiTimeoutError, ApiError, UnsupportedResponseType
+from sentry.api.client import ApiClient
+from sentry.http import build_session
+from sentry.utils import json, metrics
+from sentry.utils.decorators import classproperty
+from sentry.utils.hashlib import md5_text
+
+from .exceptions import ApiError, ApiHostError, ApiTimeoutError, UnsupportedResponseType
 
 
 class BaseApiResponse:

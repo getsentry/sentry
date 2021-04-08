@@ -1,8 +1,9 @@
-from bs4 import BeautifulSoup
 from collections import OrderedDict
+from urllib.parse import urlparse
+
+from bs4 import BeautifulSoup
 from requests.exceptions import RequestException
 
-from urllib.parse import urlparse
 from sentry.utils import json
 
 
