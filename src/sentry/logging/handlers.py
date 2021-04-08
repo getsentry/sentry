@@ -5,7 +5,7 @@ from django.utils.timezone import now
 from structlog import get_logger
 from structlog.processors import _json_fallback_handler
 
-from sentry.utils import metrics, json
+from sentry.utils import json, metrics
 
 _default_encoder = json.JSONEncoder(
     separators=(",", ":"),
