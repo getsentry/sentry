@@ -337,24 +337,17 @@ const CreateAlertButton = withApi(
       showPermissionGuide,
       ...buttonProps
     }: Props) => {
+      const hasWizard = organization.features.includes('alert-wizard');
+      const createAlertUrl = (providedProj: string) => {
+        const alertsBaseUrl = `/organizations/${organization.slug}/alerts/${providedProj}`;
+        const subUrl = hasWizard ? 'wizard' : 'new';
+        return `${alertsBaseUrl}/${subUrl}/${referrer ? `?referrer=${referrer}` : ''}`;
+      };
+
       function handleClickWithoutProject(event: React.MouseEvent) {
         event.preventDefault();
 
-        if (organization.features.includes('alert-wizard')) {
-          navigateTo(
-            `/organizations/${organization.slug}/alerts/:projectId/wizard/${
-              referrer ? `?referrer=${referrer}` : ''
-            }`,
-            router
-          );
-        } else {
-          navigateTo(
-            `/organizations/${organization.slug}/alerts/:projectId/new/${
-              referrer ? `?referrer=${referrer}` : ''
-            }`,
-            router
-          );
-        }
+        navigateTo(createAlertUrl(':projectId'), router);
       }
 
       async function enableAlertsMemberWrite() {
@@ -383,11 +376,7 @@ const CreateAlertButton = withApi(
           disabled={!hasAccess}
           title={!hasAccess ? permissionTooltipText : undefined}
           icon={!hideIcon && <IconSiren {...iconProps} />}
-          to={
-            projectSlug
-              ? `/organizations/${organization.slug}/alerts/${projectSlug}/new/`
-              : undefined
-          }
+          to={projectSlug ? createAlertUrl(projectSlug) : undefined}
           tooltipProps={{
             isHoverable: true,
             position: 'top',
