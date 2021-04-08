@@ -1,5 +1,4 @@
-from sentry import http
-from sentry import options
+from sentry import http, options
 from sentry.identity.oauth2 import OAuth2Provider
 
 

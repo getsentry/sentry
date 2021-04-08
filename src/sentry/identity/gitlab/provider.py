@@ -1,6 +1,5 @@
 import logging
 
-
 from sentry import http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
