@@ -1,10 +1,11 @@
-from bitfield import BitField
 from datetime import timedelta
-from django.db import models
-from django.utils import timezone
 from uuid import uuid4
 
-from sentry.db.models import ArrayField, Model, FlexibleForeignKey
+from django.db import models
+from django.utils import timezone
+
+from bitfield import BitField
+from sentry.db.models import ArrayField, FlexibleForeignKey, Model
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
 

@@ -1,7 +1,8 @@
+from typing import Any, Mapping
+
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
-from typing import Any, Mapping
 
 from sentry.db.models import (
     BaseManager,
@@ -62,7 +63,7 @@ class GroupSubscriptionManager(BaseManager):
             pass
 
     def subscribe_actor(self, group, actor, reason=GroupSubscriptionReason.unknown):
-        from sentry.models import User, Team
+        from sentry.models import Team, User
 
         if isinstance(actor, User):
             return self.subscribe(group, actor, reason)
