@@ -2,7 +2,8 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.functional import lazy
 from django.utils.html import format_html
-from django.utils.translation import ugettext as _, ungettext
+from django.utils.translation import ugettext as _
+from django.utils.translation import ungettext
 
 from sentry.utils.imports import import_string
 
