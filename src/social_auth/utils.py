@@ -1,13 +1,13 @@
-import random
 import logging
+import random
 from importlib import import_module
-from urllib.parse import parse_qs as urlparse_parse_qs, parse_qsl
+from urllib.parse import parse_qs as urlparse_parse_qs
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.request import urlopen
 
 from django.conf import settings
-from django.db.models import Model
 from django.contrib.contenttypes.models import ContentType
-from urllib.parse import urlencode, urlparse, urlunparse
-from urllib.request import urlopen
+from django.db.models import Model
 
 try:
     random = random.SystemRandom()
