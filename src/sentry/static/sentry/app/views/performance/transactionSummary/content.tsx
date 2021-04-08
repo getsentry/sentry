@@ -36,6 +36,7 @@ import {
 import {getTransactionDetailsUrl} from '../utils';
 
 import TransactionSummaryCharts from './charts';
+import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from './filter';
 import TransactionHeader, {Tab} from './header';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
@@ -57,11 +58,13 @@ type Props = {
 
 type State = {
   incompatibleAlertNotice: React.ReactNode;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 };
 
 class SummaryContent extends React.Component<Props, State> {
   state: State = {
     incompatibleAlertNotice: null,
+    spanOperationBreakdownFilter: SpanOperationBreakdownFilter.None,
   };
 
   handleSearch = (query: string) => {
@@ -152,11 +155,17 @@ class SummaryContent extends React.Component<Props, State> {
     });
   };
 
+  onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
+    this.setState({
+      spanOperationBreakdownFilter: newFilter,
+    });
+  };
+
   render() {
+    let {eventView} = this.props;
     const {
       transactionName,
       location,
-      eventView,
       organization,
       projects,
       isLoading,
@@ -166,6 +175,14 @@ class SummaryContent extends React.Component<Props, State> {
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
     const totalCount = totalValues === null ? null : totalValues.count;
+
+    const spanOperationBreakdownConditions = filterToSearchConditions(
+      this.state.spanOperationBreakdownFilter
+    );
+    if (spanOperationBreakdownConditions) {
+      eventView = eventView.clone();
+      eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
+    }
 
     // NOTE: This is not a robust check for whether or not a transaction is a front end
     // transaction, however it will suffice for now.
@@ -196,19 +213,27 @@ class SummaryContent extends React.Component<Props, State> {
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main>
-            <StyledSearchBar
-              organization={organization}
-              projectIds={eventView.project}
-              query={query}
-              fields={eventView.fields}
-              onSearch={this.handleSearch}
-              maxQueryLength={MAX_QUERY_LENGTH}
-            />
+            <Search>
+              <Filter
+                organization={organization}
+                currentFilter={this.state.spanOperationBreakdownFilter}
+                onChangeFilter={this.onChangeFilter}
+              />
+              <StyledSearchBar
+                organization={organization}
+                projectIds={eventView.project}
+                query={query}
+                fields={eventView.fields}
+                onSearch={this.handleSearch}
+                maxQueryLength={MAX_QUERY_LENGTH}
+              />
+            </Search>
             <TransactionSummaryCharts
               organization={organization}
               location={location}
               eventView={eventView}
               totalValues={totalCount}
+              currentFilter={this.state.spanOperationBreakdownFilter}
             />
             <TransactionsList
               location={location}
@@ -361,8 +386,14 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
-const StyledSearchBar = styled(SearchBar)`
+const Search = styled('div')`
+  display: flex;
+  width: 100%;
   margin-bottom: ${space(3)};
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
 `;
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
