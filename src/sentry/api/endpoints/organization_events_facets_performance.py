@@ -28,7 +28,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
         orderby = request.GET.get("order", None)
 
         if len(params.get("project_id", [])) > 1:
-            raise ParseError(detail="You cannot view facets from multiple projects.")
+            raise ParseError(detail="You cannot view facet performance for multiple projects.")
 
         with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
             with self.handle_query_errors():
