@@ -7,7 +7,6 @@ from sentry.net.http import Session
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
-
 logger = logging.getLogger(__name__)
 
 SDK_INDEX_CACHE_KEY = "sentry:release-registry-sdk-versions"

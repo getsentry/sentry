@@ -3,18 +3,18 @@ import logging
 from django.core.urlresolvers import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import (
     Deploy,
     LatestRepoReleaseEnvironment,
+    OrganizationMember,
     Release,
     ReleaseCommitError,
     ReleaseHeadCommit,
     Repository,
     User,
-    OrganizationMember,
 )
 from sentry.plugins.base import bindings
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri

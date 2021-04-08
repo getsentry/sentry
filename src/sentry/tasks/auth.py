@@ -4,18 +4,18 @@ from django.db import IntegrityError
 from django.db.models import F
 
 from sentry import options
+from sentry.auth import manager
+from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import (
     ApiKey,
-    AuditLogEntryEvent,
     AuditLogEntry,
+    AuditLogEntryEvent,
     Authenticator,
     Organization,
     OrganizationMember,
     User,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.auth import manager
-from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.utils.email import MessageBuilder
 
 logger = logging.getLogger("sentry.auth")

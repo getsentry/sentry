@@ -1,6 +1,6 @@
 import logging
-
 from datetime import timedelta
+
 from django.utils import timezone
 
 from sentry.models import Option

@@ -1,6 +1,4 @@
 import bisect
-from functools import reduce, partial
-from itertools import zip_longest
 import logging
 import math
 import operator
@@ -8,11 +6,13 @@ import zlib
 from calendar import Calendar
 from collections import OrderedDict, namedtuple
 from datetime import datetime, timedelta
+from functools import partial, reduce
+from itertools import zip_longest
 
 import pytz
+from django.urls.base import reverse
 from django.utils import dateformat, timezone
 from django.utils.http import urlencode
-from django.urls.base import reverse
 
 from sentry import features
 from sentry.app import tsdb
@@ -28,15 +28,12 @@ from sentry.models import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
+from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
-from sentry.utils.http import absolute_uri
 from sentry.utils.email import MessageBuilder
+from sentry.utils.http import absolute_uri
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
-from sentry.utils.compat import filter
-
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 

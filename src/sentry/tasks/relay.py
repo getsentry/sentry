@@ -1,13 +1,12 @@
 import logging
 
-from django.conf import settings
 import sentry_sdk
-from sentry.utils.sdk import set_current_event_project
+from django.conf import settings
 
+from sentry.relay import projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.relay import projectconfig_debounce_cache
-
+from sentry.utils.sdk import set_current_event_project
 
 logger = logging.getLogger(__name__)
 

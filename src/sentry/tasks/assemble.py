@@ -1,7 +1,6 @@
-from os import path
-
 import hashlib
 import logging
+from os import path
 
 from django.db import IntegrityError, transaction
 
@@ -10,7 +9,7 @@ from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.files import get_max_file_size
-from sentry.utils.sdk import configure_scope, bind_organization_context
+from sentry.utils.sdk import bind_organization_context, configure_scope
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +86,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
 
-    from sentry.models import debugfile, Project, BadDif
+    from sentry.models import BadDif, Project, debugfile
     from sentry.reprocessing import bump_reprocessing_revision
 
     with configure_scope() as scope:
@@ -172,8 +171,9 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
     import shutil
     import tempfile
-    from sentry.utils.zip import safe_extract_zip
+
     from sentry.models import File, Organization, Release, ReleaseFile
+    from sentry.utils.zip import safe_extract_zip
 
     scratchpad = None
     delete_bundle = False
@@ -309,7 +309,7 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type):
 
     Returns a tuple ``(File, TempFile)`` on success, or ``None`` on error.
     """
-    from sentry.models import File, AssembleChecksumMismatch, FileBlob, Project
+    from sentry.models import AssembleChecksumMismatch, File, FileBlob, Project
 
     if isinstance(org_or_project, Project):
         organization = org_or_project.organization

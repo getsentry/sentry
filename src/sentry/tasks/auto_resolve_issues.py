@@ -1,7 +1,8 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from django.utils import timezone
 from time import time
+
+from django.utils import timezone
 
 from sentry.models import (
     Activity,

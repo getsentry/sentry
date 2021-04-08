@@ -1,7 +1,6 @@
-import sentry
-
 from time import time
 
+import sentry
 from sentry import options
 from sentry.tasks.base import instrumented_task
 
