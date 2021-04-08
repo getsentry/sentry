@@ -1,4 +1,5 @@
 from collections import namedtuple
+
 from django.conf import settings
 
 from sentry.utils.dates import to_datetime
