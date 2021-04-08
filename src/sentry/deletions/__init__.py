@@ -30,6 +30,7 @@ default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
 
 def load_defaults():
     from sentry import models
+
     from . import defaults
 
     default_manager.register(models.Activity, BulkModelDeletionTask)
