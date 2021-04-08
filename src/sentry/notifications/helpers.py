@@ -10,25 +10,6 @@ from sentry.notifications.types import (
 )
 
 
-def _get_setting_value_from_mapping(
-    notification_settings_by_user: Mapping[
-        Any, Mapping[NotificationScopeType, NotificationSettingOptionValues]
-    ],
-    user: Any,
-    type: NotificationSettingTypes,
-    default: NotificationSettingOptionValues,
-) -> NotificationSettingOptionValues:
-    specific_scope = get_scope_type(type)
-    notification_settings_option = notification_settings_by_user.get(user)
-    if notification_settings_option:
-        notification_setting_option = notification_settings_option.get(
-            specific_scope
-        ) or notification_settings_option.get(NotificationScopeType.USER)
-        if notification_setting_option:
-            return notification_setting_option
-    return default
-
-
 def _get_setting_mapping_from_mapping(
     notification_settings_by_user: Mapping[
         Any,
@@ -50,27 +31,6 @@ def _get_setting_mapping_from_mapping(
     return {ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS}
 
 
-def should_user_be_notified(
-    notification_settings_by_user: Mapping[
-        Any, Mapping[NotificationScopeType, NotificationSettingOptionValues]
-    ],
-    user: Any,
-) -> Any:
-    """
-    Given a mapping of default and specific notification settings by user,
-    determine if a user should receive an ISSUE_ALERT notification.
-    """
-    return (
-        _get_setting_value_from_mapping(
-            notification_settings_by_user,
-            user,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-        )
-        == NotificationSettingOptionValues.ALWAYS
-    )
-
-
 def where_should_user_be_notified(
     notification_settings_by_user: Mapping[
         Any,
@@ -90,37 +50,6 @@ def where_should_user_be_notified(
     return list(
         filter(lambda elem: mapping[elem] == NotificationSettingOptionValues.ALWAYS, mapping)
     )
-
-
-def should_be_participating(
-    user: Any,
-    subscriptions_by_user_id: Mapping[int, Any],
-    notification_settings_by_user: Mapping[
-        Any, Mapping[NotificationScopeType, NotificationSettingOptionValues]
-    ],
-) -> bool:
-    """
-    Given a mapping of users to subscriptions and a mapping of default and
-    specific notification settings by user, determine if a user should receive
-    a WORKFLOW notification. Unfortunately, this algorithm does not respect
-    NotificationSettingOptionValues.ALWAYS. If the user is unsubscribed from
-    the group, that overrides their notification preferences.
-    """
-    value = _get_setting_value_from_mapping(
-        notification_settings_by_user,
-        user,
-        NotificationSettingTypes.WORKFLOW,
-        NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-    )
-
-    if value == NotificationSettingOptionValues.NEVER:
-        return False
-
-    subscription = subscriptions_by_user_id.get(user.id)
-    if subscription:
-        return bool(subscription.is_active)
-
-    return bool(value == NotificationSettingOptionValues.ALWAYS)
 
 
 def where_should_be_participating(
