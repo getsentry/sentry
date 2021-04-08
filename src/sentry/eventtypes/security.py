@@ -1,9 +1,9 @@
 from urllib.parse import urlsplit, urlunsplit
 
-from .base import BaseEvent
-
-from sentry.utils.strings import strip
 from sentry.utils.safe import get_path
+from sentry.utils.strings import strip
+
+from .base import BaseEvent
 
 LOCAL = "'self'"
 
