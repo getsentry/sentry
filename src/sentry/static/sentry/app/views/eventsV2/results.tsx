@@ -74,7 +74,7 @@ function readShowTagsState() {
 
 class Results extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    if (nextProps.savedQuery) {
+    if (nextProps.savedQuery || !prevState.isLoading) {
       const eventView = EventView.fromSavedQueryOrLocation(
         nextProps.savedQuery,
         nextProps.location
