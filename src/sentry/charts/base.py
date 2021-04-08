@@ -1,5 +1,4 @@
 import logging
-
 from typing import Any, Union
 
 from sentry import options
