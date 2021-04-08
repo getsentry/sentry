@@ -3,10 +3,10 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
+    VALID_VALUES_FOR_KEY,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
-    VALID_VALUES_FOR_KEY,
 )
 
 
