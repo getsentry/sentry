@@ -87,11 +87,9 @@ def where_should_user_be_notified(
         user,
         NotificationSettingTypes.ISSUE_ALERTS,
     )
-    output = []
-    for provider, value in mapping.items():
-        if value == NotificationSettingOptionValues.ALWAYS:
-            output.append(provider)
-    return output
+    return list(
+        filter(lambda elem: mapping[elem] == NotificationSettingOptionValues.ALWAYS, mapping)
+    )
 
 
 def should_be_participating(
