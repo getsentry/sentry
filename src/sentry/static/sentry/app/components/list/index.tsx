@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 import {getListSymbolStyle, listSymbol} from './utils';
 
 type Props = {
-  children: Array<React.ReactElement>;
+  children: React.ReactNode;
   symbol?: keyof typeof listSymbol | React.ReactElement;
   className?: string;
   initialCounterValue?: number;
