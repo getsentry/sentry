@@ -128,6 +128,8 @@ from .endpoints.organization_auth_provider_send_reminders import (
 )
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
+from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
+from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
@@ -175,8 +177,6 @@ from .endpoints.organization_integration_repository_project_path_config_details 
 from .endpoints.organization_integration_repository_project_path_configs import (
     OrganizationIntegrationRepositoryProjectPathConfigEndpoint,
 )
-from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
-from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from .endpoints.organization_integration_request import OrganizationIntegrationRequestEndpoint
 from .endpoints.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
