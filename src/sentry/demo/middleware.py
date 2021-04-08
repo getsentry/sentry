@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.http import JsonResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 
 from sentry.models import OrganizationMember
 from sentry.utils import auth
