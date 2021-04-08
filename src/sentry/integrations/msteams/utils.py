@@ -1,13 +1,9 @@
-import logging
 import enum
+import logging
 
 from django.http import Http404
 
-from sentry.models import (
-    Integration,
-    Organization,
-    IdentityProvider,
-)
+from sentry.models import IdentityProvider, Integration, Organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.compat import filter
 

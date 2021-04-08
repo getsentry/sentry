@@ -1,20 +1,20 @@
 import logging
-import jwt
 import time
 
+import jwt
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
-from sentry import eventstore, options, analytics
+from sentry import analytics, eventstore, options
 from sentry.api import client
 from sentry.api.base import Endpoint
 from sentry.models import (
     ApiKey,
     AuditLogEntryEvent,
-    Integration,
-    IdentityProvider,
-    Identity,
     Group,
+    Identity,
+    IdentityProvider,
+    Integration,
     Project,
     Rule,
 )
@@ -25,26 +25,21 @@ from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
 from .card_builder import (
-    build_welcome_card,
-    build_linking_card,
+    build_already_linked_identity_command_card,
     build_group_card,
-    build_personal_installation_message,
-    build_mentioned_card,
-    build_unlink_identity_card,
-    build_unrecognized_command_card,
     build_help_command_card,
     build_link_identity_command_card,
-    build_already_linked_identity_command_card,
+    build_linking_card,
+    build_mentioned_card,
+    build_personal_installation_message,
+    build_unlink_identity_card,
+    build_unrecognized_command_card,
+    build_welcome_card,
 )
-from .client import (
-    MsTeamsJwtClient,
-    MsTeamsClient,
-    CLOCK_SKEW,
-)
+from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
 from .link_identity import build_linking_url
 from .unlink_identity import build_unlinking_url
 from .utils import ACTION_TYPE, get_preinstall_client
-
 
 logger = logging.getLogger("sentry.integrations.msteams.webhooks")
 

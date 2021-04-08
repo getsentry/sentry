@@ -1,5 +1,5 @@
-from sentry.utils.imports import import_submodules
 from sentry.rules import rules
+from sentry.utils.imports import import_submodules
 
 from .notify_action import SlackNotifyServiceAction
 

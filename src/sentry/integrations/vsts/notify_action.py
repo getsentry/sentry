@@ -4,7 +4,6 @@ from sentry.rules.actions.base import TicketEventAction
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
-
 logger = logging.getLogger("sentry.rules")
 
 

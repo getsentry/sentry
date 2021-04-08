@@ -1,4 +1,5 @@
 import hashlib
+
 import jwt
 
 from sentry.models import Integration

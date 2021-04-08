@@ -1,22 +1,21 @@
 from collections import namedtuple
+
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
+    FeatureDescription,
     IntegrationFeatures,
+    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
-    FeatureDescription,
-    IntegrationInstallation,
 )
-
 from sentry.pipeline import NestedPipelineView
-from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.utils.http import absolute_uri
 
 from .client import SlackClient
-from .utils import logger, get_integration_type
-
+from .utils import get_integration_type, logger
 
 Channel = namedtuple("Channel", ["name", "id"])
 

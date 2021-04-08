@@ -2,12 +2,12 @@ import logging
 from collections import defaultdict
 
 from sentry import features
+from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
 from sentry.models.useroption import UserOption
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
+from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
-from sentry.utils.compat import filter
 
 logger = logging.getLogger("sentry.integrations.issues")
 

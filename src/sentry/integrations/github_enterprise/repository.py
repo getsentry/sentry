@@ -1,9 +1,8 @@
 import logging
 
+from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.integrations.github.repository import GitHubRepositoryProvider
-
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
 

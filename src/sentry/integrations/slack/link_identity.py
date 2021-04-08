@@ -4,15 +4,15 @@ from django.utils import timezone
 from django.views.decorators.cache import never_cache
 
 from sentry.models import Identity, IdentityStatus
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
-from sentry.shared_integrations.exceptions import ApiError
 
 from .client import SlackClient
-from .utils import logger, get_identity
+from .utils import get_identity, logger
 
 
 def build_linking_url(integration, organization, slack_id, channel_id, response_url):

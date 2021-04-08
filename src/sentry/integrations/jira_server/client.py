@@ -1,12 +1,12 @@
-import jwt
+from urllib.parse import parse_qsl
 
+import jwt
 from django.core.urlresolvers import reverse
 from oauthlib.oauth1 import SIGNATURE_RSA
 from requests_oauthlib import OAuth1
-from urllib.parse import parse_qsl
 
-from sentry.integrations.jira.client import JiraApiClient
 from sentry.integrations.client import ApiClient
+from sentry.integrations.jira.client import JiraApiClient
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 

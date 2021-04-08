@@ -8,27 +8,25 @@ __all__ = [
 
 import logging
 import sys
-
 from collections import namedtuple
 from enum import Enum
 
 from sentry.exceptions import InvalidIdentity
+from sentry.models import AuditLogEntryEvent, Identity, OrganizationIntegration
 from sentry.pipeline import PipelineProvider
-
+from sentry.shared_integrations.constants import (
+    ERR_INTERNAL,
+    ERR_UNAUTHORIZED,
+    ERR_UNSUPPORTED_RESPONSE_TYPE,
+)
 from sentry.shared_integrations.exceptions import (
-    ApiHostError,
     ApiError,
+    ApiHostError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
     UnsupportedResponseType,
 )
-from sentry.shared_integrations.constants import (
-    ERR_UNAUTHORIZED,
-    ERR_INTERNAL,
-    ERR_UNSUPPORTED_RESPONSE_TYPE,
-)
-from sentry.models import AuditLogEntryEvent, Identity, OrganizationIntegration
 from sentry.utils.audit import create_audit_entry
 
 FeatureDescription = namedtuple(

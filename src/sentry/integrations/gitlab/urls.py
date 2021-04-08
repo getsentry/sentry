@@ -1,7 +1,7 @@
 from django.conf.urls import url
 
-from .webhooks import GitlabWebhookEndpoint
 from .search import GitlabIssueSearchEndpoint
+from .webhooks import GitlabWebhookEndpoint
 
 urlpatterns = [
     url(

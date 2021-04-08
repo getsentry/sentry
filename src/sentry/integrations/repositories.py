@@ -1,7 +1,8 @@
+from sentry_sdk import configure_scope
+
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry_sdk import configure_scope
 
 
 class RepositoryMixin:

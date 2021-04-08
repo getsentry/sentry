@@ -1,10 +1,10 @@
 from django.conf.urls import url
 
-from .webhook import MsTeamsWebhookEndpoint
 from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView
+
 from .link_identity import MsTeamsLinkIdentityView
 from .unlink_identity import MsTeamsUnlinkIdentityView
-
+from .webhook import MsTeamsWebhookEndpoint
 
 urlpatterns = [
     url(r"^webhook/$", MsTeamsWebhookEndpoint.as_view()),

@@ -2,20 +2,21 @@ import hashlib
 import hmac
 import logging
 
-from django.views.decorators.csrf import csrf_exempt
 from django.utils.crypto import constant_time_compare
+from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import RequestException
-from sentry import http, options, VERSION
+
+from sentry import VERSION, http, options
 from sentry.api.base import Endpoint
 from sentry.models import (
     OrganizationIntegration,
+    Project,
     SentryAppInstallationForProvider,
     SentryAppInstallationToken,
-    Project,
 )
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.utils.http import absolute_uri
 from sentry.utils.compat import filter
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integrations.vercel.webhooks")
 

@@ -1,10 +1,10 @@
 from django.conf.urls import url
 
-from .webhook import VercelWebhookEndpoint
-from .uninstall import VercelUninstallEndpoint
-from .uihook import VercelUIHook
 from sentry.web.frontend.vercel_extension_configuration import VercelExtensionConfigurationView
 
+from .uihook import VercelUIHook
+from .uninstall import VercelUninstallEndpoint
+from .webhook import VercelWebhookEndpoint
 
 urlpatterns = [
     url(r"^webhook/$", VercelWebhookEndpoint.as_view(), name="sentry-extensions-vercel-webhook"),

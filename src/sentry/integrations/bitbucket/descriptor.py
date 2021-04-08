@@ -1,8 +1,8 @@
 from sentry.api.base import Endpoint
+from sentry.integrations.bitbucket.integration import scopes
 from sentry.utils.http import absolute_uri
 
 from .client import BITBUCKET_KEY
-from sentry.integrations.bitbucket.integration import scopes
 
 
 class BitbucketDescriptorEndpoint(Endpoint):

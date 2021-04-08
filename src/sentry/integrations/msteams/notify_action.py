@@ -6,8 +6,8 @@ from sentry.rules.actions.base import IntegrationEventAction
 from sentry.utils import metrics
 
 from .card_builder import build_group_card
-from .utils import get_channel_id
 from .client import MsTeamsClient
+from .utils import get_channel_id
 
 
 class MsTeamsNotifyServiceForm(forms.Form):

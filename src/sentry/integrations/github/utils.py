@@ -1,7 +1,8 @@
 import calendar
 import datetime
-import jwt
 import time
+
+import jwt
 
 from sentry import options
 

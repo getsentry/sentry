@@ -1,7 +1,7 @@
 from django.views.generic import View
 
-from sentry.web.helpers import render_to_response
 from sentry import options
+from sentry.web.helpers import render_to_response
 
 
 class JiraBaseHook(View):

@@ -1,13 +1,11 @@
 import re
-
-from django.utils.translation import ugettext_lazy as _
 from functools import wraps
 
 from django.conf import settings
 from django.core.cache import cache
+from django.utils.translation import ugettext_lazy as _
 
 from sentry import options
-
 from sentry.models import Project, ProjectKey
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY

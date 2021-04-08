@@ -1,12 +1,12 @@
-import jwt
 import logging
+
+import jwt
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.integrations.jira.webhooks import handle_assignee_change, handle_status_change
 from sentry.models import Integration
-
+from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.jira_server.webhooks")
 

@@ -1,7 +1,7 @@
 from time import time
 
-from sentry.shared_integrations.client import BaseApiClient
 from sentry.exceptions import InvalidIdentity
+from sentry.shared_integrations.client import BaseApiClient
 
 
 class ApiClient(BaseApiClient):

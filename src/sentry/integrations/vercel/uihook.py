@@ -1,9 +1,8 @@
 import logging
+from urllib.parse import urlencode
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from urllib.parse import urlencode
-
 
 from sentry.api.base import Endpoint, allow_cors_options
 from sentry.constants import ObjectStatus

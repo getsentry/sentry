@@ -2,8 +2,8 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from sentry.api.base import Endpoint
-from sentry.utils.http import absolute_uri
 from sentry.utils.assets import get_asset_url
+from sentry.utils.http import absolute_uri
 
 from .client import JIRA_KEY
 

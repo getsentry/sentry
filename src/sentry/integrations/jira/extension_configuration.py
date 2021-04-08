@@ -1,6 +1,5 @@
 from sentry.utils import json
 from sentry.utils.signing import unsign
-
 from sentry.web.frontend.integration_extension_configuration import (
     IntegrationExtensionConfigurationView,
 )

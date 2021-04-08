@@ -1,8 +1,9 @@
 import logging
 
 from django.views.decorators.csrf import csrf_exempt
+
 from sentry.api.base import Endpoint
-from sentry.models import AuditLogEntryEvent, Integration, OrganizationIntegration, Organization
+from sentry.models import AuditLogEntryEvent, Integration, Organization, OrganizationIntegration
 from sentry.utils.audit import create_audit_entry
 
 logger = logging.getLogger("sentry.integrations.vercel.uninstall")
