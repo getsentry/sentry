@@ -165,7 +165,7 @@ class TransactionsList extends React.Component<Props> {
     } = this.props;
 
     return (
-      <Header>
+      <React.Fragment>
         <DropdownControl
           data-test-id="filter-transactions"
           button={({isOpen, getActorProps}) => (
@@ -205,7 +205,7 @@ class TransactionsList extends React.Component<Props> {
             </GuideAnchor>
           </HeaderButtonContainer>
         )}
-      </Header>
+      </React.Fragment>
     );
   }
 
@@ -234,6 +234,14 @@ class TransactionsList extends React.Component<Props> {
 
     let tableRenderer = ({isLoading, pageLinks, tableData, baselineData}) => (
       <React.Fragment>
+        <Header>
+          {this.renderHeader()}
+          <StyledPagination
+            pageLinks={pageLinks}
+            onCursor={this.handleCursor}
+            size="small"
+          />
+        </Header>
         <TransactionsTable
           eventView={eventView}
           organization={organization}
@@ -246,11 +254,6 @@ class TransactionsList extends React.Component<Props> {
           generateLink={generateLink}
           baselineTransactionName={baselineTransactionName}
           handleCellAction={handleCellAction}
-        />
-        <StyledPagination
-          pageLinks={pageLinks}
-          onCursor={this.handleCursor}
-          size="small"
         />
       </React.Fragment>
     );
@@ -324,6 +327,14 @@ class TransactionsList extends React.Component<Props> {
       >
         {({isLoading, trendsData, pageLinks}) => (
           <React.Fragment>
+            <Header>
+              {this.renderHeader()}
+              <StyledPagination
+                pageLinks={pageLinks}
+                onCursor={this.handleCursor}
+                size="small"
+              />
+            </Header>
             <TransactionsTable
               eventView={sortedEventView}
               organization={organization}
@@ -340,11 +351,6 @@ class TransactionsList extends React.Component<Props> {
               generateLink={generateLink}
               baselineTransactionName={null}
             />
-            <StyledPagination
-              pageLinks={pageLinks}
-              onCursor={this.handleCursor}
-              size="small"
-            />
           </React.Fragment>
         )}
       </TrendsEventsDiscoverQuery>
@@ -359,7 +365,6 @@ class TransactionsList extends React.Component<Props> {
   render() {
     return (
       <React.Fragment>
-        {this.renderHeader()}
         {this.isTrend() ? this.renderTrendsTable() : this.renderTransactionTable()}
       </React.Fragment>
     );
@@ -575,7 +580,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
     return (
-      <StyledPanelTable
+      <PanelTable
         isEmpty={!hasResults}
         emptyMessage={t('No transactions found')}
         headers={this.renderHeader()}
@@ -584,16 +589,16 @@ class TransactionsTable extends React.PureComponent<TableProps> {
         loader={loader}
       >
         {this.renderResults()}
-      </StyledPanelTable>
+      </PanelTable>
     );
   }
 }
 
 const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0 0 ${space(1)} 0;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-gap: ${space(1)};
+  margin-bottom: ${space(1)};
 `;
 
 const HeaderButtonContainer = styled('div')`
@@ -603,10 +608,6 @@ const HeaderButtonContainer = styled('div')`
 
 const StyledDropdownButton = styled(DropdownButton)`
   min-width: 145px;
-`;
-
-const StyledPanelTable = styled(PanelTable)`
-  margin-bottom: ${space(1)};
 `;
 
 const HeadCellContainer = styled('div')`
@@ -619,7 +620,7 @@ const BodyCellContainer = styled('div')`
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 ${space(3)} 0;
+  margin: 0;
 `;
 
 export default TransactionsList;
