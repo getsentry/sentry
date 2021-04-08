@@ -71,7 +71,7 @@ def serialize(
 
 
 class Serializer:
-    """ A Serializer class contains the logic to serialize a specific type of objects. """
+    """ A Serializer class contains the logic to serialize a specific type of object. """
 
     def __call__(self, obj, attrs, user, **kwargs):
         """ See documentation for `serialize`. """
