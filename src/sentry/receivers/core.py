@@ -1,16 +1,16 @@
 import logging
+from functools import wraps
 
 from click import echo
 from django.conf import settings
-from django.db import connections, transaction
 from django.contrib.auth.models import AnonymousUser
-from django.db.utils import OperationalError, ProgrammingError
+from django.db import connections, transaction
 from django.db.models.signals import post_migrate, post_save
-from functools import wraps
+from django.db.utils import OperationalError, ProgrammingError
 from pkg_resources import parse_version as Version
 
 from sentry import options
-from sentry.models import Organization, OrganizationMember, Project, User, Team, ProjectKey
+from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team, User
 from sentry.signals import project_created
 
 PROJECT_SEQUENCE_FIX = """
