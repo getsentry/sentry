@@ -1,7 +1,7 @@
 from collections import defaultdict
-from rest_framework.exceptions import ParseError
 
 import sentry_sdk
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import features, tagstore
