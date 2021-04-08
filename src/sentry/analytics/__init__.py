@@ -4,8 +4,8 @@ from sentry import options
 from sentry.utils.services import LazyServiceWrapper
 
 from .base import Analytics  # NOQA
-from .event_manager import default_manager
 from .event import *  # NOQA
+from .event_manager import default_manager
 
 
 def get_backend_path(backend):

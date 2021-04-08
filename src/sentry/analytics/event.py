@@ -2,10 +2,10 @@ from sentry.utils.compat import map
 
 __all__ = ("Attribute", "Event", "Map")
 
-from uuid import uuid1
 from base64 import b64encode
-
 from collections import Mapping
+from uuid import uuid1
+
 from django.utils import timezone
 
 from sentry.utils.dates import to_timestamp
