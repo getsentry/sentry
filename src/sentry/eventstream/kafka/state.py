@@ -2,7 +2,6 @@ import logging
 import threading
 from collections import defaultdict, namedtuple
 
-
 logger = logging.getLogger(__name__)
 
 

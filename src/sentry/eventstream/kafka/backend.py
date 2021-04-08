@@ -11,7 +11,6 @@ from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.eventstream.snuba import SnubaProtocolEventStream
 from sentry.utils import json, kafka, metrics
 
-
 logger = logging.getLogger(__name__)
 
 
