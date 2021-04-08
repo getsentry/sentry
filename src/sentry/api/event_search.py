@@ -2395,6 +2395,29 @@ FUNCTIONS = {
             ],
             default_result_type="number",
         ),
+        # Currently only used by trace meta so we can count event types which is why this only accepts strings
+        Function(
+            "count_if",
+            required_args=[
+                FieldColumn("column"),
+                ConditionArg("condition"),
+                StringArg("value", unquote=True, unescape_quotes=True),
+            ],
+            aggregate=[
+                "countIf",
+                [
+                    [
+                        ArgValue("condition"),
+                        [
+                            ArgValue("column"),
+                            ArgValue("value"),
+                        ],
+                    ]
+                ],
+                None,
+            ],
+            default_result_type="integer",
+        ),
         Function(
             "compare_numeric_aggregate",
             required_args=[
