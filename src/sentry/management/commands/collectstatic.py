@@ -1,13 +1,12 @@
 import os
-
-from click import echo
+from hashlib import md5
 from itertools import chain
 from operator import itemgetter
-from hashlib import md5
+
+from click import echo
 from django.contrib.staticfiles.management.commands.collectstatic import Command as BaseCommand
 
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
+from sentry.utils.compat import map, zip
 
 BUFFER_SIZE = 65536
 VERSION_PATH = "version"

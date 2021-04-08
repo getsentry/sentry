@@ -1,13 +1,13 @@
-import SocketServer
 import base64
 import os
+import resource
 import stat
 import sys
 import time
 import traceback
-import resource
 from optparse import make_option
 
+import SocketServer
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.encoding import force_str
 
@@ -48,9 +48,9 @@ def catch_errors(f):
 # Here's where the normalization itself happens
 def process_event(data, meta, project_config):
     from sentry.event_manager import EventManager
+    from sentry.relay.config import ProjectConfig
     from sentry.tasks.store import should_process
     from sentry.web.api import _scrub_event_data
-    from sentry.relay.config import ProjectConfig
 
     project_config = ProjectConfig(None, **project_config)
 

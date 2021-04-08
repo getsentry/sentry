@@ -12,6 +12,7 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         from django.conf import settings
+
         from sentry.models import Project
         from sentry.utils.samples import create_sample_event
 
