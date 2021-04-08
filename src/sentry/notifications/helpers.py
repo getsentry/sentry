@@ -118,28 +118,36 @@ def transform_to_notification_settings_by_user(
     return notification_settings_by_user
 
 
-# TODO MARCOS 2
 def transform_to_notification_settings_by_parent_id(
     notification_settings: Iterable[Any],
+    user_default: Optional[NotificationSettingOptionValues] = None,
 ) -> Tuple[
-    Mapping[int, NotificationSettingOptionValues], Optional[NotificationSettingOptionValues]
+    Mapping[ExternalProviders, Mapping[int, NotificationSettingOptionValues]],
+    Mapping[ExternalProviders, NotificationSettingOptionValues],
 ]:
     """
     Given a unorganized list of notification settings, create a mapping of
-    parents (projects or organizations) to setting values. Return this mapping
-    as a tuple with the user's parent-independent notification preference.
+    providers to a mapping parents (projects or organizations) to setting
+    values. Return this mapping as a tuple with a mapping of provider to the
+    user's parent-independent notification preference.
     """
-    notification_settings_by_parent_id = {}
-    notification_setting_user_default = None
+    notification_settings_by_parent_id: Dict[
+        ExternalProviders, Dict[int, NotificationSettingOptionValues]
+    ] = defaultdict(dict)
+
+    # This is the user's default value for any projects or organizations that
+    # don't have the option value specifically recorded.
+    notification_setting_user_default = defaultdict(lambda: user_default)
     for notification_setting in notification_settings:
         scope_type = NotificationScopeType(notification_setting.scope_type)
+        provider = ExternalProviders(notification_setting.provider)
         value = NotificationSettingOptionValues(notification_setting.value)
 
         if scope_type == NotificationScopeType.USER:
-            notification_setting_user_default = value
+            notification_setting_user_default[provider] = value
         else:
             key = int(notification_setting.scope_identifier)
-            notification_settings_by_parent_id[key] = value
+            notification_settings_by_parent_id[provider][key] = value
     return notification_settings_by_parent_id, notification_setting_user_default
 
 
@@ -233,31 +241,6 @@ def collect_groups_by_project(groups: Iterable[Any]) -> Mapping[Any, Set[Any]]:
     for group in groups:
         projects[group.project].add(group)
     return projects
-
-
-def get_notification_settings_by_key(
-    notification_settings: Iterable[Any],
-) -> Tuple[Mapping[int, NotificationSettingOptionValues], NotificationSettingOptionValues]:
-    """
-    Fetch the options for each project -- we'll need this to identify if a user
-    has totally disabled workflow notifications for a project.
-    """
-    # This is the user's default value for any projects that don't have the
-    # option value specifically recorded. (The default "participating_only"
-    # value is convention.)
-    global_default_workflow_option = NotificationSettingOptionValues.SUBSCRIBE_ONLY
-
-    # TODO MARCOS 1
-    options = {}
-    for notification_setting in notification_settings:
-        scope_type = NotificationScopeType(notification_setting.scope_type)
-        value = NotificationSettingOptionValues(notification_setting.value)
-        if scope_type != NotificationScopeType.PROJECT:
-            global_default_workflow_option = value
-        else:
-            options[notification_setting.scope_identifier] = value
-
-    return options, global_default_workflow_option
 
 
 def get_user_subscriptions_for_groups(

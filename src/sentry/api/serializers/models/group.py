@@ -22,6 +22,7 @@ from sentry.models import (
     ApiToken,
     Commit,
     Environment,
+    ExternalProviders,
     Group,
     GroupAssignee,
     GroupBookmark,
@@ -45,12 +46,11 @@ from sentry.models.groupowner import get_owner_details
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_groups_for_query,
-    get_notification_settings_by_key,
     get_subscription_from_attributes,
     get_user_subscriptions_for_groups,
+    transform_to_notification_settings_by_parent_id,
 )
-from sentry.notifications.types import NotificationSettingTypes
-
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
@@ -203,9 +203,15 @@ class GroupSerializerBase(Serializer):
         )
 
         (
-            notification_settings_by_key,
-            global_default_workflow_option,
-        ) = get_notification_settings_by_key(notification_settings)
+            notification_settings_by_project_id_by_provider,
+            default_subscribe_by_provider,
+        ) = transform_to_notification_settings_by_parent_id(
+            notification_settings, NotificationSettingOptionValues.SUBSCRIBE_ONLY
+        )
+        notification_settings_by_key = notification_settings_by_project_id_by_provider[
+            ExternalProviders.EMAIL
+        ]
+        global_default_workflow_option = default_subscribe_by_provider[ExternalProviders.EMAIL]
 
         query_groups = get_groups_for_query(
             groups_by_project,
