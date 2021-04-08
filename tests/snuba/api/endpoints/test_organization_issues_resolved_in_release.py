@@ -1,8 +1,6 @@
 from uuid import uuid1
 
-
 from sentry.models import Commit, GroupLink, GroupResolution, ReleaseCommit, Repository
-
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.utils.compat import map
 

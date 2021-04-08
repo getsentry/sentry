@@ -2,6 +2,7 @@ __all__ = ["Feature", "with_feature"]
 
 import collections
 from contextlib import contextmanager
+
 from sentry.utils.compat.mock import patch
 
 

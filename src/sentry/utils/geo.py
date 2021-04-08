@@ -2,7 +2,6 @@ import logging
 
 from django.conf import settings
 
-
 logger = logging.getLogger(__name__)
 geoip_path_mmdb = getattr(settings, "GEOIP_PATH_MMDB", None)
 

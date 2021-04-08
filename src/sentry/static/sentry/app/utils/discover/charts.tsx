@@ -81,6 +81,6 @@ export function axisDuration(value: number): string {
     const label = (value / SECOND).toFixed(0);
     return t('%ss', label);
   }
-  const label = (value / SECOND).toFixed(1);
-  return t('%ss', label);
+  const label = value.toFixed(0);
+  return t('%sms', label);
 }

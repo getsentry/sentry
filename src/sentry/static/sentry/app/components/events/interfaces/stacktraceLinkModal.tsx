@@ -73,7 +73,7 @@ class StacktraceLinkModal extends React.Component<Props, State> {
         },
       });
 
-      const configEndpoint = `/organizations/${organization.slug}/repo-project-path-configs/`;
+      const configEndpoint = `/organizations/${organization.slug}/code-mappings/`;
       await api.requestPromise(configEndpoint, {
         method: 'POST',
         data: {

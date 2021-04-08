@@ -136,7 +136,8 @@ class BuildUpOrgBufferTest(DemoTaskBaseClass):
 
 
 class DeleteInitializingOrgTest(DemoTaskBaseClass):
-    def test_basic(self):
+    @mock.patch("sentry.demo.tasks.build_up_org_buffer")
+    def test_basic(self, mock_build_up_org_buffer):
         before_cutoff = before_now(minutes=MAX_INITIALIZATION_TIME + 5)
         after_cutoff = before_now(minutes=MAX_INITIALIZATION_TIME - 5)
 
@@ -150,3 +151,5 @@ class DeleteInitializingOrgTest(DemoTaskBaseClass):
         assert not Organization.objects.filter(id=org1.id).exists()
         assert Organization.objects.filter(id=org2.id).exists()
         assert Organization.objects.filter(id=org3.id).exists()
+
+        mock_build_up_org_buffer.assert_called_once_with()

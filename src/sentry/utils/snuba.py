@@ -651,9 +651,7 @@ def raw_query(
 
 
 def raw_snql_query(
-    query: Query,
-    referrer: Optional[str] = None,
-    use_cache: bool = False,
+    query: Query, referrer: Optional[str] = None, use_cache: bool = False,
 ) -> Mapping[str, Any]:
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
@@ -687,6 +685,7 @@ def bulk_raw_query(
     headers = {}
     if referrer:
         headers["referer"] = referrer
+        sentry_sdk.set_tag("query.referrer", referrer)
 
     def _prep_query(query: Union[Query, SnubaQueryParams]) -> SnubaQuery:
         if isinstance(query, Query):
@@ -735,8 +734,7 @@ def _bulk_snuba_query(
     use_snql: Optional[bool] = None,
 ) -> ResultSet:
     with sentry_sdk.start_span(
-        op="start_snuba_query",
-        description=f"running {len(snuba_param_list)} snuba queries",
+        op="start_snuba_query", description=f"running {len(snuba_param_list)} snuba queries",
     ) as span:
         span.set_tag("referrer", headers.get("referer", "<unknown>"))
         # This is confusing because this function is overloaded right now with three cases:
@@ -752,8 +750,7 @@ def _bulk_snuba_query(
         if len(snuba_param_list) > 1:
             query_results = list(
                 _query_thread_pool.map(
-                    query_fn,
-                    [(params, Hub(Hub.current), headers) for params in snuba_param_list],
+                    query_fn, [(params, Hub(Hub.current), headers) for params in snuba_param_list],
                 )
             )
         else:
@@ -855,8 +852,7 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
         query.validate()  # Call this here just avoid it happening in the async all
     except Exception as e:
         logger.warning(
-            "snuba.snql.parsing.error",
-            extra={"error": str(e), "params": json.dumps(query_params)},
+            "snuba.snql.parsing.error", extra={"error": str(e), "params": json.dumps(query_params)},
         )
         return _snuba_query(params)
 

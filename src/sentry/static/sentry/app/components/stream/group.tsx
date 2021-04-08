@@ -42,6 +42,7 @@ import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+import {TimePeriodType} from 'app/views/alerts/rules/details/body';
 import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
@@ -78,6 +79,7 @@ type Props = {
   memberList?: User[];
   showInboxTime?: boolean;
   index?: number;
+  customStatsPeriod?: TimePeriodType;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -231,7 +233,7 @@ class StreamGroup extends React.Component<Props, State> {
   };
 
   getDiscoverUrl(isFiltered?: boolean) {
-    const {organization, query, selection} = this.props;
+    const {organization, query, selection, customStatsPeriod} = this.props;
     const {data} = this.state;
 
     // when there is no discover feature open events page
@@ -259,7 +261,7 @@ class StreamGroup extends React.Component<Props, State> {
     const searchQuery = (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
 
     if (hasDiscoverQuery) {
-      const {period, start, end} = selection.datetime || {};
+      const {period, start, end} = customStatsPeriod ?? (selection.datetime || {});
 
       const discoverQuery: NewQuery = {
         ...commonQuery,
@@ -343,13 +345,15 @@ class StreamGroup extends React.Component<Props, State> {
       displayReprocessingLayout,
       showInboxTime,
       useFilteredStats,
+      customStatsPeriod,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
     const summary =
-      !!start && !!end
+      customStatsPeriod?.label.toLowerCase() ??
+      (!!start && !!end
         ? 'time range'
-        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
+        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
     // Use data.filtered to decide on which value to use
     // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats

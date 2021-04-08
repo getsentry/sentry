@@ -1,6 +1,7 @@
 __all__ = ["AuthProvider"]
 
 from contextlib import contextmanager
+
 from sentry.auth import register, unregister
 
 

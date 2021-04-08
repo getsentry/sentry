@@ -18,13 +18,22 @@ import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
-import {isAggregateField} from 'app/utils/discover/fields';
+import {
+  aggregateOutputType,
+  isAggregateField,
+  isLegalYAxisType,
+} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'app/views/dashboardsV2/data';
-import {DashboardDetails, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
+import {
+  DashboardDetails,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+} from 'app/views/dashboardsV2/types';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -112,6 +121,11 @@ function normalizeQueries(
   queries = queries.map(query => {
     let fields = query.fields.filter(isAggregateField);
 
+    if (isTimeseriesChart || displayType === 'world_map') {
+      // Filter out fields that will not generate numeric output types
+      fields = fields.filter(field => isLegalYAxisType(aggregateOutputType(field)));
+    }
+
     if (isTimeseriesChart && fields.length && fields.length > 3) {
       // Timeseries charts supports at most 3 fields.
       fields = fields.slice(0, 3);
@@ -178,7 +192,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (!widget) {
       this.state = {
         title: '',
-        displayType: 'line',
+        displayType: DisplayType.LINE,
         interval: '5m',
         queries: [{...newQuery}],
         errors: undefined,

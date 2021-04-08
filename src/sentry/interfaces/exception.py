@@ -3,8 +3,8 @@ __all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
 import re
 
 from sentry.interfaces.base import Interface
-from sentry.utils.json import prune_empty_keys
 from sentry.interfaces.stacktrace import Stacktrace
+from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
 _type_value_re = re.compile(r"^(\w+):(.*)$")

@@ -1,4 +1,5 @@
 import ipaddress
+from typing import Any
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -83,5 +84,6 @@ class SystemToken:
         pass
 
 
-def is_system_auth(auth):
+def is_system_auth(auth: Any) -> bool:
+    """ :returns True when Sentry itself is hitting the API. """
     return isinstance(auth, SystemToken)
