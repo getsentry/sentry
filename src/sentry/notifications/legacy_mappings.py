@@ -165,7 +165,7 @@ def get_legacy_object(
     organization_mapping: Mapping[int, Any],
 ) -> Any:
     type = NotificationSettingTypes(notification_setting.type)
-    key = get_legacy_key(notification_setting.type)
+    key = get_legacy_key(type)
     value = NotificationSettingOptionValues(notification_setting.value)
 
     data = {
