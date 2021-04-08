@@ -18,7 +18,7 @@ import {Organization} from 'app/types';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {getDuration} from 'app/utils/formatters';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
-import {reduceTrace} from 'app/utils/performance/quickTrace/utils';
+import {filterTrace, reduceTrace} from 'app/utils/performance/quickTrace/utils';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
@@ -43,13 +43,6 @@ import {getTraceInfo, isRootTransaction, toPercent} from './utils';
 type IndexedFusedTransaction = {
   transaction: TraceFullDetailed;
   indexed: string[];
-  tagKeys: string[];
-  tagValues: string[];
-};
-
-type FuseResult = {
-  item: IndexedFusedTransaction;
-  score: number;
 };
 
 type AccType = {
@@ -119,22 +112,14 @@ class TraceDetailsContent extends React.Component<Props, State> {
         trace,
         (acc, transaction) => {
           const indexed: string[] = [
-            transaction.event_id,
-            transaction.span_id,
             transaction['transaction.op'],
             transaction.transaction,
             transaction.project_slug,
           ];
 
-          const tags = transaction.tags ?? [];
-          const tagKeys = tags.map(({key}) => key);
-          const tagValues = tags.map(({value}) => value);
-
           acc.push({
             transaction,
             indexed,
-            tagKeys,
-            tagValues,
           });
 
           return acc;
@@ -143,20 +128,45 @@ class TraceDetailsContent extends React.Component<Props, State> {
       )
     );
 
+    const queryLength = searchQuery.length;
+
     const fuse = await createFuzzySearch(transformed, {
-      keys: ['indexed', 'tagKeys', 'tagValues', 'dataKeys', 'dataValues'],
-      includeMatches: false,
+      keys: ['indexed'],
+      includeMatches: true,
       threshold: 0.6,
       location: 0,
       distance: 100,
       maxPatternLength: 32,
     });
 
-    const results = fuse.search<FuseResult>(searchQuery);
-    const matched = results.map(result => result.item.transaction);
+    const fuseMatches = fuse
+      .search<IndexedFusedTransaction>(searchQuery)
+      /**
+       * Sometimes, there can be matches that don't include any
+       * indices. These matches are often noise, so exclude them.
+       */
+      .filter(({matches}) => matches.length)
+      .map(({item}) => item.transaction.event_id);
+
+    /**
+     * We match on the id as a substring match. We only consider ids
+     * that are a length that is a multiple of 8
+     */
+    const idMatches =
+      queryLength % 8 === 0
+        ? traces
+            .flatMap(trace =>
+              filterTrace(
+                trace,
+                ({event_id, span_id}) =>
+                  event_id.includes(searchQuery) || span_id.includes(searchQuery)
+              )
+            )
+            .map(transaction => transaction.event_id)
+        : [];
 
     this.setState({
-      filteredTransactionIds: new Set(matched.map(transaction => transaction.event_id)),
+      filteredTransactionIds: new Set([...fuseMatches, ...idMatches]),
     });
   };
 
