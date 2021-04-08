@@ -1,10 +1,9 @@
 import os
-from sentry import eventstore, nodestore
+
+from sentry import eventstore, models, nodestore
 from sentry.eventstore.models import Event
-from sentry import models
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
-
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
