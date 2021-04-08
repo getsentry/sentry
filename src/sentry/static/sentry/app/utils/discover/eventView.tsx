@@ -395,6 +395,9 @@ class EventView {
     let fields = decodeFields(location);
     const {start, end, statsPeriod} = location.query;
     const id = decodeScalar(location.query.id);
+    const projects = decodeProjects(location);
+    const sorts = decodeSorts(location);
+    const environments = collectQueryStringByKey(location.query, 'environment');
 
     if (saved) {
       if (fields.length === 0) {
@@ -417,19 +420,20 @@ class EventView {
         name: decodeScalar(location.query.name) || saved.name,
         fields,
         query: decodeQuery(location) || queryStringFromSavedQuery(saved),
-        project: decodeProjects(location) || saved.projects,
+        project: projects.length === 0 ? saved.projects : projects,
         start: decodeScalar(start) || decodeScalar(savedStart),
         end: decodeScalar(end) || decodeScalar(savedEnd),
         statsPeriod: decodeScalar(statsPeriod) || decodeScalar(savedStatsPeriod),
-        sorts: decodeSorts(location) || fromSorts(saved.orderby),
+        sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
         environment:
-          collectQueryStringByKey(location.query, 'environment') ||
-          collectQueryStringByKey(
-            {
-              environment: saved.environment as string[],
-            },
-            'environment'
-          ),
+          environments.length === 0
+            ? collectQueryStringByKey(
+                {
+                  environment: saved.environment as string[],
+                },
+                'environment'
+              )
+            : environments,
         yAxis: decodeScalar(location.query.yAxis) || saved.yAxis,
         display: decodeScalar(location.query.display) || saved.display,
         interval: decodeScalar(location.query.interval),
