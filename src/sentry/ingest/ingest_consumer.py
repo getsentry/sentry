@@ -1,29 +1,27 @@
-import random
 import functools
 import logging
-import msgpack
+import random
 
+import msgpack
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
-import sentry_sdk
-
 from sentry import eventstore, features, options
-
+from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.event_manager import save_attachment
+from sentry.eventstore.processing import event_processing_store
+from sentry.ingest.types import ConsumerType
+from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json, metrics
-from sentry.utils.sdk import mark_scope_as_unsafe
-from sentry.utils.dates import to_datetime
-from sentry.utils.cache import cache_key_for_event
-from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
-from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.ingest.types import ConsumerType
-from sentry.ingest.userreport import Conflict, save_userreport
-from sentry.event_manager import save_attachment
-from sentry.eventstore.processing import event_processing_store
+from sentry.utils.cache import cache_key_for_event
+from sentry.utils.dates import to_datetime
+from sentry.utils.kafka import create_batching_kafka_consumer
+from sentry.utils.sdk import mark_scope_as_unsafe
 
 logger = logging.getLogger(__name__)
 
