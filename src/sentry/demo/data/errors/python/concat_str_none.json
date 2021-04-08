@@ -1,0 +1,377 @@
+{
+    "event_id": "2aacd1833d3344c9a517fab5c934f8cc",
+    "project": 5641789,
+    "release": "52f7c8a62a97cecf029f6a68adb411c1714c4836",
+    "dist": null,
+    "platform": "python",
+    "message": "",
+    "datetime": "2021-03-25T23:32:34.279259Z",
+    "tags": [
+      ["browser", "Python Requests 2.25"],
+      ["browser.name", "Python Requests"],
+      ["environment", "prod"],
+      ["handled", "no"],
+      ["level", "error"],
+      ["mechanism", "flask"],
+      ["runtime", "CPython 2.7.18"],
+      ["runtime.name", "CPython"],
+      ["release", "52f7c8a62a97cecf029f6a68adb411c1714c4836"],
+      ["server_name", "localhost"],
+      ["transaction", "checkout"],
+      ["url", "https://app.example.com/checkout"]
+    ],
+    "_meta": {
+      "exception": {
+        "values": {
+          "0": {"stacktrace": {"frames": {"0": {"vars": {"environ": {"": {"len": 31}}}}}}}
+        }
+      },
+      "request": {"headers": {"8": {"1": {"": {"rem": [["!config", "x", 0, 13]]}}}}}
+    },
+    "_metrics": {"bytes.ingested.event": 8976, "bytes.stored.event": 11467},
+    "contexts": {
+      "browser": {"name": "Python Requests", "version": "2.25", "type": "browser"},
+      "runtime": {
+        "name": "CPython",
+        "version": "2.7.18",
+        "build": "2.7.18 (default, Apr 20 2020, 19:34:11) \n[GCC 8.3.0]",
+        "type": "runtime"
+      },
+      "trace": {
+        "trace_id": "6c7e23bbbd174691b0dc2e59cb7c4b3d",
+        "span_id": "81e72b04c28b744a",
+        "op": "http.server",
+        "type": "trace"
+      }
+    },
+    "culprit": "checkout",
+    "environment": "prod",
+    "exception": {
+      "values": [
+        {
+          "type": "TypeError",
+          "value": "cannot concatenate 'str' and 'NoneType' objects",
+          "module": "exceptions",
+          "stacktrace": {
+            "frames": [
+              {
+                "function": "wsgi_app",
+                "module": "flask.app",
+                "filename": "flask/app.py",
+                "abs_path": "/usr/local/lib/python2.7/site-packages/flask/app.py",
+                "lineno": 2292,
+                "pre_context": [
+                  "        ctx = self.request_context(environ)",
+                  "        error = None",
+                  "        try:",
+                  "            try:",
+                  "                ctx.push()"
+                ],
+                "context_line": "                response = self.full_dispatch_request()",
+                "post_context": [
+                  "            except Exception as e:",
+                  "                error = e",
+                  "                response = self.handle_exception(e)",
+                  "            except:",
+                  "                error = sys.exc_info()[1]"
+                ],
+                "in_app": true,
+                "vars": {
+                  "ctx": "<RequestContext 'https://app.example.com/checkout' [POST] of app>",
+                  "e": "TypeError(\"cannot concatenate 'str' and 'NoneType' objects\",)",
+                  "environ": {
+                    "CONTENT_LENGTH": "'139'",
+                    "HTTP_USER_AGENT": "'python-requests/2.25.1'",
+                    "PATH_INFO": "'/checkout'",
+                    "QUERY_STRING": "''",
+                    "REMOTE_ADDR": "'169.254.8.129'",
+                    "REQUEST_METHOD": "'POST'",
+                    "SCRIPT_NAME": "''",
+                    "SERVER_PROTOCOL": "'HTTP/1.1'",
+                    "SERVER_SOFTWARE": "'Werkzeug/1.0.1'",
+                    "werkzeug.server.shutdown": "<function shutdown_server at 0x3e2c8c1266d0>"
+                  },
+                  "error": "TypeError(\"cannot concatenate 'str' and 'NoneType' objects\",)",
+                  "self": "<Flask 'app'>",
+                  "start_response": "<functools.partial object at 0x3e2c8c12cf50>"
+                }
+              },
+              {
+                "function": "full_dispatch_request",
+                "module": "flask.app",
+                "filename": "flask/app.py",
+                "abs_path": "/usr/local/lib/python2.7/site-packages/flask/app.py",
+                "lineno": 1815,
+                "pre_context": [
+                  "            request_started.send(self)",
+                  "            rv = self.preprocess_request()",
+                  "            if rv is None:",
+                  "                rv = self.dispatch_request()",
+                  "        except Exception as e:"
+                ],
+                "context_line": "            rv = self.handle_user_exception(e)",
+                "post_context": [
+                  "        return self.finalize_request(rv)",
+                  "",
+                  "    def finalize_request(self, rv, from_error_handler=False):",
+                  "        \"\"\"Given the return value from a view function this finalizes",
+                  "        the request by converting it into a response and invoking the"
+                ],
+                "in_app": true,
+                "vars": {
+                  "e": "TypeError(\"cannot concatenate 'str' and 'NoneType' objects\",)",
+                  "rv": "None",
+                  "self": "<Flask 'app'>"
+                }
+              },
+              {
+                "function": "wrapped_function",
+                "module": "flask_cors.extension",
+                "filename": "flask_cors/extension.py",
+                "abs_path": "/usr/local/lib/python2.7/site-packages/flask_cors/extension.py",
+                "lineno": 161,
+                "pre_context": [
+                  "        # Wrap exception handlers with cross_origin",
+                  "        # These error handlers will still respect the behavior of the route",
+                  "        if options.get('intercept_exceptions', True):",
+                  "            def _after_request_decorator(f):",
+                  "                def wrapped_function(*args, **kwargs):"
+                ],
+                "context_line": "                    return cors_after_request(app.make_response(f(*args, **kwargs)))",
+                "post_context": [
+                  "                return wrapped_function",
+                  "",
+                  "            if hasattr(app, 'handle_exception'):",
+                  "                app.handle_exception = _after_request_decorator(",
+                  "                    app.handle_exception)"
+                ],
+                "in_app": true,
+                "vars": {
+                  "app": "<Flask 'app'>",
+                  "args": [
+                    "TypeError(\"cannot concatenate 'str' and 'NoneType' objects\",)"
+                  ],
+                  "cors_after_request": "<function cors_after_request at 0x3e2c8c14fd50>",
+                  "f": "<bound method Flask.handle_user_exception of <Flask 'app'>>",
+                  "kwargs": {}
+                }
+              },
+              {
+                "function": "handle_user_exception",
+                "module": "flask.app",
+                "filename": "flask/app.py",
+                "abs_path": "/usr/local/lib/python2.7/site-packages/flask/app.py",
+                "lineno": 1718,
+                "pre_context": [
+                  "            return self.handle_http_exception(e)",
+                  "",
+                  "        handler = self._find_error_handler(e)",
+                  "",
+                  "        if handler is None:"
+                ],
+                "context_line": "            reraise(exc_type, exc_value, tb)",
+                "post_context": [
+                  "        return handler(e)",
+                  "",
+                  "    def handle_exception(self, e):",
+                  "        \"\"\"Default exception handling that kicks in when an exception",
+                  "        occurs that is not caught.  In debug mode the exception will"
+                ],
+                "in_app": true,
+                "vars": {
+                  "e": "TypeError(\"cannot concatenate 'str' and 'NoneType' objects\",)",
+                  "exc_type": "<type 'exceptions.TypeError'>",
+                  "exc_value": "TypeError(\"cannot concatenate 'str' and 'NoneType' objects\",)",
+                  "handler": "None",
+                  "self": "<Flask 'app'>",
+                  "tb": "<traceback object at 0x3e2c8c09ccd0>"
+                }
+              },
+              {
+                "function": "full_dispatch_request",
+                "module": "flask.app",
+                "filename": "flask/app.py",
+                "abs_path": "/usr/local/lib/python2.7/site-packages/flask/app.py",
+                "lineno": 1813,
+                "pre_context": [
+                  "        self.try_trigger_before_first_request_functions()",
+                  "        try:",
+                  "            request_started.send(self)",
+                  "            rv = self.preprocess_request()",
+                  "            if rv is None:"
+                ],
+                "context_line": "                rv = self.dispatch_request()",
+                "post_context": [
+                  "        except Exception as e:",
+                  "            rv = self.handle_user_exception(e)",
+                  "        return self.finalize_request(rv)",
+                  "",
+                  "    def finalize_request(self, rv, from_error_handler=False):"
+                ],
+                "in_app": true,
+                "vars": {
+                  "e": "TypeError(\"cannot concatenate 'str' and 'NoneType' objects\",)",
+                  "rv": "None",
+                  "self": "<Flask 'app'>"
+                }
+              },
+              {
+                "function": "dispatch_request",
+                "module": "flask.app",
+                "filename": "flask/app.py",
+                "abs_path": "/usr/local/lib/python2.7/site-packages/flask/app.py",
+                "lineno": 1799,
+                "pre_context": [
+                  "        # request came with the OPTIONS method, reply automatically",
+                  "        if getattr(rule, 'provide_automatic_options', False) \\",
+                  "           and req.method == 'OPTIONS':",
+                  "            return self.make_default_options_response()",
+                  "        # otherwise dispatch to the handler for that endpoint"
+                ],
+                "context_line": "        return self.view_functions[rule.endpoint](**req.view_args)",
+                "post_context": [
+                  "",
+                  "    def full_dispatch_request(self):",
+                  "        \"\"\"Dispatches the request and on top of that performs request",
+                  "        pre and postprocessing as well as HTTP exception catching and",
+                  "        error handling."
+                ],
+                "in_app": true,
+                "vars": {
+                  "req": "<Request 'https://app.example.com/checkout' [POST]>",
+                  "rule": "<Rule '/checkout' (POST, OPTIONS) -> checkout>",
+                  "self": "<Flask 'app'>"
+                }
+              },
+              {
+                "function": "checkout",
+                "module": "app",
+                "filename": "app.py",
+                "abs_path": "/app/app.py",
+                "lineno": 85,
+                "pre_context": [
+                  "",
+                  "@app.route('/checkout', methods=['POST'])",
+                  "def checkout():",
+                  "",
+                  "    order = json.loads(request.data)"
+                ],
+                "context_line": "    print \"Processing order for: \" + request.headers.get('email')",
+                "post_context": [
+                  "    cart = order[\"cart\"]",
+                  "",
+                  "    with sentry_sdk.start_span(op=\"db function: get inventory\"):",
+                  "        try:",
+                  "            rows = get_inventory()"
+                ],
+                "in_app": true,
+                "vars": {
+                  "order": {
+                    "cart": [
+                      {"id": "u'wrench'", "name": "u'Wrench'", "price": "500"},
+                      {"id": "u'wrench'", "name": "u'Wrench'", "price": "500"}
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "mechanism": {"type": "flask", "handled": false}
+        }
+      ]
+    },
+    "extra": {
+      "inventory": {"hammer": 1, "nails": 1, "wrench": 1},
+      "sys.argv": ["/usr/local/bin/flask", "run", "--host=0.0.0.0", "-p", "8080"]
+    },
+    "fingerprint": ["{{ default }}"],
+    "grouping_config": {
+      "enhancements": "eJybzDhxY3J-bm5-npWRgaGlroGxrpHxBABcTQcY",
+      "id": "newstyle:2019-10-29"
+    },
+    "hashes": ["05ddd70c1c4fe6ce654dff4ed8f8bfbc"],
+    "key_id": "1512188",
+    "level": "error",
+    "location": "app.py",
+    "logger": "",
+    "metadata": {
+      "filename": "app.py",
+      "function": "checkout",
+      "type": "TypeError",
+      "value": "cannot concatenate 'str' and 'NoneType' objects"
+    },
+    "modules": {
+      "blinker": "1.4",
+      "certifi": "2020.12.5",
+      "click": "7.1.2",
+      "flask": "1.0.2",
+      "flask-cors": "3.0.7",
+      "gunicorn": "0.14.2",
+      "itsdangerous": "1.1.0",
+      "jinja2": "2.11.3",
+      "markupsafe": "1.1.1",
+      "numpy": "1.16.6",
+      "pg8000": "1.12.5",
+      "pip": "20.0.2",
+      "psycopg2-binary": "2.8.4",
+      "python": "2.7.18",
+      "python-dotenv": "0.12.0",
+      "pytz": "2020.4",
+      "sentry-sdk": "0.19.2",
+      "setuptools": "44.1.0",
+      "six": "1.15.0",
+      "sqlalchemy": "1.3.15",
+      "typing": "3.7.4.3",
+      "urllib3": "1.26.3",
+      "werkzeug": "1.0.1",
+      "wheel": "0.34.2",
+      "wsgiref": "0.1.2"
+    },
+    "received": 1616715154.288638,
+    "request": {
+      "url": "https://app.example.com/checkout",
+      "method": "POST",
+      "data": {
+        "cart": [
+          {"id": "wrench", "name": "Wrench", "price": 500},
+          {"id": "wrench", "name": "Wrench", "price": 500}
+        ]
+      },
+      "headers": [
+        ["Accept", "*/*"],
+        ["Accept-Encoding", "gzip, deflate"],
+        ["Content-Length", "139"],
+        ["Content-Type", "application/json"],
+        ["Forwarded", "for=\"34.122.208.80\";proto=https"],
+        ["Host", "aj-flask-m3uuizd7iq-uc.a.run.app"],
+        ["User-Agent", "python-requests/2.25.1"],
+        ["X-Cloud-Trace-Context", "cc4b36f5ce29a7324c14547568fa219e/957919981805984821"],
+        ["X-Forwarded-For", ""],
+        ["X-Forwarded-Proto", "https"]
+      ],
+      "env": {"SERVER_NAME": "0.0.0.0", "SERVER_PORT": "8080"},
+      "inferred_content_type": "application/json"
+    },
+    "sdk": {
+      "name": "sentry.python",
+      "version": "0.19.2",
+      "integrations": [
+        "argv",
+        "atexit",
+        "dedupe",
+        "excepthook",
+        "flask",
+        "logging",
+        "modules",
+        "sqlalchemy",
+        "stdlib",
+        "threading"
+      ],
+      "packages": [{"name": "pypi:sentry-sdk", "version": "0.19.2"}]
+    },
+    "timestamp": 1616715154.279259,
+    "title": "TypeError: cannot concatenate 'str' and 'NoneType' objects",
+    "transaction": "checkout",
+    "type": "error",
+    "version": "7"
+  }
