@@ -1,5 +1,5 @@
-from abc import ABCMeta, abstractmethod
 import functools
+from abc import ABCMeta, abstractmethod
 from datetime import timedelta
 
 from django.db.models import Q
@@ -8,10 +8,9 @@ from django.utils import timezone
 from sentry import quotas
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.models import (
-    Release,
-    GroupEnvironment,
     Group,
     GroupAssignee,
+    GroupEnvironment,
     GroupLink,
     GroupOwner,
     GroupStatus,
@@ -19,6 +18,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     PlatformExternalIssue,
+    Release,
     Team,
     User,
 )
