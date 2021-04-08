@@ -299,7 +299,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         users: List[Any],
     ) -> List[Any]:
         """
-        Filters a list of users down to the users who are subscribed to alerts.
+        Filters a list of users down to the users by provider who are subscribed to alerts.
         We check both the project level settings and global default settings.
         """
         notification_settings = self.get_for_users_by_parent(

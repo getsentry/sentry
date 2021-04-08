@@ -109,7 +109,7 @@ class GetParticipantsTest(TestCase):
         # implicit membership
         users = GroupSubscription.objects.get_participants(group=group)
 
-        assert users == {user: GroupSubscriptionReason.implicit}
+        assert users == {ExternalProviders.EMAIL: {user: GroupSubscriptionReason.implicit}}
 
         # unsubscribed
         GroupSubscription.objects.create(user=user, group=group, project=project, is_active=False)
@@ -143,7 +143,7 @@ class GetParticipantsTest(TestCase):
 
         users = GroupSubscription.objects.get_participants(group=group)
 
-        assert users == {user: GroupSubscriptionReason.comment}
+        assert users == {ExternalProviders.EMAIL: {user: GroupSubscriptionReason.comment}}
 
     def test_no_conversations(self):
         org = self.create_organization()
@@ -161,12 +161,13 @@ class GetParticipantsTest(TestCase):
         )
 
         get_participants = functools.partial(GroupSubscription.objects.get_participants, group)
-
         # Implicit subscription, ensure the project setting overrides the
         # default global option.
 
         with self.assertChanges(
-            get_participants, before={user: GroupSubscriptionReason.implicit}, after={}
+            get_participants,
+            before={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.implicit}},
+            after={},
         ):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
@@ -189,7 +190,9 @@ class GetParticipantsTest(TestCase):
         )
 
         with self.assertChanges(
-            get_participants, before={user: GroupSubscriptionReason.implicit}, after={}
+            get_participants,
+            before={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.implicit}},
+            after={},
         ):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
@@ -212,7 +215,9 @@ class GetParticipantsTest(TestCase):
         )
 
         with self.assertChanges(
-            get_participants, before={user: GroupSubscriptionReason.comment}, after={}
+            get_participants,
+            before={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.comment}},
+            after={},
         ):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
@@ -233,7 +238,9 @@ class GetParticipantsTest(TestCase):
         )
 
         with self.assertChanges(
-            get_participants, before={user: GroupSubscriptionReason.comment}, after={}
+            get_participants,
+            before={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.comment}},
+            after={},
         ):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
@@ -249,7 +256,9 @@ class GetParticipantsTest(TestCase):
         # overrides the default option.
 
         with self.assertChanges(
-            get_participants, before={user: GroupSubscriptionReason.comment}, after={}
+            get_participants,
+            before={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.comment}},
+            after={},
         ):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
@@ -279,7 +288,9 @@ class GetParticipantsTest(TestCase):
         # default global option.
 
         with self.assertChanges(
-            get_participants, before={user: GroupSubscriptionReason.implicit}, after={}
+            get_participants,
+            before={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.implicit}},
+            after={},
         ):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
@@ -302,7 +313,9 @@ class GetParticipantsTest(TestCase):
         )
 
         with self.assertChanges(
-            get_participants, before={user: GroupSubscriptionReason.implicit}, after={}
+            get_participants,
+            before={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.implicit}},
+            after={},
         ):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
@@ -324,7 +337,9 @@ class GetParticipantsTest(TestCase):
         )
 
         with self.assertChanges(
-            get_participants, before={}, after={user: GroupSubscriptionReason.comment}
+            get_participants,
+            before={},
+            after={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.comment}},
         ):
             subscription = GroupSubscription.objects.create(
                 user=user,
@@ -348,7 +363,9 @@ class GetParticipantsTest(TestCase):
         )
 
         with self.assertChanges(
-            get_participants, before={}, after={user: GroupSubscriptionReason.comment}
+            get_participants,
+            before={},
+            after={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.comment}},
         ):
             subscription = GroupSubscription.objects.create(
                 user=user,
@@ -379,7 +396,9 @@ class GetParticipantsTest(TestCase):
         )
 
         with self.assertChanges(
-            get_participants, before={}, after={user: GroupSubscriptionReason.comment}
+            get_participants,
+            before={},
+            after={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.comment}},
         ):
             subscription = GroupSubscription.objects.create(
                 user=user,
@@ -409,8 +428,8 @@ class GetParticipantsTest(TestCase):
 
         with self.assertChanges(
             get_participants,
-            before={user: GroupSubscriptionReason.implicit},
-            after={user: GroupSubscriptionReason.comment},
+            before={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.implicit}},
+            after={ExternalProviders.EMAIL: {user: GroupSubscriptionReason.comment}},
         ):
             subscription = GroupSubscription.objects.create(
                 user=user,

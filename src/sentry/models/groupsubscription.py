@@ -1,5 +1,6 @@
 from typing import Any, Mapping
 
+from collections import defaultdict
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
@@ -12,7 +13,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.notifications.helpers import (
-    should_be_participating,
+    where_should_be_participating,
     transform_to_notification_settings_by_user,
 )
 from sentry.notifications.types import NotificationSettingTypes
@@ -125,26 +126,29 @@ class GroupSubscriptionManager(BaseManager):
             users=users,
             parent=group.project,
         )
-
         subscriptions_by_user_id = {
             subscription.user_id: subscription for subscription in subscriptions
         }
         notification_settings_by_user = transform_to_notification_settings_by_user(
             notification_settings, users
         )
-        return {
-            user: getattr(
-                subscriptions_by_user_id.get(user.id),
-                "reason",
-                GroupSubscriptionReason.implicit,
-            )
-            for user in users
-            if should_be_participating(
+        result = defaultdict(dict)
+
+        for user in users:
+            providers = where_should_be_participating(
                 user,
                 subscriptions_by_user_id,
                 notification_settings_by_user,
             )
-        }
+            for provider in providers:
+                value = getattr(
+                    subscriptions_by_user_id.get(user.id),
+                    "reason",
+                    GroupSubscriptionReason.implicit,
+                )
+                result[provider][user] = value
+
+        return result
 
 
 class GroupSubscription(Model):

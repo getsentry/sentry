@@ -125,6 +125,40 @@ def should_be_participating(
     return value == NotificationSettingOptionValues.ALWAYS
 
 
+def where_should_be_participating(
+    user: Any,
+    subscriptions_by_user_id: Mapping[int, Any],
+    notification_settings_by_user: Mapping[
+        Any,
+        Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
+    ],
+) -> List[ExternalProviders]:
+    """
+    Given a mapping of users to subscriptions and a mapping of default and
+    specific notification settings by user, determine where a user should receive
+    a WORKFLOW notification. Unfortunately, this algorithm does not respect
+    NotificationSettingOptionValues.ALWAYS. If the user is unsubscribed from
+    the group, that overrides their notification preferences.
+    """
+    mapping = _get_setting_mapping_from_mapping(
+        notification_settings_by_user,
+        user,
+        NotificationSettingTypes.WORKFLOW,
+    )
+    output = []
+    for provider, value in mapping.items():
+        subscription = subscriptions_by_user_id.get(user.id)
+        if (subscription and not subscription.is_active) or (
+            value == NotificationSettingOptionValues.NEVER
+        ):
+            continue
+        if (subscription and subscription.is_active) or (
+            value == NotificationSettingOptionValues.ALWAYS
+        ):
+            output.append(provider)
+    return output
+
+
 def transform_to_notification_settings_by_user(
     notification_settings: Iterable[Any],
     users: Iterable[Any],
