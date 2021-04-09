@@ -420,20 +420,12 @@ class EventView {
         name: decodeScalar(location.query.name) || saved.name,
         fields,
         query: decodeQuery(location) || queryStringFromSavedQuery(saved),
-        project: projects.length === 0 ? saved.projects : projects,
+        project: projects,
         start: decodeScalar(start) || decodeScalar(savedStart),
         end: decodeScalar(end) || decodeScalar(savedEnd),
         statsPeriod: decodeScalar(statsPeriod) || decodeScalar(savedStatsPeriod),
         sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
-        environment:
-          environments.length === 0
-            ? collectQueryStringByKey(
-                {
-                  environment: saved.environment as string[],
-                },
-                'environment'
-              )
-            : environments,
+        environment: environments,
         yAxis: decodeScalar(location.query.yAxis) || saved.yAxis,
         display: decodeScalar(location.query.display) || saved.display,
         interval: decodeScalar(location.query.interval),
@@ -1035,7 +1027,7 @@ class EventView {
   }
 
   getInitialResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
-    const output = {id: this.id, interval: this.interval};
+    const output = {id: this.id, project: this.project, environment: this.environment};
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
       if (this[field] && this[field].length) {
         output[field] = this[field];
