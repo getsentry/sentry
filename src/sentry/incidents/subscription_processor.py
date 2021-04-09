@@ -3,17 +3,16 @@ import operator
 from copy import deepcopy
 from datetime import timedelta
 
-
 from django.conf import settings
 from django.db import transaction
 
 from sentry import features
 from sentry.incidents.logic import (
-    create_incident,
     CRITICAL_TRIGGER_LABEL,
+    WARNING_TRIGGER_LABEL,
+    create_incident,
     deduplicate_trigger_actions,
     update_incident_status,
-    WARNING_TRIGGER_LABEL,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -30,9 +29,8 @@ from sentry.incidents.models import (
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
 from sentry.utils import metrics, redis
-from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.compat import zip
-
+from sentry.utils.dates import to_datetime, to_timestamp
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())

@@ -101,12 +101,12 @@ class NotificationSetting(Model):
         )
 
     __repr__ = sane_repr(
-        "scope_type",
+        "scope_str",
         "scope_identifier",
         "target",
-        "provider",
-        "type",
-        "value",
+        "provider_str",
+        "type_str",
+        "value_str",
     )
 
 

@@ -1,12 +1,12 @@
 import operator
 import sys
-
 from collections import defaultdict
+from functools import reduce
+
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
 
 from sentry.models import Organization, OrganizationMember, User
-from functools import reduce
 
 
 class Command(BaseCommand):

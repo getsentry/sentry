@@ -1,13 +1,13 @@
 import os.path
 from base64 import b64encode
-from django.utils.encoding import force_bytes
 
 import responses
+from django.utils.encoding import force_bytes
 
-from sentry.testutils import RelayStoreHelper, TransactionTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.compat.mock import patch
 from sentry.models import File, Release, ReleaseFile
+from sentry.testutils import RelayStoreHelper, SnubaTestCase, TransactionTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 
 BASE64_SOURCEMAP = "data:application/json;base64," + (
     b64encode(

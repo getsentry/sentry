@@ -1,8 +1,8 @@
 import os
-
 from urllib.parse import parse_qsl
-from django.core.urlresolvers import reverse
+
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.db.models import F
 
 from sentry.models import (
@@ -12,8 +12,8 @@ from sentry.models import (
     Organization,
     OrganizationMember,
 )
-from sentry.utils.compat import mock
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 
 
 # TODO(joshuarli): move all fixtures to a standard path relative to gitroot,

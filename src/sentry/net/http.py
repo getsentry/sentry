@@ -1,15 +1,13 @@
 import socket
-from socket import error as SocketError, timeout as SocketTimeout
+from socket import error as SocketError
+from socket import timeout as SocketTimeout
 
 from requests import Session as _Session
-from requests.adapters import HTTPAdapter, DEFAULT_POOLBLOCK
-from urllib3.connectionpool import (
-    HTTPConnectionPool,
-    HTTPSConnectionPool,
-    connection_from_url as _connection_from_url,
-)
+from requests.adapters import DEFAULT_POOLBLOCK, HTTPAdapter
 from urllib3.connection import HTTPConnection, HTTPSConnection
-from urllib3.exceptions import NewConnectionError, ConnectTimeoutError
+from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
+from urllib3.connectionpool import connection_from_url as _connection_from_url
+from urllib3.exceptions import ConnectTimeoutError, NewConnectionError
 from urllib3.poolmanager import PoolManager
 from urllib3.util.connection import _set_socket_options
 

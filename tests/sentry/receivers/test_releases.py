@@ -1,9 +1,7 @@
 from hashlib import sha1
-from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
 from sentry.models import (
-    add_group_to_inbox,
     Activity,
     Commit,
     CommitAuthor,
@@ -19,8 +17,10 @@ from sentry.models import (
     Repository,
     UserEmail,
     UserOption,
+    add_group_to_inbox,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class ResolveGroupResolutionsTest(TestCase):

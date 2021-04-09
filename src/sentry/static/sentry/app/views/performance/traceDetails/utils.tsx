@@ -1,5 +1,6 @@
 import {LocationDescriptor, Query} from 'history';
 
+import {PAGE_URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {reduceTrace} from 'app/utils/performance/quickTrace/utils';
@@ -12,9 +13,15 @@ export function getTraceDetailsUrl(
   dateSelection,
   query: Query
 ): LocationDescriptor {
+  const {start, end, statsPeriod} = dateSelection;
   return {
     pathname: `/organizations/${organization.slug}/performance/trace/${traceSlug}/`,
-    query: {...query, ...dateSelection},
+    query: {
+      ...query,
+      statsPeriod,
+      [PAGE_URL_PARAM.PAGE_START]: start,
+      [PAGE_URL_PARAM.PAGE_END]: end,
+    },
   };
 }
 

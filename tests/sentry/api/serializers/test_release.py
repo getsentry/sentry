@@ -1,4 +1,3 @@
-from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
 from sentry import tagstore
@@ -18,7 +17,8 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 
 
 class ReleaseSerializerTest(TestCase, SnubaTestCase):

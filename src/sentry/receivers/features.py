@@ -5,10 +5,9 @@ from django.db.models.signals import post_save
 from sentry import analytics
 from sentry.adoption import manager
 from sentry.models import FeatureAdoption, GroupTombstone, Organization
-from sentry.plugins.bases import IssueTrackingPlugin
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_DATA
+from sentry.receivers.rules import DEFAULT_RULE_DATA, DEFAULT_RULE_LABEL
 from sentry.signals import (
     advanced_search,
     advanced_search_feature_gated,
@@ -24,12 +23,12 @@ from sentry.signals import (
     integration_issue_created,
     integration_issue_linked,
     issue_assigned,
-    issue_resolved,
+    issue_deleted,
     issue_ignored,
     issue_mark_reviewed,
-    issue_unresolved,
+    issue_resolved,
     issue_unignored,
-    issue_deleted,
+    issue_unresolved,
     member_joined,
     ownership_rule_created,
     plugin_enabled,

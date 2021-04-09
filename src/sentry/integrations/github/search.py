@@ -1,9 +1,9 @@
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.integrations.github.integration import build_repository_query
 from sentry.models import Integration
+from sentry.shared_integrations.exceptions import ApiError
 
 
 class GitHubSearchEndpoint(IntegrationEndpoint):

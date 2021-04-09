@@ -2,9 +2,9 @@ from sentry.plugins.base.v2 import Plugin2
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
 
-from .processor import JavaScriptStacktraceProcessor
-from .errormapping import rewrite_exception
 from .errorlocale import translate_exception
+from .errormapping import rewrite_exception
+from .processor import JavaScriptStacktraceProcessor
 
 
 def preprocess_event(data):

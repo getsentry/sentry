@@ -1,6 +1,5 @@
-import unittest
 import pickle
-
+import unittest
 
 from django import forms
 from django.db import connection, models
@@ -293,6 +292,7 @@ class BitFieldTest(TestCase):
 
     def test_binary_capacity(self):
         import math
+
         from django.db.models.fields import BigIntegerField
 
         # Local maximum value, slow canonical algorithm

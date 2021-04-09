@@ -1,13 +1,13 @@
 from datetime import datetime
+
 from django.utils import timezone
 from jwt import ExpiredSignatureError
 
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError
-from sentry.models import Integration, ExternalIssue, GroupLink, Group
+from sentry.models import ExternalIssue, Group, GroupLink, Integration
 from sentry.testutils import APITestCase
 from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
-
 
 UNABLE_TO_VERIFY_INSTALLATION = b"Unable to verify installation"
 REFRESH_REQUIRED = b"This page has expired, please refresh to view the Sentry issue"

@@ -1,12 +1,12 @@
-import responses
+from urllib.parse import parse_qs
 
+import responses
 from exam import fixture
+
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-from urllib.parse import parse_qs
-
 from sentry_plugins.slack.plugin import SlackPlugin
 
 

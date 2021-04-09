@@ -1,24 +1,24 @@
 import logging
-from sentry.utils.compat import mock
-import pytest
 import uuid
-
 from datetime import datetime, timedelta
-from django.utils import timezone
 from time import time
+
+import pytest
+from django.utils import timezone
 
 from sentry import nodestore
 from sentry.app import tsdb
-from sentry.attachments import attachment_cache, CachedAttachment
-from sentry.constants import DataCategory, MAX_VERSION_LENGTH
-from sentry.eventstore.models import Event
+from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.event_manager import (
-    HashDiscarded,
     EventManager,
     EventUser,
+    HashDiscarded,
     has_pending_commit_resolution,
 )
+from sentry.eventstore.models import Event
 from sentry.grouping.utils import hash_from_values
+from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.models import (
     Activity,
     Commit,
@@ -33,17 +33,17 @@ from sentry.models import (
     GroupStatus,
     GroupTombstone,
     Integration,
+    OrganizationIntegration,
     Release,
     ReleaseCommit,
     ReleaseProjectEnvironment,
-    OrganizationIntegration,
     UserReport,
 )
-from sentry.utils.cache import cache_key_for_event
-from sentry.utils.outcomes import Outcome
-from sentry.testutils import assert_mock_called_once_with_partial, TestCase
+from sentry.testutils import TestCase, assert_mock_called_once_with_partial
 from sentry.testutils.helpers import Feature
-from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.utils.cache import cache_key_for_event
+from sentry.utils.compat import mock
+from sentry.utils.outcomes import Outcome
 
 
 def make_event(**kwargs):

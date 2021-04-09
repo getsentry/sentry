@@ -1,13 +1,10 @@
 from django.test import override_settings
 
-from sentry.demo.settings import DEMO_DATA_GEN_PARAMS
 from sentry.demo.data_population import handle_react_python_scenario
-from sentry.models import (
-    Release,
-)
+from sentry.demo.settings import DEMO_DATA_GEN_PARAMS
+from sentry.models import Release
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
-
 
 # significantly decrease event volume
 DEMO_DATA_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()

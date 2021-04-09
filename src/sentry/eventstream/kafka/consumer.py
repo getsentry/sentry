@@ -2,14 +2,14 @@ import functools
 import logging
 import threading
 import uuid
-
 from concurrent.futures import TimeoutError
+
 from confluent_kafka import (
-    Consumer,
     OFFSET_BEGINNING,
     OFFSET_END,
-    OFFSET_STORED,
     OFFSET_INVALID,
+    OFFSET_STORED,
+    Consumer,
     TopicPartition,
 )
 
@@ -17,8 +17,8 @@ from sentry.eventstream.kafka.state import (
     SynchronizedPartitionState,
     SynchronizedPartitionStateManager,
 )
-from sentry.utils.concurrent import execute
 from sentry.utils import kafka_config
+from sentry.utils.concurrent import execute
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,10 @@
-from django.db import models
-from django.utils import timezone
 from enum import IntEnum
 
+from django.db import models
+from django.utils import timezone
+
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey
 from sentry.models import DefaultFieldsModel, Organization, User
-from sentry.db.models import FlexibleForeignKey, BoundedPositiveIntegerField
 
 
 class DemoOrgStatus(IntEnum):

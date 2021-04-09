@@ -1,6 +1,6 @@
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import GroupShare
+from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
 

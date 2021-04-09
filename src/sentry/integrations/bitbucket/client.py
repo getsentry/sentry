@@ -1,13 +1,12 @@
 import datetime
-import jwt
-
-from unidiff import PatchSet
-
 from urllib.parse import urlparse
 
-from sentry.utils.http import absolute_uri
+import jwt
+from unidiff import PatchSet
+
 from sentry.integrations.atlassian_connect import get_query_hash
 from sentry.integrations.client import ApiClient
+from sentry.utils.http import absolute_uri
 
 BITBUCKET_KEY = "%s.bitbucket" % urlparse(absolute_uri()).hostname
 

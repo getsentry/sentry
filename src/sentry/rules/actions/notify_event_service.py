@@ -3,6 +3,7 @@ Used for notifying a *specific* plugin
 """
 
 import logging
+
 from django import forms
 
 from sentry.api.serializers import serialize
@@ -19,7 +20,6 @@ from sentry.rules.actions.services import PluginService, SentryAppService
 from sentry.tasks.sentry_apps import notify_sentry_app, send_and_save_webhook_request
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
 

@@ -1,15 +1,14 @@
 import logging
-
 from datetime import timedelta
 from enum import IntEnum
 
-from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
 
+from bitfield import BitField
 from sentry import roles
 from sentry.app import locks
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, RESERVED_PROJECT_SLUGS
@@ -226,6 +225,7 @@ class Organization(Model):
             AuditLogEntry,
             AuthProvider,
             Commit,
+            Environment,
             OrganizationAvatar,
             OrganizationIntegration,
             OrganizationMember,
@@ -238,7 +238,6 @@ class Organization(Model):
             ReleaseHeadCommit,
             Repository,
             Team,
-            Environment,
         )
 
         for from_member in OrganizationMember.objects.filter(

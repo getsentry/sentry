@@ -1,32 +1,32 @@
 import datetime
-import pytest
 import unittest
 from datetime import timedelta
-from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME, SPAN_STATUS_NAME_TO_CODE
 
+import pytest
 from django.utils import timezone
 from freezegun import freeze_time
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME, SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
 from sentry.api.event_search import (
+    FUNCTIONS,
+    OPERATOR_TO_FUNCTION,
     AggregateKey,
-    event_search_grammar,
     Function,
     FunctionArg,
-    FUNCTIONS,
     FunctionDetails,
-    with_default,
-    get_filter,
-    resolve_field_list,
-    parse_function,
-    parse_search_query,
-    get_json_meta_type,
     InvalidSearchQuery,
-    OPERATOR_TO_FUNCTION,
     SearchFilter,
     SearchKey,
     SearchValue,
     SearchVisitor,
+    event_search_grammar,
+    get_filter,
+    get_json_meta_type,
+    parse_function,
+    parse_search_query,
+    resolve_field_list,
+    with_default,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -3095,6 +3095,25 @@ class ResolveFieldListTest(unittest.TestCase):
             fields = ["count_range(lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
         assert "middle argument invalid: today is in the wrong format" in str(err)
+
+    def test_count_if(self):
+        fields = [
+            "count_if(event.type,equals,transaction)",
+            "count_if(event.type,notEquals,transaction)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["equals", ["event.type", "'transaction'"]]],
+                "count_if_event_type_equals_transaction",
+            ],
+            [
+                "countIf",
+                [["notEquals", ["event.type", "'transaction'"]]],
+                "count_if_event_type_notEquals_transaction",
+            ],
+        ]
 
     def test_absolute_correlation(self):
         fields = ["absolute_correlation()"]

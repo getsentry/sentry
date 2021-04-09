@@ -1,6 +1,7 @@
 from typing import Iterator
 
 import pytest
+
 from sentry.utils.codecs import BytesCodec, JSONCodec
 from sentry.utils.kvstore.abstract import KVStorage
 from sentry.utils.kvstore.encoding import KVStorageCodecWrapper
