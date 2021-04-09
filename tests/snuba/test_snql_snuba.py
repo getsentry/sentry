@@ -3,13 +3,14 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.utils import snuba
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
 from snuba_sdk.function import Function
 from snuba_sdk.query import Query
+
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.utils import snuba
 
 
 class SnQLTest(TestCase, SnubaTestCase):
