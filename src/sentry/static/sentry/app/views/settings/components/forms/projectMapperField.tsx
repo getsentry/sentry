@@ -180,6 +180,7 @@ export class RenderField extends React.Component<RenderProps, State> {
             avatarSize={20}
             displayName={project.slug}
             avatarProps={{consistentWidth: true}}
+            disableLink
           />
         </components.ValueContainer>
       );
@@ -198,6 +199,7 @@ export class RenderField extends React.Component<RenderProps, State> {
             avatarSize={20}
             displayName={project.slug}
             avatarProps={{consistentWidth: true}}
+            disableLink
           />
         </components.Option>
       );
