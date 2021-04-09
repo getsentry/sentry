@@ -71,7 +71,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       [
         'incidentList',
         `/organizations/${params && params.orgId}/incidents/`,
-        {query: {...query, status}},
+        {query: {...query, expand: ['original_alert_rule'], status}},
       ],
     ];
   }
