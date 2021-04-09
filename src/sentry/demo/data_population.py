@@ -151,9 +151,9 @@ def gen_measurements(full_duration):
     Generate measurements that are random but based on the full duration
     """
     return {
-        "fp": {"value": duration_ms - random_normal(400, 100, 100)},
-        "fcp": {"value": duration_ms - random_normal(400, 100, 100)},
-        "lcp": {"value": duration_ms + random_normal(400, 100, 100)},
+        "fp": {"value": duration_ms * random.uniform(0.8, 0.95)},
+        "fcp": {"value": duration_ms * random.uniform(0.8, 0.95)},
+        "lcp": {"value": duration_ms * random.uniform(1.05, 1.2)},
         "fid": {"value": random_normal(5, 2, 1)},
     }
 
@@ -166,14 +166,12 @@ def gen_frontend_duration(day, quick):
     config = get_config(quick)
     DAY_DURATION_IMPACT = config["DAY_DURATION_IMPACT"]
     MAX_DAYS = config["MAX_DAYS"]
-    BASE_FRONTEND_DURATION = config["BASE_FRONTEND_DURATION"]
     MIN_FRONTEND_DURATION = config["MIN_FRONTEND_DURATION"]
-    DURATION_SIGMA = config["DURATION_SIGMA"]
     day_weight = DAY_DURATION_IMPACT * day / MAX_DAYS
-    return (
-        random_normal(BASE_FRONTEND_DURATION - day_weight, DURATION_SIGMA, MIN_FRONTEND_DURATION)
-        / 1000.0
-    )
+
+    alpha = config["DURATION_ALPHA"]
+    beta = config["DURATION_BETA"]
+    return MIN_FRONTEND_DURATION / 1000.0 + random.gammavariate(alpha, beta) / (1 + day_weight)
 
 
 @functools.lru_cache(maxsize=None)
@@ -818,7 +816,7 @@ def populate_connected_event_scenario_1(
 
         # python transaction
         old_span_id = python_transaction["contexts"]["trace"]["span_id"]
-        backend_duration = frontend_duration - random_normal(0.3, 0.1, 0.1)
+        backend_duration = frontend_duration * random.uniform(0.8, 0.95)
 
         backend_trace = {
             "trace_id": trace_id,
@@ -904,7 +902,7 @@ def populate_connected_event_scenario_1b(
 
         # python transaction
         old_span_id = python_transaction["contexts"]["trace"]["span_id"]
-        backend_duration = frontend_duration - random_normal(0.3, 0.1, 0.1)
+        backend_duration = frontend_duration * random.uniform(0.8, 0.95)
 
         backend_trace = {
             "trace_id": trace_id,
@@ -984,7 +982,7 @@ def populate_connected_event_scenario_2(
 
         # python transaction
         old_span_id = python_transaction["contexts"]["trace"]["span_id"]
-        backend_duration = frontend_duration - random_normal(0.3, 0.1, 0.1)
+        backend_duration = frontend_duration * random.uniform(0.8, 0.95)
 
         backend_trace = {
             "trace_id": trace_id,
@@ -1097,10 +1095,15 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     with sentry_sdk.start_span(op="handle_react_python_scenario", description="pre_event_setup"):
         generate_releases([react_project, python_project], quick=quick)
         generate_alerts(python_project)
-        generate_saved_query(react_project, "/productstore", "Product Store")
-    with sentry_sdk.start_span(op="handle_react_python_scenario", description="populate_sessions"):
-        populate_sessions(react_project, "sessions/react_unhandled_exception.json", quick=quick)
-        populate_sessions(python_project, "sessions/python_unhandled_exception.json", quick=quick)
+        generate_saved_query(react_project, "/productstore", "Product Store by Browser")
+    if not get_config_var("DISABLE_SESSIONS", quick):
+        with sentry_sdk.start_span(
+            op="handle_react_python_scenario", description="populate_sessions"
+        ):
+            populate_sessions(react_project, "sessions/react_unhandled_exception.json", quick=quick)
+            populate_sessions(
+                python_project, "sessions/python_unhandled_exception.json", quick=quick
+            )
     with sentry_sdk.start_span(
         op="handle_react_python_scenario", description="populate_connected_events"
     ):
