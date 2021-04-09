@@ -12,6 +12,7 @@ import {
   TransactionDestination,
 } from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
+import {backend, frontend} from 'app/data/platformCategories';
 import {IconFire} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
@@ -19,6 +20,7 @@ import {Event} from 'app/types/event';
 import {toTitleCase} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getDuration} from 'app/utils/formatters';
+import localStorage from 'app/utils/localStorage';
 import {
   QuickTrace as QuickTraceType,
   QuickTraceEvent,
@@ -28,11 +30,15 @@ import {parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
+const FRONTEND_PLATFORMS: string[] = [...frontend];
+const BACKEND_PLATFORMS: string[] = [...backend];
+
 import {
   DropdownItem,
   DropdownItemSubContainer,
   ErrorNodeContent,
   EventNode,
+  ExternalDropdownLink,
   QuickTraceContainer,
   SectionSubtext,
   SingleEventHoverText,
@@ -75,6 +81,7 @@ export default function QuickTrace({
     return <React.Fragment>{'\u2014'}</React.Fragment>;
   }
 
+  const traceLength = quickTrace.trace && quickTrace.trace.length;
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const nodes: React.ReactNode[] = [];
@@ -136,7 +143,7 @@ export default function QuickTrace({
     nodes.push(<TraceConnector key="parent-connector" />);
   }
 
-  nodes.push(
+  const currentNode = (
     <EventNodeSelector
       key="current-node"
       location={location}
@@ -150,6 +157,47 @@ export default function QuickTrace({
       transactionDest={transactionDest}
     />
   );
+
+  if (traceLength === 1) {
+    nodes.push(
+      <Projects
+        key="missing-services"
+        orgId={organization.slug}
+        slugs={[current.project_slug]}
+      >
+        {({projects}) => {
+          const project = projects.find(p => p.slug === current.project_slug);
+          if (project) {
+            if (BACKEND_PLATFORMS.includes(project?.platform as string))
+              return (
+                <React.Fragment>
+                  <MissingServiceNode
+                    anchor={anchor}
+                    organization={organization}
+                    connectorSide="right"
+                  />
+                  {currentNode}
+                </React.Fragment>
+              );
+            else if (FRONTEND_PLATFORMS.includes(project.platform as string))
+              return (
+                <React.Fragment>
+                  {currentNode}
+                  <MissingServiceNode
+                    anchor={anchor}
+                    organization={organization}
+                    connectorSide="left"
+                  />
+                </React.Fragment>
+              );
+          }
+          return currentNode;
+        }}
+      </Projects>
+    );
+  } else {
+    nodes.push(currentNode);
+  }
 
   if (children.length) {
     nodes.push(<TraceConnector key="children-connector" />);
@@ -445,4 +493,67 @@ function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNo
       </EventNode>
     </Tooltip>
   );
+}
+
+type MissingServiceProps = Pick<QuickTraceProps, 'anchor' | 'organization'> & {
+  connectorSide: 'left' | 'right';
+};
+type MissingServiceState = {
+  hideMissing: boolean;
+};
+
+const HIDE_MISSING_SERVICE_KEY = 'quick-trace:hide-missing-services';
+
+function readMissingServiceState() {
+  const value = localStorage.getItem(HIDE_MISSING_SERVICE_KEY);
+  return value === '1';
+}
+
+class MissingServiceNode extends React.Component<
+  MissingServiceProps,
+  MissingServiceState
+> {
+  state: MissingServiceState = {
+    hideMissing: readMissingServiceState(),
+  };
+
+  dismissMissingService = () => {
+    const {organization} = this.props;
+    localStorage.setItem(HIDE_MISSING_SERVICE_KEY, '1');
+    this.setState({hideMissing: true});
+    trackAnalyticsEvent({
+      eventKey: 'quick_trace.hide.missing-service',
+      eventName: 'Quick Trace: Missing Service Clicked',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
+  render() {
+    const {hideMissing} = this.state;
+    const {anchor, connectorSide} = this.props;
+    if (hideMissing) {
+      return null;
+    }
+    // TODO(wmak): Replace doc link with one that is either platform specific or platform agnostic
+    return (
+      <React.Fragment>
+        {connectorSide === 'left' && <TraceConnector />}
+        <DropdownLink
+          caret={false}
+          title={<EventNode type="white">???</EventNode>}
+          anchorRight={anchor === 'right'}
+        >
+          <DropdownItem first width="small">
+            <ExternalDropdownLink href="https://docs.sentry.io/platforms/javascript/performance/connect-services/">
+              {t('Connect to a service')}
+            </ExternalDropdownLink>
+          </DropdownItem>
+          <DropdownItem onSelect={this.dismissMissingService} width="small">
+            {t('Dismiss')}
+          </DropdownItem>
+        </DropdownLink>
+        {connectorSide === 'right' && <TraceConnector />}
+      </React.Fragment>
+    );
+  }
 }
