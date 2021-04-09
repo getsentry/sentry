@@ -21,6 +21,11 @@ class HistogramSerializer(serializers.Serializer):
     max = serializers.FloatField(required=False)
     dataFilter = serializers.ChoiceField(choices=DATA_FILTERS, required=False)
 
+    def validate(self, data):
+        if "min" in data and "max" in data and data["min"] > data["max"]:
+            raise serializers.ValidationError("min cannot be greater than max.")
+        return data
+
     def validate_field(self, fields):
         if len(fields) > 1:
             # Due to how the data is stored in snuba, multihistograms

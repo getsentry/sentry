@@ -99,6 +99,21 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
 
+    def test_bad_params_reverse_min_max(self):
+        for array_column in ARRAY_COLUMNS:
+            query = {
+                "query": "event.type:transaction",
+                "project": [self.project.id],
+                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "numBuckets": 10,
+                "precision": 0,
+                "min": 10,
+                "max": 5,
+            }
+
+            response = self.do_request(query)
+            assert response.data == {"non_field_errors": ["min cannot be greater than max."]}
+
     def test_bad_params_missing_fields(self):
         query = {
             "project": [self.project.id],
@@ -328,6 +343,58 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                 (2, 3, [(f"{array_column}.foo", 1)]),
                 (3, 4, [(f"{array_column}.foo", 0)]),
                 (4, 5, [(f"{array_column}.foo", 1)]),
+            ]
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
+
+    def test_histogram_simple_using_given_min_above_queried_max(self):
+        # All these events are out of range of the query parameters,
+        # and should not appear in the results.
+        specs = [
+            (0, 1, [("foo", 1)]),
+            (1, 2, [("foo", 1)]),
+            (2, 3, [("foo", 1)]),
+            (4, 5, [("foo", 1)]),
+        ]
+        self.populate_events(specs)
+
+        for array_column in ARRAY_COLUMNS:
+            query = {
+                "project": [self.project.id],
+                "field": [f"{array_column}.foo"],
+                "numBuckets": 5,
+                "min": 6,
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, f"failing for {array_column}"
+            expected = [
+                (6, 7, [(f"{array_column}.foo", 0)]),
+            ]
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
+
+    def test_histogram_simple_using_given_max_below_queried_min(self):
+        # All these events are out of range of the query parameters,
+        # and should not appear in the results.
+        specs = [
+            (6, 7, [("foo", 1)]),
+            (8, 9, [("foo", 1)]),
+            (10, 11, [("foo", 1)]),
+            (12, 13, [("foo", 1)]),
+        ]
+        self.populate_events(specs)
+
+        for array_column in ARRAY_COLUMNS:
+            query = {
+                "project": [self.project.id],
+                "field": [f"{array_column}.foo"],
+                "numBuckets": 5,
+                "max": 6,
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, f"failing for {array_column}"
+            expected = [
+                (5, 6, [(f"{array_column}.foo", 0)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 

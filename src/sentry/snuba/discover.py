@@ -1081,6 +1081,13 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
         min_values = [row[get_function_alias(column)] for column in min_columns]
         min_values = list(filter(lambda v: v is not None, min_values))
         min_value = min(min_values) if min_values else None
+        if max_value is not None and min_value is not None:
+            # max_value was provided by the user, and min_value was queried.
+            # If min_value > max_value, then we adjust min_value with respect to
+            # max_value. The rationale is that if the user provided max_value,
+            # then any and all data above max_value should be ignored since it is
+            # and upper bound.
+            min_value = min([max_value, min_value])
 
     if max_value is None:
         max_values = [row[get_function_alias(column)] for column in max_columns]
@@ -1113,6 +1120,12 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
         candidates = [max_fence_value, max_value]
         candidates = list(filter(lambda v: v is not None, candidates))
         max_value = min(candidates) if candidates else None
+        if max_value is not None and min_value is not None:
+            # min_value may be either queried or provided by the user. max_value was queried.
+            # If min_value > max_value, then max_value should be adjusted with respect to
+            # min_value, since min_value is a lower bound, and any and all data below
+            # min_value should be ignored.
+            max_value = max([max_value, min_value])
 
     return min_value, max_value
 
