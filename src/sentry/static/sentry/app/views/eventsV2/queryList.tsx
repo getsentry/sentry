@@ -179,7 +179,7 @@ class QueryList extends React.Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
-      const to = eventView.getInitialResultsViewUrlTarget(organization.slug);
+      const to = eventView.getResultsViewShortUrlTarget(organization.slug);
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
 
       return (

@@ -2428,7 +2428,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
   });
 });
 
-describe('EventView.getInitialResultsViewUrlTarget()', function () {
+describe('EventView.getResultsViewShortUrlTarget()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -2446,7 +2446,7 @@ describe('EventView.getInitialResultsViewUrlTarget()', function () {
 
   it('generates a URL', function () {
     const view = new EventView(state);
-    const result = view.getInitialResultsViewUrlTarget(organization.slug);
+    const result = view.getResultsViewShortUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
     expect(result.query).not.toHaveProperty('name');
     expect(result.query).not.toHaveProperty('fields');

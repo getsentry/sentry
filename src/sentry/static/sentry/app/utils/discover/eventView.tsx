@@ -350,13 +350,17 @@ class EventView {
     return EventView.fromSavedQuery(saved);
   }
 
-  static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
-    const fields = saved.fields.map((field, i) => {
+  static getFields(saved: NewQuery | SavedQuery) {
+    return saved.fields.map((field, i) => {
       const width =
         saved.widths && saved.widths[i] ? Number(saved.widths[i]) : COL_WIDTH_UNDEFINED;
 
       return {field, width};
     });
+  }
+
+  static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
+    const fields = EventView.getFields(saved);
     // normalize datetime selection
     const {start, end, statsPeriod} = getParams({
       start: saved.start,
@@ -401,14 +405,7 @@ class EventView {
 
     if (saved) {
       if (fields.length === 0) {
-        fields = saved.fields.map((field, i) => {
-          const width =
-            saved.widths && saved.widths[i]
-              ? Number(saved.widths[i])
-              : COL_WIDTH_UNDEFINED;
-
-          return {field, width};
-        });
+        fields = EventView.getFields(saved);
       }
       const params = getParams({
         start: saved.start,
@@ -420,18 +417,20 @@ class EventView {
         name: decodeScalar(location.query.name) || saved.name,
         fields,
         query: decodeQuery(location) || queryStringFromSavedQuery(saved),
-        project: projects,
         start: decodeScalar(start) || decodeScalar(params.start),
         end: decodeScalar(end) || decodeScalar(params.end),
         statsPeriod: decodeScalar(statsPeriod) || decodeScalar(params.statsPeriod),
         sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
-        environment: environments,
         yAxis: decodeScalar(location.query.yAxis) || saved.yAxis,
         display: decodeScalar(location.query.display) || saved.display,
         interval: decodeScalar(location.query.interval),
         createdBy: saved.createdBy,
         expired: saved.expired,
         additionalConditions: new QueryResults([]),
+        // Always read project and environment from location since they can
+        // be set by the GlobalSelectionHeaders.
+        project: projects,
+        environment: environments,
       });
     }
     return EventView.fromLocation(location);
@@ -1026,7 +1025,7 @@ class EventView {
     };
   }
 
-  getInitialResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
+  getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
     const output = {id: this.id, project: this.project, environment: this.environment};
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
       if (this[field] && this[field].length) {
