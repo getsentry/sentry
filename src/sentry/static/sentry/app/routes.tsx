@@ -1886,6 +1886,7 @@ function routes() {
 
           {/* Admin/manage routes */}
           <Route
+            name="Admin"
             path="/manage/"
             componentPromise={() =>
               import(/* webpackChunkName: "AdminLayout" */ 'app/views/admin/adminLayout')
@@ -1901,6 +1902,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              name="Buffer"
               path="buffer/"
               componentPromise={() =>
                 import(
@@ -1910,6 +1912,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              name="Relays"
               path="relays/"
               componentPromise={() =>
                 import(
@@ -1919,6 +1922,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              name="Organizations"
               path="organizations/"
               componentPromise={() =>
                 import(
@@ -1928,6 +1932,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              name="Projects"
               path="projects/"
               componentPromise={() =>
                 import(
@@ -1937,6 +1942,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              name="Queue"
               path="queue/"
               componentPromise={() =>
                 import(/* webpackChunkName: "AdminQueue" */ 'app/views/admin/adminQueue')
@@ -1944,6 +1950,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              name="Quotas"
               path="quotas/"
               componentPromise={() =>
                 import(
@@ -1953,6 +1960,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              name="Settings"
               path="settings/"
               componentPromise={() =>
                 import(
@@ -1961,7 +1969,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
-            <Route path="users/">
+            <Route name="Users" path="users/">
               <IndexRoute
                 componentPromise={() =>
                   import(
@@ -1981,6 +1989,7 @@ function routes() {
               />
             </Route>
             <Route
+              name="Mail"
               path="status/mail/"
               componentPromise={() =>
                 import(/* webpackChunkName: "AdminMail" */ 'app/views/admin/adminMail')
@@ -1988,6 +1997,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              name="Environment"
               path="status/environment/"
               componentPromise={() =>
                 import(
@@ -1997,6 +2007,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              name="Packages"
               path="status/packages/"
               componentPromise={() =>
                 import(
@@ -2006,6 +2017,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              name="Warnings"
               path="status/warnings/"
               componentPromise={() =>
                 import(

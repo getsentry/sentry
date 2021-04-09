@@ -3,6 +3,7 @@ import logging
 from django.contrib.auth.models import update_last_login
 from django.contrib.auth.signals import user_logged_in
 from django.db.utils import DatabaseError
+
 from sentry.models import UserOption
 
 

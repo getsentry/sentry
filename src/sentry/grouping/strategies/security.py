@@ -1,5 +1,5 @@
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy, produces_variants
+from sentry.grouping.strategies.base import produces_variants, strategy
 
 
 def _security_v1(reported_id, obj, context, **meta):

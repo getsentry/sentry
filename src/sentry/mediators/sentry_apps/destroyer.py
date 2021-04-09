@@ -1,6 +1,5 @@
 from sentry import analytics
-from sentry.mediators import Mediator, Param
-from sentry.mediators import sentry_app_installations
+from sentry.mediators import Mediator, Param, sentry_app_installations
 from sentry.models import AuditLogEntryEvent
 from sentry.utils.audit import create_audit_entry
 

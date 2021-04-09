@@ -1,19 +1,19 @@
 import logging
 from enum import Enum
+from typing import Optional
 
-from django.db import models, IntegrityError
+from django.db import IntegrityError, models
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     EncryptedJsonField,
     FlexibleForeignKey,
     Model,
-    DefaultFieldsModel,
 )
 from sentry.signals import integration_added
-
 
 logger = logging.getLogger(__name__)
 
@@ -78,9 +78,13 @@ EXTERNAL_PROVIDERS = {
 }
 
 
+def get_provider_name(value: int) -> Optional[str]:
+    return EXTERNAL_PROVIDERS.get(ExternalProviders(value))
+
+
 class ExternalProviderMixin:
     def get_provider_string(provider_int):
-        return EXTERNAL_PROVIDERS.get(ExternalProviders(provider_int), "unknown")
+        return get_provider_name(provider_int) or "unknown"
 
     def get_provider_enum(provider_str):
         inv_providers_map = {v: k for k, v in EXTERNAL_PROVIDERS.items()}

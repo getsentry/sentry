@@ -1,16 +1,17 @@
 from django.http import HttpResponse
+
 from sentry.integrations import (
-    IntegrationInstallation,
+    FeatureDescription,
     IntegrationFeatures,
+    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
-    FeatureDescription,
 )
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.mediators.plugins import Migrator
 from sentry.models import User
 from sentry.pipeline import PipelineView
+from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class ExampleSetupView(PipelineView):

@@ -1,11 +1,10 @@
 import responses
-
-from exam import fixture
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
+from exam import fixture
+
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
 from sentry_plugins.clubhouse.plugin import ClubhousePlugin
 
 

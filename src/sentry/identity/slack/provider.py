@@ -1,5 +1,5 @@
 from sentry import options
-from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
+from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 
 
 class SlackIdentityProvider(OAuth2Provider):

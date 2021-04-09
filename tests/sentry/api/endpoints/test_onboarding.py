@@ -1,4 +1,4 @@
-from sentry.models import OrganizationOnboardingTask, OnboardingTask, OnboardingTaskStatus
+from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
 from sentry.testutils import APITestCase
 
 

@@ -1,5 +1,5 @@
-from sentry.testutils import TestCase
 from sentry.models import ApiApplication, SentryApp, SentryAppInstallation
+from sentry.testutils import TestCase
 
 
 class SentryAppInstallationTest(TestCase):

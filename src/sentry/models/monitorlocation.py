@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import Model, BaseManager, UUIDField, sane_repr
+from sentry.db.models import BaseManager, Model, UUIDField, sane_repr
 
 
 class MonitorLocation(Model):

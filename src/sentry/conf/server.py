@@ -2,21 +2,20 @@
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
 
-from django.conf.global_settings import *  # NOQA
-
 import os
 import os.path
 import re
 import socket
 import sys
 import tempfile
+from datetime import timedelta
+from urllib.parse import urlparse
+
+from django.conf.global_settings import *  # NOQA
 
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
-
-from datetime import timedelta
-from urllib.parse import urlparse
 
 
 def gettext_noop(s):
@@ -839,6 +838,8 @@ SENTRY_FEATURES = {
     "organizations:api-keys": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
+    # Enable unfurling charts using the Chartcuterie service
+    "organizations:chart-unfurls": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -2142,6 +2143,12 @@ SENTRY_USE_UWSGI = True
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
+
+# Timeout for the project counter statement execution.
+# In case of contention on the project counter, prevent workers saturation with
+# save_event tasks from single project.
+# Value is in milliseconds. Set to `None` to disable.
+SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None

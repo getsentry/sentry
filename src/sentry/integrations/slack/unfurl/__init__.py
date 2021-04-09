@@ -5,13 +5,14 @@ from django.http.request import HttpRequest
 
 from sentry.models import Integration
 
-UnfurledUrl = Any
+UnfurledUrl = Mapping
 ArgsMapper = Callable[[str, Mapping[str, str]], Mapping[str, Any]]
 
 
 class LinkType(enum.Enum):
     ISSUES = "issues"
     INCIDENTS = "incidents"
+    DISCOVER = "discover"
 
 
 class UnfurlableUrl(NamedTuple):
@@ -37,12 +38,14 @@ def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
     return type_coercer
 
 
+from .discover import handler as discover_handler
 from .incidents import handler as incidents_handler
 from .issues import handler as issues_handler
 
 link_handlers = {
-    LinkType.ISSUES: issues_handler,
+    LinkType.DISCOVER: discover_handler,
     LinkType.INCIDENTS: incidents_handler,
+    LinkType.ISSUES: issues_handler,
 }
 
 
@@ -54,5 +57,4 @@ def match_link(link: str):
 
         args = handler.arg_mapper(link, match.groupdict())
         return link_type, args
-
     return None, None

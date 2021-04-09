@@ -1,6 +1,5 @@
-from sentry import http, options, features
-
-from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
+from sentry import features, http, options
+from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 from sentry.utils.http import absolute_uri
 
 
@@ -115,10 +114,11 @@ class VSTSIdentityProvider(OAuth2Provider):
 
 class VSTSOAuth2CallbackView(OAuth2CallbackView):
     def exchange_token(self, request, pipeline, code):
-        from sentry.http import safe_urlopen, safe_urlread
-        from sentry.utils.http import absolute_uri
         from urllib.parse import parse_qsl
+
+        from sentry.http import safe_urlopen, safe_urlread
         from sentry.utils import json
+        from sentry.utils.http import absolute_uri
 
         req = safe_urlopen(
             url=self.access_token_url,

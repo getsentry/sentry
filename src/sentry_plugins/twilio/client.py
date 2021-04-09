@@ -1,4 +1,5 @@
 from base64 import b64encode
+
 from django.utils.encoding import force_bytes
 
 from sentry_plugins.client import ApiClient

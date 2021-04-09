@@ -1,4 +1,4 @@
-from sentry.api.serializers import serialize, Serializer
+from sentry.api.serializers import Serializer, serialize
 from sentry.testutils import TestCase
 
 

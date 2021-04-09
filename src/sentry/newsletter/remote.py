@@ -1,6 +1,6 @@
 import logging
-from uuid import uuid4
 from hashlib import sha1
+from uuid import uuid4
 
 from sentry.http import safe_urlopen
 from sentry.newsletter.base import Newsletter

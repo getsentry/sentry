@@ -13,10 +13,7 @@ from sentry.models import (
     Rule,
 )
 from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
-    NotificationSettingTypes,
-    NotificationSettingOptionValues,
-)
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
 from sentry.utils.compat import zip
 
@@ -301,7 +298,7 @@ class FilterToSubscribedUsersTest(TestCase):
         assert (
             NotificationSetting.objects.filter_to_subscribed_users(
                 ExternalProviders.EMAIL, self.project, users
-            )
+            )[ExternalProviders.EMAIL]
             == expected_users
         )
 

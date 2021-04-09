@@ -1,17 +1,17 @@
-from django.db import connection
-from sentry.utils.compat.mock import patch
 import responses
+from django.db import connection
 
 from sentry.mediators.sentry_apps import Destroyer
 from sentry.models import (
+    ApiApplication,
     AuditLogEntry,
     AuditLogEntryEvent,
-    ApiApplication,
-    User,
     SentryApp,
     SentryAppInstallation,
+    User,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class TestDestroyer(TestCase):

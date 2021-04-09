@@ -5,10 +5,10 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
-from sentry.incidents.models import IncidentActivityType
 from sentry.incidents.logic import create_incident_activity
+from sentry.incidents.models import IncidentActivityType
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class IncidentActivitySerializerTest(TestCase, SnubaTestCase):

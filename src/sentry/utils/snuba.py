@@ -713,7 +713,11 @@ def _bulk_snuba_query(
         op="start_snuba_query",
         description=f"running {len(snuba_param_list)} snuba queries",
     ) as span:
-        span.set_tag("referrer", headers.get("referer", "<unknown>"))
+        query_referrer = headers.get("referer", "<unknown>")
+        # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
+        # but we still want to know a general sense of how referrers impact performance
+        span.set_tag("query.referrer", query_referrer)
+        sentry_sdk.set_tag("query.referrer", query_referrer)
         query_fn = _snql_query if use_snql else _snuba_query
 
         if len(snuba_param_list) > 1:

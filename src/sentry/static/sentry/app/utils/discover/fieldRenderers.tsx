@@ -5,6 +5,16 @@ import partial from 'lodash/partial';
 
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
+import {
+  DurationPill,
+  getDurationDisplay,
+  SpanBarRectangle,
+} from 'app/components/events/interfaces/spans/spanBar';
+import {
+  getHumanDuration,
+  pickSpanBarColour,
+  toPercent,
+} from 'app/components/events/interfaces/spans/utils';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import UserMisery from 'app/components/userMisery';
@@ -12,7 +22,12 @@ import Version from 'app/components/version';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
-import {AGGREGATIONS, getAggregateAlias} from 'app/utils/discover/fields';
+import {
+  AGGREGATIONS,
+  getAggregateAlias,
+  getSpanOperationName,
+  isSpanOperationBreakdownField,
+} from 'app/utils/discover/fields';
 import {getShortEventId} from 'app/utils/events';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -468,6 +483,43 @@ export function getSortField(
   return null;
 }
 
+const spanOperationBreakdownRenderer = (field: string) => (
+  data: EventData
+): React.ReactNode => {
+  if (!('transaction.duration' in data)) {
+    return FIELD_FORMATTERS.duration.renderFunc(field, data);
+  }
+  const transactionDuration = data['transaction.duration'];
+  const spanOpDuration = data[field];
+
+  const widthPercentage = spanOpDuration / transactionDuration;
+  const operationName = getSpanOperationName(field) ?? 'op';
+
+  return (
+    <div style={{position: 'relative'}}>
+      <SpanBarRectangle
+        spanBarHatch={false}
+        style={{
+          backgroundColor: pickSpanBarColour(operationName),
+          left: 0,
+          width: toPercent(widthPercentage || 0),
+        }}
+      >
+        <DurationPill
+          durationDisplay={getDurationDisplay({
+            left: 0,
+            width: widthPercentage,
+          })}
+          showDetail={false}
+          spanBarHatch={false}
+        >
+          {getHumanDuration(spanOpDuration / 1000)}
+        </DurationPill>
+      </SpanBarRectangle>
+    </div>
+  );
+};
+
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -482,6 +534,11 @@ export function getFieldRenderer(
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
   }
+
+  if (isSpanOperationBreakdownField(field)) {
+    return spanOperationBreakdownRenderer(field);
+  }
+
   const fieldName = getAggregateAlias(field);
   const fieldType = meta[fieldName];
 

@@ -11,15 +11,15 @@ By default account id and token expiration time are stored in extra_data
 field, check OAuthBackend class for details on how to extend it.
 """
 
-from django.conf import settings
 from urllib.error import HTTPError
 from urllib.request import Request
-from social_auth.utils import dsa_urlopen
-from social_auth.backends import BaseOAuth2, OAuthBackend
-from social_auth.exceptions import AuthFailed
+
+from django.conf import settings
 
 from sentry.utils import json
-
+from social_auth.backends import BaseOAuth2, OAuthBackend
+from social_auth.exceptions import AuthFailed
+from social_auth.utils import dsa_urlopen
 
 # GitHub configuration
 GITHUB_BASE_DOMAIN = getattr(settings, "GITHUB_BASE_DOMAIN", "github.com")

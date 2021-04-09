@@ -1,7 +1,7 @@
 from datetime import timedelta
 from uuid import uuid4
 
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import NoReverseMatch, reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -192,6 +192,16 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         assert response.status_code == 404, response.content
 
+        # Invalid event id
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"event_id": "not-a-event"},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+
         # Fake trace id
         self.url = reverse(
             "sentry-api-0-organization-events-trace-light",
@@ -206,6 +216,16 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             )
 
         assert response.status_code == 404, response.content
+
+        # Invalid trace id
+        with self.assertRaises(NoReverseMatch):
+            self.url = reverse(
+                "sentry-api-0-organization-events-trace-light",
+                kwargs={
+                    "organization_slug": self.project.organization.slug,
+                    "trace_id": "not-a-trace",
+                },
+            )
 
     def test_no_roots(self):
         """ Even when there's no root, we return the current event """

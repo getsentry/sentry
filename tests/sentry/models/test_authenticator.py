@@ -1,7 +1,6 @@
-from sentry.testutils import TestCase
+from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import Authenticator
-
-from sentry.auth.authenticators import TotpInterface, RecoveryCodeInterface
+from sentry.testutils import TestCase
 
 
 class AuthenticatorTest(TestCase):

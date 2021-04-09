@@ -1,12 +1,12 @@
 from django.utils.translation import ugettext_lazy as _
 
+import sentry
 from sentry.exceptions import PluginError
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue import IssuePlugin
-from sentry_plugins.base import CorePluginMixin
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.integrations import FeatureDescription, IntegrationFeatures
-import sentry
+from sentry_plugins.base import CorePluginMixin
 
 from .client import RedmineClient
 from .forms import RedmineNewIssueForm

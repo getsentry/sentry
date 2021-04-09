@@ -1,12 +1,13 @@
 import logging
 
-from django.http import Http404
+import sentry_sdk
 from django.conf import settings
+from django.http import Http404
 
 from sentry.models import OrganizationMember, OrganizationStatus
 from sentry.utils import auth
+from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
-
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ class DemoStartView(BaseView):
     csrf_protect = False
     auth_required = False
 
+    @transaction_start("DemoStartView")
     def post(self, request):
         # double check DEMO_MODE is disabled
         if not settings.DEMO_MODE:
@@ -27,6 +29,7 @@ class DemoStartView(BaseView):
         # see if the user already was assigned a member
         member_id = request.get_signed_cookie(MEMBER_ID_COOKIE, default="")
         logger.info("post.start", extra={"cookie_member_id": member_id})
+        sentry_sdk.set_tag("member_id", member_id)
 
         if member_id:
             try:

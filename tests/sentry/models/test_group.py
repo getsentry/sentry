@@ -13,7 +13,7 @@ from sentry.models import (
     get_group_with_redirect,
 )
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class GroupTest(TestCase, SnubaTestCase):

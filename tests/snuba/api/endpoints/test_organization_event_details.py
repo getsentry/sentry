@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import NoReverseMatch, reverse
 
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -174,6 +174,17 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
 
         assert response.status_code == 404, response.content
+
+    def test_invalid_event_id(self):
+        with self.assertRaises(NoReverseMatch):
+            reverse(
+                "sentry-api-0-organization-event-details",
+                kwargs={
+                    "organization_slug": self.project.organization.slug,
+                    "project_slug": self.project.slug,
+                    "event_id": "not-an-event",
+                },
+            )
 
     def test_long_trace_description(self):
         data = load_data("transaction")

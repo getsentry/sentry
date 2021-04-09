@@ -1,28 +1,27 @@
 import functools
-from collections import defaultdict, Iterable, OrderedDict
-from dateutil.parser import parse as parse_datetime
-from pytz import UTC
+from collections import Iterable, OrderedDict, defaultdict
 
+from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
+from pytz import UTC
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_ALIAS
-from sentry.models import Project, ReleaseProjectEnvironment
 from sentry.api.utils import default_start_end_dates
+from sentry.models import Project, ReleaseProjectEnvironment
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
     TagKeyNotFound,
     TagValueNotFound,
 )
-from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
-from sentry.utils import snuba, metrics
-from sentry.utils.hashlib import md5_text
+from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
+from sentry.utils import metrics, snuba
 from sentry.utils.dates import to_timestamp
-from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-
+from sentry.utils.hashlib import md5_text
 
 SEEN_COLUMN = "timestamp"
 
@@ -734,6 +733,8 @@ class SnubaTagStorage(TagStorage):
         #               but does work with !=. However, for consistency sake we disallow it
         #               entirely, furthermore, suggesting an event_id is not a very useful feature
         #               as they are not human readable.
+        # trace.*:      The same logic of event_id not being useful applies to the trace fields
+        #               which are all also non human readable ids
         # timestamp:    This is a DateTime which disallows us to use both LIKE and != on it when
         #               searching. Suggesting a timestamp can potentially be useful but as it does
         #               work at all, we opt to disable it here. A potential solution can be to
@@ -743,7 +744,11 @@ class SnubaTagStorage(TagStorage):
         # time:         This is a column computed from timestamp so it suffers the same issues
         if snuba_key in {"group_id"}:
             snuba_key = f"tags[{snuba_key}]"
-        if snuba_key in {"event_id", "timestamp", "time"}:
+        if snuba_key in {"event_id", "timestamp", "time"} or key in {
+            "trace",
+            "trace.span",
+            "trace.parent_span",
+        }:
             return SequencePaginator([])
 
         # These columns have fixed values and we don't need to emit queries to find out the
