@@ -2743,24 +2743,19 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
 
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
 
-        with self.options(
-            {
-                "discover2.tags_performance_facet_sample_rate": 1,
-            }
-        ):
-            result = discover.get_performance_facets("", params)
+        result = discover.get_performance_facets("", params)
 
-            assert len(result) == 11
-            for r in result:
-                if r.key == "color" and r.value == "red":
-                    assert r.frequency == 0.5
-                    assert r.performance == 1000
-                elif r.key == "color" and r.value == "blue":
-                    assert r.frequency == 0.5
-                    assert r.performance == 2000
-                else:
-                    assert r.frequency == 1.0
-                    assert r.performance == 1500
+        assert len(result) == 11
+        for r in result:
+            if r.key == "color" and r.value == "red":
+                assert r.frequency == 0.5
+                assert r.performance == 1000
+            elif r.key == "color" and r.value == "blue":
+                assert r.frequency == 0.5
+                assert r.performance == 2000
+            else:
+                assert r.frequency == 1.0
+                assert r.performance == 1500
 
 
 def test_zerofill():

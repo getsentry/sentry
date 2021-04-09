@@ -803,11 +803,7 @@ def get_performance_facets(
     target_sample = 10000 * (math.log(transaction_count, 10) - 3)
 
     dynamic_sample_rate = 0 if transaction_count <= 0 else (target_sample / transaction_count)
-    options_sample_rate = (
-        options.get("discover2.tags_performance_facet_sample_rate") or dynamic_sample_rate
-    )
-
-    sample_rate = options_sample_rate if sampling_enabled else None
+    sample_rate = dynamic_sample_rate if sampling_enabled else None
 
     excluded_tags = [
         "tags_key",
