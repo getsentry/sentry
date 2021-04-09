@@ -76,7 +76,7 @@ type Props<T, P> = RequestProps<P> &
     /**
      * A hook to modify data into the correct output after data has been received
      */
-    afterFetch?: (data: any, props: Props<T, P>) => T;
+    afterFetch?: (data: any, props?: Props<T, P>) => T;
   };
 
 type State<T> = {

@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 PerformanceFacetResult = namedtuple(
-    "PerformanceFacetResult", ["key", "value", "performance", "count"]
+    "PerformanceFacetResult", ["key", "value", "performance", "frequency", "comparison", "sumdelta"]
 )
 
 resolve_discover_column = resolve_column(Dataset.Discover)
@@ -775,82 +775,103 @@ def get_performance_facets(
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
 
-    # Exclude tracing tags as they are noisy and generally not helpful.
-    # TODO(markus): Tracing tags are no longer written but may still reside in DB.
-    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]
-
-    # Sampling keys for multi-project results as we don't need accuracy
-    # with that much data.
-    sample = len(snuba_filter.filter_keys["project_id"]) > 2
-
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         # Get the most relevant tag keys
         key_names = raw_query(
-            aggregations=[["count", None, "count"]],
+            aggregations=[
+                [aggregate_function, aggregate_column, "aggregate"],
+                ["count", None, "count"],
+            ],
             start=snuba_filter.start,
             end=snuba_filter.end,
             conditions=snuba_filter.conditions,
             filter_keys=snuba_filter.filter_keys,
-            orderby=["-count", "tags_key"],
-            groupby="tags_key",
-            # TODO(Kevan): Check using having vs where before mainlining
-            having=[excluded_tags],
+            orderby=["-count"],
             dataset=Dataset.Discover,
             limit=limit,
-            referrer=referrer,
-            turbo=sample,
+            referrer="{}.{}".format(referrer, "all_transactions"),
         )
-        top_tags = [r["tags_key"] for r in key_names["data"]]
-        if not top_tags:
+        counts = [r["count"] for r in key_names["data"]]
+        if len(counts) != 1 or counts[0] == 0:
             return []
 
     results = []
     snuba_filter.conditions.append([aggregate_column, "IS NOT NULL", None])
 
-    # Only enable sampling if over 10000 values
-    sampling_enabled = key_names["data"][0]["count"] > 10000
-    options_sample_rate = options.get("discover2.tags_performance_facet_sample_rate") or 0.1
+    # Aggregate for transaction
+    transaction_aggregate = key_names["data"][0]["aggregate"]
 
-    sample_rate = options_sample_rate if sampling_enabled else None
+    # Dynamically sample so at least 10000 transactions are selected
+    transaction_count = key_names["data"][0]["count"]
+    sampling_enabled = transaction_count > 10000
+    # Log growth starting at 10,000
+    target_sample = 10000 * (math.log(transaction_count, 10) - 3)
 
-    max_aggregate_tags = 20
-    aggregate_tags = []
-    for i, tag in enumerate(top_tags):
-        if i >= len(top_tags) - max_aggregate_tags:
-            aggregate_tags.append(tag)
+    dynamic_sample_rate = 0 if transaction_count <= 0 else (target_sample / transaction_count)
+    sample_rate = dynamic_sample_rate if sampling_enabled else None
 
-    if orderby is None:
-        orderby = []
+    excluded_tags = [
+        "tags_key",
+        "NOT IN",
+        ["trace", "trace.ctx", "trace.span", "project", "browser", "celery_task_id"],
+    ]
 
-    if aggregate_tags:
-        with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
-            conditions = snuba_filter.conditions
-            conditions.append(["tags_key", "IN", aggregate_tags])
-            tag_values = raw_query(
-                aggregations=[
-                    [aggregate_function, aggregate_column, "aggregate"],
-                    ["count", None, "count"],
-                ],
-                conditions=conditions,
-                start=snuba_filter.start,
-                end=snuba_filter.end,
-                filter_keys=snuba_filter.filter_keys,
-                orderby=orderby + ["tags_key"],
-                groupby=["tags_key", "tags_value"],
-                dataset=Dataset.Discover,
-                referrer=referrer,
-                sample=sample_rate,
-                turbo=sample_rate is not None,
-                limitby=[TOP_VALUES_DEFAULT_LIMIT, "tags_key"],
-            )
-            results.extend(
+    with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
+        conditions = snuba_filter.conditions
+        aggregate_comparison = transaction_aggregate * 1.01 if transaction_aggregate else 0
+        having = [excluded_tags]
+        if orderby and orderby in ("sumdelta", "-sumdelta", "aggregate", "-aggregate"):
+            having.append(["aggregate", ">", aggregate_comparison])
+
+        if orderby is None:
+            orderby = []
+        else:
+            orderby = [orderby]
+
+        tag_values = raw_query(
+            selected_columns=[
                 [
-                    PerformanceFacetResult(
-                        r["tags_key"], r["tags_value"], float(r["aggregate"]), int(r["count"])
-                    )
-                    for r in tag_values["data"]
-                ]
-            )
+                    "sum",
+                    [
+                        "minus",
+                        [
+                            aggregate_column,
+                            str(transaction_aggregate),
+                        ],
+                    ],
+                    "sumdelta",
+                ],
+            ],
+            aggregations=[
+                [aggregate_function, aggregate_column, "aggregate"],
+                ["count", None, "cnt"],
+            ],
+            conditions=conditions,
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            filter_keys=snuba_filter.filter_keys,
+            orderby=orderby + ["tags_key"],
+            groupby=["tags_key", "tags_value"],
+            having=having,
+            dataset=Dataset.Discover,
+            referrer="{}.{}".format(referrer, "tag_values"),
+            sample=sample_rate,
+            turbo=sample_rate is not None,
+            limitby=[5, "tags_key"],
+        )
+        results.extend(
+            [
+                PerformanceFacetResult(
+                    key=r["tags_key"],
+                    value=r["tags_value"],
+                    performance=float(r["aggregate"]),
+                    frequency=float(r["cnt"] / transaction_count),
+                    comparison=float(r["aggregate"] / transaction_aggregate),
+                    sumdelta=float(r["sumdelta"]),
+                )
+                for r in tag_values["data"]
+            ]
+        )
 
     return results
 
