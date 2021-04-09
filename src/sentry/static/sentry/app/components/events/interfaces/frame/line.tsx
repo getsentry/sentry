@@ -391,6 +391,7 @@ export class Line extends React.Component<Props, State> {
           hasAssembly={this.hasAssembly()}
           expandable={this.isExpandable()}
           isExpanded={this.state.isExpanded}
+          isHoverPreviewed={this.props.isHoverPreviewed}
         />
       </StyledLi>
     );

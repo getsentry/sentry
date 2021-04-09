@@ -185,8 +185,6 @@ class StacktracePreview extends React.Component<Props, State> {
 }
 
 const StyledHovercard = styled(Hovercard)<{state: 'loading' | 'empty' | 'done'}>`
-  /* Lower z-index to match the modals (10000 vs 10002) to allow stackTraceLinkModal be on top of stack trace preview. */
-  z-index: ${p => p.theme.zIndex.modal};
   width: ${p => {
     if (p.state === 'loading') {
       return 'auto';
