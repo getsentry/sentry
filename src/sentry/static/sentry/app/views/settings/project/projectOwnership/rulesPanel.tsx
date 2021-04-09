@@ -196,7 +196,8 @@ const StyledTextArea = styled(TextareaAutosize)`
   border: none;
   box-shadow: none;
   padding: ${space(2)};
-  color: #9386a0;
+  color: transparent;
+  text-shadow: 0 0 0 #9386a0;
 
   &:hover,
   &:focus,
