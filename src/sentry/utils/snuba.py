@@ -19,6 +19,10 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
+from sentry_sdk import Hub
+from snuba_sdk.legacy import json_to_snql
+from snuba_sdk.query import Query
+
 from sentry.models import (
     Environment,
     Group,
@@ -36,9 +40,6 @@ from sentry.utils import json, metrics
 from sentry.utils.compat import map
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snql import should_use_snql
-from sentry_sdk import Hub
-from snuba_sdk.legacy import json_to_snql
-from snuba_sdk.query import Query
 
 logger = logging.getLogger(__name__)
 
@@ -657,7 +658,9 @@ ResultSet = List[Mapping[str, Any]]  # TODO: Would be nice to make this a concre
 
 
 def raw_snql_query(
-    query: Query, referrer: Optional[str] = None, use_cache: bool = False,
+    query: Query,
+    referrer: Optional[str] = None,
+    use_cache: bool = False,
 ) -> Mapping[str, Any]:
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
@@ -739,7 +742,8 @@ def _bulk_snuba_query(
     use_snql: Optional[bool] = None,
 ) -> ResultSet:
     with sentry_sdk.start_span(
-        op="start_snuba_query", description=f"running {len(snuba_param_list)} snuba queries",
+        op="start_snuba_query",
+        description=f"running {len(snuba_param_list)} snuba queries",
     ) as span:
         query_referrer = headers.get("referer", "<unknown>")
         # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
@@ -759,7 +763,8 @@ def _bulk_snuba_query(
         if len(snuba_param_list) > 1:
             query_results = list(
                 _query_thread_pool.map(
-                    query_fn, [(params, Hub(Hub.current), headers) for params in snuba_param_list],
+                    query_fn,
+                    [(params, Hub(Hub.current), headers) for params in snuba_param_list],
                 )
             )
         else:
@@ -861,7 +866,8 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
         query.validate()  # Call this here just avoid it happening in the async all
     except Exception as e:
         logger.warning(
-            "snuba.snql.parsing.error", extra={"error": str(e), "params": json.dumps(query_params)},
+            "snuba.snql.parsing.error",
+            extra={"error": str(e), "params": json.dumps(query_params)},
         )
         metrics.incr(
             "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "parsing.error"}
