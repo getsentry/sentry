@@ -3096,6 +3096,25 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert "middle argument invalid: today is in the wrong format" in str(err)
 
+    def test_count_if(self):
+        fields = [
+            "count_if(event.type,equals,transaction)",
+            "count_if(event.type,notEquals,transaction)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["equals", ["event.type", "'transaction'"]]],
+                "count_if_event_type_equals_transaction",
+            ],
+            [
+                "countIf",
+                [["notEquals", ["event.type", "'transaction'"]]],
+                "count_if_event_type_notEquals_transaction",
+            ],
+        ]
+
     def test_absolute_correlation(self):
         fields = ["absolute_correlation()"]
         result = resolve_field_list(fields, eventstore.Filter())
