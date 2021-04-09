@@ -405,10 +405,6 @@ let appConfig = {
     path: distPath,
     filename: '[name].[hash].js',
     chunkFilename: '[name].[contenthash].js',
-
-    // Rename global that is used to async load chunks
-    // Avoids 3rd party js from overwriting the default name (webpackJsonp)
-    jsonpFunction: 'sntryWpJsonp',
     sourceMapFilename: '[name].js.map',
   },
   optimization: {
