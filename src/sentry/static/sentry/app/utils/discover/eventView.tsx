@@ -410,7 +410,7 @@ class EventView {
           return {field, width};
         });
       }
-      const {savedStart, savedEnd, savedStatsPeriod} = getParams({
+      const params = getParams({
         start: saved.start,
         end: saved.end,
         statsPeriod: saved.range,
@@ -421,9 +421,9 @@ class EventView {
         fields,
         query: decodeQuery(location) || queryStringFromSavedQuery(saved),
         project: projects,
-        start: decodeScalar(start) || decodeScalar(savedStart),
-        end: decodeScalar(end) || decodeScalar(savedEnd),
-        statsPeriod: decodeScalar(statsPeriod) || decodeScalar(savedStatsPeriod),
+        start: decodeScalar(start) || decodeScalar(params.start),
+        end: decodeScalar(end) || decodeScalar(params.end),
+        statsPeriod: decodeScalar(statsPeriod) || decodeScalar(params.statsPeriod),
         sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
         environment: environments,
         yAxis: decodeScalar(location.query.yAxis) || saved.yAxis,
