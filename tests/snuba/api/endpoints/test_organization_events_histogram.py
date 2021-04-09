@@ -346,7 +346,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
-    def test_histogram_simple_using_min_out_of_range_of_implicit_max(self):
+    def test_histogram_simple_using_given_min_above_queried_max(self):
         # All these events are out of range of the query parameters,
         # and should not appear in the results.
         specs = [
