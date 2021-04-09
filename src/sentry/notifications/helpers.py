@@ -1,11 +1,11 @@
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
 
-from sentry.api.serializers.models.group import SUBSCRIPTION_REASON_MAP
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_DEFAULTS,
     VALID_VALUES_FOR_KEY,
+    SUBSCRIPTION_REASON_MAP,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,

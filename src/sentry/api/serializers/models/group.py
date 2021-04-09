@@ -35,7 +35,6 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    GroupSubscriptionReason,
     Integration,
     NotificationSetting,
     SentryAppInstallationToken,
@@ -60,15 +59,6 @@ from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import Dataset, raw_query
-
-SUBSCRIPTION_REASON_MAP = {
-    GroupSubscriptionReason.comment: "commented",
-    GroupSubscriptionReason.assigned: "assigned",
-    GroupSubscriptionReason.bookmark: "bookmarked",
-    GroupSubscriptionReason.status_change: "changed_status",
-    GroupSubscriptionReason.mentioned: "mentioned",
-}
-
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)

@@ -15,7 +15,6 @@ from sentry.models import (
     Commit,
     Group,
     GroupSubscription,
-    GroupSubscriptionReason,
     Integration,
     NotificationSetting,
     Project,
@@ -28,6 +27,7 @@ from sentry.models import (
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.helpers import transform_to_notification_settings_by_user
 from sentry.notifications.types import (
+    GroupSubscriptionReason,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
