@@ -117,8 +117,8 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <Filters>
-          <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>&nbsp;&nbsp;
-          {rule.query && <code>{rule.query}</code>}
+        <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>&nbsp;&nbsp;
+        {rule.query && <code>{rule.query}</code>}
       </Filters>
     );
   }
