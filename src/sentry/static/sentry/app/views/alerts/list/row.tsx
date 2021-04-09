@@ -140,14 +140,16 @@ class AlertListRow extends AsyncComponent<Props, State> {
       .as('seconds');
     const slug = incident.projects[0];
 
-    const hasRedesign = !isIssueAlert(incident.alertRule) &&
+    const hasRedesign =
+      !isIssueAlert(incident.alertRule) &&
       organization.features.includes('alert-details-redesign');
 
     const alertLink = hasRedesign
       ? {
           pathname: `/organizations/${orgId}/alerts/rules/details/${
-            incident.alertRule.status === AlertRuleStatus.SNAPSHOT && incident.originalAlertRule 
-              ? incident.originalAlertRule.id 
+            incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+            incident.originalAlertRule
+              ? incident.originalAlertRule.id
               : incident.alertRule.id
           }/`,
           query: makeRuleDetailsQuery(incident),
