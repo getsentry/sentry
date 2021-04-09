@@ -228,7 +228,7 @@ export function filterToField(option: SpanOperationBreakdownFilter) {
     case SpanOperationBreakdownFilter.None:
       return undefined;
     default: {
-      return `span_op_breakdowns.ops.${option}`;
+      return `spans.${option}`;
     }
   }
 }
