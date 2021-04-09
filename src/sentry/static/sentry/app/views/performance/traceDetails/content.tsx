@@ -21,7 +21,7 @@ import {Organization} from 'app/types';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
-import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
+import {TraceFullDetailed, TraceMeta} from 'app/utils/performance/quickTrace/types';
 import {reduceTrace} from 'app/utils/performance/quickTrace/utils';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
@@ -73,7 +73,7 @@ type Props = {
   isLoading: boolean;
   error: string | null;
   traces: TraceFullDetailed[] | null;
-  totalTransactions: number | null;
+  meta: TraceMeta | null;
 };
 
 type State = {
@@ -209,6 +209,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderTraceHeader(traceInfo: TraceInfo) {
+    const {meta} = this.props;
     return (
       <TraceDetailHeader>
         <MetaData
@@ -220,11 +221,15 @@ class TraceDetailsContent extends React.Component<Props, State> {
             transactions: tn(
               '%s Transaction',
               '%s Transactions',
-              traceInfo.transactions.size
+              meta?.transactions ?? traceInfo.transactions.size
             ),
-            errors: tn('%s Error', '%s Errors', traceInfo.errors.size),
+            errors: tn('%s Error', '%s Errors', meta?.errors ?? traceInfo.errors.size),
           })}
-          subtext={tn('Across %s project', 'Across %s projects', traceInfo.projects.size)}
+          subtext={tn(
+            'Across %s project',
+            'Across %s projects',
+            meta?.projects ?? traceInfo.projects.size
+          )}
         />
         <MetaData
           headingText={t('Total Duration')}
@@ -327,8 +332,9 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderLimitExceededMessage(traceInfo: TraceInfo) {
-    const {organization, totalTransactions} = this.props;
+    const {organization, meta} = this.props;
     const count = traceInfo.transactions.size;
+    const totalTransactions = meta?.transactions ?? count;
 
     if (totalTransactions === null || count >= totalTransactions) {
       return null;

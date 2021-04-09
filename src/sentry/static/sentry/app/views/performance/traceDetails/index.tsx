@@ -3,7 +3,6 @@ import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {fetchTotalCount} from 'app/actionCreators/events';
 import {Client} from 'app/api';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -12,8 +11,8 @@ import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 import {TraceFullDetailedQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
-import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
-import {makeEventView} from 'app/utils/performance/quickTrace/utils';
+import TraceMetaQuery from 'app/utils/performance/quickTrace/traceMetaQuery';
+import {TraceFullDetailed, TraceMeta} from 'app/utils/performance/quickTrace/types';
 import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -27,42 +26,7 @@ type Props = {
   params: Params;
 };
 
-type State = {
-  traceSize: number | null;
-};
-
-class TraceSummary extends React.Component<Props, State> {
-  state = {
-    traceSize: null,
-  };
-
-  componentDidMount() {
-    this.fetchTotal();
-  }
-
-  async fetchTotal() {
-    const {api, organization, location} = this.props;
-
-    const traceSlug = this.getTraceSlug();
-    if (!traceSlug) {
-      return;
-    }
-
-    const {start, end, statsPeriod} = this.getDateSelection();
-    if (!statsPeriod && (!start || !end)) {
-      return;
-    }
-    const apiPayload = makeEventView({start, end, statsPeriod});
-    apiPayload.query = `trace:${traceSlug}`;
-
-    const traceSize = await fetchTotalCount(
-      api,
-      organization.slug,
-      apiPayload.getEventsAPIPayload(location)
-    );
-    this.setState({traceSize});
-  }
-
+class TraceSummary extends React.Component<Props> {
   getDocumentTitle(): string {
     return [t('Trace Details'), t('Performance')].join(' - ');
   }
@@ -83,7 +47,6 @@ class TraceSummary extends React.Component<Props, State> {
 
   renderContent() {
     const {location, organization, params} = this.props;
-    const {traceSize} = this.state;
     const traceSlug = this.getTraceSlug();
     const {start, end, statsPeriod} = this.getDateSelection();
 
@@ -91,10 +54,12 @@ class TraceSummary extends React.Component<Props, State> {
       isLoading,
       error,
       traces,
+      meta,
     }: {
       isLoading: boolean;
       error: string | null;
       traces: TraceFullDetailed[] | null;
+      meta: TraceMeta | null;
     }) => (
       <TraceDetailsContent
         location={location}
@@ -107,7 +72,7 @@ class TraceSummary extends React.Component<Props, State> {
         isLoading={isLoading}
         error={error}
         traces={traces}
-        totalTransactions={traceSize}
+        meta={meta}
       />
     );
 
@@ -116,6 +81,7 @@ class TraceSummary extends React.Component<Props, State> {
         isLoading: false,
         error: 'date selection not specified',
         traces: null,
+        meta: null,
       });
     }
 
@@ -128,7 +94,25 @@ class TraceSummary extends React.Component<Props, State> {
         end={end}
         statsPeriod={statsPeriod}
       >
-        {content}
+        {traceResults => (
+          <TraceMetaQuery
+            location={location}
+            orgSlug={organization.slug}
+            traceId={traceSlug}
+            start={start}
+            end={end}
+            statsPeriod={statsPeriod}
+          >
+            {metaResults =>
+              content({
+                isLoading: traceResults.isLoading || metaResults.isLoading,
+                error: traceResults.error || metaResults.error,
+                traces: traceResults.traces,
+                meta: metaResults.meta,
+              })
+            }
+          </TraceMetaQuery>
+        )}
       </TraceFullDetailedQuery>
     );
   }
