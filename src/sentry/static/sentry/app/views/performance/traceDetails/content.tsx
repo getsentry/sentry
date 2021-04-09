@@ -126,8 +126,6 @@ class TraceDetailsContent extends React.Component<Props, State> {
       )
     );
 
-    const queryLength = searchQuery.length;
-
     const fuse = await createFuzzySearch(transformed, {
       keys: ['indexed'],
       includeMatches: true,
@@ -147,21 +145,18 @@ class TraceDetailsContent extends React.Component<Props, State> {
       .map(({item}) => item.transaction.event_id);
 
     /**
-     * We match on the id as a substring match. We only consider ids
-     * that are a length that is a multiple of 8
+     * Fuzzy search on ids result in seemingly random results. So switch to
+     * doing substring matches on ids to provide more meaningful results.
      */
-    const idMatches =
-      queryLength % 8 === 0
-        ? traces
-            .flatMap(trace =>
-              filterTrace(
-                trace,
-                ({event_id, span_id}) =>
-                  event_id.includes(searchQuery) || span_id.includes(searchQuery)
-              )
-            )
-            .map(transaction => transaction.event_id)
-        : [];
+    const idMatches = traces
+      .flatMap(trace =>
+        filterTrace(
+          trace,
+          ({event_id, span_id}) =>
+            event_id.includes(searchQuery) || span_id.includes(searchQuery)
+        )
+      )
+      .map(transaction => transaction.event_id);
 
     this.setState({
       filteredTransactionIds: new Set([...fuseMatches, ...idMatches]),
