@@ -650,6 +650,12 @@ def raw_query(
     )[0]
 
 
+SnubaQuery = Union[Query, MutableMapping[str, Any]]
+Translator = Callable[[Any], Any]
+SnubaQueryBody = Tuple[SnubaQuery, Translator, Translator]
+ResultSet = List[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
+
+
 def raw_snql_query(
     query: Query,
     referrer: Optional[str] = None,
@@ -659,13 +665,8 @@ def raw_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
-    return bulk_raw_query([query], referrer=referrer, use_cache=use_cache)[0]
-
-
-SnubaQuery = Union[Query, MutableMapping[str, Any]]
-Translator = Callable[[Any], Any]
-SnubaQueryBody = Tuple[SnubaQuery, Translator, Translator]
-ResultSet = List[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
+    params: SnubaQuery = (query, lambda x: x, lambda x: x)
+    return _apply_cache_and_build_results([params], referrer=referrer, use_cache=use_cache)[0]
 
 
 def get_cache_key(query: SnubaQuery) -> str:
@@ -679,7 +680,19 @@ def get_cache_key(query: SnubaQuery) -> str:
 
 
 def bulk_raw_query(
-    snuba_param_list: Sequence[Union[Query, SnubaQueryParams]],
+    snuba_param_list: Sequence[SnubaQueryParams],
+    referrer: Optional[str] = None,
+    use_cache: Optional[bool] = False,
+    use_snql: Optional[bool] = None,
+) -> ResultSet:
+    params = map(_prepare_query_params, snuba_param_list)
+    return _apply_cache_and_build_results(
+        params, referrer=referrer, use_cache=use_cache, use_snql=use_snql
+    )
+
+
+def _apply_cache_and_build_results(
+    snuba_param_list: Sequence[SnubaQueryBody],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
     use_snql: Optional[bool] = None,
@@ -689,15 +702,8 @@ def bulk_raw_query(
         headers["referer"] = referrer
         sentry_sdk.set_tag("query.referrer", referrer)
 
-    def _prep_query(query: Union[Query, SnubaQueryParams]) -> SnubaQuery:
-        if isinstance(query, Query):
-            return query, lambda x: x, lambda x: x
-        return _prepare_query_params(query)
-
     # Store the original position of the query so that we can maintain the order
-    query_param_list: List[Tuple[int, SnubaQueryBody]] = list(
-        enumerate(map(_prep_query, snuba_param_list))
-    )
+    query_param_list = list(enumerate(snuba_param_list))
 
     results = []
 
@@ -859,6 +865,9 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
             "snuba.snql.parsing.error",
             extra={"error": str(e), "params": json.dumps(query_params)},
         )
+        metrics.incr(
+            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "parsing.error"}
+        )
         return _snuba_query(params)
 
     query = query.set_dry_run(True).set_debug(True)
@@ -878,6 +887,9 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
             "snuba.snql.dryrun.sending.error",
             extra={"error": str(e), "params": json.dumps(query_params), "query": str(query)},
         )
+        metrics.incr(
+            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "sending.error"}
+        )
         return legacy_result
 
     legacy_data = json.loads(legacy_resp.data)
@@ -893,11 +905,14 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
                 "resp": snql_resp.data,
             },
         )
+        metrics.incr(
+            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "json.error"}
+        )
         return legacy_result
 
     if "sql" not in snql_data or "sql" not in legacy_data:
         logger.warning(
-            "snuba.snql.dryrun.error",
+            "snuba.snql.dryrun.nosql",
             extra={
                 "params": json.dumps(query_params),
                 "query": str(query),
@@ -905,6 +920,7 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
                 "legacy": "sql" in legacy_data,
             },
         )
+        metrics.incr("snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "nosql"})
         return legacy_result
 
     if snql_data["sql"] != legacy_data["sql"]:
@@ -916,6 +932,9 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
                 "snql": snql_data["sql"],
                 "legacy": legacy_data["sql"],
             },
+        )
+        metrics.incr(
+            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "mismatch.error"}
         )
     else:
         metrics.incr("snuba.snql.dryrun.success", tags={"referrer": referrer})
