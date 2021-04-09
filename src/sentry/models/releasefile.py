@@ -1,9 +1,9 @@
-import os
 import errno
+import os
+from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
 from django.db import models
-from urllib.parse import urlsplit, urlunsplit
 
 from sentry import options
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr

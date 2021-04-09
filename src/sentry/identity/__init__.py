@@ -1,16 +1,15 @@
 from .base import *  # NOQA
-from .manager import IdentityManager  # NOQA
-from .oauth2 import *  # NOQA
-
-from .slack import *  # NOQA
+from .bitbucket import *  # NOQA
 from .github import *  # NOQA
 from .github_enterprise import *  # NOQA
-from .vsts import *  # NOQA
-from .vsts_extension import *  # NOQA
-from .bitbucket import *  # NOQA
 from .gitlab import *  # NOQA
 from .google import *  # NOQA
+from .manager import IdentityManager  # NOQA
+from .oauth2 import *  # NOQA
+from .slack import *  # NOQA
 from .vercel import *  # NOQA
+from .vsts import *  # NOQA
+from .vsts_extension import *  # NOQA
 
 default_manager = IdentityManager()
 all = default_manager.all

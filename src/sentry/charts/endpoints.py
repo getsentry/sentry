@@ -1,17 +1,10 @@
 import os.path
 from typing import Union
+
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse, HttpResponseNotModified
 from django.views import static
 
 import sentry
-
-from django.http import (
-    FileResponse,
-    Http404,
-    HttpResponse,
-    HttpResponseNotModified,
-    HttpRequest,
-)
-
 
 CONFIG_DIR = os.path.abspath(
     os.path.join(os.path.dirname(sentry.__file__), "..", "..", "config", "chartcuterie")

@@ -7,7 +7,8 @@ __all__ = (
 
 
 from django.db.models import CharField, TextField
-from picklefield.fields import PickledObjectField, dbsafe_decode, PickledObject, _ObjectWrapper
+from picklefield.fields import PickledObject, PickledObjectField, _ObjectWrapper, dbsafe_decode
+
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.utils import Creator
 from sentry.utils.encryption import decrypt, encrypt

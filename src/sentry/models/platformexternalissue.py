@@ -1,6 +1,7 @@
+from collections import defaultdict
+
 from django.db import models
 from django.utils import timezone
-from collections import defaultdict
 
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey

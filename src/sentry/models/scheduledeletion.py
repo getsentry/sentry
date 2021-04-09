@@ -1,8 +1,9 @@
 from datetime import timedelta
+from uuid import uuid4
+
 from django.apps import apps
 from django.db import models
 from django.utils import timezone
-from uuid import uuid4
 
 from sentry.db.models import BoundedBigIntegerField, JSONField, Model
 
