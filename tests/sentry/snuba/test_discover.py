@@ -1698,8 +1698,8 @@ class QueryTransformTest(TestCase):
                 3.45,
             ), f"failing for {array_column}"
 
-            # use the given min, but query for max. the given min will be out of range
-            # of the queried max
+            # use the given min, but query for max. the given min will be above
+            # the queried max
             mock_query.side_effect = [
                 {
                     "meta": [{"name": f"max_{array_column}_foo"}],
