@@ -57,20 +57,45 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
         </Layout.HeaderActions>
       </BorderlessHeader>
       <TabLayoutHeader>
-        <Layout.HeaderNavTabs underlined>
-          <Feature features={['incidents']} organization={organization}>
-            <li className={activeTab === 'stream' ? 'active' : ''}>
-              <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/`}>
-                {t('Metric Alerts')}
-              </GlobalSelectionLink>
-            </li>
-          </Feature>
-          <li className={activeTab === 'rules' ? 'active' : ''}>
-            <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/rules/`}>
-              {t('Alert Rules')}
-            </GlobalSelectionLink>
-          </li>
-        </Layout.HeaderNavTabs>
+        <Feature features={['alert-list']} organization={organization}>
+          {({hasFeature}) =>
+            !hasFeature ? (
+              <Layout.HeaderNavTabs underlined>
+                <Feature features={['incidents']} organization={organization}>
+                  <li className={activeTab === 'stream' ? 'active' : ''}>
+                    <GlobalSelectionLink
+                      to={`/organizations/${organization.slug}/alerts/`}
+                    >
+                      {t('Metric Alerts')}
+                    </GlobalSelectionLink>
+                  </li>
+                </Feature>
+                <li className={activeTab === 'rules' ? 'active' : ''}>
+                  <GlobalSelectionLink
+                    to={`/organizations/${organization.slug}/alerts/rules/`}
+                  >
+                    {t('Alert Rules')}
+                  </GlobalSelectionLink>
+                </li>
+              </Layout.HeaderNavTabs>
+            ) : (
+              <Layout.HeaderNavTabs underlined>
+                <li className={activeTab === 'rules' ? 'active' : ''}>
+                  <GlobalSelectionLink
+                    to={`/organizations/${organization.slug}/alerts/rules/`}
+                  >
+                    {t('Overview')}
+                  </GlobalSelectionLink>
+                </li>
+                <li className={activeTab === 'stream' ? 'active' : ''}>
+                  <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/`}>
+                    {t('History')}
+                  </GlobalSelectionLink>
+                </li>
+              </Layout.HeaderNavTabs>
+            )
+          }
+        </Feature>
       </TabLayoutHeader>
     </React.Fragment>
   );

@@ -5,7 +5,6 @@ import memoize from 'lodash/memoize';
 import moment from 'moment';
 
 import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -20,6 +19,7 @@ import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 
+import AlertBadge from '../alertBadge';
 import {isIssueAlert} from '../utils';
 
 type Props = {
@@ -69,18 +69,44 @@ class RuleListRow extends React.Component<Props, State> {
       : null;
 
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
+    const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
+    const hasAlertList = organization.features.includes('alert-list');
 
     return (
       <ErrorBoundary>
-        <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
-        <Title>
-          <Link to={hasRedesign ? detailsLink : editLink}>{rule.name}</Link>
-        </Title>
+        {!hasAlertList ? (
+          <React.Fragment>
+            <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
+            <Title>
+              <Link to={hasRedesign ? detailsLink : editLink}>{rule.name}</Link>
+            </Title>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <AlertRule>
+              <AlertStatus>
+                <AlertBadge
+                  status={(rule as any).status}
+                  isIssue={isIssueAlert(rule)}
+                  hideText
+                />
+              </AlertStatus>
+              <AlertNameAndStatus>
+                <div>
+                  <Link to={hasRedesign ? detailsLink : editLink}>{rule.name}</Link>
+                </div>
+                <div>Triggered 2 min ago</div>
+              </AlertNameAndStatus>
+            </AlertRule>
+            <AlertStatus>Less than 10k users</AlertStatus>
+          </React.Fragment>
+        )}
+
         <ProjectBadge
           avatarSize={18}
           project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
         />
-        <Feature features={['organizations:team-alerts-ownership']}>
+        {hasAlertOwnership && (
           <TeamIcon>
             {teamActor ? (
               <ActorAvatar actor={teamActor} size={24} />
@@ -88,9 +114,13 @@ class RuleListRow extends React.Component<Props, State> {
               <IconUser size="20px" color="gray400" />
             )}
           </TeamIcon>
-        </Feature>
-        <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>
-        <div>{dateCreated}</div>
+        )}
+        {!hasAlertList && (
+          <React.Fragment>
+            <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>
+            <div>{dateCreated}</div>
+          </React.Fragment>
+        )}
         <RightColumn>
           <Access access={['alerts:write']}>
             {({hasAccess}) => (
@@ -161,6 +191,20 @@ const Title = styled('div')`
 const CreatedBy = styled('div')`
   ${overflowEllipsis}
   ${columnCss}
+`;
+
+const AlertRule = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const AlertStatus = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const AlertNameAndStatus = styled('div')`
+  margin-left: ${space(1.5)};
 `;
 
 const ProjectBadge = styled(IdBadge)`
