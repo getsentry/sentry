@@ -40,6 +40,10 @@ type State = {
 
 class IncidentDetails extends React.Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
+  constructor(props) {
+    super(props);
+    this.fetchData();
+  }
 
   componentDidMount() {
     const {api, organization, params} = this.props;
@@ -52,8 +56,6 @@ class IncidentDetails extends React.Component<Props, State> {
     });
 
     fetchOrgMembers(api, params.orgId);
-
-    this.fetchData();
   }
 
   fetchData = async () => {
