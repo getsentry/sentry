@@ -31,7 +31,6 @@ type Props = {
   emptySourceNotation?: boolean;
   hasAssembly?: boolean;
   expandable?: boolean;
-  isHoverPreviewed?: boolean;
 };
 
 const Context = ({
@@ -42,7 +41,6 @@ const Context = ({
   hasAssembly = false,
   expandable = false,
   emptySourceNotation = false,
-  isHoverPreviewed = false,
   registers,
   components,
   frame,
@@ -83,7 +81,7 @@ const Context = ({
           const hasComponents = isActive && components.length > 0;
           return (
             <StyledContextLine key={index} line={line} isActive={isActive}>
-              {!isHoverPreviewed && hasComponents && (
+              {hasComponents && (
                 <ErrorBoundary mini>
                   <OpenInContextLine
                     key={index}
@@ -94,7 +92,6 @@ const Context = ({
                 </ErrorBoundary>
               )}
               {organization?.features.includes('integrations-stacktrace-link') &&
-                !isHoverPreviewed &&
                 isActive &&
                 isExpanded &&
                 frame.filename && (
