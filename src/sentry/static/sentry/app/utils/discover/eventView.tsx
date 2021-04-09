@@ -407,19 +407,11 @@ class EventView {
       if (fields.length === 0) {
         fields = EventView.getFields(saved);
       }
-      const params = getParams({
-        start: saved.start,
-        end: saved.end,
-        statsPeriod: saved.range,
-      });
       return new EventView({
         id: id || saved.id,
         name: decodeScalar(location.query.name) || saved.name,
         fields,
         query: decodeQuery(location) || queryStringFromSavedQuery(saved),
-        start: decodeScalar(start) || decodeScalar(params.start),
-        end: decodeScalar(end) || decodeScalar(params.end),
-        statsPeriod: decodeScalar(statsPeriod) || decodeScalar(params.statsPeriod),
         sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
         yAxis: decodeScalar(location.query.yAxis) || saved.yAxis,
         display: decodeScalar(location.query.display) || saved.display,
@@ -431,6 +423,9 @@ class EventView {
         // be set by the GlobalSelectionHeaders.
         project: projects,
         environment: environments,
+        start: decodeScalar(start),
+        end: decodeScalar(end),
+        statsPeriod: decodeScalar(statsPeriod),
       });
     }
     return EventView.fromLocation(location);
