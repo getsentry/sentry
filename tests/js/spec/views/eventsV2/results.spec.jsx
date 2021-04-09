@@ -553,6 +553,7 @@ describe('EventsV2 > Results', function () {
     expect(eventView.fields.length).toEqual(5);
     expect(eventView.project).toEqual([]);
     expect(eventView.statsPeriod).toEqual('24h');
+    expect(eventView.sorts).toEqual([{field: 'user.display', kind: 'desc'}]);
   });
 
   it('overrides saved query params with location query params', async function () {
