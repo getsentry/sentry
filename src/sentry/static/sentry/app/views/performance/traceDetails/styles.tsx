@@ -112,7 +112,7 @@ export const TransactionBarTitleContent = styled('span')`
 `;
 
 const StyledPills = styled(Pills)`
-  padding: ${space(1)};
+  padding-top: ${space(1.5)};
 `;
 
 export function Tags({
