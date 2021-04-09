@@ -1,6 +1,6 @@
 import logging
-from urllib.parse import urlparse
 from collections import OrderedDict, defaultdict, deque
+from urllib.parse import urlparse
 
 import sentry_sdk
 from django.http import Http404
@@ -11,6 +11,7 @@ from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.snuba import discover
+from sentry.utils.validators import INVALID_EVENT_DETAILS, is_event_id
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
@@ -108,6 +109,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         detailed = request.GET.get("detailed", "0") == "1"
         event_id = request.GET.get("event_id")
 
+        # Only need to validate event_id as trace_id is validated in the URL
+        if event_id and not is_event_id(event_id):
+            return Response({"detail": INVALID_EVENT_DETAILS.format("Event")}, status=400)
+
         # selected_columns is a set list, since we only want to include the minimum to render the trace
         selected_columns = [
             "id",
@@ -136,7 +141,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 orderby=["-root", "-timestamp", "id"],
                 params=params,
                 query=f"event.type:transaction trace:{trace_id}",
-                # get 1 more so we know if the attempted trace was over 100
                 limit=MAX_TRACE_SIZE,
                 referrer="api.trace-view.get-ids",
             )
@@ -520,3 +524,39 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         root_traces.sort(key=child_sort_key)
         orphans.sort(key=child_sort_key)
         return root_traces + orphans
+
+
+class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
+    def get(self, request, organization, trace_id):
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
+        try:
+            # The trace meta isn't useful without global views, so skipping the check here
+            params = self.get_snuba_params(request, organization, check_global_views=False)
+        except NoProjects:
+            return Response(status=404)
+
+        with self.handle_query_errors():
+            result = discover.query(
+                selected_columns=[
+                    "count_unique(project_id) as projects",
+                    "count_if(event.type, equals, transaction) as transactions",
+                    "count_if(event.type, notEquals, transaction) as errors",
+                ],
+                params=params,
+                query=f"trace:{trace_id}",
+                limit=1,
+                referrer="api.trace-view.get-meta",
+            )
+            if len(result["data"]) == 0:
+                return Response(status=404)
+        return Response(self.serialize(result["data"][0]))
+
+    def serialize(self, results):
+        return {
+            # Values can be null if there's no result
+            "projects": results.get("projects") or 0,
+            "transactions": results.get("transactions") or 0,
+            "errors": results.get("errors") or 0,
+        }
