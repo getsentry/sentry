@@ -4,8 +4,8 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Uni
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_DEFAULTS,
-    VALID_VALUES_FOR_KEY,
     SUBSCRIPTION_REASON_MAP,
+    VALID_VALUES_FOR_KEY,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -123,7 +123,7 @@ def transform_to_notification_settings_by_parent_id(
     user_default: Optional[NotificationSettingOptionValues] = None,
 ) -> Tuple[
     Mapping[ExternalProviders, Mapping[int, NotificationSettingOptionValues]],
-    Mapping[ExternalProviders, NotificationSettingOptionValues],
+    Mapping[ExternalProviders, Optional[NotificationSettingOptionValues]],
 ]:
     """
     Given a unorganized list of notification settings, create a mapping of
@@ -137,7 +137,9 @@ def transform_to_notification_settings_by_parent_id(
 
     # This is the user's default value for any projects or organizations that
     # don't have the option value specifically recorded.
-    notification_setting_user_default = defaultdict(lambda: user_default)
+    notification_setting_user_default: Dict[
+        ExternalProviders, Optional[NotificationSettingOptionValues]
+    ] = defaultdict(lambda: user_default)
     for notification_setting in notification_settings:
         scope_type = NotificationScopeType(notification_setting.scope_type)
         provider = ExternalProviders(notification_setting.provider)
@@ -200,7 +202,7 @@ def get_target_id(user: Optional[Any] = None, team: Optional[Any] = None) -> int
 def get_subscription_from_attributes(
     attrs: Mapping[str, Any]
 ) -> Tuple[bool, Optional[Mapping[str, Union[str, bool]]]]:
-    subscription_details = None
+    subscription_details: Optional[Mapping[str, Union[str, bool]]] = None
     is_disabled, is_subscribed, subscription = attrs["subscription"]
     if is_disabled:
         subscription_details = {"disabled": True}
