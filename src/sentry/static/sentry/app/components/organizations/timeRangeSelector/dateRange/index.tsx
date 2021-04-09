@@ -151,7 +151,7 @@ class DateRange extends React.Component<Props, State> {
   handleChangeEnd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const start = this.props.start ?? undefined;
     const end = this.props.end ?? '';
-    const {onChange} = this.props;
+    const {organization, onChange, router} = this.props;
     const endTime = e.target.value;
 
     if (!endTime || !isValidTime(endTime)) {
@@ -165,8 +165,8 @@ class DateRange extends React.Component<Props, State> {
     analytics('dateselector.time_changed', {
       field_changed: 'end',
       time: endTime,
-      path: getRouteStringFromRoutes(this.context.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      path: getRouteStringFromRoutes(router.routes),
+      org_id: parseInt(organization.id, 10),
     });
 
     onChange({
