@@ -488,7 +488,7 @@ class MissingServiceNode extends React.Component<
     const {hideMissing} = this.state;
     const {anchor} = this.props;
     if (hideMissing) {
-      return <React.Fragment />;
+      return null;
     }
     return (
       <React.Fragment>
