@@ -388,7 +388,6 @@ function BaseChartUnwrapped({
   //
   // We use React.useMemo to keep the value across renders
   //
-  // eslint-disable-next-line sentry/no-react-hooks
   const eventsMap = React.useMemo(
     () =>
       ({
