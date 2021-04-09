@@ -66,7 +66,6 @@ class StacktracePreview extends React.Component<Props, State> {
 
   handleStacktracePreviewClick = (event: React.MouseEvent) => {
     event.stopPropagation();
-    event.preventDefault();
   };
 
   getStacktrace(): StacktraceType | undefined {
