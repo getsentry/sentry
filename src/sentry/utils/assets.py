@@ -1,5 +1,4 @@
 from django.conf import settings
-
 from manifest_loader.utils import _get_manifest, _load_from_manifest
 
 
