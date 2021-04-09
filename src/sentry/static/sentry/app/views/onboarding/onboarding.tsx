@@ -183,7 +183,6 @@ class Onboarding extends React.Component<Props, State> {
     // way to create framer-motion controls than by using the `useAnimation`
     // hook.
 
-    // eslint-disable-next-line sentry/no-react-hooks
     React.useEffect(updateCornerVariant, []);
 
     return (
