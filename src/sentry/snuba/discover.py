@@ -1060,6 +1060,8 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
         min_values = [row[get_function_alias(column)] for column in min_columns]
         min_values = list(filter(lambda v: v is not None, min_values))
         min_value = min(min_values) if min_values else None
+        if max_value is not None and min_value is not None:
+            min_value = min([max_value, min_value])
 
     if max_value is None:
         max_values = [row[get_function_alias(column)] for column in max_columns]
