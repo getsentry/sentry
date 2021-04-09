@@ -22,6 +22,7 @@ type Props = {
   placeholder?: string;
   detail?: React.ReactNode;
   controls?: React.ReactNode[];
+  'data-test-id': string;
 };
 
 type State = {};
@@ -59,9 +60,10 @@ class RulesPanel extends React.Component<Props, State> {
       placeholder,
       detail,
       controls,
+      ['data-test-id']: dataTestId,
     } = this.props;
     return (
-      <Container>
+      <Container data-test-id={dataTestId}>
         <RulesHeader>
           <TitleContainer>
             {this.renderIcon(provider)}

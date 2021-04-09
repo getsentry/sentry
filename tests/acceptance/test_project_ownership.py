@@ -12,3 +12,11 @@ class ProjectOwnershipTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
         self.browser.wait_until_test_id("issueowners-panel")
         self.browser.snapshot("project ownership")
+
+    def test_open_modal(self):
+        self.browser.get(self.path)
+        self.browser.wait_until_not(".loading")
+        self.browser.wait_until_test_id("issueowners-panel")
+        self.browser.click('[aria-label="Edit"]')
+        self.browser.wait_until(".modal-dialog")
+        self.browser.snapshot("project ownership modal")

@@ -22,7 +22,7 @@ class EditOwnershipRulesModal extends React.Component<Props, State> {
         </Block>
         <Block>
           {t('Globbing Syntax:')}
-          <CodeBlock>{'* matches everything\n? mathes any single character'}</CodeBlock>
+          <CodeBlock>{'* matches everything\n? matches any single character'}</CodeBlock>
         </Block>
         <Block>
           {t('Examples')}

@@ -58,6 +58,7 @@ class CodeOwnersPanel extends AsyncComponent<Props, State> {
       return (
         <React.Fragment key={codeowner.id}>
           <RulesPanel
+            data-test-id="codeowners-panel"
             type="codeowners"
             raw={raw}
             dateUpdated={dateUpdated}
@@ -67,7 +68,7 @@ class CodeOwnersPanel extends AsyncComponent<Props, State> {
             controls={[
               <Confirm
                 onConfirm={() => this.handleDelete(codeowner)}
-                message={t('Are you sure you want to remove this CodeOwners?')}
+                message={t('Are you sure you want to remove this CODEOWNERS file?')}
                 key="confirm-delete"
               >
                 <Button key="delete" icon={<IconDelete size="xs" />} size="xsmall" />
