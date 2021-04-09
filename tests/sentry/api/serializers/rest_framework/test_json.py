@@ -1,7 +1,6 @@
-from sentry.api.serializers.rest_framework import JSONField
-
 from rest_framework import serializers
 
+from sentry.api.serializers.rest_framework import JSONField
 from sentry.testutils import TestCase
 
 

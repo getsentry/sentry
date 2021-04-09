@@ -69,7 +69,7 @@ class EmailActionHandler(ActionHandler):
                     ExternalProviders.EMAIL,
                     self.project,
                     {member.user for member in target.member_set},
-                )
+                )[ExternalProviders.EMAIL]
                 targets = [(user.id, user.email) for user in users]
         # TODO: We need some sort of verification system to make sure we're not being
         # used as an email relay.

@@ -1,6 +1,7 @@
 from django.test.utils import override_settings
-from sentry.testutils import TestCase
+
 from sentry.services.http import SentryHTTPServer, convert_options_to_env
+from sentry.testutils import TestCase
 
 
 class HTTPServiceTest(TestCase):

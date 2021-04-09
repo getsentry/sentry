@@ -1,14 +1,14 @@
 import collections
-
 from collections import OrderedDict
 from datetime import timedelta
-from django.conf import settings
-from django.utils import timezone
 from enum import Enum
 
+from django.conf import settings
+from django.utils import timezone
+
+from sentry.utils.compat import map
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.services import Service
-from sentry.utils.compat import map
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60

@@ -2,9 +2,9 @@ from django.core.signing import SignatureExpired
 
 from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
-from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView
 from sentry.utils.compat.mock import patch
 from sentry.utils.signing import sign
+from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView
 
 
 class MsTeamsExtensionConfigurationTest(TestCase):

@@ -657,9 +657,7 @@ ResultSet = List[Mapping[str, Any]]  # TODO: Would be nice to make this a concre
 
 
 def raw_snql_query(
-    query: Query,
-    referrer: Optional[str] = None,
-    use_cache: bool = False,
+    query: Query, referrer: Optional[str] = None, use_cache: bool = False,
 ) -> Mapping[str, Any]:
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
@@ -700,7 +698,6 @@ def _apply_cache_and_build_results(
     headers = {}
     if referrer:
         headers["referer"] = referrer
-        sentry_sdk.set_tag("query.referrer", referrer)
 
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
@@ -742,10 +739,13 @@ def _bulk_snuba_query(
     use_snql: Optional[bool] = None,
 ) -> ResultSet:
     with sentry_sdk.start_span(
-        op="start_snuba_query",
-        description=f"running {len(snuba_param_list)} snuba queries",
+        op="start_snuba_query", description=f"running {len(snuba_param_list)} snuba queries",
     ) as span:
-        span.set_tag("referrer", headers.get("referer", "<unknown>"))
+        query_referrer = headers.get("referer", "<unknown>")
+        # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
+        # but we still want to know a general sense of how referrers impact performance
+        span.set_tag("query.referrer", query_referrer)
+        sentry_sdk.set_tag("query.referrer", query_referrer)
         # This is confusing because this function is overloaded right now with three cases:
         # 1. A legacy JSON query (_snuba_query)
         # 2. A dryrun SnQL query of a legacy query (_snql_dryrun_query)
@@ -759,8 +759,7 @@ def _bulk_snuba_query(
         if len(snuba_param_list) > 1:
             query_results = list(
                 _query_thread_pool.map(
-                    query_fn,
-                    [(params, Hub(Hub.current), headers) for params in snuba_param_list],
+                    query_fn, [(params, Hub(Hub.current), headers) for params in snuba_param_list],
                 )
             )
         else:
@@ -862,8 +861,7 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
         query.validate()  # Call this here just avoid it happening in the async all
     except Exception as e:
         logger.warning(
-            "snuba.snql.parsing.error",
-            extra={"error": str(e), "params": json.dumps(query_params)},
+            "snuba.snql.parsing.error", extra={"error": str(e), "params": json.dumps(query_params)},
         )
         metrics.incr(
             "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "parsing.error"}

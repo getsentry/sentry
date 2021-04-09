@@ -1,10 +1,10 @@
 import pytest
-
-from sentry.testutils import TestCase
-from sentry.snuba.outcomes import QueryDefinition, InvalidField
 from django.http import QueryDict
-from sentry.search.utils import InvalidQuery
 from sentry_relay import DataCategory
+
+from sentry.search.utils import InvalidQuery
+from sentry.snuba.outcomes import InvalidField, QueryDefinition
+from sentry.testutils import TestCase
 from sentry.utils.outcomes import Outcome
 
 

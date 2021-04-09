@@ -1,11 +1,11 @@
 from django.test import RequestFactory
 from exam import fixture
-from sentry.utils.compat.mock import patch
 
 from sentry.middleware.health import HealthCheck
 from sentry.status_checks import Problem
 from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.utils.compat.mock import patch
 
 
 class HealthCheckTest(TestCase):

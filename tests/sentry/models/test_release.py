@@ -1,23 +1,20 @@
 import pytest
-
 from django.utils import timezone
 from freezegun import freeze_time
-from sentry.utils.compat.mock import patch
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.models import (
-    add_group_to_inbox,
     Commit,
     CommitAuthor,
     Environment,
+    ExternalIssue,
     Group,
     GroupInbox,
     GroupInboxReason,
+    GroupLink,
     GroupRelease,
     GroupResolution,
-    GroupLink,
     GroupStatus,
-    ExternalIssue,
     Integration,
     OrganizationIntegration,
     Release,
@@ -27,10 +24,11 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
     Repository,
+    add_group_to_inbox,
 )
+from sentry.testutils import SetRefsTestCase, TestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.strings import truncatechars
-
-from sentry.testutils import TestCase, SetRefsTestCase
 
 
 class MergeReleasesTest(TestCase):
