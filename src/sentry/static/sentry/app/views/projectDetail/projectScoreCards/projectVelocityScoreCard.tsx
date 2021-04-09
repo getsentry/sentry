@@ -31,6 +31,8 @@ type State = AsyncComponent['state'] & {
 };
 
 class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
+  shouldRenderBadRequests = true;
+
   getDefaultState() {
     return {
       ...super.getDefaultState(),

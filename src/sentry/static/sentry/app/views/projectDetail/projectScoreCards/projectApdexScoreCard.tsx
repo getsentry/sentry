@@ -31,6 +31,8 @@ type State = AsyncComponent['state'] & {
 };
 
 class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
+  shouldRenderBadRequests = true;
+
   getDefaultState() {
     return {
       ...super.getDefaultState(),

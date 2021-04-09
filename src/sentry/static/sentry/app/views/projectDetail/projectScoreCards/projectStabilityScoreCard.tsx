@@ -34,6 +34,8 @@ type State = AsyncComponent['state'] & {
 };
 
 class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
+  shouldRenderBadRequests = true;
+
   getDefaultState() {
     return {
       ...super.getDefaultState(),
