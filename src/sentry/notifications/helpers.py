@@ -2,8 +2,8 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from sentry.models.integration import ExternalProviders
-from sentry.notifications.legacy_mappings import get_legacy_value
 from sentry.notifications.types import (
+    VALID_VALUES_FOR_KEY,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -136,7 +136,7 @@ def transform_to_notification_settings_by_parent_id(
 
 def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
     """ :returns boolean. True if the "value" is valid for the "type". """
-    return get_legacy_value(type, value) is not None
+    return value in VALID_VALUES_FOR_KEY.get(type, {})
 
 
 def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
