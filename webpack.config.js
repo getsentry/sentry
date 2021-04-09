@@ -231,6 +231,11 @@ let appConfig = {
     app: ['app/utils/statics-setup', 'app'],
 
     /**
+     * Pipeline View for integrations
+     */
+    pipeline: ['app/utils/statics-setup', 'app/views/integrationPipeline'],
+
+    /**
      * Legacy CSS Webpack appConfig for Django-powered views.
      * This generates a single "sentry.css" file that imports ALL component styles
      * for use on Django-powered pages.

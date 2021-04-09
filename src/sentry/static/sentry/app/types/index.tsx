@@ -26,6 +26,12 @@ declare global {
      * The config object provided by the backend.
      */
     __initialData: Config;
+
+    /**
+     * Pipeline
+     */
+    __pipelineInitialData: PipelineInitialData;
+
     /**
      * Sentry SDK configuration
      */
@@ -64,6 +70,11 @@ declare global {
     adblockSuspected?: boolean;
   }
 }
+
+export type PipelineInitialData = {
+  name: string;
+  props: Record<string, any>;
+};
 
 export type IntegrationInstallationStatus =
   | typeof INSTALLED

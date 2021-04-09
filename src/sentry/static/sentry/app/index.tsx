@@ -19,7 +19,8 @@ const bootApplication = (data: Config) => {
   window.__initialData = data;
 
   // Once data hydration is done we can initialize the app
-  require('./bootstrap');
+  const {initializeMain} = require('./bootstrap/initializeMain');
+  initializeMain();
 };
 
 async function bootWithHydration() {
@@ -27,9 +28,6 @@ async function bootWithHydration() {
   const data: Config = await response.json();
 
   bootApplication(data);
-
-  // TODO(epurkhiser): This should live somewhere else
-  $(window.SentryRenderApp);
 }
 
 const bootstrapData = window.__initialData;
