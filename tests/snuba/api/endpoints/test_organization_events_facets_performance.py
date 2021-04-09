@@ -1,5 +1,6 @@
-from django.core.urlresolvers import reverse
 from uuid import uuid4
+
+from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
