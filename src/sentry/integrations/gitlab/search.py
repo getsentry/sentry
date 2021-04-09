@@ -1,8 +1,8 @@
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.models import Integration
+from sentry.shared_integrations.exceptions import ApiError
 
 
 class GitlabIssueSearchEndpoint(IntegrationEndpoint):

@@ -1,15 +1,14 @@
 from datetime import datetime
 
-import pytz
 import pytest
+import pytz
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
-
-from tests.acceptance.page_objects.issue_list import IssueListPage
 from tests.acceptance.page_objects.issue_details import IssueDetailsPage
+from tests.acceptance.page_objects.issue_list import IssueListPage
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 

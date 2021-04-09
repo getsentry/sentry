@@ -1,11 +1,10 @@
-import time
 import inspect
+import time
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.tsdb.dummy import DummyTSDB
 from sentry.tsdb.redis import RedisTSDB
 from sentry.tsdb.snuba import SnubaTSDB
-
 
 READ = 0
 WRITE = 1

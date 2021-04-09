@@ -1,5 +1,5 @@
-from sentry.testutils import AcceptanceTestCase
 from sentry.models import Project
+from sentry.testutils import AcceptanceTestCase
 from sentry.utils.compat.mock import patch
 
 

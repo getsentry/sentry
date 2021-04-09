@@ -1,11 +1,12 @@
 from datetime import timedelta
+
 from django.utils import timezone
 
-from sentry.coreapi import APIError
 from sentry.constants import SentryAppStatus
+from sentry.coreapi import APIError
 from sentry.mediators.sentry_apps import Updater
 from sentry.mediators.service_hooks.creator import expand_events
-from sentry.models import SentryAppComponent, ServiceHook, ApiToken
+from sentry.models import ApiToken, SentryAppComponent, ServiceHook
 from sentry.testutils import TestCase
 
 

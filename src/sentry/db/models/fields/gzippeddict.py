@@ -4,7 +4,7 @@ import pickle
 from django.db.models import TextField
 
 from sentry.db.models.utils import Creator
-from sentry.utils.strings import decompress, compress
+from sentry.utils.strings import compress, decompress
 
 __all__ = ("GzippedDictField",)
 

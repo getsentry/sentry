@@ -1,6 +1,6 @@
 import logging
 
-from django.db import models, IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 from sentry.adoption import manager

@@ -24,7 +24,6 @@ import space from 'app/styles/space';
 import {Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
 import {Event} from 'app/types/event';
 import {defined, objectIsEmpty} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withOrganization from 'app/utils/withOrganization';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
@@ -93,16 +92,6 @@ export class Line extends React.Component<Props, State> {
 
   toggleContext = evt => {
     evt && evt.preventDefault();
-    const {isFirst, isHoverPreviewed, organization} = this.props;
-
-    if (isFirst && isHoverPreviewed) {
-      trackAnalyticsEvent({
-        eventKey: 'stacktrace.preview.first_frame_expand',
-        eventName: 'Stack Trace Preview: Expand First Frame',
-        organization_id: organization?.id ? parseInt(organization.id, 10) : undefined,
-        issue_id: this.props.event.groupID,
-      });
-    }
 
     this.setState({
       isExpanded: !this.state.isExpanded,
@@ -402,7 +391,6 @@ export class Line extends React.Component<Props, State> {
           hasAssembly={this.hasAssembly()}
           expandable={this.isExpandable()}
           isExpanded={this.state.isExpanded}
-          isHoverPreviewed={this.props.isHoverPreviewed}
         />
       </StyledLi>
     );

@@ -4,12 +4,12 @@ from django.core.urlresolvers import reverse
 from django.template.defaultfilters import pluralize
 
 from sentry.incidents.models import (
+    INCIDENT_STATUS,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
-    TriggerStatus,
     IncidentStatus,
     IncidentTrigger,
-    INCIDENT_STATUS,
+    TriggerStatus,
 )
 from sentry.models.integration import ExternalProviders
 from sentry.models.notificationsetting import NotificationSetting
@@ -69,7 +69,7 @@ class EmailActionHandler(ActionHandler):
                     ExternalProviders.EMAIL,
                     self.project,
                     {member.user for member in target.member_set},
-                )
+                )[ExternalProviders.EMAIL]
                 targets = [(user.id, user.email) for user in users]
         # TODO: We need some sort of verification system to make sure we're not being
         # used as an email relay.

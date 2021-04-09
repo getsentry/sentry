@@ -1,7 +1,7 @@
 from django.contrib import admin
 
-from social_auth.models import UserSocialAuth
 from social_auth.django_compat import get_all_field_names
+from social_auth.models import UserSocialAuth
 
 _User = UserSocialAuth.user_model()
 

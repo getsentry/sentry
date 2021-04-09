@@ -3,7 +3,6 @@ import inspect
 from sentry import projectoptions
 from sentry.grouping.enhancer import Enhancements
 
-
 STRATEGIES = {}
 
 

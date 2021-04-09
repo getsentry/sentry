@@ -159,6 +159,7 @@ from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_trace import (
     OrganizationEventsTraceEndpoint,
     OrganizationEventsTraceLightEndpoint,
+    OrganizationEventsTraceMetaEndpoint,
 )
 from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
@@ -957,6 +958,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventsTraceEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trace",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    OrganizationEventsTraceMetaEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-trace-meta",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues/new/$",

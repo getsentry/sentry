@@ -7,6 +7,11 @@ export const URL_PARAM = {
   ENVIRONMENT: 'environment',
 };
 
+export const PAGE_URL_PARAM = {
+  PAGE_START: 'pageStart',
+  PAGE_END: 'pageEnd',
+};
+
 export const DATE_TIME = {
   START: 'start',
   END: 'end',

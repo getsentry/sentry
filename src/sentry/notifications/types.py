@@ -110,3 +110,28 @@ class UserOptionsSettingsKey(Enum):
     SELF_ASSIGN = "selfAssignOnResolve"
     SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
     WORKFLOW = "workflowNotifications"
+
+
+VALID_VALUES_FOR_KEY = {
+    NotificationSettingTypes.DEPLOY: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.COMMITTED_ONLY,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.ISSUE_ALERTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.WORKFLOW: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+        NotificationSettingOptionValues.NEVER,
+    },
+}
+
+
+NOTIFICATION_SETTING_DEFAULTS = {
+    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
+    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+}

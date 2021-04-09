@@ -1,10 +1,11 @@
 import copy
+from datetime import datetime, timedelta
+
 import pytz
-from sentry.utils.compat.mock import patch
-from datetime import timedelta, datetime
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, timestamp_format
+from sentry.utils.compat.mock import patch
 from tests.acceptance.test_organization_events_v2 import generate_transaction
 
 FEATURE_NAMES = ["organizations:performance-view"]

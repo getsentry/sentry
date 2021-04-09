@@ -7,13 +7,13 @@ from django.utils import timezone
 from sentry.api.event_search import get_filter, resolve_field_list
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics, json
+from sentry.utils import json, metrics
 from sentry.utils.snuba import (
-    _snuba_pool,
     Dataset,
     SnubaError,
-    resolve_snuba_aliases,
+    _snuba_pool,
     resolve_column,
+    resolve_snuba_aliases,
 )
 
 logger = logging.getLogger(__name__)

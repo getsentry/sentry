@@ -1,7 +1,7 @@
+from copy import deepcopy
+
 import pytz
 import requests
-
-from copy import deepcopy
 from exam import fixture
 from freezegun import freeze_time
 
