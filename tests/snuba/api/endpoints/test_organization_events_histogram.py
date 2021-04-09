@@ -372,6 +372,32 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
+    def test_histogram_simple_using_given_max_below_queried_min(self):
+        # All these events are out of range of the query parameters,
+        # and should not appear in the results.
+        specs = [
+            (6, 7, [("foo", 1)]),
+            (8, 9, [("foo", 1)]),
+            (10, 11, [("foo", 1)]),
+            (12, 13, [("foo", 1)]),
+        ]
+        self.populate_events(specs)
+
+        for array_column in ARRAY_COLUMNS:
+            query = {
+                "project": [self.project.id],
+                "field": [f"{array_column}.foo"],
+                "numBuckets": 5,
+                "max": 6,
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, f"failing for {array_column}"
+            expected = [
+                (5, 6, [(f"{array_column}.foo", 0)]),
+            ]
+            assert response.data == self.as_response_data(expected), f"failing for {array_column}"
+
     def test_histogram_large_buckets(self):
         # make sure that it works for large width buckets
         # range is [0, 99], so it is divided into 5 buckets of width 20
