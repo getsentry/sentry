@@ -1061,6 +1061,9 @@ def _find_existing_group_id(
     hierarchical_hashes,
 ):
     all_grouphashes = []
+    root_hierarchical_hash = None
+
+    found_split = False
 
     if hierarchical_hashes:
         hierarchical_grouphashes = {
@@ -1070,16 +1073,27 @@ def _find_existing_group_id(
 
         for hash in reversed(hierarchical_hashes):
             group_hash = hierarchical_grouphashes.get(hash)
-            if group_hash is None:
-                continue
 
-            all_grouphashes.append(group_hash)
+            if group_hash is not None and group_hash.state == GroupHash.State.SPLIT:
+                found_split = True
 
-    all_grouphashes.extend(flat_grouphashes)
+            if not found_split:
+                root_hierarchical_hash = hash
+
+                if group_hash is not None:
+                    all_grouphashes.append(group_hash)
+
+        if root_hierarchical_hash is None:
+            # All hashes were split (should not be reachable from UI), so
+            # we group by most specific hash.
+            root_hierarchical_hash = hierarchical_hashes[-1]
+
+    if not found_split:
+        all_grouphashes.extend(flat_grouphashes)
 
     for group_hash in all_grouphashes:
         if group_hash.group_id is not None:
-            return group_hash.group_id
+            return group_hash.group_id, root_hierarchical_hash
 
         # When refactoring for hierarchical grouping, we noticed that a
         # tombstone may get ignored entirely if there is another hash *before*
@@ -1092,6 +1106,8 @@ def _find_existing_group_id(
         if group_hash.group_tombstone_id is not None:
             raise HashDiscarded("Matches group tombstone %s" % group_hash.group_tombstone_id)
 
+    return None, root_hierarchical_hash
+
 
 def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
     project = event.project
@@ -1101,14 +1117,16 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
         GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in flat_hashes
     ]
 
-    if hierarchical_hashes:
-        root_hierarchical_hash = GroupHash.objects.get_or_create(
-            project=project, hash=hierarchical_hashes[0]
+    existing_group_id, root_hierarchical_hash = _find_existing_group_id(
+        project, flat_grouphashes, hierarchical_hashes
+    )
+
+    if root_hierarchical_hash is not None:
+        root_hierarchical_grouphash = GroupHash.objects.get_or_create(
+            project=project, hash=root_hierarchical_hash
         )[0]
     else:
-        root_hierarchical_hash = None
-
-    existing_group_id = _find_existing_group_id(project, flat_grouphashes, hierarchical_hashes)
+        root_hierarchical_grouphash = None
 
     # XXX(dcramer): this has the opportunity to create duplicate groups
     # it should be resolved by the hash merging function later but this
@@ -1157,16 +1175,19 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
 
     group._project_cache = project
 
-    if root_hierarchical_hash is None or root_hierarchical_hash.group_id == existing_group_id:
-        to_update = list(flat_grouphashes)
-        if group_is_new and root_hierarchical_hash is not None:
-            to_update.append(root_hierarchical_hash)
-        new_hashes = [h for h in to_update if h.group_id is None]
+    if root_hierarchical_grouphash is not None:
+        all_hashes = [root_hierarchical_grouphash]
+    else:
+        all_hashes = list(flat_grouphashes)
+
+    if group_is_new:
+        new_hashes = [h for h in all_hashes if h.group_id is None]
     else:
         new_hashes = []
 
     # If all hashes are brand new we treat this event as new
     is_new = False
+
     if new_hashes:
         # XXX: There is a race condition here wherein another process could
         # create a new group that is associated with one of the new hashes,
@@ -1181,7 +1202,7 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
             state=GroupHash.State.LOCKED_IN_MIGRATION
         ).update(group=group)
 
-        if group_is_new and len(new_hashes) == len(to_update):
+        if group_is_new and len(new_hashes) == len(all_hashes):
             is_new = True
 
     if not is_new:

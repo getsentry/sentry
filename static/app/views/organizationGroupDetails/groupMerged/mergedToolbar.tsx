@@ -16,6 +16,7 @@ type Props = {
   project: Project;
   groupId: Group['id'];
   onUnmerge: () => void;
+  onSplit: () => void;
   onToggleCollapse: () => void;
 };
 
@@ -91,7 +92,7 @@ class MergedToolbar extends React.Component<Props, State> {
   };
 
   render() {
-    const {onUnmerge, onToggleCollapse} = this.props;
+    const {onUnmerge, onSplit, onToggleCollapse} = this.props;
     const {
       unmergeList,
       unmergeLastCollapsed,
@@ -112,6 +113,17 @@ class MergedToolbar extends React.Component<Props, State> {
           >
             <Button size="small" title={t(`Unmerging ${unmergeCount} events`)}>
               {t('Unmerge')} ({unmergeCount || 0})
+            </Button>
+          </Confirm>
+
+          <Confirm
+            onConfirm={onSplit}
+            message={t(
+              'These events will be grouped into a new issue by more specific criteria (for instance more frames). Are you you want to split them out of the existing issue?'
+            )}
+          >
+            <Button size="small" title={t(`Splitting out ${unmergeCount} events`)}>
+              {t('Split')} ({unmergeCount || 0})
             </Button>
           </Confirm>
 
