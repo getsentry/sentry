@@ -2,7 +2,7 @@ import functools
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Iterable, Mapping, Optional, Tuple
+from typing import Iterable, Mapping, Optional, Tuple
 
 import pytz
 import sentry_sdk
@@ -175,8 +175,8 @@ class GroupSerializerBase(Serializer):
 
     @staticmethod
     def _get_subscriptions(
-        groups: Iterable[Any], user: Any
-    ) -> Mapping[int, Tuple[bool, bool, Optional[Any]]]:
+        groups: Iterable[Group], user: User
+    ) -> Mapping[int, Tuple[bool, bool, Optional[GroupSubscription]]]:
         """
         Returns a mapping of group IDs to a two-tuple of (is_disabled: bool,
         subscribed: bool, subscription: Optional[GroupSubscription]) for the
