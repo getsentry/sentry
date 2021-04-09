@@ -7,9 +7,11 @@ import {Client} from 'app/api';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
 import {TraceFullDetailedQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'app/utils/performance/quickTrace/traceMetaQuery';
 import {TraceFullDetailed, TraceMeta} from 'app/utils/performance/quickTrace/types';
@@ -38,17 +40,44 @@ class TraceSummary extends React.Component<Props> {
 
   getDateSelection() {
     const {location} = this.props;
-    const queryParams = getParams(location.query);
+    const queryParams = getParams(location.query, {
+      allowAbsolutePageDatetime: true,
+    });
     const start = decodeScalar(queryParams.start);
     const end = decodeScalar(queryParams.end);
     const statsPeriod = decodeScalar(queryParams.statsPeriod);
     return {start, end, statsPeriod};
   }
 
+  getTraceEventView() {
+    const traceSlug = this.getTraceSlug();
+    const {start, end, statsPeriod} = this.getDateSelection();
+
+    return EventView.fromSavedQuery({
+      id: undefined,
+      name: `Transactions with Trace ID ${traceSlug}`,
+      fields: [
+        'transaction',
+        'project',
+        'trace.span',
+        'transaction.duration',
+        'timestamp',
+      ],
+      orderby: '-timestamp',
+      query: `event.type:transaction trace:${traceSlug}`,
+      projects: [ALL_ACCESS_PROJECTS],
+      version: 2,
+      start,
+      end,
+      range: statsPeriod,
+    });
+  }
+
   renderContent() {
     const {location, organization, params} = this.props;
     const traceSlug = this.getTraceSlug();
     const {start, end, statsPeriod} = this.getDateSelection();
+    const dateSelected = Boolean(statsPeriod || (start && end));
 
     const content = ({
       isLoading,
@@ -66,9 +95,8 @@ class TraceSummary extends React.Component<Props> {
         organization={organization}
         params={params}
         traceSlug={traceSlug}
-        start={start}
-        end={end}
-        statsPeriod={statsPeriod}
+        traceEventView={this.getTraceEventView()}
+        dateSelected={dateSelected}
         isLoading={isLoading}
         error={error}
         traces={traces}
@@ -76,7 +104,7 @@ class TraceSummary extends React.Component<Props> {
       />
     );
 
-    if (!statsPeriod && (!start || !end)) {
+    if (!dateSelected) {
       return content({
         isLoading: false,
         error: 'date selection not specified',

@@ -1,6 +1,6 @@
+from collections import defaultdict
 from typing import Any, Mapping
 
-from collections import defaultdict
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
@@ -13,8 +13,8 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.notifications.helpers import (
-    where_should_be_participating,
     transform_to_notification_settings_by_user,
+    where_should_be_participating,
 )
 from sentry.notifications.types import NotificationSettingTypes
 
@@ -111,7 +111,7 @@ class GroupSubscriptionManager(BaseManager):
                 if i == 0:
                     raise e
 
-    def get_participants(self, group) -> Mapping[Any, GroupSubscriptionReason]:
+    def get_participants(self, group) -> Mapping[Any, Mapping[Any, GroupSubscriptionReason]]:
         """
         Identify all users who are participating with a given issue.
         :param group: Group object
@@ -132,8 +132,8 @@ class GroupSubscriptionManager(BaseManager):
         notification_settings_by_user = transform_to_notification_settings_by_user(
             notification_settings, users
         )
-        result = defaultdict(dict)
 
+        result = defaultdict(dict)
         for user in users:
             providers = where_should_be_participating(
                 user,

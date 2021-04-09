@@ -129,6 +129,20 @@ describe('getParams', function () {
     ).toEqual({statsPeriod: '14d'});
   });
 
+  it('should use pageStart and pageEnd to override start and end', function () {
+    expect(
+      getParams(
+        {
+          pageStart: '2021-10-23T04:28:49+0000',
+          pageEnd: '2021-10-26T02:56:17+0000',
+          start: '2019-10-23T04:28:49+0000',
+          end: '2019-10-26T02:56:17+0000',
+        },
+        {allowAbsolutePageDatetime: true}
+      )
+    ).toEqual({start: '2021-10-23T04:28:49.000', end: '2021-10-26T02:56:17.000'});
+  });
+
   it('does not return default statsPeriod if `allowEmptyPeriod` option is passed', function () {
     expect(getParams({}, {allowEmptyPeriod: true})).toEqual({});
   });

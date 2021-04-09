@@ -14,7 +14,6 @@ import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import TimeSince from 'app/components/timeSince';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
@@ -67,9 +66,8 @@ type Props = {
   organization: Organization;
   params: Params;
   traceSlug: string;
-  start: string | undefined;
-  end: string | undefined;
-  statsPeriod: string | undefined;
+  traceEventView: EventView;
+  dateSelected: boolean;
   isLoading: boolean;
   error: string | null;
   traces: TraceFullDetailed[] | null;
@@ -184,29 +182,6 @@ class TraceDetailsContent extends React.Component<Props, State> {
       ? filteredTransactionIds.has(transaction.event_id)
       : true;
   };
-
-  getTraceEventView() {
-    const {traceSlug, start, end, statsPeriod} = this.props;
-
-    return EventView.fromSavedQuery({
-      id: undefined,
-      name: `Transactions with Trace ID ${traceSlug}`,
-      fields: [
-        'transaction',
-        'project',
-        'trace.span',
-        'transaction.duration',
-        'timestamp',
-      ],
-      orderby: '-timestamp',
-      query: `event.type:transaction trace:${traceSlug}`,
-      projects: [ALL_ACCESS_PROJECTS],
-      version: 2,
-      start,
-      end,
-      range: statsPeriod,
-    });
-  }
 
   renderTraceHeader(traceInfo: TraceInfo) {
     const {meta} = this.props;
@@ -332,7 +307,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderLimitExceededMessage(traceInfo: TraceInfo) {
-    const {organization, meta} = this.props;
+    const {traceEventView, organization, meta} = this.props;
     const count = traceInfo.transactions.size;
     const totalTransactions = meta?.transactions ?? count;
 
@@ -340,7 +315,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       return null;
     }
 
-    const target = this.getTraceEventView().getResultsViewUrlTarget(organization.slug);
+    const target = traceEventView.getResultsViewUrlTarget(organization.slug);
 
     return (
       <TransactionRowMessage>
@@ -575,9 +550,9 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderContent() {
-    const {start, end, statsPeriod, isLoading, error, traces} = this.props;
+    const {dateSelected, isLoading, error, traces} = this.props;
 
-    if (!statsPeriod && (!start || !end)) {
+    if (!dateSelected) {
       return this.renderTraceRequiresDateRangeSelection();
     } else if (isLoading) {
       return this.renderTraceLoading();
