@@ -397,7 +397,7 @@ class EventView {
     location: Location
   ): EventView {
     let fields = decodeFields(location);
-    const {start, end, statsPeriod} = location.query;
+    const {start, end, statsPeriod} = getParams(location.query);
     const id = decodeScalar(location.query.id);
     const projects = decodeProjects(location);
     const sorts = decodeSorts(location);

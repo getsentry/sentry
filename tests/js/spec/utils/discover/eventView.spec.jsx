@@ -585,8 +585,8 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       sorts: [{field: 'id', kind: 'desc'}],
       query: 'event.type:transaction',
       project: [123],
-      start: '2019-10-01T00:00:00',
-      end: '2019-10-02T00:00:00',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
       statsPeriod: undefined,
       environment: ['staging'],
     });
@@ -733,6 +733,58 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
     const eventView4 = EventView.fromSavedQueryOrLocation(saved, location4);
 
     expect(eventView.isEqualTo(eventView4)).toBe(true);
+  });
+
+  it('event views are not equal when datetime selection are invalid', function () {
+    const saved = {
+      orderby: '-count_timestamp',
+      end: '2019-10-23T19:27:04+0000',
+      name: 'release query',
+      fields: ['release', 'count(timestamp)'],
+      dateCreated: '2019-10-30T05:10:23.718937Z',
+      environment: ['dev', 'production'],
+      start: '2019-10-20T21:02:51+0000',
+      version: 2,
+      createdBy: '1',
+      dateUpdated: '2019-10-30T07:25:58.291917Z',
+      id: '3',
+      projects: [1],
+    };
+
+    const location = {
+      query: {
+        id: '3',
+        end: '2019-10-23T19:27:04+0000',
+        start: '2019-10-20T21:02:51+0000',
+      },
+    };
+
+    const eventView = EventView.fromSavedQueryOrLocation(saved, location);
+
+    const location2 = {
+      query: {
+        id: '3',
+        end: '2019-10-23T19:27:04+0000',
+        start: '',
+      },
+    };
+    const eventView2 = EventView.fromSavedQueryOrLocation(saved, location2);
+
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    const location3 = {
+      query: {
+        id: '3',
+        end: '',
+        start: '2019-10-20T21:02:51+0000',
+      },
+    };
+    const eventView3 = EventView.fromSavedQueryOrLocation(saved, location3);
+
+    expect(eventView.isEqualTo(eventView3)).toBe(false);
+
+    // this is expected since datetime (start and end) are normalized
+    expect(eventView2.isEqualTo(eventView3)).toBe(true);
   });
 });
 
