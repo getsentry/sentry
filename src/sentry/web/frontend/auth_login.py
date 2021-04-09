@@ -196,13 +196,13 @@ class AuthLoginView(BaseView):
                 if organization and settings.SENTRY_SINGLE_ORGANIZATION:
                     try:
                         om = OrganizationMember.objects.get(
-                            organization=organization, email=self.request.user.email
+                            organization=organization, email=user.email
                         )
                     except OrganizationMember.DoesNotExist:
                         pass
                     else:
                         # XXX(jferge): if user is in 2fa removed state,
-                        # dont redirect to org login page instead redirect to general login where:
+                        # dont redirect to org login page instead redirect to general login where
                         # they will be prompted to check their email
                         if om.user is None:
                             return self.redirect(auth.get_login_url())

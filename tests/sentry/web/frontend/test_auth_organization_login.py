@@ -10,6 +10,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.testutils import AuthProviderTestCase
+from sentry.testutils.helpers import with_feature
 
 
 # TODO(dcramer): this is an integration test and repeats tests from
@@ -655,15 +656,69 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert updated_ident.ident == "foo@new-domain.com"
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    def test_flow_as_invited_user(self):
+    @with_feature({"organizations:create": False})
+    def test_basic_auth_flow_as_invited_user(self):
+
         user = self.create_user("foor@example.com")
         self.create_member(organization=self.organization, user=user)
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
         member.email = "foor@example.com"
         member.user = None
         member.save()
-        self.login_as(user)
+
+        # session = self.client.session
+        # session["_next"] = reverse("sentry-organization-settings", args=[self.organization.slug])
+        # session.save()
+
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
-        assert resp.redirect_chain[0] == (reverse("sentry-login"), 302)
+        assert resp.redirect_chain == [("/auth/login/", 302)]
+        assert resp.status_code == 403
+        self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
+
+    def test_basic_auth_flow_as_invited_user_not_single_org_mode(self):
+        user = self.create_user("u2@example.com")
+        self.create_member(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member.email = "u2@example.com"
+        member.user = None
+        member.save()
+        resp = self.client.post(
+            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
+        )
+        assert resp.redirect_chain == [("/auth/login/", 302), ("/organizations/new/", 302)]
+
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    @with_feature({"organizations:create": False})
+    def test_basic_auth_flow_as_user_with_confirmed_membership(self):
+        self.session["_next"] = "bababa"
+        self.session.save()
+        user = self.create_user("foor@example.com")
+        self.create_member(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member.save()
+
+        # session = self.client.session
+        # session["_next"] = reverse("sentry-organization-settings", args=[self.organization.slug])
+        # session.save()
+
+        resp = self.client.post(
+            self.path, {"username": self.user, "password": "admin", "op": "login"}, follow=True
+        )
+        assert resp.redirect_chain == [
+            ("/auth/login/", 302),
+            ("/organizations/foo/issues/", 302),
+        ]
+
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    @with_feature({"organizations:create": False})
+    def test_flow_as_user_without_any_membership(self):
+        # not sure how this could happen on Single Org Mode
+        user = self.create_user("foor@example.com")
+        resp = self.client.post(
+            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
+        )
+        assert resp.redirect_chain == [("/auth/login/", 302)]
+        assert resp.status_code == 403
+        self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
