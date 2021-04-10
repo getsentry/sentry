@@ -108,3 +108,28 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
+
+    def test_delete_event_user(self):
+        # Only delete an event user as a superuser
+        self.login_as(user=self.user, superuser="true")
+
+        assert EventUser.objects.count() == 2
+
+        response = self.client.delete(f"{self.path}?query=id:{self.euser2.ident}")
+
+        assert response.status_code == 200
+        assert EventUser.objects.count() == 1
+
+        # Only allow deletion if you query by `id`
+        response = self.client.delete(f"{self.path}?query=email:foo@example.com")
+
+        assert response.status_code == 500
+
+        self.login_as(user=self.create_user(email="example@example.com", is_superuser=False))
+
+        assert EventUser.objects.count() == 1
+
+        response = self.client.delete(f"{self.path}?query=id:{self.euser1.ident}")
+
+        assert response.status_code == 403
+        assert EventUser.objects.count() == 1
