@@ -1121,7 +1121,7 @@ def format_search_filter(term, params):
         missing = [slug for slug in slugs if slug not in projects]
         if missing and term.operator not in ("!=", "NOT IN"):
             raise InvalidSearchQuery(
-                f"Invalid query. Projects {missing} do not exist or are not actively selected."
+                f"Invalid query. Project(s) {', '.join(missing)} do not exist or are not actively selected."
             )
         project_ids = list(sorted(projects.values()))
         if project_ids:
