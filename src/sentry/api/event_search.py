@@ -49,6 +49,7 @@ NEGATION_MAP = {
     "IN": "NOT IN",
 }
 equality_operators = frozenset(["=", "IN"])
+inequality_operators = frozenset(["!=", "NOT IN"])
 
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
 
