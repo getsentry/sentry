@@ -13,12 +13,13 @@ import Panel from 'app/components/panels/panel';
 import ChartPalette from 'app/constants/chartPalette';
 import {t} from 'app/locale';
 import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'app/types';
+import {intervalToMilliseconds, statsPeriodToDays} from 'app/utils/dates';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import commonTheme, {Theme} from 'app/utils/theme';
 
 import {formatUsageWithUnits, GIGABYTE} from '../utils';
 
-import {getTooltipFormatter, getXAxisDates} from './utils';
+import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
 
 const COLOR_ERRORS = ChartPalette[4][3];
 const COLOR_ERRORS_DROPPED = Color(COLOR_ERRORS).lighten(0.25).string();
@@ -191,6 +192,7 @@ export class UsageChart extends React.Component<Props, State> {
     yAxisFormatter: (val: number) => string;
     tooltipValueFormatter: (val?: number) => string;
   } {
+    const {usageDateStart, usageDateEnd} = this.props;
     const {
       usageDateInterval,
       usageStats,
@@ -225,19 +227,15 @@ export class UsageChart extends React.Component<Props, State> {
       });
     });
 
-    const {label, value} = selectDataCategory;
+    // Use hours as common units
+    const dataPeriod = statsPeriodToDays(undefined, usageDateStart, usageDateEnd) * 24;
+    const barPeriod = intervalToMilliseconds(usageDateInterval) / (1000 * 60 * 60) ?? 24;
+    const {xAxisTickInterval, xAxisLabelInterval} = getXAxisLabelInterval(
+      dataPeriod,
+      dataPeriod / barPeriod
+    );
 
-    // If date intervals is in hours, a wider x-axis interval is needed for the
-    // labels so that dates are not truncated
-    //
-    // For hourly: we want to put 5 bars between each tick and 23 bars between
-    // each label, so 1 tick == 6 hours and 1 label == 24 hours
-    //
-    // For weekly: we want to put 6 bars between each tick and 6 bars between
-    // each label, so 1 tick == 7 days and 1 label == 7 days
-    const isHourly = usageDateInterval.replace(/[0-9]/g, '') === 'h';
-    const xAxisTickInterval = isHourly ? 5 : 6;
-    const xAxisLabelInterval = isHourly ? 23 : 6;
+    const {label, value} = selectDataCategory;
 
     if (value === DataCategory.ERRORS || value === DataCategory.TRANSACTIONS) {
       return {

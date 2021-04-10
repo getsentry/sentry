@@ -169,8 +169,8 @@ describe('UsageStats', function () {
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '30d',
-          interval: '4h',
+          statsPeriod: '14d',
+          interval: '1h',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
         },

@@ -15,6 +15,7 @@ import {
 } from 'app/components/charts/styles';
 import {DateTimeObject, getInterval} from 'app/components/charts/utils';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
@@ -127,18 +128,15 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       }
 
       if (period) {
-        const amount = Number(period.replace(/[a-zA-Z]/g, ''));
-        const unit = period.replace(/[0-9]/g, '');
-
-        switch (unit) {
-          case 'h':
-          case 'd':
-            break;
-          default:
-            throw new Error('Format for data period is not recognized');
+        const statsPeriod = parseStatsPeriod(period);
+        if (!statsPeriod) {
+          throw new Error('Format for data period is not recognized');
         }
 
-        chartDateStart = moment().subtract(amount, unit);
+        chartDateStart = moment().subtract(
+          statsPeriod.period as any, // TODO(ts): Oddity with momentjs types
+          statsPeriod.periodLength as any
+        );
       }
     } catch (err) {
       // do nothing

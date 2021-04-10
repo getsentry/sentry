@@ -36,19 +36,19 @@ class OrganizationStats extends React.Component<Props> {
   }
 
   get dataPeriod(): DateTimeObject {
-    const {statsPeriod, start, end} = this.props.location?.query ?? {};
-    if (!statsPeriod && !start && !end) {
+    const {pagePeriod, pageStart, pageEnd} = this.props.location?.query ?? {};
+    if (!pagePeriod && !pageStart && !pageEnd) {
       return {period: DEFAULT_STATS_PERIOD};
     }
 
     // Absolute date range is more specific than period
-    if (start && end) {
-      return {start, end};
+    if (pageStart && pageEnd) {
+      return {start: pageStart, end: pageEnd};
     }
 
     const keys = Object.keys(DEFAULT_RELATIVE_PERIODS);
-    return statsPeriod && keys.includes(statsPeriod)
-      ? {period: statsPeriod}
+    return pagePeriod && keys.includes(pagePeriod)
+      ? {period: pagePeriod}
       : {period: DEFAULT_STATS_PERIOD};
   }
 
@@ -63,7 +63,7 @@ class OrganizationStats extends React.Component<Props> {
    */
   setStateOnUrl = (nextState: {
     dataCategory?: DataCategory;
-    statsPeriod?: RelativePeriod;
+    pagePeriod?: RelativePeriod;
     chartTransform?: ChartDataTransform;
   }) => {
     const {location} = this.props;
