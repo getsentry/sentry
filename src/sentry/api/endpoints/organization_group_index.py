@@ -87,7 +87,11 @@ def inbox_search(
     if not get_search_filter(search_filters, "for_review", "="):
         raise InvalidSearchQuery("Sort key 'inbox' only supported for inbox search")
 
-    if get_search_filter(search_filters, "status", "=") != GroupStatus.UNRESOLVED:
+    if get_search_filter(
+        search_filters, "status", "="
+    ) != GroupStatus.UNRESOLVED and get_search_filter(search_filters, "status", "IN") != [
+        GroupStatus.UNRESOLVED
+    ]:
         raise InvalidSearchQuery("Inbox search only works for 'unresolved' status")
 
     # We just filter on `GroupInbox.date_added` here, and don't filter by date
@@ -107,7 +111,7 @@ def inbox_search(
             .distinct()
         )
 
-    owner_search = get_search_filter(search_filters, "assigned_or_suggested", "=")
+    owner_search = get_search_filter(search_filters, "assigned_or_suggested", "IN")
     if owner_search:
         qs = qs.filter(
             assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
