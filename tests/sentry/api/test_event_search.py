@@ -1,5 +1,4 @@
 import datetime
-import pytest
 import re
 import unittest
 from datetime import timedelta
