@@ -1948,7 +1948,9 @@ class ParseBooleanSearchQueryTest(TestCase):
         project3 = self.create_project()
         with self.assertRaisesRegexp(
             InvalidSearchQuery,
-            f"Invalid query. Projects {re.escape(str([project3.slug]))} do not exist or are not actively selected.",
+            re.escape(
+                f"Invalid query. Project(s) {str(project3.slug)} do not exist or are not actively selected."
+            ),
         ):
             get_filter(
                 f"project:{project1.slug} OR project:{project3.slug}",
@@ -2435,7 +2437,7 @@ class GetSnubaQueryArgsTest(TestCase):
         exc = exc_info.value
         exc_str = f"{exc}"
         assert (
-            f"Invalid query. Projects {[p1.slug]} do not exist or are not actively selected."
+            f"Invalid query. Project(s) {p1.slug} do not exist or are not actively selected."
             in exc_str
         )
 

@@ -1142,8 +1142,9 @@ def format_search_filter(term, params):
     elif name == ISSUE_ALIAS:
         operator = term.operator
         value = to_list(value)
+        # `unknown` is a special value for when there is no issue associated with the event
         group_short_ids = [v for v in value if v and v != "unknown"]
-        value = ["" for v in value if not v or v == "unknown"]
+        filter_values = ["" for v in value if not v or v == "unknown"]
 
         if group_short_ids and params and "organization_id" in params:
             try:
@@ -1154,12 +1155,12 @@ def format_search_filter(term, params):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                value.extend([g.id for g in groups])
+                filter_values.extend([g.id for g in groups])
 
         term = SearchFilter(
             SearchKey("issue.id"),
             operator,
-            SearchValue(value if term.is_in_filter else value[0]),
+            SearchValue(filter_values if term.is_in_filter else filter_values[0]),
         )
         converted_filter = convert_search_filter_to_snuba_query(term)
         conditions.append(converted_filter)

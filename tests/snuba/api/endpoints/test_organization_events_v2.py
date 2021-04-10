@@ -265,11 +265,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
-        assert response.data[
-            "detail"
-        ] == "Invalid query. Projects %s do not exist or are not actively selected." % [
-            project.slug
-        ]
+        assert (
+            response.data["detail"]
+            == f"Invalid query. Project(s) {project.slug} do not exist or are not actively selected."
+        )
 
     def test_project_in_query_does_not_exist(self):
         project = self.create_project()
@@ -284,7 +283,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "Invalid query. Projects ['morty'] do not exist or are not actively selected."
+            == "Invalid query. Project(s) morty do not exist or are not actively selected."
         )
 
     def test_not_project_in_query_but_in_header(self):
