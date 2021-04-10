@@ -573,6 +573,57 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             "p50_spans_foo": "duration",
         }
 
+    def test_measurements(self):
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=[
+                "measurements.fp",
+                "measurements.fcp",
+                "measurements.lcp",
+                "measurements.fid",
+                "measurements.cls",
+                "measurements.does_not_exist",
+            ],
+            query="event.type:transaction",
+            params={"project_id": [self.project.id]},
+        )
+
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0]["measurements.fp"] == event_data["measurements"]["fp"]["value"]
+        assert data[0]["measurements.fcp"] == event_data["measurements"]["fcp"]["value"]
+        assert data[0]["measurements.lcp"] == event_data["measurements"]["lcp"]["value"]
+        assert data[0]["measurements.fid"] == event_data["measurements"]["fid"]["value"]
+        assert data[0]["measurements.cls"] == event_data["measurements"]["cls"]["value"]
+        assert data[0]["measurements.does_not_exist"] is None
+
+    def test_span_op_breakdowns(self):
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=[
+                "spans.http",
+                "spans.db",
+                "spans.resource",
+                "spans.browser",
+                "spans.does_not_exist",
+            ],
+            query="event.type:transaction",
+            params={"project_id": [self.project.id]},
+        )
+
+        data = results["data"]
+        assert len(data) == 1
+        span_ops = event_data["breakdowns"]["span_ops"]
+        assert data[0]["spans.http"] == span_ops["ops.http"]["value"]
+        assert data[0]["spans.db"] == span_ops["ops.db"]["value"]
+        assert data[0]["spans.resource"] == span_ops["ops.resource"]["value"]
+        assert data[0]["spans.browser"] == span_ops["ops.browser"]["value"]
+        assert data[0]["spans.does_not_exist"] is None
+
 
 class QueryTransformTest(TestCase):
     """
