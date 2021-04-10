@@ -1166,7 +1166,7 @@ def format_search_filter(term, params):
     elif (
         name == RELEASE_ALIAS
         and params
-        and (value == "latest" or term.is_in_filter and any(v for v in value if v == "latest"))
+        and (value == "latest" or term.is_in_filter and any(v == "latest" for v in value))
     ):
         value = [
             parse_release(
