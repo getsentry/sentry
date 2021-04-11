@@ -58,7 +58,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       statsPeriod: dataDatetime?.period || DEFAULT_STATS_PERIOD,
       interval: '1d',
       groupBy: ['category', 'outcome', 'project'],
-      field: ['sum(quantity)', 'sum(times_seen)'],
+      field: ['sum(quantity)'],
     };
   }
 
@@ -222,9 +222,8 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           stats[project] = {...baseStat};
         }
 
-        const s = this.mapTotalsToStats(dataCategory, group.totals);
-        stats[project][outcome] += s;
-        stats[project].total += s;
+        stats[project][outcome] += group.totals['sum(quantity)'];
+        stats[project].total += group.totals['sum(quantity)'];
       });
 
       // For projects without stats, fill in with zero
@@ -261,17 +260,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         error: err,
       };
     }
-  }
-
-  mapTotalsToStats(dataCategory: DataCategory, totals: Record<string, number>) {
-    if (
-      dataCategory === DataCategory.ATTACHMENTS ||
-      dataCategory === DataCategory.TRANSACTIONS
-    ) {
-      return totals['sum(times_seen)'];
-    }
-
-    return totals['sum(quantity)'];
   }
 
   renderComponent() {

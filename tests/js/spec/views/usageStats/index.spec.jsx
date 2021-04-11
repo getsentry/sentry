@@ -109,7 +109,7 @@ describe('UsageStats', function () {
         organization={organization}
         location={{
           query: {
-            statsPeriod: '30d',
+            pagePeriod: '90d',
             dataCategory: DataCategory.TRANSACTIONS,
             chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
             sort: '-project',
@@ -145,8 +145,8 @@ describe('UsageStats', function () {
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '14d',
-          interval: '1h',
+          statsPeriod: '90d',
+          interval: '1d',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
         },
@@ -157,7 +157,7 @@ describe('UsageStats', function () {
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '30d',
+          statsPeriod: '90d',
           interval: '1d',
           groupBy: ['category', 'outcome', 'project'],
           field: ['sum(quantity)'],
