@@ -6,7 +6,6 @@ import AsyncComponent from 'app/components/asyncComponent';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {DateTimeObject} from 'app/components/charts/utils';
 import {Alignments} from 'app/components/gridEditable/sortLink';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody} from 'app/components/panels';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconArrow, IconWarning} from 'app/icons';
@@ -156,10 +155,10 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
       return (
         <Cell key={h.key}>
-          <FakeLink align={h.align as Alignments} onClick={h.onClick}>
+          <PseudoLink align={h.align as Alignments} onClick={h.onClick}>
             {h.title}
             {h.direction && <IconArrow size="xs" direction={h.direction as any} />}
-          </FakeLink>
+          </PseudoLink>
         </Cell>
       );
     });
@@ -264,14 +263,17 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   renderComponent() {
     const {error, loading, projectStats} = this.state;
+    const {dataCategory} = this.props;
+    const {headers, tableData} = this.tableMetaData;
 
     if (loading) {
       return (
-        <Panel>
-          <PanelBody>
-            <LoadingIndicator />
-          </PanelBody>
-        </Panel>
+        <UsageTable
+          isLoading
+          headers={headers}
+          dataCategory={dataCategory}
+          usageStats={[]}
+        />
       );
     }
 
@@ -287,9 +289,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       );
     }
 
-    const {dataCategory} = this.props;
-    const {headers, tableData} = this.tableMetaData;
-
     return (
       <UsageTable headers={headers} dataCategory={dataCategory} usageStats={tableData} />
     );
@@ -298,14 +297,15 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
 export default withProjects(UsageStatsProjects);
 
-const FakeLink = styled('div')<{align: Alignments}>`
+const PseudoLink = styled('div')<{align: Alignments}>`
   text-align: ${p => p.align || 'left'};
 
   &:hover {
     cursor: pointer;
   }
 
-  > * {
+  /* For arrow that indicates sort direction*/
+  > svg {
     margin-left: ${space(0.5)};
   }
 `;

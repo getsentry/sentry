@@ -9,6 +9,7 @@ import {DataCategory, Project} from 'app/types';
 import {formatUsageWithUnits} from '../utils';
 
 type Props = {
+  isLoading?: boolean;
   headers: React.ReactNode[];
 
   dataCategory: DataCategory;
@@ -48,7 +49,11 @@ class UsageTable extends React.Component<Props> {
   }
 
   render() {
-    const {headers, usageStats} = this.props;
+    const {isLoading, headers, usageStats} = this.props;
+
+    if (isLoading) {
+      return <PanelTable headers={headers} isLoading />;
+    }
 
     return (
       <PanelTable headers={headers}>
