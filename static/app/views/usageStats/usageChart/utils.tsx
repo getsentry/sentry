@@ -2,18 +2,15 @@ import moment from 'moment';
 
 import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {DataCategory, IntervalPeriod} from 'app/types';
+import {intervalToMilliseconds} from 'app/utils/dates';
 
 import {formatUsageWithUnits} from '../utils';
 
 export function getDateFromMoment(m: moment.Moment, interval: IntervalPeriod = '1d') {
-  const unit = interval.replace(/[0-9]/g, '');
+  // Convert to days
+  const unit = intervalToMilliseconds(interval) / (1000 * 60 * 60);
 
-  switch (unit) {
-    case 'd':
-      return m.startOf('h').format('MMM D');
-    default:
-      return m.startOf('h').format('MMM D HH:mm');
-  }
+  return unit > 1 ? m.startOf('h').format('MMM D') : m.startOf('h').format('MMM D HH:mm');
 }
 
 export function getDateFromUnixTimestamp(timestamp: number) {
