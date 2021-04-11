@@ -166,31 +166,33 @@ class TransactionsList extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <DropdownControl
-          data-test-id="filter-transactions"
-          button={({isOpen, getActorProps}) => (
-            <StyledDropdownButton
-              {...getActorProps()}
-              isOpen={isOpen}
-              prefix={t('Filter')}
-              size="small"
-            >
-              {selected.label}
-            </StyledDropdownButton>
-          )}
-        >
-          {options.map(({value, label}) => (
-            <DropdownItem
-              data-test-id={`option-${value}`}
-              key={value}
-              onSelect={handleDropdownChange}
-              eventKey={value}
-              isActive={value === selected.value}
-            >
-              {label}
-            </DropdownItem>
-          ))}
-        </DropdownControl>
+        <div>
+          <DropdownControl
+            data-test-id="filter-transactions"
+            button={({isOpen, getActorProps}) => (
+              <StyledDropdownButton
+                {...getActorProps()}
+                isOpen={isOpen}
+                prefix={t('Filter')}
+                size="small"
+              >
+                {selected.label}
+              </StyledDropdownButton>
+            )}
+          >
+            {options.map(({value, label}) => (
+              <DropdownItem
+                data-test-id={`option-${value}`}
+                key={value}
+                onSelect={handleDropdownChange}
+                eventKey={value}
+                isActive={value === selected.value}
+              >
+                {label}
+              </DropdownItem>
+            ))}
+          </DropdownControl>
+        </div>
         {!this.isTrend() && (
           <GuideAnchor target="release_transactions_open_in_discover">
             <DiscoverButton
