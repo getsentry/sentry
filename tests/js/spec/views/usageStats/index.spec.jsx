@@ -5,16 +5,14 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import UsageStats from 'app/views/usageStats';
 
-describe('UserFeedback', function () {
+import {mockData} from './usageStatsOrg.spec';
+
+describe('UsageStats', function () {
   const {organization, routerContext} = initializeOrg();
   const orgSlug = organization.slug;
 
   const orgUrl = `/organizations/${orgSlug}/stats_v2/`;
   const projectUrl = `/organizations/${orgSlug}/stats_v2/projects/`;
-
-  // TODO(org-stats): Update with finalized response
-  const api = new MockApiClient();
-  const mockData = {};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -30,7 +28,7 @@ describe('UserFeedback', function () {
 
   it('renders', async function () {
     const wrapper = mountWithTheme(
-      <UsageStats api={api} organization={organization} />,
+      <UsageStats organization={organization} />,
       routerContext
     );
 
@@ -53,7 +51,7 @@ describe('UserFeedback', function () {
     });
 
     const wrapper = mountWithTheme(
-      <UsageStats api={api} organization={organization} />,
+      <UsageStats organization={organization} />,
       routerContext
     );
 
@@ -76,7 +74,7 @@ describe('UserFeedback', function () {
     });
 
     const wrapper = mountWithTheme(
-      <UsageStats api={api} organization={organization} />,
+      <UsageStats organization={organization} />,
       routerContext
     );
 
