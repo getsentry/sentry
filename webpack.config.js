@@ -288,7 +288,7 @@ let appConfig = {
             options: {
               // This needs to be `false` because of platformicons package
               esModule: false,
-              name: '[folder]/[name].[hash:6].[ext]',
+              name: '[folder]/[name].[contenthash:6].[ext]',
             },
           },
         ],
@@ -305,7 +305,7 @@ let appConfig = {
   plugins: [
     new CleanWebpackPlugin(),
 
-    new WebpackManifestPlugin({}),
+    new WebpackManifestPlugin(),
 
     /**
      * jQuery must be provided in the global scope specifically and only for
@@ -403,7 +403,8 @@ let appConfig = {
   },
   output: {
     path: distPath,
-    filename: '[name].[hash].js',
+    publicPath: '',
+    filename: '[name].[contenthash].js',
     chunkFilename: '[name].[contenthash].js',
     sourceMapFilename: '[name].js.map',
   },
@@ -490,7 +491,7 @@ if (
         '/api/store/**': relayAddress,
         '/api/{1..9}*({0..9})/**': relayAddress,
         '/api/0/relays/outcomes/': relayAddress,
-        '!/_webpack': backendAddress,
+        '!/_static/sentry/dist/**': backendAddress,
       },
       writeToDisk: filePath => {
         return /manifest\.json/.test(filePath);
