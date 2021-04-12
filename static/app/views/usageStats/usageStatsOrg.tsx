@@ -102,7 +102,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     switch (chartTransform) {
       case ChartDataTransform.CUMULATIVE:
-      case ChartDataTransform.DAILY:
+      case ChartDataTransform.PERIODIC:
         return {chartTransform};
       default:
         return {chartTransform: ChartDataTransform.CUMULATIVE};
