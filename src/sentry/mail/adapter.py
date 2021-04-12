@@ -15,7 +15,6 @@ from sentry.models import (
     Commit,
     Group,
     GroupSubscription,
-    GroupSubscriptionReason,
     Integration,
     NotificationSetting,
     Project,
@@ -28,6 +27,7 @@ from sentry.models import (
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.helpers import transform_to_notification_settings_by_user
 from sentry.notifications.types import (
+    GroupSubscriptionReason,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -156,9 +156,9 @@ class MailAdapter:
         Return a collection of USERS that are eligible to receive
         notifications for the provided project.
         """
-        return NotificationSetting.objects.get_notification_recipients(
-            ExternalProviders.EMAIL, project
-        )[ExternalProviders.EMAIL]
+        return NotificationSetting.objects.get_notification_recipients(project)[
+            ExternalProviders.EMAIL
+        ]
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)

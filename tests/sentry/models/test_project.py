@@ -296,9 +296,9 @@ class CopyProjectSettingsTest(TestCase):
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users, expected_users):
         assert (
-            NotificationSetting.objects.filter_to_subscribed_users(
-                ExternalProviders.EMAIL, self.project, users
-            )[ExternalProviders.EMAIL]
+            NotificationSetting.objects.filter_to_subscribed_users(self.project, users)[
+                ExternalProviders.EMAIL
+            ]
             == expected_users
         )
 
