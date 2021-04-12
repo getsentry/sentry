@@ -7,7 +7,7 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 def delete_duplicate_useroption_rows(apps, schema_editor):
     """
     Delete the rows in UserOption that have already been copied over
-    to the NotificationSetting table, as well as a few unused ones while we're at it
+    to the NotificationSetting table, also add a few unused ones while we're at it
     """
     UserOption = apps.get_model("sentry", "UserOption")
     for user_option in RangeQuerySetWrapperWithProgressBar(UserOption.objects.all()):
