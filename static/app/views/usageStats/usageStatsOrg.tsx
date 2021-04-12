@@ -33,7 +33,7 @@ import UsageChart, {
   ChartDataTransform,
   ChartStats,
 } from './usageChart';
-import {formatUsageWithUnits} from './utils';
+import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {
   organization: Organization;
@@ -74,9 +74,9 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     };
   }
 
-  get chartMetadata(): {
-    chartData: ChartStats;
-    cardData: {
+  get chartData(): {
+    chartStats: ChartStats;
+    cardStats: {
       total: string;
       accepted: string;
       dropped: string;
@@ -158,20 +158,11 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     };
   }
 
-  get formatUsageOptions() {
-    const {dataCategory} = this.props;
-
-    return {
-      isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
-      useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
-    };
-  }
-
   mapSeriesToChart(
     orgStats?: UsageSeries
   ): {
-    chartData: ChartStats;
-    cardData: {
+    chartStats: ChartStats;
+    cardStats: {
       total: string;
       accepted: string;
       dropped: string;
@@ -179,20 +170,20 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     };
     dataError?: Error;
   } {
-    const cardData = {
+    const cardStats = {
       total: '-',
       accepted: '-',
       dropped: '-',
       filtered: '-',
     };
-    const chartData: ChartStats = {
+    const chartStats: ChartStats = {
       accepted: [],
       dropped: [],
       projected: [],
     };
 
     if (!orgStats) {
-      return {cardData, chartData};
+      return {cardStats, chartStats};
     }
 
     try {
@@ -248,30 +239,34 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
 
         // Chart Data
-        chartData.accepted.push({value: [stat.date, stat.accepted]} as any);
-        chartData.dropped.push({value: [stat.date, stat.dropped.total]} as any);
+        chartStats.accepted.push({value: [stat.date, stat.accepted]} as any);
+        chartStats.dropped.push({value: [stat.date, stat.dropped.total]} as any);
       });
 
       return {
-        cardData: {
-          total: formatUsageWithUnits(count.total, dataCategory, this.formatUsageOptions),
+        cardStats: {
+          total: formatUsageWithUnits(
+            count.total,
+            dataCategory,
+            getFormatUsageOptions(dataCategory)
+          ),
           accepted: formatUsageWithUnits(
             count.accepted,
             dataCategory,
-            this.formatUsageOptions
+            getFormatUsageOptions(dataCategory)
           ),
           dropped: formatUsageWithUnits(
             count.dropped,
             dataCategory,
-            this.formatUsageOptions
+            getFormatUsageOptions(dataCategory)
           ),
           filtered: formatUsageWithUnits(
             count.filtered,
             dataCategory,
-            this.formatUsageOptions
+            getFormatUsageOptions(dataCategory)
           ),
         },
-        chartData,
+        chartStats,
       };
     } catch (err) {
       Sentry.withScope(scope => {
@@ -281,8 +276,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       });
 
       return {
-        cardData,
-        chartData,
+        cardStats,
+        chartStats,
         dataError: err,
       };
     }
@@ -290,7 +285,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
   renderCards() {
     const {dataCategory, dataCategoryName} = this.props;
-    const {total, accepted, dropped, filtered} = this.chartMetadata.cardData;
+    const {total, accepted, dropped, filtered} = this.chartData.cardStats;
 
     const cardMetadata = [
       {
@@ -356,7 +351,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     }
 
     const {
-      chartData,
+      chartStats,
       dataError,
       chartDateInterval,
       chartDateStart,
@@ -364,7 +359,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       chartDateStartDisplay,
       chartDateEndDisplay,
       chartTransform,
-    } = this.chartMetadata;
+    } = this.chartData;
 
     if (error || dataError || !orgStats) {
       return (
@@ -390,14 +385,14 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         usageDateStart={chartDateStart}
         usageDateEnd={chartDateEnd}
         usageDateInterval={chartDateInterval}
-        usageStats={chartData}
+        usageStats={chartStats}
       />
     );
   }
 
   renderChartFooter = () => {
     const {dataCategory, dataDatetime, handleChangeState} = this.props;
-    const {chartTransform} = this.chartMetadata;
+    const {chartTransform} = this.chartData;
 
     const {period} = dataDatetime;
 

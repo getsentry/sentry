@@ -63,7 +63,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     };
   }
 
-  get tableMetaData() {
+  get tableData() {
     const {projectStats} = this.state;
 
     return {
@@ -200,11 +200,11 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   mapSeriesToTable(
     projectStats?: UsageSeries
   ): {
-    tableData: TableStat[];
+    tableStats: TableStat[];
     error?: Error;
   } {
     if (!projectStats) {
-      return {tableData: []};
+      return {tableStats: []};
     }
 
     const stats: Record<number, object> = {};
@@ -234,7 +234,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       });
 
       // For projects without stats, fill in with zero
-      const tableData: TableStat[] = projects.map(p => {
+      const tableStats: TableStat[] = projects.map(p => {
         const stat = stats[p.id] ?? {...baseStat};
         return {
           project: {...p},
@@ -244,7 +244,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       });
 
       const {key, direction} = this.tableSort;
-      tableData.sort((a, b) => {
+      tableStats.sort((a, b) => {
         if (key === SortBy.PROJECT) {
           return b.project.slug.localeCompare(a.project.slug) * direction;
         }
@@ -254,7 +254,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           : a.project.slug.localeCompare(b.project.slug);
       });
 
-      return {tableData};
+      return {tableStats};
     } catch (err) {
       Sentry.withScope(scope => {
         scope.setContext('query', this.endpointQuery);
@@ -263,7 +263,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       });
 
       return {
-        tableData: [],
+        tableStats: [],
         error: err,
       };
     }
@@ -272,7 +272,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   renderComponent() {
     const {error, loading, projectStats} = this.state;
     const {dataCategory} = this.props;
-    const {headers, tableData} = this.tableMetaData;
+    const {headers, tableStats} = this.tableData;
 
     if (loading) {
       return (
@@ -298,7 +298,12 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     }
 
     return (
-      <UsageTable headers={headers} dataCategory={dataCategory} usageStats={tableData} />
+      <UsageTable
+        isEmpty={tableStats.length === 0}
+        headers={headers}
+        dataCategory={dataCategory}
+        usageStats={tableStats}
+      />
     );
   }
 }

@@ -10,6 +10,7 @@ import {formatUsageWithUnits} from '../utils';
 
 type Props = {
   isLoading?: boolean;
+  isEmpty?: boolean;
   headers: React.ReactNode[];
 
   dataCategory: DataCategory;
@@ -66,10 +67,10 @@ class UsageTable extends React.Component<Props> {
   }
 
   render() {
-    const {isLoading, headers, usageStats} = this.props;
+    const {isEmpty, isLoading, headers, usageStats} = this.props;
 
     return (
-      <StyledPanelTable isLoading={isLoading} headers={headers}>
+      <StyledPanelTable isLoading={isLoading} isEmpty={isEmpty} headers={headers}>
         {usageStats.map(s => this.renderTableRow(s))}
       </StyledPanelTable>
     );
