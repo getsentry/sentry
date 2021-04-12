@@ -15,7 +15,7 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         event = self.store_event(data={"release": "1.0"}, project_id=self.project.id)
         group = event.group
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/issues/{group.id}/first-last-release/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)
