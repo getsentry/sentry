@@ -643,6 +643,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       fields: ['release', 'count()'],
       widths: [111, 222],
       dateCreated: '2019-10-30T06:13:17.632078Z',
+      query: '',
       environment: [],
       version: 2,
       createdBy: '1',
@@ -674,6 +675,75 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
     };
 
     expect(eventView).toMatchObject(expected);
+  });
+
+  it('maps query with cleared conditions', function () {
+    const saved = {
+      id: '42',
+      name: 'best query',
+      fields: ['count()', 'id'],
+      query: 'event.type:transaction',
+      projects: [123],
+      range: '14d',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      orderby: '-id',
+      environment: ['staging'],
+      display: 'previous',
+    };
+
+    const location = {
+      query: {
+        id: '42',
+        statsPeriod: '7d',
+      },
+    };
+    const eventView = EventView.fromSavedQueryOrLocation(saved, location);
+
+    expect(eventView).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [{field: 'id', kind: 'desc'}],
+      query: 'event.type:transaction',
+      start: undefined,
+      end: undefined,
+      // statsPeriod has precedence
+      statsPeriod: '7d',
+      environment: [],
+      yAxis: undefined,
+      display: 'previous',
+    });
+
+    const location2 = {
+      query: {
+        id: '42',
+        statsPeriod: '7d',
+        query: '',
+      },
+    };
+    const eventView2 = EventView.fromSavedQueryOrLocation(saved, location2);
+
+    expect(eventView2).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [{field: 'id', kind: 'desc'}],
+      query: '',
+      start: undefined,
+      end: undefined,
+      // statsPeriod has precedence
+      statsPeriod: '7d',
+      environment: [],
+      yAxis: undefined,
+      display: 'previous',
+    });
   });
 
   it('event views are equal when start and end datetime differ in format', function () {
