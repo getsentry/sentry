@@ -26,7 +26,6 @@ type Props = Pick<
   organization: OrganizationSummary;
   projectId: string;
   location: Location;
-  traceSize?: number;
   quickTrace: QuickTraceQueryChildrenProps;
 };
 
@@ -35,7 +34,6 @@ function EventMetas({
   organization,
   projectId,
   location,
-  traceSize,
   quickTrace,
   errorDest,
   transactionDest,
@@ -102,7 +100,6 @@ function EventMetas({
           quickTrace={quickTrace}
           errorDest={errorDest}
           transactionDest={transactionDest}
-          traceSize={traceSize}
         />
       </QuickTraceContainer>
     </EventDetailHeader>

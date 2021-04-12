@@ -71,7 +71,12 @@ class GroupEventToolbar extends React.Component<Props> {
 
     return (
       <ErrorBoundary mini>
-        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+        <QuickTraceQuery
+          withMeta={false}
+          event={event}
+          location={location}
+          orgSlug={organization.slug}
+        >
           {results => (
             <React.Fragment>
               {!results.isLoading && results.error === null && results.trace !== null && (

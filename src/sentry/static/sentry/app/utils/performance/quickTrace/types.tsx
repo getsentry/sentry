@@ -98,10 +98,13 @@ export type BaseTraceChildrenProps = Omit<
 
 export type QuickTrace = EmptyQuickTrace | PartialQuickTrace | FullQuickTrace;
 
-export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps & QuickTrace;
-
 export type TraceMeta = {
   projects: number;
   transactions: number;
   errors: number;
 };
+
+export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps &
+  QuickTrace & {
+    meta: TraceMeta | null;
+  };
