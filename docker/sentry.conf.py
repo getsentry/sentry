@@ -3,6 +3,9 @@
 # This file is just Python, with a touch of Django which means
 # you can inherit and tweak settings to your hearts content.
 
+import os
+import os.path
+
 # For Docker, the following environment variables are supported:
 #  SENTRY_POSTGRES_HOST
 #  SENTRY_POSTGRES_PORT
@@ -34,9 +37,6 @@
 #  SENTRY_SECRET_KEY
 from sentry.conf.server import *
 from sentry.utils.types import Bool
-
-import os
-import os.path
 
 CONF_ROOT = os.path.dirname(__file__)
 env = os.environ.get
