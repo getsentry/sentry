@@ -288,7 +288,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         event_data = generate_transaction()
 
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
-        self.wait_for_event_count(self.project.id, 1)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + transactions_query())
