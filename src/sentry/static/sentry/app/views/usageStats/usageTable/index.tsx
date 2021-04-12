@@ -52,19 +52,22 @@ class UsageTable extends React.Component<Props> {
     const {isLoading, headers, usageStats} = this.props;
 
     if (isLoading) {
-      return <PanelTable headers={headers} isLoading />;
+      return <StyledPanelTable headers={headers} isLoading />;
     }
 
     return (
-      <PanelTable headers={headers}>
+      <StyledPanelTable headers={headers}>
         {usageStats.map(s => this.renderTableRow(s))}
-      </PanelTable>
+      </StyledPanelTable>
     );
   }
 }
 
 export default UsageTable;
 
+export const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: auto 100px 100px 100px 100px;
+`;
 export const CellStat = styled('div')`
   flex-shrink: 1;
   text-align: right;
