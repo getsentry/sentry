@@ -2,8 +2,8 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import moment from 'moment';
 import isEqual from 'lodash/isEqual';
+import moment from 'moment';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
@@ -27,8 +27,8 @@ import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
-import {fetchIncidentStats} from 'app/views/alerts/utils';
 import Timeline from 'app/views/alerts/rules/details/timeline';
+import {fetchIncidentStats} from 'app/views/alerts/utils';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {
   AlertRuleThresholdType,
@@ -70,7 +70,7 @@ type State = {
 export default class DetailsBody extends React.Component<Props, State> {
   state = {
     incidentStats: [],
-  }
+  };
 
   getMetricText(): React.ReactNode {
     const {rule} = this.props;
@@ -147,11 +147,16 @@ export default class DetailsBody extends React.Component<Props, State> {
   }
 
   fetchData = async () => {
-    const {api, incidents, params: {orgId}} = this.props;
+    const {
+      api,
+      incidents,
+      params: {orgId},
+    } = this.props;
 
     if (incidents?.length) {
-      await Promise.all(incidents.map(incident => fetchIncidentStats(api, orgId, incident.identifier)))
-        .then(incidentStats => this.setState({incidentStats}));
+      await Promise.all(
+        incidents.map(incident => fetchIncidentStats(api, orgId, incident.identifier))
+      ).then(incidentStats => this.setState({incidentStats}));
     }
   };
 
