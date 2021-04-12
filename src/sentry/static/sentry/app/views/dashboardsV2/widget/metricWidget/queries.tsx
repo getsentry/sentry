@@ -1,11 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-// import capitalize from 'lodash/capitalize';
-// import memoize from 'lodash/memoize';
 import Button from 'app/components/button';
 import SearchBar from 'app/components/events/searchBar';
-// import SmartSearchBar from 'app/components/smartSearchBar';
 import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -43,36 +40,6 @@ function Queries({
       onChangeQuery(queryIndex, newQuery);
     };
   }
-
-  // // this is just a mock
-  // function fetchTagValues(tagKey: string) {
-  //   if (tagKey === 'session.status') {
-  //     return Promise.resolve(['healthy', 'abnormal', 'crashed', 'errored']);
-  //   }
-
-  //   return Promise.resolve([]);
-  // }
-
-  // const getTagValues = memoize(
-  //   (tag: Tag): Promise<string[]> => {
-  //     return fetchTagValues(tag.key);
-  //   },
-  //   ({key}, query) => `${key}-${query}`
-  // );
-
-  // const supportedTags = metric?.tags?.reduce((accumulator, tag) => {
-  //   accumulator[tag] = {
-  //     key: tag,
-  //     name: tag.includes('.')
-  //       ? tag
-  //           .split('.')
-  //           .map(splittedTag => capitalize(splittedTag))
-  //           .join('.')
-  //       : tag,
-  //     values: [],
-  //   };
-  //   return accumulator;
-  // }, {});
 
   const aggregations = metric
     ? metrics.find(m => m.name === metric.name)?.operations ?? []

@@ -1,6 +1,10 @@
 import React, {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 
+import Alert from 'app/components/alert';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 
 import EventWidget from '../eventWidget';
@@ -16,7 +20,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 function WidgetNew(props: Props) {
-  const [dataSet, setDataSet] = useState<DataSet>(DataSet.EVENTS);
+  const [dataSet, setDataSet] = useState<DataSet | undefined>(DataSet.EVENTS);
 
   useEffect(() => {
     checkDataSet();
@@ -33,6 +37,11 @@ function WidgetNew(props: Props) {
         pathname: `/organizations/${orgSlug}/dashboards/widget/new/`,
         query: {...location.query, dataSet: DataSet.EVENTS},
       });
+      return;
+    }
+
+    if (queryDataSet !== DataSet.EVENTS && queryDataSet !== DataSet.METRICS) {
+      setDataSet(undefined);
       return;
     }
 
@@ -61,6 +70,16 @@ function WidgetNew(props: Props) {
         dataSet: newDataSet,
       },
     });
+  }
+
+  if (!dataSet) {
+    return (
+      <PageContent>
+        <Alert type="error" icon={<IconWarning />}>
+          {t('Data set not found.')}
+        </Alert>
+      </PageContent>
+    );
   }
 
   if (dataSet === DataSet.EVENTS) {

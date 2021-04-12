@@ -8,6 +8,7 @@ import set from 'lodash/set';
 import Highlight from 'app/components/highlight';
 import * as Layout from 'app/components/layouts/thirds';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import PickProjectToContinue from 'app/components/pickProjectToContinue';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
@@ -23,7 +24,6 @@ import Header from '../header';
 import {DataSet} from '../utils';
 
 import Card from './card';
-import PickProjectToContinue from './pickProjectToContinue';
 import Queries from './queries';
 import {Metric, MetricQuery} from './types';
 
@@ -185,9 +185,10 @@ class MetricWidget extends AsyncView<Props, State> {
     if (this.isProjectMissingInUrl() || !selectedProject) {
       return (
         <PickProjectToContinue
-          orgSlug={organization.slug}
           router={router}
-          projects={projects}
+          projects={projects.map(project => ({id: project.id, slug: project.slug}))}
+          nextPath={`/organizations/${orgSlug}/dashboards/widget/new/?dataSet=metrics`}
+          noProjectRedirectPath={`/organizations/${orgSlug}/dashboards/`}
         />
       );
     }

@@ -4,19 +4,14 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
-import {
-  ChartContainer,
-  ChartControls,
-  InlineContainer,
-  SectionHeading,
-  SectionValue,
-} from 'app/components/charts/styles';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {HeaderTitle} from 'app/components/charts/styles';
+import ErrorBoundary from 'app/components/errorBoundary';
 import {Panel} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 import {GlobalSelection, Organization, Project} from 'app/types';
-import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
 import Chart from './chart';
 import StatsRequest from './statsRequest';
@@ -35,57 +30,38 @@ type Props = {
 function Card({widget, api, location, router, organization, project, selection}: Props) {
   const {yAxis, queries, title} = widget;
 
-  function getSummaryHeading() {
-    switch (yAxis) {
-      case YAxis.USERS:
-        return t('Total Active Users');
-      case YAxis.SESSION_DURATION:
-        return t('Median Duration');
-      case YAxis.SESSIONS:
-      default:
-        return t('Total Sessions');
-    }
-  }
-
   return (
-    <StatsRequest
-      api={api}
-      location={location}
-      organization={organization}
-      projectId={project.id}
-      yAxis={yAxis}
-      queries={queries}
-      environments={selection.environments}
-      datetime={selection.datetime}
+    <ErrorBoundary
+      customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
     >
-      {({isLoading, errored, data}) => {
-        return (
-          <StyledPanel>
-            <ChartContainer>
-              <TransitionChart loading={isLoading} reloading={isLoading}>
-                <TransparentLoadingMask visible={isLoading} />
-                <Chart
-                  platform={project.platform ?? 'other'}
-                  isLoading={isLoading}
-                  errored={errored}
-                  chartData={data[0]?.chartData ?? []}
-                  selection={selection}
-                  yAxis={yAxis}
-                  router={router}
-                  title={title}
-                />
-              </TransitionChart>
-            </ChartContainer>
-            <ChartControls>
-              <InlineContainer>
-                <SectionHeading>{getSummaryHeading()}</SectionHeading>
-                <SectionValue>{data[0]?.chartSummary}</SectionValue>
-              </InlineContainer>
-            </ChartControls>
-          </StyledPanel>
-        );
-      }}
-    </StatsRequest>
+      <StyledPanel>
+        <Title>{title}</Title>
+        <StatsRequest
+          api={api}
+          location={location}
+          organization={organization}
+          projectId={project.id}
+          yAxis={yAxis}
+          queries={queries}
+          environments={selection.environments}
+          datetime={selection.datetime}
+        >
+          {({isLoading, errored, series}) => {
+            return (
+              <Chart
+                series={series}
+                isLoading={isLoading}
+                errored={errored}
+                location={location}
+                platform={project.platform}
+                selection={selection}
+                router={router}
+              />
+            );
+          }}
+        </StatsRequest>
+      </StyledPanel>
+    </ErrorBoundary>
   );
 }
 
@@ -96,4 +72,20 @@ const StyledPanel = styled(Panel)`
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
   min-height: 96px;
+  padding: ${space(2)} ${space(3)};
+`;
+
+const ErrorCard = styled(Placeholder)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: ${p => p.theme.alert.error.backgroundLight};
+  border: 1px solid ${p => p.theme.alert.error.border};
+  color: ${p => p.theme.alert.error.textLight};
+  border-radius: ${p => p.theme.borderRadius};
+  margin-bottom: ${space(2)};
+`;
+
+const Title = styled(HeaderTitle)`
+  ${overflowEllipsis};
 `;
