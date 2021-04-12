@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Mapping, Optional, Set
 from urllib.parse import urlparse, urlunparse
 
 from django.core.urlresolvers import reverse
@@ -38,27 +38,39 @@ class ActivityEmail:
     def should_email(self):
         return True
 
-    def get_participants(self):
+    @staticmethod
+    def get_providers_from_which_to_remove_user(
+        user: Optional[Any],
+        participants_by_provider: Mapping[Any, Mapping[Any, GroupSubscriptionReason]],
+    ) -> Set[ExternalProviders]:
+        providers = {
+            provider
+            for provider, participants in participants_by_provider.items()
+            if user in participants
+        }
+        if (
+            providers
+            and UserOption.objects.get_value(user=user, key="self_notifications", default="0")
+            == "1"
+        ):
+            return providers
+        return set()
+
+    def get_participants(self) -> Mapping[ExternalProviders, Mapping[Any, GroupSubscriptionReason]]:
         # TODO(dcramer): not used yet today except by Release's
         if not self.group:
-            return []
+            return {}
 
-        participants = GroupSubscription.objects.get_participants(group=self.group)[
-            ExternalProviders.EMAIL
-        ]
+        participants_by_provider = GroupSubscription.objects.get_participants(group=self.group)
 
-        if self.activity.user is not None and self.activity.user in participants:
-            receive_own_activity = (
-                UserOption.objects.get_value(
-                    user=self.activity.user, key="self_notifications", default="0"
-                )
-                == "1"
-            )
+        # Remove the actor that created the activity from the recipients list.
+        providers = self.get_providers_from_which_to_remove_user(
+            self.activity.user, participants_by_provider
+        )
+        for provider in providers:
+            del participants_by_provider[provider][self.activity.user]
 
-            if not receive_own_activity:
-                del participants[self.activity.user]
-
-        return participants
+        return participants_by_provider
 
     def get_template(self):
         return "sentry/emails/activity/generic.txt"

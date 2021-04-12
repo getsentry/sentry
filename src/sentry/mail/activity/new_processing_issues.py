@@ -1,4 +1,6 @@
-from sentry.models import EventError, NotificationSetting
+from typing import Any
+
+from sentry.models import EventError, Mapping, NotificationSetting
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils.http import absolute_uri
@@ -27,11 +29,12 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
         ActivityEmail.__init__(self, activity)
         self.issues = summarize_issues(self.activity.data["issues"])
 
-    def get_participants(self):
-        users = NotificationSetting.objects.get_notification_recipients(self.project)[
-            ExternalProviders.EMAIL
-        ]
-        return {user: GroupSubscriptionReason.processing_issue for user in users}
+    def get_participants(self) -> Mapping[ExternalProviders, Mapping[Any, GroupSubscriptionReason]]:
+        users_by_provider = NotificationSetting.objects.get_notification_recipients(self.project)
+        return {
+            provider: {user: GroupSubscriptionReason.processing_issue for user in users}
+            for provider, users in users_by_provider.items()
+        }
 
     def get_context(self):
         return {

@@ -1,7 +1,8 @@
 import itertools
 import logging
+from collections import defaultdict
 from enum import Enum
-from typing import Set
+from typing import Any, List, Mapping, Optional, Set
 
 from django.utils import dateformat
 from django.utils.encoding import force_text
@@ -24,7 +25,7 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.models.integration import ExternalProviders
+from sentry.models.integration import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.notifications.helpers import transform_to_notification_settings_by_user
 from sentry.notifications.slack import get_integrations, send_slack_message_to_user
 from sentry.notifications.types import (
@@ -152,93 +153,66 @@ class MailAdapter:
             return message.send_async()
 
     @staticmethod
-    def get_sendable_user_objects(project):
+    def get_sendable_user_objects(project: Any) -> Mapping[ExternalProviders, Set[Any]]:
         """
         Return a collection of USERS that are eligible to receive
         notifications for the provided project.
         """
-        return NotificationSetting.objects.get_notification_recipients(project)[
-            ExternalProviders.EMAIL
-        ]
+        return NotificationSetting.objects.get_notification_recipients(project)
 
-    def get_sendable_user_ids(self, project):
-        users = self.get_sendable_user_objects(project)
-        return [user.id for user in users]
+    def get_sendable_user_ids(self, project: Any) -> Mapping[ExternalProviders, Set[int]]:
+        users_by_provider = self.get_sendable_user_objects(project)
+        return {
+            provider: {user.id for user in users} for provider, users in users_by_provider.items()
+        }
 
-    def get_sendable_users(self, project):
+    def get_sendable_users(self, project: Any) -> List[int]:
         """ @deprecated Do not change this function, it is being used in getsentry. """
-        users = self.get_sendable_user_objects(project)
+        users = self.get_sendable_user_objects(project)[ExternalProviders.EMAIL]
         return [user.id for user in users]
 
-    def should_notify(self, target_type, group):
+    def should_notify(self, target_type: ActionTargetType, group: Any) -> bool:
         metrics.incr("mail_adapter.should_notify")
-        # only notify if we have users to notify. We always want to notify if targeting
-        # a member directly.
+        # Only notify if we have users to notify. We always want to notify if
+        # targeting a member directly.
         return target_type == ActionTargetType.MEMBER or self.get_sendable_user_objects(
             group.project
         )
 
-    # TODO MARCOS 1
-    def get_send_to(self, project, target_type, target_identifier=None, event=None):
+    def get_send_to(
+        self,
+        project: Any,
+        target_type: ActionTargetType,
+        target_identifier: Optional[int] = None,
+        event: Optional[Any] = None,
+    ) -> Mapping[ExternalProviders, Set[int]]:
         """
-        Returns a list of user IDs for the users that should receive
-        notifications for the provided project.
-        This result may come from cached data.
+        Returns a mapping of providers to user IDs for the users that should
+        receive notifications for the provided project. This result may come
+        from cached data.
         """
         if not (project and project.teams.exists()):
             logger.debug("Tried to send notification to invalid project: %r", project)
-            return set()
+            return {}
 
-        send_to = []
+        send_to: Mapping[ExternalProviders, Set[int]] = defaultdict(set)
         if target_type == ActionTargetType.ISSUE_OWNERS:
-            # TODO MARCOS 3
             if not event:
                 send_to = self.get_send_to_all_in_project(project)
             else:
                 send_to = self.get_send_to_owners(event, project)
         elif target_type == ActionTargetType.MEMBER:
-            send_to = self.get_send_to_member(project, target_identifier)
+            send_to = {ExternalProviders.EMAIL: self.get_send_to_member(project, target_identifier)}
         elif target_type == ActionTargetType.TEAM:
             send_to = self.get_send_to_team(project, target_identifier)
-        return set(send_to)
+        return send_to
 
-    def get_send_to_owners(self, event, project):
+    def get_send_to_owners(self, event: Any, project: Any) -> Mapping[ExternalProviders, Set[int]]:
         """
-        TODO MARCOS 5
+        TODO MARCOS DESCRIBE
         """
         owners, _ = ProjectOwnership.get_owners(project.id, event.data)
-        if owners != ProjectOwnership.Everyone:
-            if not owners:
-                metrics.incr(
-                    "features.owners.send_to",
-                    tags={"organization": project.organization_id, "outcome": "empty"},
-                    skip_internal=True,
-                )
-                return set()
-
-            metrics.incr(
-                "features.owners.send_to",
-                tags={"organization": project.organization_id, "outcome": "match"},
-                skip_internal=True,
-            )
-            send_to = set()
-            teams_to_resolve = set()
-            for owner in owners:
-                if owner.type == User:
-                    send_to.add(owner.id)
-                else:
-                    teams_to_resolve.add(owner.id)
-
-            # get all users in teams
-            if teams_to_resolve:
-                send_to |= set(
-                    User.objects.filter(
-                        is_active=True,
-                        sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
-                    ).values_list("id", flat=True)
-                )
-            return send_to - self.disabled_users_from_project(project)
-        else:
+        if owners == ProjectOwnership.Everyone:
             metrics.incr(
                 "features.owners.send_to",
                 tags={"organization": project.organization_id, "outcome": "everyone"},
@@ -246,8 +220,44 @@ class MailAdapter:
             )
             return self.get_send_to_all_in_project(project)
 
+        if not owners:
+            metrics.incr(
+                "features.owners.send_to",
+                tags={"organization": project.organization_id, "outcome": "empty"},
+                skip_internal=True,
+            )
+            return {}
+
+        metrics.incr(
+            "features.owners.send_to",
+            tags={"organization": project.organization_id, "outcome": "match"},
+            skip_internal=True,
+        )
+        send_to = set()
+        teams_to_resolve = set()
+        for owner in owners:
+            if owner.type == User:
+                send_to.add(owner.id)
+            else:
+                teams_to_resolve.add(owner.id)
+
+        # get all users in teams
+        if teams_to_resolve:
+            send_to |= set(
+                User.objects.filter(
+                    is_active=True,
+                    sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
+                ).values_list("id", flat=True)
+            )
+        disabled_user_ids_by_provider = self.disabled_users_from_project(project)
+
+        return {
+            provider: send_to - disabled_user_ids_by_provider.get(provider, set())
+            for provider in EXTERNAL_PROVIDERS.keys()
+        }
+
     @staticmethod
-    def disabled_users_from_project(project: Project) -> Set[int]:
+    def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, Set[int]]:
         """ Get a set of users that have disabled Issue Alert notifications for a given project. """
         user_ids = project.member_set.values_list("user", flat=True)
         users = User.objects.filter(id__in=user_ids)
@@ -261,43 +271,53 @@ class MailAdapter:
         )
 
         # Although this can be done with dict comprehension, looping for clarity.
-        output = set()
+        output = defaultdict(set)
         for user in users:
             settings = notification_settings_by_user.get(user)
             if settings:
                 # Check per-project settings first, fallback to project-independent settings.
-                project_setting = settings.get(NotificationScopeType.PROJECT)
-                if project_setting:
-                    project_setting = project_setting[ExternalProviders.EMAIL]
-                user_setting = settings.get(NotificationScopeType.USER)
-                if user_setting:
-                    user_setting = user_setting[ExternalProviders.EMAIL]
-                if project_setting == NotificationSettingOptionValues.NEVER or (
-                    not project_setting and user_setting == NotificationSettingOptionValues.NEVER
-                ):
-                    output.add(user.id)
+                project_setting_by_provider = settings.get(NotificationScopeType.PROJECT, {})
+                user_setting_by_provider = settings.get(NotificationScopeType.USER, {})
+
+                for provider in EXTERNAL_PROVIDERS.keys():
+                    project_setting = project_setting_by_provider.get(provider)
+                    user_setting = user_setting_by_provider.get(provider)
+                    if project_setting == NotificationSettingOptionValues.NEVER or (
+                        not project_setting
+                        and user_setting == NotificationSettingOptionValues.NEVER
+                    ):
+                        output[provider].add(user.id)
         return output
 
-    def get_send_to_team(self, project, target_identifier):
+    def get_send_to_team(
+        self, project: Any, target_identifier: int
+    ) -> Mapping[ExternalProviders, Set[int]]:
         if target_identifier is None:
-            return []
+            return {}
         try:
             team = Team.objects.get(id=int(target_identifier), projectteam__project=project)
         except Team.DoesNotExist:
-            return set()
-        return set(
-            team.member_set.values_list("user_id", flat=True)
-        ) - self.disabled_users_from_project(project)
+            return {}
 
-    def get_send_to_member(self, project, target_identifier):
+        all_user_ids = set(team.member_set.values_list("user_id", flat=True))
+        disabled_user_ids_by_provider = self.disabled_users_from_project(project)
+        return {
+            provider: all_user_ids - disabled_user_ids_by_provider.get(provider, set())
+            for provider in EXTERNAL_PROVIDERS.keys()
+        }
+
+    @staticmethod
+    def get_send_to_member(project: Any, target_identifier: int) -> Set[int]:
         """
-        No checking for disabled users is done. If a user explicitly specifies a member
-        as a target to send to, it should overwrite the user's personal mail settings.
+        No checking for disabled users is done. If a user explicitly specifies a
+        member as a target to send to, it should overwrite the user's personal
+        mail settings. TODO(mgaeta): Add Slack support.
+        :param project:
         :param target_identifier:
         :return: Iterable[int] id of member that should be sent to.
         """
         if target_identifier is None:
-            return []
+            return set()
         try:
             user = (
                 User.objects.filter(
@@ -311,20 +331,27 @@ class MailAdapter:
             return set()
         return {user.id}
 
-    def get_send_to_all_in_project(self, project):
+    @staticmethod
+    def get_send_to_all_in_project(project: Any) -> Mapping[ExternalProviders, Set[int]]:
         """
-        TODO MARCOS 4
+        TODO MARCOS DESCRIBE
+        include a sentence that there is caching
+        We probably need a new cache key since the old one holds sets.
         """
         cache_key = f"mail:send_to:{project.pk}"
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
-            users = self.get_sendable_user_objects(project)
-            send_to_list = [user.id for user in users if user]
+            users_by_provider = NotificationSetting.objects.get_notification_recipients(project)
+            send_to_list = {
+                provider: [user.id for user in users if user]
+                for provider, users in users_by_provider.items()
+            }
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache
 
         return send_to_list
 
-    def add_unsubscribe_link(self, context, user_id, project, referrer):
+    @staticmethod
+    def add_unsubscribe_link(context, user_id, project, referrer):
         context["unsubscribe_link"] = generate_signed_link(
             user_id,
             "sentry-account-email-unsubscribe-project",
@@ -473,7 +500,9 @@ class MailAdapter:
 
     def notify_digest(self, project, digest, target_type, target_identifier=None):
         metrics.incr("mail_adapter.notify_digest")
-        user_ids = self.get_send_to(project, target_type, target_identifier)
+        user_ids = self.get_send_to(project, target_type, target_identifier)[
+            ExternalProviders.EMAIL
+        ]
         logger.info(
             "mail.adapter.notify_digest",
             extra={
@@ -530,7 +559,7 @@ class MailAdapter:
                 send_to=[user_id],
             )
 
-    def notify_about_activity(self, activity):
+    def notify_about_activity(self, activity: Any) -> None:
         metrics.incr("mail_adapter.notify_about_activity")
         # TODO: We should move these into the `mail` module.
         from sentry.mail.activity import emails
@@ -549,7 +578,7 @@ class MailAdapter:
 
         participants = GroupSubscription.objects.get_participants(group=group)
         if participants:
-            participants = participants[ExternalProviders.EMAIL]
+            participants = participants.get(ExternalProviders.EMAIL)
 
         if not participants:
             return

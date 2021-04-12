@@ -1,5 +1,5 @@
 import logging
-from typing import Set
+from typing import Any, Iterable, Mapping, Set
 from urllib.error import HTTPError as UrllibHTTPError
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
@@ -101,7 +101,9 @@ class NotificationPlugin(Plugin):
     def notify_about_activity(self, activity):
         pass
 
-    def get_notification_recipients(self, project, user_option: str) -> Set:
+    def get_notification_recipients(
+        self, project: Any, user_option: str
+    ) -> Mapping[ExternalProviders, Set[Any]]:
         from sentry.models import UserOption
 
         alert_settings = {
@@ -127,18 +129,16 @@ class NotificationPlugin(Plugin):
             }
             member_set = [x for x in member_set if x not in disabled]
 
-        return member_set
         # TODO(mgaeta): This should be ExternalProviders.TWILIO
+        return {ExternalProviders.EMAIL: member_set}
 
-    def get_sendable_user_objects(self, project):
+    def get_sendable_user_objects(self, project: Any) -> Mapping[ExternalProviders, Iterable[Any]]:
         """
         Return a collection of user IDs that are eligible to receive
         notifications for the provided project.
         """
         if self.get_conf_key() == "mail":
-            return NotificationSetting.objects.get_notification_recipients(project)[
-                ExternalProviders.EMAIL
-            ]
+            return NotificationSetting.objects.get_notification_recipients(project)
 
         return self.get_notification_recipients(project, "%s:alert" % self.get_conf_key())
 

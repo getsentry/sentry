@@ -1,5 +1,5 @@
 from collections import defaultdict
-from itertools import chain
+from typing import Any, Mapping
 
 from django.db.models import Count
 
@@ -19,6 +19,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
+from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeType,
@@ -111,7 +112,7 @@ class ReleaseActivityEmail(ActivityEmail):
     def should_email(self):
         return bool(self.release and self.deploy)
 
-    def get_participants(self):
+    def get_participants(self) -> Mapping[ExternalProviders, Mapping[Any, GroupSubscriptionReason]]:
         # collect all users with verified emails on a team in the related projects,
         users = list(
             User.objects.filter(
@@ -157,25 +158,20 @@ class ReleaseActivityEmail(ActivityEmail):
                 or NotificationSettingOptionValues.COMMITTED_ONLY.value  # product default
             )
 
-        # filter down to members which have been seen in the commit log:
-        participants_committed = {
-            user: GroupSubscriptionReason.committed
-            for user, option in users_with_options.items()
-            if (
-                option == NotificationSettingOptionValues.COMMITTED_ONLY.value
-                and user.id in self.user_ids
-            )
-        }
+        users_to_reasons = defaultdict(dict)
+        for user, options_by_provider in users_with_options.items():
+            for provider, option in options_by_provider.items():
+                # members who opt into all deploy emails:
+                if option == NotificationSettingOptionValues.ALWAYS:
+                    users_to_reasons[provider][user] = GroupSubscriptionReason.deploy_setting
 
-        # or who opt into all deploy emails:
-        participants_opted = {
-            user: GroupSubscriptionReason.deploy_setting
-            for user, option in users_with_options.items()
-            if option == NotificationSettingOptionValues.ALWAYS.value
-        }
-
-        # merge the two type of participants
-        return dict(chain(participants_committed.items(), participants_opted.items()))
+                # members which have been seen in the commit log
+                elif (
+                    option == NotificationSettingOptionValues.COMMITTED_ONLY
+                    and user.id in self.user_ids
+                ):
+                    users_to_reasons[provider][user] = GroupSubscriptionReason.committed
+        return users_to_reasons
 
     def get_users_by_teams(self):
         if not self.user_id_team_lookup:
