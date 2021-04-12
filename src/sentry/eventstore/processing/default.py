@@ -4,9 +4,9 @@ from sentry.utils.kvstore.cache import CacheKVStorage
 from .base import EventProcessingStore
 
 
-def DefaultEventProcessingStore(**options) -> EventProcessingStore:
+def DefaultEventProcessingStore() -> EventProcessingStore:
     """
     Creates an instance of the processing store which uses the
     ``default_cache`` as its backend.
     """
-    return EventProcessingStore(CacheKVStorage(default_cache), **options)
+    return EventProcessingStore(CacheKVStorage(default_cache))
