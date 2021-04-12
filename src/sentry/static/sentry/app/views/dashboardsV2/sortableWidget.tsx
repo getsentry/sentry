@@ -1,4 +1,3 @@
-// eslint-disable-next-line sentry/no-react-hooks
 import React, {useEffect} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 

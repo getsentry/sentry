@@ -1,8 +1,8 @@
 from sentry import options
 from sentry.auth.provider import MigratingIdentityId
-from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Provider, OAuth2Login
+from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 
-from .constants import AUTHORIZE_URL, ACCESS_TOKEN_URL, DATA_VERSION, SCOPE
+from .constants import ACCESS_TOKEN_URL, AUTHORIZE_URL, DATA_VERSION, SCOPE
 from .views import FetchUser, GoogleConfigureView
 
 

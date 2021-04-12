@@ -226,7 +226,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
           <InlineContainer>
             {display === DisplayModes.TREND && (
               <OptionSelector
-                title={t('Trend')}
+                title={t('Percentile')}
                 selected={trendFunction}
                 options={TREND_FUNCTIONS_OPTIONS}
                 onChange={this.handleTrendDisplayChange}

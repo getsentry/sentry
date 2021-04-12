@@ -29,22 +29,20 @@ function Filter({options, onFilter, className}: Props) {
     .filter(option => option.isChecked).length;
 
   function handleClick(category: string, option: Option) {
-    return function () {
-      const updatedOptions = {
-        ...options,
-        [category]: options[category].map(groupedOption => {
-          if (option.id === groupedOption.id) {
-            return {
-              ...groupedOption,
-              isChecked: !groupedOption.isChecked,
-            };
-          }
-          return groupedOption;
-        }),
-      };
-
-      onFilter(updatedOptions);
+    const updatedOptions = {
+      ...options,
+      [category]: options[category].map(groupedOption => {
+        if (option.id === groupedOption.id) {
+          return {
+            ...groupedOption,
+            isChecked: !groupedOption.isChecked,
+          };
+        }
+        return groupedOption;
+      }),
     };
+
+    onFilter(updatedOptions);
   }
 
   return (
@@ -77,7 +75,10 @@ function Filter({options, onFilter, className}: Props) {
                     return (
                       <StyledListItem
                         key={id}
-                        onClick={handleClick(category, groupedOption)}
+                        onClick={event => {
+                          event.stopPropagation();
+                          handleClick(category, groupedOption);
+                        }}
                         isChecked={isChecked}
                       >
                         {symbol}

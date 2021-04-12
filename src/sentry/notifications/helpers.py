@@ -2,8 +2,9 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from sentry.models.integration import ExternalProviders
-from sentry.notifications.legacy_mappings import get_legacy_value
 from sentry.notifications.types import (
+    NOTIFICATION_SETTING_DEFAULTS,
+    VALID_VALUES_FOR_KEY,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -28,7 +29,8 @@ def _get_setting_mapping_from_mapping(
         ) or notification_settings_mapping.get(NotificationScopeType.USER)
         if notification_setting_option:
             return notification_setting_option
-    return {ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS}
+
+    return {ExternalProviders.EMAIL: NOTIFICATION_SETTING_DEFAULTS[type]}
 
 
 def where_should_user_be_notified(
@@ -47,9 +49,22 @@ def where_should_user_be_notified(
         user,
         NotificationSettingTypes.ISSUE_ALERTS,
     )
-    return list(
-        filter(lambda elem: mapping[elem] == NotificationSettingOptionValues.ALWAYS, mapping)
-    )
+    return [
+        provider
+        for provider, value in mapping.items()
+        if value == NotificationSettingOptionValues.ALWAYS
+    ]
+
+
+def should_be_participating(
+    subscriptions_by_user_id: Mapping[int, Any],
+    user: Any,
+    value: NotificationSettingOptionValues,
+) -> bool:
+    subscription = subscriptions_by_user_id.get(user.id)
+    return (
+        subscription and subscription.is_active and value != NotificationSettingOptionValues.NEVER
+    ) or (not subscription and value == NotificationSettingOptionValues.ALWAYS)
 
 
 def where_should_be_participating(
@@ -72,18 +87,11 @@ def where_should_be_participating(
         user,
         NotificationSettingTypes.WORKFLOW,
     )
-    output = []
-    for provider, value in mapping.items():
-        subscription = subscriptions_by_user_id.get(user.id)
-        if (subscription and not subscription.is_active) or (
-            value == NotificationSettingOptionValues.NEVER
-        ):
-            continue
-        if (subscription and subscription.is_active) or (
-            value == NotificationSettingOptionValues.ALWAYS
-        ):
-            output.append(provider)
-    return output
+    return [
+        provider
+        for provider, value in mapping.items()
+        if should_be_participating(subscriptions_by_user_id, user, value)
+    ]
 
 
 def transform_to_notification_settings_by_user(
@@ -136,7 +144,7 @@ def transform_to_notification_settings_by_parent_id(
 
 def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
     """ :returns boolean. True if the "value" is valid for the "type". """
-    return get_legacy_value(type, value) is not None
+    return value in VALID_VALUES_FOR_KEY.get(type, {})
 
 
 def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:

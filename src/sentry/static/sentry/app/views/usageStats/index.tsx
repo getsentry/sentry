@@ -1,20 +1,17 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
-import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 
-import {Client} from 'app/api';
 import PageHeading from 'app/components/pageHeading';
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
-import {DataCategory, Organization} from 'app/types';
+import {DataCategory, DataCategoryName, Organization} from 'app/types';
 
 import {OrganizationUsageStats, ProjectUsageStats} from './types';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
 
 type Props = {
-  api: Client;
   organization: Organization;
   orgStatsLoading: boolean;
   projectStatsLoading: boolean;
@@ -46,7 +43,8 @@ class OrganizationStats extends React.Component<Props, State> {
   };
 
   get dataCategoryName() {
-    return capitalize(this.state.dataCategory);
+    const {dataCategory} = this.state;
+    return DataCategoryName[dataCategory] ?? t('Unknown Data Category');
   }
 
   render() {

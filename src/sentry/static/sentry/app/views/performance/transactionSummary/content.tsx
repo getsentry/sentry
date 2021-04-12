@@ -36,7 +36,11 @@ import {
 import {getTransactionDetailsUrl} from '../utils';
 
 import TransactionSummaryCharts from './charts';
-import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from './filter';
+import Filter, {
+  filterToField,
+  filterToSearchConditions,
+  SpanOperationBreakdownFilter,
+} from './filter';
 import TransactionHeader, {Tab} from './header';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
@@ -54,17 +58,17 @@ type Props = {
   error: string | null;
   totalValues: Record<string, number> | null;
   projects: Project[];
+  onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 };
 
 type State = {
   incompatibleAlertNotice: React.ReactNode;
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 };
 
 class SummaryContent extends React.Component<Props, State> {
   state: State = {
     incompatibleAlertNotice: null,
-    spanOperationBreakdownFilter: SpanOperationBreakdownFilter.None,
   };
 
   handleSearch = (query: string) => {
@@ -155,12 +159,6 @@ class SummaryContent extends React.Component<Props, State> {
     });
   };
 
-  onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
-    this.setState({
-      spanOperationBreakdownFilter: newFilter,
-    });
-  };
-
   render() {
     let {eventView} = this.props;
     const {
@@ -171,14 +169,17 @@ class SummaryContent extends React.Component<Props, State> {
       isLoading,
       error,
       totalValues,
+      onChangeFilter,
+      spanOperationBreakdownFilter,
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
     const totalCount = totalValues === null ? null : totalValues.count;
 
     const spanOperationBreakdownConditions = filterToSearchConditions(
-      this.state.spanOperationBreakdownFilter
+      spanOperationBreakdownFilter
     );
+
     if (spanOperationBreakdownConditions) {
       eventView = eventView.clone();
       eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
@@ -194,6 +195,11 @@ class SummaryContent extends React.Component<Props, State> {
           return Number.isFinite(totalValues[alias]);
         })
       );
+
+    const durationTableTitle =
+      spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
+        ? t('duration')
+        : `${spanOperationBreakdownFilter} duration`;
 
     return (
       <React.Fragment>
@@ -216,8 +222,8 @@ class SummaryContent extends React.Component<Props, State> {
             <Search>
               <Filter
                 organization={organization}
-                currentFilter={this.state.spanOperationBreakdownFilter}
-                onChangeFilter={this.onChangeFilter}
+                currentFilter={spanOperationBreakdownFilter}
+                onChangeFilter={onChangeFilter}
               />
               <StyledSearchBar
                 organization={organization}
@@ -233,7 +239,7 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               eventView={eventView}
               totalValues={totalCount}
-              currentFilter={this.state.spanOperationBreakdownFilter}
+              currentFilter={spanOperationBreakdownFilter}
             />
             <TransactionsList
               location={location}
@@ -244,11 +250,11 @@ class SummaryContent extends React.Component<Props, State> {
                   ? [
                       t('event id'),
                       t('user'),
-                      t('duration'),
+                      durationTableTitle,
                       t('trace id'),
                       t('timestamp'),
                     ]
-                  : [t('event id'), t('user'), t('duration'), t('timestamp')]
+                  : [t('event id'), t('user'), durationTableTitle, t('timestamp')]
               }
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
@@ -261,6 +267,7 @@ class SummaryContent extends React.Component<Props, State> {
               handleOpenInDiscoverClick={this.handleDiscoverViewClick}
               {...getTransactionsListSort(location, {
                 p95: totalValues?.p95 ?? 0,
+                spanOperationBreakdownFilter,
               })}
               forceLoading={isLoading}
             />
@@ -347,23 +354,58 @@ function generateTransactionLink(transactionName: string) {
   };
 }
 
-function getFilterOptions({p95}: {p95: number}): DropdownOption[] {
+function getFilterOptions({
+  p95,
+  spanOperationBreakdownFilter,
+}: {
+  p95: number;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+}): DropdownOption[] {
+  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+    return [
+      {
+        sort: {kind: 'asc', field: 'transaction.duration'},
+        value: TransactionFilterOptions.FASTEST,
+        label: t('Fastest Transactions'),
+      },
+      {
+        query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
+        sort: {kind: 'desc', field: 'transaction.duration'},
+        value: TransactionFilterOptions.SLOW,
+        label: t('Slow Transactions (p95)'),
+      },
+      {
+        sort: {kind: 'desc', field: 'transaction.duration'},
+        value: TransactionFilterOptions.OUTLIER,
+        label: t('Outlier Transactions (p100)'),
+      },
+      {
+        sort: {kind: 'desc', field: 'timestamp'},
+        value: TransactionFilterOptions.RECENT,
+        label: t('Recent Transactions'),
+      },
+    ];
+  }
+
+  const field = filterToField(spanOperationBreakdownFilter)!;
+  const operationName = spanOperationBreakdownFilter;
+
   return [
     {
-      sort: {kind: 'asc', field: 'transaction.duration'},
+      sort: {kind: 'asc', field},
       value: TransactionFilterOptions.FASTEST,
-      label: t('Fastest Transactions'),
+      label: t('Fastest %s Operations', operationName),
     },
     {
       query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
-      sort: {kind: 'desc', field: 'transaction.duration'},
+      sort: {kind: 'desc', field},
       value: TransactionFilterOptions.SLOW,
-      label: t('Slow Transactions (p95)'),
+      label: t('Slow %s Operations (p95)', operationName),
     },
     {
-      sort: {kind: 'desc', field: 'transaction.duration'},
+      sort: {kind: 'desc', field},
       value: TransactionFilterOptions.OUTLIER,
-      label: t('Outlier Transactions (p100)'),
+      label: t('Outlier %s Operations (p100)', operationName),
     },
     {
       sort: {kind: 'desc', field: 'timestamp'},
@@ -375,7 +417,7 @@ function getFilterOptions({p95}: {p95: number}): DropdownOption[] {
 
 function getTransactionsListSort(
   location: Location,
-  options: {p95: number}
+  options: {p95: number; spanOperationBreakdownFilter: SpanOperationBreakdownFilter}
 ): {selected: DropdownOption; options: DropdownOption[]} {
   const sortOptions = getFilterOptions(options);
   const urlParam = decodeScalar(

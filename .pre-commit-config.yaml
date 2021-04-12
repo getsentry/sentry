@@ -27,6 +27,13 @@ repos:
       entry: black
       language: system
       types: [python]
+    # Configuration for isort exists in pyproject.toml,
+    # but we let pre-commit take care of the file filtering.
+    - id: isort
+      name: isort
+      entry: isort
+      language: system
+      types: [python]
     # Configuration for flake8 exists in setup.cfg,
     # but we let pre-commit take care of the file filtering.
     - id: flake8
@@ -58,7 +65,7 @@ repos:
       exclude: 'src/sentry/templates/sentry/reprocessing-script.sh'
       types: [shell]
 
--   repo: git://github.com/pre-commit/pre-commit-hooks
+-   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
     hooks:
     - id: check-case-conflict

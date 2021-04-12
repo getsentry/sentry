@@ -1,11 +1,11 @@
 import hmac
-
 from base64 import b32encode
 from binascii import hexlify
 from hashlib import sha1
+from os import urandom
+
 from django.utils.encoding import force_bytes
 from django.utils.translation import ugettext_lazy as _
-from os import urandom
 
 from .base import AuthenticatorInterface
 
