@@ -6,6 +6,7 @@ import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Tooltip from 'app/components/tooltip';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
@@ -206,11 +207,13 @@ class TransactionBar extends React.Component<Props, State> {
           {({projects}) => {
             const project = projects.find(p => p.slug === transaction.project_slug);
             return (
-              <ProjectBadge
-                project={project ? project : {slug: transaction.project_slug}}
-                avatarSize={16}
-                hideName
-              />
+              <Tooltip title={transaction.project_slug}>
+                <ProjectBadge
+                  project={project ? project : {slug: transaction.project_slug}}
+                  avatarSize={16}
+                  hideName
+                />
+              </Tooltip>
             );
           }}
         </Projects>
