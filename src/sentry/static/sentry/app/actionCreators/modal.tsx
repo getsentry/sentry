@@ -139,7 +139,7 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
   );
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
 export async function openCommandPalette(options: ModalOptions = {}) {
