@@ -25,7 +25,7 @@ import {TimePeriodType} from 'app/views/alerts/rules/details/body';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
-import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
+import {AlertRuleStatus, Incident, IncidentActivityType, IncidentStats, IncidentStatus} from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
 
 const X_AXIS_BOUNDARY_GAP = 20;
@@ -43,6 +43,7 @@ type Props = WithRouterProps & {
   filter: React.ReactNode;
   query: string;
   orgId: string;
+  incidentStats: IncidentStats[];
 };
 
 type State = {
@@ -374,6 +375,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       filter,
       query,
       incidents,
+      incidentStats,
     } = this.props;
 
     if (!rule) {
@@ -415,6 +417,22 @@ class MetricChart extends React.PureComponent<Props, State> {
           }
 
           const series: LineChartSeries[] = [...timeseriesData];
+
+          if (incidentStats.length && incidents?.length) {
+            incidentStats.forEach((incidentStat, idx) => {
+              if (incidents[idx].alertRule.status === AlertRuleStatus.SNAPSHOT) {
+                series.push({
+                  seriesName: t('Alert %s', incidents[idx].identifier),
+                  type: 'line',
+                  data: incidentStat.eventStats.data.map(([name, valueArr]) => ({
+                    name: name * 1000,
+                    value: valueArr.length ? valueArr[0].count : 0
+                  })),
+                })
+              }
+            })
+          }
+
           // Ensure series data appears above incident lines
           series[0].z = 100;
           const dataArr = timeseriesData[0].data;
