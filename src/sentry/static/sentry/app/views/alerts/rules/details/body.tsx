@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
+import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
@@ -26,6 +27,7 @@ import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
+import {fetchIncidentStats} from 'app/views/alerts/utils';
 import Timeline from 'app/views/alerts/rules/details/timeline';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {
@@ -36,7 +38,7 @@ import {
 } from 'app/views/settings/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
-import {Incident, IncidentStatus} from '../../types';
+import {Incident, IncidentStats, IncidentStatus} from '../../types';
 
 import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS} from './constants';
 import MetricChart from './metricChart';
@@ -61,7 +63,15 @@ type Props = {
   handleTimePeriodChange: (value: string) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-export default class DetailsBody extends React.Component<Props> {
+type State = {
+  incidentStats: IncidentStats[];
+};
+
+export default class DetailsBody extends React.Component<Props, State> {
+  state = {
+    incidentStats: [],
+  }
+
   getMetricText(): React.ReactNode {
     const {rule} = this.props;
 
@@ -122,6 +132,28 @@ export default class DetailsBody extends React.Component<Props> {
       </Filters>
     );
   }
+
+  componentDidMount() {
+    this.fetchData();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (
+      prevProps.params.orgId !== this.props.params.orgId ||
+      !isEqual(prevProps.incidents, this.props.incidents)
+    ) {
+      this.fetchData();
+    }
+  }
+
+  fetchData = async () => {
+    const {api, incidents, params: {orgId}} = this.props;
+
+    if (incidents?.length) {
+      await Promise.all(incidents.map(incident => fetchIncidentStats(api, orgId, incident.identifier)))
+        .then(incidentStats => this.setState({incidentStats}));
+    }
+  };
 
   renderTrigger(trigger: Trigger): React.ReactNode {
     const {rule} = this.props;
@@ -289,6 +321,7 @@ export default class DetailsBody extends React.Component<Props> {
       timePeriod,
       params: {orgId},
     } = this.props;
+    const {incidentStats} = this.state;
 
     if (!rule) {
       return this.renderLoading();
@@ -364,6 +397,7 @@ export default class DetailsBody extends React.Component<Props> {
                     filter={this.getFilter()}
                     query={queryWithTypeFilter}
                     orgId={orgId}
+                    incidentStats={incidentStats}
                   />
                   <DetailWrapper>
                     <ActivityWrapper>
