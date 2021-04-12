@@ -2,9 +2,6 @@ from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.helpers.environments import get_environments
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import GroupSerializerSnuba
 
 
 class GroupFirstLastReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
@@ -14,12 +11,6 @@ class GroupFirstLastReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
         This data used to be returned by default in group_details.py, but now that we
         can collapse it, we're providing this endpoint to fetch the data separately.
         """
-        organization = group.project.organization
-        environments = get_environments(request, organization)
-        environment_ids = [e.id for e in environments]
-        # WARNING: the rest of this endpoint relies on this serializer
-        # populating the cache SO don't move this :)
-        data = serialize(group, request.user, GroupSerializerSnuba(environment_ids=environment_ids))
         first_release = group.get_first_release()
         if first_release is not None:
             last_release = group.get_last_release()
