@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 type Props = {
   children?: React.ReactNode;
   symbol?: React.ReactElement;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent) => void;
   className?: string;
 };
 
