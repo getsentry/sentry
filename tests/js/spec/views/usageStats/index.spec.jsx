@@ -41,10 +41,18 @@ describe('UsageStats', function () {
     expect(wrapper.find('UsageTable')).toHaveLength(1);
     expect(wrapper.find('IconWarning')).toHaveLength(0);
 
+    const minAsync = wrapper.find('UsageStatsLastMin');
+    expect(minAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
+    expect(minAsync.text()).toContain('6'); // Display 2nd last value in series
+
     const orgAsync = wrapper.find('UsageStatsOrganization');
     expect(orgAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
     expect(orgAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
     expect(orgAsync.props().chartTransform).toEqual(undefined);
+    expect(orgAsync.text()).toContain('Total Errors49');
+    expect(orgAsync.text()).toContain('Accepted28');
+    expect(orgAsync.text()).toContain('Filtered7');
+    expect(orgAsync.text()).toContain('Dropped14');
 
     const orgChart = wrapper.find('UsageChart');
     expect(orgChart.props().dataCategory).toEqual(DataCategory.ERRORS);
@@ -59,9 +67,25 @@ describe('UsageStats', function () {
     expect(projectTable.props().dataCategory).toEqual(DataCategory.ERRORS);
 
     // API calls with defaults
-    expect(mock).toHaveBeenCalledTimes(2);
+    expect(mock).toHaveBeenCalledTimes(3);
+
+    // From UsageStatsLastMin
     expect(mock).toHaveBeenNthCalledWith(
       1,
+      '/organizations/org-slug/stats_v2/',
+      expect.objectContaining({
+        query: {
+          statsPeriod: '5m',
+          interval: '1m',
+          groupBy: ['category', 'outcome'],
+          field: ['sum(quantity)'],
+        },
+      })
+    );
+
+    // From UsageStatsOrg
+    expect(mock).toHaveBeenNthCalledWith(
+      2,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
@@ -72,8 +96,10 @@ describe('UsageStats', function () {
         },
       })
     );
+
+    // From UsageStatsProjects
     expect(mock).toHaveBeenNthCalledWith(
-      2,
+      3,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
@@ -145,9 +171,21 @@ describe('UsageStats', function () {
     const projectTable = wrapper.find('UsageTable');
     expect(projectTable.props().dataCategory).toEqual(DataCategory.TRANSACTIONS);
 
-    expect(mock).toHaveBeenCalledTimes(2);
+    expect(mock).toHaveBeenCalledTimes(3);
     expect(mock).toHaveBeenNthCalledWith(
       1,
+      '/organizations/org-slug/stats_v2/',
+      expect.objectContaining({
+        query: {
+          statsPeriod: '5m',
+          interval: '1m',
+          groupBy: ['category', 'outcome'],
+          field: ['sum(quantity)'],
+        },
+      })
+    );
+    expect(mock).toHaveBeenNthCalledWith(
+      2,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
@@ -159,7 +197,7 @@ describe('UsageStats', function () {
       })
     );
     expect(mock).toHaveBeenNthCalledWith(
-      2,
+      3,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
@@ -266,6 +304,30 @@ function getMockResponse() {
           },
           series: {
             'sum(quantity)': [1, 2, 3, 4, 5, 6, 7],
+          },
+        },
+        {
+          by: {
+            category: 'error',
+            outcome: 'filtered',
+          },
+          totals: {
+            'sum(quantity)': 7,
+          },
+          series: {
+            'sum(quantity)': [1, 1, 1, 1, 1, 1, 1],
+          },
+        },
+        {
+          by: {
+            category: 'error',
+            outcome: 'dropped',
+          },
+          totals: {
+            'sum(quantity)': 14,
+          },
+          series: {
+            'sum(quantity)': [2, 2, 2, 2, 2, 2, 2],
           },
         },
       ],

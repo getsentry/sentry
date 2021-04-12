@@ -214,7 +214,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       orgStats.groups.forEach(group => {
         const {outcome, category} = group.by;
 
-        // HACK The backend enum are singular, but the frontend enums are plural
+        // HACK: The backend enum are singular, but the frontend enums are plural
         if (!dataCategory.includes(`${category}`)) {
           return;
         }
