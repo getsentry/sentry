@@ -1,62 +1,8 @@
-from typing import Dict, List
-
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Project
-
-
-class MockDataSource:
-
-    _tags = {
-        "environment": [
-            "production",
-            "staging",
-        ],
-        "release": [  # High cardinality
-            f"{major}.{minor}.{bugfix}"
-            for major in range(3)
-            for minor in range(13)
-            for bugfix in range(4)
-        ],
-        "session.status": [
-            "crashed",
-            "errored",
-            "healthy",
-        ],
-    }
-    _tag_names = sorted(_tags.keys())
-
-    def get_metrics(self, project: Project) -> List[dict]:
-
-        return [
-            {
-                "name": "session",
-                # "type": "counter",
-                "operations": ["sum"],
-                "tags": self._tag_names,
-            },
-            {
-                "name": "user",
-                # "type": "set",
-                "operations": ["count_unique"],
-                "tags": self._tag_names,
-            },
-            {
-                "name": "session.duration",
-                # "type": "distribution",
-                "operations": ["avg", "p50", "p75", "p90", "p95", "p99", "max"],
-                "tags": self._tag_names,
-                "unit": "seconds",
-            },
-        ]
-
-    def get_tag_values(self, project: Project, metric_name: str, tag_name: str) -> Dict[str, str]:
-        # Return same tag names for every metric for now:
-        return self._tags.get(tag_name, [])
-
-
-DATA_SOURCE = MockDataSource()
+from sentry.snuba.metrics import DATA_SOURCE, InvalidField, InvalidParams, QueryDefinition
 
 
 class ProjectMetricsEndpoint(ProjectEndpoint):
@@ -91,4 +37,11 @@ class ProjectMetricsDataEndpoint(ProjectEndpoint):
     """
 
     def get(self, request, project):
-        return Response("Hello world", status=200)
+
+        try:
+            query = QueryDefinition(request.GET, allow_minute_resolution=False)
+            data = DATA_SOURCE.get_series(query)
+        except (InvalidField, InvalidParams) as exc:
+            raise (ParseError(detail=str(exc)))
+
+        return Response(data, status=200)
