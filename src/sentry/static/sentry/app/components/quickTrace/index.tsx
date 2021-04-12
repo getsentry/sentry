@@ -503,10 +503,17 @@ type MissingServiceState = {
 };
 
 const HIDE_MISSING_SERVICE_KEY = 'quick-trace:hide-missing-services';
+// 30 days
+const HIDE_MISSING_EXPIRES = 1000 * 60 * 60 * 24 * 30;
 
-function readMissingServiceState() {
+function readHideMissingServiceState() {
   const value = localStorage.getItem(HIDE_MISSING_SERVICE_KEY);
-  return value === '1';
+  if (value === null) {
+    return false;
+  }
+  const expires = parseInt(value, 10);
+  const now = new Date().getTime();
+  return expires > now;
 }
 
 class MissingServiceNode extends React.Component<
@@ -514,12 +521,16 @@ class MissingServiceNode extends React.Component<
   MissingServiceState
 > {
   state: MissingServiceState = {
-    hideMissing: readMissingServiceState(),
+    hideMissing: readHideMissingServiceState(),
   };
 
   dismissMissingService = () => {
     const {organization} = this.props;
-    localStorage.setItem(HIDE_MISSING_SERVICE_KEY, '1');
+    const now = new Date().getTime();
+    localStorage.setItem(
+      HIDE_MISSING_SERVICE_KEY,
+      (now + HIDE_MISSING_EXPIRES).toString()
+    );
     this.setState({hideMissing: true});
     trackAnalyticsEvent({
       eventKey: 'quick_trace.hide.missing-service',
