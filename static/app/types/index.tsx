@@ -561,7 +561,7 @@ export type GlobalSelection = {
   datetime: {
     start: DateString;
     end: DateString;
-    period: RelativePeriod | string; // TODO(ts): Remove "string" and fix type errors
+    period: RelativePeriod | string;
     utc: boolean | null;
   };
 };
