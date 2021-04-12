@@ -25,7 +25,6 @@ from sentry.models import (
     Activity,
     Group,
     GroupStatus,
-    GroupSubscriptionReason,
     Organization,
     OrganizationMember,
     Project,
@@ -33,6 +32,7 @@ from sentry.models import (
     Rule,
     Team,
 )
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css

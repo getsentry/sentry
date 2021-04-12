@@ -1,8 +1,12 @@
 import functools
 
-from sentry.models import GroupSubscription, GroupSubscriptionReason, NotificationSetting
+from sentry.models import GroupSubscription, NotificationSetting
 from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    GroupSubscriptionReason,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.testutils import TestCase
 
 
