@@ -19,6 +19,6 @@ def BigtableEventProcessingStore(
     return EventProcessingStore(
         KVStorageCodecWrapper(
             BigtableKVStorage(instance, table_name, compression=compression),
-            JSONCodec() | BytesCodec(),
+            JSONCodec() | BytesCodec(),  # maintains functional parity with cache backend
         )
     )
