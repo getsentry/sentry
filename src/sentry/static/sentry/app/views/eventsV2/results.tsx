@@ -52,6 +52,7 @@ type Props = {
   organization: Organization;
   selection: GlobalSelection;
   savedQuery?: SavedQuery;
+  loading: boolean;
 };
 
 type State = {
@@ -63,7 +64,6 @@ type State = {
   needConfirmation: boolean;
   confirmedQuery: boolean;
   incompatibleAlertNotice: React.ReactNode;
-  isLoading: boolean;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -74,7 +74,7 @@ function readShowTagsState() {
 
 class Results extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    if (nextProps.savedQuery || !prevState.isLoading) {
+    if (nextProps.savedQuery || !nextProps.loading) {
       const eventView = EventView.fromSavedQueryOrLocation(
         nextProps.savedQuery,
         nextProps.location
@@ -96,7 +96,6 @@ class Results extends React.Component<Props, State> {
     needConfirmation: false,
     confirmedQuery: false,
     incompatibleAlertNotice: null,
-    isLoading: this.savedQueryIsLoading(),
   };
 
   componentDidMount() {
@@ -207,18 +206,10 @@ class Results extends React.Component<Props, State> {
     }
   }
 
-  savedQueryIsLoading() {
-    const {location, savedQuery} = this.props;
-    if (location.query.id) {
-      return !savedQuery;
-    } else {
-      return false;
-    }
-  }
-
   checkEventView() {
-    const {eventView, isLoading} = this.state;
-    if (eventView.isValid() || isLoading) {
+    const {eventView} = this.state;
+    const {loading} = this.props;
+    if (eventView.isValid() || loading) {
       return;
     }
 
@@ -523,8 +514,10 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
   }
 
   renderBody(): React.ReactNode {
-    const {savedQuery} = this.state;
-    return <Results {...this.props} savedQuery={savedQuery ?? undefined} />;
+    const {savedQuery, loading} = this.state;
+    return (
+      <Results {...this.props} savedQuery={savedQuery ?? undefined} loading={loading} />
+    );
   }
 }
 
