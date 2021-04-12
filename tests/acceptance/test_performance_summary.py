@@ -44,7 +44,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         # Create a transaction
         event = make_event(load_data("transaction", timestamp=before_now(minutes=1)))
         self.store_event(data=event, project_id=self.project.id)
-        self.wait_for_event_count(self.project.id, 1)
 
         self.store_event(
             data={
@@ -104,7 +103,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event_data["measurements"]["fp"]["value"] = 5000
         event = make_event(event_data)
         self.store_event(data=event, project_id=self.project.id)
-        self.wait_for_event_count(self.project.id, 1)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
@@ -163,8 +161,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event_data["measurements"]["fid"]["value"] = 3000000000
         event_data["measurements"]["cls"]["value"] = 3000000000
         self.store_event(data=event_data, project_id=self.project.id)
-
-        self.wait_for_event_count(self.project.id, 5)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
