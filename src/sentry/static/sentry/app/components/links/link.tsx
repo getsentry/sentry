@@ -12,7 +12,7 @@ type ToLocationFunction = (location: Location) => LocationDescriptor;
 
 type Props = {
   //URL
-  to: string | ToLocationFunction | LocationDescriptor;
+  to: ToLocationFunction | LocationDescriptor;
   // Styles applied to the component's root
   className?: string;
 } & Omit<AnchorProps, 'href' | 'target'>;
@@ -36,15 +36,15 @@ class Link extends React.Component<Props> {
   }
 
   render() {
-    const {to, ref, ...props} = this.props;
+    const {disabled, to, ref, ...props} = this.props;
     const isRouterPresent = this.context.location;
 
-    if (isRouterPresent) {
+    if (!disabled && isRouterPresent) {
       return <RouterLink to={to} ref={ref as any} {...props} />;
     }
 
     if (typeof to === 'string') {
-      return <Anchor href={to} ref={ref} {...props} />;
+      return <Anchor href={to} ref={ref} disabled={disabled} {...props} />;
     }
 
     return <Anchor href="" ref={ref} {...props} disabled />;

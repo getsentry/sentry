@@ -12,7 +12,7 @@ import {
 } from 'app/utils/performance/quickTrace/types';
 import {
   beforeFetch,
-  getQuickTraceRequestPayload,
+  getTraceRequestPayload,
   makeEventView,
 } from 'app/utils/performance/quickTrace/utils';
 import withApi from 'app/utils/withApi';
@@ -39,7 +39,7 @@ function getTraceFullRequestPayload({
   detailed,
   ...props
 }: DiscoverQueryProps & AdditionalQueryProps) {
-  const additionalApiPayload: any = getQuickTraceRequestPayload(props);
+  const additionalApiPayload: any = getTraceRequestPayload(props);
   additionalApiPayload.detailed = detailed ? '1' : '0';
   return additionalApiPayload;
 }

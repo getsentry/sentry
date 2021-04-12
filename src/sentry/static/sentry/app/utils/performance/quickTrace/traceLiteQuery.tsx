@@ -11,7 +11,7 @@ import {
 } from 'app/utils/performance/quickTrace/types';
 import {
   beforeFetch,
-  getQuickTraceRequestPayload,
+  getTraceRequestPayload,
   makeEventView,
 } from 'app/utils/performance/quickTrace/utils';
 import withApi from 'app/utils/withApi';
@@ -34,7 +34,7 @@ function getTraceLiteRequestPayload({
   eventId,
   ...props
 }: DiscoverQueryProps & AdditionalQueryProps) {
-  const additionalApiPayload = getQuickTraceRequestPayload(props);
+  const additionalApiPayload = getTraceRequestPayload(props);
   return Object.assign({event_id: eventId}, additionalApiPayload);
 }
 
