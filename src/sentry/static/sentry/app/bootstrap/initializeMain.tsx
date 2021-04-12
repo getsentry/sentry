@@ -13,7 +13,6 @@ import {renderMain} from './renderMain';
 import {renderOnDomReady} from './renderOnDomReady';
 
 export function initializeMain() {
-  // SDK INIT  --------------------------------------------------------
   const config = ConfigStore.getConfig();
   initializeSdk(config, {routes});
 

@@ -6,7 +6,6 @@ import {renderOnDomReady} from './renderOnDomReady';
 import {renderPipelineView} from './renderPipelineView';
 
 export function initializePipelineView() {
-  // SDK INIT  --------------------------------------------------------
   const config = ConfigStore.getConfig();
   /**
    * XXX: Note we do not include routingInstrumentation because importing

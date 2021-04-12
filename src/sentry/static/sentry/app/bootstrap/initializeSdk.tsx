@@ -49,7 +49,12 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
   return integrations;
 }
 
-// SDK INIT  --------------------------------------------------------
+/**
+ * Initialize the Sentry SDK
+ *
+ * If `routes` is passed, we will instrument react-router. Not all
+ * entrypoints require this.
+ */
 export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}) {
   if (window.__initialData?.dsn_requests) {
     initApiSentryClient(window.__initialData.dsn_requests);
