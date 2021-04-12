@@ -81,7 +81,7 @@ class Results extends React.Component<Props, State> {
       );
       return {...prevState, eventView};
     }
-    return {...prevState};
+    return prevState;
   }
 
   state: State = {
@@ -501,7 +501,7 @@ export const Top = styled(Layout.Main)`
 `;
 
 type SavedQueryState = AsyncComponent['state'] & {
-  savedQuery: SavedQuery;
+  savedQuery?: SavedQuery | null;
 };
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
@@ -524,7 +524,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
 
   renderBody(): React.ReactNode {
     const {savedQuery} = this.state;
-    return <Results {...this.props} savedQuery={savedQuery} />;
+    return <Results {...this.props} savedQuery={savedQuery ?? undefined} />;
   }
 }
 
