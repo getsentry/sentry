@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from sentry.runner import configure
 import time
+
+from sentry.runner import configure
 
 configure()
 
@@ -26,20 +27,26 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger,
     create_incident,
 )
-from sentry.incidents.models import IncidentType, AlertRuleThresholdType
+from sentry.incidents.models import AlertRuleThresholdType, IncidentType
 from sentry.models import (
+    TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
     Broadcast,
+    CheckInStatus,
     Commit,
     CommitAuthor,
     CommitFileChange,
     Deploy,
-    EventAttachment,
     Environment,
+    EventAttachment,
     File,
     Group,
     GroupRelease,
     GroupTombstone,
+    Monitor,
+    MonitorCheckIn,
+    MonitorStatus,
+    MonitorType,
     Organization,
     OrganizationAccessRequest,
     OrganizationMember,
@@ -47,28 +54,19 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     ReleaseEnvironment,
-    ReleaseProjectEnvironment,
     ReleaseFile,
+    ReleaseProjectEnvironment,
     Repository,
     Team,
-    TOMBSTONE_FIELDS_FROM_GROUP,
     User,
     UserReport,
-    Monitor,
-    MonitorStatus,
-    MonitorType,
-    MonitorCheckIn,
-    CheckInStatus,
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
 from sentry.utils import loremipsum
 from sentry.utils.hashlib import md5_text
-from sentry.utils.samples import (
-    create_sample_event as _create_sample_event,
-    random_normal,
-    generate_user,
-)
+from sentry.utils.samples import create_sample_event as _create_sample_event
+from sentry.utils.samples import generate_user, random_normal
 
 PLATFORMS = itertools.cycle(["ruby", "php", "python", "java", "javascript"])
 
@@ -989,8 +987,8 @@ if __name__ == "__main__":
         )
     except Exception:
         # Avoid reporting any issues recursively back into Sentry
-        import traceback
         import sys
+        import traceback
 
         traceback.print_exc()
         sys.exit(1)

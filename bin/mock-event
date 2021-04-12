@@ -4,15 +4,13 @@ from sentry.runner import configure
 
 configure()
 
+import argparse
 import sys
 
 from django.utils import timezone
 
 from sentry.models import Project
 from sentry.utils.samples import create_sample_event
-
-
-import argparse
 
 
 def main(project, sample_type):

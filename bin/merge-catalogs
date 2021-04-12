@@ -2,10 +2,9 @@
 
 
 import os
+
 import click
-
 from babel.messages.pofile import read_po, write_po
-
 
 JS_EXTENSIONS = (".js", ".jsx", ".ts", ".tsx")
 
