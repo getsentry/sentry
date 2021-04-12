@@ -66,7 +66,6 @@ class EmailActionHandler(ActionHandler):
                 targets = [(target.id, target.email)]
             elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
                 users = NotificationSetting.objects.filter_to_subscribed_users(
-                    ExternalProviders.EMAIL,
                     self.project,
                     {member.user for member in target.member_set},
                 )[ExternalProviders.EMAIL]

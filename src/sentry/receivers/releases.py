@@ -12,13 +12,13 @@ from sentry.models import (
     GroupLink,
     GroupStatus,
     GroupSubscription,
-    GroupSubscriptionReason,
     PullRequest,
     Release,
     Repository,
     UserOption,
     remove_group_from_inbox,
 )
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 

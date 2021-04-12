@@ -3,10 +3,10 @@ from sentry.models import (
     ExternalIssue,
     GroupLink,
     GroupSubscription,
-    GroupSubscriptionReason,
     Integration,
     OrganizationIntegration,
 )
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils import APITestCase
 
 

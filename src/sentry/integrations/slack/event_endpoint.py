@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, DefaultDict, Dict, List
+from typing import Any, Dict, List
 
 from sentry.api.base import Endpoint
 from sentry.shared_integrations.exceptions import ApiError
@@ -70,7 +70,7 @@ class SlackEventEndpoint(Endpoint):
         return self.respond()
 
     def on_link_shared(self, request, integration, token, data):
-        matches: DefaultDict[LinkType, List[UnfurlableUrl]] = defaultdict(list)
+        matches: Dict[LinkType, List[UnfurlableUrl]] = defaultdict(list)
         links_seen = set()
 
         # An unfurl may have multiple links to unfurl

@@ -135,9 +135,9 @@ class NotificationPlugin(Plugin):
         notifications for the provided project.
         """
         if self.get_conf_key() == "mail":
-            return NotificationSetting.objects.get_notification_recipients(
-                ExternalProviders.EMAIL, project
-            )[ExternalProviders.EMAIL]
+            return NotificationSetting.objects.get_notification_recipients(project)[
+                ExternalProviders.EMAIL
+            ]
 
         return self.get_notification_recipients(project, "%s:alert" % self.get_conf_key())
 

@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Mapping, Optional, Sequence, Union
+from typing import Any, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -79,7 +79,7 @@ class Serializer:
             return
         return self.serialize(obj, attrs, user, **kwargs)
 
-    def get_attrs(self, item_list: Iterable[Any], user: Any, **kwargs) -> Mapping[Any, Any]:
+    def get_attrs(self, item_list: Sequence[Any], user: Any, **kwargs) -> Mapping[Any, Any]:
         """
         Fetch all of the associated data needed to serialize the objects in `item_list`.
 
