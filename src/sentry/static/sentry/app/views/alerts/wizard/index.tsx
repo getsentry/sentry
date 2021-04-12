@@ -192,7 +192,7 @@ const WizardPanel = styled(Panel)<{visible?: boolean}>`
   flex-direction: column;
   align-items: start;
   align-self: flex-start;
-  animation: 0.6s pop ease forwards;
+  ${p => p.visible && 'animation: 0.6s pop ease forwards'};
 
   @keyframes pop {
     0% {
