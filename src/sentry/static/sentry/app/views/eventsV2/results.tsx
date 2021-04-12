@@ -406,7 +406,7 @@ class Results extends React.Component<Props, State> {
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
-    const query = decodeScalar(location.query.query, '');
+    const query = eventView.query;
     const title = this.getDocumentTitle();
 
     return (

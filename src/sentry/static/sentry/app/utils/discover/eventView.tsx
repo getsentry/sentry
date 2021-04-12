@@ -411,7 +411,10 @@ class EventView {
         id: id || saved.id,
         name: decodeScalar(location.query.name) || saved.name,
         fields,
-        query: decodeQuery(location) || queryStringFromSavedQuery(saved),
+        query:
+          'query' in location.query
+            ? decodeQuery(location)
+            : queryStringFromSavedQuery(saved),
         sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
         yAxis: decodeScalar(location.query.yAxis) || saved.yAxis,
         display: decodeScalar(location.query.display) || saved.display,
