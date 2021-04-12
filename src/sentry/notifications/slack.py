@@ -1,7 +1,6 @@
 import logging
 from typing import Any, Iterable, Mapping, Optional
 
-
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration
@@ -53,7 +52,7 @@ def build_incident_attachment() -> Mapping[Any, Any]:
 def get_integrations(organization: Any, provider: ExternalProviders) -> Iterable[Any]:
     """ Get all of this organization's integrations by provider. """
     return Integration.objects.filter(
-        organizations__in=organization.id,
+        organizations__in=[organization],
         provider=get_provider_name(provider.value),
         status=ObjectStatus.VISIBLE,
     )
