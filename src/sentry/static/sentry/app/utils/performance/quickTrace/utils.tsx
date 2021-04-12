@@ -225,7 +225,7 @@ export function beforeFetch(api: Client) {
   api.clear();
 }
 
-export function getQuickTraceRequestPayload({eventView, location}: DiscoverQueryProps) {
+export function getTraceRequestPayload({eventView, location}: DiscoverQueryProps) {
   return omit(eventView.getEventsAPIPayload(location), ['field', 'sort', 'per_page']);
 }
 
