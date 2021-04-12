@@ -99,7 +99,7 @@ class SessionsField:
         if status == "crashed":
             return row["sessions_crashed"]
         if status == "errored":
-            return row["sessions_errored"]
+            return row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"]
         return 0
 
 
