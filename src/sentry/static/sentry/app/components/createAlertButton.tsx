@@ -14,7 +14,7 @@ import Alert from 'app/components/alert';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Link from 'app/components/links/link';
-import {IconClose, IconInfo} from 'app/icons';
+import {IconClose, IconInfo, IconSiren} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -316,7 +316,9 @@ function CreateAlertFromViewButton({
 type Props = {
   organization: Organization;
   projectSlug?: string;
+  iconProps?: React.ComponentProps<typeof IconSiren>;
   referrer?: string;
+  hideIcon?: boolean;
   api: Client;
   showPermissionGuide?: boolean;
 } & WithRouterProps &
@@ -327,30 +329,25 @@ const CreateAlertButton = withApi(
     ({
       organization,
       projectSlug,
+      iconProps,
       referrer,
       router,
+      hideIcon,
       api,
       showPermissionGuide,
       ...buttonProps
     }: Props) => {
+      const hasWizard = organization.features.includes('alert-wizard');
+      const createAlertUrl = (providedProj: string) => {
+        const alertsBaseUrl = `/organizations/${organization.slug}/alerts/${providedProj}`;
+        const subUrl = hasWizard ? 'wizard' : 'new';
+        return `${alertsBaseUrl}/${subUrl}/${referrer ? `?referrer=${referrer}` : ''}`;
+      };
+
       function handleClickWithoutProject(event: React.MouseEvent) {
         event.preventDefault();
 
-        if (organization.features.includes('alert-wizard')) {
-          navigateTo(
-            `/organizations/${organization.slug}/alerts/:projectId/wizard/${
-              referrer ? `?referrer=${referrer}` : ''
-            }`,
-            router
-          );
-        } else {
-          navigateTo(
-            `/organizations/${organization.slug}/alerts/:projectId/new/${
-              referrer ? `?referrer=${referrer}` : ''
-            }`,
-            router
-          );
-        }
+        navigateTo(createAlertUrl(':projectId'), router);
       }
 
       async function enableAlertsMemberWrite() {
@@ -378,11 +375,8 @@ const CreateAlertButton = withApi(
         <Button
           disabled={!hasAccess}
           title={!hasAccess ? permissionTooltipText : undefined}
-          to={
-            projectSlug
-              ? `/organizations/${organization.slug}/alerts/${projectSlug}/new/`
-              : undefined
-          }
+          icon={!hideIcon && <IconSiren {...iconProps} />}
+          to={projectSlug ? createAlertUrl(projectSlug) : undefined}
           tooltipProps={{
             isHoverable: true,
             position: 'top',
@@ -393,7 +387,7 @@ const CreateAlertButton = withApi(
           onClick={projectSlug ? undefined : handleClickWithoutProject}
           {...buttonProps}
         >
-          {buttonProps.children ?? t('Set Conditions')}
+          {buttonProps.children ?? t('Create Alert')}
         </Button>
       );
 

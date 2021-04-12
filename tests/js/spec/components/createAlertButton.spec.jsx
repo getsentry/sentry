@@ -45,7 +45,7 @@ describe('CreateAlertFromViewButton', () => {
   it('renders', () => {
     const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
     const wrapper = generateWrappedComponent(organization, eventView);
-    expect(wrapper.text()).toBe('Set Conditions');
+    expect(wrapper.text()).toBe('Create Alert');
   });
 
   it('should warn when project is not selected', () => {
@@ -196,7 +196,7 @@ describe('CreateAlertFromViewButton', () => {
 
     const wrapper = generateWrappedComponent(noAccessOrg, eventView);
 
-    const button = wrapper.find('button[aria-label="Set Conditions"]');
+    const button = wrapper.find('button[aria-label="Create Alert"]');
     expect(button.props()['aria-disabled']).toBe(true);
   });
 

@@ -75,7 +75,10 @@ class AlertWizard extends React.Component<Props, State> {
         priority="primary"
         to={to}
         disabled={disabled}
-      />
+        hideIcon
+      >
+        {t('Set Conditions')}
+      </CreateAlertButton>
     );
   }
 
