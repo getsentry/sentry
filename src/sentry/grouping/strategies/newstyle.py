@@ -2,10 +2,10 @@ import re
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import call_with_variants, strategy
+from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
 from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
-from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.iterators import shingle
 
