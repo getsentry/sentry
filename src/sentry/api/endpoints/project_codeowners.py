@@ -1,10 +1,10 @@
 import logging
+
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from sentry import features, analytics
-from sentry.utils import metrics
+from sentry import analytics, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin, ProjectOwnershipSerializer
 from sentry.api.serializers import serialize
@@ -18,6 +18,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.ownership.grammar import convert_codeowners_syntax, parse_code_owners
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
