@@ -273,7 +273,9 @@ class GroupSerializerBase(Serializer):
 
         GroupMeta.objects.populate_cache(item_list)
 
-        attach_foreignkey(item_list, Group.project)
+        # Note that organization is necessary here for use in `_get_permalink` to avoid
+        # making unnecessary queries.
+        attach_foreignkey(item_list, Group.project, related=("organization",))
 
         if user.is_authenticated() and item_list:
             bookmarks = set(

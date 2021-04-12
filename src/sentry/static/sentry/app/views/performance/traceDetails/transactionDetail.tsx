@@ -204,6 +204,7 @@ class TransactionDetail extends React.Component<Props> {
             </Row>
             <Row title="Transaction Status">{transaction['transaction.status']}</Row>
             <Row title="Span ID">{transaction.span_id}</Row>
+            <Row title="Project">{transaction.project_slug}</Row>
             <Row title="Start Date">
               {getDynamicText({
                 fixed: 'Mar 19, 2021 11:06:27 AM UTC',
