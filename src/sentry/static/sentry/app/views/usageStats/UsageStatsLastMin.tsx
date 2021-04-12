@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
+import NotAvailable from 'app/components/notAvailable';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, Organization} from 'app/types';
@@ -47,12 +48,12 @@ class UsageStatsLastMin extends AsyncComponent<Props, State> {
     };
   }
 
-  get minuteData(): string {
+  get minuteData(): string | undefined {
     const {dataCategory} = this.props;
     const {loading, error, orgStats} = this.state;
 
     if (loading || error || !orgStats || orgStats.intervals.length === 0) {
-      return '—';
+      return undefined;
     }
 
     const {intervals, groups} = orgStats;
@@ -85,7 +86,7 @@ class UsageStatsLastMin extends AsyncComponent<Props, State> {
 
     return (
       <Wrapper>
-        <Number>{this.minuteData}</Number>
+        <Number>{this.minuteData ?? <NotAvailable />}</Number>
         <Description>
           {tct('accepted [dataCategoryName]', {
             dataCategoryName: dataCategoryName.toLowerCase(),
