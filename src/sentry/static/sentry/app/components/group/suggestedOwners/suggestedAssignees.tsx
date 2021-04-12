@@ -62,6 +62,6 @@ const Subheading = styled('small')`
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(0.5)};
+  grid-gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 20px);
 `;
