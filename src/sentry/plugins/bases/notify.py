@@ -128,6 +128,7 @@ class NotificationPlugin(Plugin):
             member_set = [x for x in member_set if x not in disabled]
 
         return member_set
+        # TODO(mgaeta): This should be ExternalProviders.TWILIO
 
     def get_sendable_user_objects(self, project):
         """

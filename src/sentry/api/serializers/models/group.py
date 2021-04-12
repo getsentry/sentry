@@ -180,7 +180,7 @@ class GroupSerializerBase(Serializer):
         """
         Returns a mapping of group IDs to a two-tuple of (is_disabled: bool,
         subscribed: bool, subscription: Optional[GroupSubscription]) for the
-        provided user and groups.
+        provided user and groups. TODO(mgaeta): Include all providers.
         """
         if not groups:
             return {}

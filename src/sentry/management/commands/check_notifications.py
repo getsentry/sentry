@@ -9,7 +9,7 @@ def handle_project(project: Project, stream) -> None:
     """
     For every user that should receive ISSUE_ALERT notifications for a given
     project, write a map of usernames to email addresses to the given stream
-    one entry per line.
+    one entry per line. TODO(mgaeta): Update this to include Slack.
     """
     stream.write("# Project: %s\n" % project)
 
