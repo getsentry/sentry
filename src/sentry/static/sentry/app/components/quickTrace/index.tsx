@@ -168,7 +168,7 @@ export default function QuickTrace({
         {({projects}) => {
           const project = projects.find(p => p.slug === current.project_slug);
           if (project?.platform) {
-            if (BACKEND_PLATFORMS.includes(project.platform as string))
+            if (BACKEND_PLATFORMS.includes(project.platform as string)) {
               return (
                 <React.Fragment>
                   <MissingServiceNode
@@ -180,7 +180,7 @@ export default function QuickTrace({
                   {currentNode}
                 </React.Fragment>
               );
-            else if (FRONTEND_PLATFORMS.includes(project.platform as string))
+            } else if (FRONTEND_PLATFORMS.includes(project.platform as string)) {
               return (
                 <React.Fragment>
                   {currentNode}
@@ -192,6 +192,7 @@ export default function QuickTrace({
                   />
                 </React.Fragment>
               );
+            }
           }
           return currentNode;
         }}
