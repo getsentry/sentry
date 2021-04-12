@@ -7,25 +7,18 @@ import {Config} from 'app/types';
 const BOOTSTRAP_URL = '/api/client-config/';
 
 const bootApplication = (data: Config) => {
-  const {csrfCookieName, sentryConfig, userIdentity} = data;
-
-  // TODO(epurkhiser): Would be great if we could remove some of these from
-  // existing on the window object and instead pass into a bootstrap function.
-  // We can't currently do this due to some of these globals needing to be
-  // available for modules imported by the bootstrap.
-  window.csrfCookieName = csrfCookieName;
-  window.__SENTRY__OPTIONS = sentryConfig;
-  window.__SENTRY__USER = userIdentity;
-  window.__initialData = data;
+  window.csrfCookieName = data.csrfCookieName;
 
   // Once data hydration is done we can initialize the app
   const {initializeMain} = require('./bootstrap/initializeMain');
-  initializeMain();
+  initializeMain(data);
 };
 
 async function bootWithHydration() {
   const response = await fetch(BOOTSTRAP_URL);
   const data: Config = await response.json();
+
+  window.__initialData = data;
 
   bootApplication(data);
 }

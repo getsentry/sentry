@@ -1,12 +1,13 @@
-import ConfigStore from 'app/stores/configStore';
+import {Config} from 'app/types';
 import {metric} from 'app/utils/analytics';
 
+import {commonInitialization} from './commonInitialization';
 import {initializeSdk} from './initializeSdk';
 import {renderOnDomReady} from './renderOnDomReady';
 import {renderPipelineView} from './renderPipelineView';
 
-export function initializePipelineView() {
-  const config = ConfigStore.getConfig();
+export function initializePipelineView(config: Config) {
+  commonInitialization(config);
   /**
    * XXX: Note we do not include routingInstrumentation because importing
    * `app/routes` significantly increases bundle size.

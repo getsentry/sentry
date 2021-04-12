@@ -56,31 +56,31 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
  * entrypoints require this.
  */
 export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}) {
-  if (window.__initialData?.dsn_requests) {
-    initApiSentryClient(window.__initialData.dsn_requests);
+  if (config.dsn_requests) {
+    initApiSentryClient(config.dsn_requests);
   }
 
-  const tracesSampleRate = config ? config.apmSampling : 0;
+  const {apmSampling, sentryConfig, userIdentity} = config;
+  const tracesSampleRate = apmSampling ?? 0;
 
-  const hasReplays =
-    window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !DISABLE_RR_WEB;
+  const hasReplays = userIdentity?.isStaff && !DISABLE_RR_WEB;
 
   Sentry.init({
-    ...window.__SENTRY__OPTIONS,
+    ...sentryConfig,
     /**
      * For SPA mode, we need a way to overwrite the default DSN from backend
      * as well as `whitelistUrls`
      */
-    dsn: SPA_DSN || window.__SENTRY__OPTIONS.dsn,
+    dsn: SPA_DSN || sentryConfig?.dsn,
     whitelistUrls: SPA_DSN
       ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
-      : window.__SENTRY__OPTIONS.whitelistUrls,
+      : sentryConfig?.whitelistUrls,
     integrations: getSentryIntegrations(hasReplays, routes),
     tracesSampleRate,
   });
 
-  if (window.__SENTRY__USER) {
-    Sentry.setUser(window.__SENTRY__USER);
+  if (userIdentity) {
+    Sentry.setUser(userIdentity);
   }
   if (window.__SENTRY__VERSION) {
     Sentry.setTag('sentry_version', window.__SENTRY__VERSION);

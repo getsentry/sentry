@@ -2,18 +2,18 @@ import 'focus-visible';
 
 import {NODE_ENV} from 'app/constants';
 import ConfigStore from 'app/stores/configStore';
+import {Config} from 'app/types';
 import {setupColorScheme} from 'app/utils/matchMedia';
 
-if (NODE_ENV === 'development') {
-  import(
-    /* webpackChunkName: "SilenceReactUnsafeWarnings" */ /* webpackMode: "eager" */ 'app/utils/silence-react-unsafe-warnings'
-  );
-}
+export function commonInitialization(config: Config) {
+  if (NODE_ENV === 'development') {
+    import(
+      /* webpackChunkName: "SilenceReactUnsafeWarnings" */ /* webpackMode: "eager" */ 'app/utils/silence-react-unsafe-warnings'
+    );
+  }
 
-// App setup
-if (window.__initialData) {
-  ConfigStore.loadInitialData(window.__initialData);
-}
+  ConfigStore.loadInitialData(config);
 
-// setup darkmode + favicon
-setupColorScheme();
+  // setup darkmode + favicon
+  setupColorScheme();
+}

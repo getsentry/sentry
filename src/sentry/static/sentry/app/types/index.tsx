@@ -33,14 +33,6 @@ declare global {
     __pipelineInitialData: PipelineInitialData;
 
     /**
-     * Sentry SDK configuration
-     */
-    __SENTRY__OPTIONS: Config['sentryConfig'];
-    /**
-     * The authenticated user identity, a bare-bones version of User
-     */
-    __SENTRY__USER: Config['userIdentity'];
-    /**
      * Sentrys version string
      */
     __SENTRY__VERSION?: string;
