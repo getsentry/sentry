@@ -171,9 +171,29 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
             "trace_id": self.trace_id,
             "span_id": self.gen1_span_ids[0],
         }
+        error_data["level"] = "fatal"
         error = self.store_event(error_data, project_id=self.gen1_project.id)
+        error_data["level"] = "warning"
         error1 = self.store_event(error_data, project_id=self.gen1_project.id)
         return error, error1
+
+    def load_default(self):
+        start, _ = self.get_start_end(1000)
+        return self.store_event(
+            {
+                "timestamp": iso_format(start),
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": self.trace_id,
+                        "span_id": self.root_span_ids[0],
+                    },
+                },
+                "level": "debug",
+                "message": "this is a log message",
+            },
+            project_id=self.gen1_project.id,
+        )
 
 
 class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBase):
@@ -855,6 +875,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "level": "fatal",
+            "title": error.title,
         } in gen1_event["errors"]
         assert {
             "event_id": error1.event_id,
@@ -862,23 +884,13 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "level": "warning",
+            "title": error1.title,
         } in gen1_event["errors"]
 
     def test_with_default(self):
         start, _ = self.get_start_end(1000)
-        default_event = self.store_event(
-            {
-                "timestamp": iso_format(start),
-                "contexts": {
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": self.trace_id,
-                        "span_id": self.root_span_ids[0],
-                    },
-                },
-            },
-            project_id=self.gen1_project.id,
-        )
+        default_event = self.load_default()
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -896,6 +908,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "span": self.root_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "level": "debug",
+            "title": "this is a log message",
         } in root_event["errors"]
 
 
@@ -975,3 +989,17 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 4
         assert data["transactions"] == 8
         assert data["errors"] == 2
+
+    def test_with_default(self):
+        self.load_default()
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["projects"] == 4
+        assert data["transactions"] == 8
+        assert data["errors"] == 1
