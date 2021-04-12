@@ -137,24 +137,28 @@
         "stacktrace": {
           "frames": [
             {
-              "function": "confirmPurchase",
-              "module": "components/EmpowerPlant",
-              "filename": "./components/EmpowerPlant.js",
-              "abs_path": "webpack:///./components/EmpowerPlant.js",
-              "lineno": 94,
-              "colno": 40,
-              "context_line": "Don\u2019t show this in a screenshot",
-              "in_app": true,
-              "data": {"sourcemap": ""}
-            },
-            {
               "function": "onFormSubmit",
-              "module": "components/Checkout",
-              "filename": "./components/Checkout.js",
-              "abs_path": "webpack:///./components/Checkout.js",
+              "module": "components/Form",
+              "filename": "./components/Form.js",
+              "abs_path": "webpack:///./components/Form.js",
               "lineno": 126,
               "colno": 9,
-              "context_line": "Don\u2019t show this in a screenshot",
+              "pre_context": [
+                "  handleClick() {",
+                "    let { cart, userInfo } = this.form;",
+                "",
+                "    this.props.saveUpdatedCart(cart);",
+                "    this.setState({loading: false});"
+              ],
+              "context_line": "    this.onSubmit();",
+              "post_context": [
+                "    this.props.handlePostSubmit();",
+                "    this.props.sendAnalyticsEvent(userInfo);",
+                "    this.finalizePurchase().then() => {",
+                "      this.markAsComplete();",
+                "    });",
+                "  }"
+              ],
               "in_app": true,
               "data": {"sourcemap": ""}
             },
