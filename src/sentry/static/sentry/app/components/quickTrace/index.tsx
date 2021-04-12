@@ -167,13 +167,14 @@ export default function QuickTrace({
       >
         {({projects}) => {
           const project = projects.find(p => p.slug === current.project_slug);
-          if (project) {
-            if (BACKEND_PLATFORMS.includes(project?.platform as string))
+          if (project?.platform) {
+            if (BACKEND_PLATFORMS.includes(project.platform as string))
               return (
                 <React.Fragment>
                   <MissingServiceNode
                     anchor={anchor}
                     organization={organization}
+                    platform={project.platform}
                     connectorSide="right"
                   />
                   {currentNode}
@@ -186,6 +187,7 @@ export default function QuickTrace({
                   <MissingServiceNode
                     anchor={anchor}
                     organization={organization}
+                    platform={project.platform}
                     connectorSide="left"
                   />
                 </React.Fragment>
@@ -497,6 +499,7 @@ function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNo
 
 type MissingServiceProps = Pick<QuickTraceProps, 'anchor' | 'organization'> & {
   connectorSide: 'left' | 'right';
+  platform: string;
 };
 type MissingServiceState = {
   hideMissing: boolean;
@@ -525,7 +528,7 @@ class MissingServiceNode extends React.Component<
   };
 
   dismissMissingService = () => {
-    const {organization} = this.props;
+    const {organization, platform} = this.props;
     const now = new Date().getTime();
     localStorage.setItem(
       HIDE_MISSING_SERVICE_KEY,
@@ -533,9 +536,20 @@ class MissingServiceNode extends React.Component<
     );
     this.setState({hideMissing: true});
     trackAnalyticsEvent({
-      eventKey: 'quick_trace.hide.missing-service',
+      eventKey: 'quick_trace.missing-service.dismiss',
+      eventName: 'Quick Trace: Missing Service Dismissed',
+      organization_id: parseInt(organization.id, 10),
+      platform,
+    });
+  };
+
+  trackExternalLink = () => {
+    const {organization, platform} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'quick_trace.missing-service.docs',
       eventName: 'Quick Trace: Missing Service Clicked',
       organization_id: parseInt(organization.id, 10),
+      platform,
     });
   };
 
@@ -555,7 +569,10 @@ class MissingServiceNode extends React.Component<
           anchorRight={anchor === 'right'}
         >
           <DropdownItem first width="small">
-            <ExternalDropdownLink href="https://docs.sentry.io/platforms/javascript/performance/connect-services/">
+            <ExternalDropdownLink
+              href="https://docs.sentry.io/platforms/javascript/performance/connect-services/"
+              onClick={this.trackExternalLink}
+            >
               {t('Connect to a service')}
             </ExternalDropdownLink>
           </DropdownItem>
