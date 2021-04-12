@@ -54,14 +54,12 @@ class OrganizationStats extends React.Component<Props> {
 
   // Validation and type-casting should be handled by chart
   get chartTransform(): string | undefined {
-    const {chartTransform} = this.props.location?.query ?? {};
-    return chartTransform;
+    return this.props.location?.query?.chartTransform;
   }
 
   // Validation and type-casting should be handled by table
   get tableSort(): string | undefined {
-    const {sort} = this.props.location?.query ?? {};
-    return sort;
+    return this.props.location?.query?.sort;
   }
 
   /**
