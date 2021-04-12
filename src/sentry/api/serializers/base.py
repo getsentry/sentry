@@ -1,7 +1,7 @@
-import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
 from typing import Any, Iterable, Mapping, Optional, Sequence, Union
 
+import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 
 registry = {}
 
