@@ -2,9 +2,11 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import {LocationDescriptorObject} from 'history';
 
+import Alert from 'app/components/alert';
 import {DateTimeObject} from 'app/components/charts/utils';
 import PageHeading from 'app/components/pageHeading';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {DataCategory, DataCategoryName, Organization, RelativePeriod} from 'app/types';
@@ -107,6 +109,18 @@ class OrganizationStats extends React.Component<Props> {
             })}
           </PageHeading>
         </PageHeader>
+
+        <p>
+          {t(
+            'The chart below reflects events that Sentry has received across your entire organization. We collect usage metrics on 3 types of events: errors, transactions, and attachments. Each type of event has 3 outcomes: accepted, filtered, and dropped.'
+          )}
+        </p>
+        <p>
+          {t(
+            "Accepted events were successfully processed by Sentry. Filtered events were blocked due to your project's inbound data filter rules. Dropped events were discarded due to invalid data, rate-limits, quota-limits or spike protection."
+          )}
+        </p>
+
         <UsageStatsOrg
           organization={organization}
           dataCategory={this.dataCategory}
@@ -123,6 +137,10 @@ class OrganizationStats extends React.Component<Props> {
             })}
           </PageHeading>
         </PageHeader>
+
+        <Alert type="info" icon={<IconInfo size="md" />}>
+          {t('You are viewing usage stats only for projects which you have read access.')}
+        </Alert>
 
         <UsageStatsProjects
           organization={organization}

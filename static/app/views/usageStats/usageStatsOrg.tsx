@@ -25,7 +25,7 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
 
-import {getDateFromMoment} from './usageChart/utils';
+import {FORMAT_DATETIME_HOURLY, getDateFromMoment} from './usageChart/utils';
 import {Outcome, UsageSeries, UsageStat} from './types';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
@@ -86,6 +86,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
     chartDateEnd: string;
+    chartDateStartDisplay: string;
+    chartDateEndDisplay: string;
     chartTransform: ChartDataTransform;
   } {
     const {orgStats} = this.state;
@@ -113,6 +115,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
     chartDateEnd: string;
+    chartDateStartDisplay: string;
+    chartDateEndDisplay: string;
   } {
     const {dataDatetime} = this.props;
     const {period, start, end} = dataDatetime;
@@ -143,15 +147,24 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     }
 
     // chartDateStart need to +1 hour to remove empty column on left of chart
+    const dateStart = chartDateStart.add(1, 'h').startOf('h');
+    const dateEnd = chartDateEnd.startOf('h');
     return {
       chartDateInterval: interval,
-      chartDateStart: chartDateStart.add(1, 'h').startOf('h').format(),
-      chartDateEnd: chartDateEnd.startOf('h').format(),
+      chartDateStart: dateStart.format(),
+      chartDateEnd: chartDateEnd.format(),
+      chartDateStartDisplay: dateStart.local().format(FORMAT_DATETIME_HOURLY),
+      chartDateEndDisplay: dateEnd.local().format(FORMAT_DATETIME_HOURLY),
     };
   }
 
-  handleSelectDataTransform(value: ChartDataTransform) {
-    this.setState({chartDataTransform: value});
+  get formatUsageOptions() {
+    const {dataCategory} = this.props;
+
+    return {
+      isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
+      useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
+    };
   }
 
   mapSeriesToChart(
@@ -239,17 +252,24 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         chartData.dropped.push({value: [stat.date, stat.dropped.total]} as any);
       });
 
-      const formatOptions = {
-        isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
-        useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
-      };
-
       return {
         cardData: {
-          total: formatUsageWithUnits(count.total, dataCategory, formatOptions),
-          accepted: formatUsageWithUnits(count.accepted, dataCategory, formatOptions),
-          dropped: formatUsageWithUnits(count.dropped, dataCategory, formatOptions),
-          filtered: formatUsageWithUnits(count.filtered, dataCategory, formatOptions),
+          total: formatUsageWithUnits(count.total, dataCategory, this.formatUsageOptions),
+          accepted: formatUsageWithUnits(
+            count.accepted,
+            dataCategory,
+            this.formatUsageOptions
+          ),
+          dropped: formatUsageWithUnits(
+            count.dropped,
+            dataCategory,
+            this.formatUsageOptions
+          ),
+          filtered: formatUsageWithUnits(
+            count.filtered,
+            dataCategory,
+            this.formatUsageOptions
+          ),
         },
         chartData,
       };
@@ -341,6 +361,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       chartDateInterval,
       chartDateStart,
       chartDateEnd,
+      chartDateStartDisplay,
+      chartDateEndDisplay,
       chartTransform,
     } = this.chartMetadata;
 
@@ -358,6 +380,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     return (
       <UsageChart
+        title={tct('Usage for [start] — [end]', {
+          start: chartDateStartDisplay,
+          end: chartDateEndDisplay,
+        })}
         footer={this.renderChartFooter()}
         dataCategory={dataCategory}
         dataTransform={chartTransform}

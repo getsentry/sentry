@@ -26,6 +26,15 @@ export type TableStat = {
 };
 
 class UsageTable extends React.Component<Props> {
+  get formatUsageOptions() {
+    const {dataCategory} = this.props;
+
+    return {
+      isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
+      useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
+    };
+  }
+
   renderTableRow(stat: TableStat & {project: Project}) {
     const {dataCategory} = this.props;
     const {project, total, accepted, filtered, dropped} = stat;
@@ -41,10 +50,18 @@ class UsageTable extends React.Component<Props> {
 
     return [
       <CellProject key={0}>{projectBadge}</CellProject>,
-      <CellStat key={1}>{formatUsageWithUnits(total, dataCategory)}</CellStat>,
-      <CellStat key={2}>{formatUsageWithUnits(accepted, dataCategory)}</CellStat>,
-      <CellStat key={3}>{formatUsageWithUnits(filtered, dataCategory)}</CellStat>,
-      <CellStat key={4}>{formatUsageWithUnits(dropped, dataCategory)}</CellStat>,
+      <CellStat key={1}>
+        {formatUsageWithUnits(total, dataCategory, this.formatUsageOptions)}
+      </CellStat>,
+      <CellStat key={2}>
+        {formatUsageWithUnits(accepted, dataCategory, this.formatUsageOptions)}
+      </CellStat>,
+      <CellStat key={3}>
+        {formatUsageWithUnits(filtered, dataCategory, this.formatUsageOptions)}
+      </CellStat>,
+      <CellStat key={4}>
+        {formatUsageWithUnits(dropped, dataCategory, this.formatUsageOptions)}
+      </CellStat>,
     ];
   }
 
