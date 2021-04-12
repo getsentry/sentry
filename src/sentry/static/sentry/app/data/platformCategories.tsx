@@ -161,6 +161,13 @@ export const performance: PlatformKey[] = [
   'node-connect',
 ];
 
+/**
+ * Additional aliases used for filtering in the platform picker
+ */
+export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
+  native: ['cpp', 'c++'],
+};
+
 export type PlatformKey =
   | typeof popular[number]
   | typeof frontend[number]
