@@ -346,4 +346,5 @@ const PeriodSelectControl = styled(SelectControl)`
   font-weight: normal;
   text-transform: none;
   border: 0;
+  margin-right: ${space(2)};
 `;

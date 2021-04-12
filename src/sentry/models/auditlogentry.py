@@ -2,14 +2,13 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
+    Model,
     sane_repr,
 )
 from sentry.utils.strings import truncatechars
-
 
 MAX_ACTOR_LABEL_LENGTH = 64
 

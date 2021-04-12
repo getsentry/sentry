@@ -1,6 +1,6 @@
-from bitfield.types import Bit, BitHandler
-
 from django.db.models.lookups import Exact
+
+from bitfield.types import Bit, BitHandler
 
 
 class BitQueryExactLookupStub(Exact):

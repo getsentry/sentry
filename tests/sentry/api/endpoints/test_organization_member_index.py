@@ -1,13 +1,12 @@
-from sentry.utils.compat.mock import patch
-
-from django.core.urlresolvers import reverse
 from django.core import mail
+from django.core.urlresolvers import reverse
 
 from sentry import roles
 from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
+from sentry.models import Authenticator, InviteStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils import APITestCase, TestCase
-from sentry.models import InviteStatus, OrganizationMember, OrganizationMemberTeam, Authenticator
 from sentry.testutils.helpers import Feature
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationMemberSerializerTest(TestCase):

@@ -158,7 +158,7 @@ class MailAdapter:
         """
         return NotificationSetting.objects.get_notification_recipients(
             ExternalProviders.EMAIL, project
-        )
+        )[ExternalProviders.EMAIL]
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)
@@ -231,7 +231,6 @@ class MailAdapter:
                         sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
                     ).values_list("id", flat=True)
                 )
-
             return send_to - self.disabled_users_from_project(project)
         else:
             metrics.incr(
@@ -247,7 +246,6 @@ class MailAdapter:
         user_ids = project.member_set.values_list("user", flat=True)
         users = User.objects.filter(id__in=user_ids)
         notification_settings = NotificationSetting.objects.get_for_users_by_parent(
-            provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
             parent=project,
             users=users,
@@ -261,8 +259,16 @@ class MailAdapter:
         for user in users:
             settings = notification_settings_by_user.get(user)
             if settings:
-                setting = settings.get(NotificationScopeType.PROJECT)
-                if setting == NotificationSettingOptionValues.NEVER:
+                # Check per-project settings first, fallback to project-independent settings.
+                project_setting = settings.get(NotificationScopeType.PROJECT)
+                if project_setting:
+                    project_setting = project_setting[ExternalProviders.EMAIL]
+                user_setting = settings.get(NotificationScopeType.USER)
+                if user_setting:
+                    user_setting = user_setting[ExternalProviders.EMAIL]
+                if project_setting == NotificationSettingOptionValues.NEVER or (
+                    not project_setting and user_setting == NotificationSettingOptionValues.NEVER
+                ):
                     output.add(user.id)
         return output
 
@@ -522,6 +528,8 @@ class MailAdapter:
         group = Group.objects.get(id=payload["report"]["issue"]["id"])
 
         participants = GroupSubscription.objects.get_participants(group=group)
+        if participants:
+            participants = participants[ExternalProviders.EMAIL]
 
         if not participants:
             return

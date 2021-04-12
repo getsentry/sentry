@@ -1,6 +1,6 @@
 from exam import fixture
 
-from sentry.models import Project, OrganizationMember
+from sentry.models import OrganizationMember, Project
 from sentry.signals import event_processed
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

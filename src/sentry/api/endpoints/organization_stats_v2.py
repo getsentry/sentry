@@ -1,15 +1,13 @@
-from rest_framework.response import Response
-from sentry.snuba.outcomes import (
-    run_outcomes_query,
-    QueryDefinition,
-    massage_outcomes_result,
-)
-from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
-from rest_framework.exceptions import ParseError
-from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
-from sentry.search.utils import InvalidQuery
 from contextlib import contextmanager
+
 import sentry_sdk
+from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
+
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.search.utils import InvalidQuery
+from sentry.snuba.outcomes import QueryDefinition, massage_outcomes_result, run_outcomes_query
+from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
 
 
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):

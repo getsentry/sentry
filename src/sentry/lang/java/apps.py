@@ -5,7 +5,8 @@ class Config(AppConfig):
     name = "sentry.lang.java"
 
     def ready(self):
-        from .plugin import JavaPlugin
         from sentry.plugins.base import register
+
+        from .plugin import JavaPlugin
 
         register(JavaPlugin)

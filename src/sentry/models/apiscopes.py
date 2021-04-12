@@ -1,7 +1,8 @@
-from bitfield import BitField
 from collections import Sequence
+
 from django.db import models
 
+from bitfield import BitField
 from sentry.db.models import ArrayField
 
 

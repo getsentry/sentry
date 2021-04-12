@@ -1,18 +1,17 @@
 from sentry import analytics
-
 from sentry.api import client
 from sentry.api.base import Endpoint
-from sentry.models import Group, Project, Identity, IdentityProvider, ApiKey
+from sentry.integrations.slack.message_builder.issues import build_group_attachment
+from sentry.models import ApiKey, Group, Identity, IdentityProvider, Project
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
-from sentry.shared_integrations.exceptions import ApiError
 
 from .client import SlackClient
 from .link_identity import build_linking_url
-from .unlink_identity import build_unlinking_url
 from .requests import SlackActionRequest, SlackRequestError
-from .utils import build_group_attachment, logger
-
+from .unlink_identity import build_unlinking_url
+from .utils import logger
 
 LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
 
@@ -192,7 +191,7 @@ class SlackActionEndpoint(Endpoint):
                 id=group_id,
             )
         except Group.DoesNotExist:
-            logger.error("slack.action.invalid-issue", extra=logging_data, exc_info=True)
+            logger.info("slack.action.invalid-issue", extra=logging_data)
             return self.respond(status=403)
 
         logging_data["organization_id"] = group.organization.id

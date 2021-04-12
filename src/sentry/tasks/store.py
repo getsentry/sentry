@@ -1,26 +1,25 @@
 import logging
 from datetime import datetime
-
-from time import time, sleep
-from django.utils import timezone
-from django.conf import settings
+from time import sleep, time
 
 import sentry_sdk
+from django.conf import settings
+from django.utils import timezone
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import reprocessing, options, reprocessing2
-from sentry.datascrubbing import scrub_data
-from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
+from sentry import options, reprocessing, reprocessing2
 from sentry.attachments import attachment_cache
+from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
+from sentry.datascrubbing import scrub_data
+from sentry.eventstore.processing import event_processing_store
+from sentry.models import Activity, Organization, Project, ProjectOption
+from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.safe import safe_execute
-from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
-from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
+from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.dates import to_datetime
+from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
-from sentry.models import ProjectOption, Activity, Project, Organization
-from sentry.eventstore.processing import event_processing_store
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -659,7 +658,7 @@ def create_failed_event(
         return True
 
     data = CanonicalKeyDict(data)
-    from sentry.models import RawEvent, ProcessingIssue
+    from sentry.models import ProcessingIssue, RawEvent
 
     raw_event = RawEvent.objects.create(
         project_id=project_id,

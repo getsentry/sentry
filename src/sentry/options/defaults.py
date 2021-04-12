@@ -1,13 +1,13 @@
 from sentry.logging import LoggingFormat
 from sentry.options import (
+    FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
-    FLAG_ALLOW_EMPTY,
     register,
 )
-from sentry.utils.types import Bool, Dict, String, Sequence, Int
+from sentry.utils.types import Bool, Dict, Int, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -271,9 +271,6 @@ register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
 
 # Enables setting a sampling rate when producing the tag facet.
 register("discover2.tags_facet_enable_sampling", default=True, flags=FLAG_PRIORITIZE_DISK)
-
-# Enables setting a sampling rate when producing the tag facet.
-register("discover2.tags_performance_facet_sample_rate", default=0.1)
 
 # Killswitch for datascrubbing after stacktrace processing. Set to False to
 # disable datascrubbers.

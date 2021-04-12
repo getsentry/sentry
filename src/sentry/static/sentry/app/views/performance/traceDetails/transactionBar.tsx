@@ -4,7 +4,9 @@ import {Location} from 'history';
 
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
+import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Tooltip from 'app/components/tooltip';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
@@ -12,9 +14,11 @@ import {Theme} from 'app/utils/theme';
 
 import {
   ConnectorBar,
+  DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
   DurationPill,
+  ErrorBadge,
   OperationName,
   StyledIconChevron,
   TRANSACTION_ROW_HEIGHT,
@@ -192,7 +196,10 @@ class TransactionBar extends React.Component<Props, State> {
     );
   }
 
-  renderTitle() {
+  renderTitle(
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps
+  ) {
+    const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
     const {organization, transaction} = this.props;
     const left = this.getCurrentOffset();
 
@@ -202,11 +209,13 @@ class TransactionBar extends React.Component<Props, State> {
           {({projects}) => {
             const project = projects.find(p => p.slug === transaction.project_slug);
             return (
-              <ProjectBadge
-                project={project ? project : {slug: transaction.project_slug}}
-                avatarSize={16}
-                hideName
-              />
+              <Tooltip title={transaction.project_slug}>
+                <ProjectBadge
+                  project={project ? project : {slug: transaction.project_slug}}
+                  avatarSize={16}
+                  hideName
+                />
+              </Tooltip>
             );
           }}
         </Projects>
@@ -231,7 +240,7 @@ class TransactionBar extends React.Component<Props, State> {
     );
 
     return (
-      <TransactionBarTitleContainer>
+      <TransactionBarTitleContainer ref={generateContentSpanBarRef()}>
         {this.renderToggle()}
         <TransactionBarTitle
           style={{
@@ -254,7 +263,7 @@ class TransactionBar extends React.Component<Props, State> {
         <DividerLine
           showDetail
           style={{
-            position: 'relative',
+            position: 'absolute',
           }}
         />
       );
@@ -266,7 +275,7 @@ class TransactionBar extends React.Component<Props, State> {
       <DividerLine
         ref={addDividerLineRef()}
         style={{
-          position: 'relative',
+          position: 'absolute',
         }}
         onMouseEnter={() => {
           dividerHandlerChildrenProps.setHover(true);
@@ -316,6 +325,17 @@ class TransactionBar extends React.Component<Props, State> {
     );
   }
 
+  renderErrorBadge() {
+    const {transaction} = this.props;
+    const {showDetail} = this.state;
+
+    if (!isTraceFullDetailed(transaction) || !transaction.errors.length) {
+      return null;
+    }
+
+    return <ErrorBadge showDetail={showDetail} />;
+  }
+
   renderRectangle() {
     const {transaction, traceInfo, theme} = this.props;
     const {showDetail} = this.state;
@@ -356,8 +376,10 @@ class TransactionBar extends React.Component<Props, State> {
 
   renderHeader({
     dividerHandlerChildrenProps,
+    scrollbarManagerChildrenProps,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
     const {index} = this.props;
     const {showDetail} = this.state;
@@ -374,9 +396,12 @@ class TransactionBar extends React.Component<Props, State> {
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
         >
-          {this.renderTitle()}
+          {this.renderTitle(scrollbarManagerChildrenProps)}
         </TransactionRowCell>
-        {this.renderDivider(dividerHandlerChildrenProps)}
+        <DividerContainer>
+          {this.renderDivider(dividerHandlerChildrenProps)}
+          {this.renderErrorBadge()}
+        </DividerContainer>
         <TransactionRowCell
           data-type="span-row-cell"
           showStriping={index % 2 !== 0}
@@ -404,11 +429,20 @@ class TransactionBar extends React.Component<Props, State> {
         showBorder={showDetail}
         cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
       >
-        <DividerHandlerManager.Consumer>
-          {dividerHandlerChildrenProps =>
-            this.renderHeader({dividerHandlerChildrenProps})
-          }
-        </DividerHandlerManager.Consumer>
+        <ScrollbarManager.Consumer>
+          {scrollbarManagerChildrenProps => {
+            return (
+              <DividerHandlerManager.Consumer>
+                {dividerHandlerChildrenProps =>
+                  this.renderHeader({
+                    dividerHandlerChildrenProps,
+                    scrollbarManagerChildrenProps,
+                  })
+                }
+              </DividerHandlerManager.Consumer>
+            );
+          }}
+        </ScrollbarManager.Consumer>
         {isTraceFullDetailed(transaction) && isVisible && showDetail && (
           <TransactionDetail
             location={location}

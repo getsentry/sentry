@@ -1,7 +1,6 @@
-from sentry.api.serializers import Serializer, register, serialize
-
 import functools
 
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.tagstore.base import TagKeyStatus
 

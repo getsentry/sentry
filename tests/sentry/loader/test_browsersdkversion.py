@@ -1,13 +1,12 @@
-from sentry.utils.compat import mock
-
 from django.conf import settings
-from sentry.testutils import TestCase
+
 from sentry.loader.browsersdkversion import (
-    get_highest_browser_sdk_version,
     get_browser_sdk_version_versions,
+    get_highest_browser_sdk_version,
     get_highest_selected_browser_sdk_version,
 )
-
+from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 MOCK_VERSIONS = [
     "4.0.0-rc.1",

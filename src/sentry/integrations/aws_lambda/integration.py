@@ -1,39 +1,39 @@
 import logging
-
 from concurrent.futures import ThreadPoolExecutor
+
 from botocore.exceptions import ClientError
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import options, analytics
+from sentry import analytics, options
 from sentry.api.serializers import serialize
 from sentry.integrations import (
-    IntegrationInstallation,
-    IntegrationFeatures,
-    IntegrationProvider,
-    IntegrationMetadata,
     FeatureDescription,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
 )
 from sentry.integrations.serverless import ServerlessMixin
-from sentry.models import Project, OrganizationIntegration, ProjectStatus
+from sentry.models import OrganizationIntegration, Project, ProjectStatus
 from sentry.pipeline import PipelineView
+from sentry.utils import json
 from sentry.utils.compat import map
 from sentry.utils.sdk import capture_exception
-from sentry.utils import json
 
-from .client import gen_aws_client, ConfigurationError
+from .client import ConfigurationError, gen_aws_client
 from .utils import (
-    get_index_of_sentry_layer,
-    get_version_of_arn,
-    get_supported_functions,
-    get_latest_layer_version,
-    get_latest_layer_for_function,
-    get_function_layer_arns,
-    enable_single_lambda,
-    disable_single_lambda,
-    get_dsn_for_project,
-    wrap_lambda_updater,
     ALL_AWS_REGIONS,
+    disable_single_lambda,
+    enable_single_lambda,
+    get_dsn_for_project,
+    get_function_layer_arns,
+    get_index_of_sentry_layer,
+    get_latest_layer_for_function,
+    get_latest_layer_version,
     get_sentry_err_message,
+    get_supported_functions,
+    get_version_of_arn,
+    wrap_lambda_updater,
 )
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")

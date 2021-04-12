@@ -1,9 +1,8 @@
 from sentry.grouping.strategies.base import (
-    create_strategy_configuration,
-    RISK_LEVEL_MEDIUM,
     RISK_LEVEL_HIGH,
+    RISK_LEVEL_MEDIUM,
+    create_strategy_configuration,
 )
-
 
 # The full mapping of all known configurations.
 CONFIGURATIONS = {}

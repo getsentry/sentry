@@ -1,6 +1,6 @@
-from sentry.api.bases.integration import IntegrationEndpoint
 from rest_framework.response import Response
 
+from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration
 
 

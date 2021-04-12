@@ -3,18 +3,26 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
+import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
 import {SpanBarTitle} from 'app/components/events/interfaces/spans/spanBar';
 import {SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
-import {IconChevron} from 'app/icons';
+import {IconChevron, IconFire} from 'app/icons';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {appendTagCondition} from 'app/utils/queryString';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+
+export {
+  DividerSpacer,
+  ScrollBarContainer as ScrollbarContainer,
+  VirtualScrollBar,
+  VirtualScrollBarGrip,
+} from 'app/components/events/interfaces/spans/header';
 
 export {
   ConnectorBar,
@@ -52,15 +60,21 @@ export const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
+export const TraceViewHeaderContainer = styled(SecondaryHeader)`
+  position: static;
+  top: auto;
+  border-top: none;
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
 export const TraceDetailHeader = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-gap: ${space(2)};
-  margin-top: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;
+    grid-template-columns: minmax(250px, 1fr) minmax(160px, 1fr) 6fr;
     grid-row-gap: 0;
   }
 `;
@@ -97,8 +111,35 @@ export const TransactionBarTitleContent = styled('span')`
   margin-left: ${space(0.75)};
 `;
 
+export const DividerContainer = styled('div')`
+  position: relative;
+`;
+
+const BadgeBorder = styled('div')<{showDetail: boolean}>`
+  position: absolute;
+  margin: ${space(0.25)};
+  left: -11.5px;
+  background: ${p => (p.showDetail ? p.theme.textColor : p.theme.background)};
+  width: ${space(3)};
+  height: ${space(3)};
+  border: 1px solid ${p => p.theme.red300};
+  border-radius: 50%;
+  z-index: ${p => p.theme.zIndex.traceView.dividerLine};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+export function ErrorBadge({showDetail}: {showDetail: boolean}) {
+  return (
+    <BadgeBorder showDetail={showDetail}>
+      <IconFire color="red300" size="xs" />
+    </BadgeBorder>
+  );
+}
+
 const StyledPills = styled(Pills)`
-  padding: ${space(1)};
+  padding-top: ${space(1.5)};
 `;
 
 export function Tags({

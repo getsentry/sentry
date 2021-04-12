@@ -1,5 +1,5 @@
 from sentry import tagstore
-from sentry.models import EventUser, Group, get_group_with_redirect, Project
+from sentry.models import EventUser, Group, Project, get_group_with_redirect
 
 from ..base import ExportError
 

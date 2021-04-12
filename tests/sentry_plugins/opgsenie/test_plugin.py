@@ -1,11 +1,10 @@
 import responses
-
 from exam import fixture
+
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 

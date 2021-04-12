@@ -12,7 +12,6 @@ import {t} from 'app/locale';
 import {Frame, Organization, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withOrganization from 'app/utils/withOrganization';
 
 const defaultProps = {
@@ -47,19 +46,6 @@ class StacktraceContent extends React.Component<Props, State> {
     showingAbsoluteAddresses: false,
     showCompleteFunctionName: false,
   };
-
-  componentDidMount() {
-    const {isHoverPreviewed, organization, event} = this.props;
-
-    if (isHoverPreviewed) {
-      trackAnalyticsEvent({
-        eventKey: 'stacktrace.preview.open',
-        eventName: 'Stack Trace Preview: Open',
-        organization_id: organization?.id ? parseInt(organization.id, 10) : '',
-        issue_id: event.groupID,
-      });
-    }
-  }
 
   renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
     const props = {

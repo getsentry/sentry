@@ -1,10 +1,7 @@
 import responses
-from sentry.models import (
-    Integration,
-    OrganizationIntegration,
-)
-from sentry.testutils import APITestCase
 
+from sentry.models import Integration, OrganizationIntegration
+from sentry.testutils import APITestCase
 
 PRIMARY_UNINSTALL_RESPONSE = """{
     "configurationId": "my_config_id",

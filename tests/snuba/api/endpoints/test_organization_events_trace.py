@@ -1,11 +1,11 @@
-from uuid import uuid4
 from datetime import timedelta
+from uuid import uuid4
 
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import NoReverseMatch, reverse
 
-from sentry.utils.samples import load_data
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.samples import load_data
 
 
 class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
@@ -158,6 +158,22 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
             self.url_name,
             kwargs={"organization_slug": self.project.organization.slug, "trace_id": self.trace_id},
         )
+        start, _ = self.get_start_end(1000)
+
+    def load_errors(self):
+        start, _ = self.get_start_end(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.gen1_span_ids[0],
+        }
+        error = self.store_event(error_data, project_id=self.gen1_project.id)
+        error1 = self.store_event(error_data, project_id=self.gen1_project.id)
+        return error, error1
 
 
 class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBase):
@@ -192,6 +208,16 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         assert response.status_code == 404, response.content
 
+        # Invalid event id
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"event_id": "not-a-event"},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+
         # Fake trace id
         self.url = reverse(
             "sentry-api-0-organization-events-trace-light",
@@ -206,6 +232,16 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             )
 
         assert response.status_code == 404, response.content
+
+        # Invalid trace id
+        with self.assertRaises(NoReverseMatch):
+            self.url = reverse(
+                "sentry-api-0-organization-events-trace-light",
+                kwargs={
+                    "organization_slug": self.project.organization.slug,
+                    "trace_id": "not-a-trace",
+                },
+            )
 
     def test_no_roots(self):
         """ Even when there's no root, we return the current event """
@@ -651,7 +687,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 spans=[],
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
-                duration=500,
+                duration=525,
             ).event_id,
             self.create_event(
                 trace=self.trace_id,
@@ -675,8 +711,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.assert_trace_data(response.data[0], gen2_no_children=False)
         gen2_parent = response.data[0]["children"][1]["children"][0]
         assert len(gen2_parent["children"]) == 2
-        for child in gen2_parent["children"]:
-            assert child["event_id"] in gen3_event_siblings
+        assert [child["event_id"] for child in gen2_parent["children"]] == gen3_event_siblings
 
     def test_with_orphan_siblings(self):
         parent_span_id = uuid4().hex[:16]
@@ -687,7 +722,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             # Some random id so its separated from the rest of the trace
             parent_span_id=parent_span_id,
             project_id=self.project.id,
-            duration=1000,
+            # Longer duration means that this event happened first, and should be ordered first
+            duration=1250,
         )
         root_sibling_event = self.create_event(
             trace=self.trace_id,
@@ -711,8 +747,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         # The first item of the response should be the main trace
         main, *orphans = response.data
         self.assert_trace_data(main)
-        assert root_event.event_id in [orphan["event_id"] for orphan in orphans]
-        assert root_sibling_event.event_id in [orphan["event_id"] for orphan in orphans]
+        assert [root_event.event_id, root_sibling_event.event_id] == [
+            orphan["event_id"] for orphan in orphans
+        ]
 
     def test_with_orphan_trace(self):
         orphan_span_ids = {
@@ -799,18 +836,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert grandchild["generation"] == 2
 
     def test_with_errors(self):
-        start, _ = self.get_start_end(1000)
-        error_data = load_data(
-            "javascript",
-            timestamp=start,
-        )
-        error_data["contexts"]["trace"] = {
-            "type": "trace",
-            "trace_id": self.trace_id,
-            "span_id": self.gen1_span_ids[0],
-        }
-        error = self.store_event(error_data, project_id=self.gen1_project.id)
-        error1 = self.store_event(error_data, project_id=self.gen1_project.id)
+        error, error1 = self.load_errors()
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -871,3 +897,81 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
         } in root_event["errors"]
+
+
+class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
+    url_name = "sentry-api-0-organization-events-trace-meta"
+
+    def test_no_projects(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+
+        url = reverse(
+            self.url_name,
+            kwargs={"organization_slug": org.slug, "trace_id": uuid4().hex},
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                url,
+                format="json",
+            )
+
+        assert response.status_code == 404, response.content
+
+    def test_bad_ids(self):
+        # Fake trace id
+        self.url = reverse(
+            self.url_name,
+            kwargs={"organization_slug": self.project.organization.slug, "trace_id": uuid4().hex},
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["projects"] == 0
+        assert data["transactions"] == 0
+        assert data["errors"] == 0
+
+        # Invalid trace id
+        with self.assertRaises(NoReverseMatch):
+            self.url = reverse(
+                self.url_name,
+                kwargs={
+                    "organization_slug": self.project.organization.slug,
+                    "trace_id": "not-a-trace",
+                },
+            )
+
+    def test_simple(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["projects"] == 4
+        assert data["transactions"] == 8
+        assert data["errors"] == 0
+
+    def test_with_errors(self):
+        self.load_errors()
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["projects"] == 4
+        assert data["transactions"] == 8
+        assert data["errors"] == 2

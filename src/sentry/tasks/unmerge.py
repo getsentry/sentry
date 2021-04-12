@@ -1,17 +1,17 @@
 import logging
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict, defaultdict
 from functools import reduce
 
 from django.db import transaction
 
-from sentry import eventstore, eventstream
+from sentry import eventstore, eventstream, similarity
 from sentry.app import tsdb
-from sentry.utils.query import celery_run_batch_query
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
 from sentry.models import (
     Activity,
     Environment,
+    EventAttachment,
     EventUser,
     Group,
     GroupEnvironment,
@@ -20,11 +20,9 @@ from sentry.models import (
     Project,
     Release,
     UserReport,
-    EventAttachment,
 )
-from sentry import similarity
 from sentry.tasks.base import instrumented_task
-
+from sentry.utils.query import celery_run_batch_query
 
 logger = logging.getLogger(__name__)
 

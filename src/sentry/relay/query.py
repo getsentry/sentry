@@ -1,6 +1,5 @@
 from importlib import import_module
 
-
 from sentry.relay.queries.base import InvalidQuery
 from sentry.relay.utils import type_to_class_name
 

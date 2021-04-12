@@ -1,8 +1,6 @@
-from sentry.utils.compat.mock import Mock, patch
+from datetime import timedelta
 
 from django.utils import timezone
-
-from datetime import timedelta
 
 from sentry.exceptions import HookValidationError
 from sentry.models import (
@@ -17,7 +15,7 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import TestCase
-
+from sentry.utils.compat.mock import Mock, patch
 from sentry_plugins.heroku.plugin import HerokuReleaseHook
 
 

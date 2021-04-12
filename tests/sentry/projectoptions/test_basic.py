@@ -1,10 +1,10 @@
-import pytest
-
 from contextlib import contextmanager
 
-from sentry.projectoptions import defaults, default_manager
-from sentry.projectoptions.manager import WellKnownProjectOption
+import pytest
+
 from sentry.models import ProjectOption
+from sentry.projectoptions import default_manager, defaults
+from sentry.projectoptions.manager import WellKnownProjectOption
 
 
 @contextmanager

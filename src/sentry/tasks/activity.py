@@ -1,15 +1,15 @@
 import logging
 
-from sentry.utils.safe import safe_execute
 from sentry.tasks.base import instrumented_task
+from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
 
 
 def get_activity_notifiers(project):
     from sentry.mail import mail_adapter
-    from sentry.plugins.bases.notify import NotificationPlugin
     from sentry.plugins.base import plugins
+    from sentry.plugins.bases.notify import NotificationPlugin
 
     results = []
     for plugin in plugins.for_project(project, version=1):

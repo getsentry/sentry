@@ -1,16 +1,18 @@
+import itertools
 import logging
 import re
-import sentry_sdk
-import itertools
+from time import time
 
-from django.db import models, IntegrityError, transaction
+import sentry_sdk
+from django.db import IntegrityError, models, transaction
 from django.db.models import F
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from time import time
+from sentry_relay import RelayError, parse_release
 
 from sentry.app import locks
+from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     ArrayField,
     BoundedBigIntegerField,
@@ -20,10 +22,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-
-from sentry_relay import parse_release, RelayError
-from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
-from sentry.models import CommitFileChange, remove_group_from_inbox, GroupInboxRemoveAction
+from sentry.models import CommitFileChange, GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -284,14 +283,14 @@ class Release(Model):
         # ReleaseFile.release
 
         from sentry.models import (
+            Group,
+            GroupRelease,
+            GroupResolution,
             ReleaseCommit,
             ReleaseEnvironment,
             ReleaseFile,
             ReleaseProject,
             ReleaseProjectEnvironment,
-            Group,
-            GroupRelease,
-            GroupResolution,
         )
 
         model_list = (
@@ -449,10 +448,10 @@ class Release(Model):
             GroupLink,
             GroupResolution,
             GroupStatus,
+            PullRequest,
             ReleaseCommit,
             ReleaseHeadCommit,
             Repository,
-            PullRequest,
         )
         from sentry.plugins.providers.repository import RepositoryProvider
         from sentry.tasks.integrations import kick_off_status_syncs

@@ -1,7 +1,6 @@
-import responses
-
 from urllib.parse import parse_qs, urlencode, urlparse
-from sentry.utils.compat.mock import patch, Mock
+
+import responses
 
 from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.models import (
@@ -13,6 +12,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.utils.compat.mock import Mock, patch
 
 
 class GitlabIntegrationTest(IntegrationTestCase):

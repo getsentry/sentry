@@ -11,8 +11,8 @@ from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 from .card_builder import build_linked_card
-from .utils import get_identity
 from .client import MsTeamsClient
+from .utils import get_identity
 
 
 def build_linking_url(integration, organization, teams_user_id, team_id, tenant_id):

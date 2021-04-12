@@ -1,10 +1,11 @@
-from sentry.utils.compat import mock
-
 from datetime import timedelta
+
 from django.utils import timezone
+
 from sentry.buffer.base import Buffer
 from sentry.models import Group, Organization, Project, Release, ReleaseProject, Team
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class BufferTest(TestCase):
