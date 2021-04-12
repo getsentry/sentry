@@ -9,7 +9,7 @@ import {SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
-import {IconChevron} from 'app/icons';
+import {IconChevron, IconFire} from 'app/icons';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
@@ -110,6 +110,33 @@ export const TransactionBarTitle = styled(SpanBarTitle)`
 export const TransactionBarTitleContent = styled('span')`
   margin-left: ${space(0.75)};
 `;
+
+export const DividerContainer = styled('div')`
+  position: relative;
+`;
+
+const BadgeBorder = styled('div')<{showDetail: boolean}>`
+  position: absolute;
+  margin: ${space(0.25)};
+  left: -11.5px;
+  background: ${p => (p.showDetail ? p.theme.textColor : p.theme.background)};
+  width: ${space(3)};
+  height: ${space(3)};
+  border: 1px solid ${p => p.theme.red300};
+  border-radius: 50%;
+  z-index: ${p => p.theme.zIndex.traceView.dividerLine};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+export function ErrorBadge({showDetail}: {showDetail: boolean}) {
+  return (
+    <BadgeBorder showDetail={showDetail}>
+      <IconFire color="red300" size="xs" />
+    </BadgeBorder>
+  );
+}
 
 const StyledPills = styled(Pills)`
   padding-top: ${space(1.5)};

@@ -14,9 +14,11 @@ import {Theme} from 'app/utils/theme';
 
 import {
   ConnectorBar,
+  DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
   DurationPill,
+  ErrorBadge,
   OperationName,
   StyledIconChevron,
   TRANSACTION_ROW_HEIGHT,
@@ -261,7 +263,7 @@ class TransactionBar extends React.Component<Props, State> {
         <DividerLine
           showDetail
           style={{
-            position: 'relative',
+            position: 'absolute',
           }}
         />
       );
@@ -273,7 +275,7 @@ class TransactionBar extends React.Component<Props, State> {
       <DividerLine
         ref={addDividerLineRef()}
         style={{
-          position: 'relative',
+          position: 'absolute',
         }}
         onMouseEnter={() => {
           dividerHandlerChildrenProps.setHover(true);
@@ -321,6 +323,17 @@ class TransactionBar extends React.Component<Props, State> {
         />
       </DividerLineGhostContainer>
     );
+  }
+
+  renderErrorBadge() {
+    const {transaction} = this.props;
+    const {showDetail} = this.state;
+
+    if (!isTraceFullDetailed(transaction) || !transaction.errors.length) {
+      return null;
+    }
+
+    return <ErrorBadge showDetail={showDetail} />;
   }
 
   renderRectangle() {
@@ -385,7 +398,10 @@ class TransactionBar extends React.Component<Props, State> {
         >
           {this.renderTitle(scrollbarManagerChildrenProps)}
         </TransactionRowCell>
-        {this.renderDivider(dividerHandlerChildrenProps)}
+        <DividerContainer>
+          {this.renderDivider(dividerHandlerChildrenProps)}
+          {this.renderErrorBadge()}
+        </DividerContainer>
         <TransactionRowCell
           data-type="span-row-cell"
           showStriping={index % 2 !== 0}
