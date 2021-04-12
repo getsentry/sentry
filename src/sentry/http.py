@@ -222,7 +222,6 @@ def fetch_file(
                     error = {
                         "type": EventError.FETCH_GENERIC_ERROR,
                         "value": f"{type(exc)}",
-                        "url": expose_url(url),
                     }
                 else:
                     logger.exception(f"{exc}")
