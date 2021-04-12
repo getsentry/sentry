@@ -1,11 +1,11 @@
-import re
-import time
 import logging
 import random
+import re
+import time
+from urllib.parse import parse_qsl
 
 from django.conf import settings
 from django.core.cache import cache
-from urllib.parse import parse_qsl
 
 from sentry import http
 from sentry.utils import json

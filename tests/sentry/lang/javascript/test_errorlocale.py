@@ -1,7 +1,7 @@
 from copy import deepcopy
-
-from sentry.lang.javascript.errorlocale import translate_message, translate_exception
 from unittest import TestCase
+
+from sentry.lang.javascript.errorlocale import translate_exception, translate_message
 
 
 class ErrorLocaleTest(TestCase):

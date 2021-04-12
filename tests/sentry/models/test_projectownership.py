@@ -1,7 +1,7 @@
-from sentry.testutils import TestCase
-from sentry.models import ActorTuple, ProjectOwnership, User, Team
+from sentry.models import ActorTuple, ProjectOwnership, Team, User
 from sentry.models.projectownership import resolve_actors
-from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.testutils import TestCase
 from sentry.utils.cache import cache
 
 
@@ -137,10 +137,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
     def test_get_autoassign_owners_no_codeowners_or_issueowners(self):
-        assert ProjectOwnership.get_autoassign_owners(self.project.id, {}) == (
-            False,
-            [],
-        )
+        assert ProjectOwnership.get_autoassign_owners(self.project.id, {}) == (False, [], False)
 
     def test_get_autoassign_owners_only_issueowners_exists(self):
         rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
@@ -152,12 +149,12 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         # No data matches
-        assert ProjectOwnership.get_autoassign_owners(self.project.id, {}) == (False, [])
+        assert ProjectOwnership.get_autoassign_owners(self.project.id, {}) == (False, [], False)
 
         # No autoassignment on match
         assert ProjectOwnership.get_autoassign_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "foo.py"}]}}
-        ) == (False, [self.team])
+        ) == (False, [self.team], False)
 
         # autoassignment is True
         owner = ProjectOwnership.objects.get(project_id=self.project.id)
@@ -166,7 +163,7 @@ class ProjectOwnershipTestCase(TestCase):
 
         assert ProjectOwnership.get_autoassign_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "foo.py"}]}}
-        ) == (True, [self.team])
+        ) == (True, [self.team], False)
 
     def test_get_autoassign_owners_only_codeowners_exists(self):
         # This case will never exist bc we create a ProjectOwnership record if none exists when creating a ProjectCodeOwner record.
@@ -185,12 +182,12 @@ class ProjectOwnershipTestCase(TestCase):
             schema=dump_schema([rule_a]),
         )
         # No data matches
-        assert ProjectOwnership.get_autoassign_owners(self.project.id, {}) == (False, [])
+        assert ProjectOwnership.get_autoassign_owners(self.project.id, {}) == (False, [], False)
 
         # No autoassignment on match
         assert ProjectOwnership.get_autoassign_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "foo.js"}]}}
-        ) == (False, [self.team])
+        ) == (False, [self.team], True)
 
     def test_get_autoassign_owners_when_codeowners_and_issueowners_exists(self):
         self.team = self.create_team(
@@ -219,11 +216,7 @@ class ProjectOwnershipTestCase(TestCase):
         # No autoassignment on match
         assert ProjectOwnership.get_autoassign_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "api/foo.py"}]}}
-        ) == (
-            False,
-            [self.team, self.team2],
-        )
-
+        ) == (False, [self.team, self.team2], False)
         # autoassignment is True
         owner = ProjectOwnership.objects.get(project_id=self.project.id)
         owner.auto_assignment = True
@@ -231,18 +224,12 @@ class ProjectOwnershipTestCase(TestCase):
 
         assert ProjectOwnership.get_autoassign_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "api/foo.py"}]}}
-        ) == (
-            True,
-            [self.team, self.team2],
-        )
+        ) == (True, [self.team, self.team2], False)
 
-        # more than 2 matches
+        # # more than 2 matches
         assert ProjectOwnership.get_autoassign_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
-        ) == (
-            True,
-            [self.user, self.team],
-        )
+        ) == (True, [self.user, self.team], False)
 
 
 class ResolveActorsTestCase(TestCase):

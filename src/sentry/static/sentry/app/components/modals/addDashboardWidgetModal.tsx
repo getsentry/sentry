@@ -18,13 +18,22 @@ import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
-import {isAggregateField} from 'app/utils/discover/fields';
+import {
+  aggregateOutputType,
+  isAggregateField,
+  isLegalYAxisType,
+} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'app/views/dashboardsV2/data';
-import {DashboardDetails, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
+import {
+  DashboardDetails,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+} from 'app/views/dashboardsV2/types';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -34,8 +43,8 @@ export type DashboardWidgetModalOptions = {
   organization: Organization;
   dashboard: DashboardDetails;
   selection: GlobalSelection;
-  widget?: Widget;
   onAddWidget: (data: Widget) => void;
+  widget?: Widget;
   onUpdateWidget?: (nextWidget: Widget) => void;
 };
 
@@ -60,8 +69,8 @@ type State = {
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   queries: Widget['queries'];
-  errors?: Record<string, any>;
   loading: boolean;
+  errors?: Record<string, any>;
 };
 
 const newQuery = {
@@ -111,6 +120,11 @@ function normalizeQueries(
   // Filter out non-aggregate fields
   queries = queries.map(query => {
     let fields = query.fields.filter(isAggregateField);
+
+    if (isTimeseriesChart || displayType === 'world_map') {
+      // Filter out fields that will not generate numeric output types
+      fields = fields.filter(field => isLegalYAxisType(aggregateOutputType(field)));
+    }
 
     if (isTimeseriesChart && fields.length && fields.length > 3) {
       // Timeseries charts supports at most 3 fields.
@@ -178,7 +192,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (!widget) {
       this.state = {
         title: '',
-        displayType: 'line',
+        displayType: DisplayType.LINE,
         interval: '5m',
         queries: [{...newQuery}],
         errors: undefined,

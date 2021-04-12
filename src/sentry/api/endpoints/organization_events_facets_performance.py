@@ -1,11 +1,12 @@
-import sentry_sdk
-
 from collections import defaultdict
+
+import sentry_sdk
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
-from sentry.snuba import discover
 from sentry import features, tagstore
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.snuba import discover
 
 
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBase):
@@ -24,7 +25,10 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
             return Response([])
 
         aggregate_column = request.GET.get("aggregateColumn", "duration")
-        orderby = request.GET.getlist("order", None)
+        orderby = request.GET.get("order", None)
+
+        if len(params.get("project_id", [])) > 1:
+            raise ParseError(detail="You cannot view facet performance for multiple projects.")
 
         with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
             with self.handle_query_errors():
@@ -46,8 +50,10 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
                     {
                         "name": tagstore.get_tag_value_label(row.key, row.value),
                         "value": row.value,
-                        "count": row.count,
+                        "count": row.frequency,
                         "aggregate": row.performance,
+                        "comparison": row.comparison,
+                        "sumdelta": row.sumdelta,
                     }
                 )
         return Response(list(resp.values()))

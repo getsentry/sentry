@@ -1,0 +1,214 @@
+{
+  "event_id": "6f550799ca4648c9be23dde5a86cf407",
+  "project": 11276,
+  "release": "cea4eaaad7345e2bf74019bd7ee17cd3aba4d999",
+  "dist": null,
+  "platform": "javascript",
+  "message": "[403,\"Forbidden\"]",
+  "datetime": "2021-04-01T22:25:12.650000Z",
+  "tags": [
+    ["browser", "Chrome 89.0.4389"],
+    ["browser.name", "Chrome"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["environment", "prod"],
+    ["handled", "no"],
+    ["level", "error"],
+    ["mechanism", "onunhandledrejection"],
+    ["os", "Mac OS X 11.2.3"],
+    ["os.name", "Mac OS X"],
+    ["rrweb.active", "no"],
+    ["release", "cea4eaaad7345e2bf74019bd7ee17cd3aba4d999"],
+    ["user", "id:7933"],
+    ["sentry_version", "21.4.0.dev0"],
+    ["transaction", "/organizations/new/"],
+    ["url", "https://app.example.com/toolstore"]
+  ],
+  "_meta": {
+    "breadcrumbs": {
+      "values": {
+        "0": {
+          "event_id": {
+            "": {
+              "err": ["invalid_attribute"]
+            }
+          },
+          "message": {
+            "": {
+              "err": [
+                [
+                  "invalid_data",
+                  {
+                    "reason": "expected a string"
+                  }
+                ]
+              ],
+              "val": [403, "Forbidden"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "_metrics": {
+    "bytes.ingested.event": 1313,
+    "bytes.stored.event": 3384
+  },
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1617315912.65,
+        "type": "default",
+        "category": "sentry.event",
+        "level": "error",
+        "message": null,
+        "event_id": null
+      }
+    ]
+  },
+  "contexts": {
+    "browser": {
+      "name": "Chrome",
+      "version": "89.0.4389",
+      "type": "browser"
+    },
+    "device": {
+      "family": "Mac",
+      "model": "Mac",
+      "brand": "Apple",
+      "type": "device"
+    },
+    "os": {
+      "name": "Mac OS X",
+      "version": "11.2.3",
+      "type": "os"
+    },
+    "trace": {
+      "trace_id": "ca93b7ede6f84677a77a004555cedb7d",
+      "span_id": "870aa95bbb62a5f6",
+      "op": "pageload",
+      "status": "internal_error",
+      "tags": {
+        "routing.instrumentation": "react-router-v3"
+      },
+      "type": "trace"
+    }
+  },
+  "culprit": "",
+  "environment": "prod",
+  "errors": [
+    {
+      "type": "invalid_data",
+      "name": "breadcrumbs.values.0.message",
+      "value": [403, "Forbidden"],
+      "reason": "expected a string"
+    },
+    {
+      "type": "invalid_attribute",
+      "name": "breadcrumbs.values.0.event_id"
+    }
+  ],
+  "exception": {
+    "values": [
+      {
+        "type": "Error",
+        "value": "403,Forbidden",
+        "mechanism": {
+          "type": "onunhandledrejection",
+          "handled": false
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "makeRequest",
+              "module": "components/ShoppingCart",
+              "filename": "components/ShoppingCart.js",
+              "abs_path": "https://app.example.com/static/js/components/ShoppingCart.js",
+              "lineno": 40,
+              "colno": 35,
+              "pre_context": [
+                "          headers: {",
+                "            \"Content-Type\": \"application/json\",",
+                "            \"email\": this.email",
+                "          },",
+                "          body: JSON.stringify(order)"
+              ],
+              "context_line": "        }).catch((err) => { throw Error(err) });",
+              "post_context": [
+                "    ",
+                "        if (!response.ok) {",
+                "          Sentry.captureException(new Error(response.status + \" - \" + (response.statusText || \"INTERNAL SERVER ERROR\")))",
+                "          this.setState({ hasError: true, success: false });",
+                "        }"
+              ],
+              "in_app": true,
+              "data": {
+                "sourcemap": "https://app.example.com/static/js/main.967d2573.js.map"
+              }
+            }
+          ]
+        },
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "function": "makeRequest",
+              "filename": "/static/js/main.967d2573.js",
+              "abs_path": "https://app.example.com/static/js/main.967d2573.js",
+              "lineno": 1,
+              "colno": 217321,
+              "context_line": "{snip} is.email},body:JSON.stringify(t)}).catch(function(e){throw Error(e)});case 2:return n=e.sent,n.ok||(p.h(new Error(n.status+\" - \"+(n.statusTe {snip}",
+              "post_context": ["//# sourceMappingURL=main.967d2573.js.map"],
+              "in_app": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "fingerprint": ["{{ default }}"],
+  "grouping_config": {
+    "enhancements": "eJxtkcFKAzEQhumbiCDiQpvanvRUqaUeLAiLZ4m7023q7sw6mV2rb5H16hN4EMWj4Hv0bUwsFWx7m2T-78__k-eW-0ioKAhPe93jk3a33-71Xxr3WUaRQkrhpqC0ysGqKHLdxn2He12WqhKTW8VwX4GVETNxZ24XQbLcDxrLicpALKDw48bJW7W87mCHTrSYbenbdAwy9DE1ptecuysfcDoFSWaxriGNQXMyA-sGjfta3Y-ZqnJUe5MzTCea72IA9Ptmebhu4GuXhF5hVQ1sDeEF-WGoOQ1VXldG51r0L9dec7WBB6uIM43myccljIVBFyrQYRno9xU9geIW-NJY8Zmb5dF_j5JpDon8DUNCgYVsvh7IvR2ps9AxeG8DbidgMDcIcZ11xH_V4AeZXsk7",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": ["1a60563fdc4013db81b4f7d67b334c47"],
+  "key_id": "51405",
+  "level": "error",
+  "logentry": {
+    "formatted": "[403,\"Forbidden\"]"
+  },
+  "logger": "",
+  "metadata": {
+    "type": "Error",
+    "value": "403,Forbidden"
+  },
+  "received": 1617315912.920875,
+  "request": {
+    "url": "https://app.example.com/toolstore",
+    "headers": [
+      ["Referer", "https://accounts.google.com/"],
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36"
+      ]
+    ]
+  },
+  "sdk": {
+    "name": "sentry.javascript.react",
+    "version": "6.3.0-beta.4",
+    "packages": [
+      {
+        "name": "npm:@sentry/react",
+        "version": "6.3.0-beta.4"
+      }
+    ]
+  },
+  "timestamp": 1617315912.65,
+  "title": "ForbiddenError",
+  "type": "error",
+  "user": {
+    "email": "0vrp@yahoo.com",
+    "ip_address": "136.24.53.109"
+  },
+  "version": "7",
+  "location": null
+}

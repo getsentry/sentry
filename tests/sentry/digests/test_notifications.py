@@ -1,13 +1,14 @@
 from collections import OrderedDict, defaultdict
-from exam import fixture
 from functools import reduce
+
+from exam import fixture
 
 from sentry.digests import Record
 from sentry.digests.notifications import (
     Notification,
     event_to_record,
-    rewrite_record,
     group_records,
+    rewrite_record,
     sort_group_contents,
     sort_rule_groups,
     split_key,

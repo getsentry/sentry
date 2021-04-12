@@ -79,7 +79,7 @@ export const initApiClientErrorHandling = () =>
 
     // 401s can also mean sudo is required or it's a request that is allowed to fail
     // Ignore if these are the cases
-    if (code === 'sudo-required' || code === 'ignore') {
+    if (['sudo-required', 'ignore', '2fa-required'].includes(code)) {
       return;
     }
 
@@ -452,8 +452,13 @@ export class Client {
         // Try to get text out of the response no matter the status
         try {
           responseText = await response.text();
-        } catch {
-          // No text came out.. too bad
+        } catch (error) {
+          ok = false;
+          if (error.name === 'AbortError') {
+            errorReason = 'Request was aborted';
+          } else {
+            errorReason = error.toString();
+          }
         }
 
         const responseContentType = response.headers.get('content-type');

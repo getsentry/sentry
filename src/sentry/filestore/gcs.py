@@ -1,5 +1,5 @@
-import os
 import mimetypes
+import os
 import posixpath
 from tempfile import SpooledTemporaryFile
 
@@ -8,19 +8,17 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils import timezone
-from django.utils.encoding import force_bytes, smart_str, force_text
-
-from google.cloud.storage.client import Client
+from django.utils.encoding import force_bytes, force_text, smart_str
+from google.auth.exceptions import RefreshError, TransportError
+from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
-from google.cloud.exceptions import NotFound
-from google.auth.exceptions import TransportError, RefreshError
+from google.cloud.storage.client import Client
 from google.resumable_media.common import DataCorruption
 from requests.exceptions import RequestException
 
-from sentry.utils import metrics
 from sentry.net.http import TimeoutAdapter
-
+from sentry.utils import metrics
 
 # how many times do we want to try if stuff goes wrong
 GCS_RETRIES = 5

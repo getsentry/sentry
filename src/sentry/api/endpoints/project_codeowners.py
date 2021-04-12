@@ -1,26 +1,24 @@
 import logging
 
 from rest_framework import serializers, status
-from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin, ProjectOwnershipSerializer
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
+from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import (
-    ProjectCodeOwners,
-    ExternalUser,
     ExternalTeam,
+    ExternalUser,
+    ProjectCodeOwners,
     RepositoryProjectPathConfig,
     UserEmail,
 )
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.ownership.grammar import (
-    parse_code_owners,
-    convert_codeowners_syntax,
-)
-
-from sentry.api.endpoints.project_ownership import ProjectOwnershipSerializer, ProjectOwnershipMixin
+from sentry.ownership.grammar import convert_codeowners_syntax, parse_code_owners
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +113,14 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         return []
 
     def validate_code_mapping_id(self, code_mapping_id):
+        if ProjectCodeOwners.objects.filter(
+            repository_project_path_config=code_mapping_id
+        ).exists() and (
+            not self.instance
+            or (self.instance.repository_project_path_config_id != code_mapping_id)
+        ):
+            raise serializers.ValidationError("This code mapping is already in use.")
+
         try:
             return RepositoryProjectPathConfig.objects.get(
                 id=code_mapping_id, project=self.context["project"]
@@ -147,6 +153,14 @@ class ProjectCodeOwnersMixin:
             "organizations:import-codeowners", project.organization, actor=request.user
         )
 
+    def track_response_code(self, type, status):
+        if type in ["create", "update"]:
+            metrics.incr(
+                f"codeowners.{type}.http_response",
+                sample_rate=1.0,
+                tags={"status": status},
+            )
+
 
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):
     def get(self, request, project):
@@ -162,9 +176,17 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         if not self.has_feature(request, project):
             raise PermissionDenied
 
+        expand = request.GET.getlist("expand", [])
         codeowners = list(ProjectCodeOwners.objects.filter(project=project))
 
-        return Response(serialize(codeowners, request.user), status.HTTP_200_OK)
+        return Response(
+            serialize(
+                codeowners,
+                request.user,
+                serializer=projectcodeowners_serializers.ProjectCodeOwnersSerializer(expand=expand),
+            ),
+            status.HTTP_200_OK,
+        )
 
     def post(self, request, project):
         """
@@ -178,6 +200,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         :auth: required
         """
         if not self.has_feature(request, project):
+            self.track_response_code("create", PermissionDenied.status_code)
             raise PermissionDenied
 
         serializer = ProjectCodeOwnerSerializer(
@@ -186,8 +209,17 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         )
         if serializer.is_valid():
             project_codeowners = serializer.save()
+            self.track_response_code("create", status.HTTP_201_CREATED)
+            analytics.record(
+                "codeowners.created",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                codeowners_id=project_codeowners.id,
+            )
             return Response(
                 serialize(project_codeowners, request.user), status=status.HTTP_201_CREATED
             )
 
+        self.track_response_code("create", status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

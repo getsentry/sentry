@@ -1,11 +1,12 @@
-type DisplayType =
-  | 'line'
-  | 'area'
-  | 'stacked_area'
-  | 'bar'
-  | 'table'
-  | 'world_map'
-  | 'big_number';
+export enum DisplayType {
+  AREA = 'area',
+  BAR = 'bar',
+  LINE = 'line',
+  TABLE = 'table',
+  WORLD_MAP = 'world_map',
+  BIG_NUMBER = 'big_number',
+  STACKED_AREA = 'stacked_area',
+}
 
 export type WidgetQuery = {
   name: string;

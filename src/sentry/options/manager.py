@@ -1,9 +1,9 @@
-import sys
 import logging
+import sys
 
 from django.conf import settings
 
-from sentry.utils.types import type_from_value, Any
+from sentry.utils.types import Any, type_from_value
 
 # Prevent ourselves from clobbering the builtin
 _type = type

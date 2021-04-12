@@ -1,10 +1,11 @@
 from datetime import timedelta
+
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
+from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model, sane_repr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
-from sentry.db.models import BoundedPositiveIntegerField, BoundedBigIntegerField, Model, sane_repr
 
 
 class GroupRelease(Model):

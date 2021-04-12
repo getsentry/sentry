@@ -1,5 +1,4 @@
 import logging
-
 from typing import Any, Union
 
 from sentry import options
@@ -21,14 +20,14 @@ class ChartRenderer(Service):
         "generate_chart",
     )
 
-    def __init__(self, **options):
+    def __init__(self, **options: Any) -> None:
         pass
 
-    def is_enabled(self):
+    def is_enabled(self) -> bool:
         """
         Checks that the chart rendering service is enabled
         """
-        return options.get("chart-rendering.enabled", False)
+        return bool(options.get("chart-rendering.enabled", False))
 
     def generate_chart(self, style: ChartType, data: Any, upload: bool = True) -> Union[str, bytes]:
         """

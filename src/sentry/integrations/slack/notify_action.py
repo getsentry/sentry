@@ -1,22 +1,17 @@
 import logging
 
 from django import forms
+from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
 from sentry.rules.actions.base import IntegrationEventAction
-from sentry.shared_integrations.exceptions import (
-    ApiError,
-    DuplicateDisplayNameError,
-)
-from sentry.utils import metrics, json
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.utils import json, metrics
 
 from .client import SlackClient
-from .utils import (
-    build_group_attachment,
-    get_channel_id,
-    strip_channel_name,
-)
+from .utils import get_channel_id, strip_channel_name, validate_channel_id
 
 logger = logging.getLogger("sentry.rules")
 
@@ -46,8 +41,8 @@ class SlackNotifyServiceForm(forms.Form):
         self._pending_save = False
 
     def clean(self):
-        channel_id = None
-        if self.data.get("input_channel_id"):
+        channel_id = self.data.get("inputChannelId") or self.data.get("input_channel_id")
+        if channel_id:
             logger.info(
                 "rule.slack.provide_channel_id",
                 extra={
@@ -57,11 +52,27 @@ class SlackNotifyServiceForm(forms.Form):
             )
             # default to "#" if they have the channel name without the prefix
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
-            channel_id = self.data["input_channel_id"]
 
         cleaned_data = super().clean()
 
         workspace = cleaned_data.get("workspace")
+
+        if channel_id:
+            try:
+                validate_channel_id(
+                    self.data.get("channel"),
+                    integration_id=workspace,
+                    input_channel_id=channel_id,
+                )
+            except ValidationError as e:
+                params = {"channel": self.data.get("channel"), "channel_id": channel_id}
+                raise forms.ValidationError(
+                    _(
+                        str(e),
+                    ),
+                    code="invalid",
+                    params=params,
+                )
         try:
             integration = Integration.objects.get(id=workspace)
         except Integration.DoesNotExist:

@@ -3,8 +3,8 @@ import math
 import re
 import warnings
 from collections import namedtuple
-from enum import Enum
 from datetime import timedelta
+from enum import Enum
 
 from django.db import models
 from django.utils import timezone
@@ -23,6 +23,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -204,7 +205,7 @@ class GroupManager(BaseManager):
         )
 
     def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import HashDiscarded, EventManager
+        from sentry.event_manager import EventManager, HashDiscarded
 
         manager = EventManager(kwargs)
         manager.normalize()
@@ -448,7 +449,10 @@ class Group(Model):
 
     def get_first_release(self):
         if self.first_release_id is None:
-            return tagstore.get_first_release(self.project_id, self.id)
+            first_release = tagstore.get_first_release(self.project_id, self.id)
+            found = "hit" if first_release is not None else "miss"
+            metrics.incr(f"group.get_first_release.tagstore.{found}")
+            return first_release
 
         return self.first_release.version
 

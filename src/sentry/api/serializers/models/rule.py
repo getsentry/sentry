@@ -1,13 +1,14 @@
 from collections import defaultdict
+
 from sentry.api.serializers import Serializer, register
 from sentry.models import (
     ACTOR_TYPES,
-    actor_type_to_class,
-    actor_type_to_string,
     Environment,
     Rule,
     RuleActivity,
     RuleActivityType,
+    actor_type_to_class,
+    actor_type_to_string,
 )
 from sentry.utils.compat import filter
 

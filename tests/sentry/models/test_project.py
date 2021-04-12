@@ -13,10 +13,7 @@ from sentry.models import (
     Rule,
 )
 from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
-    NotificationSettingTypes,
-    NotificationSettingOptionValues,
-)
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
 from sentry.utils.compat import zip
 
@@ -298,10 +295,15 @@ class CopyProjectSettingsTest(TestCase):
 
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users, expected_users):
-        assert self.project.filter_to_subscribed_users(users) == expected_users
+        assert (
+            NotificationSetting.objects.filter_to_subscribed_users(self.project, users)[
+                ExternalProviders.EMAIL
+            ]
+            == expected_users
+        )
 
     def test(self):
-        assert self.project.filter_to_subscribed_users([self.user]) == [self.user]
+        self.run_test([self.user], [self.user])
 
     def test_global_enabled(self):
         user = self.create_user()

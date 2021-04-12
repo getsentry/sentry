@@ -3,7 +3,7 @@ import logging
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, DefaultFieldsModel, JSONField, sane_repr
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, JSONField, sane_repr
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     # repository_project_path_config ⇒ use this to transform CODEOWNERS paths to stacktrace paths
     repository_project_path_config = FlexibleForeignKey(
-        "sentry.RepositoryProjectPathConfig", on_delete=models.PROTECT
+        "sentry.RepositoryProjectPathConfig", unique=True, on_delete=models.PROTECT
     )
     # raw ⇒ original CODEOWNERS file.
     raw = models.TextField(null=True)

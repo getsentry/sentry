@@ -1,12 +1,12 @@
 import logging
 
-from sentry.models import ApiKey, User, ProjectOption, Repository
-from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry_plugins.base import CorePluginMixin
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.models import ApiKey, ProjectOption, Repository, User
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.bases import ReleaseTrackingPlugin
+from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry_plugins.base import CorePluginMixin
 
-from sentry.integrations import FeatureDescription, IntegrationFeatures
 from .client import HerokuApiClient
 
 logger = logging.getLogger("sentry.plugins.heroku")

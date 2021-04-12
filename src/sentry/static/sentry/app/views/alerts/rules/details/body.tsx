@@ -18,6 +18,7 @@ import * as Layout from 'app/components/layouts/thirds';
 import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import TimeSince from 'app/components/timeSince';
+import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconFire, IconInfo, IconUser, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -42,16 +43,19 @@ import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 
+export type TimePeriodType = {
+  start: string;
+  end: string;
+  period: string;
+  label: string;
+  custom?: boolean;
+};
+
 type Props = {
   api: Client;
   rule?: IncidentRule;
   incidents?: Incident[];
-  timePeriod: {
-    start: string;
-    end: string;
-    label: string;
-    custom?: boolean;
-  };
+  timePeriod: TimePeriodType;
   organization: Organization;
   location: Location;
   handleTimePeriodChange: (value: string) => void;
@@ -65,10 +69,23 @@ export default class DetailsBody extends React.Component<Props> {
       return '';
     }
 
-    const {aggregate, timeWindow} = rule;
+    const {aggregate} = rule;
 
-    return tct(' [metric] over [window]', {
+    return tct('[metric]', {
       metric: aggregate,
+    });
+  }
+
+  getTimeWindow(): React.ReactNode {
+    const {rule} = this.props;
+
+    if (!rule) {
+      return '';
+    }
+
+    const {timeWindow} = rule;
+
+    return tct('[window]', {
       window: <Duration seconds={timeWindow * 60} />,
     });
   }
@@ -90,6 +107,22 @@ export default class DetailsBody extends React.Component<Props> {
     }
 
     return getInterval({start, end}, true);
+  }
+
+  getFilter() {
+    const {rule} = this.props;
+    if (!rule) {
+      return null;
+    }
+
+    return (
+      <Filters>
+        <span>
+          {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
+        </span>
+        <span>{rule?.query && <code>{rule?.query}</code>}</span>
+      </Filters>
+    );
   }
 
   renderTrigger(trigger: Trigger): React.ReactNode {
@@ -141,12 +174,7 @@ export default class DetailsBody extends React.Component<Props> {
         <RuleText>{rule.environment ?? 'All'}</RuleText>
 
         <SidebarHeading>{t('Filters')}</SidebarHeading>
-        <Filters>
-          <span>
-            {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
-          </span>
-          <span>{rule?.query && <code>{rule?.query}</code>}</span>
-        </Filters>
+        {this.getFilter()}
 
         <SidebarHeading>{t('Conditions')}</SidebarHeading>
         {criticalTrigger && this.renderTrigger(criticalTrigger)}
@@ -276,81 +304,104 @@ export default class DetailsBody extends React.Component<Props> {
       <Projects orgId={orgId} slugs={projectSlugs}>
         {({initiallyLoaded, projects}) => {
           return initiallyLoaded ? (
-            <Layout.Body>
-              <Alert type="info" icon={<IconInfo size="md" />}>
-                {t(
-                  'You’re viewing the new alert details page. To view the old experience, select an alert below.'
-                )}
-              </Alert>
-              <Layout.Main>
-                <ChartControls>
-                  <DropdownControl label={timePeriod.label}>
-                    {TIME_OPTIONS.map(({label, value}) => (
-                      <DropdownItem
-                        key={value}
-                        eventKey={value}
-                        onSelect={this.props.handleTimePeriodChange}
-                      >
-                        {label}
-                      </DropdownItem>
-                    ))}
-                  </DropdownControl>
-                  {timePeriod.custom && (
-                    <StyledTimeRange>
-                      <DateTime date={moment.utc(timePeriod.start)} timeAndDate />
-                      {' — '}
-                      <DateTime date={moment.utc(timePeriod.end)} timeAndDate />
-                    </StyledTimeRange>
+            <React.Fragment>
+              <StyledLayoutBody>
+                <StyledAlert type="info" icon={<IconInfo size="md" />}>
+                  {t(
+                    'You’re viewing the new alert details page. To view the old experience, select an alert on the chart or in the history.'
                   )}
-                </ChartControls>
-                <MetricChart
-                  api={api}
-                  rule={rule}
-                  incidents={incidents}
-                  timePeriod={timePeriod}
-                  organization={organization}
-                  projects={projects}
-                  metricText={this.getMetricText()}
-                  interval={this.getInterval()}
-                  query={queryWithTypeFilter}
-                  orgId={orgId}
-                />
-                <DetailWrapper>
-                  <ActivityWrapper>
-                    {rule?.dataset === Dataset.ERRORS && (
-                      <RelatedIssues
-                        organization={organization}
-                        rule={rule}
-                        projects={((projects as Project[]) || []).filter(project =>
-                          rule.projects.includes(project.slug)
+                </StyledAlert>
+              </StyledLayoutBody>
+              <Layout.Body>
+                <Layout.Main>
+                  <HeaderContainer>
+                    <div>
+                      <SidebarHeading noMargin>{t('Display')}</SidebarHeading>
+                      <ChartControls>
+                        <DropdownControl label={timePeriod.label}>
+                          {TIME_OPTIONS.map(({label, value}) => (
+                            <DropdownItem
+                              key={value}
+                              eventKey={value}
+                              onSelect={this.props.handleTimePeriodChange}
+                            >
+                              {label}
+                            </DropdownItem>
+                          ))}
+                        </DropdownControl>
+                        {timePeriod.custom && (
+                          <StyledTimeRange>
+                            <DateTime date={moment.utc(timePeriod.start)} timeAndDate />
+                            {' — '}
+                            <DateTime date={moment.utc(timePeriod.end)} timeAndDate />
+                          </StyledTimeRange>
                         )}
-                        start={timePeriod.start}
-                        end={timePeriod.end}
-                        filter={queryWithTypeFilter}
-                      />
-                    )}
-                    {rule?.dataset === Dataset.TRANSACTIONS && (
-                      <RelatedTransactions
-                        organization={organization}
-                        location={location}
-                        rule={rule}
-                        projects={((projects as Project[]) || []).filter(project =>
-                          rule.projects.includes(project.slug)
-                        )}
-                        start={timePeriod.start}
-                        end={timePeriod.end}
-                        filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
-                      />
-                    )}
-                  </ActivityWrapper>
-                </DetailWrapper>
-              </Layout.Main>
-              <Layout.Side>
-                {this.renderMetricStatus()}
-                <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
-                {this.renderRuleDetails()}
-              </Layout.Side>
-            </Layout.Body>
+                      </ChartControls>
+                    </div>
+                    <div>
+                      <SidebarHeading noMargin>
+                        {t('Time Interval')}
+                        <Tooltip
+                          title={t(
+                            'This is the time period which the metric is evaluated by.'
+                          )}
+                        >
+                          <IconInfo size="xs" />
+                        </Tooltip>
+                      </SidebarHeading>
+
+                      <RuleText>{this.getTimeWindow()}</RuleText>
+                    </div>
+                  </HeaderContainer>
+
+                  <MetricChart
+                    api={api}
+                    rule={rule}
+                    incidents={incidents}
+                    timePeriod={timePeriod}
+                    organization={organization}
+                    projects={projects}
+                    metricText={this.getMetricText()}
+                    interval={this.getInterval()}
+                    filter={this.getFilter()}
+                    query={queryWithTypeFilter}
+                    orgId={orgId}
+                  />
+                  <DetailWrapper>
+                    <ActivityWrapper>
+                      {rule?.dataset === Dataset.ERRORS && (
+                        <RelatedIssues
+                          organization={organization}
+                          rule={rule}
+                          projects={((projects as Project[]) || []).filter(project =>
+                            rule.projects.includes(project.slug)
+                          )}
+                          timePeriod={timePeriod}
+                        />
+                      )}
+                      {rule?.dataset === Dataset.TRANSACTIONS && (
+                        <RelatedTransactions
+                          organization={organization}
+                          location={location}
+                          rule={rule}
+                          projects={((projects as Project[]) || []).filter(project =>
+                            rule.projects.includes(project.slug)
+                          )}
+                          start={timePeriod.start}
+                          end={timePeriod.end}
+                          filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
+                        />
+                      )}
+                    </ActivityWrapper>
+                  </DetailWrapper>
+                </Layout.Main>
+                <Layout.Side>
+                  {this.renderMetricStatus()}
+                  <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
+                  {this.renderRuleDetails()}
+                </Layout.Side>
+              </Layout.Body>
+            </React.Fragment>
           ) : (
             <Placeholder height="200px" />
           );
@@ -367,6 +418,23 @@ const DetailWrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     flex-direction: column-reverse;
   }
+`;
+
+const HeaderContainer = styled('div')`
+  display: flex;
+  gap: ${space(4)};
+`;
+
+const StyledLayoutBody = styled(Layout.Body)`
+  flex-grow: 0;
+  padding-bottom: 0 !important;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: auto;
+  }
+`;
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
 `;
 
 const ActivityWrapper = styled('div')`
@@ -452,9 +520,11 @@ const RuleText = styled('div')`
 `;
 
 const Filters = styled('div')`
+  display: inline-flex;
   width: 100%;
   overflow-wrap: break-word;
   font-size: ${p => p.theme.fontSizeMedium};
+  gap: ${space(1)};
 `;
 
 const TriggerCondition = styled('div')`

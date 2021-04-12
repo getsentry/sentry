@@ -1,16 +1,11 @@
-from django.utils.translation import ugettext_lazy as _
-from rest_framework import status, serializers
 from django.http import Http404
+from django.utils.translation import ugettext_lazy as _
+from rest_framework import serializers, status
 
-from sentry.api.bases.organization import OrganizationIntegrationsPermission, OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models import (
-    RepositoryProjectPathConfig,
-    Project,
-    Repository,
-    OrganizationIntegration,
-)
+from sentry.models import OrganizationIntegration, Project, Repository, RepositoryProjectPathConfig
 from sentry.utils.compat import map
 
 

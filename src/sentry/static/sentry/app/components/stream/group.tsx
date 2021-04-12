@@ -19,7 +19,6 @@ import Placeholder from 'app/components/placeholder';
 import ProgressBar from 'app/components/progressBar';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
-import GroupRowActions from 'app/components/stream/groupRowActions';
 import TimeSince from 'app/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
@@ -43,7 +42,8 @@ import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {getTabs, isForReviewQuery} from 'app/views/issueList/utils';
+import {TimePeriodType} from 'app/views/alerts/rules/details/body';
+import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -77,9 +77,9 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
-  onMarkReviewed?: (itemIds: string[]) => void;
   showInboxTime?: boolean;
   index?: number;
+  customStatsPeriod?: TimePeriodType;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -147,7 +147,7 @@ class StreamGroup extends React.Component<Props, State> {
 
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
-      // On the inbox tab and the inbox reason is removed
+      // When searching is:for_review and the inbox reason is removed
       const reviewed =
         state.reviewed ||
         (isForReviewQuery(query) &&
@@ -174,7 +174,7 @@ class StreamGroup extends React.Component<Props, State> {
   trackClick = () => {
     const {query, organization} = this.props;
     const {data} = this.state;
-    if (isForReviewQuery(query)) {
+    if (query === Query.FOR_REVIEW) {
       trackAnalyticsEvent({
         eventKey: 'inbox_tab.issue_clicked',
         eventName: 'Clicked Issue from Inbox Tab',
@@ -233,7 +233,7 @@ class StreamGroup extends React.Component<Props, State> {
   };
 
   getDiscoverUrl(isFiltered?: boolean) {
-    const {organization, query, selection} = this.props;
+    const {organization, query, selection, customStatsPeriod} = this.props;
     const {data} = this.state;
 
     // when there is no discover feature open events page
@@ -261,7 +261,7 @@ class StreamGroup extends React.Component<Props, State> {
     const searchQuery = (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
 
     if (hasDiscoverQuery) {
-      const {period, start, end} = selection.datetime || {};
+      const {period, start, end} = customStatsPeriod ?? (selection.datetime || {});
 
       const discoverQuery: NewQuery = {
         ...commonQuery,
@@ -344,15 +344,16 @@ class StreamGroup extends React.Component<Props, State> {
       organization,
       displayReprocessingLayout,
       showInboxTime,
-      onMarkReviewed,
       useFilteredStats,
+      customStatsPeriod,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
     const summary =
-      !!start && !!end
+      customStatsPeriod?.label.toLowerCase() ??
+      (!!start && !!end
         ? 'time range'
-        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
+        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
     // Use data.filtered to decide on which value to use
     // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
@@ -555,17 +556,6 @@ class StreamGroup extends React.Component<Props, State> {
                 onAssign={this.trackAssign}
               />
             </AssigneeWrapper>
-            {canSelect && hasInbox && (
-              <ActionsWrapper>
-                <GroupRowActions
-                  group={data}
-                  orgSlug={organization.slug}
-                  selection={selection}
-                  onMarkReviewed={onMarkReviewed}
-                  query={query}
-                />
-              </ActionsWrapper>
-            )}
           </React.Fragment>
         )}
       </Wrapper>
@@ -709,16 +699,6 @@ const AssigneeWrapper = styled('div')`
   width: 80px;
   margin: 0 ${space(2)};
   align-self: center;
-`;
-
-const ActionsWrapper = styled('div')`
-  width: 80px;
-  margin: 0 ${space(2)};
-  align-self: center;
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    display: none;
-  }
 `;
 
 // Reprocessing

@@ -1,5 +1,6 @@
-from sentry.utils.types import InvalidTypeError, Any, Bool, Int, Float, String, Dict, Sequence
 from unittest import TestCase
+
+from sentry.utils.types import Any, Bool, Dict, Float, Int, InvalidTypeError, Sequence, String
 
 
 class OptionsTypesTest(TestCase):

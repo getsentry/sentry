@@ -13,7 +13,6 @@ from sentry.db.models import (
     Model,
 )
 
-
 logger = logging.getLogger(__name__)
 
 # TODO(dcramer): pull in enum library

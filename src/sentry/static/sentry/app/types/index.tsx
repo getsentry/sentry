@@ -5,8 +5,6 @@ import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
 import {OrgExperiments, UserExperiments} from 'app/types/experiments';
-import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
-import {Query as DiscoverQuery} from 'app/views/discover/types';
 import {
   INSTALLED,
   NOT_INSTALLED,
@@ -233,7 +231,6 @@ export type Project = {
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
-  groupingEnhancementsBase: string;
   groupingConfig: string;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
@@ -691,6 +688,11 @@ export enum DataCategory {
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
 }
+export const DataCategoryName = {
+  [DataCategory.ERRORS]: 'Errors',
+  [DataCategory.TRANSACTIONS]: 'Transactions',
+  [DataCategory.ATTACHMENTS]: 'Attachments',
+};
 
 export type EventOrGroupType =
   | 'error'
@@ -938,7 +940,7 @@ export type GroupStats = GroupFiltered & {
   id: string;
 };
 
-type BaseGroupStatusReprocessing = {
+export type BaseGroupStatusReprocessing = {
   status: 'reprocessing';
   statusDetails: {
     pendingEvents: number;
@@ -1797,13 +1799,6 @@ export type EventGroupingConfig = {
   strategies: string[];
 };
 
-export type GroupingEnhancementBase = {
-  latest: boolean;
-  id: string;
-  changelog: string;
-  bases: any[]; // TODO(ts): not sure what this is
-};
-
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
 export enum EventGroupVariantType {
@@ -1841,19 +1836,6 @@ export type Artifact = {
   sha1: string;
   size: number;
   headers: {'Content-Type': string};
-};
-
-// TODO(mark) remove when dashboards 1 is removed.
-export type Widget = {
-  queries: {
-    discover: DiscoverQuery[];
-  };
-  title: React.ReactNode;
-  type: WIDGET_DISPLAY;
-  fieldLabelMap?: object;
-  yAxisMapping?: [number[], number[]];
-  includeReleases?: boolean;
-  includePreviousPeriod?: boolean;
 };
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
@@ -1984,7 +1966,19 @@ export type ServerlessFunction = {
  */
 export type DebugFileSource = 'http' | 's3' | 'gcs';
 
-export type SessionApiResponse = {
+/**
+ * Base type for series   style API response
+ */
+export type SeriesApi = {
+  intervals: string[];
+  groups: {
+    by: Record<string, string | number>;
+    totals: Record<string, number>;
+    series: Record<string, number[]>;
+  }[];
+};
+
+export type SessionApiResponse = SeriesApi & {
   query: string;
   intervals: string[];
   groups: {

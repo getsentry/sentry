@@ -1,11 +1,11 @@
+from urllib.parse import parse_qsl, urlparse
+
 import responses
-from urllib.parse import urlparse, parse_qsl
-from exam import fixture
 from django.test import RequestFactory
+from exam import fixture
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
 from sentry_plugins.trello.plugin import TrelloPlugin
 
 

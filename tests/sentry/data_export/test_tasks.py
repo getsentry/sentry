@@ -1,26 +1,27 @@
 from django.db import IntegrityError
+
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.tasks import assemble_download, merge_export_blobs
 from sentry.models import File
 from sentry.snuba.discover import InvalidSearchQuery
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import (
-    QueryOutsideRetentionError,
-    QueryIllegalTypeOfArgument,
-    SnubaError,
-    RateLimitExceeded,
-    QueryMemoryLimitExceeded,
-    QueryExecutionTimeMaximum,
-    QueryTooManySimultaneous,
     DatasetSelectionError,
     QueryConnectionFailed,
-    QuerySizeExceeded,
     QueryExecutionError,
+    QueryExecutionTimeMaximum,
+    QueryIllegalTypeOfArgument,
+    QueryMemoryLimitExceeded,
+    QueryOutsideRetentionError,
+    QuerySizeExceeded,
+    QueryTooManySimultaneous,
+    RateLimitExceeded,
     SchemaValidationError,
+    SnubaError,
     UnqualifiedQueryError,
 )
 
@@ -544,6 +545,32 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Failed to save the assembled file."
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover_sort(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={
+                "project": [self.project.id],
+                "field": ["environment"],
+                "sort": "-environment",
+                "query": "",
+            },
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+        de = ExportedData.objects.get(id=de.id)
+        # Convert raw csv to list of line-strings
+        header, raw1, raw2, raw3 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"environment"
+
+        assert raw1.startswith(b"prod")
+        assert raw2.startswith(b"prod")
+        assert raw3.startswith(b"dev")
+
+        assert emailer.called
 
 
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):

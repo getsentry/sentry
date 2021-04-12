@@ -7,7 +7,7 @@ type Measurement = {
   key: string;
 };
 
-type MeasurementCollection = {[key: string]: Measurement};
+type MeasurementCollection = Record<string, Measurement>;
 
 const MEASUREMENTS: MeasurementCollection = Object.fromEntries(
   Object.entries(WEB_VITAL_DETAILS).map(([key, value]) => {

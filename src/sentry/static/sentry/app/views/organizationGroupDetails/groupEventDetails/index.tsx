@@ -13,6 +13,8 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
+import {ReprocessingStatus} from '../utils';
+
 import GroupEventDetails from './groupEventDetails';
 
 type Props = RouteComponentProps<
@@ -26,6 +28,7 @@ type Props = RouteComponentProps<
   group: Group;
   event: Event;
   loadingEvent: boolean;
+  groupReprocessingStatus: ReprocessingStatus;
   eventError: boolean;
   onRetry: () => void;
 };

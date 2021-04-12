@@ -1,8 +1,7 @@
-from social_auth.models import UserSocialAuth
-
 from sentry.models import Integration
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils import TestCase
+from social_auth.models import UserSocialAuth
 
 
 class RepositoryProviderTest(TestCase):

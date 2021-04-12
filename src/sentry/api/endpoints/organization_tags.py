@@ -1,7 +1,7 @@
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
 
 
@@ -19,6 +19,8 @@ class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
                 filter_params["start"],
                 filter_params["end"],
                 use_cache=request.GET.get("use_cache", "0") == "1",
+                # Defaults to True, because the frontend caches these tags globally
+                include_transactions=request.GET.get("include_transactions", "1") == "1",
             )
 
         return Response(serialize(results, request.user))

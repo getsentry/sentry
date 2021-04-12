@@ -201,6 +201,12 @@ const aliases = {
    * Overlay for partial opacity
    */
   overlayBackgroundAlpha: 'rgba(255, 255, 255, 0.7)',
+
+  /**
+   * Tag progress bars
+   */
+  tagBarHover: colors.purple200,
+  tagBar: colors.gray200,
 } as const;
 
 const generateAlertTheme = alias => ({
@@ -253,6 +259,10 @@ const generateBadgeTheme = alias => ({
   new: {
     background: colors.green300,
     indicatorColor: colors.green300,
+  },
+  review: {
+    background: colors.purple300,
+    indicatorColor: colors.purple300,
   },
 });
 
@@ -500,7 +510,7 @@ const commonTheme = {
 
     // We have an array that maps `number + 1` --> list of `number` colors
     getColorPalette: (length: number) =>
-      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
+      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)] as string[],
 
     previousPeriod: colors.gray200,
     symbolSize: 6,
@@ -560,6 +570,8 @@ const darkAliases = {
   badgeBackground: colors.gray400,
   alertBackgroundAlpha: 0.1,
   overlayBackgroundAlpha: 'rgba(18, 9, 23, 0.7)',
+  tagBarHover: colors.purple300,
+  tagBar: colors.gray400,
 } as const;
 
 export const lightTheme = {

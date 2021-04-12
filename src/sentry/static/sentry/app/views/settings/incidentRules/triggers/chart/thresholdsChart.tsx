@@ -8,6 +8,7 @@ import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
 
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
@@ -173,6 +174,8 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       this.state.width - parseInt(CHART_GRID.right.slice(0, -2), 10) - yAxisSize;
     // Distance from the top of the chart to save for the legend
     const legendPadding = 20;
+    // Shave off the left margin
+    const graphAreaMargin = 7;
 
     const isCritical = trigger.label === 'critical';
     const LINE_STYLE = {
@@ -189,7 +192,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         invisible: position === null,
         draggable: false,
         position: [yAxisSize, position],
-        shape: {y1: 1, y2: 1, x1: 0, x2: graphAreaWidth},
+        shape: {y1: 1, y2: 1, x1: graphAreaMargin, x2: graphAreaWidth},
         style: LINE_STYLE,
       },
 
@@ -197,35 +200,37 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       // (or when they will be considered as resolved)
       //
       // Resolution is considered "off" if it is -1
-      ...(position !== null && [
-        {
-          type: 'rect',
-          draggable: false,
+      ...(position !== null
+        ? [
+            {
+              type: 'rect',
+              draggable: false,
 
-          position:
-            isResolution !== isInverted
-              ? [yAxisSize, position + 1]
-              : [yAxisSize, legendPadding],
-          shape: {
-            width: graphAreaWidth,
-            height:
-              isResolution !== isInverted
-                ? yAxisPosition - position
-                : position - legendPadding,
-          },
+              position:
+                isResolution !== isInverted
+                  ? [yAxisSize + graphAreaMargin, position + 1]
+                  : [yAxisSize + graphAreaMargin, legendPadding],
+              shape: {
+                width: graphAreaWidth - graphAreaMargin,
+                height:
+                  isResolution !== isInverted
+                    ? yAxisPosition - position
+                    : position - legendPadding,
+              },
 
-          style: {
-            fill: isResolution
-              ? COLOR.RESOLUTION_FILL
-              : isCritical
-              ? COLOR.CRITICAL_FILL
-              : COLOR.WARNING_FILL,
-          },
+              style: {
+                fill: isResolution
+                  ? COLOR.RESOLUTION_FILL
+                  : isCritical
+                  ? COLOR.CRITICAL_FILL
+                  : COLOR.WARNING_FILL,
+              },
 
-          // This needs to be below the draggable line
-          z: 100,
-        },
-      ]),
+              // This needs to be below the draggable line
+              z: 100,
+            },
+          ]
+        : []),
     ];
   };
 
@@ -261,6 +266,20 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       selected,
     };
 
+    const chartOptions = {
+      tooltip: {
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(value, seriesName);
+        },
+      },
+      yAxis: {
+        max: this.state.yAxisMax ?? undefined,
+        axisLabel: {
+          formatter: (value: number) =>
+            axisLabelFormatter(value, data.length ? data[0].seriesName : ''),
+        },
+      },
+    };
     return (
       <LineChart
         isGroupedByDate
@@ -268,9 +287,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         period={period}
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
-        yAxis={{
-          max: this.state.yAxisMax ?? undefined,
-        }}
+        {...chartOptions}
         legend={legend}
         graphic={Graphic({
           elements: flatten(

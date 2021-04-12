@@ -1,20 +1,17 @@
-from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
 from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.endpoints.organization_releases import get_stats_period_detail
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
-
 from sentry.models import Activity, Release
 from sentry.models.release import UnsafeReleaseDeletion
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-
 from sentry.snuba.sessions import STATS_PERIODS
-from sentry.api.endpoints.organization_releases import get_stats_period_detail
-
-from sentry.utils.sdk import configure_scope, bind_organization_context
+from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):

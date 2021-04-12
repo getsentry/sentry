@@ -1,23 +1,21 @@
-import re
-import os
-import uuid
 import errno
-import shutil
 import hashlib
 import logging
+import os
+import re
+import shutil
 import tempfile
+import uuid
 
 from django.db import models
-
-from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject, normalize_debug_id
+from symbolic import Archive, ObjectErrorUnsupportedObject, SymbolicError, normalize_debug_id
 
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BaseManager, JSONField
+from sentry.db.models import BaseManager, FlexibleForeignKey, JSONField, Model, sane_repr
 from sentry.models.file import File, clear_cached_files
-from sentry.reprocessing import resolve_processing_issue, bump_reprocessing_revision
+from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
 from sentry.utils.zip import safe_extract_zip
-
 
 logger = logging.getLogger(__name__)
 

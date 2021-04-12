@@ -3,7 +3,6 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry.api.base import Endpoint
 from sentry.integrations.pipeline import ensure_integration
 
-
 from .integration import BitbucketIntegrationProvider
 
 

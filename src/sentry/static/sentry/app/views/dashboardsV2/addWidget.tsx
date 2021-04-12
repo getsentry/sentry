@@ -8,6 +8,7 @@ import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 
+import {DisplayType} from './types';
 import WidgetWrapper from './widgetWrapper';
 
 export const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';
@@ -36,7 +37,7 @@ function AddWidget({onClick, orgFeatures, orgSlug}: Props) {
     <WidgetWrapper
       key="add"
       ref={setNodeRef}
-      displayType="big_number"
+      displayType={DisplayType.BIG_NUMBER}
       layoutId={ADD_WIDGET_BUTTON_DRAG_ID}
       style={{originX: 0, originY: 0}}
       animate={
@@ -56,7 +57,7 @@ function AddWidget({onClick, orgFeatures, orgSlug}: Props) {
       {orgFeatures.includes('metrics') ? (
         <InnerWrapper>
           <ButtonBar gap={1}>
-            <Button to={`/organizations/${orgSlug}/dashboards/widgetBuilder/`}>
+            <Button to={`/organizations/${orgSlug}/dashboards/widget/new/`}>
               {t('Add metrics widget')}
             </Button>
             <Button onClick={onClick}>{t('Add events widget')}</Button>

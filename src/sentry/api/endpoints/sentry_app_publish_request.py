@@ -2,9 +2,9 @@ from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
-from sentry.utils import email
-from sentry.mediators.sentry_apps import Updater
 from sentry.constants import SentryAppStatus
+from sentry.mediators.sentry_apps import Updater
+from sentry.utils import email
 
 
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):

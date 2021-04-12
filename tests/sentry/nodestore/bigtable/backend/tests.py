@@ -4,7 +4,8 @@ from contextlib import contextmanager
 import pytest
 from google.oauth2.credentials import Credentials
 from google.rpc.status_pb2 import Status
-from sentry.nodestore.bigtable.backend import BigtableNodeStorage, BigtableKVStorage
+
+from sentry.nodestore.bigtable.backend import BigtableKVStorage, BigtableNodeStorage
 from sentry.utils.compat import mock
 
 
@@ -91,7 +92,7 @@ def get_temporary_bigtable_nodestorage() -> BigtableNodeStorage:
     try:
         yield ns
     finally:
-        ns.store._get_table(admin=True).delete()
+        ns.store.destroy()
 
 
 @pytest.fixture(params=[MockedBigtableNodeStorage, BigtableNodeStorage])
@@ -101,28 +102,6 @@ def ns(request):
             yield ns
     else:
         yield MockedBigtableNodeStorage(project="test")
-
-
-@pytest.mark.parametrize(
-    "compression,expected_prefix",
-    [(True, (b"\x78\x01", b"\x78\x9c", b"\x78\xda")), (False, b"{"), ("zstd", b"\x28\xb5\x2f\xfd")],
-    ids=["zlib", "ident", "zstd"],
-)
-def test_get(ns, compression, expected_prefix):
-    ns.store.compression = compression
-    node_id = "node_id"
-    data = {"foo": "bar"}
-    ns.set(node_id, data)
-
-    # Make sure this value does not get used during read. We may have various
-    # forms of compression in bigtable.
-    ns.store.compression = lambda: 1 / 0
-    # Do not use cache as that entirely bypasses what we want to test here.
-    ns.cache = None
-    assert ns.get(node_id) == data
-
-    raw_data = ns.store._get_table().read_row("node_id").cells["x"][b"0"][0].value
-    assert raw_data.startswith(expected_prefix)
 
 
 def test_cache(ns):

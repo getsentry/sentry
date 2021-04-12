@@ -1,22 +1,20 @@
+import base64
 import os
 import zlib
-import base64
-import msgpack
-import inspect
 
-from parsimonious.grammar import Grammar, NodeVisitor
+import msgpack
 from parsimonious.exceptions import ParseError
+from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry import projectoptions
-from sentry.stacktraces.functions import set_in_app
-from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.utils import get_rule_bool
+from sentry.stacktraces.functions import set_in_app
+from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.utils.compat import zip
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
-from sentry.utils.compat import zip
 from sentry.utils.strings import unescape_string
-
 
 # Grammar is defined in EBNF syntax.
 enhancements_grammar = Grammar(
@@ -324,10 +322,9 @@ class StacktraceState:
 
 
 class Enhancements:
-    def __init__(self, rules, changelog=None, version=None, bases=None, id=None):
+    def __init__(self, rules, version=None, bases=None, id=None):
         self.id = id
         self.rules = rules
-        self.changelog = changelog
         if version is None:
             version = VERSION
         self.version = version
@@ -411,7 +408,6 @@ class Enhancements:
     def as_dict(self, with_rules=False):
         rv = {
             "id": self.id,
-            "changelog": self.changelog,
             "bases": self.bases,
             "latest": projectoptions.lookup_well_known_key(
                 "sentry:grouping_enhancements_base"
@@ -521,25 +517,14 @@ class EnhancmentsVisitor(NodeVisitor):
         self.bases = bases
         self.id = id
 
-    def visit_comment(self, node, children):
-        return node.text
-
     def visit_enhancements(self, node, children):
-        changelog = []
         rules = []
-        in_header = True
         for child in children:
-            if isinstance(child, str):
-                if in_header and child[:2] == "##":
-                    changelog.append(child[2:].rstrip())
-                else:
-                    in_header = False
-            elif child is not None:
+            if not isinstance(child, str) and child is not None:
                 rules.append(child)
-                in_header = False
+
         return Enhancements(
             rules,
-            inspect.cleandoc("\n".join(changelog)).rstrip() or None,
             bases=self.bases,
             id=self.id,
         )

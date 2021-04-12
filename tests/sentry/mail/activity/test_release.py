@@ -1,24 +1,24 @@
 from django.core import mail
 from django.utils import timezone
 
+from sentry.mail.activity.release import ReleaseActivityEmail
 from sentry.models import (
     Activity,
     Commit,
     CommitAuthor,
     Deploy,
     Environment,
-    GroupSubscriptionReason,
     NotificationSetting,
     Release,
     ReleaseCommit,
     Repository,
     UserEmail,
 )
-from sentry.mail.activity.release import ReleaseActivityEmail
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
-    NotificationSettingTypes,
+    GroupSubscriptionReason,
     NotificationSettingOptionValues,
+    NotificationSettingTypes,
 )
 from sentry.testutils import TestCase
 

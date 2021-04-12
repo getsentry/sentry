@@ -141,16 +141,16 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
 };
 
 class IssueListOverview extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  state: State = this.getInitialState();
 
+  getInitialState() {
     const realtimeActiveCookie = Cookies.get('realtimeActive');
     const realtimeActive =
       typeof realtimeActiveCookie === 'undefined'
         ? false
         : realtimeActiveCookie === 'true';
 
-    this.state = {
+    return {
       groupIds: [],
       selectAllActive: false,
       realtimeActive,
@@ -301,10 +301,6 @@ class IssueListOverview extends React.Component<Props, State> {
       organization.features.includes('inbox') &&
       organization.features.includes('inbox-tab-default')
     ) {
-      if (organization.features.includes('inbox-owners-query')) {
-        return Query.FOR_REVIEW_OWNER;
-      }
-
       return Query.FOR_REVIEW;
     }
 
@@ -325,7 +321,7 @@ class IssueListOverview extends React.Component<Props, State> {
     if (
       organization.features.includes('inbox') &&
       organization.features.includes('inbox-tab-default') &&
-      isForReviewQuery(this.getQuery())
+      this.getQuery() === Query.FOR_REVIEW
     ) {
       return IssueSortOptions.INBOX;
     }
@@ -519,7 +515,7 @@ class IssueListOverview extends React.Component<Props, State> {
     this.setState({queryCounts});
   };
 
-  fetchData = (selectionChanged?: boolean) => {
+  fetchData = (fetchAllCounts = false) => {
     GroupStore.loadInitialData([]);
     this._streamManager.reset();
     const transaction = getCurrentSentryReactTransaction();
@@ -566,9 +562,6 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     this._poller.disable();
-
-    const fetchAllCounts =
-      this.props.organization.features.includes('inbox') && !!selectionChanged;
 
     this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
@@ -678,9 +671,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onRealtimeChange = (realtime: boolean) => {
     Cookies.set('realtimeActive', realtime.toString());
-    this.setState({
-      realtimeActive: realtime,
-    });
+    this.setState({realtimeActive: realtime});
   };
 
   onSelectStatsPeriod = (period: string) => {
@@ -800,7 +791,7 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     // Remove inbox tab specific sort
-    if (query.sort === IssueSortOptions.INBOX && !isForReviewQuery(query.query)) {
+    if (query.sort === IssueSortOptions.INBOX && query.query !== Query.FOR_REVIEW) {
       delete query.sort;
     }
 
@@ -860,7 +851,6 @@ class IssueListOverview extends React.Component<Props, State> {
           hasGuideAnchor={hasGuideAnchor}
           memberList={members}
           displayReprocessingLayout={displayReprocessingLayout}
-          onMarkReviewed={this.onMarkReviewed}
           useFilteredStats
           showInboxTime={showInboxTime}
         />
@@ -931,8 +921,13 @@ class IssueListOverview extends React.Component<Props, State> {
     });
   };
 
+  onDelete = () => {
+    this.fetchData(true);
+  };
+
   onMarkReviewed = (itemIds: string[]) => {
     const query = this.getQuery();
+
     if (!isForReviewQuery(query)) {
       return;
     }
@@ -1094,6 +1089,7 @@ class IssueListOverview extends React.Component<Props, State> {
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}
                     onMarkReviewed={this.onMarkReviewed}
+                    onDelete={this.onDelete}
                     realtimeActive={realtimeActive}
                     statsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}
@@ -1140,7 +1136,7 @@ class IssueListOverview extends React.Component<Props, State> {
               </SidebarContainer>
             </StyledPageContent>
 
-            {hasFeature && isForReviewQuery(query) && (
+            {hasFeature && query === Query.FOR_REVIEW && (
               <GuideAnchor target="is_inbox_tab" />
             )}
           </React.Fragment>

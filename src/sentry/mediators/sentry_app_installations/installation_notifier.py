@@ -1,9 +1,9 @@
-from sentry.api.serializers import SentryAppInstallationSerializer, AppPlatformEvent
+from sentry.api.serializers import AppPlatformEvent, SentryAppInstallationSerializer
 from sentry.coreapi import APIUnauthorized
 from sentry.http import safe_urlread
 from sentry.mediators import Mediator, Param
-from sentry.utils.cache import memoize
 from sentry.tasks.sentry_apps import send_and_save_webhook_request
+from sentry.utils.cache import memoize
 
 
 class InstallationNotifier(Mediator):

@@ -1,7 +1,7 @@
+from copy import deepcopy
+
 import pytz
 import requests
-
-from copy import deepcopy
 from exam import fixture
 from freezegun import freeze_time
 
@@ -434,6 +434,40 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
 
+    def test_limit_as_1_with_paging_sort_name(self):
+        self.setup_project_and_rules()
+        # Test Limit as 1, no cursor:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "1", "project": self.project_ids, "sort": "name", "asc": 1}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 1
+        self.assert_alert_rule_serialized(self.alert_rule, result[0], skip_dates=True)
+        links = requests.utils.parse_header_links(
+            response.get("link").rstrip(">").replace(">,<", ",<")
+        )
+        next_cursor = links[1]["cursor"]
+        # Test Limit as 1, next page of previous request:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "cursor": next_cursor,
+                "per_page": "1",
+                "project": self.project.id,
+                "sort": "name",
+                "asc": 1,
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 1
+        assert result[0]["id"] == str(self.issue_rule.id)
+        assert result[0]["type"] == "rule"
+
     def test_limit_as_1_with_paging(self):
         self.setup_project_and_rules()
 
@@ -733,6 +767,59 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 2
+
+    def test_myteams_filter_superuser(self):
+        superuser = self.create_user(is_superuser=True)
+        another_org = self.create_organization(owner=superuser, name="Rowdy Tiger")
+        another_org_rules_url = f"/api/0/organizations/{another_org.slug}/combined-rules/"
+        another_org_team = self.create_team(organization=another_org, name="Meow Band", members=[])
+        another_project = self.create_project(
+            organization=another_org, teams=[another_org_team], name="Woof Choir"
+        )
+        self.login_as(superuser, superuser=True)
+        self.create_alert_rule(
+            name="alert rule",
+            organization=another_org,
+            projects=[another_project],
+            date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
+            owner=another_org_team.actor.get_actor_tuple(),
+        )
+
+        self.create_issue_alert_rule(
+            data={
+                "project": another_project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
+                "owner": another_org_team.actor,
+            }
+        )
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [another_project.id],
+                "team": ["myteams"],
+            }
+            response = self.client.get(
+                path=another_org_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [another_project.id],
+                "team": [another_org_team.id],
+            }
+            response = self.client.get(
+                path=another_org_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        assert len(response.data) == 2  # We are not on this team, but we are a superuser.
 
     def test_team_filter_no_access(self):
         self.setup_project_and_rules()

@@ -1,10 +1,11 @@
 import itertools
 import logging
+from enum import Enum
+from typing import Set
 
 from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
-from enum import Enum
 
 from sentry import digests, options
 from sentry.digests import get_option_key as get_digest_option_key
@@ -14,21 +15,30 @@ from sentry.models import (
     Commit,
     Group,
     GroupSubscription,
-    GroupSubscriptionReason,
     Integration,
+    NotificationSetting,
+    Project,
     ProjectOption,
     ProjectOwnership,
     Release,
     Team,
     User,
 )
-from sentry.plugins.base.structs import Notification
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.helpers import transform_to_notification_settings_by_user
+from sentry.notifications.types import (
+    GroupSubscriptionReason,
+    NotificationScopeType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.plugins.base import plugins
+from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
-from sentry.utils import metrics, json
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
-from sentry.utils.email import group_id_to_email, MessageBuilder
+from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
@@ -47,7 +57,6 @@ class MailAdapter:
     """
 
     mail_option_key = "mail:subject_prefix"
-    alert_option_key = "mail:alert"
 
     def rule_notify(self, event, futures, target_type, target_identifier=None):
         metrics.incr("mail_adapter.rule_notify")
@@ -141,18 +150,32 @@ class MailAdapter:
         if message is not None:
             return message.send_async()
 
-    def get_sendable_users(self, project):
+    @staticmethod
+    def get_sendable_user_objects(project):
         """
-        Return a collection of user IDs that are eligible to receive
+        Return a collection of USERS that are eligible to receive
         notifications for the provided project.
         """
-        return project.get_notification_recipients(self.alert_option_key)
+        return NotificationSetting.objects.get_notification_recipients(project)[
+            ExternalProviders.EMAIL
+        ]
+
+    def get_sendable_user_ids(self, project):
+        users = self.get_sendable_user_objects(project)
+        return [user.id for user in users]
+
+    def get_sendable_users(self, project):
+        """ @deprecated Do not change this function, it is being used in getsentry. """
+        users = self.get_sendable_user_objects(project)
+        return [user.id for user in users]
 
     def should_notify(self, target_type, group):
         metrics.incr("mail_adapter.should_notify")
         # only notify if we have users to notify. We always want to notify if targeting
         # a member directly.
-        return target_type == ActionTargetType.MEMBER or self.get_sendable_users(group.project)
+        return target_type == ActionTargetType.MEMBER or self.get_sendable_user_objects(
+            group.project
+        )
 
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
@@ -208,7 +231,6 @@ class MailAdapter:
                         sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
                     ).values_list("id", flat=True)
                 )
-
             return send_to - self.disabled_users_from_project(project)
         else:
             metrics.incr(
@@ -218,10 +240,37 @@ class MailAdapter:
             )
             return self.get_send_to_all_in_project(project)
 
-    def disabled_users_from_project(self, project):
-        alert_settings = project.get_member_alert_settings(self.alert_option_key)
-        disabled_users = {user for user, setting in alert_settings.items() if setting == 0}
-        return disabled_users
+    @staticmethod
+    def disabled_users_from_project(project: Project) -> Set[int]:
+        """ Get a set of users that have disabled Issue Alert notifications for a given project. """
+        user_ids = project.member_set.values_list("user", flat=True)
+        users = User.objects.filter(id__in=user_ids)
+        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+            type=NotificationSettingTypes.ISSUE_ALERTS,
+            parent=project,
+            users=users,
+        )
+        notification_settings_by_user = transform_to_notification_settings_by_user(
+            notification_settings, users
+        )
+
+        # Although this can be done with dict comprehension, looping for clarity.
+        output = set()
+        for user in users:
+            settings = notification_settings_by_user.get(user)
+            if settings:
+                # Check per-project settings first, fallback to project-independent settings.
+                project_setting = settings.get(NotificationScopeType.PROJECT)
+                if project_setting:
+                    project_setting = project_setting[ExternalProviders.EMAIL]
+                user_setting = settings.get(NotificationScopeType.USER)
+                if user_setting:
+                    user_setting = user_setting[ExternalProviders.EMAIL]
+                if project_setting == NotificationSettingOptionValues.NEVER or (
+                    not project_setting and user_setting == NotificationSettingOptionValues.NEVER
+                ):
+                    output.add(user.id)
+        return output
 
     def get_send_to_team(self, project, target_identifier):
         if target_identifier is None:
@@ -260,7 +309,8 @@ class MailAdapter:
         cache_key = f"mail:send_to:{project.pk}"
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
-            send_to_list = [s for s in self.get_sendable_users(project) if s]
+            users = self.get_sendable_user_objects(project)
+            send_to_list = [user.id for user in users if user]
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache
 
         return send_to_list
@@ -478,6 +528,8 @@ class MailAdapter:
         group = Group.objects.get(id=payload["report"]["issue"]["id"])
 
         participants = GroupSubscription.objects.get_participants(group=group)
+        if participants:
+            participants = participants[ExternalProviders.EMAIL]
 
         if not participants:
             return

@@ -3,8 +3,6 @@ from django.core.urlresolvers import reverse
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
-from sentry.plugins.base import plugins
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -13,7 +11,9 @@ from sentry.api.serializers.models.plugin import (
     PluginWithConfigSerializer,
     serialize_field,
 )
+from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
 from sentry.models import AuditLogEntryEvent
+from sentry.plugins.base import plugins
 from sentry.signals import plugin_enabled
 
 ERR_ALWAYS_ENABLED = "This plugin is always enabled."

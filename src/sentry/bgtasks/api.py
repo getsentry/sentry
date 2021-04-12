@@ -1,11 +1,10 @@
-import time
-import random
 import logging
+import random
 import threading
+import time
 from contextlib import contextmanager
 
 from django.conf import settings
-
 
 logger = logging.getLogger("sentry.bgtasks")
 tasks = {}

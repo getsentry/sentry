@@ -20,6 +20,7 @@ class EventError:
     FETCH_INVALID_ENCODING = "fetch_invalid_source_encoding"
     FETCH_TOO_LARGE = "fetch_too_large"
     FETCH_TIMEOUT = "fetch_timeout"
+    TOO_LARGE_FOR_CACHE = "too_large_for_cache"
 
     # Processing: JavaScript
     JS_GENERIC_FETCH_ERROR = "js_generic_fetch_error"  # deprecated in favor of FETCH_GENERIC_ERROR
@@ -65,8 +66,9 @@ class EventError:
         FETCH_GENERIC_ERROR: "Unable to fetch HTTP resource",
         FETCH_INVALID_HTTP_CODE: "HTTP returned error response",
         FETCH_INVALID_ENCODING: "Source file was not encoded properly",
-        FETCH_TOO_LARGE: "Remote file too large",
+        FETCH_TOO_LARGE: "Remote file too large for downloading",
         FETCH_TIMEOUT: "Remote file took too long to load",
+        TOO_LARGE_FOR_CACHE: "Remote file too large for caching",
         JS_GENERIC_FETCH_ERROR: "Unable to fetch resource",
         JS_INVALID_HTTP_CODE: "HTTP returned error response",
         JS_INVALID_CONTENT: "Source file was not JavaScript",

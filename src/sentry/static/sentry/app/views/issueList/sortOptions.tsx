@@ -5,11 +5,7 @@ import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-import {
-  getSortLabel,
-  isForReviewQuery,
-  IssueSortOptions,
-} from 'app/views/issueList/utils';
+import {getSortLabel, IssueSortOptions, Query} from 'app/views/issueList/utils';
 
 type Props = {
   sort: string;
@@ -22,7 +18,7 @@ export function getSortTooltip(key: IssueSortOptions) {
     case IssueSortOptions.INBOX:
       return t('When the issue was flagged for review.');
     case IssueSortOptions.NEW:
-      return t('When the issue was first seen.');
+      return t('When the issue was first seen in the selected time period.');
     case IssueSortOptions.PRIORITY:
       return t('Issues trending upward recently.');
     case IssueSortOptions.FREQ:
@@ -33,7 +29,7 @@ export function getSortTooltip(key: IssueSortOptions) {
       return t('% change in event count over the time selected.');
     case IssueSortOptions.DATE:
     default:
-      return t('When an event was last seen in the issue.');
+      return t('When the issue was last seen in the selected time period.');
   }
 }
 
@@ -57,7 +53,7 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
     <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
       <React.Fragment>
         <Feature features={['inbox']}>
-          {isForReviewQuery(query) && getMenuItem(IssueSortOptions.INBOX)}
+          {query === Query.FOR_REVIEW && getMenuItem(IssueSortOptions.INBOX)}
         </Feature>
         {getMenuItem(IssueSortOptions.DATE)}
         {getMenuItem(IssueSortOptions.NEW)}

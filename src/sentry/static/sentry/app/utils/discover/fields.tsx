@@ -286,7 +286,7 @@ export const AGGREGATIONS = {
       },
     ],
     outputType: 'number',
-    isSortable: false,
+    isSortable: true,
     multiPlotType: 'area',
   },
   eps: {
@@ -297,6 +297,31 @@ export const AGGREGATIONS = {
   },
   epm: {
     parameters: [],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  count_miserable: {
+    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+      if (parameter.kind === 'column') {
+        return 'user';
+      }
+      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    },
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateAllowedColumns(['user']),
+        defaultValue: 'user',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
@@ -541,14 +566,15 @@ export const TRACING_FIELDS = [
   'percentile',
   'failure_rate',
   'apdex',
+  'count_miserable',
   'user_misery',
-  'user_misery_prototype',
   'eps',
   'epm',
   ...Object.keys(MEASUREMENTS),
 ];
 
 export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
+export const SPAN_OP_BREAKDOWN_PATTERN = /^span_op_breakdowns\.ops\.([a-zA-Z0-9-_.]+)$/;
 
 export function isMeasurement(field: string): boolean {
   const results = field.match(MEASUREMENT_PATTERN);
@@ -757,6 +783,12 @@ function validateForNumericAggregate(
   };
 }
 
+function validateAllowedColumns(validColumns: string[]): ValidateColumnValueFunction {
+  return function ({name}): boolean {
+    return validColumns.includes(name);
+  };
+}
+
 const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer', 'percentage'];
 
 export function fieldAlignment(
@@ -777,4 +809,23 @@ export function fieldAlignment(
     }
   }
   return align;
+}
+
+/**
+ * Match on types that are legal to show on a timeseries chart.
+ */
+export function isLegalYAxisType(match: ColumnType) {
+  return ['number', 'integer', 'duration', 'percentage'].includes(match);
+}
+
+export function isSpanOperationBreakdownField(field: string) {
+  return field.startsWith('span_op_breakdowns.');
+}
+
+export function getSpanOperationName(field: string): string | null {
+  const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);
+  if (results && results.length >= 2) {
+    return results[1];
+  }
+  return null;
 }

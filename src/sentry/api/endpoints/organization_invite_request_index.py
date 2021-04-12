@@ -3,11 +3,11 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.app import locks
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import serialize, OrganizationMemberWithTeamsSerializer
-from sentry.models import AuditLogEntryEvent, OrganizationMember, InviteStatus
+from sentry.api.serializers import OrganizationMemberWithTeamsSerializer, serialize
+from sentry.app import locks
+from sentry.models import AuditLogEntryEvent, InviteStatus, OrganizationMember
 from sentry.tasks.members import send_invite_request_notification_email
 from sentry.utils.retries import TimedRetryPolicy
 

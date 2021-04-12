@@ -1,18 +1,18 @@
-import pytz
-
-from croniter import croniter
 from datetime import datetime, timedelta
+from uuid import uuid4
+
+import pytz
+from croniter import croniter
 from dateutil import rrule
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
-from uuid import uuid4
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    Model,
     BoundedPositiveIntegerField,
     EncryptedJsonField,
+    Model,
     UUIDField,
     sane_repr,
 )

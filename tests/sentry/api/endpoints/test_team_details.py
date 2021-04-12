@@ -1,15 +1,8 @@
 from typing import Optional
 
-from sentry.utils.compat.mock import patch
-
-from sentry.models import (
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    DeletedTeam,
-    Team,
-    TeamStatus,
-)
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, DeletedTeam, Team, TeamStatus
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 
 
 class TeamDetailsTestBase(APITestCase):

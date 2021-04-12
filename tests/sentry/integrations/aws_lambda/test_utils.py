@@ -2,22 +2,22 @@ from django.core.cache import cache
 from django.test import override_settings
 
 from sentry.integrations.aws_lambda.utils import (
-    parse_arn,
-    get_supported_functions,
-    get_version_of_arn,
+    OPTION_ACCOUNT_NUMBER,
+    OPTION_LAYER_NAME,
+    OPTION_VERSION,
+    get_function_layer_arns,
+    get_index_of_sentry_layer,
     get_latest_layer_for_function,
     get_latest_layer_version,
-    get_index_of_sentry_layer,
-    get_function_layer_arns,
     get_option_value,
-    OPTION_VERSION,
-    OPTION_LAYER_NAME,
-    OPTION_ACCOUNT_NUMBER,
+    get_supported_functions,
+    get_version_of_arn,
+    parse_arn,
 )
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
-from sentry.utils.compat.mock import patch, MagicMock
+from sentry.utils.compat.mock import MagicMock, patch
 
 
 class ParseArnTest(TestCase):

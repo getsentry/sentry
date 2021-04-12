@@ -1,14 +1,13 @@
 from collections import defaultdict
 from datetime import timedelta
+
+import sentry_sdk
 from django.db import connection
-from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-import sentry_sdk
-
-from sentry import options, roles, projectoptions, features
-from sentry.api.serializers import register, serialize, Serializer
+from sentry import features, options, projectoptions, roles
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
 from sentry.app import env
@@ -17,9 +16,12 @@ from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
+from sentry.ingest.inbound_filters import FilterTypes
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
+    ExternalProviders,
+    NotificationSetting,
     Project,
     ProjectAvatar,
     ProjectBookmark,
@@ -28,11 +30,11 @@ from sentry.models import (
     ProjectStatus,
     ProjectTeam,
     Release,
-    UserOption,
     UserReport,
 )
+from sentry.notifications.helpers import transform_to_notification_settings_by_parent_id
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
-from sentry.ingest.inbound_filters import FilterTypes
 from sentry.utils.compat import zip
 
 STATUS_LABELS = {
@@ -45,7 +47,9 @@ STATUS_LABELS = {
 STATS_PERIOD_CHOICES = {
     "30d": StatsPeriod(30, timedelta(hours=24)),
     "14d": StatsPeriod(14, timedelta(hours=24)),
+    "7d": StatsPeriod(7, timedelta(hours=24)),
     "24h": StatsPeriod(24, timedelta(hours=1)),
+    "1h": StatsPeriod(60, timedelta(minutes=1)),
 }
 
 _PROJECT_SCOPE_PREFIX = "projects:"
@@ -101,7 +105,7 @@ class ProjectSerializer(Serializer):
             result[project] = {"is_member": is_member, "has_access": has_access}
         return result
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         def measure_span(op_tag):
             span = sentry_sdk.start_span(op=f"serialize.get_attrs.project.{op_tag}")
             span.set_data("Object Count", len(item_list))
@@ -115,18 +119,24 @@ class ProjectSerializer(Serializer):
                         user=user, project_id__in=project_ids
                     ).values_list("project_id", flat=True)
                 )
-                user_options = {
-                    (u.project_id, u.key): u.value
-                    for u in UserOption.objects.filter(
-                        Q(user=user, project__in=item_list, key="mail:alert")
-                        | Q(user=user, key="subscribe_by_default", project__isnull=True)
-                    )
-                }
-                default_subscribe = user_options.get("subscribe_by_default", "1") == "1"
+
+                notification_settings = NotificationSetting.objects.get_for_user_by_projects(
+                    NotificationSettingTypes.ISSUE_ALERTS,
+                    user,
+                    item_list,
+                )
+                (
+                    notification_settings_by_project_id_by_provider,
+                    default_subscribe_by_provider,
+                ) = transform_to_notification_settings_by_parent_id(notification_settings)
+                notification_settings_by_project_id = (
+                    notification_settings_by_project_id_by_provider.get(ExternalProviders.EMAIL, {})
+                )
+                default_subscribe = default_subscribe_by_provider.get(ExternalProviders.EMAIL)
             else:
                 bookmarks = set()
-                user_options = {}
-                default_subscribe = False
+                notification_settings_by_project_id = {}
+                default_subscribe = None
 
         with measure_span("stats"):
             stats = None
@@ -157,12 +167,14 @@ class ProjectSerializer(Serializer):
 
         with measure_span("other"):
             for project, serialized in result.items():
+                is_subscribed = (
+                    notification_settings_by_project_id.get(project.id, default_subscribe)
+                    == NotificationSettingOptionValues.ALWAYS
+                )
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,
-                        "is_subscribed": bool(
-                            user_options.get((project.id, "mail:alert"), default_subscribe)
-                        ),
+                        "is_subscribed": is_subscribed,
                         "avatar": avatars.get(project.id),
                         "platforms": platforms_by_project[project.id],
                     }
@@ -680,6 +692,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "groupingEnhancements": get_value_with_default("sentry:grouping_enhancements"),
                 "groupingEnhancementsBase": get_value_with_default(
                     "sentry:grouping_enhancements_base"
+                ),
+                "secondaryGroupingExpiry": get_value_with_default(
+                    "sentry:secondary_grouping_expiry"
+                ),
+                "secondaryGroupingConfig": get_value_with_default(
+                    "sentry:secondary_grouping_config"
                 ),
                 "fingerprintingRules": get_value_with_default("sentry:fingerprinting_rules"),
                 "organization": attrs["org"],

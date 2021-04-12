@@ -1,13 +1,12 @@
 import operator
+from uuid import uuid4
 
 from django.db.models import F
 from django.db.models.expressions import CombinedExpression, Value
-from django.utils.crypto import get_random_string
 from django.template.defaultfilters import slugify
-from uuid import uuid4
+from django.utils.crypto import get_random_string
 
 from sentry.db.exceptions import CannotResolveExpression
-
 
 COMBINED_EXPRESSION_CALLBACKS = {
     CombinedExpression.ADD: operator.add,

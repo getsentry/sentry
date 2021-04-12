@@ -4,7 +4,7 @@ from io import BytesIO
 
 from django.utils import timezone
 
-from sentry.data_export.base import ExportStatus, ExportQueryType
+from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
 from sentry.models import File
 from sentry.testutils import APITestCase

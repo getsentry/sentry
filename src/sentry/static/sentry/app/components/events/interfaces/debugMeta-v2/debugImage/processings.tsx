@@ -45,7 +45,6 @@ export default Processings;
 const StyledProcessingList = styled(ProcessingList)`
   display: flex;
   flex-wrap: wrap;
-  grid-gap: 0;
   margin-bottom: -${space(1)};
 `;
 
