@@ -536,7 +536,7 @@ class MissingServiceNode extends React.Component<
     );
     this.setState({hideMissing: true});
     trackAnalyticsEvent({
-      eventKey: 'quick_trace.missing-service.dismiss',
+      eventKey: 'quick_trace.missing_service.dismiss',
       eventName: 'Quick Trace: Missing Service Dismissed',
       organization_id: parseInt(organization.id, 10),
       platform,
@@ -546,7 +546,7 @@ class MissingServiceNode extends React.Component<
   trackExternalLink = () => {
     const {organization, platform} = this.props;
     trackAnalyticsEvent({
-      eventKey: 'quick_trace.missing-service.docs',
+      eventKey: 'quick_trace.missing_service.docs',
       eventName: 'Quick Trace: Missing Service Clicked',
       organization_id: parseInt(organization.id, 10),
       platform,
