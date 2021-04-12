@@ -31,6 +31,7 @@ class DemoStartTeset(TestCase):
         mock_auth_login.assert_called_once_with(mock.ANY, self.user)
         recovered = resp.cookies[MEMBER_ID_COOKIE].value.split(":")[0]
         assert recovered == str(self.member.id)
+        mock_assign_demo_org.assert_called_once_with(skip_buffer=False)
 
     @override_settings(DEMO_MODE=False, ROOT_URLCONF="sentry.demo.urls")
     def test_disabled(self):
@@ -72,3 +73,10 @@ class DemoStartTeset(TestCase):
             partial_url = f"/organizations/{self.org.slug}/{scenario}/"
             assert resp.status_code == 302
             assert partial_url in resp.url
+
+    @mock.patch("sentry.demo.demo_start.auth.login")
+    @mock.patch("sentry.demo.demo_org_manager.assign_demo_org")
+    def test_skip_buffer(self, mock_assign_demo_org, mock_auth_login):
+        mock_assign_demo_org.return_value = (self.org, self.user)
+        self.client.post(self.path, data={"skip_buffer": "1"})
+        mock_assign_demo_org.assert_called_once_with(skip_buffer=True)
