@@ -300,3 +300,6 @@ register("store.load-shed-group-creation-projects", type=Sequence, default=[])
 
 # Killswitch for dropping events in ingest consumer or really anywhere
 register("store.load-shed-pipeline-projects", type=Sequence, default=[])
+
+# Switch for more performant project counter incr
+register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
