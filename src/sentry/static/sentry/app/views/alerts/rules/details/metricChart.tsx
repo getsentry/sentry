@@ -25,7 +25,13 @@ import {TimePeriodType} from 'app/views/alerts/rules/details/body';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
-import {AlertRuleStatus, Incident, IncidentActivityType, IncidentStats, IncidentStatus} from '../../types';
+import {
+  AlertRuleStatus,
+  Incident,
+  IncidentActivityType,
+  IncidentStats,
+  IncidentStatus,
+} from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
 
 const X_AXIS_BOUNDARY_GAP = 20;
@@ -426,11 +432,11 @@ class MetricChart extends React.PureComponent<Props, State> {
                   type: 'line',
                   data: incidentStat.eventStats.data.map(([name, valueArr]) => ({
                     name: name * 1000,
-                    value: valueArr.length ? valueArr[0].count : 0
+                    value: valueArr.length ? valueArr[0].count : 0,
                   })),
-                })
+                });
               }
-            })
+            });
           }
 
           // Ensure series data appears above incident lines
