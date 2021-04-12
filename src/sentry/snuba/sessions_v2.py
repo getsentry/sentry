@@ -99,7 +99,10 @@ class SessionsField:
         if status == "crashed":
             return row["sessions_crashed"]
         if status == "errored":
-            return row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"]
+            errored_count = (
+                row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"]
+            )
+            return 0 if errored_count < 0 else errored_count
         return 0
 
 
