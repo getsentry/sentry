@@ -904,3 +904,21 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 4
+
+    def test_magical_sort_order(self):
+        self.setup_project_and_rules()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": self.project.id,
+                "sort": "magical",
+                # "asc": 1,
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 1
+        assert result[0]["id"] == str(self.issue_rule.id)
+        assert result[0]["type"] == "rule"

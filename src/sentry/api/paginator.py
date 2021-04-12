@@ -726,3 +726,164 @@ class ChainPaginator:
             results = self.on_results(results)
 
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
+
+
+
+
+
+
+
+class RuleListPaginator:
+    """ 
+    This paginator can be used to paginate between Rules and AlertRules and their special paging requirements.
+    """
+
+    multiplier = 1000000  # Use microseconds for date keys.
+    using_dates = False
+    model_key_map = {}
+
+    def __init__(self, intermediaries, desc=False, on_results=None, case_insensitive=False):
+        self.desc = desc
+        self.intermediaries = intermediaries
+        self.on_results = on_results
+        self.case_insensitive = case_insensitive
+        for intermediary in list(self.intermediaries):
+            if intermediary.is_empty:
+                self.intermediaries.remove(intermediary)
+            else:
+                self.model_key_map[intermediary.instance_type] = intermediary.order_by
+
+        # This is an assertion to make sure date field sorts are all or nothing.###
+        # (i.e. all fields must be a date type, or none of them)
+        using_other = False
+        for intermediary in self.intermediaries:
+            if intermediary.order_by_type is datetime:
+                self.using_dates = True
+            else:
+                using_other = True
+
+        if self.using_dates:
+            assert (
+                not using_other
+            ), "When sorting by a date, it must be the key used on all intermediaries"
+
+    def key_from_item(self, item):
+        return self.model_key_map.get(type(item))
+
+    def get_item_key(self, item, for_prev=False):
+        if self.using_dates:
+            return int(
+                self.multiplier * float(getattr(item, self.key_from_item(item)).strftime("%s.%f"))
+            )
+        else:
+            value = getattr(item, self.key_from_item(item))
+            value_type = type(value)
+            if value_type is float:
+                return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+            elif value_type is str and self.case_insensitive:
+                return value.lower()
+            return value
+
+    def value_from_cursor(self, cursor):
+        if self.using_dates:
+            return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
+                tzinfo=timezone.utc
+            )
+        else:
+            value = cursor.value
+            value_type = type(value)
+            if value_type is float:
+                return math.floor(value) if self._is_asc(cursor.is_prev) else math.ceil(value)
+            return value
+
+    def _is_asc(self, is_prev):
+        return (self.desc and is_prev) or not (self.desc or is_prev)
+
+    def _build_combined_querysets(self, value, is_prev, limit, extra):
+        asc = self._is_asc(is_prev)
+        combined_querysets = list()
+        for intermediary in self.intermediaries:
+            key = intermediary.order_by
+            filters = {}
+            annotate = {}
+
+            if self.case_insensitive:
+                key = f"{key}_lower"
+                annotate[key] = Lower(intermediary.order_by)
+
+            if asc:
+                order_by = key
+                filter_condition = "%s__gte" % key
+            else:
+                order_by = "-%s" % key
+                filter_condition = "%s__lte" % key
+
+            if value is not None:
+                filters[filter_condition] = value
+
+            queryset = (
+                intermediary.queryset.annotate(**annotate)
+                .filter(**filters)
+                .order_by(order_by)[: (limit + extra)]
+            )
+            combined_querysets += list(queryset)
+
+        def _sort_combined_querysets(item):
+            key_value = self.get_item_key(item, is_prev)
+            return ((key_value, type(item).__name__),)
+
+        combined_querysets.sort(
+            key=_sort_combined_querysets,
+            reverse=not asc,
+        )
+
+        return combined_querysets
+
+    def get_result(self, cursor=None, limit=100):
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        if cursor.value:
+            cursor_value = self.value_from_cursor(cursor)
+        else:
+            cursor_value = None
+
+        limit = min(limit, MAX_LIMIT)
+
+        offset = cursor.offset
+        extra = 1
+        if cursor.is_prev and cursor.value:
+            extra += 1
+        combined_querysets = self._build_combined_querysets(
+            cursor_value, cursor.is_prev, limit, extra
+        )
+
+        stop = offset + limit + extra
+        results = (
+            list(combined_querysets[offset:stop])
+            if self.using_dates
+            else list(combined_querysets[: (limit + extra)])
+        )
+
+        if cursor.is_prev and cursor.value:
+            # If the first result is equal to the cursor_value then it's safe to filter
+            # it out, since the value hasn't been updated
+            if results and self.get_item_key(results[0], for_prev=True) == cursor.value:
+                results = results[1:]
+            # Otherwise we may have fetched an extra row, just drop it off the end if so.
+            elif len(results) == offset + limit + extra:
+                results = results[:-1]
+
+        # We reversed the results when generating the querysets, so we need to reverse back now.
+        if cursor.is_prev:
+            results.reverse()
+
+        return build_cursor(
+            results=results,
+            cursor=cursor,
+            key=self.get_item_key,
+            limit=limit,
+            is_desc=self.desc,
+            on_results=self.on_results,
+        )
+
