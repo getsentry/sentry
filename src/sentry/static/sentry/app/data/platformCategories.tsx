@@ -115,6 +115,7 @@ const desktop = [
   'native-crashpad',
   'native-breakpad',
   'native-minidump',
+  'native-qt',
   'minidump',
   'unity',
 ] as const;
