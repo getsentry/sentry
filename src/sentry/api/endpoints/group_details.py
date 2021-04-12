@@ -159,6 +159,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             environments = get_environments(request, organization)
             environment_ids = [e.id for e in environments]
             expand = request.GET.getlist("expand", [])
+            collapse = request.GET.getlist("collapse", [])
             has_inbox = features.has("organizations:inbox", organization, actor=request.user)
 
             # WARNING: the rest of this endpoint relies on this serializer
@@ -171,23 +172,28 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             activity = self._get_activity(request, group, num=100)
             seen_by = self._get_seen_by(request, group)
 
-            first_release = group.get_first_release()
+            if "release" not in collapse:
+                first_release = group.get_first_release()
 
-            if first_release is not None:
-                last_release = group.get_last_release()
-            else:
-                last_release = None
+                if first_release is not None:
+                    last_release = group.get_last_release()
+                else:
+                    last_release = None
 
-            action_list = self._get_actions(request, group)
-
-            if first_release is not None and last_release is not None:
-                first_release, last_release = self._get_first_last_release_info(
-                    request, group, [first_release, last_release]
+                if first_release is not None and last_release is not None:
+                    first_release, last_release = self._get_first_last_release_info(
+                        request, group, [first_release, last_release]
+                    )
+                elif first_release is not None:
+                    first_release = self._get_release_info(request, group, first_release)
+                elif last_release is not None:
+                    last_release = self._get_release_info(request, group, last_release)
+                data.update(
+                    {
+                        "firstRelease": first_release,
+                        "lastRelease": last_release,
+                    }
                 )
-            elif first_release is not None:
-                first_release = self._get_release_info(request, group, first_release)
-            elif last_release is not None:
-                last_release = self._get_release_info(request, group, last_release)
 
             get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
 
@@ -229,10 +235,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 inbox_reason = inbox_map.get(group.id)
                 data.update({"inbox": inbox_reason})
 
+            action_list = self._get_actions(request, group)
             data.update(
                 {
-                    "firstRelease": first_release,
-                    "lastRelease": last_release,
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
                     "participants": serialize(participants, request.user),
