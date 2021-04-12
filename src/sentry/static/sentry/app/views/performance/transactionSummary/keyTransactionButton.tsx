@@ -90,7 +90,7 @@ class KeyTransactionButton extends React.Component<Props, State> {
         this.setState({
           isLoading: false,
           keyFetchID: undefined,
-          error: err.responseJSON.detail,
+          error: err.responseJSON?.detail ?? null,
           isKeyTransaction: false,
         });
       });
