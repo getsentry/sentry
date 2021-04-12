@@ -25,7 +25,15 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.models import Environment, Group, GroupEnvironment, GroupInbox, GroupStatus, Project
+from sentry.models import (
+    QUERY_STATUS_LOOKUP,
+    Environment,
+    Group,
+    GroupEnvironment,
+    GroupInbox,
+    GroupStatus,
+    Project,
+)
 from sentry.search.snuba.backend import (
     EventsDatasetSnubaSearchBackend,
     assigned_or_suggested_filter,
@@ -328,8 +336,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             for search_filter in query_kwargs.get("search_filters", [])
             if search_filter.key.name == "status"
         ]
-        if status and status[0].value.raw_value == GroupStatus.UNRESOLVED:
-            context = [r for r in context if "status" not in r or r["status"] == "unresolved"]
+        if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
+            status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
+            context = [r for r in context if "status" not in r or r["status"] in status_labels]
 
         response = Response(context)
 

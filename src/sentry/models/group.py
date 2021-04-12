@@ -143,6 +143,9 @@ STATUS_QUERY_CHOICES = {
     "muted": GroupStatus.IGNORED,
     "reprocessing": GroupStatus.REPROCESSING,
 }
+QUERY_STATUS_LOOKUP = {
+    status: query for query, status in STATUS_QUERY_CHOICES.items() if query != "muted"
+}
 
 # Statuses that can be updated from the regular "update group" API
 #
