@@ -1,9 +1,8 @@
 import responses
-
 from exam import fixture
+
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
 from sentry_plugins.segment.plugin import SegmentPlugin
 
 

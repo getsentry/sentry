@@ -1,8 +1,8 @@
 import os
+from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 from django.db import DatabaseError
-from unittest.mock import patch
 
 from sentry.models import File, FileBlob, FileBlobIndex
 from sentry.testutils import TestCase

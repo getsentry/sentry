@@ -2,8 +2,10 @@
 Testsuite of backend-independent nodestore tests. Add your backend to the
 `ns` fixture to have it tested.
 """
-import pytest
 from contextlib import contextmanager
+
+import pytest
+
 from sentry.nodestore.django.backend import DjangoNodeStorage
 from tests.sentry.nodestore.bigtable.backend.tests import (
     MockedBigtableNodeStorage,

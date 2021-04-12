@@ -12,7 +12,7 @@ import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
 import Panel from 'app/components/panels/panel';
 import ChartPalette from 'app/constants/chartPalette';
 import {t} from 'app/locale';
-import {DataCategory, SelectValue} from 'app/types';
+import {DataCategory, DataCategoryName, SelectValue} from 'app/types';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import commonTheme, {Theme} from 'app/utils/theme';
 
@@ -32,17 +32,17 @@ const COLOR_PROJECTED = commonTheme.gray200;
 
 export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
   {
-    label: 'Errors',
+    label: DataCategoryName[DataCategory.ERRORS],
     value: DataCategory.ERRORS,
     disabled: false,
   },
   {
-    label: 'Transactions',
+    label: DataCategoryName[DataCategory.TRANSACTIONS],
     value: DataCategory.TRANSACTIONS,
     disabled: false,
   },
   {
-    label: 'Attachments',
+    label: DataCategoryName[DataCategory.ATTACHMENTS],
     value: DataCategory.ATTACHMENTS,
     disabled: false,
   },

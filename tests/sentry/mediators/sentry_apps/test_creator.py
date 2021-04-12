@@ -1,17 +1,17 @@
-from sentry.utils.compat.mock import patch
 from django.db import IntegrityError
 
 from sentry.mediators.sentry_apps import Creator
 from sentry.models import (
+    ApiApplication,
     AuditLogEntry,
     AuditLogEntryEvent,
-    ApiApplication,
     IntegrationFeature,
     SentryApp,
     SentryAppComponent,
     User,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class TestCreator(TestCase):

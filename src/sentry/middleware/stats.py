@@ -1,8 +1,8 @@
 import inspect
 import time
 
-from django.http import Http404
 from django.conf import settings
+from django.http import Http404
 
 from sentry.utils import metrics
 

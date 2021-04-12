@@ -1,23 +1,22 @@
 import logging
 import threading
 import weakref
-
 from contextlib import contextmanager
 
+from celery.signals import task_postrun
 from django.conf import settings
+from django.core.signals import request_finished
 from django.db import router
 from django.db.models import Model
 from django.db.models.manager import Manager, QuerySet
-from django.db.models.signals import post_save, post_delete, post_init, class_prepared
-from django.core.signals import request_finished
+from django.db.models.signals import class_prepared, post_delete, post_init, post_save
 from django.utils.encoding import smart_text
-from celery.signals import task_postrun
 
 from sentry.utils.cache import cache
+from sentry.utils.compat import zip
 from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
-from sentry.utils.compat import zip
 
 __all__ = ("BaseManager", "OptionManager")
 

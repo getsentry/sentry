@@ -1,11 +1,11 @@
-import pytz
 import logging
 from datetime import datetime
+
+import pytz
 
 from sentry.eventstore.models import Event
 from sentry.models import EventDict
 from sentry.utils import json, metrics
-
 
 logger = logging.getLogger(__name__)
 

@@ -4,8 +4,8 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel, Model
-from sentry.models import Project, DefaultFieldsModel
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, ParanoidModel
+from sentry.models import DefaultFieldsModel, Project
 
 
 def default_uuid():

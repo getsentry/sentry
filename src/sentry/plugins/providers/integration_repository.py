@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.models import Repository, Integration
 from sentry.signals import repo_linked
 
 

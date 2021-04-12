@@ -1,15 +1,15 @@
-from functools import reduce
 import logging
-from jwt import ExpiredSignatureError
+from functools import reduce
 from urllib.parse import quote
 
+from jwt import ExpiredSignatureError
 
-from sentry.api.serializers import serialize, StreamGroupSerializer
+from sentry.api.serializers import StreamGroupSerializer, serialize
 from sentry.integrations.atlassian_connect import (
     AtlassianConnectValidationError,
     get_integration_from_request,
 )
-from sentry.models import ExternalIssue, GroupLink, Group
+from sentry.models import ExternalIssue, Group, GroupLink
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
 

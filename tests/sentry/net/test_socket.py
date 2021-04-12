@@ -1,17 +1,16 @@
 import pytest
-from sentry.utils.compat.mock import patch
 from django.core.exceptions import SuspiciousOperation
 from django.test import override_settings
 
-from sentry.testutils import TestCase
-from sentry.testutils.helpers import override_blacklist
-
 from sentry.net.socket import (
+    ensure_fqdn,
     is_ipaddress_allowed,
     is_safe_hostname,
     safe_socket_connect,
-    ensure_fqdn,
 )
+from sentry.testutils import TestCase
+from sentry.testutils.helpers import override_blacklist
+from sentry.utils.compat.mock import patch
 
 
 class SocketTest(TestCase):

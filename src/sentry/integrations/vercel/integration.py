@@ -1,35 +1,34 @@
-from uuid import uuid4
 import logging
+from urllib.parse import urlencode
+from uuid import uuid4
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.serializers import ValidationError
-from urllib.parse import urlencode
 
-
-from sentry.integrations import (
-    IntegrationInstallation,
-    IntegrationFeatures,
-    IntegrationProvider,
-    IntegrationMetadata,
-    FeatureDescription,
-)
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.utils.http import absolute_uri
+from sentry.integrations import (
+    FeatureDescription,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
+)
+from sentry.mediators.sentry_apps import InternalCreator
 from sentry.models import (
-    Organization,
     Integration,
+    Organization,
     Project,
     ProjectKey,
-    User,
     SentryAppInstallation,
     SentryAppInstallationForProvider,
+    User,
 )
+from sentry.pipeline import NestedPipelineView
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.compat import map
-from sentry.shared_integrations.exceptions import IntegrationError, ApiError
-from sentry.mediators.sentry_apps import InternalCreator
+from sentry.utils.http import absolute_uri
 
 from .client import VercelClient
 

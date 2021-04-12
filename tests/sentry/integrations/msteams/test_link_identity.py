@@ -1,9 +1,8 @@
-import responses
 import time
 
-from sentry.utils import json
-from sentry.utils.compat.mock import patch
+import responses
 
+from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.models import (
     Identity,
     IdentityProvider,
@@ -12,7 +11,8 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import TestCase
-from sentry.integrations.msteams.link_identity import build_linking_url
+from sentry.utils import json
+from sentry.utils.compat.mock import patch
 
 
 class MsTeamsIntegrationLinkIdentityTest(TestCase):

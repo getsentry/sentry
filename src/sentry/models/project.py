@@ -1,21 +1,20 @@
 import logging
 import warnings
 from collections import defaultdict
+from uuid import uuid1
 
-from bitfield import BitField
+import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models.signals import pre_delete
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 from django.utils.http import urlencode
-from uuid import uuid1
+from django.utils.translation import ugettext_lazy as _
 
-import sentry_sdk
-
+from bitfield import BitField
 from sentry import projectoptions
 from sentry.app import locks
-from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
+from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BaseManager,
@@ -26,9 +25,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils import metrics
-from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
+from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.retries import TimedRetryPolicy
 
 # TODO(dcramer): pull in enum library

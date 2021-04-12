@@ -1,12 +1,12 @@
 from datetime import datetime
+
 import pytz
-
-from exam import fixture
 from django.core.urlresolvers import reverse
+from exam import fixture
 
+from sentry.models import RelayUsage
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.models import RelayUsage
 
 
 class OrganizationRelayHistoryTest(APITestCase):

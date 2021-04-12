@@ -1,9 +1,8 @@
-import responses
+from urllib.parse import parse_qs
 
+import responses
 from rest_framework.serializers import ValidationError
 
-
-from urllib.parse import parse_qs
 from sentry.integrations.vercel import VercelIntegrationProvider
 from sentry.models import (
     Integration,
@@ -11,8 +10,8 @@ from sentry.models import (
     Project,
     ProjectKey,
     ProjectKeyStatus,
-    SentryAppInstallationForProvider,
     SentryAppInstallation,
+    SentryAppInstallationForProvider,
 )
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json

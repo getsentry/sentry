@@ -1,9 +1,9 @@
 from sentry.models import (
     Activity,
+    ExternalIssue,
     GroupLink,
     GroupSubscription,
     GroupSubscriptionReason,
-    ExternalIssue,
     Integration,
     OrganizationIntegration,
 )
