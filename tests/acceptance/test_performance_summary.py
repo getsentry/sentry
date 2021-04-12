@@ -104,7 +104,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event_data["measurements"]["fp"]["value"] = 5000
         event = make_event(event_data)
         self.store_event(data=event, project_id=self.project.id)
-        self.wait_for_event_count(self.project.id, 1)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
