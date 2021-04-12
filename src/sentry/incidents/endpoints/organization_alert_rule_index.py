@@ -22,6 +22,7 @@ from sentry.utils.cursors import StringCursor, Cursor
 
 from sentry.incidents.models import Incident, IncidentTrigger
 
+
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         """
@@ -108,13 +109,13 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             sort_key if sort_key != "name" else "label"
         )  # Rule's don't share the same field name for their title/label/name...so we account for that here.
         case_insensitive = sort_key == "name"
-        print("alert rules:",alert_rules)
+        print("alert rules:", alert_rules)
         for alert_rule in alert_rules:
             print(alert_rule)
-        incidents=Incident.objects.filter(alert_rule__in=alert_rules)
-        print("incients:",incidents)
-        triggers=IncidentTrigger.objects.filter(incident__in=incidents)
-        print("incient.triggers:",triggers)
+        incidents = Incident.objects.filter(alert_rule__in=alert_rules)
+        print("incients:", incidents)
+        triggers = IncidentTrigger.objects.filter(incident__in=incidents)
+        print("incient.triggers:", triggers)
         # triggers = incidents.filter(trigger)
         alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, sort_key)
         rule_intermediary = CombinedQuerysetIntermediary(issue_rules, rule_sort_key)

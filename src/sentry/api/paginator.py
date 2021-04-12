@@ -728,13 +728,8 @@ class ChainPaginator:
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
 
 
-
-
-
-
-
 class RuleListPaginator:
-    """ 
+    """
     This paginator can be used to paginate between Rules and AlertRules and their special paging requirements.
     """
 
@@ -886,4 +881,3 @@ class RuleListPaginator:
             is_desc=self.desc,
             on_results=self.on_results,
         )
-
