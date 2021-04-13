@@ -120,7 +120,7 @@ class VstsIssueSyncTest(VstsIssueBase):
     def test_create_issue(self):
         responses.add(
             responses.PATCH,
-            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task?api-version=3.0",
+            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )

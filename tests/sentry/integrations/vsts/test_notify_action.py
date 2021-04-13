@@ -53,7 +53,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         azuredevops_rule.rule = Rule.objects.create(project=self.project, label="test rule")
         responses.add(
             responses.PATCH,
-            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task?api-version=3.0",
+            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )

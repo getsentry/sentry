@@ -131,13 +131,13 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
         responses.add(
             responses.GET,
-            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?merges=exclude&limit=100&start=0",
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?limit=1000&start=0",
             json=COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_1_2,
         )
 
         responses.add(
             responses.GET,
-            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?merges=exclude&limit=100&start=1",
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?limit=1000&start=1",
             json=COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_2_2,
         )
 

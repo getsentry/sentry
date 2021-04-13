@@ -194,7 +194,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_fix_subscription(self, mock_get_scopes):
-        external_id = "1234567890"
+        external_id = self.vsts_account_id
         Integration.objects.create(metadata={}, provider="vsts", external_id=external_id)
         data = VstsIntegrationProvider().build_integration(
             {

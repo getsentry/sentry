@@ -216,9 +216,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
 
+        querystring = urlencode({"q": "org:Test Organization ex"})
         responses.add(
             responses.GET,
-            self.base_url + "/search/repositories?q=org:test%20ex",
+            f"{self.base_url}/search/repositories?{querystring}",
             json={
                 "items": [
                     {"name": "example", "full_name": "test/example"},
