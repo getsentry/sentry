@@ -10,7 +10,8 @@ import {Organization} from 'app/types';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
-import {DisplayType, WidgetQuery} from '../../../types';
+import {WidgetQuery} from '../../types';
+import {DisplayType} from '../utils';
 
 type Props = {
   queries: WidgetQuery[];
@@ -19,7 +20,7 @@ type Props = {
   displayType: DisplayType;
   onRemoveQuery: (index: number) => void;
   onAddQuery: () => void;
-  onChangeQuery: (queryIndex: number, eventQuery: WidgetQuery) => void;
+  onChangeQuery: (queryIndex: number, queries: WidgetQuery) => void;
 };
 
 function Queries({
@@ -33,7 +34,6 @@ function Queries({
 }: Props) {
   function handleFieldChange(queryIndex: number, field: keyof WidgetQuery) {
     const widgetQuery = queries[queryIndex];
-
     return function handleChange(value: string) {
       const newQuery = {...widgetQuery, [field]: value};
       onChangeQuery(queryIndex, newQuery);
@@ -47,8 +47,8 @@ function Queries({
       DisplayType.STACKED_AREA,
       DisplayType.BAR,
     ].includes(displayType);
-    const underQueryLimit = queries.length < 3;
 
+    const underQueryLimit = queries.length < 3;
     return rightDisplayType && underQueryLimit;
   }
 
@@ -60,7 +60,7 @@ function Queries({
 
   return (
     <div>
-      {queries.map((eventQuery, queryIndex) => {
+      {queries.map((query, queryIndex) => {
         const displayDeleteButton = queries.length > 1;
         const displayLegendAlias = !hideLegendAlias;
         return (
@@ -72,7 +72,7 @@ function Queries({
               <SearchBar
                 organization={organization}
                 projectIds={selectedProjectIds}
-                query={eventQuery.conditions}
+                query={query.conditions}
                 fields={[]}
                 onSearch={handleFieldChange(queryIndex, 'conditions')}
                 onBlur={handleFieldChange(queryIndex, 'conditions')}
@@ -83,7 +83,7 @@ function Queries({
                   type="text"
                   name="name"
                   required
-                  value={eventQuery.name}
+                  value={query.name}
                   placeholder={t('Legend Alias')}
                   onChange={event =>
                     handleFieldChange(queryIndex, 'name')(event.target.value)

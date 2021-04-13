@@ -54,6 +54,10 @@ class HealthChart extends React.Component<Props> {
   }
 
   shouldComponentUpdate(nextProps: Props) {
+    if (this.props.title !== nextProps.title) {
+      return true;
+    }
+
     if (nextProps.reloading || !nextProps.timeseriesData) {
       return false;
     }
