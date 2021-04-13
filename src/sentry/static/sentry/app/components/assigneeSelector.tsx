@@ -18,7 +18,6 @@ import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
 import {IconAdd, IconChevron, IconClose, IconUser} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
@@ -59,10 +58,6 @@ type State = {
 };
 
 class AssigneeSelector extends React.Component<Props, State> {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   static defaultProps = {
     size: 20,
   };

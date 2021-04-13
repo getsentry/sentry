@@ -3,7 +3,6 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
-import Badge from 'app/components/badge';
 import CreateAlertButton from 'app/components/createAlertButton';
 import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
@@ -12,6 +11,7 @@ import PageHeading from 'app/components/pageHeading';
 import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import Tag from 'app/components/tag';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -75,7 +75,10 @@ class AlertWizard extends React.Component<Props, State> {
         priority="primary"
         to={to}
         disabled={disabled}
-      />
+        hideIcon
+      >
+        {t('Set Conditions')}
+      </CreateAlertButton>
     );
   }
 
@@ -100,7 +103,7 @@ class AlertWizard extends React.Component<Props, State> {
               title={t('Create Alert Rule')}
             />
             <StyledPageHeader>
-              <PageHeading>{t('What do you want to alert on?')}</PageHeading>
+              <PageHeading>{t('What should we alert you about?')}</PageHeading>
             </StyledPageHeader>
             <Heading>{t('Errors')}</Heading>
             <WizardBody>
@@ -114,7 +117,7 @@ class AlertWizard extends React.Component<Props, State> {
                           alertType,
                           AlertWizardAlertNames[alertType],
                           ...(WebVitalAlertTypes.has(alertType)
-                            ? [<StyledBadge key={alertType} text={t('Web Vital')} />]
+                            ? [<Tag key={alertType}>{t('Web Vital')}</Tag>]
                             : []),
                         ] as [AlertType, string, React.ReactNode];
                       })}
@@ -128,7 +131,7 @@ class AlertWizard extends React.Component<Props, State> {
               <WizardPanel visible={!!panelContent && !!alertOption}>
                 {panelContent && alertOption && (
                   <WizardPanelBody>
-                    <PageHeading>{AlertWizardAlertNames[alertOption]}</PageHeading>
+                    <Styledh2>{AlertWizardAlertNames[alertOption]}</Styledh2>
                     <PanelDescription>
                       {panelContent.description}{' '}
                       {panelContent.docsLink && (
@@ -166,6 +169,12 @@ const Heading = styled('h1')`
   margin-bottom: ${space(1)};
 `;
 
+const Styledh2 = styled('h2')`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-bottom: ${space(1)} !important;
+`;
+
 const WizardBody = styled('div')`
   display: flex;
 `;
@@ -173,11 +182,6 @@ const WizardBody = styled('div')`
 const WizardOptions = styled('div')`
   flex: 3;
   margin-right: ${space(4)};
-`;
-
-const StyledBadge = styled(Badge)`
-  color: ${p => p.theme.textColor};
-  font-weight: normal;
 `;
 
 const WizardPanel = styled(Panel)<{visible?: boolean}>`
@@ -188,6 +192,18 @@ const WizardPanel = styled(Panel)<{visible?: boolean}>`
   flex-direction: column;
   align-items: start;
   align-self: flex-start;
+  ${p => p.visible && 'animation: 0.6s pop ease forwards'};
+
+  @keyframes pop {
+    0% {
+      transform: translateY(30px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
 `;
 
 const WizardPanelBody = styled(PanelBody)`

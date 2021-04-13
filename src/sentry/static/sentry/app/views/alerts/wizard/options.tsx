@@ -124,7 +124,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   },
   lcp: {
     description: t(
-      'Largest Contentful Paint (LCP) measures loading performance. Specifically, it marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and we recommend LCP is less than 2.5 seconds.'
+      'Largest Contentful Paint (LCP) measures loading performance. It marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and we recommend LCP is less than 2.5 seconds.'
     ),
     examples: [
       t('When the 75th percentile LCP of your homepage is longer than 2.5 seconds.'),
@@ -147,7 +147,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   },
   fcp: {
     description: t(
-      'First Contentful Paint (FCP), like Largest Contentful Paint (LCP), measures loading performance. Specifically, it marks the point when content such as text and images can first be seen on a page.'
+      'First Contentful Paint (FCP), like Largest Contentful Paint (LCP), measures loading performance. It marks the point when content such as text and images can first be seen on a page.'
     ),
     examples: [t('When the average FCP of a page is longer than 0.25 seconds.')],
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',

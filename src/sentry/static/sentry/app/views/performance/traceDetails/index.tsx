@@ -55,16 +55,10 @@ class TraceSummary extends React.Component<Props> {
 
     return EventView.fromSavedQuery({
       id: undefined,
-      name: `Transactions with Trace ID ${traceSlug}`,
-      fields: [
-        'transaction',
-        'project',
-        'trace.span',
-        'transaction.duration',
-        'timestamp',
-      ],
+      name: `Events with Trace ID ${traceSlug}`,
+      fields: ['title', 'event.type', 'project', 'timestamp'],
       orderby: '-timestamp',
-      query: `event.type:transaction trace:${traceSlug}`,
+      query: `trace:${traceSlug}`,
       projects: [ALL_ACCESS_PROJECTS],
       version: 2,
       start,

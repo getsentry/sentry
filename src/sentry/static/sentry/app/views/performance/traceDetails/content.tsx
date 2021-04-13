@@ -4,7 +4,9 @@ import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import Alert from 'app/components/alert';
+import ButtonBar from 'app/components/buttonBar';
 import DiscoverFeature from 'app/components/discover/discoverFeature';
+import DiscoverButton from 'app/components/discoverButton';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import FeatureBadge from 'app/components/featureBadge';
@@ -21,7 +23,7 @@ import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
 import {TraceFullDetailed, TraceMeta} from 'app/utils/performance/quickTrace/types';
-import {reduceTrace} from 'app/utils/performance/quickTrace/utils';
+import {filterTrace, reduceTrace} from 'app/utils/performance/quickTrace/utils';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
@@ -46,13 +48,6 @@ import {getTraceInfo, isRootTransaction, toPercent} from './utils';
 type IndexedFusedTransaction = {
   transaction: TraceFullDetailed;
   indexed: string[];
-  tagKeys: string[];
-  tagValues: string[];
-};
-
-type FuseResult = {
-  item: IndexedFusedTransaction;
-  score: number;
 };
 
 type AccType = {
@@ -122,22 +117,14 @@ class TraceDetailsContent extends React.Component<Props, State> {
         trace,
         (acc, transaction) => {
           const indexed: string[] = [
-            transaction.event_id,
-            transaction.span_id,
             transaction['transaction.op'],
             transaction.transaction,
             transaction.project_slug,
           ];
 
-          const tags = transaction.tags ?? [];
-          const tagKeys = tags.map(({key}) => key);
-          const tagValues = tags.map(({value}) => value);
-
           acc.push({
             transaction,
             indexed,
-            tagKeys,
-            tagValues,
           });
 
           return acc;
@@ -147,19 +134,39 @@ class TraceDetailsContent extends React.Component<Props, State> {
     );
 
     const fuse = await createFuzzySearch(transformed, {
-      keys: ['indexed', 'tagKeys', 'tagValues', 'dataKeys', 'dataValues'],
-      includeMatches: false,
+      keys: ['indexed'],
+      includeMatches: true,
       threshold: 0.6,
       location: 0,
       distance: 100,
       maxPatternLength: 32,
     });
 
-    const results = fuse.search<FuseResult>(searchQuery);
-    const matched = results.map(result => result.item.transaction);
+    const fuseMatches = fuse
+      .search<IndexedFusedTransaction>(searchQuery)
+      /**
+       * Sometimes, there can be matches that don't include any
+       * indices. These matches are often noise, so exclude them.
+       */
+      .filter(({matches}) => matches.length)
+      .map(({item}) => item.transaction.event_id);
+
+    /**
+     * Fuzzy search on ids result in seemingly random results. So switch to
+     * doing substring matches on ids to provide more meaningful results.
+     */
+    const idMatches = traces
+      .flatMap(trace =>
+        filterTrace(
+          trace,
+          ({event_id, span_id}) =>
+            event_id.includes(searchQuery) || span_id.includes(searchQuery)
+        )
+      )
+      .map(transaction => transaction.event_id);
 
     this.setState({
-      filteredTransactionIds: new Set(matched.map(transaction => transaction.event_id)),
+      filteredTransactionIds: new Set([...fuseMatches, ...idMatches]),
     });
   };
 
@@ -572,7 +579,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, location, traceSlug} = this.props;
+    const {organization, location, traceEventView, traceSlug} = this.props;
 
     return (
       <React.Fragment>
@@ -588,6 +595,15 @@ class TraceDetailsContent extends React.Component<Props, State> {
               <FeatureBadge type="beta" />
             </Layout.Title>
           </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <DiscoverButton
+                to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+              >
+                Open in Discover
+              </DiscoverButton>
+            </ButtonBar>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>{this.renderContent()}</Layout.Main>
