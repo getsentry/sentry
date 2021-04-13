@@ -48,7 +48,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         teamnames, usernames, emails = parse_code_owners(attrs["raw"])
 
         # Check if there exists Sentry users with the emails listed in CODEOWNERS
-        user_emails = UserEmail.objects.filter(email__in=emails)
+        user_emails = UserEmail.objects.filter(
+            email__in=emails,
+            user__sentry_orgmember_set__organization=self.context["project"].organization,
+        )
         user_emails_diff = self._validate_association(emails, user_emails, "emails")
 
         external_association_err.extend(user_emails_diff)
