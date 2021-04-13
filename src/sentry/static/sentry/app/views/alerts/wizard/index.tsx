@@ -140,7 +140,7 @@ class AlertWizard extends React.Component<Props, State> {
                         </ExternalLink>
                       )}
                     </PanelDescription>
-                    <StyledPlaceholder height="250px" />
+                    <WizardBodyPlaceholder height="250px" />
                     <ExampleHeader>{t('Examples')}</ExampleHeader>
                     <List symbol="bullet">
                       {panelContent.examples.map((example, i) => (
@@ -163,7 +163,7 @@ const StyledPageHeader = styled(PageHeader)`
   margin-bottom: ${space(4)};
 `;
 
-const StyledPlaceholder = styled(Placeholder)`
+const WizardBodyPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.border};
   opacity: 0.6;
 `;
