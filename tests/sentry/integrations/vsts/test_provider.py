@@ -1,13 +1,15 @@
-from sentry.utils.compat.mock import Mock, patch
+from time import time
+from urllib.parse import parse_qs
+
 import responses
 from django.http import HttpRequest
-from sentry.identity.vsts.provider import VSTSOAuth2CallbackView, VSTSIdentityProvider
+
+from sentry.identity.vsts.provider import VSTSIdentityProvider, VSTSOAuth2CallbackView
 from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
-from sentry.testutils import TestCase
-from urllib.parse import parse_qs
-from sentry.utils.http import absolute_uri
 from sentry.models import Identity, IdentityProvider
-from time import time
+from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock, patch
+from sentry.utils.http import absolute_uri
 
 
 class TestVSTSOAuthCallbackView(TestCase):

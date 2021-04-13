@@ -1,21 +1,17 @@
+from urllib.parse import urlencode
+
 from botocore.exceptions import ClientError
 from django.http import HttpResponse
-from urllib.parse import urlencode
 
 from sentry.api.serializers import serialize
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.utils import ALL_AWS_REGIONS
-from sentry.models import (
-    Integration,
-    OrganizationIntegration,
-    ProjectKey,
-)
-from sentry.testutils import IntegrationTestCase
-from sentry.utils.compat import map
-from sentry.utils.compat.mock import patch, ANY, MagicMock
-from sentry.testutils.helpers.faux import Mock
+from sentry.models import Integration, OrganizationIntegration, ProjectKey
 from sentry.pipeline import PipelineView
-
+from sentry.testutils import IntegrationTestCase
+from sentry.testutils.helpers.faux import Mock
+from sentry.utils.compat import map
+from sentry.utils.compat.mock import ANY, MagicMock, patch
 
 arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"

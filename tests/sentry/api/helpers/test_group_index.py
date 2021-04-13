@@ -1,14 +1,14 @@
-from sentry.utils.compat.mock import patch, Mock
 from django.http import QueryDict
 
-from sentry.models import add_group_to_inbox, GroupInbox, GroupInboxReason, GroupStatus
 from sentry.api.helpers.group_index import (
-    validate_search_filter_permissions,
     ValidationError,
     update_groups,
+    validate_search_filter_permissions,
 )
 from sentry.api.issue_search import parse_search_query
+from sentry.models import GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock, patch
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):

@@ -7,7 +7,7 @@ from django.db.models import F
 from django.utils import timezone
 from exam import fixture
 
-from sentry.api.serializers import serialize, UserReportWithGroupSerializer
+from sentry.api.serializers import UserReportWithGroupSerializer, serialize
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.mail import mail_adapter
@@ -26,12 +26,9 @@ from sentry.models import (
     UserReport,
 )
 from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
-    NotificationSettingTypes,
-    NotificationSettingOptionValues,
-)
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.ownership import grammar
-from sentry.ownership.grammar import dump_schema, Matcher, Owner
+from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
@@ -664,8 +661,25 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
         )
         assert self.adapter.get_send_to_owners(event_single_user, self.project) == {self.user2.id}
 
-    def test_disable_alerts(self):
-        # Make sure that disabling mail alerts works as expected
+    def test_disable_alerts_user_scope(self):
+        event_all_users = self.store_event(
+            data=self.make_event_data("foo.cbl"), project_id=self.project.id
+        )
+
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user2,
+        )
+
+        assert self.user2.id not in self.adapter.get_send_to_owners(event_all_users, self.project)
+
+    def test_disable_alerts_project_scope(self):
+        event_all_users = self.store_event(
+            data=self.make_event_data("foo.cbl"), project_id=self.project.id
+        )
+
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
@@ -673,13 +687,32 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
             user=self.user2,
             project=self.project,
         )
+
+        assert self.user2.id not in self.adapter.get_send_to_owners(event_all_users, self.project)
+
+    def test_disable_alerts_multiple_scopes(self):
         event_all_users = self.store_event(
             data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
-        assert self.adapter.get_send_to_owners(event_all_users, self.project) == {
-            self.user.id,
-            self.user3.id,
-        }
+
+        # Project-independent setting.
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user2,
+        )
+
+        # Per-project setting.
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user2,
+            project=self.project,
+        )
+
+        assert self.user2.id not in self.adapter.get_send_to_owners(event_all_users, self.project)
 
 
 class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):

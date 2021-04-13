@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:39:12.608920Z'
+created: '2021-04-08T09:28:33.538120Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,6 +15,8 @@ app-depth-1:
               "CUseCountedObject<T>::UCDestroy"
             package (ignored because function takes precedence)
               "d3d11.dll"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------

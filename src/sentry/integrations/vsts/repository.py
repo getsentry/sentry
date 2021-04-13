@@ -1,7 +1,7 @@
 import logging
 
-from sentry.plugins import providers
 from sentry.models import Integration
+from sentry.plugins import providers
 from sentry.shared_integrations.exceptions import IntegrationError
 
 MAX_COMMIT_DATA_REQUESTS = 90

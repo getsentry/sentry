@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 """
 TODO(postgres): We've encoded these enums as integers to facilitate
@@ -7,6 +8,18 @@ communication with the API and plan to do so as soon as we use native enums in
 Postgres. In the meantime each enum has an adjacent object that maps the
 integers to their string values.
 """
+
+
+def get_notification_setting_type_name(value: int) -> Optional[str]:
+    return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
+
+
+def get_notification_setting_value_name(value: int) -> Optional[str]:
+    return NOTIFICATION_SETTING_OPTION_VALUES.get(NotificationSettingOptionValues(value))
+
+
+def get_notification_scope_name(value: int) -> Optional[str]:
+    return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
 
 
 class NotificationSettingTypes(Enum):
@@ -97,3 +110,28 @@ class UserOptionsSettingsKey(Enum):
     SELF_ASSIGN = "selfAssignOnResolve"
     SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
     WORKFLOW = "workflowNotifications"
+
+
+VALID_VALUES_FOR_KEY = {
+    NotificationSettingTypes.DEPLOY: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.COMMITTED_ONLY,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.ISSUE_ALERTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.WORKFLOW: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+        NotificationSettingOptionValues.NEVER,
+    },
+}
+
+
+NOTIFICATION_SETTING_DEFAULTS = {
+    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
+    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+}

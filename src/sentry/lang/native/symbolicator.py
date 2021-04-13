@@ -1,24 +1,22 @@
-import sys
-import jsonschema
-import logging
-import time
 import base64
-
-from django.conf import settings
-from django.core.urlresolvers import reverse
-
-from requests.exceptions import RequestException
+import logging
+import sys
+import time
 from urllib.parse import urljoin
 
+import jsonschema
 import sentry_sdk
+from django.conf import settings
+from django.core.urlresolvers import reverse
+from requests.exceptions import RequestException
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
-from sentry.utils import json, metrics
+from sentry.models import Organization
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
-from sentry.models import Organization
+from sentry.utils import json, metrics
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
@@ -173,7 +171,9 @@ class Symbolicator:
                 metrics.timing(
                     "events.symbolicator.response.completed.size", len(json.dumps(json_response))
                 )
-                return redact_internal_sources(json_response)
+                reverse_source_aliases(json_response)
+                redact_internal_sources(json_response)
+                return json_response
 
     def process_minidump(self, minidump):
         return self._process(lambda: self.sess.upload_minidump(minidump), "process_minidump")
@@ -193,6 +193,47 @@ class Symbolicator:
         )
 
 
+def reverse_source_aliases(response, builtin_sources=None):
+    """Reverses internal source aliases from a response.
+
+    When an internal source was an alias this reverses the alias in the DIF candidates,
+    exposing it again like the user configured this.  This is only done for internal sources
+    since other sources do not support aliases.
+    """
+    if builtin_sources is None:
+        builtin_sources = settings.SENTRY_BUILTIN_SOURCES
+    reverse_aliases = reverse_aliases_map(builtin_sources)
+
+    for module in response.get("modules", []):
+        for candidate in module.get("candidates", []):
+            source_id = candidate["source"]
+            if source_id in reverse_aliases:
+                candidate["source"] = reverse_aliases.get(source_id)
+
+
+def reverse_aliases_map(builtin_sources):
+    """Returns a map of source IDs to their original un-aliased source ID.
+
+    :param builtin_sources: The value of `settings.SENTRY_BUILTIN_SOURCES`.
+    """
+    reverse_aliases = dict()
+    for key, source in builtin_sources.items():
+        if source.get("type") != "alias":
+            continue
+        try:
+            self_id = source["id"]
+        except KeyError:
+            continue
+        for aliased_source in source.get("sources", []):
+            try:
+                aliased_source = builtin_sources[aliased_source]
+                aliased_id = aliased_source["id"]
+            except KeyError:
+                continue
+            reverse_aliases[aliased_id] = self_id
+    return reverse_aliases
+
+
 def redact_internal_sources(response):
     """Redacts information about internal sources from a response.
 
@@ -206,7 +247,6 @@ def redact_internal_sources(response):
     """
     for module in response.get("modules", []):
         redact_internal_sources_from_module(module)
-    return response
 
 
 def redact_internal_sources_from_module(module):

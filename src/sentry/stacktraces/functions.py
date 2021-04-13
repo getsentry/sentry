@@ -3,7 +3,6 @@ import re
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import setdefault_path
 
-
 _windecl_hash = re.compile(r"^@?(.*?)@[0-9]+$")
 _rust_hash = re.compile(r"::h[a-z0-9]{16}$")
 _cpp_trailer_re = re.compile(r"(\bconst\b|&)$")

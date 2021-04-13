@@ -452,8 +452,13 @@ export class Client {
         // Try to get text out of the response no matter the status
         try {
           responseText = await response.text();
-        } catch {
-          // No text came out.. too bad
+        } catch (error) {
+          ok = false;
+          if (error.name === 'AbortError') {
+            errorReason = 'Request was aborted';
+          } else {
+            errorReason = error.toString();
+          }
         }
 
         const responseContentType = response.headers.get('content-type');

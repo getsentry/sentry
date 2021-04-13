@@ -1,14 +1,14 @@
+import copy
+import ipaddress
 import logging
+import time
 from datetime import datetime, timedelta
 from io import BytesIO
-import ipaddress
-import copy
-import time
 
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, connection, router, transaction
+from django.db import IntegrityError, OperationalError, connection, router, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
@@ -936,6 +936,10 @@ def _save_aggregate2(event, flat_hashes, hierarchical_hashes, release, **kwargs)
     existing_group_id = _find_group_id(all_hashes)
 
     if existing_group_id is None:
+
+        if project.id in (options.get("store.load-shed-group-creation-projects") or ()):
+            raise HashDiscarded("Load shedding group creation")
+
         with sentry_sdk.start_span(
             op="event_manager.create_group_transaction"
         ) as span, metrics.timer(
@@ -951,7 +955,15 @@ def _save_aggregate2(event, flat_hashes, hierarchical_hashes, release, **kwargs)
             existing_group_id = _find_group_id(all_hashes)
 
             if existing_group_id is None:
-                short_id = project.next_short_id()
+
+                try:
+                    short_id = project.next_short_id()
+                except OperationalError:
+                    metrics.incr(
+                        "next_short_id.timeout",
+                        tags={"platform": event.platform or "unknown"},
+                    )
+                    raise HashDiscarded("Timeout when getting next_short_id")
 
                 # it's possible the release was deleted between
                 # when we queried for the release and now, so
@@ -1096,7 +1108,14 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
         if project.id in (options.get("store.load-shed-group-creation-projects") or ()):
             raise HashDiscarded("Load shedding group creation")
 
-        short_id = project.next_short_id()
+        try:
+            short_id = project.next_short_id()
+        except OperationalError:
+            metrics.incr(
+                "next_short_id.timeout",
+                tags={"platform": event.platform or "unknown"},
+            )
+            raise HashDiscarded("Timeout when getting next_short_id")
 
         with transaction.atomic():
             group, group_is_new = (

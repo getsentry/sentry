@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:39:12.273947Z'
+created: '2021-04-08T09:28:33.011193Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -23,6 +23,8 @@ app-depth-1:
               "glTexSubImage2D"
             package (ignored because function takes precedence)
               "libgl.dylib"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------

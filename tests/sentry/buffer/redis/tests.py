@@ -1,13 +1,13 @@
-from datetime import datetime
 import pickle
-
-from sentry.utils.compat import mock
+from datetime import datetime
 
 from django.utils import timezone
 from django.utils.encoding import force_text
+
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class RedisBufferTest(TestCase):

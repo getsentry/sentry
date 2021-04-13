@@ -1,10 +1,11 @@
 from collections import namedtuple
 from typing import Any, Iterable, List, Mapping, Optional, Tuple
+
 from sentry.notifications.types import (
     FineTuningAPIKey,
     NotificationScopeType,
-    NotificationSettingTypes,
     NotificationSettingOptionValues,
+    NotificationSettingTypes,
     UserOptionsSettingsKey,
 )
 
@@ -164,8 +165,9 @@ def get_legacy_object(
     organization_mapping: Mapping[int, Any],
 ) -> Any:
     type = NotificationSettingTypes(notification_setting.type)
-    key = get_legacy_key(notification_setting.type)
+    key = get_legacy_key(type)
     value = NotificationSettingOptionValues(notification_setting.value)
+    scope_type = NotificationScopeType(notification_setting.scope_type)
 
     data = {
         "key": key,
@@ -175,9 +177,9 @@ def get_legacy_object(
         "organization": None,
     }
 
-    if notification_setting.scope_type == NotificationScopeType.PROJECT.value:
+    if scope_type == NotificationScopeType.PROJECT:
         data["project"] = parent_mapping.get(notification_setting.scope_identifier)
-    if notification_setting.scope_type == NotificationScopeType.ORGANIZATION.value:
+    if scope_type == NotificationScopeType.ORGANIZATION:
         data["organization"] = organization_mapping.get(notification_setting.scope_identifier)
 
     return LegacyUserOptionClone(**data)
@@ -201,8 +203,8 @@ def get_parent_mappings(
     notification_settings: Iterable[Any],
 ) -> Tuple[Mapping[int, Any], Mapping[int, Any]]:
     """ Prefetch a list of Project or Organization objects for the Serializer. """
-    from sentry.models.project import Project
     from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
     project_ids = []
     organization_ids = []

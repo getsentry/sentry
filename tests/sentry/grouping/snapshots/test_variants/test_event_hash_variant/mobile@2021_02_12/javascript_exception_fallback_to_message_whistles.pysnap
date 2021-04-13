@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T10:36:27.074174Z'
+created: '2021-04-08T09:28:29.928625Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,12 +12,3 @@ app:
           "Error"
         value* (stripped common values)
           "<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>) at offset <hex>"
---------------------------------------------------------------------------
-exception-type:
-  hash: "902b0d55fddef6f8d651fe1035b7d4bd"
-  tree_label: "Error"
-  component:
-    exception-type*
-      exception-type*
-        type*
-          "Error"

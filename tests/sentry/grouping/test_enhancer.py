@@ -51,6 +51,18 @@ def test_parsing_errors():
         Enhancements.from_config_string("invalid.message:foo -> bar")
 
 
+def test_caller_recursion():
+    # Remove this test when CallerMatch can be applied recursively
+    with pytest.raises(InvalidEnhancerConfig):
+        Enhancements.from_config_string("[ category:foo ] | [ category:bar ] | category:baz +app")
+
+
+def test_callee_recursion():
+    # Remove this test when CalleeMatch can be applied recursively
+    with pytest.raises(InvalidEnhancerConfig):
+        Enhancements.from_config_string(" category:foo | [ category:bar ] | [ category:baz ] +app")
+
+
 def test_basic_path_matching():
     enhancement = Enhancements.from_config_string(
         """

@@ -1,24 +1,23 @@
+from datetime import datetime
+
 import pytest
 import pytz
-
-from datetime import datetime
 from django.test import override_settings
 
-from sentry.demo.demo_org_manager import create_demo_org, assign_demo_org
-from sentry.demo.models import DemoOrganization, DemoUser, DemoOrgStatus
+from sentry.demo.demo_org_manager import assign_demo_org, create_demo_org
+from sentry.demo.models import DemoOrganization, DemoOrgStatus, DemoUser
 from sentry.models import (
-    User,
     Organization,
     OrganizationMember,
     OrganizationStatus,
     Project,
     ProjectKey,
     Team,
+    User,
 )
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
 from sentry.utils.email import create_fake_email
-
 
 org_owner_email = "james@example.com"
 org_name = "Org Name"

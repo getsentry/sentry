@@ -1,12 +1,10 @@
 import re
-
 from hashlib import md5
 
 from django.utils.encoding import force_bytes
 
-from sentry.utils.safe import get_path
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
-
+from sentry.utils.safe import get_path
 
 _fingerprint_var_re = re.compile(r"\{\{\s*(\S+)\s*\}\}")
 

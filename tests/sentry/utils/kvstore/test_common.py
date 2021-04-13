@@ -1,7 +1,8 @@
 import itertools
-import pytest
 from dataclasses import dataclass
 from typing import Iterator, Tuple
+
+import pytest
 
 from sentry.utils.kvstore.abstract import K, KVStorage, V
 

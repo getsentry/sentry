@@ -1,10 +1,10 @@
 ---
-created: '2021-03-29T21:59:21.190211Z'
+created: '2021-04-08T09:28:30.874500Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "87bb03ff042bd0ba7c0d535c2a2129ea"
+  hash: "65b492dd57da1268ca7868e104b2067d"
   tree_label: "doFrame | doTraversal | onLayout [std/ui]"
   component:
     app-depth-1*
@@ -31,9 +31,11 @@ app-depth-1:
               "sourcefile"
             function*
               "onLayout"
+        type*
+          "ApplicationNotResponding"
         value (ignored because stacktrace takes precedence)
           "Application Not Responding for at least <int> ms."
-      threads (exception of app-depth-1/exception-type/system takes precedence)
+      threads (exception of app-depth-1/system takes precedence)
         stacktrace*
           frame*
             module*
@@ -46,8 +48,8 @@ app-depth-1:
 app-depth-2:
   hash: null
   component:
-    app-depth-2 (exception of app-depth-1/exception-type/system takes precedence)
-      threads (exception of app-depth-1/exception-type/system takes precedence)
+    app-depth-2 (exception of app-depth-1/system takes precedence)
+      threads (exception of app-depth-1/system takes precedence)
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
@@ -63,15 +65,6 @@ app-depth-2:
               "vmstack.java"
             function*
               "getThreadStackTrace"
---------------------------------------------------------------------------
-exception-type:
-  hash: "8e25fd0dc40b237af6e54a498daf4619"
-  tree_label: "ApplicationNotResponding"
-  component:
-    exception-type*
-      exception-type*
-        type*
-          "ApplicationNotResponding"
 --------------------------------------------------------------------------
 system:
   hash: "81103d430ba24ccad51cdbf81de2297a"
@@ -840,7 +833,7 @@ system:
           "ApplicationNotResponding"
         value (ignored because stacktrace takes precedence)
           "Application Not Responding for at least <int> ms."
-      threads (exception of app-depth-1/exception-type/system takes precedence)
+      threads (exception of app-depth-1/system takes precedence)
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*

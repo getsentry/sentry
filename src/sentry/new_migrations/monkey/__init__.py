@@ -1,9 +1,8 @@
 from django import VERSION
+from django.db.migrations import executor, migration, writer
 
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.new_migrations.monkey.writer import SENTRY_MIGRATION_TEMPLATE
-
-from django.db.migrations import migration, executor, writer
 
 LAST_VERIFIED_DJANGO_VERSION = (1, 11)
 CHECK_MESSAGE = """Looks like you're trying to upgrade Django! Since we monkeypatch

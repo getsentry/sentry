@@ -1,5 +1,4 @@
 from sentry.plugins.base import Plugin
-
 from sentry_plugins.base import CorePluginMixin
 
 

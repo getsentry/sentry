@@ -1,10 +1,10 @@
+import base64
 import os
 import zlib
-import base64
-import msgpack
 
-from parsimonious.grammar import Grammar, NodeVisitor
+import msgpack
 from parsimonious.exceptions import ParseError
+from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
@@ -13,14 +13,13 @@ from sentry.utils.strings import unescape_string
 from .actions import Action, FlagAction, VarAction
 from .exceptions import InvalidEnhancerConfig
 from .matchers import (
-    Match,
-    ExceptionFieldMatch,
-    FrameMatch,
     CalleeMatch,
     CallerMatch,
+    ExceptionFieldMatch,
+    FrameMatch,
+    Match,
     create_match_frame,
 )
-
 
 # Grammar is defined in EBNF syntax.
 enhancements_grammar = Grammar(
@@ -32,8 +31,8 @@ line = _ (comment / rule / empty) newline?
 
 rule = _ matchers actions
 
-matchers         = matcher+
-matcher          = frame_matcher / caller_matcher / callee_matcher
+
+matchers         = caller_matcher? frame_matcher+ callee_matcher?
 frame_matcher    = _ negation? matcher_type sep argument
 matcher_type     = ident / quoted_ident
 caller_matcher   = _ "[" _ frame_matcher _ "]" _ "|"
@@ -366,8 +365,9 @@ class EnhancmentsVisitor(NodeVisitor):
         _, matcher, actions = children
         return Rule(matcher, actions)
 
-    def visit_matcher(self, node, children):
-        return children[0]
+    def visit_matchers(self, node, children):
+        caller_matcher, frame_matchers, callee_matcher = children
+        return caller_matcher + frame_matchers + callee_matcher
 
     def visit_caller_matcher(self, node, children):
         _, _, _, inner, _, _, _, _ = children

@@ -1,10 +1,10 @@
 ---
-created: '2021-03-29T21:59:31.399762Z'
+created: '2021-04-08T09:28:28.359619Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "59c0434e3624d23495e047f18d5615c5"
+  hash: "70670d6237c30dddaaada3ed1f622f1a"
   tree_label: "log::__private_api_log"
   component:
     app-depth-1*
@@ -17,6 +17,8 @@ app-depth-1:
               "log::__private_api_log"
             package (ignored because function takes precedence)
               "log"
+        type*
+          "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
@@ -658,15 +660,6 @@ app-depth-max:
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
---------------------------------------------------------------------------
-exception-type:
-  hash: "68c16946d5a3e3ba0e4ef603182fc03c"
-  tree_label: "actix_web::pipeline"
-  component:
-    exception-type*
-      exception-type*
-        type*
-          "actix_web::pipeline"
 --------------------------------------------------------------------------
 system:
   hash: "3b6eaff1ca55deef09b01def1b407956"

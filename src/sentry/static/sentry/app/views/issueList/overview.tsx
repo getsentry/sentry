@@ -301,10 +301,6 @@ class IssueListOverview extends React.Component<Props, State> {
       organization.features.includes('inbox') &&
       organization.features.includes('inbox-tab-default')
     ) {
-      if (organization.features.includes('inbox-owners-query')) {
-        return Query.FOR_REVIEW_OWNER;
-      }
-
       return Query.FOR_REVIEW;
     }
 
@@ -325,7 +321,7 @@ class IssueListOverview extends React.Component<Props, State> {
     if (
       organization.features.includes('inbox') &&
       organization.features.includes('inbox-tab-default') &&
-      isForReviewQuery(this.getQuery())
+      this.getQuery() === Query.FOR_REVIEW
     ) {
       return IssueSortOptions.INBOX;
     }
@@ -795,7 +791,7 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     // Remove inbox tab specific sort
-    if (query.sort === IssueSortOptions.INBOX && !isForReviewQuery(query.query)) {
+    if (query.sort === IssueSortOptions.INBOX && query.query !== Query.FOR_REVIEW) {
       delete query.sort;
     }
 
@@ -855,8 +851,6 @@ class IssueListOverview extends React.Component<Props, State> {
           hasGuideAnchor={hasGuideAnchor}
           memberList={members}
           displayReprocessingLayout={displayReprocessingLayout}
-          onMarkReviewed={this.onMarkReviewed}
-          onDelete={this.onDelete}
           useFilteredStats
           showInboxTime={showInboxTime}
         />
@@ -1142,7 +1136,7 @@ class IssueListOverview extends React.Component<Props, State> {
               </SidebarContainer>
             </StyledPageContent>
 
-            {hasFeature && isForReviewQuery(query) && (
+            {hasFeature && query === Query.FOR_REVIEW && (
               <GuideAnchor target="is_inbox_tab" />
             )}
           </React.Fragment>

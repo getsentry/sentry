@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:53:50.788676Z'
+created: '2021-04-08T09:28:27.458885Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,6 +13,8 @@ app-depth-1:
           frame*
             function*
               "stripped_application_code"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
 --------------------------------------------------------------------------

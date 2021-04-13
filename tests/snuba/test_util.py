@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from sentry.models import GroupHash
-from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils import snuba
 
 

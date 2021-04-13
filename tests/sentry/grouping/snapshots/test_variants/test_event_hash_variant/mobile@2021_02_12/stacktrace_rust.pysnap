@@ -1,10 +1,10 @@
 ---
-created: '2021-03-29T21:59:23.772918Z'
+created: '2021-04-08T09:28:24.431517Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "3a6e41ac29b05b3745783c0a4fc6b493"
+  hash: "eb87c1031dba55b67df86fb9fff59dc6"
   tree_label: "log_demo::main"
   component:
     app-depth-1*
@@ -15,6 +15,8 @@ app-depth-1:
               "log_demo::main"
             package (ignored because function takes precedence)
               "log_demo"
+        type*
+          "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
@@ -190,15 +192,6 @@ app-depth-max:
           "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
---------------------------------------------------------------------------
-exception-type:
-  hash: "fed4f6eb500e04f59e97d31e8743ec8f"
-  tree_label: "log_demo"
-  component:
-    exception-type*
-      exception-type*
-        type*
-          "log_demo"
 --------------------------------------------------------------------------
 system:
   hash: "cb57cfc73cc622c2ac1386c9ea531fb9"

@@ -1,10 +1,10 @@
-from hashlib import sha256
 import hmac
+from hashlib import sha256
 
 from sentry import options
-from sentry.utils import json
 from sentry.models import ApiToken, ProjectKey
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 UNSET = object()
 

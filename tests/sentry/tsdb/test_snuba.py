@@ -1,12 +1,13 @@
-import pytz
 from datetime import datetime, timedelta
+
+import pytz
+from sentry_relay import DataCategory
 
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.dates import to_timestamp
 from sentry.utils.outcomes import Outcome
-from sentry_relay import DataCategory
 
 
 def floor_to_hour_epoch(value):

@@ -5,29 +5,34 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
-from sentry.utils.snuba import is_measurement
 
-# The maximum number of measurements allowed to be queried at at time
-MAX_MEASUREMENTS = 4
+# The maximum number of array columns allowed to be queried at at time
+MAX_ARRAY_COLS = 4
 
 DATA_FILTERS = ["all", "exclude_outliers"]
 
 
 class HistogramSerializer(serializers.Serializer):
     query = serializers.CharField(required=False)
-    field = serializers.ListField(allow_empty=False, max_length=MAX_MEASUREMENTS)
+    field = serializers.ListField(allow_empty=False, max_length=MAX_ARRAY_COLS)
     numBuckets = serializers.IntegerField(min_value=1, max_value=100)
     precision = serializers.IntegerField(default=0, min_value=0, max_value=4)
     min = serializers.FloatField(required=False)
     max = serializers.FloatField(required=False)
     dataFilter = serializers.ChoiceField(choices=DATA_FILTERS, required=False)
 
+    def validate(self, data):
+        if "min" in data and "max" in data and data["min"] > data["max"]:
+            raise serializers.ValidationError("min cannot be greater than max.")
+        return data
+
     def validate_field(self, fields):
         if len(fields) > 1:
             # Due to how the data is stored in snuba, multihistograms
-            # are only possible when they are all measurements.
-            if any(not is_measurement(field) for field in fields):
-                detail = "You can only generate histogram for one column at a time unless they are all measurements."
+            # are only possible when they are all measurements or all span op breakdowns.
+            histogram_type = discover.check_multihistogram_fields(fields)
+            if not histogram_type:
+                detail = "You can only generate histogram for one column at a time unless they are all measurements or all span op breakdowns."
                 raise serializers.ValidationError(detail)
         return fields
 

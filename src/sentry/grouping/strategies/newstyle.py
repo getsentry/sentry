@@ -1,17 +1,13 @@
 import re
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy, call_with_variants
-from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, has_url_origin
-from sentry.grouping.strategies.message import trim_message_for_grouping
-from sentry.grouping.strategies.similarity_encoders import (
-    text_shingle_encoder,
-    ident_encoder,
-)
+from sentry.grouping.strategies.base import call_with_variants, strategy
 from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
+from sentry.grouping.strategies.message import trim_message_for_grouping
+from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
+from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.iterators import shingle
-
 
 _ruby_erb_func = re.compile(r"__\d{4,}_\d{4,}$")
 _basename_re = re.compile(r"[/\\]")
@@ -543,9 +539,7 @@ def single_exception(exception, context, **meta):
     rv = {}
 
     for variant, stacktrace_component in stacktrace_variants.items():
-        values = [stacktrace_component]
-        if not context["hierarchical_grouping"] or variant != "app-depth-1":
-            values.append(type_component)
+        values = [stacktrace_component, type_component]
 
         if ns_error_component is not None:
             values.append(ns_error_component)
@@ -583,11 +577,6 @@ def single_exception(exception, context, **meta):
             values.append(value_component)
 
         rv[variant] = GroupingComponent(id="exception", values=values)
-
-    if context["hierarchical_grouping"] and type_component.contributes:
-        rv["exception-type"] = GroupingComponent(
-            id="exception-type", values=[type_component], tree_label=exception.type
-        )
 
     return rv
 

@@ -48,7 +48,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 `;
 
 const SectionBody = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   padding: ${space(0.5)} 0;
   max-height: 32px;
 `;

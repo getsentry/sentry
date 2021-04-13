@@ -10,6 +10,7 @@ from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.snuba import discover
+from sentry.utils.validators import is_event_id, INVALID_EVENT_DETAILS
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
@@ -30,6 +31,10 @@ def find_event(items, function, default=None):
 
 def is_root(item):
     return item.get("root", "0") == "1"
+
+
+def child_sort_key(item):
+    return [item["start_timestamp"], item["timestamp"]]
 
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
@@ -90,6 +95,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         detailed = request.GET.get("detailed", "0") == "1"
         event_id = request.GET.get("event_id")
 
+        # Only need to validate event_id as trace_id is validated in the URL
+        if event_id and not is_event_id(event_id):
+            return Response({"detail": INVALID_EVENT_DETAILS.format("Event")}, status=400)
+
         # selected_columns is a set list, since we only want to include the minimum to render the trace
         selected_columns = [
             "id",
@@ -118,8 +127,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 orderby=["-root", "-timestamp", "id"],
                 params=params,
                 query=f"event.type:transaction trace:{trace_id}",
-                # get 1 more so we know if the attempted trace was over 100
-                limit=MAX_TRACE_SIZE + 1,
+                limit=MAX_TRACE_SIZE,
                 referrer="api.trace-view.get-ids",
             )
             if len(result["data"]) == 0:
@@ -348,12 +356,19 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             event["_meta"] = {}
             event["tags"], event["_meta"]["tags"] = get_tags_with_meta(nodestore_event)
 
-    def update_generations(self, event):
+    def update_children(self, event):
+        """Updates the childrens of subtraces
+
+        - Generation could be incorrect from orphans where we've had to reconnect back to an orphan event that's
+          already been encountered
+        - Sorting children events by timestamp
+        """
         parents = [event]
         iteration = 0
         while parents and iteration < MAX_TRACE_SIZE:
             iteration += 1
             parent = parents.pop()
+            parent["children"].sort(key=child_sort_key)
             for child in parent["children"]:
                 child["generation"] = parent["generation"] + 1
                 parents.append(child)
@@ -455,11 +470,52 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     )
                     break
 
-        results = []
-        for result in results_map.values():
-            # Only need to update generation values when there are orphans since otherwise we stepped through in order
-            if has_orphans:
-                for root in result:
-                    self.update_generations(root)
-            results.extend(result)
-        return results
+        root_traces = []
+        orphans = []
+        for index, result in enumerate(results_map.values()):
+            for subtrace in result:
+                self.update_children(subtrace)
+            if index > 0 or root is None:
+                orphans.extend(result)
+            elif root:
+                root_traces = result
+        # We sort orphans and roots separately because we always want the root(s) as the first element(s)
+        root_traces.sort(key=child_sort_key)
+        orphans.sort(key=child_sort_key)
+        return root_traces + orphans
+
+
+class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
+    def get(self, request, organization, trace_id):
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
+        try:
+            # The trace meta isn't useful without global views, so skipping the check here
+            params = self.get_snuba_params(request, organization, check_global_views=False)
+        except NoProjects:
+            return Response(status=404)
+
+        with self.handle_query_errors():
+            result = discover.query(
+                selected_columns=[
+                    "count_unique(project_id) as projects",
+                    "count_if(event.type, equals, transaction) as transactions",
+                    "count_if(event.type, notEquals, transaction) as errors",
+                ],
+                params=params,
+                query=f"trace:{trace_id}",
+                limit=1,
+                referrer="api.trace-view.get-meta",
+            )
+            if len(result["data"]) == 0:
+                return Response(status=404)
+        return Response(self.serialize(result["data"][0]))
+
+    def serialize(self, results):
+        return {
+            # Values can be null if there's no result
+            "projects": results.get("projects") or 0,
+            "transactions": results.get("transactions") or 0,
+            "errors": results.get("errors") or 0,
+        }
