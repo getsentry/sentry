@@ -4,7 +4,9 @@ import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import Alert from 'app/components/alert';
+import ButtonBar from 'app/components/buttonBar';
 import DiscoverFeature from 'app/components/discover/discoverFeature';
+import DiscoverButton from 'app/components/discoverButton';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import FeatureBadge from 'app/components/featureBadge';
@@ -577,7 +579,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, location, traceSlug} = this.props;
+    const {organization, location, traceEventView, traceSlug} = this.props;
 
     return (
       <React.Fragment>
@@ -593,6 +595,15 @@ class TraceDetailsContent extends React.Component<Props, State> {
               <FeatureBadge type="beta" />
             </Layout.Title>
           </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <DiscoverButton
+                to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+              >
+                Open in Discover
+              </DiscoverButton>
+            </ButtonBar>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>{this.renderContent()}</Layout.Main>
