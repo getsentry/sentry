@@ -571,6 +571,6 @@ class GroupDeleteTest(APITestCase):
         url = f"/api/0/issues/{group.id}/"
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data["firstRelease"] is not None
+        assert response.data["firstRelease"] is None
         response = self.client.get(url, {"collapse": ["release"]})
         assert "firstRelease" not in response.data
