@@ -53,6 +53,21 @@ describe('PlatformPicker', function () {
       expect(filteredPlatforms).toContain('python-flask');
     });
 
+    it('should render renderPlatformList with Native when filtered with c++ alias', function () {
+      const props = {
+        ...baseProps,
+      };
+
+      const wrapper = shallow(<PlatformPicker {...props} />);
+
+      wrapper.setState({category: 'all', filter: 'c++'});
+
+      const filteredPlatforms = wrapper
+        .find('PlatformCard')
+        .map(node => node.prop('platform').id);
+      expect(filteredPlatforms).toContain('native');
+    });
+
     it('should render renderPlatformList with community SDKs message if platform not found', function () {
       const props = {
         ...baseProps,

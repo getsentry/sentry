@@ -1,8 +1,9 @@
 import React from 'react';
 
 import EventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import Annotated from 'app/components/events/meta/annotated';
+import {getMeta} from 'app/components/events/meta/metaProxy';
 import {t} from 'app/locale';
 import {objectIsEmpty} from 'app/utils';
 
@@ -15,7 +16,7 @@ type Props = {
 
 const Message = ({data}: Props) => {
   const renderParams = () => {
-    let params = data?.params;
+    const params = data?.params;
 
     if (!params || objectIsEmpty(params)) {
       return null;
@@ -27,10 +28,26 @@ const Message = ({data}: Props) => {
     // display all of them.
 
     if (Array.isArray(params)) {
-      params = params.map((value, i) => [`#${i}`, value]);
+      const arrayData = params.map((value, i) => {
+        const key = `#${i}`;
+        return {
+          key,
+          value,
+          subject: key,
+        };
+      });
+
+      return <KeyValueList data={arrayData} isSorted={false} isContextData />;
     }
 
-    return <KeyValueList data={params} isSorted={false} isContextData />;
+    const objectData = Object.entries(params).map(([key, value]) => ({
+      key,
+      value,
+      subject: key,
+      meta: getMeta(params, key),
+    }));
+
+    return <KeyValueList data={objectData} isSorted={false} isContextData />;
   };
 
   return (

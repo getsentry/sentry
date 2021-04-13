@@ -9,10 +9,10 @@ from requests.exceptions import HTTPError, SSLError
 from sentry import digests, ratelimits
 from sentry.exceptions import PluginError
 from sentry.models import NotificationSetting
-from sentry.models.integration import ExternalProviders
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.integrations import ExternalProviders
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -135,9 +135,9 @@ class NotificationPlugin(Plugin):
         notifications for the provided project.
         """
         if self.get_conf_key() == "mail":
-            return NotificationSetting.objects.get_notification_recipients(
-                ExternalProviders.EMAIL, project
-            )[ExternalProviders.EMAIL]
+            return NotificationSetting.objects.get_notification_recipients(project)[
+                ExternalProviders.EMAIL
+            ]
 
         return self.get_notification_recipients(project, "%s:alert" % self.get_conf_key())
 
