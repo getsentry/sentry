@@ -203,6 +203,7 @@ class TransactionDetail extends React.Component<Props> {
               {transaction.transaction}
             </Row>
             <Row title="Transaction Status">{transaction['transaction.status']}</Row>
+            <Row title="Span ID">{transaction.span_id}</Row>
             <Row title="Project">{transaction.project_slug}</Row>
             <Row title="Start Date">
               {getDynamicText({
