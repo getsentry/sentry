@@ -9,7 +9,6 @@ from sentry.utils.safe import get_path
 
 from .exceptions import InvalidEnhancerConfig
 
-
 MATCH_KEYS = {
     "path": "p",
     "function": "f",
@@ -61,7 +60,7 @@ def _get_function_name(frame_data: dict, platform: Optional[str]):
 def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
     """ Create flat dict of values relevant to matchers """
     return dict(
-        category=get_path(frame_data, "category"),
+        category=get_path(frame_data, "data", "category"),
         family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
         function=_get_function_name(frame_data, platform),
         in_app=frame_data.get("in_app"),

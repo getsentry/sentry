@@ -5,7 +5,6 @@ from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
 
-
 ACTIONS = ["group", "app", "prefix", "sentinel"]
 ACTION_BITSIZE = {
     # version -> bit-size
@@ -29,7 +28,7 @@ class Action:
     is_modifier = False
     is_updater = False
 
-    def apply_modifications_to_frame(self, frames, idx, rule=None):
+    def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
         pass
 
     def update_frame_components_contributions(self, components, frames, idx, rule=None):
@@ -85,13 +84,14 @@ class FlagAction(Action):
         else:
             return self.flag == component.contributes
 
-    def apply_modifications_to_frame(self, frames, idx, rule=None):
+    def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
         # Grouping is not stored on the frame
         if self.key == "group":
             return
         if self.key == "app":
-            for frame in self._slice_to_range(frames, idx):
+            for frame, match_frame in self._slice_to_range(zip(frames, match_frames), idx):
                 set_in_app(frame, self.flag)
+                match_frame["in_app"] = frame["in_app"]
 
     def update_frame_components_contributions(self, components, frames, idx, rule=None):
         rule_hint = "stack trace rule"
@@ -158,7 +158,8 @@ class VarAction(Action):
         if self.var not in VarAction._FRAME_VARIABLES:
             state.set(self.var, self.value, rule)
 
-    def apply_modifications_to_frame(self, frames, idx, rule=None):
+    def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
         if self.var == "category":
             frame = frames[idx]
             set_path(frame, "data", "category", value=self.value)
+            match_frames[idx]["category"] = self.value

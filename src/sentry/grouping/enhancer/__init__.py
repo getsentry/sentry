@@ -123,7 +123,7 @@ class Enhancements:
             for idx, action in rule.get_matching_frame_actions(
                 match_frames, platform, exception_data, cache
             ):
-                action.apply_modifications_to_frame(frames, idx, rule=rule)
+                action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
 

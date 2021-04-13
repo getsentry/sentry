@@ -44,18 +44,17 @@ else like actual grouping happens elsewhere like test_variants.py.
    leaked PII to the public and all of this will have been for nothing.
 """
 
+import json  # NOQA
 import os
 import uuid
-
-import pytest
-import json  # NOQA
 from threading import local
 
+import pytest
 from django.utils.functional import cached_property
 
-from sentry.utils.safe import get_path
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.utils.safe import get_path
 
 _fixture_path = os.path.join(os.path.dirname(__file__), "categorization_inputs")
 
@@ -140,7 +139,7 @@ def cleanup_unused_data():
 
     used_inputs = {}
 
-    def new_apply(self, frames, idx, rule=None):
+    def new_apply(self, frames, match_frames, idx, rule=None):
         inputs_for_rule = used_inputs.setdefault(rule.matcher_description, [])
 
         # Tolerate up to four testcases per rule. This number is arbitrary but
@@ -149,7 +148,7 @@ def cleanup_unused_data():
         if len(inputs_for_rule) < 4:
             inputs_for_rule.append(_current_input.val)
 
-        return old_apply(self, frames, idx, rule=rule)
+        return old_apply(self, frames, match_frames, idx, rule=rule)
 
     VarAction.apply_modifications_to_frame = new_apply
     yield
