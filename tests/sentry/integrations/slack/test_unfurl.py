@@ -2,12 +2,14 @@ import pytest
 from django.http.request import QueryDict
 from django.test import RequestFactory
 
+from sentry.charts.types import ChartType
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.slack.message_builder.discover import build_discover_attachment
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.models import Integration, OrganizationIntegration
+from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
@@ -127,3 +129,52 @@ class UnfurlTest(TestCase):
             title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
+
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_unfurl_discover_short_url(self, mock_generate_chart):
+        query = {
+            "fields": ["title", "event.type", "project", "user.display", "timestamp"],
+            "query": "",
+            "yAxis": "count_unique(users)",
+        }
+        saved_query = DiscoverSavedQuery.objects.create(
+            organization=self.org, created_by=self.user, name="Test query", query=query, version=2
+        )
+        project1 = self.create_project(organization=self.org)
+        saved_query.set_projects([project1.id])
+
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+        )
+        self.store_event(
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+        )
+
+        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&project={project1.id}"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(
+            {
+                "organizations:discover": True,
+                "organizations:chart-unfurls": True,
+            }
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_PERIOD
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["seriesName"] == "count_unique(users)"
+        assert len(chart_data["stats"]["data"]) == 288
