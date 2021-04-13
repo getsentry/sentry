@@ -42,6 +42,19 @@ export enum SortBy {
 }
 
 class UsageStatsProjects extends AsyncComponent<Props, State> {
+  componentDidUpdate(prevProps: Props) {
+    const {dataDatetime: prevDateTime} = prevProps;
+    const {dataDatetime: currDateTime} = this.props;
+
+    if (
+      prevDateTime.start !== currDateTime.start ||
+      prevDateTime.end !== currDateTime.end ||
+      prevDateTime.period !== currDateTime.period
+    ) {
+      this.reloadData();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [['projectStats', this.endpointPath, {query: this.endpointQuery}]];
   }
