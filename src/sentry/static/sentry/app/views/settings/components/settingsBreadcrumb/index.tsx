@@ -5,7 +5,6 @@ import Reflux from 'reflux';
 
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
 import Link from 'app/components/links/link';
-import SentryTypes from 'app/sentryTypes';
 import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -32,10 +31,6 @@ type Props = {
 };
 
 class SettingsBreadcrumb extends React.Component<Props> {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   static defaultProps = {
     pathMap: {},
   };

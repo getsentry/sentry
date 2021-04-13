@@ -1,10 +1,9 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {withTheme} from 'emotion-theming';
 import {PlatformIcon} from 'platformicons';
-import PropTypes from 'prop-types';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import ProjectActions from 'app/actions/projectActions';
@@ -41,7 +40,7 @@ type RuleEventData = {
   custom_rule_id?: string;
 };
 
-type Props = {
+type Props = WithRouterProps & {
   theme: Theme;
   api: any;
   organization: Organization;
@@ -63,14 +62,10 @@ type State = {
 };
 
 class CreateProject extends React.Component<Props, State> {
-  static contextTypes = {
-    location: PropTypes.object,
-  };
-
   constructor(props, ...args) {
     super(props, ...args);
 
-    const {query} = this.context.location;
+    const {query} = props.location;
     const {teams} = props.organization;
     const accessTeams = teams.filter((team: Team) => team.hasAccess);
 
@@ -88,7 +83,7 @@ class CreateProject extends React.Component<Props, State> {
   }
 
   get defaultCategory() {
-    const {query} = this.context.location;
+    const {query} = this.props.location;
     return getCategoryName(query.category);
   }
 
@@ -330,7 +325,7 @@ class CreateProject extends React.Component<Props, State> {
   }
 }
 
-export default withApi(withOrganization(withTeams(withTheme(CreateProject))));
+export default withApi(withRouter(withOrganization(withTeams(withTheme(CreateProject)))));
 export {CreateProject};
 
 const CreateProjectForm = styled('form')`
