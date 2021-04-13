@@ -67,8 +67,9 @@ def cached(cache, function, *args, **kwargs):
     key = (function.__name__, args, tuple(kwargs.items()))
 
     if key in cache:
-        rv = cache[key]
+        hits, rv = cache[key]
+        cache[key] = hits + 1, rv
     else:
-        rv = cache[key] = function(*args)
+        _, rv = cache[key] = 1, function(*args)
 
     return rv
