@@ -778,6 +778,12 @@ def _nodestore_save_many(jobs):
 @metrics.wraps("save_event.eventstream_insert_many")
 def _eventstream_insert_many(jobs):
     for job in jobs:
+        if job["event"].project_id == settings.SENTRY_PROJECT:
+            metrics.incr(
+                "internal.captured.eventstream_insert",
+                tags={"event_type": job["event"].data.get("type") or "null"},
+            )
+
         eventstream.insert(
             group=job["group"],
             event=job["event"],
