@@ -1,11 +1,12 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from django.db.models import Q, Subquery, OuterRef, F, Value
+from datetime import datetime
+
+from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 
 from sentry import features
-
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
@@ -120,15 +121,17 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                         .order_by("-date_started")
                         .values("status")[:1]
                     ),
-                    Value(-9999),
+                    Value(-1, output_field=IntegerField()),
                 )
             )
             issue_rules = issue_rules.annotate(
-                incident_status=F("pk") * -9999, date_triggered=F("date_added")
+                incident_status=Value(-2, output_field=IntegerField())
             )
 
         if sort_key == "date_triggered" or "date_triggered" in sort_key:
-            far_future_date = F("date_added")
+            far_past_date = Value(
+                datetime.utcfromtimestamp(0), output_field=DateTimeField()
+            )  # timezone.now() - timedelta(days=1)#timezone.now()
             alert_rules = alert_rules.annotate(
                 date_triggered=Coalesce(
                     Subquery(
@@ -136,10 +139,10 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                         .order_by("-date_started")
                         .values("date_started")[:1]
                     ),
-                    far_future_date,
+                    far_past_date,
                 ),
             )
-            issue_rules = issue_rules.annotate(date_triggered=far_future_date)
+            issue_rules = issue_rules.annotate(date_triggered=far_past_date)
         alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, sort_key)
         rule_intermediary = CombinedQuerysetIntermediary(issue_rules, rule_sort_key)
         return self.paginate(
