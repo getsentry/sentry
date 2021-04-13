@@ -761,7 +761,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             GroupAssignee.objects.assign(ag, self.user)
 
         response = self.get_response(limit=10, query="assigned:me")
-        assert len(response.data) == 2
+        assert [row["id"] for row in response.data] == [str(g.id) for g in assigned_groups]
 
         response = self.get_response(limit=10, query="assigned:me_or_none")
         assert len(response.data) == 5

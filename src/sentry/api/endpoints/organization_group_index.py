@@ -25,7 +25,15 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.models import Environment, Group, GroupEnvironment, GroupInbox, GroupStatus, Project
+from sentry.models import (
+    QUERY_STATUS_LOOKUP,
+    Environment,
+    Group,
+    GroupEnvironment,
+    GroupInbox,
+    GroupStatus,
+    Project,
+)
 from sentry.search.snuba.backend import (
     EventsDatasetSnubaSearchBackend,
     assigned_or_suggested_filter,
@@ -87,7 +95,11 @@ def inbox_search(
     if not get_search_filter(search_filters, "for_review", "="):
         raise InvalidSearchQuery("Sort key 'inbox' only supported for inbox search")
 
-    if get_search_filter(search_filters, "status", "=") != GroupStatus.UNRESOLVED:
+    if get_search_filter(
+        search_filters, "status", "="
+    ) != GroupStatus.UNRESOLVED and get_search_filter(search_filters, "status", "IN") != [
+        GroupStatus.UNRESOLVED
+    ]:
         raise InvalidSearchQuery("Inbox search only works for 'unresolved' status")
 
     # We just filter on `GroupInbox.date_added` here, and don't filter by date
@@ -107,7 +119,7 @@ def inbox_search(
             .distinct()
         )
 
-    owner_search = get_search_filter(search_filters, "assigned_or_suggested", "=")
+    owner_search = get_search_filter(search_filters, "assigned_or_suggested", "IN")
     if owner_search:
         qs = qs.filter(
             assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
@@ -324,8 +336,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             for search_filter in query_kwargs.get("search_filters", [])
             if search_filter.key.name == "status"
         ]
-        if status and status[0].value.raw_value == GroupStatus.UNRESOLVED:
-            context = [r for r in context if "status" not in r or r["status"] == "unresolved"]
+        if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
+            status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
+            context = [r for r in context if "status" not in r or r["status"] in status_labels]
 
         response = Response(context)
 
