@@ -450,7 +450,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
         assert len(result) == 1
-        print(result)
         self.assert_alert_rule_serialized(self.alert_rule, result[0], skip_dates=True)
         links = requests.utils.parse_header_links(
             response.get("link").rstrip(">").replace(">,<", ",<")
