@@ -51,7 +51,6 @@ class RuleNameOwnerForm extends React.PureComponent<Props> {
                       model.setValue('owner', ownerValue);
                     }}
                     filteredTeamIds={userTeamIds}
-                    includeUnassigned
                   />
                 );
               }}

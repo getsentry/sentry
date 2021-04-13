@@ -561,7 +561,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       value={this.getTeamId()}
                       onChange={this.handleOwnerChange}
                       filteredTeamIds={userTeams}
-                      includeUnassigned
                     />
                   </StyledField>
                 </Feature>
