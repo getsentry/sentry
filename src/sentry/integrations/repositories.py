@@ -20,6 +20,7 @@ def update_repo(repo, repo_name, name_from_event, url_from_event=None, path_from
 
     """
     kwargs = {}
+    path = None
     if name_from_event and repo_name != name_from_event:
         kwargs["name"] = name_from_event
     if url_from_event and repo.url != url_from_event:
