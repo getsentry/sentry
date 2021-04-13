@@ -16,7 +16,7 @@ class ExternalActor(DefaultFieldsModel):
     integration = FlexibleForeignKey("sentry.Integration", null=True)
     provider = BoundedPositiveIntegerField(
         choices=(
-            (ExternalProviders.GITLAB, "email"),
+            (ExternalProviders.EMAIL, "email"),
             (ExternalProviders.SLACK, "slack"),
             (ExternalProviders.MSTEAMS, "msteams"),
             (ExternalProviders.PAGERDUTY, "pagerduty"),
