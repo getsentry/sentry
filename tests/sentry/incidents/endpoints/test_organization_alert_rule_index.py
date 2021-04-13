@@ -14,6 +14,8 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
+from sentry.incidents.models import IncidentTrigger, TriggerStatus
+
 
 class AlertRuleBase:
     @fixture
@@ -445,6 +447,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
         assert len(result) == 1
+        print(result)
         self.assert_alert_rule_serialized(self.alert_rule, result[0], skip_dates=True)
         links = requests.utils.parse_header_links(
             response.get("link").rstrip(">").replace(">,<", ",<")
@@ -905,20 +908,78 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 4
 
-    def test_magical_sort_order(self):
+    def test_status_and_date_triggered_sort_order(self):
         self.setup_project_and_rules()
+
+        alert_rule_critical = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            name="some rule [crit]",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        another_alert_rule_warning = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            name="another warning rule",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        alert_rule_warning = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            name="warning rule",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule_critical, "hi", 100)
+        trigger2 = self.create_alert_rule_trigger(alert_rule_critical, "bye", 50)
+
+        trigger3 = self.create_alert_rule_trigger(alert_rule_warning, "meow", 200)
+
+        self.create_incident(status=2, alert_rule=alert_rule_critical)
+        warning_incident = self.create_incident(status=10, alert_rule=alert_rule_critical)
+        self.create_incident(status=10, alert_rule=alert_rule_warning)
+        self.create_incident(status=10, alert_rule=another_alert_rule_warning)
+        crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
+        IncidentTrigger.objects.create(
+            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.RESOLVED.value
+        )
+        IncidentTrigger.objects.create(
+            incident=crit_incident, alert_rule_trigger=trigger2, status=TriggerStatus.ACTIVE.value
+        )
+        IncidentTrigger.objects.create(
+            incident=warning_incident,
+            alert_rule_trigger=trigger3,
+            status=TriggerStatus.ACTIVE.value,
+        )
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {
                 "per_page": "10",
-                "project": self.project.id,
-                "sort": "magical",
-                # "asc": 1,
+                "project": [self.project.id, self.project2.id],
+                "sort": ["incident_status", "date_triggered"],
             }
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
-        assert len(result) == 1
-        assert result[0]["id"] == str(self.issue_rule.id)
-        assert result[0]["type"] == "rule"
+        assert len(result) == 7
+        print(result[0])
+        # Assert critical rule is first, warnings are next (sorted by triggered date), and issue rules are last.
+        assert result[0]["id"] == str(alert_rule_critical.id)
+        assert result[2]["id"] == str(alert_rule_warning.id)
+        assert result[1]["id"] == str(another_alert_rule_warning.id)
+        assert result[6]["id"] == str(self.issue_rule.id)

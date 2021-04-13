@@ -136,7 +136,6 @@ class IncidentStatusMethod(Enum):
 
 
 INCIDENT_STATUS = {
-    IncidentStatus.OPEN: "Open",
     IncidentStatus.CLOSED: "Resolved",
     IncidentStatus.CRITICAL: "Critical",
     IncidentStatus.WARNING: "Warning",

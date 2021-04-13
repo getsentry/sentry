@@ -1,7 +1,8 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from django.db.models import Q
+from django.db.models import Q, Subquery, OuterRef, F, Value
+from django.db.models.functions import Coalesce
 
 from sentry import features
 
@@ -14,13 +15,11 @@ from sentry.api.paginator import (
 )
 from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.auth.superuser import is_active_superuser
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.snuba.dataset import Dataset
 from sentry.models import Rule, RuleStatus, Project, OrganizationMemberTeam, Team, TeamStatus
 from sentry.utils.cursors import StringCursor, Cursor
-
-from sentry.incidents.models import Incident, IncidentTrigger
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
@@ -104,19 +103,42 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             issue_rules = issue_rules.filter(team_filter_query)
 
         is_asc = request.GET.get("asc", False) == "1"
-        sort_key = request.GET.get("sort", "date_added")
-        rule_sort_key = (
-            sort_key if sort_key != "name" else "label"
-        )  # Rule's don't share the same field name for their title/label/name...so we account for that here.
+        sort_key = request.GET.getlist("sort", ["date_added"])
+        rule_sort_key = [
+            "label" if x == "name" else x for x in sort_key
+        ]  # Rule's don't share the same field name for their title/label/name...so we account for that here.
+        if len(sort_key) == 1:
+            sort_key = sort_key[0]
+            rule_sort_key = rule_sort_key[0]
         case_insensitive = sort_key == "name"
-        print("alert rules:", alert_rules)
-        for alert_rule in alert_rules:
-            print(alert_rule)
-        incidents = Incident.objects.filter(alert_rule__in=alert_rules)
-        print("incients:", incidents)
-        triggers = IncidentTrigger.objects.filter(incident__in=incidents)
-        print("incient.triggers:", triggers)
-        # triggers = incidents.filter(trigger)
+
+        if sort_key == "incident_status" or "incident_status" in sort_key:
+            alert_rules = alert_rules.annotate(
+                incident_status=Coalesce(
+                    Subquery(
+                        Incident.objects.filter(alert_rule=OuterRef("pk"))
+                        .order_by("-date_started")
+                        .values("status")[:1]
+                    ),
+                    Value(-9999),
+                )
+            )
+            issue_rules = issue_rules.annotate(
+                incident_status=F("pk") * -9999, date_triggered=F("date_added")
+            )
+
+        if sort_key == "date_triggered" or "date_triggered" in sort_key:
+            alert_rules = alert_rules.annotate(
+                date_triggered=Coalesce(
+                    Subquery(
+                        Incident.objects.filter(alert_rule=OuterRef("pk"))
+                        .order_by("-date_started")
+                        .values("date_started")[:1]
+                    ),
+                    F("date_added"),
+                ),
+            )
+            issue_rules = issue_rules.annotate(date_triggered=F("date_added"))
         alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, sort_key)
         rule_intermediary = CombinedQuerysetIntermediary(issue_rules, rule_sort_key)
         return self.paginate(
