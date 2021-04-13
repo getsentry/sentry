@@ -2,7 +2,6 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
 import {Client} from 'app/api';
@@ -28,7 +27,6 @@ import {Actor, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
 import Timeline from 'app/views/alerts/rules/details/timeline';
-import {fetchIncidentStats} from 'app/views/alerts/utils';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {
   AlertRuleThresholdType,
@@ -38,7 +36,7 @@ import {
 } from 'app/views/settings/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
-import {Incident, IncidentStats, IncidentStatus} from '../../types';
+import {Incident, IncidentStatus} from '../../types';
 
 import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS} from './constants';
 import MetricChart from './metricChart';
@@ -291,7 +289,6 @@ export default class DetailsBody extends React.Component<Props> {
       timePeriod,
       params: {orgId},
     } = this.props;
-    const {incidentStats} = this.state;
 
     if (!rule) {
       return this.renderLoading();
