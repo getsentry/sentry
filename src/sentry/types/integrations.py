@@ -27,4 +27,3 @@ def get_provider_string(provider_int: int) -> str:
 
 def get_provider_enum(value: Optional[str]) -> Optional[ExternalProviders]:
     return {v: k for k, v in EXTERNAL_PROVIDERS.items()}.get(value)
-
