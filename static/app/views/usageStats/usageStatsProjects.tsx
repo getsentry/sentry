@@ -169,14 +169,16 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     });
   }
 
-  get tableLink() {
+  getTableLink(project: Project) {
     const {dataCategory, organization} = this.props;
 
     if (dataCategory === DataCategory.TRANSACTIONS) {
-      return `/organizations/${organization.slug}/performance/`;
+      return `/organizations/${organization.slug}/performance/?project=${project.id}`;
     }
 
-    return `/organizations/${organization.slug}/issues/`;
+    return organization.features.includes('project-detail')
+      ? `/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`
+      : `/organizations/${organization.slug}/issues/?project=${project.id}`;
   }
 
   handleChangeSort = (nextKey: SortBy) => {
@@ -234,11 +236,11 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       });
 
       // For projects without stats, fill in with zero
-      const tableStats: TableStat[] = projects.map(p => {
-        const stat = stats[p.id] ?? {...baseStat};
+      const tableStats: TableStat[] = projects.map(proj => {
+        const stat = stats[proj.id] ?? {...baseStat};
         return {
-          project: {...p},
-          projectLink: `${this.tableLink}?project=${p.id}`,
+          project: {...proj},
+          projectLink: this.getTableLink(proj),
           ...stat,
         };
       });
