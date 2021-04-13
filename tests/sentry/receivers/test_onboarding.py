@@ -7,18 +7,18 @@ from sentry.models import (
     OrganizationOption,
     Rule,
 )
+from sentry.plugins.bases import IssueTrackingPlugin
 from sentry.signals import (
+    alert_rule_created,
     event_processed,
-    project_created,
     first_event_pending,
     first_event_received,
+    issue_tracker_used,
     member_invited,
     member_joined,
     plugin_enabled,
-    issue_tracker_used,
-    alert_rule_created,
+    project_created,
 )
-from sentry.plugins.bases import IssueTrackingPlugin
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data

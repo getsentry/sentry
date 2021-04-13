@@ -1,10 +1,7 @@
 from sentry.models import NotificationSetting
-from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
-    NotificationSettingTypes,
-    NotificationSettingOptionValues,
-)
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase
+from sentry.types.integrations import ExternalProviders
 
 
 class UserNotificationDetailsTestBase(APITestCase):
@@ -59,6 +56,21 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
         assert response.data.get("selfAssignOnResolve") is False
         assert response.data.get("subscribeByDefault") is True
         assert response.data.get("workflowNotifications") == 1
+
+    def test_subscribe_by_default(self):
+        """
+        Test that we expect project-independent issue alert preferences to be
+        returned as `subscribe_by_default`.
+        """
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+        )
+
+        response = self.get_valid_response("me")
+        assert response.data.get("subscribeByDefault") is False
 
 
 class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):

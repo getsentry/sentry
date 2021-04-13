@@ -10,7 +10,7 @@ from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.snuba import discover
-from sentry.utils.validators import is_event_id, INVALID_EVENT_DETAILS
+from sentry.utils.validators import INVALID_EVENT_DETAILS, is_event_id
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
@@ -127,7 +127,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 orderby=["-root", "-timestamp", "id"],
                 params=params,
                 query=f"event.type:transaction trace:{trace_id}",
-                # get 1 more so we know if the attempted trace was over 100
                 limit=MAX_TRACE_SIZE,
                 referrer="api.trace-view.get-ids",
             )
@@ -447,7 +446,10 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         )
                     # We need to connect back to an existing orphan trace
                     if has_orphans and child["span_id"] in results_map:
-                        previous_event["children"].extend(results_map.pop(child["span_id"]))
+                        orphan_subtraces = results_map.pop(child["span_id"])
+                        for orphan_subtrace in orphan_subtraces:
+                            orphan_subtrace["parent_event_id"] = previous_event["event_id"]
+                        previous_event["children"].extend(orphan_subtraces)
                     if child["span_id"] not in parent_map:
                         continue
                     # Avoid potential span loops by popping, so we don't traverse the same nodes twice
@@ -484,3 +486,39 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         root_traces.sort(key=child_sort_key)
         orphans.sort(key=child_sort_key)
         return root_traces + orphans
+
+
+class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
+    def get(self, request, organization, trace_id):
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
+        try:
+            # The trace meta isn't useful without global views, so skipping the check here
+            params = self.get_snuba_params(request, organization, check_global_views=False)
+        except NoProjects:
+            return Response(status=404)
+
+        with self.handle_query_errors():
+            result = discover.query(
+                selected_columns=[
+                    "count_unique(project_id) as projects",
+                    "count_if(event.type, equals, transaction) as transactions",
+                    "count_if(event.type, notEquals, transaction) as errors",
+                ],
+                params=params,
+                query=f"trace:{trace_id}",
+                limit=1,
+                referrer="api.trace-view.get-meta",
+            )
+            if len(result["data"]) == 0:
+                return Response(status=404)
+        return Response(self.serialize(result["data"][0]))
+
+    def serialize(self, results):
+        return {
+            # Values can be null if there's no result
+            "projects": results.get("projects") or 0,
+            "transactions": results.get("transactions") or 0,
+            "errors": results.get("errors") or 0,
+        }

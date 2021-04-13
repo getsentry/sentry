@@ -1,14 +1,13 @@
 from django.conf.urls import url
 
-from .ui_hook import JiraUiHookView
-from .issue_hook import JiraIssueHookView
 from .descriptor import JiraDescriptorEndpoint
+from .extension_configuration import JiraExtensionConfigurationView
 from .installed import JiraInstalledEndpoint
+from .issue_hook import JiraIssueHookView
 from .search import JiraSearchEndpoint
+from .ui_hook import JiraUiHookView
 from .uninstalled import JiraUninstalledEndpoint
 from .webhooks import JiraIssueUpdatedWebhook
-from .extension_configuration import JiraExtensionConfigurationView
-
 
 urlpatterns = [
     url(r"^ui-hook/$", JiraUiHookView.as_view()),

@@ -116,6 +116,51 @@
         "mechanism": {
           "type": "onunhandledrejection",
           "handled": false
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "makeRequest",
+              "module": "components/ShoppingCart",
+              "filename": "components/ShoppingCart.js",
+              "abs_path": "https://app.example.com/static/js/components/ShoppingCart.js",
+              "lineno": 40,
+              "colno": 35,
+              "pre_context": [
+                "          headers: {",
+                "            \"Content-Type\": \"application/json\",",
+                "            \"email\": this.email",
+                "          },",
+                "          body: JSON.stringify(order)"
+              ],
+              "context_line": "        }).catch((err) => { throw Error(err) });",
+              "post_context": [
+                "    ",
+                "        if (!response.ok) {",
+                "          Sentry.captureException(new Error(response.status + \" - \" + (response.statusText || \"INTERNAL SERVER ERROR\")))",
+                "          this.setState({ hasError: true, success: false });",
+                "        }"
+              ],
+              "in_app": true,
+              "data": {
+                "sourcemap": "https://app.example.com/static/js/main.967d2573.js.map"
+              }
+            }
+          ]
+        },
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "function": "makeRequest",
+              "filename": "/static/js/main.967d2573.js",
+              "abs_path": "https://app.example.com/static/js/main.967d2573.js",
+              "lineno": 1,
+              "colno": 217321,
+              "context_line": "{snip} is.email},body:JSON.stringify(t)}).catch(function(e){throw Error(e)});case 2:return n=e.sent,n.ok||(p.h(new Error(n.status+\" - \"+(n.statusTe {snip}",
+              "post_context": ["//# sourceMappingURL=main.967d2573.js.map"],
+              "in_app": true
+            }
+          ]
         }
       }
     ]

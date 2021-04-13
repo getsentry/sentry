@@ -5,7 +5,6 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
 
-
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 
 

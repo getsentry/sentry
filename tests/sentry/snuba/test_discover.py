@@ -1,12 +1,12 @@
-import pytest
-
-from sentry.utils.compat.mock import patch
 from datetime import datetime, timedelta
+
+import pytest
 
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.snuba import discover
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import Dataset
 
@@ -1698,6 +1698,38 @@ class QueryTransformTest(TestCase):
                 3.45,
             ), f"failing for {array_column}"
 
+            # use the given min, but query for max. the given min will be above
+            # the queried max
+            mock_query.side_effect = [
+                {
+                    "meta": [{"name": f"max_{array_column}_foo"}],
+                    "data": [{f"max_{array_column}_foo": 3.45}],
+                },
+            ]
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo"], 3.5, None, "", {"project_id": [self.project.id]}
+            )
+            assert values == (
+                3.5,
+                3.5,
+            ), f"failing for {array_column}"
+
+            # use the given max, but query for min. the given max will be below
+            # the queried min
+            mock_query.side_effect = [
+                {
+                    "meta": [{"name": f"min_{array_column}_foo"}],
+                    "data": [{f"min_{array_column}_foo": 3.45}],
+                },
+            ]
+            values = discover.find_histogram_min_max(
+                [f"{array_column}.foo"], None, 3.4, "", {"project_id": [self.project.id]}
+            )
+            assert values == (
+                3.4,
+                3.4,
+            ), f"failing for {array_column}"
+
             # use the given max, but query for min
             mock_query.side_effect = [
                 {
@@ -2878,24 +2910,19 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
 
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
 
-        with self.options(
-            {
-                "discover2.tags_performance_facet_sample_rate": 1,
-            }
-        ):
-            result = discover.get_performance_facets("", params)
+        result = discover.get_performance_facets("", params)
 
-            assert len(result) == 12
-            for r in result:
-                if r.key == "color" and r.value == "red":
-                    assert r.count == 1
-                    assert r.performance == 1000
-                elif r.key == "color" and r.value == "blue":
-                    assert r.count == 1
-                    assert r.performance == 2000
-                else:
-                    assert r.count == 2
-                    assert r.performance == 1500
+        assert len(result) == 11
+        for r in result:
+            if r.key == "color" and r.value == "red":
+                assert r.frequency == 0.5
+                assert r.performance == 1000
+            elif r.key == "color" and r.value == "blue":
+                assert r.frequency == 0.5
+                assert r.performance == 2000
+            else:
+                assert r.frequency == 1.0
+                assert r.performance == 1500
 
 
 def test_zerofill():

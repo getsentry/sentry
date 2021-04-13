@@ -1,17 +1,16 @@
 import copy
+from datetime import timedelta
+from urllib.parse import urlencode
+
 import pytest
 import pytz
-from sentry.utils.compat.mock import patch
-from datetime import timedelta
-
-from urllib.parse import urlencode
 from selenium.webdriver.common.keys import Keys
 
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
+from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
-from sentry.testutils.helpers.datetime import iso_format, before_now, timestamp_format
-
 
 FEATURE_NAMES = [
     "organizations:discover-basic",
@@ -289,7 +288,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         event_data = generate_transaction()
 
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
-        self.wait_for_event_count(self.project.id, 1)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + transactions_query())
@@ -376,7 +374,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         child_event["transaction"] = "z-child-transaction"
         child_event["spans"] = child_event["spans"][0:3]
         self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
-        self.wait_for_event_count(self.project.id, 2)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page

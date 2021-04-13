@@ -1,6 +1,6 @@
-import responses
-from sentry.utils.compat.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
+
+import responses
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
 from sentry.models import (
@@ -11,6 +11,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.utils.compat.mock import patch
 
 
 class GitHubEnterpriseIntegrationTest(IntegrationTestCase):

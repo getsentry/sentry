@@ -1,9 +1,10 @@
 import os
+
 import responses
 
-from sentry.utils import json
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils import json
 
 
 def get_fixture_path(name):

@@ -1,8 +1,8 @@
 import functools
-import itertools
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Iterable, Mapping, Optional, Tuple
 
 import pytz
 import sentry_sdk
@@ -34,7 +34,6 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    GroupSubscriptionReason,
     Integration,
     NotificationSetting,
     SentryAppInstallationToken,
@@ -42,33 +41,24 @@ from sentry.models import (
 )
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
-from sentry.models.integration import ExternalProviders
-from sentry.reprocessing2 import get_progress
-from sentry.notifications.types import (
-    NotificationScopeType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
+from sentry.notifications.helpers import (
+    collect_groups_by_project,
+    get_groups_for_query,
+    get_subscription_from_attributes,
+    get_user_subscriptions_for_groups,
+    transform_to_notification_settings_by_parent_id,
 )
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.reprocessing2 import get_progress
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import snuba
 from sentry.utils.cache import cache
-from sentry.utils.compat import map, zip
+from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import Dataset, raw_query
-
-SUBSCRIPTION_REASON_MAP = {
-    GroupSubscriptionReason.comment: "commented",
-    GroupSubscriptionReason.assigned: "assigned",
-    GroupSubscriptionReason.bookmark: "bookmarked",
-    GroupSubscriptionReason.status_change: "changed_status",
-    GroupSubscriptionReason.mentioned: "mentioned",
-}
-
-
-disabled = object()
-
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -183,88 +173,52 @@ class GroupSerializerBase(Serializer):
 
         return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
 
-    def _get_subscriptions(self, item_list, user):
+    @staticmethod
+    def _get_subscriptions(
+        groups: Iterable[Group], user: User
+    ) -> Mapping[int, Tuple[bool, bool, Optional[GroupSubscription]]]:
         """
-        Returns a mapping of group IDs to a two-tuple of (subscribed: bool,
-        subscription: GroupSubscription or None) for the provided user and
-        groups.
+        Returns a mapping of group IDs to a two-tuple of (is_disabled: bool,
+        subscribed: bool, subscription: Optional[GroupSubscription]) for the
+        provided user and groups.
         """
-        if not item_list:
+        if not groups:
             return {}
 
-        # Collect all of the projects to look up, and keep a set of groups that
-        # are part of that project. (Note that the common -- but not only --
-        # case here is that all groups are part of the same project.)
-        projects = defaultdict(set)
-        for group in item_list:
-            projects[group.project].add(group)
-
-        # Fetch the options for each project -- we'll need this to identify if
-        # a user has totally disabled workflow notifications for a project.
-        options = {}
+        groups_by_project = collect_groups_by_project(groups)
         notification_settings = NotificationSetting.objects.get_for_user_by_projects(
-            ExternalProviders.EMAIL, NotificationSettingTypes.WORKFLOW, user, projects
+            NotificationSettingTypes.WORKFLOW,
+            user,
+            groups_by_project.keys(),
         )
-        for notification_setting in notification_settings:
-            key = (
-                notification_setting.scope_identifier
-                if notification_setting.scope_type == NotificationScopeType.PROJECT.value
-                else None
-            )
-            options[key] = notification_setting.value
 
-        # If there is a subscription record associated with the group, we can
-        # just use that to know if a user is subscribed or not, as long as
-        # notifications aren't disabled for the project.
-        subscriptions = {
-            subscription.group_id: subscription
-            for subscription in GroupSubscription.objects.filter(
-                group__in=list(
-                    itertools.chain.from_iterable(
-                        map(
-                            lambda project__groups: project__groups[1]
-                            if not (
-                                options.get(project__groups[0].id, options.get(None))
-                                == NotificationSettingOptionValues.NEVER.value
-                            )
-                            else [],
-                            projects.items(),
-                        )
-                    )
-                ),
-                user=user,
-            )
+        (
+            notification_settings_by_project_id_by_provider,
+            default_subscribe_by_provider,
+        ) = transform_to_notification_settings_by_parent_id(
+            notification_settings, NotificationSettingOptionValues.SUBSCRIBE_ONLY
+        )
+        notification_settings_by_key = notification_settings_by_project_id_by_provider[
+            ExternalProviders.EMAIL
+        ]
+        global_default_workflow_option = default_subscribe_by_provider[ExternalProviders.EMAIL]
+
+        query_groups = get_groups_for_query(
+            groups_by_project,
+            notification_settings_by_key,
+            global_default_workflow_option,
+        )
+        subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user=user)
+        subscriptions_by_group_id = {
+            subscription.group_id: subscription for subscription in subscriptions
         }
 
-        # This is the user's default value for any projects that don't have
-        # the option value specifically recorded. (The default
-        # "participating_only" value is convention.)
-        global_default_workflow_option = options.get(
-            None, NotificationSettingOptionValues.SUBSCRIBE_ONLY.value
+        return get_user_subscriptions_for_groups(
+            groups_by_project,
+            notification_settings_by_key,
+            subscriptions_by_group_id,
+            global_default_workflow_option,
         )
-
-        results = {}
-        for project, groups in projects.items():
-            project_default_workflow_option = options.get(
-                project.id, global_default_workflow_option
-            )
-            for group in groups:
-                subscription = subscriptions.get(group.id)
-                if subscription is not None:
-                    results[group.id] = (subscription.is_active, subscription)
-                else:
-                    results[group.id] = (
-                        (
-                            project_default_workflow_option
-                            == NotificationSettingOptionValues.ALWAYS.value,
-                            None,
-                        )
-                        if project_default_workflow_option
-                        != NotificationSettingOptionValues.NEVER.value
-                        else disabled
-                    )
-
-        return results
 
     def get_attrs(self, item_list, user):
         from sentry.integrations import IntegrationFeatures
@@ -273,7 +227,9 @@ class GroupSerializerBase(Serializer):
 
         GroupMeta.objects.populate_cache(item_list)
 
-        attach_foreignkey(item_list, Group.project)
+        # Note that organization is necessary here for use in `_get_permalink` to avoid
+        # making unnecessary queries.
+        attach_foreignkey(item_list, Group.project, related=("organization",))
 
         if user.is_authenticated() and item_list:
             bookmarks = set(
@@ -290,7 +246,7 @@ class GroupSerializerBase(Serializer):
         else:
             bookmarks = set()
             seen_groups = {}
-            subscriptions = defaultdict(lambda: (False, None))
+            subscriptions = defaultdict(lambda: (False, False, None))
 
         assignees = {
             a.group_id: a.assigned_actor()
@@ -536,23 +492,10 @@ class GroupSerializerBase(Serializer):
         else:
             return None
 
-    def _get_subscription(self, attrs):
-        subscription_details = None
-        if attrs["subscription"] is not disabled:
-            is_subscribed, subscription = attrs["subscription"]
-            if subscription is not None and subscription.is_active:
-                subscription_details = {
-                    "reason": SUBSCRIPTION_REASON_MAP.get(subscription.reason, "unknown")
-                }
-        else:
-            is_subscribed = False
-            subscription_details = {"disabled": True}
-        return is_subscribed, subscription_details
-
     def serialize(self, obj, attrs, user):
         status_details, status_label = self._get_status(attrs, obj)
         permalink = self._get_permalink(obj, user)
-        is_subscribed, subscription_details = self._get_subscription(attrs)
+        is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
         group_dict = {
             "id": str(obj.id),

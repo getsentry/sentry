@@ -7,14 +7,16 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from sentry.models import Integration
-from sentry.utils import json
+
 from sentry.integrations.github.webhook import (
     InstallationEventWebhook,
     InstallationRepositoryEventWebhook,
-    PushEventWebhook,
     PullRequestEventWebhook,
+    PushEventWebhook,
 )
+from sentry.models import Integration
+from sentry.utils import json
+
 from .repository import GitHubEnterpriseRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")

@@ -1,7 +1,7 @@
 from sentry.models import NotificationSetting
-from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import NotificationSettingTypes, NotificationSettingOptionValues
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
+from sentry.types.integrations import ExternalProviders
 
 
 def _get_kwargs(kwargs):

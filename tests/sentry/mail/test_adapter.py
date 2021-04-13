@@ -7,7 +7,7 @@ from django.db.models import F
 from django.utils import timezone
 from exam import fixture
 
-from sentry.api.serializers import serialize, UserReportWithGroupSerializer
+from sentry.api.serializers import UserReportWithGroupSerializer, serialize
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.mail import mail_adapter
@@ -25,17 +25,14 @@ from sentry.models import (
     User,
     UserReport,
 )
-from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
-    NotificationSettingTypes,
-    NotificationSettingOptionValues,
-)
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.ownership import grammar
-from sentry.ownership.grammar import dump_schema, Matcher, Owner
+from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock
 from sentry.utils.email import MessageBuilder
 

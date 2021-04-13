@@ -2,13 +2,13 @@ from django.core import mail
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.testutils import APITestCase
 from sentry.models import (
+    InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
     OrganizationOption,
-    InviteStatus,
 )
+from sentry.testutils import APITestCase
 
 
 class OrganizationInviteRequestListTest(APITestCase):

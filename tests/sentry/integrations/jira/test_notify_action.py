@@ -1,8 +1,9 @@
-import responses
 from collections import namedtuple
 
+import responses
+
 from sentry.integrations.jira.notify_action import JiraCreateTicketAction
-from sentry.models import Integration, ExternalIssue, GroupLink, Rule
+from sentry.models import ExternalIssue, GroupLink, Integration, Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.utils import json
 from tests.fixtures.integrations.mock_service import StubService

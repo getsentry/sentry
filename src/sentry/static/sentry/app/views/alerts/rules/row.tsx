@@ -120,7 +120,7 @@ class RuleListRow extends React.Component<Props, State> {
                   type="button"
                   icon={<IconSettings />}
                   title={t('Edit')}
-                  to={editLink}
+                  href={editLink}
                 />
               </ButtonBar>
             )}

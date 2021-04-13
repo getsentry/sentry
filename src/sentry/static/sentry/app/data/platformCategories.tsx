@@ -115,6 +115,7 @@ const desktop = [
   'native-crashpad',
   'native-breakpad',
   'native-minidump',
+  'native-qt',
   'minidump',
   'unity',
 ] as const;
@@ -159,6 +160,13 @@ export const performance: PlatformKey[] = [
   'node-koa',
   'node-connect',
 ];
+
+/**
+ * Additional aliases used for filtering in the platform picker
+ */
+export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
+  native: ['cpp', 'c++'],
+};
 
 export type PlatformKey =
   | typeof popular[number]
