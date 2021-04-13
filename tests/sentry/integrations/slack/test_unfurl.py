@@ -3,13 +3,13 @@ from django.http.request import QueryDict
 from django.test import RequestFactory
 
 from sentry.charts.types import ChartType
+from sentry.discover.models import DiscoverSavedQuery
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.slack.message_builder.discover import build_discover_attachment
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.models import Integration, OrganizationIntegration
-from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
