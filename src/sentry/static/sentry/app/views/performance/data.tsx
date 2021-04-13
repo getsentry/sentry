@@ -281,6 +281,7 @@ function generateGenericPerformanceEventView(
       `count_miserable(user,${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
     ],
+    widths: ['-1', '-1', '-1', '-1', '-1', '-1', '-1', '-1', '-1', '-1', '110'],
     version: 2,
   };
 
