@@ -50,8 +50,8 @@ class Migration(migrations.Migration):
                     "provider",
                     sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
                         choices=[
-                            (sentry.models.integration.ExternalProviders(200), "github"),
-                            (sentry.models.integration.ExternalProviders(210), "gitlab"),
+                            (sentry.models.integration.ExternalProviders(0), "github"),
+                            (sentry.models.integration.ExternalProviders(1), "gitlab"),
                         ]
                     ),
                 ),

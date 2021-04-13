@@ -3,6 +3,9 @@ from typing import Optional
 
 
 class ExternalProviders(Enum):
+    UNUSED_GH = 0
+    UNUSED_GL = 1
+
     EMAIL = 100
     SLACK = 110
     MSTEAMS = 120
