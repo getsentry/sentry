@@ -19,5 +19,5 @@ coverage:
   - src/.*?/migrations/.*
   - src/bitfield/.*
   - src/social_auth/.*
-  - static/app/routes.jsx
+  - static/app/routes.tsx
 comment: false
