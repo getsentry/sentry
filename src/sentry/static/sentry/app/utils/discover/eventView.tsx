@@ -11,6 +11,7 @@ import {EventQuery} from 'app/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {DEFAULT_PER_PAGE} from 'app/constants';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
@@ -1024,8 +1025,8 @@ class EventView {
   }
 
   getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
-    const output = {id: this.id, project: this.project, environment: this.environment};
-    for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+    const output = {id: this.id};
+    for (const field of [...Object.values(URL_PARAM), 'cursor']) {
       if (this[field] && this[field].length) {
         output[field] = this[field];
       }
