@@ -324,6 +324,8 @@ def _produce_default_fixtures(locals):
 
         locals[name] = pytest.fixture(scope="function")(default_fixture)
 
+    # This list of fixtures to export is hardcoded because at this time we
+    # cannot actually import Fixtures for inspection.
     for propname in [
         "session",
         "projectkey",
