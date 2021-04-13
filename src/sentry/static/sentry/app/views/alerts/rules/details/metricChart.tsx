@@ -444,7 +444,10 @@ class MetricChart extends React.PureComponent<Props, State> {
                   seriesName: t('Alert %s', incidents[idx].identifier),
                   type: 'line',
                   data: incidentStat.eventStats.data
-                    .filter(([timeStamp]) => timeStamp * 1000 < lastPoint && timeStamp * 1000 > firstPoint)
+                    .filter(
+                      ([timeStamp]) =>
+                        timeStamp * 1000 < lastPoint && timeStamp * 1000 > firstPoint
+                    )
                     .map(([timeStamp, valueArr]) => ({
                       name: timeStamp * 1000,
                       value: valueArr.length ? valueArr[0].count : 0,
