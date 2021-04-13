@@ -20,13 +20,16 @@ export const FORMAT_DATETIME_DAILY = 'MMM D';
  */
 export function getDateFromMoment(m: moment.Moment, interval: IntervalPeriod = '1d') {
   const days = intervalToMilliseconds(interval) / (1000 * 60 * 60 * 24);
-  const localtime = moment(m).startOf('h').local();
+  const localtime = moment(m).local();
+  const parsedInterval = parseStatsPeriod(interval);
 
   return days >= 1
     ? localtime.format(FORMAT_DATETIME_DAILY)
-    : `${localtime.format(FORMAT_DATETIME_HOURLY)} - ${localtime
-        .add(1, 'h')
-        .format('LT')}`;
+    : parsedInterval
+    ? `${localtime.format(FORMAT_DATETIME_HOURLY)} - ${localtime
+        .add(parsedInterval.period as any, parsedInterval.periodLength as any)
+        .format('LT')}`
+    : localtime.format(FORMAT_DATETIME_HOURLY);
 }
 
 export function getDateFromUnixTimestamp(timestamp: number) {
