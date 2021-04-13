@@ -212,7 +212,11 @@ export default class DetailsBody extends React.Component<Props> {
       !isIssueAlert(incident?.alertRule) &&
       organization.features.includes('alert-details-redesign');
     const alertRuleLink = hasRedesign
-      ? `/organizations/${organization.slug}/alerts/rules/details/${incident?.alertRule?.id}/`
+      ? `/organizations/${organization.slug}/alerts/rules/details/${incident?.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+        incident?.alertRule.originalAlertRuleId
+          ? incident?.alertRule.originalAlertRuleId
+          : incident?.alertRule.id
+      }/`
       : `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`;
 
     return (
