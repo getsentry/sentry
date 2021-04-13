@@ -32,14 +32,14 @@ class ActivityNotification:
     def should_email(self) -> bool:
         return True
 
-    def get_participants(self) -> Mapping[User, GroupSubscriptionReason]:
+    def get_participants(self) -> Mapping[User, int]:
         # TODO(dcramer): not used yet today except by Release's
         if not self.group:
             return {}
 
-        participants: MutableMapping[
-            User, GroupSubscriptionReason
-        ] = GroupSubscription.objects.get_participants(group=self.group)[ExternalProviders.EMAIL]
+        participants: MutableMapping[User, int] = GroupSubscription.objects.get_participants(
+            group=self.group
+        )[ExternalProviders.EMAIL]
 
         if self.activity.user is not None and self.activity.user in participants:
             receive_own_activity = (
@@ -155,13 +155,13 @@ class ActivityNotification:
         if avatar_type == "upload":
             return f'<img class="avatar" src="{escape(self._get_user_avatar_url(user))}" />'
         elif avatar_type == "letter_avatar":
-            return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
+            return str(get_email_avatar(user.get_display_name(), user.get_label(), 20, False))
         else:
-            return get_email_avatar(user.get_display_name(), user.get_label(), 20, True)
+            return str(get_email_avatar(user.get_display_name(), user.get_label(), 20, True))
 
     def _get_sentry_avatar_url(self) -> str:
         url = "/images/sentry-email-avatar.png"
-        return absolute_uri(get_asset_url("sentry", url))
+        return str(absolute_uri(get_asset_url("sentry", url)))
 
     def _get_user_avatar_url(self, user: User, size: int = 20) -> str:
         try:
@@ -172,7 +172,7 @@ class ActivityNotification:
         url = reverse("sentry-user-avatar-url", args=[avatar.ident])
         if size:
             url = f"{url}?s={int(size)}"
-        return absolute_uri(url)
+        return str(absolute_uri(url))
 
     def description_as_text(self, description: str, params: Mapping[str, Any]) -> str:
         user = self.activity.user
@@ -205,7 +205,7 @@ class ActivityNotification:
         context = {"author": author, "an issue": an_issue}
         context.update(params)
 
-        return mark_safe(description.format(**context))
+        return str(mark_safe(description.format(**context)))
 
     def send(self) -> None:
         if not self.should_email():

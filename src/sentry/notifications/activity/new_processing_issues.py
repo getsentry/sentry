@@ -29,7 +29,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         ActivityNotification.__init__(self, activity)
         self.issues = summarize_issues(self.activity.data["issues"])
 
-    def get_participants(self) -> Mapping[User, GroupSubscriptionReason]:
+    def get_participants(self) -> Mapping[User, int]:
         users = NotificationSetting.objects.get_notification_recipients(self.project)[
             ExternalProviders.EMAIL
         ]

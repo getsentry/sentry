@@ -1,5 +1,4 @@
 from collections import defaultdict
-from itertools import chain
 from typing import Any, List, Mapping, MutableMapping, Optional, Set
 
 from django.db.models import Count
@@ -113,7 +112,7 @@ class ReleaseActivityNotification(ActivityNotification):
     def should_email(self) -> bool:
         return bool(self.release and self.deploy)
 
-    def get_participants(self) -> Mapping[User, GroupSubscriptionReason]:
+    def get_participants(self) -> Mapping[User, int]:
         # collect all users with verified emails on a team in the related projects,
         users = list(
             User.objects.filter(
@@ -159,25 +158,19 @@ class ReleaseActivityNotification(ActivityNotification):
                 or NotificationSettingOptionValues.COMMITTED_ONLY.value  # product default
             )
 
-        # filter down to members which have been seen in the commit log:
-        participants_committed = {
-            user: GroupSubscriptionReason.committed
-            for user, option in users_with_options.items()
-            if (
+        users_to_reasons: MutableMapping[User, int] = {}
+        for user, option in users_with_options.items():
+            # members who opt into all deploy emails:
+            if option == NotificationSettingOptionValues.ALWAYS.value:
+                users_to_reasons[user] = GroupSubscriptionReason.deploy_setting
+
+            # members which have been seen in the commit log
+            elif (
                 option == NotificationSettingOptionValues.COMMITTED_ONLY.value
                 and user.id in self.user_ids
-            )
-        }
-
-        # or who opt into all deploy emails:
-        participants_opted = {
-            user: GroupSubscriptionReason.deploy_setting
-            for user, option in users_with_options.items()
-            if option == NotificationSettingOptionValues.ALWAYS.value
-        }
-
-        # merge the two type of participants
-        return dict(chain(participants_committed.items(), participants_opted.items()))
+            ):
+                users_to_reasons[user] = GroupSubscriptionReason.committed
+        return users_to_reasons
 
     def get_users_by_teams(self) -> Mapping[int, List[int]]:
         if not self.user_id_team_lookup:
