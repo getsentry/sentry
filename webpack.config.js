@@ -544,6 +544,7 @@ if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
       favicon: path.resolve(staticPrefix, 'images', 'favicon_dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
+      excludeChunks: ['pipeline'],
       title: 'Sentry',
     })
   );
