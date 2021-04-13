@@ -1,4 +1,3 @@
-import pytest
 from django.utils.functional import cached_property
 
 from sentry.incidents.models import IncidentActivityType
@@ -315,7 +314,3 @@ class Fixtures:
             code_mapping = self.create_code_mapping(self.project, self.repo)
 
         return Factories.create_codeowners(project=project, code_mapping=code_mapping, **kwargs)
-
-    @pytest.fixture(autouse=True)
-    def _init_insta_snapshot(self, insta_snapshot):
-        self.insta_snapshot = insta_snapshot

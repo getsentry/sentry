@@ -163,77 +163,6 @@ def session():
     return factories.create_session()
 
 
-@pytest.mark.django_db
-@pytest.fixture(scope="function")
-def default_user(factories):
-    return factories.create_user(email="admin@localhost", is_superuser=True)
-
-
-@pytest.mark.django_db
-@pytest.fixture(scope="function")
-def default_organization(factories, default_user):
-    # XXX(dcramer): ensure that your org slug doesnt match your team slug
-    # and the same for your project slug
-    return factories.create_organization(name="baz", slug="baz", owner=default_user)
-
-
-@pytest.mark.django_db
-@pytest.fixture(scope="function")
-def default_team(factories, default_organization):
-    from sentry.models import OrganizationMember, OrganizationMemberTeam
-
-    team = factories.create_team(organization=default_organization, name="foo", slug="foo")
-    # XXX: handle legacy team fixture
-    queryset = OrganizationMember.objects.filter(organization=default_organization)
-    for om in queryset:
-        OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
-    return team
-
-
-@pytest.mark.django_db
-@pytest.fixture(scope="function")
-def default_project(factories, default_team):
-    return factories.create_project(name="Bar", slug="bar", teams=[default_team])
-
-
-@pytest.mark.django_db
-@pytest.fixture(scope="function")
-def default_projectkey(factories, default_project):
-    return factories.create_project_key(project=default_project)
-
-
-@pytest.mark.django_db
-@pytest.fixture(scope="function")
-def default_environment(factories, default_project):
-    return factories.create_environment(name="development", project=default_project)
-
-
-@pytest.mark.django_db
-@pytest.fixture(scope="function")
-def default_group(factories, default_project):
-    # こんにちは konichiwa
-    return factories.create_group(project=default_project, message="\u3053\u3093\u306b\u3061\u306f")
-
-
-@pytest.mark.django_db
-@pytest.fixture(scope="function")
-def default_event(factories, default_group):
-    return factories.store_event(
-        data={"event_id": "a" * 32, "message": "\u3053\u3093\u306b\u3061\u306f"},
-        project_id=default_project.id,
-    )
-
-
-@pytest.mark.django_db
-@pytest.fixture(scope="function")
-def default_activity(default_group, default_project, default_user):
-    from sentry.models import Activity
-
-    return Activity.objects.create(
-        group=default_group, project=default_project, type=Activity.NOTE, user=default_user, data={}
-    )
-
-
 @pytest.fixture()
 def dyn_sampling_data():
     # return a function that returns fresh config so we don't accidentally get tests interfering with each other
@@ -391,3 +320,38 @@ def reset_snuba(call_snuba):
         response.status_code == 200
         for response in ThreadPoolExecutor(4).map(call_snuba, init_endpoints)
     )
+
+
+@pytest.fixture(scope="function")
+def default_fixtures():
+    from sentry.testutils.fixtures import Fixtures
+
+    return Fixtures()
+
+
+def _produce_default_fixtures(locals):
+    def _produce(propname):
+        def default_fixture(default_fixtures):
+            return getattr(default_fixtures, propname)
+
+        default_fixture.__name__ = name = f"default_{propname}"
+
+        locals[name] = pytest.fixture(scope="function")(default_fixture)
+
+    for propname in [
+        "session",
+        "projectkey",
+        "user",
+        "organization",
+        "team",
+        "project",
+        "release",
+        "environment",
+        "group",
+        "event",
+        "activity",
+    ]:
+        _produce(propname)
+
+
+_produce_default_fixtures(locals())
