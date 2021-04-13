@@ -25,11 +25,7 @@ import {TimePeriodType} from 'app/views/alerts/rules/details/body';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
-import {
-  Incident,
-  IncidentActivityType,
-  IncidentStatus,
-} from '../../types';
+import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
 
 const X_AXIS_BOUNDARY_GAP = 20;
