@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
+import ExternalLink from 'app/components/links/externalLink';
 import MenuItem from 'app/components/menuItem';
 import Tag, {Background} from 'app/components/tag';
 import Truncate from 'app/components/truncate';
@@ -60,9 +61,9 @@ export const TraceConnector = styled('div')`
   border-top: 1px solid ${p => p.theme.textColor};
 `;
 
-const StyledMenuItem = styled(MenuItem)<{first?: boolean}>`
+const StyledMenuItem = styled(MenuItem)<{first?: boolean; width: 'small' | 'large'}>`
   border-top: ${p => (!p.first ? `1px solid ${p.theme.innerBorder}` : null)};
-  width: 350px;
+  width: ${p => (p.width === 'large' ? '350px' : '200px')};
 `;
 
 const MenuItemContent = styled('div')`
@@ -76,11 +77,18 @@ type DropdownItemProps = {
   to?: string | LocationDescriptor;
   onSelect?: (eventKey: any) => void;
   first?: boolean;
+  width?: 'small' | 'large';
 };
 
-export function DropdownItem({children, first, onSelect, to}: DropdownItemProps) {
+export function DropdownItem({
+  children,
+  first,
+  onSelect,
+  to,
+  width = 'large',
+}: DropdownItemProps) {
   return (
-    <StyledMenuItem to={to} onSelect={onSelect} first={first}>
+    <StyledMenuItem to={to} onSelect={onSelect} first={first} width={width}>
       <MenuItemContent>{children}</MenuItemContent>
     </StyledMenuItem>
   );
@@ -104,6 +112,15 @@ export const ErrorNodeContent = styled('div')`
   grid-template-columns: repeat(2, auto);
   grid-gap: ${space(0.25)};
   align-items: center;
+`;
+
+export const ExternalDropdownLink = styled(ExternalLink)`
+  display: inherit !important;
+  padding: 0 !important;
+  color: ${p => p.theme.textColor};
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 export function SingleEventHoverText({event}: {event: QuickTraceEvent}) {
