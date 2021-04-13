@@ -16,7 +16,6 @@ import {IconFire} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
-import {toTitleCase} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getDuration} from 'app/utils/formatters';
 import {
@@ -141,7 +140,7 @@ export default function QuickTrace({
       key="current-node"
       location={location}
       organization={organization}
-      text={t('This %s', toTitleCase(event.type))}
+      text={t('This Event')}
       events={[current]}
       currentEvent={event}
       anchor={anchor}
