@@ -1,5 +1,6 @@
 import {Location} from 'history';
 
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {t} from 'app/locale';
 import {LightWeightOrganization, NewQuery, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -281,9 +282,12 @@ function generateGenericPerformanceEventView(
       `count_miserable(user,${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
     ],
-    widths: ['-1', '-1', '-1', '-1', '-1', '-1', '-1', '-1', '-1', '-1', '110'],
     version: 2,
   };
+
+  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  widths[savedQuery.fields.length - 1] = '110';
+  savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
@@ -340,6 +344,10 @@ function generateBackendPerformanceEventView(
     version: 2,
   };
 
+  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  widths[savedQuery.fields.length - 1] = '110';
+  savedQuery.widths = widths;
+
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
@@ -393,6 +401,10 @@ function generateFrontendPageloadPerformanceEventView(
     ],
     version: 2,
   };
+
+  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  widths[savedQuery.fields.length - 1] = '110';
+  savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
@@ -449,6 +461,10 @@ function generateFrontendOtherPerformanceEventView(
     ],
     version: 2,
   };
+
+  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  widths[savedQuery.fields.length - 1] = '110';
+  savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
