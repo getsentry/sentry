@@ -27,6 +27,7 @@ type Props = {
   organization: Organization;
   project: Project;
   initialText: string;
+  onSave?: (text: string | null) => void;
 } & typeof defaultProps;
 
 type State = {
@@ -62,7 +63,7 @@ class OwnerInput extends React.Component<Props, State> {
   }
 
   handleUpdateOwnership = () => {
-    const {organization, project} = this.props;
+    const {organization, project, onSave} = this.props;
     const {text} = this.state;
     this.setState({error: null});
 
@@ -78,10 +79,13 @@ class OwnerInput extends React.Component<Props, State> {
     request
       .then(() => {
         addSuccessMessage(t('Updated issue ownership rules'));
-        this.setState({
-          hasChanges: false,
-          text,
-        });
+        this.setState(
+          {
+            hasChanges: false,
+            text,
+          },
+          () => onSave && onSave(text)
+        );
       })
       .catch(error => {
         this.setState({error: error.responseJSON});
