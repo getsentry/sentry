@@ -22,6 +22,8 @@ ERROR_COLUMNS = [
     "trace.span",
     "transaction",
     "issue",
+    "title",
+    "tags[level]",
 ]
 
 
@@ -67,6 +69,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "span": event["trace.span"],
             "project_id": event["project.id"],
             "project_slug": event["project"],
+            "title": event["title"],
+            "level": event["tags[level]"],
         }
 
     def construct_span_map(self, events, key):
