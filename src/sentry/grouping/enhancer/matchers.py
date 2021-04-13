@@ -1,5 +1,7 @@
+from typing import Optional
+
 from sentry.grouping.utils import get_rule_bool
-from sentry.stacktraces.functions import get_function_name_for_frame_parts
+from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.functional import cached
 from sentry.utils.glob import glob_match
@@ -47,6 +49,26 @@ MATCHERS = {
     "family": "family",
     "app": "app",
 }
+
+
+def _get_function_name(frame_data: dict, platform: Optional[str]):
+
+    function_name = get_function_name_for_frame(frame_data, platform)
+
+    return function_name or "<unknown>"
+
+
+def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
+    """ Create flat dict of values relevant to matchers """
+    return dict(
+        category=get_path(frame_data, "category"),
+        family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
+        function=_get_function_name(frame_data, platform),
+        in_app=frame_data.get("in_app"),
+        module=get_path(frame_data, "module"),
+        package=frame_data.get("package"),
+        path=frame_data.get("abs_path") or frame_data.get("filename"),
+    )
 
 
 class Match:
@@ -133,13 +155,13 @@ class FrameMatch(Match):
         )
 
     def matches_frame(self, frames, idx, platform, exception_data, cache):
-        frame_data = frames[idx]
-        rv = self._positive_frame_match(frame_data, platform, exception_data, cache)
+        match_frame = frames[idx]
+        rv = self._positive_frame_match(match_frame, platform, exception_data, cache)
         if self.negated:
             rv = not rv
         return rv
 
-    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
+    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
         # Implement is subclasses
         raise NotImplementedError
 
@@ -166,8 +188,8 @@ def path_like_match(pattern, value):
 
 
 class PathLikeMatch(FrameMatch):
-    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
-        value = self._value(frame_data)
+    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
+        value = match_frame[self.field]
         if value is None:
             return False
 
@@ -175,15 +197,13 @@ class PathLikeMatch(FrameMatch):
 
 
 class PackageMatch(PathLikeMatch):
-    @staticmethod
-    def _value(frame_data):
-        return frame_data.get("package")
+
+    field = "package"
 
 
 class PathMatch(PathLikeMatch):
-    @staticmethod
-    def _value(frame_data):
-        return frame_data.get("abs_path") or frame_data.get("filename")
+
+    field = "path"
 
 
 class FamilyMatch(FrameMatch):
@@ -191,11 +211,11 @@ class FamilyMatch(FrameMatch):
         super().__init__(*args, **kwargs)
         self._flags = set(self.pattern.split(","))
 
-    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
+    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
         if "all" in self._flags:
             return True
-        family = get_behavior_family_for_platform(frame_data.get("platform") or platform)
-        return family in self._flags
+
+        return match_frame["family"] in self._flags
 
 
 class InAppMatch(FrameMatch):
@@ -203,32 +223,20 @@ class InAppMatch(FrameMatch):
         super().__init__(*args, **kwargs)
         self._ref_val = get_rule_bool(self.pattern)
 
-    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
+    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
         ref_val = self._ref_val
-        return ref_val is not None and ref_val == frame_data.get("in_app")
+        return ref_val is not None and ref_val == match_frame["in_app"]
 
 
 class FunctionMatch(FrameMatch):
-    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
-        if hasattr(frame_data, "get_raw_data"):
-            frame_data = frame_data.get_raw_data()
+    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
 
-        function_name = cached(
-            cache,
-            get_function_name_for_frame_parts,
-            frame_data.get("raw_function"),
-            frame_data.get("function"),
-            frame_data.get("platform"),
-            platform,
-        )
-
-        value = function_name or "<unknown>"
-        return cached(cache, glob_match, value, self.pattern)
+        return cached(cache, glob_match, match_frame["function"], self.pattern)
 
 
 class FrameFieldMatch(FrameMatch):
-    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
-        field = get_path(frame_data, *self.field_path)
+    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
+        field = match_frame[self.field]
         if field is None:
             return False
 
@@ -237,12 +245,12 @@ class FrameFieldMatch(FrameMatch):
 
 class ModuleMatch(FrameFieldMatch):
 
-    field_path = ["module"]
+    field = "module"
 
 
 class CategoryMatch(FrameFieldMatch):
 
-    field_path = ["data", "category"]
+    field = "category"
 
 
 class ExceptionFieldMatch(FrameMatch):

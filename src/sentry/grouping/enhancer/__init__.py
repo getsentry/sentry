@@ -12,7 +12,14 @@ from sentry.utils.strings import unescape_string
 
 from .actions import Action, FlagAction, VarAction
 from .exceptions import InvalidEnhancerConfig
-from .matchers import Match, ExceptionFieldMatch, FrameMatch, CalleeMatch, CallerMatch
+from .matchers import (
+    Match,
+    ExceptionFieldMatch,
+    FrameMatch,
+    CalleeMatch,
+    CallerMatch,
+    create_match_frame,
+)
 
 
 # Grammar is defined in EBNF syntax.
@@ -111,9 +118,11 @@ class Enhancements:
 
         cache = {}
 
+        match_frames = [create_match_frame(frame, platform) for frame in frames]
+
         for rule in self._modifier_rules:
             for idx, action in rule.get_matching_frame_actions(
-                frames, platform, exception_data, cache
+                match_frames, platform, exception_data, cache
             ):
                 action.apply_modifications_to_frame(frames, idx, rule=rule)
 
@@ -121,12 +130,14 @@ class Enhancements:
 
         cache = {}
 
+        match_frames = [create_match_frame(frame, platform) for frame in frames]
+
         stacktrace_state = StacktraceState()
         # Apply direct frame actions and update the stack state alongside
         for rule in self._updater_rules:
 
             for idx, action in rule.get_matching_frame_actions(
-                frames, platform, exception_data, cache
+                match_frames, platform, exception_data, cache
             ):
                 action.update_frame_components_contributions(components, frames, idx, rule=rule)
                 action.modify_stacktrace_state(stacktrace_state, rule)
