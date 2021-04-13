@@ -51,6 +51,7 @@ MAX_HASHES = 5000
 # in a single query to lessen the load on snuba
 MAX_FIELDS = 20
 
+SAFE_FUNCTIONS = frozenset(["NOT IN"])
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 # Match any text surrounded by quotes, can't use `.*` here since it
 # doesn't include new lines,
@@ -384,7 +385,9 @@ def get_function_index(column_expr, depth=0):
             # The assumption here is that a list that follows a string means
             # the string is a function name
             if isinstance(column_expr[i], str) and isinstance(column_expr[i + 1], (tuple, list)):
-                assert SAFE_FUNCTION_RE.match(column_expr[i])
+                assert column_expr[i] in SAFE_FUNCTIONS or SAFE_FUNCTION_RE.match(
+                    column_expr[i]
+                ), column_expr[i]
                 index = i
                 break
             else:
@@ -1091,12 +1094,9 @@ def resolve_condition(cond, column_resolver):
                                        current dataset.
     """
     index = get_function_index(cond)
-    if index is not None:
-        # IN conditions are detected as a function but aren't really.
-        if cond[index] == "IN":
-            cond[0] = column_resolver(cond[0])
-            return cond
-        elif cond[index] in FUNCTION_TO_OPERATOR:
+    # IN/NOT IN conditions are detected as a function but aren't really.
+    if index is not None and cond[index] not in ("IN", "NOT IN"):
+        if cond[index] in FUNCTION_TO_OPERATOR:
             func_args = cond[index + 1]
             for i, arg in enumerate(func_args):
                 if i == 0:

@@ -168,6 +168,28 @@ class GroupTest(TestCase, SnubaTestCase):
         with self.assertRaises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id(group.organization.id, short_id)
 
+    def test_qualified_share_id_bulk(self):
+        project = self.create_project(name="foo bar")
+        group = self.create_group(project=project, short_id=project.next_short_id())
+        group_2 = self.create_group(project=project, short_id=project.next_short_id())
+        group_short_id = group.qualified_short_id
+        group_2_short_id = group_2.qualified_short_id
+        assert [group] == Group.objects.by_qualified_short_id_bulk(
+            group.organization.id, [group_short_id]
+        )
+        assert {group, group_2} == set(
+            Group.objects.by_qualified_short_id_bulk(
+                group.organization.id,
+                [group_short_id, group_2_short_id],
+            )
+        )
+
+        group.update(status=GroupStatus.PENDING_DELETION)
+        with self.assertRaises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id_bulk(
+                group.organization.id, [group_short_id, group_2_short_id]
+            )
+
     def test_first_last_release(self):
         project = self.create_project()
         release = Release.objects.create(version="a", organization_id=project.organization_id)

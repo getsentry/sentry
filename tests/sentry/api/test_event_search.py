@@ -1,4 +1,5 @@
 import datetime
+import re
 import unittest
 from datetime import timedelta
 
@@ -1947,7 +1948,9 @@ class ParseBooleanSearchQueryTest(TestCase):
         project3 = self.create_project()
         with self.assertRaisesRegexp(
             InvalidSearchQuery,
-            f"Project {project3.slug} does not exist or is not an actively selected project.",
+            re.escape(
+                f"Invalid query. Project(s) {str(project3.slug)} do not exist or are not actively selected."
+            ),
         ):
             get_filter(
                 f"project:{project1.slug} OR project:{project3.slug}",
@@ -2098,6 +2101,38 @@ class GetSnubaQueryArgsTest(TestCase):
 
         assert get_filter("tags[project_id]:123").conditions == [
             [["ifNull", ["tags[project_id]", "''"]], "=", "123"]
+        ]
+
+    def test_in_syntax(self):
+        project_2 = self.create_project()
+        group = self.create_group(project=self.project, short_id=self.project.next_short_id())
+        group_2 = self.create_group(project=project_2, short_id=self.project.next_short_id())
+        assert (
+            get_filter(
+                f"project.name:[{self.project.slug}, {project_2.slug}]",
+                params={"project_id": [self.project.id, project_2.id]},
+            ).conditions
+            == [["project_id", "IN", [project_2.id, self.project.id]]]
+        )
+        assert (
+            get_filter(
+                f"issue:[{group.qualified_short_id}, {group_2.qualified_short_id}]",
+                params={"organization_id": self.project.organization_id},
+            ).conditions
+            == [["issue.id", "IN", [group.id, group_2.id]]]
+        )
+        assert (
+            get_filter(
+                f"issue:[{group.qualified_short_id}, unknown]",
+                params={"organization_id": self.project.organization_id},
+            ).conditions
+            == [[["coalesce", ["issue.id", 0]], "IN", [0, group.id]]]
+        )
+        assert get_filter("environment:[prod, dev]").conditions == [
+            [["environment", "IN", {"prod", "dev"}]]
+        ]
+        assert get_filter("random_tag:[what, hi]").conditions == [
+            [["ifNull", ["random_tag", "''"]], "IN", ["what", "hi"]]
         ]
 
     def test_no_search(self):
@@ -2402,7 +2437,7 @@ class GetSnubaQueryArgsTest(TestCase):
         exc = exc_info.value
         exc_str = f"{exc}"
         assert (
-            f"Invalid query. Project {p1.slug} does not exist or is not an actively selected project"
+            f"Invalid query. Project(s) {p1.slug} do not exist or are not actively selected."
             in exc_str
         )
 
@@ -2575,6 +2610,13 @@ class GetSnubaQueryArgsTest(TestCase):
         # When organization id isn't included, project_id should unfortunately be an object
         result = get_filter("release:latest", params={"project_id": [self.project]})
         assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+
+        release_2 = self.create_release(self.project)
+
+        result = get_filter("release:[latest]", params={"project_id": [self.project]})
+        assert result.conditions == [["release", "IN", [release_2.version]]]
+        result = get_filter("release:[latest,1]", params={"project_id": [self.project]})
+        assert result.conditions == [["release", "IN", [release_2.version, "1"]]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):

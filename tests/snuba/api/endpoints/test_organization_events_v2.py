@@ -267,8 +267,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "Invalid query. Project %s does not exist or is not an actively selected project."
-            % project.slug
+            == f"Invalid query. Project(s) {project.slug} do not exist or are not actively selected."
         )
 
     def test_project_in_query_does_not_exist(self):
@@ -284,7 +283,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "Invalid query. Project morty does not exist or is not an actively selected project."
+            == "Invalid query. Project(s) morty do not exist or are not actively selected."
         )
 
     def test_not_project_in_query_but_in_header(self):
@@ -2440,6 +2439,160 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["issue.id"] == event.group_id
         assert data[0]["count_id"] == 2
+
+    def run_test_in_query(self, query, expected_events, expected_negative_events=None):
+        params = {
+            "field": ["id"],
+            "query": query,
+            "orderby": "id",
+        }
+        response = self.do_request(
+            params, {"organizations:discover-basic": True, "organizations:global-views": True}
+        )
+        assert response.status_code == 200, response.content
+        assert [row["id"] for row in response.data["data"]] == [e.event_id for e in expected_events]
+
+        if expected_negative_events is not None:
+            params["query"] = f"!{query}"
+            response = self.do_request(
+                params,
+                {"organizations:discover-basic": True, "organizations:global-views": True},
+            )
+            assert response.status_code == 200, response.content
+            assert [row["id"] for row in response.data["data"]] == [
+                e.event_id for e in expected_negative_events
+            ]
+
+    def test_in_query_events(self):
+        project_1 = self.create_project()
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_1"],
+                "message": "group1",
+                "user": {"email": "hello@example.com"},
+                "environment": "prod",
+                "tags": {"random": "123"},
+                "release": "1.0",
+            },
+            project_id=project_1.id,
+        )
+        project_2 = self.create_project()
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "message": "group2",
+                "user": {"email": "bar@example.com"},
+                "environment": "staging",
+                "tags": {"random": "456"},
+                "stacktrace": {"frames": [{"filename": "src/app/group2.py"}]},
+                "release": "1.2",
+            },
+            project_id=project_2.id,
+        )
+        project_3 = self.create_project()
+        event_3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_3"],
+                "message": "group3",
+                "user": {"email": "foo@example.com"},
+                "environment": "canary",
+                "tags": {"random": "789"},
+            },
+            project_id=project_3.id,
+        )
+
+        self.run_test_in_query("environment:[prod, staging]", [event_1, event_2], [event_3])
+        self.run_test_in_query("environment:[staging]", [event_2], [event_1, event_3])
+        self.run_test_in_query(
+            "user.email:[foo@example.com, hello@example.com]", [event_1, event_3], [event_2]
+        )
+        self.run_test_in_query("user.email:[foo@example.com]", [event_3], [event_1, event_2])
+        self.run_test_in_query(
+            "user.display:[foo@example.com, hello@example.com]", [event_1, event_3], [event_2]
+        )
+        self.run_test_in_query("message:[group2, group1]", [event_1, event_2], [event_3])
+
+        self.run_test_in_query(
+            f"issue.id:[{event_1.group_id},{event_2.group_id}]", [event_1, event_2]
+        )
+        self.run_test_in_query(
+            f"issue:[{event_1.group.qualified_short_id},{event_2.group.qualified_short_id}]",
+            [event_1, event_2],
+        )
+        self.run_test_in_query(
+            f"issue:[{event_1.group.qualified_short_id},{event_2.group.qualified_short_id}, unknown]",
+            [event_1, event_2],
+        )
+        self.run_test_in_query(f"project_id:[{project_3.id},{project_2.id}]", [event_2, event_3])
+        self.run_test_in_query(
+            f"project.name:[{project_3.slug},{project_2.slug}]", [event_2, event_3]
+        )
+        self.run_test_in_query("random:[789,456]", [event_2, event_3], [event_1])
+        self.run_test_in_query("tags[random]:[789,456]", [event_2, event_3], [event_1])
+        self.run_test_in_query("release:[1.0,1.2]", [event_1, event_2], [event_3])
+
+    def test_in_query_events_stack(self):
+        project_1 = self.create_project()
+        test_js = self.store_event(
+            load_data(
+                "javascript",
+                timestamp=before_now(minutes=1),
+                start_timestamp=before_now(minutes=1, seconds=5),
+            ),
+            project_id=project_1.id,
+        )
+        test_java = self.store_event(
+            load_data(
+                "java",
+                timestamp=before_now(minutes=1),
+                start_timestamp=before_now(minutes=1, seconds=5),
+            ),
+            project_id=project_1.id,
+        )
+        self.run_test_in_query(
+            "stack.filename:[../../sentry/scripts/views.js]", [test_js], [test_java]
+        )
+
+    def test_in_query_transactions(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        data["event_id"] = "a" * 32
+        data["contexts"]["trace"]["status"] = "ok"
+        transaction_1 = self.store_event(data, project_id=project.id)
+
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        data["event_id"] = "b" * 32
+        data["contexts"]["trace"]["status"] = "aborted"
+        transaction_2 = self.store_event(data, project_id=project.id)
+
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        data["event_id"] = "c" * 32
+        data["contexts"]["trace"]["status"] = "already_exists"
+        transaction_3 = self.store_event(data, project_id=project.id)
+
+        self.run_test_in_query(
+            "transaction.status:[aborted, already_exists]",
+            [transaction_2, transaction_3],
+            [transaction_1],
+        )
 
     def test_messed_up_function_values(self):
         # TODO (evanh): It would be nice if this surfaced an error to the user.

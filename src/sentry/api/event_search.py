@@ -48,6 +48,8 @@ NEGATION_MAP = {
     ">=": "<",
     "IN": "NOT IN",
 }
+equality_operators = frozenset(["=", "IN"])
+inequality_operators = frozenset(["!=", "NOT IN"])
 
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
 
@@ -264,7 +266,13 @@ class SearchFilter(namedtuple("SearchFilter", "key operator value")):
             and self.value.raw_value != ""
             or self.operator == "="
             and self.value.raw_value == ""
+            or self.operator == "NOT IN"
+            and self.value.raw_value
         )
+
+    @cached_property
+    def is_in_filter(self):
+        return self.operator in ("IN", "NOT IN")
 
 
 class SearchKey(namedtuple("SearchKey", "name")):
@@ -857,6 +865,15 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     return condition
 
 
+def translate_transaction_status(val):
+    if val not in SPAN_STATUS_NAME_TO_CODE:
+        raise InvalidSearchQuery(
+            f"Invalid value {val} for transaction.status condition. Accepted "
+            f"values are {', '.join(SPAN_STATUS_NAME_TO_CODE.keys())}"
+        )
+    return SPAN_STATUS_NAME_TO_CODE[val]
+
+
 def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
@@ -881,10 +898,10 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
             env_conditions.append(["environment", operator, None])
         if len(values) == 1:
-            operator = "=" if search_filter.operator == "=" else "!="
+            operator = "=" if search_filter.operator in equality_operators else "!="
             env_conditions.append(["environment", operator, values.pop()])
         elif values:
-            operator = "IN" if search_filter.operator == "=" else "NOT IN"
+            operator = "IN" if search_filter.operator in equality_operators else "NOT IN"
             env_conditions.append(["environment", operator, values])
         return env_conditions
     elif name == "message":
@@ -901,39 +918,67 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
             # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
             # so we should flip the operator here
-            operator = "=" if search_filter.operator == "!=" else "!="
+            operator = "!=" if search_filter.operator in equality_operators else "="
+            if search_filter.is_in_filter:
+                # XXX: This `toString` usage is unnecessary, but we need it in place to
+                # trick the legacy Snuba language into not treating `message` as a
+                # function. Once we switch over to snql it can be removed.
+                return [
+                    [
+                        "multiSearchFirstPositionCaseInsensitive",
+                        [["toString", ["message"]], ["array", [f"'{v}'" for v in value]]],
+                    ],
+                    operator,
+                    0,
+                ]
+
             # make message search case insensitive
             return [["positionCaseInsensitive", ["message", f"'{value}'"]], operator, 0]
-    elif (
-        name.startswith("stack.") or name.startswith("error.")
-    ) and search_filter.value.is_wildcard():
+    elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():
         # Escape and convert meta characters for LIKE expressions.
         raw_value = search_filter.value.raw_value
         like_value = raw_value.replace("%", "\\%").replace("_", "\\_").replace("*", "%")
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
+    elif name in ARRAY_FIELDS and search_filter.is_in_filter:
+        operator = "=" if search_filter.operator == "IN" else "!="
+        # XXX: This `arrayConcat` usage is unnecessary, but we need it in place to
+        # trick the legacy Snuba language into not treating `name` as a
+        # function. Once we switch over to snql it can be removed.
+        return [
+            ["hasAny", [["arrayConcat", [name]], ["array", [f"'{v}'" for v in value]]]],
+            operator,
+            1,
+        ]
     elif name == "transaction.status":
         # Handle "has" queries
         if search_filter.value.raw_value == "":
             return [["isNull", [name]], search_filter.operator, 1]
 
-        internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
-        if internal_value is None:
-            raise InvalidSearchQuery(
-                "Invalid value for transaction.status condition. Accepted values are {}".format(
-                    ", ".join(SPAN_STATUS_NAME_TO_CODE.keys())
-                )
-            )
+        if search_filter.is_in_filter:
+            internal_value = [
+                translate_transaction_status(val) for val in search_filter.value.raw_value
+            ]
+        else:
+            internal_value = translate_transaction_status(search_filter.value.raw_value)
+
         return [name, search_filter.operator, internal_value]
     elif name == "issue.id":
         # Handle "has" queries
-        if search_filter.value.raw_value == "":
+        if (
+            search_filter.value.raw_value == ""
+            or search_filter.is_in_filter
+            and [v for v in value if not v]
+        ):
             # The state of having no issues is represented differently on transactions vs
             # other events. On the transactions table, it is represented by 0 whereas it is
             # represented by NULL everywhere else. We use coalesce here so we can treat this
             # consistently
             name = ["coalesce", [name, 0]]
-            value = 0
+            if search_filter.is_in_filter:
+                value = [v if v else 0 for v in value]
+            else:
+                value = 0
 
         # Skip isNull check on group_id value as we want to
         # allow snuba's prewhere optimizer to find this condition.
@@ -1025,7 +1070,11 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
 
         is_null_condition = None
         # TODO(wmak): Skip this for all non-nullable keys not just event.type
-        if search_filter.operator == "!=" and not search_filter.key.is_tag and name != "event.type":
+        if (
+            search_filter.operator in ("!=", "NOT IN")
+            and not search_filter.key.is_tag
+            and name != "event.type"
+        ):
             # Handle null columns on inequality comparisons. Any comparison
             # between a value and a null will result to null, so we need to
             # explicitly check for whether the condition is null, and OR it
@@ -1056,7 +1105,7 @@ def to_list(value):
 
 
 def format_search_filter(term, params):
-    project_to_filter = None  # Used to avoid doing multiple conditions on project ID
+    projects_to_filter = []  # Used to avoid doing multiple conditions on project ID
     conditions = []
     group_ids = None
     name = term.key.name
@@ -1064,55 +1113,77 @@ def format_search_filter(term, params):
     if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
         if term.operator == "=" and value == "":
             raise InvalidSearchQuery("Invalid query for 'has' search: 'project' cannot be empty.")
-        project = None
-        try:
-            project = Project.objects.get(id__in=params.get("project_id", []), slug=value)
-        except Exception as e:
-            if not isinstance(e, Project.DoesNotExist) or term.operator != "!=":
-                raise InvalidSearchQuery(
-                    f"Invalid query. Project {value} does not exist or is not an actively selected project."
-                )
-        else:
+        slugs = to_list(value)
+        projects = {
+            p.slug: p.id
+            for p in Project.objects.filter(id__in=params.get("project_id", []), slug__in=slugs)
+        }
+        missing = [slug for slug in slugs if slug not in projects]
+        if missing and term.operator in equality_operators:
+            raise InvalidSearchQuery(
+                f"Invalid query. Project(s) {', '.join(missing)} do not exist or are not actively selected."
+            )
+        project_ids = list(sorted(projects.values()))
+        if project_ids:
             # Create a new search filter with the correct values
-            term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
+            term = SearchFilter(
+                SearchKey("project_id"),
+                term.operator,
+                SearchValue(project_ids if term.is_in_filter else project_ids[0]),
+            )
             converted_filter = convert_search_filter_to_snuba_query(term)
             if converted_filter:
-                if term.operator == "=":
-                    project_to_filter = project.id
-
+                if term.operator in equality_operators:
+                    projects_to_filter = project_ids
                 conditions.append(converted_filter)
     elif name == ISSUE_ID_ALIAS and value != "":
         # A blank term value means that this is a has filter
         group_ids = to_list(value)
     elif name == ISSUE_ALIAS:
         operator = term.operator
-        if value == "unknown":
-            # `unknown` is a special value for when there is no issue associated with the event
-            operator = "=" if term.operator == "=" else "!="
-            value = ""
-        elif value != "" and params and "organization_id" in params:
+        value = to_list(value)
+        # `unknown` is a special value for when there is no issue associated with the event
+        group_short_ids = [v for v in value if v and v != "unknown"]
+        filter_values = ["" for v in value if not v or v == "unknown"]
+
+        if group_short_ids and params and "organization_id" in params:
             try:
-                group = Group.objects.by_qualified_short_id(params["organization_id"], value)
+                groups = Group.objects.by_qualified_short_id_bulk(
+                    params["organization_id"],
+                    group_short_ids,
+                )
             except Exception:
-                raise InvalidSearchQuery(f"Invalid value '{value}' for 'issue:' filter")
+                raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                value = group.id
-        term = SearchFilter(SearchKey("issue.id"), operator, SearchValue(value))
+                filter_values.extend([g.id for g in groups])
+
+        term = SearchFilter(
+            SearchKey("issue.id"),
+            operator,
+            SearchValue(filter_values if term.is_in_filter else filter_values[0]),
+        )
         converted_filter = convert_search_filter_to_snuba_query(term)
         conditions.append(converted_filter)
-    elif name == RELEASE_ALIAS and params and value == "latest":
+    elif (
+        name == RELEASE_ALIAS
+        and params
+        and (value == "latest" or term.is_in_filter and any(v == "latest" for v in value))
+    ):
+        value = [
+            parse_release(
+                v,
+                params["project_id"],
+                params.get("environment_objects"),
+                params.get("organization_id"),
+            )
+            for v in to_list(value)
+        ]
+
         converted_filter = convert_search_filter_to_snuba_query(
             SearchFilter(
                 term.key,
                 term.operator,
-                SearchValue(
-                    parse_release(
-                        value,
-                        params["project_id"],
-                        params.get("environment_objects"),
-                        params.get("organization_id"),
-                    )
-                ),
+                SearchValue(value if term.is_in_filter else value[0]),
             )
         )
         if converted_filter:
@@ -1122,7 +1193,7 @@ def format_search_filter(term, params):
         if converted_filter:
             conditions.append(converted_filter)
 
-    return conditions, project_to_filter, group_ids
+    return conditions, projects_to_filter, group_ids
 
 
 def convert_condition_to_function(cond):
@@ -1182,8 +1253,7 @@ def convert_snuba_condition_to_function(term, params=None):
     group_ids = []
     projects_to_filter = []
     if isinstance(term, SearchFilter):
-        conditions, project_to_filter, group_ids = format_search_filter(term, params)
-        projects_to_filter = [project_to_filter] if project_to_filter else []
+        conditions, projects_to_filter, group_ids = format_search_filter(term, params)
         group_ids = group_ids if group_ids else []
         if conditions:
             conditions_to_and = []
@@ -1351,13 +1421,14 @@ def get_filter(query=None, params=None):
         if group_ids is not None:
             kwargs["group_ids"].extend(list(set(group_ids)))
     else:
+        projects_to_filter = set()
         for term in parsed_terms:
             if isinstance(term, SearchFilter):
-                conditions, found_project_to_filter, group_ids = format_search_filter(term, params)
+                conditions, found_projects_to_filter, group_ids = format_search_filter(term, params)
                 if len(conditions) > 0:
                     kwargs["conditions"].extend(conditions)
-                if found_project_to_filter:
-                    projects_to_filter = [found_project_to_filter]
+                if found_projects_to_filter:
+                    projects_to_filter.update(found_projects_to_filter)
                 if group_ids is not None:
                     kwargs["group_ids"].extend(group_ids)
             elif isinstance(term, AggregateFilter):
@@ -1365,6 +1436,7 @@ def get_filter(query=None, params=None):
                 kwargs["condition_aggregates"].append(term.key.name)
                 if converted_filter:
                     kwargs["having"].append(converted_filter)
+        projects_to_filter = list(projects_to_filter)
 
     # Keys included as url params take precedent if same key is included in search
     # They are also considered safe and to have had access rules applied unlike conditions
