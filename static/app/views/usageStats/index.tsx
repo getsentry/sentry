@@ -112,12 +112,12 @@ class OrganizationStats extends React.Component<Props> {
 
         <p>
           {t(
-            'The chart below reflects events that Sentry has received across your entire organization. We collect usage metrics on 3 types of events: errors, transactions, and attachments. Each type of event has 3 outcomes: accepted, filtered, and dropped.'
+            'The chart below reflects events that Sentry has received across your entire organization. We collect usage metrics on 3 types of events: errors, transactions, and attachments. Sessions are not included in this chart.'
           )}
         </p>
         <p>
           {t(
-            "Accepted events were successfully processed by Sentry. Filtered events were blocked due to your project's inbound data filter rules. Dropped events were discarded due to invalid data, rate-limits, quota-limits or spike protection."
+            "Each type of event has 3 outcomes: accepted, filtered, and dropped. Accepted events were successfully processed by Sentry. Filtered events were blocked due to your project's inbound data filter rules. Dropped events were discarded due to invalid data, rate-limits, quota-limits or spike protection."
           )}
         </p>
 
