@@ -290,7 +290,7 @@ let appConfig = {
             options: {
               // This needs to be `false` because of platformicons package
               esModule: false,
-              name: '[folder]/[name].[hash:6].[ext]',
+              name: '[folder]/[name].[contenthash:6].[ext]',
             },
           },
         ],
@@ -406,12 +406,9 @@ let appConfig = {
   },
   output: {
     path: distPath,
-    filename: '[name].[hash].js',
+    publicPath: '',
+    filename: '[name].[contenthash].js',
     chunkFilename: '[name].[contenthash].js',
-
-    // Rename global that is used to async load chunks
-    // Avoids 3rd party js from overwriting the default name (webpackJsonp)
-    jsonpFunction: 'sntryWpJsonp',
     sourceMapFilename: '[name].js.map',
   },
   optimization: {
@@ -491,13 +488,13 @@ if (
 
     appConfig.devServer = {
       ...appConfig.devServer,
-      publicPath: '/_static/sentry/dist',
+      publicPath: '/_assets/sentry',
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: {
         '/api/store/**': relayAddress,
         '/api/{1..9}*({0..9})/**': relayAddress,
         '/api/0/relays/outcomes/': relayAddress,
-        '!/_webpack': backendAddress,
+        '!/_assets/sentry/**': backendAddress,
       },
       writeToDisk: filePath => {
         return /manifest\.json/.test(filePath);
