@@ -41,8 +41,38 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
             continue
 
         params = link.args["query"]
-        params.setlist("order", params.get("sort"))
-        display_mode = str(link.args["query"].get("display", "default"))
+        query_id = params.get("id", None)
+
+        saved_query = {}
+        if query_id:
+            try:
+                response = client.get(
+                    auth=ApiKey(organization=org, scope_list=["org:read"]),
+                    path=f"/organizations/{org_slug}/discover/saved/{query_id}/",
+                )
+
+            except Exception as exc:
+                logger.error(
+                    "Failed to load saved query for unfurl: %s",
+                    str(exc),
+                    exc_info=True,
+                )
+                pass
+            else:
+                saved_query = response.data
+
+        # Override params from Discover Saved Query if they aren't in the URL
+        params["order"] = params.get("sort") or saved_query.get("orderby")
+        params["name"] = params.get("name") or saved_query.get("name")
+        params["yAxis"] = params.get("yAxis") or saved_query.get("yAxis")
+        params.setlist("field", params.get("field") or saved_query.get("fields"))
+
+        # Only override if key doesn't exist since we want to account for
+        # an intermediate state where the query could have been cleared
+        if "query" not in params:
+            params["query"] = saved_query.get("query")
+
+        display_mode = str(params.get("display") or saved_query.get("display", "default"))
 
         if "daily" in display_mode:
             params.setlist("interval", ["1d"])
@@ -63,7 +93,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
             )
             continue
 
-        chart_data = {"seriesName": link.args["query"].get("yAxis", "count()"), "stats": resp.data}
+        chart_data = {"seriesName": params.get("yAxis", "count()"), "stats": resp.data}
 
         style = display_modes.get(display_mode, display_modes["default"])
 
