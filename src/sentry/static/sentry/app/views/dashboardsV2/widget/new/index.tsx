@@ -30,7 +30,7 @@ function WidgetNewContainer({organization, ...props}: Props) {
         </PageContent>
       )}
     >
-      <WidgetNew {...props} />
+      <WidgetNew {...props} organization={organization} />
     </Feature>
   );
 }

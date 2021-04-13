@@ -31,7 +31,7 @@ function PickProjectToContinue({
 }: Props) {
   let navigating = false;
 
-  const path = `${nextPath}?project=`;
+  const path = nextPath.includes('?') ? `${nextPath}&project=` : `${nextPath}?project=`;
 
   // if the project in URL is missing, but this release belongs to only one project, redirect there
   if (projects.length === 1) {

@@ -62,6 +62,7 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
   let output: Series[] = [];
 
   const seriesNamePrefix = query.name;
+
   if (isMultiSeriesStats(result)) {
     // Convert multi-series results into chartable series. Multi series results
     // are created when multiple yAxis are used. Convert the timeseries
