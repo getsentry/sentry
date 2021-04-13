@@ -78,7 +78,3 @@ export const RadioLineItem = styled('label')<{
 const RadioPanel = styled(Panel)`
   margin: 0;
 `;
-
-const RadioPanelBody = styled(PanelBody)`
-  padding: 0;
-`;
