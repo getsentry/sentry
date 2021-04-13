@@ -108,6 +108,22 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             PluginSerializer(project),
         )
 
+    def _get_first_last_release(self, request, group):
+        first_release = group.get_first_release()
+        if first_release is not None:
+            last_release = group.get_last_release()
+        else:
+            last_release = None
+
+        if first_release is not None and last_release is not None:
+            first_release, last_release = self._get_first_last_release_info(
+                request, group, [first_release, last_release]
+            )
+        elif first_release is not None:
+            first_release = self._get_release_info(request, group, first_release)
+        elif last_release is not None:
+            last_release = self._get_release_info(request, group, last_release)
+
     def _get_release_info(self, request, group, version):
         try:
             release = Release.objects.get(
@@ -173,21 +189,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:
-                first_release = group.get_first_release()
-
-                if first_release is not None:
-                    last_release = group.get_last_release()
-                else:
-                    last_release = None
-
-                if first_release is not None and last_release is not None:
-                    first_release, last_release = self._get_first_last_release_info(
-                        request, group, [first_release, last_release]
-                    )
-                elif first_release is not None:
-                    first_release = self._get_release_info(request, group, first_release)
-                elif last_release is not None:
-                    last_release = self._get_release_info(request, group, last_release)
+                first_release, last_release = self._get_first_last_release(request, group)
                 data.update(
                     {
                         "firstRelease": first_release,
