@@ -1,17 +1,15 @@
-from django.core.urlresolvers import reverse
-
 from sentry.models import OrganizationMember
 from sentry.testutils import APITestCase
 
 
 class ExternalUserTest(APITestCase):
+    endpoint = "sentry-api-0-organization-external-user"
+    method = "post"
+
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.url = reverse(
-            "sentry-api-0-organization-external-user",
-            args=[self.organization.slug],
-        )
+        self.org_slug = self.organization.slug  # force creation
         self.organization_member = OrganizationMember.objects.get(user=self.user)
         self.data = {
             "externalName": "@NisanthanNanthakumar",
@@ -21,8 +19,7 @@ class ExternalUserTest(APITestCase):
 
     def test_basic_post(self):
         with self.feature({"organizations:import-codeowners": True}):
-            response = self.client.post(self.url, self.data)
-        assert response.status_code == 201, response.content
+            response = self.get_success_response(self.org_slug, status_code=201, **self.data)
         assert response.data == {
             **self.data,
             "id": str(response.data["id"]),
@@ -30,36 +27,31 @@ class ExternalUserTest(APITestCase):
         }
 
     def test_without_feature_flag(self):
-        response = self.client.post(self.url, self.data)
-        assert response.status_code == 403
+        response = self.get_error_response(self.org_slug, status_code=403, **self.data)
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_missing_provider(self):
         self.data.pop("provider")
         with self.feature({"organizations:import-codeowners": True}):
-            response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
+            response = self.get_error_response(self.org_slug, status_code=400, **self.data)
         assert response.data == {"provider": ["This field is required."]}
 
     def test_missing_externalName(self):
         self.data.pop("externalName")
         with self.feature({"organizations:import-codeowners": True}):
-            response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
+            response = self.get_error_response(self.org_slug, status_code=400, **self.data)
         assert response.data == {"externalName": ["This field is required."]}
 
     def test_missing_memberId(self):
         self.data.pop("memberId")
         with self.feature({"organizations:import-codeowners": True}):
-            response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
+            response = self.get_error_response(self.org_slug, status_code=400, **self.data)
         assert response.data == {"memberId": ["This field is required."]}
 
     def test_invalid_provider(self):
         self.data.update(provider="unknown")
         with self.feature({"organizations:import-codeowners": True}):
-            response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
+            response = self.get_error_response(self.org_slug, status_code=400, **self.data)
         assert response.data == {"provider": ['"unknown" is not a valid choice.']}
 
     def test_create_existing_association(self):
@@ -68,8 +60,7 @@ class ExternalUserTest(APITestCase):
         )
 
         with self.feature({"organizations:import-codeowners": True}):
-            response = self.client.post(self.url, self.data)
-        assert response.status_code == 200
+            response = self.get_success_response(self.org_slug, **self.data)
         assert response.data == {
             **self.data,
             "id": str(self.external_user.id),

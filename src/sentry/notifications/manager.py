@@ -5,7 +5,6 @@ from django.db import transaction
 from django.db.models import Q, QuerySet
 
 from sentry.db.models.manager import BaseManager
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.helpers import (
     get_scope,
     get_scope_type,
@@ -19,6 +18,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.types.integrations import ExternalProviders
 
 
 class NotificationsManager(BaseManager):  # type: ignore

@@ -14,13 +14,13 @@ from sentry.models import (
     Repository,
     UserEmail,
 )
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
 from sentry.testutils import TestCase
+from sentry.types.integrations import ExternalProviders
 
 
 class ReleaseTestCase(TestCase):

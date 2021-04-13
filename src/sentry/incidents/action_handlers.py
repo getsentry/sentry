@@ -11,8 +11,8 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models.integration import ExternalProviders
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri

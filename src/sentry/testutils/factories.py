@@ -75,6 +75,7 @@ from sentry.models import (
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
 
 
@@ -954,14 +955,14 @@ class Factories:
 
     @staticmethod
     def create_external_user(organizationmember, **kwargs):
-        kwargs.setdefault("provider", ExternalUser.get_provider_enum("github"))
+        kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
 
         return ExternalUser.objects.create(organizationmember=organizationmember, **kwargs)
 
     @staticmethod
     def create_external_team(team, **kwargs):
-        kwargs.setdefault("provider", ExternalTeam.get_provider_enum("github"))
+        kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
 
         return ExternalTeam.objects.create(team=team, **kwargs)

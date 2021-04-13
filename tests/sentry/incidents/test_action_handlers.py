@@ -25,9 +25,9 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models import Integration, NotificationSetting, PagerDutyService
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 

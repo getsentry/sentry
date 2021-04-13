@@ -22,7 +22,6 @@ from sentry.models import (
     ApiToken,
     Commit,
     Environment,
-    ExternalProviders,
     Group,
     GroupAssignee,
     GroupBookmark,
@@ -53,6 +52,7 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.reprocessing2 import get_progress
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import snuba
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip

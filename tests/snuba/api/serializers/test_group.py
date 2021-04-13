@@ -21,10 +21,10 @@ from sentry.models import (
     NotificationSetting,
     UserOption,
 )
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
 

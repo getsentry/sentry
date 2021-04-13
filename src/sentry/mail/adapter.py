@@ -24,7 +24,6 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.helpers import transform_to_notification_settings_by_user
 from sentry.notifications.types import (
     GroupSubscriptionReason,
@@ -35,6 +34,7 @@ from sentry.notifications.types import (
 from sentry.plugins.base import plugins
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
