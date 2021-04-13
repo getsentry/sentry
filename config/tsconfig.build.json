@@ -36,6 +36,7 @@
       "app/*": ["static/app/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
       "sentry-images/*": ["static/images/*"],
+      "sentry-logos/*": ["src/sentry/static/sentry/images/logos/*"],
       "sentry-fonts/*": ["static/fonts/*"],
       "@emotion/styled": ["static/app/styled.tsx"],
       "@original-emotion/*": ["node_modules/@emotion/*"],
