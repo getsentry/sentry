@@ -1,5 +1,4 @@
-from collections import Mapping
-from typing import Any, MutableMapping, Tuple, Union
+from typing import Any, Mapping, MutableMapping, Tuple, Union
 from urllib.parse import urlparse, urlunparse
 
 from django.core.urlresolvers import reverse
