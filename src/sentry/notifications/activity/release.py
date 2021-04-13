@@ -1,10 +1,12 @@
 from collections import defaultdict
 from itertools import chain
+from typing import Any, List, Mapping, MutableMapping, Optional, Set
 
 from django.db.models import Count
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
+    Activity,
     CommitFileChange,
     Deploy,
     Environment,
@@ -32,12 +34,12 @@ from .base import ActivityNotification
 
 
 class ReleaseActivityNotification(ActivityNotification):
-    def __init__(self, activity):
+    def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.organization = self.project.organization
-        self.user_id_team_lookup = None
-        self.email_list = {}
-        self.user_ids = {}
+        self.user_id_team_lookup: Optional[MutableMapping[int, List[int]]] = None
+        self.email_list: Set[str] = set()
+        self.user_ids: Set[int] = set()
 
         try:
             self.deploy = Deploy.objects.get(id=activity.data["deploy_id"])
@@ -108,10 +110,10 @@ class ReleaseActivityNotification(ActivityNotification):
                 .annotate(num_groups=Count("id"))
             )
 
-    def should_email(self):
+    def should_email(self) -> bool:
         return bool(self.release and self.deploy)
 
-    def get_participants(self):
+    def get_participants(self) -> Mapping[User, GroupSubscriptionReason]:
         # collect all users with verified emails on a team in the related projects,
         users = list(
             User.objects.filter(
@@ -135,7 +137,7 @@ class ReleaseActivityNotification(ActivityNotification):
 
         actor_mapping = {user.actor: user for user in users}
 
-        options_by_user_id = defaultdict(dict)
+        options_by_user_id: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
         for notification_setting in notification_settings:
             key = (
                 "default"
@@ -177,9 +179,9 @@ class ReleaseActivityNotification(ActivityNotification):
         # merge the two type of participants
         return dict(chain(participants_committed.items(), participants_opted.items()))
 
-    def get_users_by_teams(self):
+    def get_users_by_teams(self) -> Mapping[int, List[int]]:
         if not self.user_id_team_lookup:
-            user_teams = defaultdict(list)
+            user_teams: MutableMapping[int, List[int]] = defaultdict(list)
             queryset = User.objects.filter(
                 sentry_orgmember_set__organization_id=self.organization.id
             ).values_list("id", "sentry_orgmember_set__teams")
@@ -188,7 +190,7 @@ class ReleaseActivityNotification(ActivityNotification):
             self.user_id_team_lookup = user_teams
         return self.user_id_team_lookup
 
-    def get_context(self):
+    def get_context(self) -> MutableMapping[str, Any]:
         file_count = (
             CommitFileChange.objects.filter(
                 commit__in=self.commit_list, organization_id=self.organization.id
@@ -209,7 +211,7 @@ class ReleaseActivityNotification(ActivityNotification):
             "setup_repo_link": absolute_uri(f"/organizations/{self.organization.slug}/repos/"),
         }
 
-    def get_user_context(self, user):
+    def get_user_context(self, user: User) -> MutableMapping[str, Any]:
         if user.is_superuser or self.organization.flags.allow_joinleave:
             projects = self.projects
         else:
@@ -234,14 +236,14 @@ class ReleaseActivityNotification(ActivityNotification):
             "project_count": len(projects),
         }
 
-    def get_subject(self):
+    def get_subject(self) -> str:
         return f"Deployed version {self.release.version} to {self.environment}"
 
-    def get_template(self):
+    def get_template(self) -> str:
         return "sentry/emails/activity/release.txt"
 
-    def get_html_template(self):
+    def get_html_template(self) -> str:
         return "sentry/emails/activity/release.html"
 
-    def get_category(self):
+    def get_category(self) -> str:
         return "release_activity_email"

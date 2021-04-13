@@ -1,13 +1,15 @@
+from typing import Any, Tuple, Union
+
 from sentry.models import Team, User
 
 from .base import ActivityNotification
 
 
 class AssignedActivityNotification(ActivityNotification):
-    def get_activity_name(self):
+    def get_activity_name(self) -> str:
         return "Assigned"
 
-    def get_description(self):
+    def get_description(self) -> Union[str, Tuple[str, Any], Tuple[str, Any, Any]]:
         activity = self.activity
         data = activity.data
 
@@ -49,5 +51,5 @@ class AssignedActivityNotification(ActivityNotification):
 
         raise NotImplementedError("Unknown Assignee Type ")
 
-    def get_category(self):
+    def get_category(self) -> str:
         return "assigned_activity_email"
