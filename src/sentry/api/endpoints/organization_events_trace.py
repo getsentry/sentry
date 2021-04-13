@@ -10,7 +10,7 @@ from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.snuba import discover
-from sentry.utils.validators import is_event_id, INVALID_EVENT_DETAILS
+from sentry.utils.validators import INVALID_EVENT_DETAILS, is_event_id
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
