@@ -219,6 +219,125 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
+    def test_simple_in(self):
+        assert parse_search_query("user.email:[test@test.com] test:[hello]") == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="IN",
+                value=SearchValue(raw_value=["hello"]),
+            ),
+        ]
+        assert parse_search_query(
+            "user.email:[test@test.com,test2@test.com,test3@test.com] test:[hello]"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com", "test2@test.com", "test3@test.com"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="IN",
+                value=SearchValue(raw_value=["hello"]),
+            ),
+        ]
+        assert parse_search_query(
+            "!user.email:[test@test.com, test@test2.com,     test@test3.com] test:[hello]"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="NOT IN",
+                value=SearchValue(raw_value=["test@test.com", "test@test2.com", "test@test3.com"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="IN",
+                value=SearchValue(raw_value=["hello"]),
+            ),
+        ]
+        # Make sure brackets still work in normal values
+        assert parse_search_query("test:h[e]llo]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="h[e]llo]"),
+            ),
+        ]
+        assert parse_search_query("test:[h[e]llo") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h[e]llo"),
+            ),
+        ]
+        assert parse_search_query('test:"[h]"') == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h]"),
+            ),
+        ]
+        assert parse_search_query("test:[h]*") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h]*"),
+            ),
+        ]
+        assert parse_search_query("test:[h e]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h"),
+            ),
+            SearchFilter(
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(raw_value="e]"),
+            ),
+        ]
+        assert parse_search_query("test:[[h]]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[[h]]"),
+            ),
+        ]
+        assert parse_search_query("test:[]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[]"),
+            ),
+        ]
+        assert parse_search_query('user.email:[test@test.com, "hi", 1]') == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com", "hi", "1"]),
+            )
+        ]
+        assert parse_search_query('user.email:[test@test.com, "hi", 1.0]') == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com", "hi", "1.0"]),
+            )
+        ]
+
+        assert parse_search_query("user.email:[test@test.com]user.email:hello@hello.com") == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="=",
+                value=SearchValue(raw_value="[test@test.com]user.email:hello@hello.com"),
+            ),
+        ]
+
     def test_raw_search_anywhere(self):
         assert parse_search_query(
             "hello what user.email:foo@example.com where release:1.2.1 when"
@@ -515,6 +634,46 @@ class ParseSearchQueryTest(unittest.TestCase):
                 key=SearchKey(name="release"), operator="!=", value=SearchValue("a release")
             )
         ]
+        assert parse_search_query('release:["a release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release"]),
+            )
+        ]
+        assert parse_search_query('release:["a release","b release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release", "b release"]),
+            )
+        ]
+        assert parse_search_query('release:["a release",    "b release", "c release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release", "b release", "c release"]),
+            )
+        ]
+        assert parse_search_query('!release:["a release","b release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="NOT IN",
+                value=SearchValue(raw_value=["a release", "b release"]),
+            )
+        ]
+        assert parse_search_query('release:["a release"] hello:["123"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="hello"),
+                operator="IN",
+                value=SearchValue(raw_value=["123"]),
+            ),
+        ]
 
     def test_quoted_key(self):
         assert parse_search_query('"hi:there":value') == [
@@ -686,6 +845,22 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
+    def test_explicit_tags_in_filter(self):
+        assert parse_search_query("tags[fruit]:[apple, pear]") == [
+            SearchFilter(
+                key=SearchKey(name="tags[fruit]"),
+                operator="IN",
+                value=SearchValue(raw_value=["apple", "pear"]),
+            ),
+        ]
+        assert parse_search_query('tags[fruit]:["apple wow", "pear"]') == [
+            SearchFilter(
+                key=SearchKey(name="tags[fruit]"),
+                operator="IN",
+                value=SearchValue(raw_value=["apple wow", "pear"]),
+            ),
+        ]
+
     def test_has_tag(self):
         # unquoted key
         assert parse_search_query("has:release") == [
@@ -782,6 +957,48 @@ class ParseSearchQueryTest(unittest.TestCase):
                 operator="=",
                 value=SearchValue(raw_value=">500"),
             )
+        ]
+
+    def test_numeric_in_filter(self):
+        assert parse_search_query("project_id:[500,501,502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            )
+        ]
+        assert parse_search_query("project_id:[500, 501,     502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            )
+        ]
+        assert parse_search_query("project_id:[500,501,502] issue.id:[100]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="issue.id"),
+                operator="IN",
+                value=SearchValue(raw_value=[100]),
+            ),
+        ]
+        # Numeric format should still return a string if field isn't
+        # allowed
+        assert parse_search_query("project_id:[500,501,502] random_field:[500,501,502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="random_field"),
+                operator="IN",
+                value=SearchValue(raw_value=["500", "501", "502"]),
+            ),
         ]
 
     def test_numeric_filter_with_decimals(self):
