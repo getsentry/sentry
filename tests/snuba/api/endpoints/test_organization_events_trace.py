@@ -787,11 +787,12 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                     "trace_id": self.trace_id,
                 }
             ],
-            # Some random id so its separated from the rest of the trace
             parent_span_id=orphan_span_ids["root_span"],
             span_id=orphan_span_ids["child"],
             project_id=self.gen1_project.id,
-            duration=500,
+            # Because the snuba query orders based is_root then timestamp, this causes grandchild1-0 to be added to
+            # results first before child1-0
+            duration=2500,
         )
         grandchild_event = self.create_event(
             trace=self.trace_id,
@@ -805,7 +806,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                     "trace_id": self.trace_id,
                 }
             ],
-            # Some random id so its separated from the rest of the trace
             parent_span_id=orphan_span_ids["child_span"],
             span_id=orphan_span_ids["grandchild"],
             project_id=self.gen1_project.id,
@@ -827,13 +827,16 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.assert_event(orphans, root_event, "orphan-root")
         assert len(orphans["children"]) == 1
         assert orphans["generation"] == 0
+        assert orphans["parent_event_id"] is None
         child = orphans["children"][0]
         self.assert_event(child, child_event, "orphan-child")
         assert len(child["children"]) == 1
         assert child["generation"] == 1
+        assert child["parent_event_id"] == root_event.event_id
         grandchild = child["children"][0]
         self.assert_event(grandchild, grandchild_event, "orphan-grandchild")
         assert grandchild["generation"] == 2
+        assert grandchild["parent_event_id"] == child_event.event_id
 
     def test_with_errors(self):
         error, error1 = self.load_errors()
