@@ -1,8 +1,8 @@
 from rest_framework.exceptions import PermissionDenied
 
 from sentry import features
-from sentry.api.bases.project import ProjectEndpoint, ProjectAlertRulePermission
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAlertRulePermission
+from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
+from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 

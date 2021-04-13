@@ -4,13 +4,9 @@ from django.core.urlresolvers import reverse
 from django.utils.html import escape, mark_safe
 
 from sentry import options
-from sentry.models import (
-    GroupSubscription,
-    GroupSubscriptionReason,
-    ProjectOption,
-    UserAvatar,
-    UserOption,
-)
+from sentry.models import GroupSubscription, ProjectOption, UserAvatar, UserOption
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
@@ -40,7 +36,9 @@ class ActivityEmail:
         if not self.group:
             return []
 
-        participants = GroupSubscription.objects.get_participants(group=self.group)
+        participants = GroupSubscription.objects.get_participants(group=self.group)[
+            ExternalProviders.EMAIL
+        ]
 
         if self.activity.user is not None and self.activity.user in participants:
             receive_own_activity = (

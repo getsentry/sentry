@@ -4,11 +4,13 @@ import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import Alert from 'app/components/alert';
+import DiscoverFeature from 'app/components/discover/discoverFeature';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import TimeSince from 'app/components/timeSince';
@@ -16,8 +18,9 @@ import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
-import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
+import {TraceFullDetailed, TraceMeta} from 'app/utils/performance/quickTrace/types';
 import {reduceTrace} from 'app/utils/performance/quickTrace/utils';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
@@ -63,12 +66,12 @@ type Props = {
   organization: Organization;
   params: Params;
   traceSlug: string;
-  start: string | undefined;
-  end: string | undefined;
-  statsPeriod: string | undefined;
+  traceEventView: EventView;
+  dateSelected: boolean;
   isLoading: boolean;
   error: string | null;
   traces: TraceFullDetailed[] | null;
+  meta: TraceMeta | null;
 };
 
 type State = {
@@ -181,6 +184,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
   };
 
   renderTraceHeader(traceInfo: TraceInfo) {
+    const {meta} = this.props;
     return (
       <TraceDetailHeader>
         <MetaData
@@ -192,11 +196,15 @@ class TraceDetailsContent extends React.Component<Props, State> {
             transactions: tn(
               '%s Transaction',
               '%s Transactions',
-              traceInfo.transactions.size
+              meta?.transactions ?? traceInfo.transactions.size
             ),
-            errors: tn('%s Error', '%s Errors', traceInfo.errors.size),
+            errors: tn('%s Error', '%s Errors', meta?.errors ?? traceInfo.errors.size),
           })}
-          subtext={tn('Across %s project', 'Across %s projects', traceInfo.projects.size)}
+          subtext={tn(
+            'Across %s project',
+            'Across %s projects',
+            meta?.projects ?? traceInfo.projects.size
+          )}
         />
         <MetaData
           headingText={t('Total Duration')}
@@ -296,6 +304,38 @@ class TraceDetailsContent extends React.Component<Props, State> {
     }
 
     return <TransactionRowMessage>{messages}</TransactionRowMessage>;
+  }
+
+  renderLimitExceededMessage(traceInfo: TraceInfo) {
+    const {traceEventView, organization, meta} = this.props;
+    const count = traceInfo.transactions.size;
+    const totalTransactions = meta?.transactions ?? count;
+
+    if (totalTransactions === null || count >= totalTransactions) {
+      return null;
+    }
+
+    const target = traceEventView.getResultsViewUrlTarget(organization.slug);
+
+    return (
+      <TransactionRowMessage>
+        {tct(
+          'Limited to a view of [count] transactions. To view the full list, [discover].',
+          {
+            count,
+            discover: (
+              <DiscoverFeature>
+                {({hasFeature}) => (
+                  <Link disabled={!hasFeature} to={target}>
+                    Open in Discover
+                  </Link>
+                )}
+              </DiscoverFeature>
+            ),
+          }
+        )}
+      </TransactionRowMessage>
+    );
   }
 
   renderTransaction(
@@ -494,6 +534,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                       isVisible: true,
                       numberOfHiddenTransactionsAbove,
                     })}
+                    {this.renderLimitExceededMessage(traceInfo)}
                   </TraceViewContainer>
                 </StyledPanel>
               </ScrollbarManager.Provider>
@@ -509,9 +550,9 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderContent() {
-    const {start, end, statsPeriod, isLoading, error, traces} = this.props;
+    const {dateSelected, isLoading, error, traces} = this.props;
 
-    if (!statsPeriod && (!start || !end)) {
+    if (!dateSelected) {
       return this.renderTraceRequiresDateRangeSelection();
     } else if (isLoading) {
       return this.renderTraceLoading();

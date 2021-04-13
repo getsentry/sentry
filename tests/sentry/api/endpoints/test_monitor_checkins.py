@@ -1,8 +1,9 @@
-import pytest
 from datetime import timedelta
+from uuid import UUID
+
+import pytest
 from django.utils import timezone
 from freezegun import freeze_time
-from uuid import UUID
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
 from sentry.testutils import APITestCase

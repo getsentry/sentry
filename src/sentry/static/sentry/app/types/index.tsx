@@ -688,6 +688,11 @@ export enum DataCategory {
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
 }
+export const DataCategoryName = {
+  [DataCategory.ERRORS]: 'Errors',
+  [DataCategory.TRANSACTIONS]: 'Transactions',
+  [DataCategory.ATTACHMENTS]: 'Attachments',
+};
 
 export type EventOrGroupType =
   | 'error'
@@ -1961,7 +1966,19 @@ export type ServerlessFunction = {
  */
 export type DebugFileSource = 'http' | 's3' | 'gcs';
 
-export type SessionApiResponse = {
+/**
+ * Base type for series   style API response
+ */
+export type SeriesApi = {
+  intervals: string[];
+  groups: {
+    by: Record<string, string | number>;
+    totals: Record<string, number>;
+    series: Record<string, number[]>;
+  }[];
+};
+
+export type SessionApiResponse = SeriesApi & {
   query: string;
   intervals: string[];
   groups: {

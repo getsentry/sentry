@@ -1,7 +1,7 @@
+from copy import deepcopy
+
 import pytz
 import requests
-
-from copy import deepcopy
 from exam import fixture
 from freezegun import freeze_time
 
@@ -977,7 +977,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
         assert len(result) == 7
-        print(result[0])
         # Assert critical rule is first, warnings are next (sorted by triggered date), and issue rules are last.
         assert result[0]["id"] == str(alert_rule_critical.id)
         assert result[2]["id"] == str(alert_rule_warning.id)

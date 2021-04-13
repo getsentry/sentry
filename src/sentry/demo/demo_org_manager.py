@@ -1,15 +1,14 @@
 import logging
-import sentry_sdk
+from typing import Tuple
 
+import sentry_sdk
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F
 from django.template.defaultfilters import slugify
-from typing import Tuple
 
 from sentry import roles
 from sentry.models import (
-    User,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -17,15 +16,14 @@ from sentry.models import (
     Project,
     ProjectKey,
     Team,
+    User,
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.email import create_fake_email
 
-from .data_population import (
-    handle_react_python_scenario,
-)
+from .data_population import handle_react_python_scenario
+from .models import DemoOrganization, DemoOrgStatus, DemoUser
 from .utils import generate_random_name
-from .models import DemoUser, DemoOrganization, DemoOrgStatus
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +94,7 @@ def create_demo_org(quick=False) -> Organization:
         return org
 
 
-def assign_demo_org() -> Tuple[Organization, User]:
+def assign_demo_org(skip_buffer=False) -> Tuple[Organization, User]:
     with sentry_sdk.configure_scope() as scope:
         try:
             parent_span_id = scope.span.span_id
@@ -114,9 +112,9 @@ def assign_demo_org() -> Tuple[Organization, User]:
         from .tasks import build_up_org_buffer
 
         demo_org = None
-        # option to skip the buffer when testing things out locally
-        if settings.DEMO_NO_ORG_BUFFER:
-            org = create_demo_org()
+        # option to skip the buffer when testing things out
+        if skip_buffer:
+            org = create_demo_org(quick=True)
         else:
             demo_org = DemoOrganization.objects.filter(status=DemoOrgStatus.PENDING).first()
             # if no org in buffer, make a quick one with fewer events

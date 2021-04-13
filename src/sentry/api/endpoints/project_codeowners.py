@@ -4,8 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from sentry import features, analytics
-from sentry.utils import metrics
+from sentry import analytics, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin, ProjectOwnershipSerializer
 from sentry.api.serializers import serialize
@@ -19,6 +18,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.ownership.grammar import convert_codeowners_syntax, parse_code_owners
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         teamnames, usernames, emails = parse_code_owners(attrs["raw"])
 
         # Check if there exists Sentry users with the emails listed in CODEOWNERS
-        user_emails = UserEmail.objects.filter(email__in=emails)
+        user_emails = UserEmail.objects.filter(
+            email__in=emails,
+            user__sentry_orgmember_set__organization=self.context["project"].organization,
+        )
         user_emails_diff = self._validate_association(emails, user_emails, "emails")
 
         external_association_err.extend(user_emails_diff)

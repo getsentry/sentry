@@ -1,8 +1,9 @@
 from symbolic import ProguardMapper
+
+from sentry.models import EventError, ProjectDebugFile
 from sentry.plugins.base.v2 import Plugin2
-from sentry.stacktraces.processing import StacktraceProcessor
-from sentry.models import ProjectDebugFile, EventError
 from sentry.reprocessing import report_processing_issue
+from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.utils.safe import get_path
 
 

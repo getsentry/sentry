@@ -1,4 +1,5 @@
 from django.conf.urls import url
+
 from .webhook import BitbucketServerWebhookEndpoint
 
 urlpatterns = [

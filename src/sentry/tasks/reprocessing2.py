@@ -1,15 +1,13 @@
-import time
 import logging
+import time
 
 import sentry_sdk
-
 from django.db import transaction
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
-from sentry.utils.query import celery_run_batch_query
 from sentry.tasks.base import instrumented_task, retry
-
+from sentry.utils.query import celery_run_batch_query
 
 # We have observed that the p95 of process_event is around 10s (p50 = 400ms),
 # so we need to make sure that the amount of events we process in
@@ -40,10 +38,10 @@ def reprocess_group(
 ):
     sentry_sdk.set_tag("project", project_id)
     from sentry.reprocessing2 import (
-        start_group_reprocessing,
-        reprocess_event,
         CannotReprocess,
         logger,
+        reprocess_event,
+        start_group_reprocessing,
     )
 
     if start_time is None:
@@ -167,7 +165,7 @@ def handle_remaining_events(project_id, new_group_id, event_ids, remaining_event
     soft_time_limit=60 * 5,
 )
 def finish_reprocessing(project_id, group_id):
-    from sentry.models import Group, GroupRedirect, Activity
+    from sentry.models import Activity, Group, GroupRedirect
 
     with transaction.atomic():
         group = Group.objects.get(id=group_id)

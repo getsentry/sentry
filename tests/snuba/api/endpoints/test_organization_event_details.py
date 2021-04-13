@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.core.urlresolvers import reverse, NoReverseMatch
+from django.core.urlresolvers import NoReverseMatch, reverse
 
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase

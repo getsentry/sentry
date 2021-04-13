@@ -1,11 +1,11 @@
 import contextlib
-import pytest
 import time
-
 from threading import Thread
 
-from sentry.eventstore.models import Event
+import pytest
+
 from sentry.event_manager import _save_aggregate, _save_aggregate2
+from sentry.eventstore.models import Event
 
 
 @pytest.mark.django_db(transaction=True)

@@ -28,6 +28,7 @@ import {
 
 import DurationChart from './durationChart';
 import DurationPercentileChart from './durationPercentileChart';
+import {SpanOperationBreakdownFilter} from './filter';
 import LatencyChart from './latencyChart';
 import TrendChart from './trendChart';
 import VitalsChart from './vitalsChart';
@@ -40,13 +41,29 @@ export enum DisplayModes {
   VITALS = 'vitals',
 }
 
-const DISPLAY_OPTIONS: SelectValue<string>[] = [
-  {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
-  {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
-  {value: DisplayModes.LATENCY, label: t('Duration Distribution')},
-  {value: DisplayModes.TREND, label: t('Trends')},
-  {value: DisplayModes.VITALS, label: t('Web Vitals')},
-];
+function generateDisplayOptions(
+  currentFilter: SpanOperationBreakdownFilter
+): SelectValue<string>[] {
+  if (currentFilter === SpanOperationBreakdownFilter.None) {
+    return [
+      {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
+      {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
+      {value: DisplayModes.LATENCY, label: t('Duration Distribution')},
+      {value: DisplayModes.TREND, label: t('Trends')},
+      {value: DisplayModes.VITALS, label: t('Web Vitals')},
+    ];
+  }
+
+  // A span operation name breakdown has been chosen.
+
+  return [
+    {value: DisplayModes.DURATION, label: t('Span Operation Breakdown')},
+    {value: DisplayModes.DURATION_PERCENTILE, label: t('Span Operation Percentiles')},
+    {value: DisplayModes.LATENCY, label: t('Span Operation Distribution')},
+    {value: DisplayModes.TREND, label: t('Trends')},
+    {value: DisplayModes.VITALS, label: t('Web Vitals')},
+  ];
+}
 
 const TREND_FUNCTIONS_OPTIONS: SelectValue<string>[] = TRENDS_FUNCTIONS.map(
   ({field, label}) => ({
@@ -66,6 +83,7 @@ type Props = {
   location: Location;
   eventView: EventView;
   totalValues: number | null;
+  currentFilter: SpanOperationBreakdownFilter;
 };
 
 class TransactionSummaryCharts extends React.Component<Props> {
@@ -94,7 +112,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
   };
 
   render() {
-    const {totalValues, eventView, organization, location} = this.props;
+    const {totalValues, eventView, organization, location, currentFilter} = this.props;
     let display = decodeScalar(location.query.display, DisplayModes.DURATION);
     let trendFunction = decodeScalar(
       location.query.trendFunction,
@@ -138,6 +156,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
               start={eventView.start}
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
+              currentFilter={currentFilter}
             />
           )}
           {display === DisplayModes.DURATION && (
@@ -150,6 +169,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
               start={eventView.start}
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
+              currentFilter={currentFilter}
             />
           )}
           {display === DisplayModes.DURATION_PERCENTILE && (
@@ -162,6 +182,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
               start={eventView.start}
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
+              currentFilter={currentFilter}
             />
           )}
           {display === DisplayModes.TREND && (
@@ -205,7 +226,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
           <InlineContainer>
             {display === DisplayModes.TREND && (
               <OptionSelector
-                title={t('Trend')}
+                title={t('Percentile')}
                 selected={trendFunction}
                 options={TREND_FUNCTIONS_OPTIONS}
                 onChange={this.handleTrendDisplayChange}
@@ -222,7 +243,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
             <OptionSelector
               title={t('Display')}
               selected={display}
-              options={DISPLAY_OPTIONS}
+              options={generateDisplayOptions(currentFilter)}
               onChange={this.handleDisplayChange}
             />
           </InlineContainer>

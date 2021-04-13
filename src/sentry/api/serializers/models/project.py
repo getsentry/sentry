@@ -20,6 +20,8 @@ from sentry.ingest.inbound_filters import FilterTypes
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
+    ExternalProviders,
+    NotificationSetting,
     Project,
     ProjectAvatar,
     ProjectBookmark,
@@ -30,8 +32,6 @@ from sentry.models import (
     Release,
     UserReport,
 )
-from sentry.models.integration import ExternalProviders
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.helpers import transform_to_notification_settings_by_parent_id
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
@@ -119,17 +119,20 @@ class ProjectSerializer(Serializer):
                         user=user, project_id__in=project_ids
                     ).values_list("project_id", flat=True)
                 )
-                (
-                    notification_settings_by_project_id,
-                    default_subscribe,
-                ) = transform_to_notification_settings_by_parent_id(
-                    NotificationSetting.objects.get_for_user_by_projects(
-                        ExternalProviders.EMAIL,
-                        NotificationSettingTypes.ISSUE_ALERTS,
-                        user,
-                        item_list,
-                    )
+
+                notification_settings = NotificationSetting.objects.get_for_user_by_projects(
+                    NotificationSettingTypes.ISSUE_ALERTS,
+                    user,
+                    item_list,
                 )
+                (
+                    notification_settings_by_project_id_by_provider,
+                    default_subscribe_by_provider,
+                ) = transform_to_notification_settings_by_parent_id(notification_settings)
+                notification_settings_by_project_id = (
+                    notification_settings_by_project_id_by_provider.get(ExternalProviders.EMAIL, {})
+                )
+                default_subscribe = default_subscribe_by_provider.get(ExternalProviders.EMAIL)
             else:
                 bookmarks = set()
                 notification_settings_by_project_id = {}

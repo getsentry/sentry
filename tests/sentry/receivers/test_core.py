@@ -2,7 +2,7 @@ from django.apps import apps
 from django.conf import settings
 
 from sentry.models import Organization, Project, ProjectKey, Team, User
-from sentry.receivers.core import create_default_projects, DEFAULT_SENTRY_PROJECT_ID
+from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_projects
 from sentry.testutils import TestCase
 
 
