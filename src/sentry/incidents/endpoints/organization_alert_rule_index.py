@@ -128,6 +128,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             )
 
         if sort_key == "date_triggered" or "date_triggered" in sort_key:
+            far_future_date = F("date_added")
             alert_rules = alert_rules.annotate(
                 date_triggered=Coalesce(
                     Subquery(
@@ -135,10 +136,10 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                         .order_by("-date_started")
                         .values("date_started")[:1]
                     ),
-                    F("date_added"),
+                    far_future_date,
                 ),
             )
-            issue_rules = issue_rules.annotate(date_triggered=F("date_added"))
+            issue_rules = issue_rules.annotate(date_triggered=far_future_date)
         alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, sort_key)
         rule_intermediary = CombinedQuerysetIntermediary(issue_rules, rule_sort_key)
         return self.paginate(

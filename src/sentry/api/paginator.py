@@ -491,13 +491,8 @@ class CombinedQuerysetIntermediary:
         self.queryset = queryset
         self.order_by = order_by
         try:
-            try:
-                instance = queryset[:1].get()
-            except AttributeError:
-                # Uh...it's been converted to a list already =\
-                instance = queryset[0]
+            instance = queryset[:1].get()
             self.instance_type = type(instance)
-
             if type(self.order_by) == list:
                 for key in self.order_by:
                     self._assert_has_field(instance, key)
@@ -579,10 +574,9 @@ class CombinedQuerysetPaginator:
         else:
             key = self.key_from_item(item)
             if type(key) == list:
-                # return self._prep_value(item, key[0], for_prev)
                 prepped_values = []
                 for k in key:
-                    prepped_values.append(self._prep_value(item, k), for_prev)
+                    prepped_values.append(self._prep_value(item, k, for_prev))
                 return prepped_values
             else:
                 return self._prep_value(item, key, for_prev)
