@@ -1,6 +1,7 @@
 from sentry.grouping.utils import get_rule_bool
-from sentry.stacktraces.functions import get_function_name_for_frame
+from sentry.stacktraces.functions import get_function_name_for_frame_parts
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.utils.functional import cached
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 
@@ -52,7 +53,7 @@ class Match:
     description = None
     keys = tuple()
 
-    def matches_frame(self, frames, idx, platform, exception_data):
+    def matches_frame(self, frames, idx, platform, exception_data, cache):
         raise NotImplementedError()
 
     def _to_config_structure(self, version):
@@ -131,14 +132,14 @@ class FrameMatch(Match):
             self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
         )
 
-    def matches_frame(self, frames, idx, platform, exception_data):
+    def matches_frame(self, frames, idx, platform, exception_data, cache):
         frame_data = frames[idx]
-        rv = self._positive_frame_match(frame_data, platform, exception_data)
+        rv = self._positive_frame_match(frame_data, platform, exception_data, cache)
         if self.negated:
             rv = not rv
         return rv
 
-    def _positive_frame_match(self, frame_data, platform, exception_data):
+    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         # Implement is subclasses
         raise NotImplementedError
 
@@ -152,19 +153,22 @@ class FrameMatch(Match):
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
 
 
+def path_like_match(pattern, value):
+
+    if glob_match(value, pattern, ignorecase=True, doublestar=True, path_normalize=True):
+        return True
+    if not value.startswith("/") and glob_match(
+        "/" + value, pattern, ignorecase=True, doublestar=True, path_normalize=True
+    ):
+        return True
+
+    return False
+
+
 class PathLikeMatch(FrameMatch):
-    def _positive_frame_match(self, frame_data, platform, exception_data):
-        return self._match(self._value(frame_data))
+    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
 
-    def _match(self, value):
-        if glob_match(value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True):
-            return True
-        if not value.startswith("/") and glob_match(
-            "/" + value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True
-        ):
-            return True
-
-        return False
+        return cached(cache, path_like_match, self.pattern, self._value(frame_data))
 
 
 class PackageMatch(PathLikeMatch):
@@ -184,7 +188,7 @@ class FamilyMatch(FrameMatch):
         super().__init__(*args, **kwargs)
         self._flags = set(self.pattern.split(","))
 
-    def _positive_frame_match(self, frame_data, platform, exception_data):
+    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         if "all" in self._flags:
             return True
         family = get_behavior_family_for_platform(frame_data.get("platform") or platform)
@@ -196,21 +200,33 @@ class InAppMatch(FrameMatch):
         super().__init__(*args, **kwargs)
         self._ref_val = get_rule_bool(self.pattern)
 
-    def _positive_frame_match(self, frame_data, platform, exception_data):
+    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         ref_val = self._ref_val
         return ref_val is not None and ref_val == frame_data.get("in_app")
 
 
 class FunctionMatch(FrameMatch):
-    def _positive_frame_match(self, frame_data, platform, exception_data):
-        value = get_function_name_for_frame(frame_data, platform) or "<unknown>"
-        return glob_match(value, self.pattern)
+    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
+        if hasattr(frame_data, "get_raw_data"):
+            frame_data = frame_data.get_raw_data()
+
+        function_name = cached(
+            cache,
+            get_function_name_for_frame_parts,
+            frame_data.get("raw_function"),
+            frame_data.get("function"),
+            frame_data.get("platform"),
+            platform,
+        )
+
+        value = function_name or "<unknown>"
+        return cached(cache, glob_match, value, self.pattern)
 
 
 class FrameFieldMatch(FrameMatch):
-    def _positive_frame_match(self, frame_data, platform, exception_data):
+    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         field = get_path(frame_data, *self.field_path)
-        return glob_match(field, self.pattern)
+        return cached(cache, glob_match, field, self.pattern)
 
 
 class ModuleMatch(FrameFieldMatch):
@@ -224,9 +240,9 @@ class CategoryMatch(FrameFieldMatch):
 
 
 class ExceptionFieldMatch(FrameMatch):
-    def _positive_frame_match(self, frame_data, platform, exception_data):
+    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         field = get_path(exception_data, *self.field_path) or "<unknown>"
-        return glob_match(field, self.pattern)
+        return cached(cache, glob_match, field, self.pattern)
 
 
 class ExceptionTypeMatch(ExceptionFieldMatch):
@@ -255,8 +271,10 @@ class CallerMatch(Match):
     def _to_config_structure(self, version):
         return f"[{self.caller._to_config_structure(version)}]|"
 
-    def matches_frame(self, frames, idx, platform, exception_data):
-        return idx > 0 and self.caller.matches_frame(frames, idx - 1, platform, exception_data)
+    def matches_frame(self, frames, idx, platform, exception_data, cache):
+        return idx > 0 and self.caller.matches_frame(
+            frames, idx - 1, platform, exception_data, cache
+        )
 
 
 class CalleeMatch(Match):
@@ -270,7 +288,7 @@ class CalleeMatch(Match):
     def _to_config_structure(self, version):
         return f"|[{self.caller._to_config_structure(version)}]"
 
-    def matches_frame(self, frames, idx, platform, exception_data):
+    def matches_frame(self, frames, idx, platform, exception_data, cache):
         return idx < len(frames) - 1 and self.caller.matches_frame(
-            frames, idx + 1, platform, exception_data
+            frames, idx + 1, platform, exception_data, cache
         )

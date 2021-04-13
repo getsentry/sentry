@@ -4,9 +4,6 @@ from sentry.runner import configure
 
 configure()
 
-from sentry.utils.glob import glob_match
-from sentry.stacktraces.functions import trim_function_name
-
 import sentry_sdk
 
 sentry_sdk.init("")
@@ -31,9 +28,6 @@ def test_configuration(config):
     start_time = time()
 
     for grouping_input in grouping_inputs:
-
-        glob_match.cache_clear()
-        trim_function_name.cache_clear()
 
         event = grouping_input.create_event(config)
 

@@ -108,16 +108,26 @@ class Enhancements:
         """This applies the frame modifications to the frames itself.  This
         does not affect grouping.
         """
+
+        cache = {}
+
         for rule in self._modifier_rules:
-            for idx, action in rule.get_matching_frame_actions(frames, platform, exception_data):
+            for idx, action in rule.get_matching_frame_actions(
+                frames, platform, exception_data, cache
+            ):
                 action.apply_modifications_to_frame(frames, idx, rule=rule)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
+
+        cache = {}
+
         stacktrace_state = StacktraceState()
         # Apply direct frame actions and update the stack state alongside
         for rule in self._updater_rules:
 
-            for idx, action in rule.get_matching_frame_actions(frames, platform, exception_data):
+            for idx, action in rule.get_matching_frame_actions(
+                frames, platform, exception_data, cache
+            ):
                 action.update_frame_components_contributions(components, frames, idx, rule=rule)
                 action.modify_stacktrace_state(stacktrace_state, rule)
 
@@ -276,7 +286,7 @@ class Rule:
             matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
-    def get_matching_frame_actions(self, frames, platform, exception_data=None):
+    def get_matching_frame_actions(self, frames, platform, exception_data, cache):
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
@@ -285,7 +295,7 @@ class Rule:
 
         # 1 - Check if exception matchers match
         for m in self._exception_matchers:
-            if not m.matches_frame(frames, -1, platform, exception_data):
+            if not m.matches_frame(frames, -1, platform, exception_data, cache):
                 return []
 
         rv = []
@@ -293,7 +303,8 @@ class Rule:
         # 2 - Check if frame matchers match
         for idx, frame in enumerate(frames):
             if all(
-                m.matches_frame(frames, idx, platform, exception_data) for m in self._other_matchers
+                m.matches_frame(frames, idx, platform, exception_data, cache)
+                for m in self._other_matchers
             ):
                 for action in self.actions:
                     rv.append((idx, action))
