@@ -139,7 +139,7 @@ describe('Quick Trace', function () {
       );
       const nodes = quickTrace.find('EventNode');
       expect(nodes.length).toEqual(1);
-      expect(nodes.first().text()).toEqual('This Transaction');
+      expect(nodes.first().text()).toEqual('This Event');
     });
 
     it('renders partial trace with single child', function () {
@@ -159,7 +159,7 @@ describe('Quick Trace', function () {
       );
       const nodes = quickTrace.find('EventNode');
       expect(nodes.length).toEqual(2);
-      ['This Transaction', '1 Child'].forEach((text, i) =>
+      ['This Event', '1 Child'].forEach((text, i) =>
         expect(nodes.at(i).text()).toEqual(text)
       );
     });
@@ -181,7 +181,7 @@ describe('Quick Trace', function () {
       );
       const nodes = quickTrace.find('EventNode');
       expect(nodes.length).toEqual(2);
-      ['This Transaction', '3 Children'].forEach((text, i) =>
+      ['This Event', '3 Children'].forEach((text, i) =>
         expect(nodes.at(i).text()).toEqual(text)
       );
     });
@@ -203,7 +203,7 @@ describe('Quick Trace', function () {
       );
       const nodes = quickTrace.find('EventNode');
       expect(nodes.length).toEqual(2);
-      ['Parent', 'This Transaction'].forEach((text, i) =>
+      ['Parent', 'This Event'].forEach((text, i) =>
         expect(nodes.at(i).text()).toEqual(text)
       );
     });
@@ -232,7 +232,7 @@ describe('Quick Trace', function () {
       );
       const nodes = quickTrace.find('EventNode');
       expect(nodes.length).toEqual(4);
-      ['Root', '1 Ancestor', 'Parent', 'This Transaction'].forEach((text, i) =>
+      ['Root', '1 Ancestor', 'Parent', 'This Event'].forEach((text, i) =>
         expect(nodes.at(i).text()).toEqual(text)
       );
     });
@@ -261,7 +261,7 @@ describe('Quick Trace', function () {
       );
       const nodes = quickTrace.find('EventNode');
       expect(nodes.length).toEqual(4);
-      ['Root', '3 Ancestors', 'Parent', 'This Transaction'].forEach((text, i) =>
+      ['Root', '3 Ancestors', 'Parent', 'This Event'].forEach((text, i) =>
         expect(nodes.at(i).text()).toEqual(text)
       );
     });
@@ -287,7 +287,7 @@ describe('Quick Trace', function () {
       );
       const nodes = quickTrace.find('EventNode');
       expect(nodes.length).toEqual(3);
-      ['This Transaction', '1 Child', '1 Descendant'].forEach((text, i) =>
+      ['This Event', '1 Child', '1 Descendant'].forEach((text, i) =>
         expect(nodes.at(i).text()).toEqual(text)
       );
     });
@@ -315,7 +315,7 @@ describe('Quick Trace', function () {
       );
       const nodes = quickTrace.find('EventNode');
       expect(nodes.length).toEqual(3);
-      ['This Transaction', '1 Child', '3 Descendants'].forEach((text, i) =>
+      ['This Event', '1 Child', '3 Descendants'].forEach((text, i) =>
         expect(nodes.at(i).text()).toEqual(text)
       );
     });
@@ -352,7 +352,7 @@ describe('Quick Trace', function () {
         'Root',
         '3 Ancestors',
         'Parent',
-        'This Transaction',
+        'This Event',
         '1 Child',
         '3 Descendants',
       ].forEach((text, i) => expect(nodes.at(i).text()).toEqual(text));
@@ -388,7 +388,7 @@ describe('Quick Trace', function () {
         makeTransactionTarget('p0', 'e0', 't0'),
         makeTransactionTarget('p1', 'e1', 't1'),
         makeTransactionTarget('p2', 'e2', 't2'),
-        undefined, // the "This Transaction" node has no target
+        undefined, // the "This Event" node has no target
         makeTransactionTarget('p4', 'e4', 't4'),
         makeTransactionTarget('p5', 'e5', 't5'),
       ].forEach((target, i) => expect(nodes.at(i).props().to).toEqual(target));
