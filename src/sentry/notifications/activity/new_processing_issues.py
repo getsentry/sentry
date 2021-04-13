@@ -3,7 +3,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
-from .base import ActivityEmail
+from .base import ActivityNotification
 
 
 def summarize_issues(issues):
@@ -22,9 +22,9 @@ def summarize_issues(issues):
     return rv
 
 
-class NewProcessingIssuesActivityEmail(ActivityEmail):
+class NewProcessingIssuesActivityNotification(ActivityNotification):
     def __init__(self, activity):
-        ActivityEmail.__init__(self, activity)
+        ActivityNotification.__init__(self, activity)
         self.issues = summarize_issues(self.activity.data["issues"])
 
     def get_participants(self):

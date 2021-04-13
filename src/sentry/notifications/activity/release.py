@@ -28,10 +28,10 @@ from sentry.notifications.types import (
 from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
-from .base import ActivityEmail
+from .base import ActivityNotification
 
 
-class ReleaseActivityEmail(ActivityEmail):
+class ReleaseActivityNotification(ActivityNotification):
     def __init__(self, activity):
         super().__init__(activity)
         self.organization = self.project.organization

@@ -1,10 +1,10 @@
 from sentry.utils.html import escape
 from sentry.utils.http import absolute_uri
 
-from .base import ActivityEmail
+from .base import ActivityNotification
 
 
-class RegressionActivityEmail(ActivityEmail):
+class RegressionActivityNotification(ActivityNotification):
     def get_activity_name(self):
         return "Regression"
 

@@ -1,9 +1,9 @@
 from sentry.models import Team, User
 
-from .base import ActivityEmail
+from .base import ActivityNotification
 
 
-class AssignedActivityEmail(ActivityEmail):
+class AssignedActivityNotification(ActivityNotification):
     def get_activity_name(self):
         return "Assigned"
 

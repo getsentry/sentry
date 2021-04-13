@@ -15,7 +15,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
 
-class ActivityEmail:
+class ActivityNotification:
     def __init__(self, activity):
         self.activity = activity
         self.project = activity.project

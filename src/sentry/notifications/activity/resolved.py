@@ -1,7 +1,7 @@
-from .base import ActivityEmail
+from .base import ActivityNotification
 
 
-class ResolvedActivityEmail(ActivityEmail):
+class ResolvedActivityNotification(ActivityNotification):
     def get_activity_name(self):
         return "Resolved Issue"
 

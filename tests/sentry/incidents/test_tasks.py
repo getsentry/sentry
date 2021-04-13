@@ -74,7 +74,7 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
         self.send_async.reset_mock()
 
 
-class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
+class TestGenerateIncidentActivityNotification(BaseIncidentActivityTest, TestCase):
     @freeze_time()
     def test_simple(self):
         activity = create_incident_activity(

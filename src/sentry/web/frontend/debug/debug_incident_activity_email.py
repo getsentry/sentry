@@ -8,7 +8,7 @@ from sentry.models.organization import Organization
 from .mail import MailPreview
 
 
-class DebugIncidentActivityEmailView(View):
+class DebugIncidentActivityNotificationView(View):
     def get(self, request):
         organization = Organization(slug="myorg")
         user = User(id=1235, name="Hello There")
