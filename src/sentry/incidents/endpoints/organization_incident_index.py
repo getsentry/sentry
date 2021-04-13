@@ -5,7 +5,12 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import IncidentSerializer
-from sentry.incidents.models import AlertRuleActivity, AlertRuleActivityType, Incident, IncidentStatus
+from sentry.incidents.models import (
+    AlertRuleActivity,
+    AlertRuleActivityType,
+    Incident,
+    IncidentStatus,
+)
 from sentry.snuba.dataset import Dataset
 
 
@@ -38,7 +43,10 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             alert_rule_ids = [int(query_alert_rule)]
             if query_include_snapshots:
                 snapshot_alerts = list(
-                    AlertRuleActivity.objects.filter(previous_alert_rule=query_alert_rule, type=AlertRuleActivityType.SNAPSHOT.value,)
+                    AlertRuleActivity.objects.filter(
+                        previous_alert_rule=query_alert_rule,
+                        type=AlertRuleActivityType.SNAPSHOT.value,
+                    )
                 )
                 for snapshot_alert in snapshot_alerts:
                     alert_rule_ids.append(snapshot_alert.alert_rule_id)
