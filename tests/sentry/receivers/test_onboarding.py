@@ -99,7 +99,7 @@ class OrganizationOnboardingTaskTest(TestCase):
                                 "frames": [
                                     {
                                         "data": {
-                                            "sourcemap": "https://media.sentry.io/_assets/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                            "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
                                         }
                                     }
                                 ]
@@ -327,7 +327,7 @@ class OrganizationOnboardingTaskTest(TestCase):
                                 "frames": [
                                     {
                                         "data": {
-                                            "sourcemap": "https://media.sentry.io/_assets/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                            "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
                                         }
                                     }
                                 ]

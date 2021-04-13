@@ -56,6 +56,7 @@ def static_media(request, **kwargs):
     """
     module = kwargs.get("module")
     path = kwargs.get("path", "")
+    version = kwargs.get("version")
 
     if module:
         path = f"{module}/{path}"
@@ -93,7 +94,11 @@ def static_media(request, **kwargs):
     if path.endswith((".js", ".ttf", ".ttc", ".otf", ".eot", ".woff", ".woff2")):
         response["Access-Control-Allow-Origin"] = "*"
 
-    # These assets should never be cached because they do not have a versioned filename
-    response["Cache-Control"] = NEVER_CACHE
+    # If we have a version and not DEBUG, we can cache it FOREVER
+    if version is not None and not settings.DEBUG:
+        response["Cache-Control"] = FOREVER_CACHE
+    else:
+        # Otherwise, we explicitly don't want to cache at all
+        response["Cache-Control"] = NEVER_CACHE
 
     return response

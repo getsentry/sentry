@@ -21,8 +21,8 @@ def absolute_asset_url(module, path):
     Returns a versioned absolute asset URL (located within Sentry's static files).
 
     Example:
-      {% absolute_asset_url 'sentry' 'sentry.css' %}
-      =>  "http://sentry.example.com/_static/sentry/sentry.css"
+      {% absolute_asset_url 'sentry' 'images/email/foo.png' %}
+      =>  "http://sentry.example.com/_static/74d127b78dc7daf2c51f/sentry/images/email/foo.png"
     """
     return absolute_uri(get_asset_url(module, path))
 

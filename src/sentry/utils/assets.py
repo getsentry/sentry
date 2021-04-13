@@ -1,5 +1,4 @@
 from django.conf import settings
-
 from manifest_loader.utils import _get_manifest, _load_from_manifest
 
 
@@ -19,12 +18,12 @@ def get_manifest_url(module, key):
 
     Example:
       {% manifest_asset_url 'sentry' 'sentry.css' %}
-      =>  "/_static/sentry/dist/sentry.filehash123.css"
+      =>  "/_assets/sentry/sentry.filehash123.css"
     """
     manifest_obj = get_manifest_obj()
     manifest_value = _load_from_manifest(manifest_obj, key=key)
 
-    return "{}/{}/dist/{}".format(settings.STATIC_URL.rstrip("/"), module, manifest_value)
+    return "{}/{}/{}".format(settings.STATIC_WEBPACK_URL.rstrip("/"), module, manifest_value)
 
 
 def get_asset_url(module, path):

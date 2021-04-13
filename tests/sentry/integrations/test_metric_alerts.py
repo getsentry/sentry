@@ -30,7 +30,10 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["text"] == "123 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
-        assert data["logo_url"] == "http://testserver/_assets/sentry/images/sentry-email-avatar.png"
+        assert (
+            data["logo_url"]
+            == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
 
     def test_with_incident_trigger(self):
         alert_rule = self.create_alert_rule()
@@ -71,7 +74,10 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
-        assert data["logo_url"] == "http://testserver/_assets/sentry/images/sentry-email-avatar.png"
+        assert (
+            data["logo_url"]
+            == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
 
         # Test the trigger "resolving"
         data = incident_attachment_info(incident, action=action, method="resolve")
@@ -80,7 +86,10 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
-        assert data["logo_url"] == "http://testserver/_assets/sentry/images/sentry-email-avatar.png"
+        assert (
+            data["logo_url"]
+            == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
 
         # No trigger passed, uses incident as fallback
         data = incident_attachment_info(incident, action=action)
@@ -89,4 +98,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
-        assert data["logo_url"] == "http://testserver/_assets/sentry/images/sentry-email-avatar.png"
+        assert (
+            data["logo_url"]
+            == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
