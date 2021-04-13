@@ -35,6 +35,7 @@ export function fetchIncidentsForRule(
   return uncancellableApi.requestPromise(`/organizations/${orgId}/incidents/`, {
     query: {
       alertRule,
+      includeSnapshots: true,
       start,
       end,
       expand: ['activities', 'seen_by', 'original_alert_rule'],
