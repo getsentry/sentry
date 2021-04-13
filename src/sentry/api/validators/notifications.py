@@ -7,7 +7,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviders, get_provider_enum
 
 
 def intersect_dict_set(d: Dict[int, Any], s: Set[int]) -> Dict[int, Any]:
@@ -101,10 +101,10 @@ def validate_scope(
 
 
 def validate_provider(provider: str, context: Optional[List[str]] = None) -> ExternalProviders:
-    try:
-        return ExternalProviders(provider)
-    except ValueError:
-        raise ParameterValidationError(f"Unknown provider: {provider}", context)
+    provider_option = get_provider_enum(provider)
+    if provider_option:
+        return provider_option
+    raise ParameterValidationError(f"Unknown provider: {provider}", context)
 
 
 def validate_value(
