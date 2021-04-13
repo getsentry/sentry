@@ -29,7 +29,11 @@ class IncidentSerializer(Serializer):
 
         alert_rules = {
             d["id"]: d
-            for d in serialize({i.alert_rule for i in item_list if i.alert_rule.id}, user, AlertRuleSerializer(expand=self.expand))
+            for d in serialize(
+                {i.alert_rule for i in item_list if i.alert_rule.id},
+                user,
+                AlertRuleSerializer(expand=self.expand),
+            )
         }
 
         results = {}
