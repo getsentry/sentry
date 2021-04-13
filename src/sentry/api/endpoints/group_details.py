@@ -124,6 +124,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         elif last_release is not None:
             last_release = self._get_release_info(request, group, last_release)
 
+        return first_release, last_release
+
     def _get_release_info(self, request, group, version):
         try:
             release = Release.objects.get(

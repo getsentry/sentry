@@ -21,3 +21,12 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         assert response.data["id"] == str(group.id)
         assert response.data["firstRelease"]["version"] == "1.0"
         assert response.data["lastRelease"]["version"] == "1.0"
+
+    def test_denied_methods(self):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/first-last-release/"
+        response = self.client.put(url, format="json")
+        assert response.status_code == 404
+        response = self.client.delete(url, format="json")
+        assert response.status_code == 404
