@@ -48,6 +48,10 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-project-release-details",
 }
 
+SAMPLED_TASKS = {
+    "sentry.tasks.send_ping",
+}
+
 _SYMBOLICATE_EVENT_TASKS = {
     "sentry.tasks.store.symbolicate_event",
     "sentry.tasks.store.symbolicate_event_from_reprocessing",
@@ -177,6 +181,9 @@ def traces_sampler(sampling_context):
 
     if "celery_job" in sampling_context:
         task_name = sampling_context["celery_job"].get("task")
+
+        if task_name in SAMPLED_TASKS:
+            return 1.0
 
         if task_name in _PROCESS_EVENT_TASKS:
             return _sample_process_event_tasks()
