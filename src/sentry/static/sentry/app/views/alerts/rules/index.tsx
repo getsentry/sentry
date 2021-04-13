@@ -46,8 +46,12 @@ type State = {
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {params, location} = this.props;
+    const {params, location, organization} = this.props;
     const {query} = location;
+
+    if (organization.features.includes('alert-list')) {
+      query.expand = ['latestIncident'];
+    }
 
     return [
       [
@@ -245,32 +249,27 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                     ]),
                 t('Project'),
                 ...(hasAlertOwnership ? [t('Team')] : []),
-                ...(hasAlertList
-                  ? []
-                  : [
-                      t('Created By'),
-                      // eslint-disable-next-line react/jsx-key
-                      <StyledSortLink
-                        to={{
-                          pathname: location.pathname,
-                          query: {
-                            ...currentQuery,
-                            asc:
-                              sort.field === 'date_added' && sort.asc ? undefined : '1',
-                            sort: 'date_added',
-                          },
-                        }}
-                      >
-                        {t('Created')}{' '}
-                        {sort.field === 'date_added' && (
-                          <IconArrow
-                            color="gray300"
-                            size="xs"
-                            direction={sort.asc ? 'up' : 'down'}
-                          />
-                        )}
-                      </StyledSortLink>,
-                    ]),
+                ...(hasAlertList ? [] : [t('Created By')]),
+                // eslint-disable-next-line react/jsx-key
+                <StyledSortLink
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      asc: sort.field === 'date_added' && sort.asc ? undefined : '1',
+                      sort: 'date_added',
+                    },
+                  }}
+                >
+                  {t('Created')}{' '}
+                  {sort.field === 'date_added' && (
+                    <IconArrow
+                      color="gray300"
+                      size="xs"
+                      direction={sort.asc ? 'up' : 'down'}
+                    />
+                  )}
+                </StyledSortLink>,
                 t('Actions'),
               ]}
               isLoading={loading}
@@ -437,7 +436,7 @@ const StyledPanelTable = styled(PanelTable)<{
     line-height: normal;
   }
   font-size: ${p => p.theme.fontSizeMedium};
-  grid-template-columns: auto 1.5fr 1fr ${p => (!p.hasAlertList ? '1fr 1fr' : '')} ${p =>
+  grid-template-columns: auto 1.5fr 1fr 1fr ${p => (!p.hasAlertList ? '1fr' : '')} ${p =>
       p.showTeamCol ? '1fr' : ''} auto;
   margin-bottom: 0;
   white-space: nowrap;

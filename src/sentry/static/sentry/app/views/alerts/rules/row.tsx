@@ -12,14 +12,18 @@ import Confirm from 'app/components/confirm';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import {IconDelete, IconSettings, IconUser} from 'app/icons';
+import TimeSince from 'app/components/timeSince';
+import {IconArrow, IconDelete, IconSettings, IconUser} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
+import {Color} from 'app/utils/theme';
+import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
 
 import AlertBadge from '../alertBadge';
+import {IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
 
 type Props = {
@@ -42,6 +46,80 @@ class RuleListRow extends React.Component<Props, State> {
   getProject = memoize((slug: string, projects: Project[]) =>
     projects.find(project => project.slug === slug)
   );
+
+  activeIncident() {
+    const {rule} = this.props;
+    return [IncidentStatus.CRITICAL, IncidentStatus.WARNING].includes(
+      (rule as any)?.latestIncident?.status
+    );
+  }
+
+  renderLastIncidentDate(): React.ReactNode {
+    const {rule} = this.props;
+    if (!(rule as any).latestIncident) {
+      return t('Never triggered');
+    }
+
+    if (this.activeIncident()) {
+      return (
+        <div>
+          {t('Triggered ')}
+          <TimeSince date={(rule as any).latestIncident.dateCreated} />
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        {t('Resolved ')}
+        <TimeSince date={(rule as any).latestIncident.dateClosed} />
+      </div>
+    );
+  }
+
+  renderAlertRuleStatus(): React.ReactNode {
+    const {rule} = this.props;
+
+    const activeIncident = this.activeIncident();
+    const criticalTrigger = (rule as any)?.triggers.find(
+      ({label}) => label === 'critical'
+    );
+    const warningTrigger = (rule as any)?.triggers.find(({label}) => label === 'warning');
+    // TODO: figure out what trigger is
+    const trigger =
+      activeIncident && (rule as any).latestIncident.status === IncidentStatus.CRITICAL
+        ? criticalTrigger
+        : warningTrigger ?? criticalTrigger;
+
+    let iconColor: Color = 'green300';
+    if (activeIncident) {
+      iconColor =
+        trigger.label === 'critical'
+          ? 'red300'
+          : trigger.label === 'warning'
+          ? 'yellow300'
+          : 'green300';
+    }
+
+    const thresholdTypeText =
+      activeIncident && (rule as any).thresholdType === AlertRuleThresholdType.ABOVE
+        ? t('Above')
+        : t('Below');
+
+    return (
+      <FlexCenter>
+        <IconArrow
+          color={iconColor}
+          direction={
+            activeIncident && (rule as any).thresholdType === AlertRuleThresholdType.ABOVE
+              ? 'up'
+              : 'down'
+          }
+        />
+        <TriggerText>{`${thresholdTypeText} ${trigger.alertThreshold}`}</TriggerText>
+      </FlexCenter>
+    );
+  }
 
   render() {
     const {
@@ -71,34 +149,35 @@ class RuleListRow extends React.Component<Props, State> {
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
     const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const hasAlertList = organization.features.includes('alert-list');
+    const alertLink = <Link to={hasRedesign ? detailsLink : editLink}>{rule.name}</Link>;
 
     return (
       <ErrorBoundary>
         {!hasAlertList ? (
           <React.Fragment>
             <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
-            <Title>
-              <Link to={hasRedesign ? detailsLink : editLink}>{rule.name}</Link>
-            </Title>
+            <Title>{alertLink}</Title>
           </React.Fragment>
         ) : (
           <React.Fragment>
-            <AlertRule>
-              <AlertStatus>
+            <AlertNameWrapper isIncident={isIssueAlert(rule)}>
+              <FlexCenter>
                 <AlertBadge
-                  status={(rule as any).status}
+                  status={(rule as any)?.latestIncident?.status}
                   isIssue={isIssueAlert(rule)}
                   hideText
                 />
-              </AlertStatus>
+              </FlexCenter>
               <AlertNameAndStatus>
-                <div>
-                  <Link to={hasRedesign ? detailsLink : editLink}>{rule.name}</Link>
-                </div>
-                <div>Triggered 2 min ago</div>
+                <div>{alertLink}</div>
+                {!isIssueAlert(rule) && this.renderLastIncidentDate()}
               </AlertNameAndStatus>
-            </AlertRule>
-            <AlertStatus>Less than 10k users</AlertStatus>
+            </AlertNameWrapper>
+            {hasAlertList && (
+              <FlexCenter>
+                {!isIssueAlert(rule) && this.renderAlertRuleStatus()}
+              </FlexCenter>
+            )}
           </React.Fragment>
         )}
 
@@ -107,20 +186,16 @@ class RuleListRow extends React.Component<Props, State> {
           project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
         />
         {hasAlertOwnership && (
-          <TeamIcon>
+          <FlexCenter>
             {teamActor ? (
               <ActorAvatar actor={teamActor} size={24} />
             ) : (
               <IconUser size="20px" color="gray400" />
             )}
-          </TeamIcon>
+          </FlexCenter>
         )}
-        {!hasAlertList && (
-          <React.Fragment>
-            <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>
-            <div>{dateCreated}</div>
-          </React.Fragment>
-        )}
+        {!hasAlertList && <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>}
+        <FlexCenter>{dateCreated}</FlexCenter>
         <RightColumn>
           <Access access={['alerts:write']}>
             {({hasAccess}) => (
@@ -193,14 +268,13 @@ const CreatedBy = styled('div')`
   ${columnCss}
 `;
 
-const AlertRule = styled('div')`
+const FlexCenter = styled('div')`
   display: flex;
   align-items: center;
 `;
 
-const AlertStatus = styled('div')`
-  display: flex;
-  align-items: center;
+const AlertNameWrapper = styled(FlexCenter)<{isIncident?: boolean}>`
+  ${p => p.isIncident && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
 `;
 
 const AlertNameAndStatus = styled('div')`
@@ -211,9 +285,9 @@ const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
 `;
 
-const TeamIcon = styled('div')`
-  display: flex;
-  align-items: center;
+const TriggerText = styled('div')`
+  margin-left: ${space(1)};
+  white-space: nowrap;
 `;
 
 export default RuleListRow;

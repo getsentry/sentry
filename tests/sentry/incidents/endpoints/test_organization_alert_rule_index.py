@@ -6,7 +6,12 @@ from exam import fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleThresholdType,
+    IncidentTrigger,
+    TriggerStatus,
+)
 from sentry.models.organizationmember import OrganizationMember
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase
@@ -904,3 +909,38 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 4
+
+    def test_expand_latest_incident(self):
+        self.setup_project_and_rules()
+
+        alert_rule_critical = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            name="some rule [crit]",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule_critical, "hi", 100)
+
+        self.create_incident(status=2, alert_rule=alert_rule_critical)
+        crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
+        IncidentTrigger.objects.create(
+            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.RESOLVED.value
+        )
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "expand": "latestIncident",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 4
+        assert result[0]["latestIncident"]["id"] == str(crit_incident.id)

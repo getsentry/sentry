@@ -8,6 +8,7 @@ from sentry.incidents.models import (
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
     AlertRuleTrigger,
+    Incident,
 )
 from sentry.models import ACTOR_TYPES, Rule, actor_type_to_class, actor_type_to_string
 from sentry.snuba.models import SnubaQueryEventType
@@ -130,15 +131,27 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
 
 
 class CombinedRuleSerializer(Serializer):
+    def __init__(self, expand=None):
+        self.expand = expand or []
+
     def get_attrs(self, item_list, user, **kwargs):
         results = super().get_attrs(item_list, user)
 
-        alert_rules = serialize([x for x in item_list if isinstance(x, AlertRule)], user=user)
+        alert_rules = [x for x in item_list if isinstance(x, AlertRule)]
+        incident_map = {}
+        if "latestIncident" in self.expand:
+            for incident in Incident.objects.filter(id__in=[x.incident_id for x in alert_rules]):
+                incident_map[incident.id] = serialize(incident, user=user)
+
+        serialized_alert_rules = serialize(alert_rules, user=user)
         rules = serialize([x for x in item_list if isinstance(x, Rule)], user=user)
 
         for item in item_list:
             if isinstance(item, AlertRule):
-                results[item] = alert_rules.pop(0)
+                alert_rule = serialized_alert_rules.pop(0)
+                if "latestIncident" in self.expand:
+                    alert_rule["latestIncident"] = incident_map.get(item.incident_id)
+                results[item] = alert_rule
             elif isinstance(item, Rule):
                 results[item] = rules.pop(0)
 
