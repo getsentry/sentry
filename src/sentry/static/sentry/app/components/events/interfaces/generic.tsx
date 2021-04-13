@@ -3,13 +3,24 @@ import React, {Component} from 'react';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import EventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import {getMeta} from 'app/components/events/meta/metaProxy';
 import {t} from 'app/locale';
 
 function getView(view: View, data: State['data']) {
   switch (view) {
     case 'report':
-      return <KeyValueList data={Object.entries(data)} isContextData />;
+      return (
+        <KeyValueList
+          data={Object.entries(data).map(([key, value]) => ({
+            key,
+            value,
+            subject: key,
+            meta: getMeta(data, key),
+          }))}
+          isContextData
+        />
+      );
     case 'raw':
       return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
     default:

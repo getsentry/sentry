@@ -3,8 +3,9 @@ import React from 'react';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ContextBlock from 'app/components/events/contexts/contextBlock';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';
+import {getMeta} from 'app/components/events/meta/metaProxy';
 import {AvatarUser as UserType} from 'app/types';
 import {defined} from 'app/utils';
 
@@ -18,7 +19,7 @@ type Props = {
 };
 
 type Data = {
-  data: {[key: string]: string};
+  data: Record<string, string>;
 } & UserType;
 
 const userKnownDataValues = [
@@ -31,9 +32,7 @@ const userKnownDataValues = [
 
 const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
-const User = ({data}: Props) => {
-  const getKeyValueData = (val: object) => Object.keys(val).map(key => [key, val[key]]);
-
+function User({data}: Props) {
   return (
     <div className="user-widget">
       <div className="pull-left">
@@ -45,11 +44,19 @@ const User = ({data}: Props) => {
       />
       {defined(data?.data) && (
         <ErrorBoundary mini>
-          <KeyValueList data={getKeyValueData(data.data)} isContextData />
+          <KeyValueList
+            data={Object.entries(data.data).map(([key, value]) => ({
+              key,
+              value,
+              subject: key,
+              meta: getMeta(data.data, key),
+            }))}
+            isContextData
+          />
         </ErrorBoundary>
       )}
     </div>
   );
-};
+}
 
 export default User;

@@ -2009,3 +2009,12 @@ export type CodeOwners = {
   dateUpdated: string;
   provider: 'github' | 'gitlab';
 };
+
+export type KeyValueListData = {
+  key: string;
+  subject: string;
+  value?: React.ReactNode;
+  meta?: Meta;
+  subjectDataTestId?: string;
+  subjectIcon?: React.ReactNode;
+}[];
