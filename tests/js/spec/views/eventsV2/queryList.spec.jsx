@@ -159,8 +159,6 @@ describe('EventsV2 > QueryList', function () {
     expect(link.pathname).toEqual('/organizations/org-slug/discover/results/');
     expect(link.query).toEqual({
       id: '2',
-      project: [],
-      environment: [],
       statsPeriod: '14d',
     });
   });
