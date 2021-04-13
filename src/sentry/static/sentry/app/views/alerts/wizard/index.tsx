@@ -103,9 +103,7 @@ class AlertWizard extends React.Component<Props, State> {
               title={t('Create Alert Rule')}
             />
             <StyledPageHeader>
-              <StyledPageHeading>
-                {t('What should we alert you about?')}
-              </StyledPageHeading>
+              <PageHeading>{t('What should we alert you about?')}</PageHeading>
             </StyledPageHeader>
             <Styledh2>{t('Errors')}</Styledh2>
             <WizardBody>
@@ -163,10 +161,6 @@ class AlertWizard extends React.Component<Props, State> {
 
 const StyledPageHeader = styled(PageHeader)`
   margin-bottom: ${space(4)};
-`;
-
-const StyledPageHeading = styled(PageHeading)`
-  font-weight: bold;
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
