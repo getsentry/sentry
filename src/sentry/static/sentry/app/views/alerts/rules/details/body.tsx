@@ -61,7 +61,15 @@ type Props = {
   handleTimePeriodChange: (value: string) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-export default class DetailsBody extends React.Component<Props> {
+type State = {
+  incidentStats: IncidentStats[];
+};
+
+export default class DetailsBody extends React.Component<Props, State> {
+  state = {
+    incidentStats: [],
+  };
+
   getMetricText(): React.ReactNode {
     const {rule} = this.props;
 
@@ -122,6 +130,33 @@ export default class DetailsBody extends React.Component<Props> {
       </Filters>
     );
   }
+
+  componentDidMount() {
+    this.fetchData();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (
+      prevProps.params.orgId !== this.props.params.orgId ||
+      !isEqual(prevProps.incidents, this.props.incidents)
+    ) {
+      this.fetchData();
+    }
+  }
+
+  fetchData = async () => {
+    const {
+      api,
+      incidents,
+      params: {orgId},
+    } = this.props;
+
+    if (incidents?.length) {
+      await Promise.all(
+        incidents.map(incident => fetchIncidentStats(api, orgId, incident.identifier))
+      ).then(incidentStats => this.setState({incidentStats}));
+    }
+  };
 
   renderTrigger(trigger: Trigger): React.ReactNode {
     const {rule} = this.props;
@@ -364,6 +399,7 @@ export default class DetailsBody extends React.Component<Props> {
                     filter={this.getFilter()}
                     query={queryWithTypeFilter}
                     orgId={orgId}
+                    incidentStats={incidentStats}
                   />
                   <DetailWrapper>
                     <ActivityWrapper>
