@@ -8,16 +8,19 @@ from sentry.models import (
     CommitAuthor,
     Deploy,
     Environment,
-    GroupSubscriptionReason,
     NotificationSetting,
     Release,
     ReleaseCommit,
     Repository,
     UserEmail,
 )
-from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    GroupSubscriptionReason,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.testutils import TestCase
+from sentry.types.integrations import ExternalProviders
 
 
 class ReleaseTestCase(TestCase):

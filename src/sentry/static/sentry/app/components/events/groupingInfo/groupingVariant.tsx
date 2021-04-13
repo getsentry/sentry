@@ -4,7 +4,7 @@ import capitalize from 'lodash/capitalize';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconClose} from 'app/icons';
@@ -232,7 +232,15 @@ class GroupVariant extends React.Component<Props, State> {
           {hasNonContributingComponent(component) && this.renderContributionToggle()}
         </Header>
 
-        <KeyValueList data={data} isContextData isSorted={false} />
+        <KeyValueList
+          data={data.map(d => ({
+            key: d[0],
+            subject: d[0],
+            value: d[1],
+          }))}
+          isContextData
+          isSorted={false}
+        />
       </VariantWrapper>
     );
   }

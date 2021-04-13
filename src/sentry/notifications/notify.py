@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import NotificationSettingTypes
+from sentry.types.integrations import ExternalProviders
 
 
 def notify(
