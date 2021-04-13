@@ -1,53 +1,27 @@
 import logging
-from enum import Enum
-from typing import Optional
 
 from django.db import models
 
 from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, FlexibleForeignKey
+from sentry.types.integrations import ExternalProviders
 
 logger = logging.getLogger(__name__)
 
 
-class ExternalProviders(Enum):
-    GITHUB = 0
-    GITLAB = 1
-    EMAIL = 100
-    SLACK = 110
-
-
-EXTERNAL_PROVIDERS = {
-    ExternalProviders.GITHUB: "github",
-    ExternalProviders.GITLAB: "gitlab",
-    ExternalProviders.EMAIL: "email",
-    ExternalProviders.SLACK: "slack",
-}
-
-
-def get_provider_name(value: int) -> Optional[str]:
-    return EXTERNAL_PROVIDERS.get(ExternalProviders(value))
-
-
-class ExternalProviderMixin:
-    def get_provider_string(provider_int):
-        return get_provider_name(provider_int) or "unknown"
-
-    def get_provider_enum(provider_str):
-        inv_providers_map = {v: k for k, v in EXTERNAL_PROVIDERS.items()}
-        return inv_providers_map[provider_str].value if inv_providers_map[provider_str] else None
-
-
-class ExternalActor(DefaultFieldsModel, ExternalProviderMixin):
+class ExternalActor(DefaultFieldsModel):
     __core__ = False
 
-    actor = FlexibleForeignKey("sentry.Actor", null=True)
+    actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
     organization = FlexibleForeignKey("sentry.Organization")
     integration = FlexibleForeignKey("sentry.Integration", null=True)
     provider = BoundedPositiveIntegerField(
         choices=(
+            (ExternalProviders.GITLAB, "email"),
+            (ExternalProviders.SLACK, "slack"),
+            (ExternalProviders.MSTEAMS, "msteams"),
+            (ExternalProviders.PAGERDUTY, "pagerduty"),
             (ExternalProviders.GITHUB, "github"),
             (ExternalProviders.GITLAB, "gitlab"),
-            (ExternalProviders.SLACK, "slack"),
         ),
     )
 
