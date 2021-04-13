@@ -3,6 +3,7 @@ from urllib.parse import urlparse, urlunparse
 
 from django.core.urlresolvers import reverse
 from django.utils.html import escape, mark_safe
+from django.utils.safestring import SafeString
 
 from sentry import options
 from sentry.models import Activity, GroupSubscription, ProjectOption, User, UserAvatar, UserOption
@@ -101,8 +102,8 @@ class ActivityNotification:
 
         return f"{group.qualified_short_id} - {group.title}"
 
-    def get_subject_with_prefix(self) -> str:
-        return str(f"{self._get_subject_prefix()}{self.get_subject()}".encode("utf-8"))
+    def get_subject_with_prefix(self) -> bytes:
+        return f"{self._get_subject_prefix()}{self.get_subject()}".encode("utf-8")
 
     def get_activity_name(self) -> str:
         raise NotImplementedError
@@ -112,7 +113,7 @@ class ActivityNotification:
         return {
             "activity_name": self.get_activity_name(),
             "text_description": self.description_as_text(description, params),
-            "html_description": self.description_as_html(description, html_params),
+            "html_description": self.description_as_html(description, html_params or params),
         }
 
     def get_user_context(self, user: User) -> MutableMapping[str, Any]:
@@ -155,9 +156,9 @@ class ActivityNotification:
         if avatar_type == "upload":
             return f'<img class="avatar" src="{escape(self._get_user_avatar_url(user))}" />'
         elif avatar_type == "letter_avatar":
-            return str(get_email_avatar(user.get_display_name(), user.get_label(), 20, False))
+            return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
         else:
-            return str(get_email_avatar(user.get_display_name(), user.get_label(), 20, True))
+            return get_email_avatar(user.get_display_name(), user.get_label(), 20, True)
 
     def _get_sentry_avatar_url(self) -> str:
         url = "/images/sentry-email-avatar.png"
@@ -188,7 +189,7 @@ class ActivityNotification:
 
         return description.format(**context)
 
-    def description_as_html(self, description: str, params: Mapping[str, Any]) -> str:
+    def description_as_html(self, description: str, params: Mapping[str, Any]) -> SafeString:
         user = self.activity.user
         if user:
             name = user.get_display_name()
@@ -205,7 +206,7 @@ class ActivityNotification:
         context = {"author": author, "an issue": an_issue}
         context.update(params)
 
-        return str(mark_safe(description.format(**context)))
+        return mark_safe(description.format(**context))
 
     def send(self) -> None:
         if not self.should_email():
