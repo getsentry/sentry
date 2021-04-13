@@ -1,18 +1,18 @@
-from pytz import utc
-import pytest
+from base64 import b64encode
 
+import pytest
 from django.core.urlresolvers import reverse
+from pytz import utc
 
 from sentry.discover.models import KeyTransaction
-
+from sentry.models import ApiKey
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-
 from sentry.utils import json
+from sentry.utils.compat import mock, zip
 from sentry.utils.samples import load_data
-from sentry.utils.compat import zip, mock
-from sentry.utils.snuba import RateLimitExceeded, QueryIllegalTypeOfArgument, QueryExecutionError
+from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
@@ -38,6 +38,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_api_key_request(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        # Project ID cannot be inffered when using an org API key, so that must
+        # be passed in the parameters
+        api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+        query = {"field": ["project.name", "environment"], "project": [project.id]}
+
+        url = reverse(
+            "sentry-api-0-organization-eventsv2",
+            kwargs={"organization_slug": self.organization.slug},
+        )
+        response = self.client.get(
+            url,
+            query,
+            format="json",
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode("utf-8")),
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["project.name"] == project.slug
 
     def test_performance_view_feature(self):
         self.store_event(
@@ -1796,6 +1823,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         # because we're ordering by `user.display`, we expect the results in sorted order
         assert result == ["catherine", "cathy@example.com"]
 
+    @pytest.mark.skip(
+        """
+         For some reason ClickHouse errors when there are two of the same string literals
+         (in this case the empty string "") in a query and one is in the prewhere clause.
+         Does not affect production or ClickHouse versions > 20.4.
+         """
+    )
     def test_has_message(self):
         project = self.create_project()
         event = self.store_event(
@@ -2582,6 +2616,50 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {"field": ["id", "timestamp"], "statsPeriod": "90d", "query": ""}
         self.do_request(query)
         assert len(mock_quantize.mock_calls) == 2
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_valid_referrer(self, mock):
+        mock.return_value = {}
+        project = self.create_project()
+        data = load_data("transaction", timestamp=before_now(hours=1))
+        self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["user"],
+            "referrer": "api.performance.transaction-summary",
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], "api.performance.transaction-summary")
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_invalid_referrer(self, mock):
+        mock.return_value = {}
+        project = self.create_project()
+        data = load_data("transaction", timestamp=before_now(hours=1))
+        self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["user"],
+            "referrer": "api.performance.invalid",
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], "api.organization-events-v2")
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_empty_referrer(self, mock):
+        mock.return_value = {}
+        project = self.create_project()
+        data = load_data("transaction", timestamp=before_now(hours=1))
+        self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["user"],
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], "api.organization-events-v2")
 
     def test_limit_number_of_fields(self):
         self.create_project()

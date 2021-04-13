@@ -1,15 +1,12 @@
-from django.core.urlresolvers import reverse
-from django.utils.html import escape, mark_safe
 from urllib.parse import urlparse, urlunparse
 
+from django.core.urlresolvers import reverse
+from django.utils.html import escape, mark_safe
+
 from sentry import options
-from sentry.models import (
-    GroupSubscription,
-    GroupSubscriptionReason,
-    ProjectOption,
-    UserAvatar,
-    UserOption,
-)
+from sentry.models import GroupSubscription, ProjectOption, UserAvatar, UserOption
+from sentry.notifications.types import GroupSubscriptionReason
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
@@ -39,7 +36,9 @@ class ActivityEmail:
         if not self.group:
             return []
 
-        participants = GroupSubscription.objects.get_participants(group=self.group)
+        participants = GroupSubscription.objects.get_participants(group=self.group)[
+            ExternalProviders.EMAIL
+        ]
 
         if self.activity.user is not None and self.activity.user in participants:
             receive_own_activity = (
@@ -187,7 +186,9 @@ class ActivityEmail:
         else:
             name = "Sentry"
 
-        context = {"author": name, "an issue": "an issue"}
+        issue_name = self.group.qualified_short_id or "an issue"
+
+        context = {"author": name, "an issue": issue_name}
         context.update(params)
 
         return description.format(**context)
@@ -203,7 +204,8 @@ class ActivityEmail:
 
         author = mark_safe(fmt.format(self.avatar_as_html(), escape(name)))
 
-        an_issue = f'<a href="{escape(self.get_group_link())}">an issue</a>'
+        issue_name = escape(self.group.qualified_short_id or "an issue")
+        an_issue = f'<a href="{escape(self.get_group_link())}">{issue_name}</a>'
 
         context = {"author": author, "an issue": an_issue}
         context.update(params)

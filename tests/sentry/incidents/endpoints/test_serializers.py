@@ -1,24 +1,23 @@
 import responses
-
 from exam import fixture
-from sentry.utils.compat.mock import patch
 from rest_framework import serializers
 
 from sentry.auth.access import from_user
 from sentry.incidents.endpoints.serializers import (
-    action_target_type_to_string,
     AlertRuleSerializer,
-    AlertRuleTriggerSerializer,
     AlertRuleTriggerActionSerializer,
-    string_to_action_type,
+    AlertRuleTriggerSerializer,
+    action_target_type_to_string,
     string_to_action_target_type,
+    string_to_action_type,
 )
-from sentry.incidents.logic import create_alert_rule_trigger, ChannelLookupTimeoutError
+from sentry.incidents.logic import ChannelLookupTimeoutError, create_alert_rule_trigger
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
-from sentry.models import ACTOR_TYPES, Integration, Environment
+from sentry.models import ACTOR_TYPES, Environment, Integration
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.utils.compat.mock import patch
 
 
 class TestAlertRuleSerializer(TestCase):

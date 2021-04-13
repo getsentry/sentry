@@ -4,7 +4,9 @@ import {Location} from 'history';
 
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
+import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Tooltip from 'app/components/tooltip';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
@@ -12,9 +14,11 @@ import {Theme} from 'app/utils/theme';
 
 import {
   ConnectorBar,
+  DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
   DurationPill,
+  ErrorBadge,
   OperationName,
   StyledIconChevron,
   TRANSACTION_ROW_HEIGHT,
@@ -30,8 +34,13 @@ import {
   TransactionTreeToggleContainer,
 } from './styles';
 import TransactionDetail from './transactionDetail';
-import {TraceInfo} from './types';
-import {getDurationDisplay, getHumanDuration, toPercent} from './utils';
+import {TraceInfo, TraceRoot, TreeDepth} from './types';
+import {
+  getDurationDisplay,
+  getHumanDuration,
+  isTraceFullDetailed,
+  toPercent,
+} from './utils';
 
 const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
 const TOGGLE_BUTTON_MAX_WIDTH = 30;
@@ -42,10 +51,11 @@ type Props = {
   location: Location;
   organization: Organization;
   index: number;
-  transaction: TraceFullDetailed;
+  transaction: TraceRoot | TraceFullDetailed;
   traceInfo: TraceInfo;
+  isOrphan: boolean;
   isLast: boolean;
-  continuingDepths: Array<number>;
+  continuingDepths: TreeDepth[];
   isExpanded: boolean;
   isVisible: boolean;
   toggleExpandedState: () => void;
@@ -62,9 +72,12 @@ class TransactionBar extends React.Component<Props, State> {
   };
 
   toggleDisplayDetail = () => {
-    this.setState(state => ({
-      showDetail: !state.showDetail,
-    }));
+    const {transaction} = this.props;
+    if (isTraceFullDetailed(transaction)) {
+      this.setState(state => ({
+        showDetail: !state.showDetail,
+      }));
+    }
   };
 
   getCurrentOffset() {
@@ -75,8 +88,12 @@ class TransactionBar extends React.Component<Props, State> {
   }
 
   renderConnector(hasToggle: boolean) {
-    const {continuingDepths, isExpanded, isLast, transaction} = this.props;
-    const {event_id, generation} = transaction;
+    const {continuingDepths, isExpanded, isOrphan, isLast, transaction} = this.props;
+
+    const {generation} = transaction;
+    const eventId = isTraceFullDetailed(transaction)
+      ? transaction.event_id
+      : transaction.traceSlug;
 
     if (generation === 0) {
       if (hasToggle) {
@@ -90,20 +107,26 @@ class TransactionBar extends React.Component<Props, State> {
       return null;
     }
 
-    const connectorBars: Array<React.ReactNode> = continuingDepths.map(depth => {
-      if (generation - depth <= 1) {
-        // If the difference is less than or equal to 1, then it means that the continued
-        // bar is from its direct parent. In this case, do not render a connector bar
-        // because the tree connector below will suffice.
-        return null;
+    const connectorBars: Array<React.ReactNode> = continuingDepths.map(
+      ({depth, isOrphanDepth}) => {
+        if (generation - depth <= 1) {
+          // If the difference is less than or equal to 1, then it means that the continued
+          // bar is from its direct parent. In this case, do not render a connector bar
+          // because the tree connector below will suffice.
+          return null;
+        }
+
+        const left = -1 * getOffset(generation - depth - 1) - 1;
+
+        return (
+          <ConnectorBar
+            style={{left}}
+            key={`${eventId}-${depth}`}
+            orphanBranch={isOrphanDepth}
+          />
+        );
       }
-
-      const left = -1 * getOffset(generation - depth - 1) - 1;
-
-      return (
-        <ConnectorBar style={{left}} key={`${event_id}-${depth}`} orphanBranch={false} />
-      );
-    });
+    );
 
     if (hasToggle && isExpanded) {
       connectorBars.push(
@@ -114,7 +137,7 @@ class TransactionBar extends React.Component<Props, State> {
             bottom: isLast ? `-${TRANSACTION_ROW_HEIGHT / 2}px` : '0',
             top: 'auto',
           }}
-          key={`${event_id}-last`}
+          key={`${eventId}-last`}
           orphanBranch={false}
         />
       );
@@ -124,7 +147,7 @@ class TransactionBar extends React.Component<Props, State> {
       <TransactionTreeConnector
         isLast={isLast}
         hasToggler={hasToggle}
-        orphanBranch={false} // TODO(tonyx): what does an orphan mean here?
+        orphanBranch={isOrphan}
       >
         {connectorBars}
       </TransactionTreeConnector>
@@ -173,12 +196,51 @@ class TransactionBar extends React.Component<Props, State> {
     );
   }
 
-  renderTitle() {
+  renderTitle(
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps
+  ) {
+    const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
     const {organization, transaction} = this.props;
     const left = this.getCurrentOffset();
 
+    const content = isTraceFullDetailed(transaction) ? (
+      <React.Fragment>
+        <Projects orgId={organization.slug} slugs={[transaction.project_slug]}>
+          {({projects}) => {
+            const project = projects.find(p => p.slug === transaction.project_slug);
+            return (
+              <Tooltip title={transaction.project_slug}>
+                <ProjectBadge
+                  project={project ? project : {slug: transaction.project_slug}}
+                  avatarSize={16}
+                  hideName
+                />
+              </Tooltip>
+            );
+          }}
+        </Projects>
+        <TransactionBarTitleContent>
+          <strong>
+            <OperationName spanErrors={transaction.errors}>
+              {transaction['transaction.op']}
+            </OperationName>
+            {' \u2014 '}
+          </strong>
+          {transaction.transaction}
+        </TransactionBarTitleContent>
+      </React.Fragment>
+    ) : (
+      <TransactionBarTitleContent>
+        <strong>
+          <OperationName spanErrors={[]}>Trace</OperationName>
+          {' \u2014 '}
+        </strong>
+        {transaction.traceSlug}
+      </TransactionBarTitleContent>
+    );
+
     return (
-      <TransactionBarTitleContainer>
+      <TransactionBarTitleContainer ref={generateContentSpanBarRef()}>
         {this.renderToggle()}
         <TransactionBarTitle
           style={{
@@ -186,27 +248,7 @@ class TransactionBar extends React.Component<Props, State> {
             width: '100%',
           }}
         >
-          <Projects orgId={organization.slug} slugs={[transaction.project_slug]}>
-            {({projects}) => {
-              const project = projects.find(p => p.slug === transaction.project_slug);
-              return (
-                <ProjectBadge
-                  project={project ? project : {slug: transaction.project_slug}}
-                  avatarSize={16}
-                  hideName
-                />
-              );
-            }}
-          </Projects>
-          <TransactionBarTitleContent>
-            <strong>
-              <OperationName spanErrors={transaction.errors}>
-                {transaction['transaction.op']}
-              </OperationName>
-              {' \u2014 '}
-            </strong>
-            {transaction.transaction}
-          </TransactionBarTitleContent>
+          {content}
         </TransactionBarTitle>
       </TransactionBarTitleContainer>
     );
@@ -221,7 +263,7 @@ class TransactionBar extends React.Component<Props, State> {
         <DividerLine
           showDetail
           style={{
-            position: 'relative',
+            position: 'absolute',
           }}
         />
       );
@@ -233,7 +275,7 @@ class TransactionBar extends React.Component<Props, State> {
       <DividerLine
         ref={addDividerLineRef()}
         style={{
-          position: 'relative',
+          position: 'absolute',
         }}
         onMouseEnter={() => {
           dividerHandlerChildrenProps.setHover(true);
@@ -283,6 +325,17 @@ class TransactionBar extends React.Component<Props, State> {
     );
   }
 
+  renderErrorBadge() {
+    const {transaction} = this.props;
+    const {showDetail} = this.state;
+
+    if (!isTraceFullDetailed(transaction) || !transaction.errors.length) {
+      return null;
+    }
+
+    return <ErrorBadge showDetail={showDetail} />;
+  }
+
   renderRectangle() {
     const {transaction, traceInfo, theme} = this.props;
     const {showDetail} = this.state;
@@ -323,8 +376,10 @@ class TransactionBar extends React.Component<Props, State> {
 
   renderHeader({
     dividerHandlerChildrenProps,
+    scrollbarManagerChildrenProps,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
     const {index} = this.props;
     const {showDetail} = this.state;
@@ -341,9 +396,12 @@ class TransactionBar extends React.Component<Props, State> {
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
         >
-          {this.renderTitle()}
+          {this.renderTitle(scrollbarManagerChildrenProps)}
         </TransactionRowCell>
-        {this.renderDivider(dividerHandlerChildrenProps)}
+        <DividerContainer>
+          {this.renderDivider(dividerHandlerChildrenProps)}
+          {this.renderErrorBadge()}
+        </DividerContainer>
         <TransactionRowCell
           data-type="span-row-cell"
           showStriping={index % 2 !== 0}
@@ -366,13 +424,26 @@ class TransactionBar extends React.Component<Props, State> {
     const {showDetail} = this.state;
 
     return (
-      <TransactionRow visible={isVisible} showBorder={showDetail}>
-        <DividerHandlerManager.Consumer>
-          {dividerHandlerChildrenProps =>
-            this.renderHeader({dividerHandlerChildrenProps})
-          }
-        </DividerHandlerManager.Consumer>
-        {isVisible && showDetail && (
+      <TransactionRow
+        visible={isVisible}
+        showBorder={showDetail}
+        cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
+      >
+        <ScrollbarManager.Consumer>
+          {scrollbarManagerChildrenProps => {
+            return (
+              <DividerHandlerManager.Consumer>
+                {dividerHandlerChildrenProps =>
+                  this.renderHeader({
+                    dividerHandlerChildrenProps,
+                    scrollbarManagerChildrenProps,
+                  })
+                }
+              </DividerHandlerManager.Consumer>
+            );
+          }}
+        </ScrollbarManager.Consumer>
+        {isTraceFullDetailed(transaction) && isVisible && showDetail && (
           <TransactionDetail
             location={location}
             organization={organization}

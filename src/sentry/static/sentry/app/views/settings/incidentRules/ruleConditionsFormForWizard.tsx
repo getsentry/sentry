@@ -26,15 +26,15 @@ import MetricField from './metricField';
 import {Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
-  [TimeWindow.ONE_MINUTE]: t('1 minute window'),
-  [TimeWindow.FIVE_MINUTES]: t('5 minute window'),
-  [TimeWindow.TEN_MINUTES]: t('10 minute window'),
-  [TimeWindow.FIFTEEN_MINUTES]: t('15 minute window'),
-  [TimeWindow.THIRTY_MINUTES]: t('30 minute window'),
-  [TimeWindow.ONE_HOUR]: t('1 hour window'),
-  [TimeWindow.TWO_HOURS]: t('2 hour window'),
-  [TimeWindow.FOUR_HOURS]: t('4 hour window'),
-  [TimeWindow.ONE_DAY]: t('24 hour window'),
+  [TimeWindow.ONE_MINUTE]: t('1 minute'),
+  [TimeWindow.FIVE_MINUTES]: t('5 minute'),
+  [TimeWindow.TEN_MINUTES]: t('10 minute'),
+  [TimeWindow.FIFTEEN_MINUTES]: t('15 minute'),
+  [TimeWindow.THIRTY_MINUTES]: t('30 minute'),
+  [TimeWindow.ONE_HOUR]: t('1 hour'),
+  [TimeWindow.TWO_HOURS]: t('2 hour'),
+  [TimeWindow.FOUR_HOURS]: t('4 hour'),
+  [TimeWindow.ONE_DAY]: t('24 hour'),
 };
 
 type Props = {
@@ -44,6 +44,7 @@ type Props = {
   disabled: boolean;
   thresholdChart: (props: {footer: React.ReactNode}) => React.ReactElement;
   onFilterSearch: (query: string) => void;
+  allowChangeEventTypes?: boolean;
 };
 
 type State = {
@@ -78,7 +79,7 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled, onFilterSearch} = this.props;
+    const {organization, disabled, onFilterSearch, allowChangeEventTypes} = this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] =
@@ -122,18 +123,6 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
       },
     ];
 
-    if (organization.features.includes('performance-view')) {
-      dataSourceOptions.push({
-        label: t('Transactions'),
-        options: [
-          {
-            value: Datasource.TRANSACTION,
-            label: DATA_SOURCE_LABELS[Datasource.TRANSACTION],
-          },
-        ],
-      });
-    }
-
     const formElemBaseStyle = {
       padding: `${space(0.5)}`,
       border: 'none',
@@ -156,11 +145,11 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
                     }}
                     inline={false}
                     flexibleControlStateSize
-                    columnWidth={250}
+                    columnWidth={200}
                     inFieldLabels
                     required
                   />
-                  <FormRowText>{t('over a')}</FormRowText>
+                  <FormRowText>{t('Time Interval')}</FormRowText>
                   <Tooltip
                     title={t(
                       'Triggers are evaluated every minute regardless of this value.'
@@ -171,7 +160,7 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
                       style={{
                         ...formElemBaseStyle,
                         flex: 1,
-                        minWidth: 180,
+                        minWidth: 130,
                       }}
                       choices={Object.entries(TIME_WINDOW_MAP)}
                       required
@@ -219,51 +208,53 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
             flexibleControlStateSize
             inFieldLabel={t('Env: ')}
           />
-          <FormField
-            name="datasource"
-            inline={false}
-            style={{
-              ...formElemBaseStyle,
-              minWidth: 300,
-              flex: 2,
-            }}
-            flexibleControlStateSize
-          >
-            {({onChange, onBlur, model}) => {
-              const formDataset = model.getValue('dataset');
-              const formEventTypes = model.getValue('eventTypes');
-              const mappedValue = convertDatasetEventTypesToSource(
-                formDataset,
-                formEventTypes
-              );
-              return (
-                <SelectControl
-                  value={mappedValue}
-                  inFieldLabel={t('Events: ')}
-                  onChange={optionObj => {
-                    const optionValue = optionObj.value;
-                    onChange(optionValue, {});
-                    onBlur(optionValue, {});
-                    // Reset the aggregate to the default (which works across
-                    // datatypes), otherwise we may send snuba an invalid query
-                    // (transaction aggregate on events datasource = bad).
-                    optionValue === 'transaction'
-                      ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
-                      : model.setValue('aggregate', DEFAULT_AGGREGATE);
+          {allowChangeEventTypes && (
+            <FormField
+              name="datasource"
+              inline={false}
+              style={{
+                ...formElemBaseStyle,
+                minWidth: 300,
+                flex: 2,
+              }}
+              flexibleControlStateSize
+            >
+              {({onChange, onBlur, model}) => {
+                const formDataset = model.getValue('dataset');
+                const formEventTypes = model.getValue('eventTypes');
+                const mappedValue = convertDatasetEventTypesToSource(
+                  formDataset,
+                  formEventTypes
+                );
+                return (
+                  <SelectControl
+                    value={mappedValue}
+                    inFieldLabel={t('Events: ')}
+                    onChange={optionObj => {
+                      const optionValue = optionObj.value;
+                      onChange(optionValue, {});
+                      onBlur(optionValue, {});
+                      // Reset the aggregate to the default (which works across
+                      // datatypes), otherwise we may send snuba an invalid query
+                      // (transaction aggregate on events datasource = bad).
+                      optionValue === 'transaction'
+                        ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
+                        : model.setValue('aggregate', DEFAULT_AGGREGATE);
 
-                    // set the value of the dataset and event type from data source
-                    const {dataset, eventTypes} =
-                      DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
-                    model.setValue('dataset', dataset);
-                    model.setValue('eventTypes', eventTypes);
-                  }}
-                  options={dataSourceOptions}
-                  isDisabled={disabled}
-                  required
-                />
-              );
-            }}
-          </FormField>
+                      // set the value of the dataset and event type from data source
+                      const {dataset, eventTypes} =
+                        DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
+                      model.setValue('dataset', dataset);
+                      model.setValue('eventTypes', eventTypes);
+                    }}
+                    options={dataSourceOptions}
+                    isDisabled={disabled}
+                    required
+                  />
+                );
+              }}
+            </FormField>
+          )}
           <FormField
             name="query"
             inline={false}

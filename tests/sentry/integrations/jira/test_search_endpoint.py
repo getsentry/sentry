@@ -1,9 +1,8 @@
+from urllib.parse import parse_qs, urlparse
+
 import responses
-
-from exam import fixture
-from urllib.parse import urlparse, parse_qs
-
 from django.core.urlresolvers import reverse
+from exam import fixture
 
 from sentry.models import Integration
 from sentry.testutils import APITestCase

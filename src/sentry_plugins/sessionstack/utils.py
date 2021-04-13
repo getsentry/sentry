@@ -1,6 +1,7 @@
 from base64 import b64encode
-from django.utils.encoding import force_bytes
 from urllib.parse import urlencode
+
+from django.utils.encoding import force_bytes
 
 
 def get_basic_auth(username, password):

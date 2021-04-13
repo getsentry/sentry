@@ -11,7 +11,12 @@ const alertTypeIdentifiers: Record<Dataset, Partial<Record<AlertType, string>>> 
   [Dataset.TRANSACTIONS]: {
     throughput: 'count()',
     trans_duration: 'transaction.duration',
+    apdex: 'apdex',
+    failure_rate: 'failure_rate()',
     lcp: 'measurements.lcp',
+    fid: 'measurements.fid',
+    cls: 'measurements.cls',
+    fcp: 'measurements.fcp',
   },
 };
 
@@ -29,5 +34,5 @@ export function getAlertTypeFromAggregateDataset({
     ([_alertType, identifier]) => identifier && aggregate.includes(identifier)
   );
   const alertType = matchingAlertTypeEntry && (matchingAlertTypeEntry[0] as AlertType);
-  return alertType ? alertType : 'num_errors';
+  return alertType ? alertType : 'custom';
 }

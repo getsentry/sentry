@@ -1,4 +1,5 @@
 import mmh3
+
 from sentry.utils.compat import map
 
 

@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.http import JsonResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 
 from sentry.models import OrganizationMember
 from sentry.utils import auth
@@ -30,6 +30,10 @@ class DemoMiddleware:
             return JsonResponse(
                 {"detail": "Organization creation disabled in demo mode"}, status=400
             )
+
+        # at this point, don't care about any API routes
+        if path.startswith("/api/"):
+            return
 
         # backdoor to allow logins
         disable_login = request.GET.get("allow_login") != "1"

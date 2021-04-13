@@ -1,26 +1,26 @@
+from urllib.parse import parse_qs
+
 import responses
 
-from urllib.parse import parse_qs
-from sentry.utils.compat.mock import patch
-
 from sentry.api import client
-from sentry.models import (
-    Integration,
-    OrganizationIntegration,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Group,
-    GroupStatus,
-    GroupAssignee,
-    AuthProvider,
-    AuthIdentity,
-)
-from sentry.testutils import APITestCase
-from sentry.utils import json
 from sentry.integrations.slack.action_endpoint import LINK_IDENTITY_MESSAGE, UNLINK_IDENTITY_MESSAGE
 from sentry.integrations.slack.link_identity import build_linking_url
 from sentry.integrations.slack.unlink_identity import build_unlinking_url
+from sentry.models import (
+    AuthIdentity,
+    AuthProvider,
+    Group,
+    GroupAssignee,
+    GroupStatus,
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    Integration,
+    OrganizationIntegration,
+)
+from sentry.testutils import APITestCase
+from sentry.utils import json
+from sentry.utils.compat.mock import patch
 
 
 class BaseEventTest(APITestCase):

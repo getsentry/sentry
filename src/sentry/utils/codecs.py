@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, cast
 
 import zstandard
+
 from sentry.utils import json
 from sentry.utils.json import JSONData
-
 
 T = TypeVar("T")
 
@@ -72,7 +72,7 @@ class JSONCodec(Codec[JSONData, str]):
     """
 
     def encode(self, value: JSONData) -> str:
-        return json.dumps(value)
+        return str(json.dumps(value))
 
     def decode(self, value: str) -> JSONData:
         return json.loads(value)

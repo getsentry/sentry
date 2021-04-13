@@ -1,8 +1,8 @@
-import responses
-from sentry.utils.compat.mock import patch
 from time import time
 
-from sentry.testutils import APITestCase
+import responses
+
+from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models import (
     Activity,
     ExternalIssue,
@@ -13,13 +13,15 @@ from sentry.models import (
     IdentityProvider,
     Integration,
 )
-from sentry.integrations.vsts.integration import VstsIntegration
+from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
+
 from .testutils import (
-    WORK_ITEM_UPDATED,
-    WORK_ITEM_UNASSIGNED,
-    WORK_ITEM_UPDATED_STATUS,
     WORK_ITEM_STATES,
+    WORK_ITEM_UNASSIGNED,
+    WORK_ITEM_UPDATED,
+    WORK_ITEM_UPDATED_STATUS,
 )
 
 

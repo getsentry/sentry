@@ -1,5 +1,5 @@
-from enum import Enum
 from collections import namedtuple
+from enum import Enum
 
 Column = namedtuple("Column", "group_name event_name transaction_name discover_name alias")
 
@@ -282,6 +282,20 @@ class Columns(Enum):
         "measurements.value",
         "measurements.value",
         "measurements_value",
+    )
+    SPAN_OP_BREAKDOWNS_KEYS = Column(
+        None,
+        None,
+        "span_op_breakdowns.key",
+        "span_op_breakdowns.key",
+        "span_op_breakdowns_key",
+    )
+    SPAN_OP_BREAKDOWNS_VALUES = Column(
+        None,
+        None,
+        "span_op_breakdowns.value",
+        "span_op_breakdowns.value",
+        "span_op_breakdowns_value",
     )
     # Tracing context fields.
     TRACE_ID = Column(

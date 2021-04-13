@@ -1,40 +1,33 @@
-import responses
 import time
+from urllib.parse import parse_qs
 
+import responses
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time
-from urllib.parse import parse_qs
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
-    generate_incident_trigger_email_context,
     MsTeamsActionHandler,
     PagerDutyActionHandler,
     SentryAppActionHandler,
     SlackActionHandler,
+    generate_incident_trigger_email_context,
 )
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import (
+    INCIDENT_STATUS,
     AlertRuleTriggerAction,
     IncidentStatus,
     IncidentStatusMethod,
     TriggerStatus,
-    INCIDENT_STATUS,
 )
-from sentry.models import (
-    Integration,
-    NotificationSetting,
-    PagerDutyService,
-)
-from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
-    NotificationSettingTypes,
-    NotificationSettingOptionValues,
-)
+from sentry.models import Integration, NotificationSetting, PagerDutyService
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -211,7 +204,7 @@ class EmailActionHandlerTest(FireTest, TestCase):
 class SlackActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.slack.utils import build_incident_attachment
+        from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         integration = Integration.objects.create(
@@ -267,7 +260,7 @@ class SlackActionHandlerTest(FireTest, TestCase):
 class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.slack.utils import build_incident_attachment
+        from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 
         token = "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         integration = Integration.objects.create(

@@ -1,19 +1,19 @@
 import copy
-from unittest import mock
-from datetime import datetime, timedelta
-
-import pytest
 import time
 import uuid
+from datetime import datetime, timedelta
+from unittest import mock
+
+import pytest
 from django.utils import timezone
 
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import snuba
 
 
 class SnubaTest(TestCase, SnubaTestCase):
-    should_use_snql = False
+    should_use_snql = None
 
     def _insert_event_for_time(self, ts, hash="a" * 32, group_id=None):
         self.snuba_insert(
@@ -109,6 +109,23 @@ class SnubaTest(TestCase, SnubaTestCase):
                     end=base_time - timedelta(days=60),
                     groupby=["project_id"],
                     filter_keys={"project_id": [self.project.id]},
+                    use_snql=self.should_use_snql,
+                )
+                == {}
+            )
+
+    def test_should_use_snql(self) -> None:
+        base_time = datetime.utcnow()
+
+        with self.options({"snuba.snql.referrer-rate": 1.0}):
+            assert (
+                snuba.query(
+                    start=base_time - timedelta(days=1),
+                    end=base_time,
+                    aggregations=[["count", None, "count"]],
+                    groupby=["project_id"],
+                    filter_keys={"project_id": [self.project.id]},
+                    referrer="sessions.stability-sort",
                     use_snql=self.should_use_snql,
                 )
                 == {}

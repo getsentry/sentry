@@ -24,3 +24,13 @@ class SidebarTest(AcceptanceTestCase):
         self.browser.snapshot("sidebar - broadcasts panel")
         self.browser.click("footer")
         self.browser.wait_until_not('[data-test-id="sidebar-broadcasts-panel"]')
+
+    def test_help_search(self):
+        self.browser.get(self.path)
+        self.browser.wait_until_not(".loading-indicator")
+
+        self.browser.wait_until_test_id("help-sidebar")
+        self.browser.click('[data-test-id="help-sidebar"]')
+        self.browser.wait_until_test_id("search-docs-and-faqs")
+        self.browser.click('[data-test-id="search-docs-and-faqs"]')
+        self.browser.wait_until('input[label="Search for documentation, FAQs, blog posts..."]')

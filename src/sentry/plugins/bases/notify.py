@@ -1,14 +1,18 @@
 import logging
-from django import forms
-from requests.exceptions import SSLError, HTTPError
+from typing import Set
 from urllib.error import HTTPError as UrllibHTTPError
-from urllib.parse import urlparse, urlencode, urlunparse, parse_qs
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+from django import forms
+from requests.exceptions import HTTPError, SSLError
 
 from sentry import digests, ratelimits
 from sentry.exceptions import PluginError
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.models import NotificationSetting
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.integrations import ExternalProviders
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -97,16 +101,45 @@ class NotificationPlugin(Plugin):
     def notify_about_activity(self, activity):
         pass
 
-    @property
-    def alert_option_key(self):
-        return "%s:alert" % self.get_conf_key()
+    def get_notification_recipients(self, project, user_option: str) -> Set:
+        from sentry.models import UserOption
 
-    def get_sendable_users(self, project):
+        alert_settings = {
+            o.user_id: int(o.value)
+            for o in UserOption.objects.filter(project=project, key=user_option)
+        }
+
+        disabled = {u for u, v in alert_settings.items() if v == 0}
+
+        member_set = set(
+            project.member_set.exclude(user__in=disabled).values_list("user", flat=True)
+        )
+
+        # determine members default settings
+        members_to_check = {u for u in member_set if u not in alert_settings}
+        if members_to_check:
+            disabled = {
+                uo.user_id
+                for uo in UserOption.objects.filter(
+                    key="subscribe_by_default", user__in=members_to_check
+                )
+                if str(uo.value) == "0"
+            }
+            member_set = [x for x in member_set if x not in disabled]
+
+        return member_set
+
+    def get_sendable_user_objects(self, project):
         """
         Return a collection of user IDs that are eligible to receive
         notifications for the provided project.
         """
-        return project.get_notification_recipients(self.alert_option_key)
+        if self.get_conf_key() == "mail":
+            return NotificationSetting.objects.get_notification_recipients(project)[
+                ExternalProviders.EMAIL
+            ]
+
+        return self.get_notification_recipients(project, "%s:alert" % self.get_conf_key())
 
     def __is_rate_limited(self, group, event):
         return ratelimits.is_limited(project=group.project, key=self.get_conf_key(), limit=10)

@@ -1,7 +1,7 @@
-from django.conf import settings
-
-import copy
 import collections
+import copy
+
+from django.conf import settings
 
 __all__ = ("CanonicalKeyDict", "CanonicalKeyView", "get_canonical_name")
 

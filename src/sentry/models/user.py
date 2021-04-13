@@ -1,15 +1,16 @@
 import logging
 import warnings
 
-from bitfield import BitField
+from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
-from django.contrib.auth.models import AbstractBaseUser, UserManager as DjangoUserManager
 from django.core.urlresolvers import reverse
-from django.dispatch import receiver
 from django.db import IntegrityError, models, transaction
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from bitfield import BitField
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
 from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
@@ -18,6 +19,13 @@ audit_logger = logging.getLogger("sentry.audit.user")
 
 
 class UserManager(BaseManager, DjangoUserManager):
+    def get_from_group(self, group):
+        """ Get a queryset of all users in all teams in a given Group's project. """
+        return self.filter(
+            sentry_orgmember_set__teams__in=group.project.teams.all(),
+            is_active=True,
+        )
+
     def get_from_teams(self, organization_id, teams):
         return self.filter(
             sentry_orgmember_set__organization_id=organization_id,
@@ -216,8 +224,8 @@ class User(BaseModel, AbstractBaseUser):
         from sentry.models import (
             Activity,
             AuditLogEntry,
-            AuthIdentity,
             Authenticator,
+            AuthIdentity,
             GroupAssignee,
             GroupBookmark,
             GroupSeen,
@@ -321,7 +329,7 @@ class User(BaseModel, AbstractBaseUser):
         )
 
     def get_projects(self):
-        from sentry.models import Project, ProjectStatus, ProjectTeam, OrganizationMemberTeam
+        from sentry.models import OrganizationMemberTeam, Project, ProjectStatus, ProjectTeam
 
         return Project.objects.filter(
             status=ProjectStatus.VISIBLE,

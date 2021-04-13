@@ -1,19 +1,17 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
-import capitalize from 'lodash/capitalize';
+import moment from 'moment';
 
-import {Client} from 'app/api';
 import PageHeading from 'app/components/pageHeading';
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
-import {DataCategory, Organization} from 'app/types';
+import {DataCategory, DataCategoryName, Organization} from 'app/types';
 
 import {OrganizationUsageStats, ProjectUsageStats} from './types';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
 
 type Props = {
-  api: Client;
   organization: Organization;
   orgStatsLoading: boolean;
   projectStatsLoading: boolean;
@@ -25,24 +23,33 @@ type Props = {
 
 type State = {
   dataCategory: DataCategory;
+  dateStart: moment.Moment;
+  dateEnd: moment.Moment;
 };
 
 class OrganizationStats extends React.Component<Props, State> {
   state: State = {
     dataCategory: DataCategory.ERRORS,
+    dateStart: moment().subtract(14, 'days'),
+    dateEnd: moment(),
   };
 
   setDataCategory = (dataCategory: DataCategory) => {
     this.setState({dataCategory});
   };
 
+  setDateRange = (dateStart: moment.Moment, dateEnd: moment.Moment) => {
+    this.setState({dateStart, dateEnd});
+  };
+
   get dataCategoryName() {
-    return capitalize(this.state.dataCategory);
+    const {dataCategory} = this.state;
+    return DataCategoryName[dataCategory] ?? t('Unknown Data Category');
   }
 
   render() {
     const {organization} = this.props;
-    const {dataCategory} = this.state;
+    const {dataCategory, dateStart, dateEnd} = this.state;
 
     return (
       <PageContent>
@@ -58,13 +65,18 @@ class OrganizationStats extends React.Component<Props, State> {
           organization={organization}
           dataCategory={dataCategory}
           dataCategoryName={this.dataCategoryName}
+          dateStart={dateStart}
+          dateEnd={dateEnd}
           onChangeDataCategory={this.setDataCategory}
+          onChangeDateRange={this.setDateRange}
         />
 
         <UsageStatsProjects
           organization={organization}
           dataCategory={dataCategory}
           dataCategoryName={this.dataCategoryName}
+          dateStart={dateStart}
+          dateEnd={dateEnd}
         />
       </PageContent>
     );

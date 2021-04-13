@@ -1,91 +1,210 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
+import * as Sentry from '@sentry/react';
 import moment from 'moment';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import Card from 'app/components/card';
-import {HeaderTitle} from 'app/components/charts/styles';
+import ErrorPanel from 'app/components/charts/errorPanel';
+import OptionSelector from 'app/components/charts/optionSelector';
+import {
+  ChartControls,
+  HeaderTitle,
+  InlineContainer,
+  SectionValue,
+} from 'app/components/charts/styles';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
+import {IconCalendar, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, Organization} from 'app/types';
 
-import Chart from './chart';
-import {OrganizationUsageStats} from './types';
+import {Outcome, UsageSeries, UsageStat} from './types';
+import UsageChart, {
+  CHART_OPTIONS_DATA_TRANSFORM,
+  CHART_OPTIONS_DATACATEGORY,
+  ChartDataTransform,
+  ChartStats,
+} from './usageChart';
 import {formatUsageWithUnits} from './utils';
 
 type Props = {
   organization: Organization;
   dataCategory: DataCategory;
   dataCategoryName: string;
+  dateStart: moment.Moment;
+  dateEnd: moment.Moment;
   onChangeDataCategory: (dataCategory: DataCategory) => void;
+  onChangeDateRange: (dateStart: moment.Moment, dateEnd: moment.Moment) => void;
 } & AsyncComponent['props'];
 
 type State = {
-  orgStats: OrganizationUsageStats;
+  orgStats: UsageSeries | undefined;
+  chartDataTransform: ChartDataTransform;
 } & AsyncComponent['state'];
 
 class UsageStatsOrganization extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
-
-    // TODO(org-stats): Allow user to pick date range
-    const fourWeeksAgo = moment().subtract(31, 'days').unix();
-    const today = moment().unix();
-
-    return [
-      [
-        'orgStats',
-        `/organizations/${organization.slug}/stats_v2/`,
-        {
-          query: {
-            start: fourWeeksAgo,
-            end: today,
-            interval: '1d',
-          },
-        },
-      ],
-    ];
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      chartDataTransform: ChartDataTransform.CUMULATIVE,
+    };
   }
 
-  /**
-   * Ignore this hard-coded method. API response is being changed so this will
-   * be amended in a few days.
-   */
-  get formattedOrgStats(): {
-    stats: any[];
-    total: string;
-    accepted: string;
-    dropped: string;
-    filtered: string;
-  } {
-    const {dataCategory} = this.state;
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
+  }
 
-    const formatOptions = {
-      isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
-      useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
+  get endpointPath() {
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/stats_v2/`;
+  }
+
+  get endpointQuery() {
+    const {dateStart, dateEnd} = this.props;
+    return {
+      statsPeriod: `${dateEnd.diff(dateStart, 'd')}d`, // TODO(org-stats)
+      interval: '1d', // TODO(org-stats)
+      groupBy: ['category', 'outcome'],
+      field: ['sum(quantity)'],
     };
+  }
+
+  get chartMetadata() {
+    const {orgStats} = this.state;
 
     return {
-      stats: [],
-      total: formatUsageWithUnits(0, dataCategory, formatOptions),
-      accepted: formatUsageWithUnits(0, dataCategory, formatOptions),
-      dropped: formatUsageWithUnits(0, dataCategory, formatOptions),
-      filtered: formatUsageWithUnits(0, dataCategory, formatOptions),
+      ...this.mapSeriesToChart(orgStats),
     };
+  }
+
+  handleSelectDataTransform(value: ChartDataTransform) {
+    this.setState({chartDataTransform: value});
+  }
+
+  mapSeriesToChart(
+    orgStats?: UsageSeries
+  ): {
+    chartData: ChartStats;
+    cardData: {
+      total: string;
+      accepted: string;
+      dropped: string;
+      filtered: string;
+    };
+    error?: Error;
+  } {
+    const cardData = {
+      total: '-',
+      accepted: '-',
+      dropped: '-',
+      filtered: '-',
+    };
+    const chartData: ChartStats = {
+      accepted: [],
+      dropped: [],
+      projected: [],
+    };
+
+    if (!orgStats) {
+      return {cardData, chartData};
+    }
+
+    try {
+      const {dataCategory} = this.props;
+      const rollup = '1d'; // TODO(org-stats)
+      const dateTimeFormat = rollup === '1d' ? 'MMM D' : 'MMM D, HH:mm';
+
+      const usageStats: UsageStat[] = orgStats.intervals.map(interval => {
+        const dateTime = moment(interval);
+
+        return {
+          date: dateTime.format(dateTimeFormat),
+          total: 0,
+          accepted: 0,
+          filtered: 0,
+          dropped: {total: 0},
+        };
+      });
+
+      // Tally totals for card data
+      const count: any = {
+        total: 0,
+        accepted: 0,
+        dropped: 0,
+        invalid: 0,
+        filtered: 0,
+      };
+
+      orgStats.groups.forEach(group => {
+        const {outcome, category} = group.by;
+
+        // HACK The backend enum are singular, but the frontend enums are plural
+        if (!dataCategory.includes(`${category}`)) {
+          return;
+        }
+
+        count.total += group.totals['sum(quantity)'];
+        count[outcome] += group.totals['sum(quantity)'];
+
+        group.series['sum(quantity)'].forEach((stat, i) => {
+          if (outcome === Outcome.DROPPED || outcome === Outcome.INVALID) {
+            usageStats[i].dropped.total += stat;
+          }
+
+          usageStats[i][outcome] += stat;
+        });
+      });
+
+      // Invalid data is dropped
+      count.dropped += count.invalid;
+      delete count.invalid;
+
+      usageStats.forEach(stat => {
+        stat.total = stat.accepted + stat.filtered + stat.dropped.total;
+
+        // Chart Data
+        chartData.accepted.push({value: [stat.date, stat.accepted]} as any);
+        chartData.dropped.push({value: [stat.date, stat.dropped.total]} as any);
+      });
+
+      const formatOptions = {
+        isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
+        useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
+      };
+
+      return {
+        cardData: {
+          total: formatUsageWithUnits(count.total, dataCategory, formatOptions),
+          accepted: formatUsageWithUnits(count.accepted, dataCategory, formatOptions),
+          dropped: formatUsageWithUnits(count.dropped, dataCategory, formatOptions),
+          filtered: formatUsageWithUnits(count.filtered, dataCategory, formatOptions),
+        },
+        chartData,
+      };
+    } catch (err) {
+      Sentry.withScope(scope => {
+        scope.setContext('query', this.endpointQuery);
+        scope.setContext('body', orgStats);
+        Sentry.captureException(err);
+      });
+
+      return {
+        cardData,
+        chartData,
+        error: err,
+      };
+    }
   }
 
   renderCards() {
     const {dataCategory, dataCategoryName} = this.props;
-    const {total, accepted, dropped, filtered} = this.formattedOrgStats;
+    const {total, accepted, dropped, filtered} = this.chartMetadata.cardData;
 
-    const cardData = [
+    const cardMetadata = [
       {
         title: tct('Total [dataCategory]', {dataCategory: dataCategoryName}),
         value: total,
@@ -102,6 +221,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         ),
         value: filtered,
       },
+      // TODO(org-stats): Need a better description for dropped data
       {
         title: t('Dropped'),
         description: tct(
@@ -114,7 +234,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     return (
       <CardWrapper>
-        {cardData.map((c, i) => (
+        {cardMetadata.map((c, i) => (
           <StyledCard key={i}>
             <HeaderTitle>
               <TextOverflow>{c.title}</TextOverflow>
@@ -131,19 +251,11 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     );
   }
 
-  renderChart(e?: Error) {
-    // TODO(leedongwei): Poke someone for a error-state design
-    if (this.state.error || e) {
-      return (
-        <Panel>
-          <PanelBody>
-            <p>UsageStatsOrganization has an error: {e?.message}</p>
-          </PanelBody>
-        </Panel>
-      );
-    }
+  renderChart() {
+    const {dateStart, dateEnd, dataCategory} = this.props;
+    const {chartDataTransform, error, loading, orgStats} = this.state;
 
-    if (this.state.loading || !this.state.orgStats) {
+    if (loading) {
       return (
         <Panel>
           <PanelBody>
@@ -153,50 +265,81 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       );
     }
 
-    const {dataCategory} = this.state;
-    const {onChangeDataCategory} = this.props;
-    const {stats} = this.formattedOrgStats;
+    const {chartData, error: chartError} = this.chartMetadata;
 
-    const today = moment().format('YYYY-MM-DD');
-    const start = moment().subtract(30, 'days').format('YYYY-MM-DD');
+    if (error || chartError || !orgStats) {
+      return (
+        <Panel>
+          <PanelBody>
+            <ErrorPanel height="256px">
+              <IconWarning color="gray300" size="lg" />
+            </ErrorPanel>
+          </PanelBody>
+        </Panel>
+      );
+    }
+
+    const usageDateStart = dateStart.format('YYYY-MM-DD');
+    const usageDateEnd = dateEnd.format('YYYY-MM-DD');
 
     return (
-      <Panel>
-        <Chart
-          hasTransactions
-          hasAttachments={false}
-          usagePeriodStart={start}
-          usagePeriodEnd={today}
-          usagePeriodToday={today}
-          statsAttachments={stats}
-          statsErrors={stats}
-          statsTransactions={stats}
-        />
-
-        <ButtonBar active={dataCategory} merged>
-          {Object.keys(DataCategory).map(k => {
-            return (
-              <Button
-                key={DataCategory[k]}
-                barId={DataCategory[k]}
-                onClick={() => onChangeDataCategory(DataCategory[k])}
-              >
-                {capitalize(DataCategory[k])}
-              </Button>
-            );
-          })}
-        </ButtonBar>
-      </Panel>
+      <UsageChart
+        footer={this.renderChartFooter()}
+        dataCategory={dataCategory}
+        dataTransform={chartDataTransform}
+        usageDateStart={usageDateStart}
+        usageDateEnd={usageDateEnd}
+        usageStats={chartData}
+      />
     );
   }
 
-  renderComponent() {
-    const {errors} = this.state;
+  renderChartFooter = () => {
+    const {dataCategory, onChangeDataCategory} = this.props;
+    const {chartDataTransform} = this.state;
 
+    return (
+      <ChartControls>
+        <InlineContainer>
+          <SectionValue>
+            <IconCalendar />
+          </SectionValue>
+          <SectionValue>
+            {/*
+            TODO(org-stats): Add calendar dropdown for user to select date range
+
+            {moment(usagePeriodStart).format('ll')}
+            {' — '}
+            {moment(usagePeriodEnd).format('ll')}
+            */}
+          </SectionValue>
+        </InlineContainer>
+        <InlineContainer>
+          <OptionSelector
+            title={t('Display')}
+            menuWidth="135px"
+            selected={dataCategory}
+            options={CHART_OPTIONS_DATACATEGORY}
+            onChange={(val: string) => onChangeDataCategory(val as DataCategory)}
+          />
+          <OptionSelector
+            title={t('Type')}
+            selected={chartDataTransform}
+            options={CHART_OPTIONS_DATA_TRANSFORM}
+            onChange={(val: string) =>
+              this.handleSelectDataTransform(val as ChartDataTransform)
+            }
+          />
+        </InlineContainer>
+      </ChartControls>
+    );
+  };
+
+  renderComponent() {
     return (
       <React.Fragment>
         {this.renderCards()}
-        {this.renderChart(errors?.['orgStats'])}
+        {this.renderChart()}
       </React.Fragment>
     );
   }

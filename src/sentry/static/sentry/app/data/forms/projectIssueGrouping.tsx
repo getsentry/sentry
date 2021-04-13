@@ -11,6 +11,43 @@ import {Field} from 'app/views/settings/components/forms/type';
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/issue-grouping/';
 
+const groupingConfigField: Field = {
+  name: 'groupingConfig',
+  type: 'select',
+  deprecatedSelectControl: false,
+  label: t('Grouping Config'),
+  saveOnBlur: false,
+  saveMessageAlertType: 'info',
+  saveMessage: t(
+    'Changing grouping config will apply to future events only (can take up to a minute).'
+  ),
+  selectionInfoFunction: args => {
+    const {groupingConfigs, value} = args;
+    const selection = groupingConfigs.find(({id}) => id === value);
+    const changelog = selection?.changelog || '';
+    if (!changelog) {
+      return null;
+    }
+    return (
+      <Changelog>
+        <ChangelogTitle>
+          {tct('New in version [version]', {version: selection.id})}:
+        </ChangelogTitle>
+        <div dangerouslySetInnerHTML={{__html: marked(changelog)}} />
+      </Changelog>
+    );
+  },
+  choices: ({groupingConfigs}) =>
+    groupingConfigs.map(({id, hidden}) => [
+      id.toString(),
+      <GroupingConfigItem key={id} isHidden={hidden}>
+        {id}
+      </GroupingConfigItem>,
+    ]),
+  help: t('Sets the grouping algorithm to be used for new events.'),
+  visible: ({features}) => features.has('set-grouping-config'),
+};
+
 export const fields: Record<string, Field> = {
   fingerprintingRules: {
     name: 'fingerprintingRules',
@@ -99,75 +136,22 @@ stack.function:mylibrary_* +app`}
     validate: () => [],
     visible: true,
   },
-  groupingConfig: {
-    name: 'groupingConfig',
-    type: 'select',
-    deprecatedSelectControl: false,
-    label: t('Grouping Config'),
-    saveOnBlur: false,
-    saveMessageAlertType: 'info',
-    saveMessage: t(
-      'Changing grouping config will apply to future events only (can take up to a minute).'
+  groupingConfig: groupingConfigField,
+  secondaryGroupingConfig: {
+    ...groupingConfigField,
+    name: 'secondaryGroupingConfig',
+    label: t('Fallback/Secondary Grouping Config'),
+    help: t(
+      'Sets the secondary grouping algorithm that should be run in addition to avoid creating too many new groups. Controlled by expiration date below.'
     ),
-    selectionInfoFunction: args => {
-      const {groupingConfigs, value} = args;
-      const selection = groupingConfigs.find(({id}) => id === value);
-      const changelog = selection?.changelog || '';
-      if (!changelog) {
-        return null;
-      }
-      return (
-        <Changelog>
-          <ChangelogTitle>
-            {tct('New in version [version]', {version: selection.id})}:
-          </ChangelogTitle>
-          <div dangerouslySetInnerHTML={{__html: marked(changelog)}} />
-        </Changelog>
-      );
-    },
-    choices: ({groupingConfigs}) =>
-      groupingConfigs.map(({id, hidden}) => [
-        id.toString(),
-        <GroupingConfigItem key={id} isHidden={hidden}>
-          {id}
-        </GroupingConfigItem>,
-      ]),
-    help: t('Sets the grouping algorithm to be used for new events.'),
-    visible: ({features}) => features.has('set-grouping-config'),
   },
-  groupingEnhancementsBase: {
-    name: 'groupingEnhancementsBase',
-    type: 'select',
-    deprecatedSelectControl: false,
-    label: t('Stack Trace Rules Base'),
-    saveOnBlur: false,
-    saveMessageAlertType: 'info',
-    saveMessage: t(
-      'Changing base will apply to future events only (can take up to a minute).'
+  secondaryGroupingExpiry: {
+    name: 'secondaryGroupingExpiry',
+    type: 'number',
+    label: t('Expiration date of secondary grouping'),
+    help: t(
+      'If this UNIX timestamp is in the past, the secondary grouping configuration stops applying automatically.'
     ),
-    selectionInfoFunction: args => {
-      const {groupingEnhancementBases, value} = args;
-      const selection = groupingEnhancementBases.find(({id}) => id === value);
-      const changelog = selection?.changelog || '';
-      if (!changelog) {
-        return null;
-      }
-      return (
-        <Changelog>
-          <ChangelogTitle>
-            {tct('New in version [version]', {version: selection.id})}:
-          </ChangelogTitle>
-          <div dangerouslySetInnerHTML={{__html: marked(changelog)}} />
-        </Changelog>
-      );
-    },
-    choices: ({groupingEnhancementBases}) =>
-      groupingEnhancementBases.map(({id}) => [
-        id.toString(),
-        <GroupingConfigItem key={id}>{id}</GroupingConfigItem>,
-      ]),
-    help: t('The built-in base version of stack trace rules.'),
-    visible: ({features}) => features.has('set-grouping-config'),
   },
 };
 

@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
 
-import os
 import json  # noqa: b317
+import os
+
 import click
-
 from babel.messages.pofile import read_po
-
 
 MINIMUM = 80
 

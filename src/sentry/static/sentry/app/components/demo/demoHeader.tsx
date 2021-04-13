@@ -29,7 +29,7 @@ function DemoHeader({organization}: Props) {
           }
           href="https://sentry.io/signup/"
         >
-          {t('Get Started')}
+          {t('Sign Up')}
         </GetStarted>
       </ButtonBar>
     </Wrapper>

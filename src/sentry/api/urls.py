@@ -105,7 +105,6 @@ from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
-from .endpoints.grouping_enhancements import GroupingEnhancementsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_environment import InternalEnvironmentEndpoint
 from .endpoints.internal_mail import InternalMailEndpoint
@@ -129,6 +128,8 @@ from .endpoints.organization_auth_provider_send_reminders import (
 )
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
+from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
+from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
@@ -158,6 +159,7 @@ from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_trace import (
     OrganizationEventsTraceEndpoint,
     OrganizationEventsTraceLightEndpoint,
+    OrganizationEventsTraceMetaEndpoint,
 )
 from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
@@ -240,6 +242,7 @@ from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
+from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
@@ -358,6 +361,7 @@ from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
+from .endpoints.team_notification_settings_details import TeamNotificationSettingsDetailsEndpoint
 from .endpoints.team_projects import TeamProjectsEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
@@ -371,6 +375,7 @@ from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
+from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
@@ -599,19 +604,24 @@ urlpatterns = [
                     name="sentry-api-0-user-organizations",
                 ),
                 url(
+                    r"^(?P<user_id>[^\/]+)/notification-settings/$",
+                    UserNotificationSettingsDetailsEndpoint.as_view(),
+                    name="sentry-api-0-user-notification-settings",
+                ),
+                url(
                     r"^(?P<user_id>[^\/]+)/notifications/$",
                     UserNotificationDetailsEndpoint.as_view(),
                     name="sentry-api-0-user-notifications",
                 ),
                 url(
-                    r"^(?P<user_id>[^\/]+)/password/$",
-                    UserPasswordEndpoint.as_view(),
-                    name="sentry-api-0-user-password",
-                ),
-                url(
                     r"^(?P<user_id>[^\/]+)/notifications/(?P<notification_type>[^\/]+)/$",
                     UserNotificationFineTuningEndpoint.as_view(),
                     name="sentry-api-0-user-notifications-fine-tuning",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/password/$",
+                    UserPasswordEndpoint.as_view(),
+                    name="sentry-api-0-user-password",
                 ),
                 url(
                     r"^(?P<user_id>[^\/]+)/social-identities/$",
@@ -731,6 +741,16 @@ urlpatterns = [
                     OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-repository-project-path-config-details",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/code-mappings/$",
+                    OrganizationCodeMappingsEndpoint.as_view(),
+                    name="sentry-api-0-organization-code-mappings",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/$",
+                    OrganizationCodeMappingDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-code-mapping-details",
+                ),
                 # Discover
                 url(
                     r"^(?P<organization_slug>[^\/]+)/discover/query/$",
@@ -743,7 +763,7 @@ urlpatterns = [
                     name="sentry-api-0-discover-saved-queries",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/discover/saved/(?P<query_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/discover/saved/(?P<query_id>\d+)/$",
                     DiscoverSavedQueryDetailEndpoint.as_view(),
                     name="sentry-api-0-discover-saved-query-detail",
                 ),
@@ -784,7 +804,7 @@ urlpatterns = [
                     name="sentry-api-0-short-id-lookup",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/eventids/(?P<event_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/eventids/(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     EventIdLookupEndpoint.as_view(),
                     name="sentry-api-0-event-id-lookup",
                 ),
@@ -930,14 +950,19 @@ urlpatterns = [
                     name="sentry-api-0-organization-event-baseline",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventsTraceLightEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trace-light",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events-trace/(?P<trace_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/events-trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventsTraceEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trace",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    OrganizationEventsTraceMetaEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-trace-meta",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues/new/$",
@@ -1012,6 +1037,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/monitors/$",
                     OrganizationMonitorsEndpoint.as_view(),
+                    name="sentry-api-0-organization-monitors",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/pinned-searches/$",
@@ -1219,6 +1245,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-stats",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
+                    OrganizationStatsEndpointV2.as_view(),
+                    name="sentry-api-0-organization-stats-v2",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/teams/$",
                     OrganizationTeamsEndpoint.as_view(),
                     name="sentry-api-0-organization-teams",
@@ -1312,6 +1343,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:issues|groups)/trending/$",
                     TeamGroupsTrendingEndpoint.as_view(),
                     name="sentry-api-0-team-groups-trending",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/notification-settings/$",
+                    TeamNotificationSettingsDetailsEndpoint.as_view(),
+                    name="sentry-api-0-user-notification-settings",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/members/$",
@@ -1823,11 +1859,6 @@ urlpatterns = [
         r"^grouping-configs/$",
         GroupingConfigsEndpoint.as_view(),
         name="sentry-api-0-grouping-configs",
-    ),
-    url(
-        r"^grouping-enhancements/$",
-        GroupingEnhancementsEndpoint.as_view(),
-        name="sentry-api-0-grouping-enhancements",
     ),
     # Symbolicator Builtin Sources
     url(

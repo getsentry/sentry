@@ -6,12 +6,7 @@ import Feature from 'app/components/acl/feature';
 import ExternalLink from 'app/components/links/externalLink';
 import {fields} from 'app/data/forms/projectIssueGrouping';
 import {t, tct} from 'app/locale';
-import {
-  EventGroupingConfig,
-  GroupingEnhancementBase,
-  Organization,
-  Project,
-} from 'app/types';
+import {EventGroupingConfig, Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -28,7 +23,6 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 
 type State = {
   groupingConfigs: EventGroupingConfig[] | null;
-  groupingEnhancementBases: GroupingEnhancementBase[] | null;
 } & AsyncView['state'];
 
 class ProjectDebugSymbols extends AsyncView<Props, State> {
@@ -42,15 +36,11 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     return {
       ...super.getDefaultState(),
       groupingConfigs: [],
-      groupingEnhancementBases: [],
     };
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [
-      ['groupingConfigs', '/grouping-configs/'],
-      ['groupingEnhancementBases', '/grouping-enhancements/'],
-    ];
+    return [['groupingConfigs', '/grouping-configs/']];
   }
 
   handleSubmit = (response: Project) => {
@@ -59,7 +49,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {groupingConfigs, groupingEnhancementBases} = this.state;
+    const {groupingConfigs} = this.state;
     const {organization, project, params} = this.props;
     const {orgId, projectId} = params;
     const endpoint = `/projects/${orgId}/${projectId}/`;
@@ -68,7 +58,6 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       additionalFieldProps: {
         organization,
         groupingConfigs,
-        groupingEnhancementBases,
       },
       features: new Set(organization.features),
       access,
@@ -114,13 +103,16 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
             <JsonForm
               {...jsonFormProps}
               title={t('Change defaults')}
-              fields={[fields.groupingConfig, fields.groupingEnhancementsBase]}
+              fields={[
+                fields.groupingConfig,
+                fields.secondaryGroupingConfig,
+                fields.secondaryGroupingExpiry,
+              ]}
             />
           </Feature>
 
           <UpgradeGrouping
             groupingConfigs={groupingConfigs ?? []}
-            groupingEnhancementBases={groupingEnhancementBases ?? []}
             organization={organization}
             projectId={params.projectId}
             project={project}

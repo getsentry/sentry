@@ -1,4 +1,5 @@
 from collections import defaultdict, namedtuple
+from typing import Any
 
 from django.db import models
 from django.db.models.signals import pre_save
@@ -7,11 +8,10 @@ from rest_framework import serializers
 from sentry.db.models import Model
 from sentry.utils.compat import filter
 
-
 ACTOR_TYPES = {"team": 0, "user": 1}
 
 
-def actor_type_to_class(type):
+def actor_type_to_class(type: int) -> Any:
     # type will be 0 or 1 and we want to get Team or User
     from sentry.models import Team, User
 

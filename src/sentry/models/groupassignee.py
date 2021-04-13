@@ -1,13 +1,13 @@
 import logging
-
 from collections import defaultdict
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BaseManager
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
 from sentry.models.activity import Activity
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_assigned
 from sentry.utils import metrics
 
@@ -45,7 +45,7 @@ def sync_group_assignee_inbound(integration, email, external_issue_key, assign=T
     Returns a list of groups that were successfully assigned.
     """
     from sentry import features
-    from sentry.models import Group, UserEmail, User
+    from sentry.models import Group, User, UserEmail
 
     logger = logging.getLogger("sentry.integrations.%s" % integration.provider)
 
@@ -110,8 +110,8 @@ def sync_group_assignee_inbound(integration, email, external_issue_key, assign=T
 
 
 def sync_group_assignee_outbound(group, user_id, assign=True):
-    from sentry.tasks.integrations import sync_assignee_outbound
     from sentry.models import GroupLink
+    from sentry.tasks.integrations import sync_assignee_outbound
 
     external_issue_ids = GroupLink.objects.filter(
         project_id=group.project_id, group_id=group.id, linked_type=GroupLink.LinkedType.issue
@@ -126,7 +126,7 @@ def sync_group_assignee_outbound(group, user_id, assign=True):
 class GroupAssigneeManager(BaseManager):
     def assign(self, group, assigned_to, acting_user=None):
         from sentry import features
-        from sentry.models import User, Team, GroupSubscription, GroupSubscriptionReason
+        from sentry.models import GroupSubscription, Team, User
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned

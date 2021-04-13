@@ -6,9 +6,7 @@ from rest_framework.response import Response
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import Serializer, serialize
-from sentry.models import UserOption
-from sentry.models.integration import ExternalProviders
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models import NotificationSetting, UserOption
 from sentry.notifications.legacy_mappings import (
     USER_OPTION_SETTINGS,
     get_option_value_from_int,
@@ -16,15 +14,15 @@ from sentry.notifications.legacy_mappings import (
     map_notification_settings_to_legacy,
 )
 from sentry.notifications.types import NotificationScopeType, UserOptionsSettingsKey
+from sentry.types.integrations import ExternalProviders
 
 
 class UserNotificationsSerializer(Serializer):
     def get_attrs(self, item_list, user, *args, **kwargs):
-        data = list(
-            UserOption.objects.filter(
-                user__in=item_list, organization=None, project=None
-            ).select_related("user")
-        )
+        user_options = UserOption.objects.filter(
+            user__in=item_list, organization=None, project=None
+        ).select_related("user")
+        keys_to_user_option_objects = {user_option.key: user_option for user_option in user_options}
 
         actor_mapping = {user.actor_id: user for user in item_list}
         notification_settings = NotificationSetting.objects._filter(
@@ -32,11 +30,17 @@ class UserNotificationsSerializer(Serializer):
             scope_type=NotificationScopeType.USER,
             target_ids=actor_mapping.keys(),
         )
-        data += map_notification_settings_to_legacy(notification_settings, actor_mapping)
+        notification_settings_as_user_options = map_notification_settings_to_legacy(
+            notification_settings, actor_mapping
+        )
+
+        # Override deprecated UserOption rows with NotificationSettings.
+        for user_option in notification_settings_as_user_options:
+            keys_to_user_option_objects[user_option.key] = user_option
 
         results = defaultdict(list)
-        for uo in data:
-            results[uo.user].append(uo)
+        for user_option in keys_to_user_option_objects.values():
+            results[user_option.user].append(user_option)
         return results
 
     def serialize(self, obj, attrs, user, *args, **kwargs):

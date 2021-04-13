@@ -1,37 +1,37 @@
-from time import time
 import logging
 import re
+from time import time
 
 from django import forms
 from django.utils.translation import ugettext as _
 
-from sentry import http, features
+from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
+from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.vsts import get_user_info, use_limited_scopes
+from sentry.integrations import (
+    FeatureDescription,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
+)
+from sentry.integrations.repositories import RepositoryMixin
+from sentry.integrations.vsts.issues import VstsIssueSync
+from sentry.models import Integration as IntegrationModel
 from sentry.models import (
-    Integration as IntegrationModel,
     IntegrationExternalProject,
     Organization,
     OrganizationIntegration,
+    Repository,
 )
-from sentry.integrations import (
-    IntegrationInstallation,
-    IntegrationFeatures,
-    IntegrationProvider,
-    IntegrationMetadata,
-    FeatureDescription,
-)
+from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.integrations.repositories import RepositoryMixin
-from sentry.integrations.vsts.issues import VstsIssueSync
-from sentry.models import Repository
-from sentry.pipeline import NestedPipelineView
-from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.vsts import get_user_info, use_limited_scopes
-from sentry.pipeline import PipelineView
-from sentry.web.helpers import render_to_response
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
+from sentry.web.helpers import render_to_response
+
 from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
 from .webhooks import WorkItemWebhook

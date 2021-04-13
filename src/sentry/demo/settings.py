@@ -4,7 +4,6 @@ from datetime import timedelta
 
 from sentry.conf.server import *
 
-
 """
 To get this file to load, add the follwing to your sentry.conf.py file:
 
@@ -17,6 +16,11 @@ CELERY_IMPORTS = CELERY_IMPORTS + ("sentry.demo.tasks",)
 CELERYBEAT_SCHEDULE["demo_delete_users_orgs"] = {
     "task": "sentry.demo.tasks.delete_users_orgs",
     "schedule": timedelta(hours=1),
+    "options": {"expires": 3600, "queue": "cleanup"},
+}
+CELERYBEAT_SCHEDULE["demo_delete_initializing_orgs"] = {
+    "task": "sentry.demo.tasks.delete_initializing_orgs",
+    "schedule": timedelta(minutes=10),
     "options": {"expires": 3600, "queue": "cleanup"},
 }
 MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + ("sentry.demo.middleware.DemoMiddleware",)
@@ -33,10 +37,12 @@ DEMO_DATA_GEN_PARAMS = {
     "ERROR_BACKOFF_TIME": 0.5,  # backoff time after a snuba error
     "NUM_RELEASES": 3,
     "ORG_BUFFER_SIZE": 3,  # number of pre-populated organizations in the buffer
-    "DAY_DURATION_IMPACT": 500,  # the maximum impact of the day on the durationn
-    "DURATION_SIGMA": 600,  # the variability in durations
-    "BASE_FRONTEND_DURATION": 2000,  # the average front end duration discounting the day impact
-    "MIN_FRONTEND_DURATION": 600,  # absolute minimum duration of a FE transaction
+    "DAY_DURATION_IMPACT": 0.2,  # the maximum impact of the day on the duration as a ratio
+    "DURATION_ALPHA": 1.1,  # Alpha value in the gamma distribution
+    "DURATION_BETA": 1.1,  # Beta value in the gamma distribution
+    "MIN_FRONTEND_DURATION": 400,  # absolute minimum duration of a FE transaction in ms
+    "MAX_INITIALIZATION_TIME": 30,  # number of minutes to give an organization to initialize
+    "DISABLE_SESSIONS": False,  # disables generating sessions
 }
 
 # parameters for an org when quickly generating them synchronously

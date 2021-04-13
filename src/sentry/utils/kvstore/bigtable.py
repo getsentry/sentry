@@ -11,9 +11,9 @@ from google.cloud import bigtable
 from google.cloud.bigtable.row_data import PartialRowData
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.table import Table
+
 from sentry.utils.codecs import Codec, ZlibCodec, ZstdCodec
 from sentry.utils.kvstore.abstract import KVStorage
-
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +59,9 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
     def __init__(
         self,
+        instance: str,
+        table_name: str,
         project: Optional[str] = None,
-        instance: str = "sentry",
-        table_name: str = "nodestore",
         client_options: Optional[Mapping[Any, Any]] = None,
         default_ttl: Optional[timedelta] = None,
         compression: Optional[str] = None,

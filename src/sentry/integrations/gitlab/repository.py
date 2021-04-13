@@ -1,8 +1,8 @@
 import logging
 
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.plugins import providers
 from sentry.models import Integration
+from sentry.plugins import providers
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 
 class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):

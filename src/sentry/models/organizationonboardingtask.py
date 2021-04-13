@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.cache import cache
-from django.db import models, IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 from sentry.db.models import (

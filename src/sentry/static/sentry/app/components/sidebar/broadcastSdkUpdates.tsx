@@ -113,13 +113,11 @@ const SdkProjectBadge = styled(ProjectBadge)`
 
 const SdkName = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
 `;
 
 const SdkOutdatedVersion = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
 export default withSdkUpdates(withProjects(BroadcastSdkUpdates));

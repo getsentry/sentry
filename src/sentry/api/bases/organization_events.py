@@ -42,7 +42,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             params = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
-            params["user_id"] = request.user.id
+            params["user_id"] = request.user.id if request.user else None
 
             if check_global_views:
                 has_global_views = features.has(
@@ -239,8 +239,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 rollup = get_rollup_from_request(
                     request,
                     params,
-                    "1h",
-                    InvalidSearchQuery(
+                    default_interval=None,
+                    error=InvalidSearchQuery(
                         "Your interval and date range would create too many results. "
                         "Use a larger interval, or a smaller date range."
                     ),

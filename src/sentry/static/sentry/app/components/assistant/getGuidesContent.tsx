@@ -135,27 +135,13 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         {
           target: 'inbox_guide_reason',
           description: t(`These labels explain why an issue needs review.`),
+          nextText: t(`When does this end?`),
           cantDismiss: true,
         },
         {
           target: 'inbox_guide_review',
           description: t(
-            `Mark Reviewed removes the issue from this list and also removes the label.`
-          ),
-          nextText: t(`When does this end?`),
-          cantDismiss: true,
-        },
-        {
-          target: 'inbox_guide_ignore',
-          description: t(`Resolving or ignoring an issue also marks it reviewed.`),
-          nextText: t(`Seriously, there's more?`),
-          cantDismiss: true,
-        },
-        {
-          target: 'for_review_guide_tab',
-          description: t(
-            `Everything is automatically reviewed after seven days, preventing
-            issues from piling up and you from losing your damn mind.`
+            `Marking an issue reviewed, resolving it, or ignoring it removes it from this list and removes the label.`
           ),
           nextText: t(`Make It Stop Already`),
         },
@@ -163,6 +149,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     },
     {
       guide: 'assigned_or_suggested_guide',
+      dateThreshold: new Date(2021, 4, 1),
       requiredTargets: ['assigned_or_suggested_query'],
       steps: [
         {

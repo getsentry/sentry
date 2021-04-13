@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import FeatureTourModal from 'app/components/modals/featureTourModal';
@@ -37,25 +38,31 @@ function MissingPerformanceButtons({organization}: Props) {
   }
 
   return (
-    <StyledButtonBar gap={1}>
-      <Button size="small" priority="primary" external href={DOCS_URL}>
-        {t('Start Setup')}
-      </Button>
+    <Feature
+      hookName="feature-disabled:project-performance-score-card"
+      features={['performance-view']}
+      organization={organization}
+    >
+      <StyledButtonBar gap={1}>
+        <Button size="small" priority="primary" external href={DOCS_URL}>
+          {t('Start Setup')}
+        </Button>
 
-      <FeatureTourModal
-        steps={PERFORMANCE_TOUR_STEPS}
-        onAdvance={handleTourAdvance}
-        onCloseModal={handleClose}
-        doneText={t('Start Setup')}
-        doneUrl={DOCS_URL}
-      >
-        {({showModal}) => (
-          <Button size="small" onClick={showModal}>
-            {t('Get a tour')}
-          </Button>
-        )}
-      </FeatureTourModal>
-    </StyledButtonBar>
+        <FeatureTourModal
+          steps={PERFORMANCE_TOUR_STEPS}
+          onAdvance={handleTourAdvance}
+          onCloseModal={handleClose}
+          doneText={t('Start Setup')}
+          doneUrl={DOCS_URL}
+        >
+          {({showModal}) => (
+            <Button size="small" onClick={showModal}>
+              {t('Get a tour')}
+            </Button>
+          )}
+        </FeatureTourModal>
+      </StyledButtonBar>
+    </Feature>
   );
 }
 

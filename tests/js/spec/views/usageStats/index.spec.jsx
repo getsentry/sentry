@@ -5,16 +5,14 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import UsageStats from 'app/views/usageStats';
 
-describe('UserFeedback', function () {
+import {mockData} from './usageStatsOrg.spec';
+
+describe('UsageStats', function () {
   const {organization, routerContext} = initializeOrg();
   const orgSlug = organization.slug;
 
   const orgUrl = `/organizations/${orgSlug}/stats_v2/`;
   const projectUrl = `/organizations/${orgSlug}/stats_v2/projects/`;
-
-  // TODO(org-stats): Update with finalized response
-  const api = new MockApiClient();
-  const mockData = {};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -30,7 +28,7 @@ describe('UserFeedback', function () {
 
   it('renders', async function () {
     const wrapper = mountWithTheme(
-      <UsageStats api={api} organization={organization} />,
+      <UsageStats organization={organization} />,
       routerContext
     );
 
@@ -39,8 +37,8 @@ describe('UserFeedback', function () {
 
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
-    expect(wrapper.text()).toContain('UsageStatsOrganization Chart');
-    expect(wrapper.text()).not.toContain('UsageStatsOrganization has an error');
+    expect(wrapper.find('UsageChart')).toHaveLength(1);
+    expect(wrapper.find('IconWarning')).toHaveLength(0);
 
     expect(wrapper.text()).toContain('UsageStatsProjects is okay');
     expect(wrapper.text()).not.toContain('UsageStatsProjects has an error');
@@ -53,7 +51,7 @@ describe('UserFeedback', function () {
     });
 
     const wrapper = mountWithTheme(
-      <UsageStats api={api} organization={organization} />,
+      <UsageStats organization={organization} />,
       routerContext
     );
 
@@ -62,8 +60,8 @@ describe('UserFeedback', function () {
 
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
-    expect(wrapper.text()).not.toContain('UsageStatsOrganization Chart');
-    expect(wrapper.text()).toContain('UsageStatsOrganization has an error');
+    expect(wrapper.find('UsageChart')).toHaveLength(0);
+    expect(wrapper.find('IconWarning')).toHaveLength(1);
 
     expect(wrapper.text()).toContain('UsageStatsProjects is okay');
     expect(wrapper.text()).not.toContain('UsageStatsProjects has an error');
@@ -76,7 +74,7 @@ describe('UserFeedback', function () {
     });
 
     const wrapper = mountWithTheme(
-      <UsageStats api={api} organization={organization} />,
+      <UsageStats organization={organization} />,
       routerContext
     );
 
@@ -85,8 +83,8 @@ describe('UserFeedback', function () {
 
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
-    expect(wrapper.text()).toContain('UsageStatsOrganization Chart');
-    expect(wrapper.text()).not.toContain('UsageStatsOrganization has an error');
+    expect(wrapper.find('UsageChart')).toHaveLength(1);
+    expect(wrapper.find('IconWarning')).toHaveLength(0);
 
     expect(wrapper.text()).not.toContain('UsageStatsProjects is okay');
     expect(wrapper.text()).toContain('UsageStatsProjects has an error');

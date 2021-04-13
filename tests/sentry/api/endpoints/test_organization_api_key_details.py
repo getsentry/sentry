@@ -1,70 +1,49 @@
-from django.core.urlresolvers import reverse
-
 from sentry.models import ApiKey
 from sentry.testutils import APITestCase
 
 DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member:read"]
 
 
-class OrganizationApiKeyDetails(APITestCase):
+class OrganizationApiKeyDetailsBase(APITestCase):
+    endpoint = "sentry-api-0-organization-api-key-details"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+        self.api_key = ApiKey.objects.create(
+            organization=self.organization, scope_list=DEFAULT_SCOPES
+        )
+
+
+class OrganizationApiKeyDetails(OrganizationApiKeyDetailsBase):
     def test_api_key_no_exist(self):
-        self.login_as(user=self.user)
-        organization = self.create_organization(name="foo", owner=self.user)
-
-        path = reverse("sentry-api-0-organization-api-key-details", args=[organization.slug, 2])
-
-        resp = self.client.get(path)
-
-        assert resp.status_code == 404
+        self.get_error_response(self.organization.slug, 123456, status_code=404)
 
     def test_get_api_details(self):
-        self.login_as(user=self.user)
-        organization = self.create_organization(name="foo", owner=self.user)
+        response = self.get_success_response(self.organization.slug, self.api_key.id)
+        assert response.data.get("id") == str(self.api_key.id)
 
-        api_key = ApiKey.objects.create(organization=organization, scope_list=DEFAULT_SCOPES)
 
-        path = reverse(
-            "sentry-api-0-organization-api-key-details", args=[organization.slug, api_key.id]
-        )
-
-        resp = self.client.get(path)
-
-        assert resp.status_code == 200
-        assert resp.data.get("id") == str(api_key.id)
+class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
+    method = "put"
 
     def test_update_api_key_details(self):
-        self.login_as(user=self.user)
-        organization = self.create_organization(name="foo", owner=self.user)
+        data = {"label": "New Label", "allowed_origins": "sentry.io"}
+        self.get_success_response(self.organization.slug, self.api_key.id, **data)
 
-        api_key = ApiKey.objects.create(organization=organization, scope_list=DEFAULT_SCOPES)
-
-        path = reverse(
-            "sentry-api-0-organization-api-key-details", args=[organization.slug, api_key.id]
-        )
-
-        resp = self.client.put(path, data={"label": "New Label", "allowed_origins": "sentry.io"})
-
-        assert resp.status_code == 200
-
-        api_key = ApiKey.objects.get(id=api_key.id, organization_id=organization.id)
+        api_key = ApiKey.objects.get(id=self.api_key.id, organization_id=self.organization.id)
 
         assert api_key.label == "New Label"
         assert api_key.allowed_origins == "sentry.io"
 
+
+class OrganizationApiKeyDetailsDelete(OrganizationApiKeyDetailsBase):
+    method = "delete"
+
     def test_can_delete_api_key(self):
-        self.login_as(user=self.user)
-        organization = self.create_organization(name="foo", owner=self.user)
-
-        api_key = ApiKey.objects.create(organization=organization, scope_list=DEFAULT_SCOPES)
-
-        path = reverse(
-            "sentry-api-0-organization-api-key-details", args=[organization.slug, api_key.id]
-        )
-
-        resp = self.client.delete(path)
-
-        assert resp.status_code == 204
+        self.get_success_response(self.organization.slug, self.api_key.id)
 
         # check to make sure it's deleted
-        resp = self.client.get(path)
-        assert resp.status_code == 404
+        self.get_error_response(
+            self.organization.slug, self.api_key.id, method="get", status_code=404
+        )

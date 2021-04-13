@@ -1,11 +1,18 @@
 import pytest
 
+from sentry.api.endpoints.project_details import (
+    DynamicSamplingConditionSerializer,
+    DynamicSamplingSerializer,
+)
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
     DeletedProject,
     EnvironmentProject,
+    NotificationSetting,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
     OrganizationMember,
     OrganizationOption,
     Project,
@@ -15,14 +22,10 @@ from sentry.models import (
     ProjectStatus,
     ProjectTeam,
     Rule,
-    UserOption,
-)
-from sentry.api.endpoints.project_details import (
-    DynamicSamplingSerializer,
-    DynamicSamplingConditionSerializer,
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock, zip
 
 
@@ -373,10 +376,22 @@ class ProjectUpdateTest(APITestCase):
 
     def test_subscription(self):
         self.get_valid_response(self.org_slug, self.proj_slug, isSubscribed="true")
-        assert UserOption.objects.get(user=self.user, project=self.project).value == 1
+        value0 = NotificationSetting.objects.get_settings(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.ISSUE_ALERTS,
+            user=self.user,
+            project=self.project,
+        )
+        assert value0 == NotificationSettingOptionValues.ALWAYS
 
         self.get_valid_response(self.org_slug, self.proj_slug, isSubscribed="false")
-        assert UserOption.objects.get(user=self.user, project=self.project).value == 0
+        value1 = NotificationSetting.objects.get_settings(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.ISSUE_ALERTS,
+            user=self.user,
+            project=self.project,
+        )
+        assert value1 == NotificationSettingOptionValues.NEVER
 
     def test_security_token(self):
         resp = self.get_valid_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")

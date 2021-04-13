@@ -1,6 +1,6 @@
 import logging
 
-from sentry import features
+from sentry import analytics, features
 from sentry.app import locks
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
@@ -9,7 +9,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import safe_execute
-from sentry.utils.sdk import set_current_event_project, bind_organization_context
+from sentry.utils.sdk import bind_organization_context, set_current_event_project
 
 logger = logging.getLogger("sentry")
 
@@ -28,7 +28,7 @@ def _get_service_hooks(project_id):
 
 
 def _should_send_error_created_hooks(project):
-    from sentry.models import ServiceHook, Organization
+    from sentry.models import Organization, ServiceHook
 
     cache_key = f"servicehooks-error-created:1:{project.id}"
     result = cache.get(cache_key)
@@ -90,11 +90,18 @@ def handle_owner_assignment(project, group, event):
         if owners_exists:
             return
 
-        auto_assignment, owners = ProjectOwnership.get_autoassign_owners(
+        auto_assignment, owners, assigned_by_codeowners = ProjectOwnership.get_autoassign_owners(
             group.project_id, event.data
         )
         if auto_assignment and owners:
             GroupAssignee.objects.assign(group, owners[0])
+            if assigned_by_codeowners:
+                analytics.record(
+                    "codeowners.assignment",
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    group_id=group.id,
+                )
 
         if owners:
             try:
@@ -177,8 +184,8 @@ def post_process_group(
     """
     from sentry.eventstore.models import Event
     from sentry.eventstore.processing import event_processing_store
-    from sentry.utils import snuba
     from sentry.reprocessing2 import is_reprocessed_event
+    from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
         # We use the data being present/missing in the processing store
@@ -202,18 +209,12 @@ def post_process_group(
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
-        from sentry.models import (
-            Commit,
-            Project,
-            Organization,
-            EventDict,
-            GroupInboxReason,
-        )
-        from sentry.models.groupinbox import add_group_to_inbox
+        from sentry.models import Commit, EventDict, GroupInboxReason, Organization, Project
         from sentry.models.group import get_group_with_redirect
+        from sentry.models.groupinbox import add_group_to_inbox
         from sentry.rules.processor import RuleProcessor
-        from sentry.tasks.servicehooks import process_service_hook
         from sentry.tasks.groupowner import process_suspect_commits
+        from sentry.tasks.servicehooks import process_service_hook
 
         # Re-bind node data to avoid renormalization. We only want to
         # renormalize when loading old data from the database.
@@ -357,12 +358,7 @@ def process_snoozes(group):
     Return True if the group is transitioning from "resolved" to "unresolved",
     otherwise return False.
     """
-    from sentry.models import (
-        GroupSnooze,
-        GroupStatus,
-        GroupInboxReason,
-        add_group_to_inbox,
-    )
+    from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus, add_group_to_inbox
 
     key = GroupSnooze.get_cache_key(group.id)
     snooze = cache.get(key)

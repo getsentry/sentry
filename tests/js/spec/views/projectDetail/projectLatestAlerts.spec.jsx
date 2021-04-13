@@ -127,7 +127,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
 
     expect(createRuleButton.text()).toBe('Create Alert');
     expect(createRuleButton.prop('to')).toBe(
-      `/organizations/${organization.slug}/alerts/${project.slug}/new/`
+      `/organizations/${organization.slug}/alerts/${project.slug}/new/?referrer=project_detail`
     );
 
     expect(learnMoreButton.text()).toBe('Learn More');

@@ -261,7 +261,7 @@ export function initOtherCrashFreeChartData(): ChartData {
       seriesName: sessionTerm.otherCrashFreeUsers,
       data: [],
       z: 0,
-      color: CHART_PALETTE[1][0],
+      color: color(CHART_PALETTE[1][0]).lighten(0.9).alpha(0.9).string(),
       lineStyle: {
         color: CHART_PALETTE[1][0],
         opacity: 0.1,
@@ -271,7 +271,7 @@ export function initOtherCrashFreeChartData(): ChartData {
       seriesName: sessionTerm.otherCrashFreeSessions,
       data: [],
       z: 0,
-      color: CHART_PALETTE[1][1],
+      color: color(CHART_PALETTE[1][1]).lighten(0.5).alpha(0.9).string(),
       lineStyle: {
         color: CHART_PALETTE[1][1],
         opacity: 0.3,

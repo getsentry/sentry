@@ -2,7 +2,6 @@ import 'bootstrap/js/alert';
 import 'bootstrap/js/tab';
 import 'bootstrap/js/dropdown';
 import 'focus-visible';
-import 'app/utils/statics-setup';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -115,13 +114,13 @@ const render = (Component: React.ComponentType) => {
   try {
     ReactDOM.render(<Component />, rootEl);
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(
-      new Error(
-        'An unencoded "%" has appeared, it is super effective! (See https://github.com/ReactTraining/history/issues/505)'
-      )
-    );
     if (err.message === 'URI malformed') {
+      // eslint-disable-next-line no-console
+      console.error(
+        new Error(
+          'An unencoded "%" has appeared, it is super effective! (See https://github.com/ReactTraining/history/issues/505)'
+        )
+      );
       window.location.assign(window.location.pathname);
     }
   }

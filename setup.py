@@ -15,9 +15,10 @@ if python_version > (3, 6):
 
 
 from distutils.command.build import build as BuildCommand
-from setuptools import setup, find_packages
-from setuptools.command.sdist import sdist as SDistCommand
+
+from setuptools import find_packages, setup
 from setuptools.command.develop import develop as DevelopCommand
+from setuptools.command.sdist import sdist as SDistCommand
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -30,7 +31,6 @@ from sentry.utils.distutils import (
     BuildIntegrationDocsCommand,
     BuildJsSdkRegistryCommand,
 )
-
 
 VERSION = "21.4.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"

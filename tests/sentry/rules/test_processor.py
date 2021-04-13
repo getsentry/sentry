@@ -1,13 +1,14 @@
 from datetime import timedelta
+
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, Rule, GroupStatus
 from sentry.mail.actions import ActionTargetType
+from sentry.models import GroupRuleStatus, GroupStatus, Rule
+from sentry.rules import init_registry
+from sentry.rules.filters.base import EventFilter
+from sentry.rules.processor import RuleProcessor
 from sentry.testutils import TestCase
 from sentry.utils.compat.mock import patch
-from sentry.rules import init_registry
-from sentry.rules.processor import RuleProcessor
-from sentry.rules.filters.base import EventFilter
 
 EMAIL_ACTION_DATA = {
     "id": "sentry.mail.actions.NotifyEmailAction",

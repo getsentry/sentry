@@ -1,9 +1,9 @@
 import React from 'react';
 import type {OnChangeProps, RangeWithKey} from 'react-date-range';
+import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 import moment from 'moment';
-import PropTypes from 'prop-types';
 
 import Checkbox from 'app/components/checkbox';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -47,7 +47,7 @@ const defaultProps = {
   maxPickableDays: MAX_PICKABLE_DAYS,
 };
 
-type Props = {
+type Props = ReactRouter.WithRouterProps & {
   theme: Theme;
   /**
    * Just used for metrics
@@ -84,7 +84,7 @@ type Props = {
    * Use UTC
    */
   utc?: boolean | null;
-} & typeof defaultProps;
+} & Partial<typeof defaultProps>;
 
 type State = {
   hasStartErrors: boolean;
@@ -92,10 +92,6 @@ type State = {
 };
 
 class DateRange extends React.Component<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-  };
-
   static defaultProps = defaultProps;
 
   state: State = {
@@ -126,7 +122,7 @@ class DateRange extends React.Component<Props, State> {
     // Time will be in 24hr e.g. "21:00"
     const start = this.props.start ?? '';
     const end = this.props.end ?? undefined;
-    const {onChange} = this.props;
+    const {onChange, organization, router} = this.props;
     const startTime = e.target.value;
 
     if (!startTime || !isValidTime(startTime)) {
@@ -139,8 +135,8 @@ class DateRange extends React.Component<Props, State> {
     analytics('dateselector.time_changed', {
       field_changed: 'start',
       time: startTime,
-      path: getRouteStringFromRoutes(this.context.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      path: getRouteStringFromRoutes(router.routes),
+      org_id: parseInt(organization.id, 10),
     });
 
     onChange({
@@ -155,7 +151,7 @@ class DateRange extends React.Component<Props, State> {
   handleChangeEnd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const start = this.props.start ?? undefined;
     const end = this.props.end ?? '';
-    const {onChange} = this.props;
+    const {organization, onChange, router} = this.props;
     const endTime = e.target.value;
 
     if (!endTime || !isValidTime(endTime)) {
@@ -169,8 +165,8 @@ class DateRange extends React.Component<Props, State> {
     analytics('dateselector.time_changed', {
       field_changed: 'end',
       time: endTime,
-      path: getRouteStringFromRoutes(this.context.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      path: getRouteStringFromRoutes(router.routes),
+      org_id: parseInt(organization.id, 10),
     });
 
     onChange({
@@ -204,7 +200,10 @@ class DateRange extends React.Component<Props, State> {
     // Subtract additional day  because we force the end date to be inclusive,
     // so when you pick Jan 1 the time becomes Jan 1 @ 23:59:59,
     // (or really, Jan 2 @ 00:00:00 - 1 second), while the start time is at 00:00
-    const minDate = getStartOfPeriodAgo('days', maxPickableDays - 2);
+    const minDate = getStartOfPeriodAgo(
+      'days',
+      (maxPickableDays ?? MAX_PICKABLE_DAYS) - 2
+    );
     const maxDate = new Date();
 
     return (
@@ -255,7 +254,7 @@ class DateRange extends React.Component<Props, State> {
   }
 }
 
-const StyledDateRange = styled(withTheme(DateRange))`
+const StyledDateRange = styled(withTheme(ReactRouter.withRouter(DateRange)))`
   display: flex;
   flex-direction: column;
   border-left: 1px solid ${p => p.theme.border};

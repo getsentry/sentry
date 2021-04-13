@@ -12,7 +12,7 @@ import {
 } from 'app/utils/performance/quickTrace/types';
 import {
   beforeFetch,
-  getQuickTraceRequestPayload,
+  getTraceRequestPayload,
   makeEventView,
 } from 'app/utils/performance/quickTrace/utils';
 import withApi from 'app/utils/withApi';
@@ -27,7 +27,7 @@ type TraceFullQueryChildrenProps<T> = BaseTraceChildrenProps &
      * The `event-trace` endpoint returns a full trace with the parent-child
      * relationships. It can be flattened into a `QuickTraceEvent` if necessary.
      */
-    trace: T | null;
+    traces: T | null;
   };
 
 type QueryProps<T> = Omit<TraceRequestProps, 'eventView'> &
@@ -39,7 +39,7 @@ function getTraceFullRequestPayload({
   detailed,
   ...props
 }: DiscoverQueryProps & AdditionalQueryProps) {
-  const additionalApiPayload: any = getQuickTraceRequestPayload(props);
+  const additionalApiPayload: any = getTraceRequestPayload(props);
   additionalApiPayload.detailed = detailed ? '1' : '0';
   return additionalApiPayload;
 }
@@ -50,7 +50,7 @@ function EmptyTrace<T>({children}: Pick<QueryProps<T>, 'children'>) {
       {children({
         isLoading: false,
         error: null,
-        trace: null,
+        traces: null,
         type: 'full',
       })}
     </React.Fragment>
@@ -85,8 +85,7 @@ function GenericTraceFullQuery<T>({
           // the client returns a empty string when the response
           // is 204. And we want the empty string, undefined and
           // null to be converted to null.
-          // TODO(tonyx): update to return the entire array
-          trace: (tableData || null)?.[0] ?? null,
+          traces: tableData || null,
           type: 'full',
           ...rest,
         })
@@ -96,13 +95,13 @@ function GenericTraceFullQuery<T>({
 }
 
 export const TraceFullQuery = withApi(
-  (props: Omit<QueryProps<TraceFull>, 'detailed'>) => (
-    <GenericTraceFullQuery<TraceFull> {...props} detailed={false} />
+  (props: Omit<QueryProps<TraceFull[]>, 'detailed'>) => (
+    <GenericTraceFullQuery<TraceFull[]> {...props} detailed={false} />
   )
 );
 
 export const TraceFullDetailedQuery = withApi(
-  (props: Omit<QueryProps<TraceFullDetailed>, 'detailed'>) => (
-    <GenericTraceFullQuery<TraceFullDetailed> {...props} detailed />
+  (props: Omit<QueryProps<TraceFullDetailed[]>, 'detailed'>) => (
+    <GenericTraceFullQuery<TraceFullDetailed[]> {...props} detailed />
   )
 );

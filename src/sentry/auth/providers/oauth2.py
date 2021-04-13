@@ -1,12 +1,11 @@
 import logging
-
-from urllib.parse import parse_qsl, urlencode
 from time import time
+from urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
-from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
 

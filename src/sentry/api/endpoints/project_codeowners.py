@@ -4,7 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin, ProjectOwnershipSerializer
 from sentry.api.serializers import serialize
@@ -18,6 +18,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.ownership.grammar import convert_codeowners_syntax, parse_code_owners
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         teamnames, usernames, emails = parse_code_owners(attrs["raw"])
 
         # Check if there exists Sentry users with the emails listed in CODEOWNERS
-        user_emails = UserEmail.objects.filter(email__in=emails)
+        user_emails = UserEmail.objects.filter(
+            email__in=emails,
+            user__sentry_orgmember_set__organization=self.context["project"].organization,
+        )
         user_emails_diff = self._validate_association(emails, user_emails, "emails")
 
         external_association_err.extend(user_emails_diff)
@@ -152,6 +156,14 @@ class ProjectCodeOwnersMixin:
             "organizations:import-codeowners", project.organization, actor=request.user
         )
 
+    def track_response_code(self, type, status):
+        if type in ["create", "update"]:
+            metrics.incr(
+                f"codeowners.{type}.http_response",
+                sample_rate=1.0,
+                tags={"status": status},
+            )
+
 
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):
     def get(self, request, project):
@@ -191,6 +203,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         :auth: required
         """
         if not self.has_feature(request, project):
+            self.track_response_code("create", PermissionDenied.status_code)
             raise PermissionDenied
 
         serializer = ProjectCodeOwnerSerializer(
@@ -199,8 +212,17 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         )
         if serializer.is_valid():
             project_codeowners = serializer.save()
+            self.track_response_code("create", status.HTTP_201_CREATED)
+            analytics.record(
+                "codeowners.created",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                codeowners_id=project_codeowners.id,
+            )
             return Response(
                 serialize(project_codeowners, request.user), status=status.HTTP_201_CREATED
             )
 
+        self.track_response_code("create", status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

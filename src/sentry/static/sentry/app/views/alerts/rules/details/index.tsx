@@ -55,16 +55,18 @@ class AlertRuleDetails extends React.Component<Props, State> {
   getTimePeriod() {
     const {location} = this.props;
 
+    const timePeriod = location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD;
+
     if (location.query.start && location.query.end) {
       return {
         start: location.query.start,
         end: location.query.end,
+        period: timePeriod,
         label: t('Custom time'),
         custom: true,
       };
     }
 
-    const timePeriod = location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD;
     const timeOption =
       TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
     const start = getUtcDateString(
@@ -76,6 +78,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
       start,
       end,
       label: timeOption.label as string,
+      period: timePeriod,
     };
   }
 

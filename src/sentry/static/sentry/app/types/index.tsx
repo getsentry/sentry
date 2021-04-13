@@ -231,7 +231,6 @@ export type Project = {
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
-  groupingEnhancementsBase: string;
   groupingConfig: string;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
@@ -689,6 +688,11 @@ export enum DataCategory {
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
 }
+export const DataCategoryName = {
+  [DataCategory.ERRORS]: 'Errors',
+  [DataCategory.TRANSACTIONS]: 'Transactions',
+  [DataCategory.ATTACHMENTS]: 'Attachments',
+};
 
 export type EventOrGroupType =
   | 'error'
@@ -1795,13 +1799,6 @@ export type EventGroupingConfig = {
   strategies: string[];
 };
 
-export type GroupingEnhancementBase = {
-  latest: boolean;
-  id: string;
-  changelog: string;
-  bases: any[]; // TODO(ts): not sure what this is
-};
-
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
 export enum EventGroupVariantType {
@@ -1969,7 +1966,19 @@ export type ServerlessFunction = {
  */
 export type DebugFileSource = 'http' | 's3' | 'gcs';
 
-export type SessionApiResponse = {
+/**
+ * Base type for series   style API response
+ */
+export type SeriesApi = {
+  intervals: string[];
+  groups: {
+    by: Record<string, string | number>;
+    totals: Record<string, number>;
+    series: Record<string, number[]>;
+  }[];
+};
+
+export type SessionApiResponse = SeriesApi & {
   query: string;
   intervals: string[];
   groups: {
@@ -1983,3 +1992,29 @@ export enum HealthStatsPeriodOption {
   AUTO = 'auto',
   TWENTY_FOUR_HOURS = '24h',
 }
+
+export type IssueOwnership = {
+  raw: string;
+  fallthrough: boolean;
+  dateCreated: string;
+  lastUpdated: string;
+  isActive: boolean;
+  autoAssignment: boolean;
+};
+
+export type CodeOwners = {
+  id: string;
+  raw: string;
+  dateCreated: string;
+  dateUpdated: string;
+  provider: 'github' | 'gitlab';
+};
+
+export type KeyValueListData = {
+  key: string;
+  subject: string;
+  value?: React.ReactNode;
+  meta?: Meta;
+  subjectDataTestId?: string;
+  subjectIcon?: React.ReactNode;
+}[];

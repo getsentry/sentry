@@ -2,21 +2,20 @@
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
 
-from django.conf.global_settings import *  # NOQA
-
 import os
 import os.path
 import re
 import socket
 import sys
 import tempfile
+from datetime import timedelta
+from urllib.parse import urlparse
+
+from django.conf.global_settings import *  # NOQA
 
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
-
-from datetime import timedelta
-from urllib.parse import urlparse
 
 
 def gettext_noop(s):
@@ -839,6 +838,8 @@ SENTRY_FEATURES = {
     "organizations:api-keys": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
+    # Enable unfurling charts using the Chartcuterie service
+    "organizations:chart-unfurls": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -947,6 +948,9 @@ SENTRY_FEATURES = {
     "organizations:releases-top-charts": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": False,
+    # Enable option to send alert, workflow, and deploy notifications
+    # to 3rd parties (e.g. Slack) in addition to email
+    "organizations:notification-platform": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on
@@ -983,6 +987,8 @@ SENTRY_FEATURES = {
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
     "organizations:alert-wizard": False,
+    # Enable new alert rules + incidents view
+    "organizations:alert-list": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1001,7 +1007,7 @@ SENTRY_FEATURES = {
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
-    "projects:race-free-group-creation": False,
+    "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
     # Enable functionality for sampling of events on projects.
@@ -1513,9 +1519,9 @@ SENTRY_WATCHERS = (
         "webpack",
         [
             os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            "serve",
             "--color",
-            "--output-pathinfo",
-            "--watch",
+            "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
                     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")
@@ -2140,15 +2146,18 @@ SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
+# Timeout for the project counter statement execution.
+# In case of contention on the project counter, prevent workers saturation with
+# save_event tasks from single project.
+# Value is in milliseconds. Set to `None` to disable.
+SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
+
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
 
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
-
-# if set to true, create demo organizations on-demand instead of using a buffer
-DEMO_NO_ORG_BUFFER = False
 
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None

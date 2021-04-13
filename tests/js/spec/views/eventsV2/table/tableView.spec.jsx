@@ -75,7 +75,7 @@ describe('TableView > CellActions', function () {
       meta: {
         title: 'string',
         transaction: 'string',
-        'count()': 'integer',
+        count: 'integer',
         timestamp: 'date',
         release: 'string',
       },
@@ -250,5 +250,19 @@ describe('TableView > CellActions', function () {
         environment: eventView.environment,
       }),
     });
+  });
+
+  it('has tooltip on integer value greater than 999', function () {
+    rows.data[0].count = 1000;
+    const wrapper = makeWrapper(initialData, rows, eventView);
+    const tooltip = wrapper.find('Tooltip').at(1);
+
+    expect(wrapper.find('Tooltip').length).toEqual(3);
+    expect(tooltip.prop('title')).toBe('1,000');
+  });
+
+  it('does not have tooltip on integer value less than 999', function () {
+    const wrapper = makeWrapper(initialData, rows, eventView);
+    expect(wrapper.find('Tooltip').length).toEqual(2);
   });
 });

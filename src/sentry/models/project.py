@@ -1,21 +1,20 @@
 import logging
 import warnings
 from collections import defaultdict
+from uuid import uuid1
 
-from bitfield import BitField
+import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models.signals import pre_delete
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 from django.utils.http import urlencode
-from uuid import uuid1
+from django.utils.translation import ugettext_lazy as _
 
-import sentry_sdk
-
+from bitfield import BitField
 from sentry import projectoptions
 from sentry.app import locks
-from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
+from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BaseManager,
@@ -26,9 +25,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils import metrics
-from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
+from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.retries import TimedRetryPolicy
 
 # TODO(dcramer): pull in enum library
@@ -242,87 +241,6 @@ class Project(Model, PendingDeletionMixin):
 
     def get_full_name(self):
         return self.slug
-
-    def get_member_alert_settings(self, user_option):
-        """
-        Returns a list of users who have alert notifications explicitly
-        enabled/disabled.
-        :param user_option: alert option key, typically 'mail:alert'
-        :return: A dictionary in format {<user_id>: <int_alert_value>}
-        """
-        from sentry.models import UserOption
-
-        return {
-            o.user_id: int(o.value)
-            for o in UserOption.objects.filter(project=self, key=user_option)
-        }
-
-    def get_notification_recipients(self, user_option):
-        from sentry.models import UserOption
-
-        alert_settings = self.get_member_alert_settings(user_option)
-        disabled = {u for u, v in alert_settings.items() if v == 0}
-
-        member_set = set(self.member_set.exclude(user__in=disabled).values_list("user", flat=True))
-
-        # determine members default settings
-        members_to_check = {u for u in member_set if u not in alert_settings}
-        if members_to_check:
-            disabled = {
-                uo.user_id
-                for uo in UserOption.objects.filter(
-                    key="subscribe_by_default", user__in=members_to_check
-                )
-                if str(uo.value) == "0"
-            }
-            member_set = [x for x in member_set if x not in disabled]
-
-        return member_set
-
-    def get_mail_alert_subscribers(self):
-        user_ids = self.get_notification_recipients("mail:alert")
-        if not user_ids:
-            return []
-        from sentry.models import User
-
-        return list(User.objects.filter(id__in=user_ids))
-
-    def is_user_subscribed_to_mail_alerts(self, user):
-        from sentry.models import UserOption
-
-        is_enabled = UserOption.objects.get_value(user, "mail:alert", project=self)
-        if is_enabled is None:
-            is_enabled = UserOption.objects.get_value(user, "subscribe_by_default", "1") == "1"
-        else:
-            is_enabled = bool(is_enabled)
-        return is_enabled
-
-    def filter_to_subscribed_users(self, users):
-        """
-        Filters a list of users down to the users who are subscribed to email alerts. We
-        check both the project level settings and global default settings.
-        """
-        from sentry.models import UserOption
-
-        project_options = UserOption.objects.filter(
-            user__in=users, project=self, key="mail:alert"
-        ).values_list("user_id", "value")
-
-        user_settings = {user_id: value for user_id, value in project_options}
-        users_without_project_setting = [user for user in users if user.id not in user_settings]
-        if users_without_project_setting:
-            user_default_settings = {
-                user_id: value
-                for user_id, value in UserOption.objects.filter(
-                    user__in=users_without_project_setting,
-                    key="subscribe_by_default",
-                    project__isnull=True,
-                ).values_list("user_id", "value")
-            }
-            for user in users_without_project_setting:
-                user_settings[user.id] = int(user_default_settings.get(user.id, "1"))
-
-        return [user for user in users if bool(user_settings[user.id])]
 
     def transfer_to(self, team=None, organization=None):
         # NOTE: this will only work properly if the new team is in a different

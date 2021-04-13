@@ -36,6 +36,7 @@ from sentry.utils.snuba import (
     get_json_type,
     is_duration_measurement,
     is_measurement,
+    is_span_op_breakdown,
 )
 
 WILDCARD_CHARS = re.compile(r"[\*]")
@@ -268,11 +269,16 @@ class SearchKey(namedtuple("SearchKey", "name")):
             self.name not in SEARCH_MAP
             and self.name not in FIELD_ALIASES
             and not self.is_measurement
+            and not self.is_span_op_breakdown
         )
 
     @cached_property
     def is_measurement(self):
         return is_measurement(self.name) and self.name not in SEARCH_MAP
+
+    @cached_property
+    def is_span_op_breakdown(self):
+        return is_span_op_breakdown(self.name) and self.name not in SEARCH_MAP
 
 
 class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
@@ -382,7 +388,9 @@ class SearchVisitor(NodeVisitor):
         return key in self.numeric_keys or is_measurement(key)
 
     def is_duration_key(self, key):
-        return key in self.duration_keys or is_duration_measurement(key)
+        return (
+            key in self.duration_keys or is_duration_measurement(key) or is_span_op_breakdown(key)
+        )
 
     def is_percentage_key(self, key):
         return key in self.percentage_keys
@@ -861,20 +869,12 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     elif name == "issue.id":
         # Handle "has" queries
         if search_filter.value.raw_value == "":
-            if search_filter.operator == "=":
-                # The state of having no issues is represented differently on transactions vs
-                # other events. On the transactions table, it is represented by 0 whereas it is
-                # represented by NULL everywhere else. This means we have to check for both 0
-                # or NULL.
-                return [
-                    [["isNull", [name]], search_filter.operator, 1],
-                    [name, search_filter.operator, 0],
-                ]
-            else:
-                # Based the reasoning above, we should be checking that it is not 0 and not NULL.
-                # However, because NULL != 0 evaluates to NULL in Clickhouse, we can simplify it
-                # to check just not 0.
-                return [name, search_filter.operator, 0]
+            # The state of having no issues is represented differently on transactions vs
+            # other events. On the transactions table, it is represented by 0 whereas it is
+            # represented by NULL everywhere else. We use coalesce here so we can treat this
+            # consistently
+            name = ["coalesce", [name, 0]]
+            value = 0
 
         # Skip isNull check on group_id value as we want to
         # allow snuba's prewhere optimizer to find this condition.
@@ -1466,7 +1466,11 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
                 if result_type is not None:
                     return result_type
 
-    if "duration" in field_alias or is_duration_measurement(field_alias):
+    if (
+        "duration" in field_alias
+        or is_duration_measurement(field_alias)
+        or is_span_op_breakdown(field_alias)
+    ):
         return "duration"
     if is_measurement(field_alias):
         return "number"
@@ -1568,7 +1572,7 @@ class FieldColumn(CountColumn):
     """ Allow any field column, of any type """
 
     def get_type(self, value):
-        if is_duration_measurement(value):
+        if is_duration_measurement(value) or is_span_op_breakdown(value):
             return "duration"
         elif value == "transaction.duration":
             return "duration"
@@ -1637,10 +1641,13 @@ class Column(FunctionArg):
 
     def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
+        if self.allowed_columns is not None:
+            if value in self.allowed_columns or snuba_column in self.allowed_columns:
+                return snuba_column
+            else:
+                raise InvalidFunctionArgument(f"{value} is not an allowed column")
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
-        elif self.allowed_columns is not None and snuba_column not in self.allowed_columns:
-            raise InvalidFunctionArgument(f"{value} is not an allowed column")
         return snuba_column
 
 
@@ -1661,6 +1668,8 @@ class NumericColumn(FunctionArg):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
             return value
+        if not snuba_column and is_span_op_breakdown(value):
+            return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
         elif snuba_column not in ["time", "timestamp", "duration"]:
@@ -1672,7 +1681,7 @@ class NumericColumn(FunctionArg):
 
     def get_type(self, value):
         snuba_column = self._normalize(value)
-        if is_duration_measurement(snuba_column):
+        if is_duration_measurement(snuba_column) or is_span_op_breakdown(snuba_column):
             return "duration"
         elif snuba_column == "duration":
             return "duration"
@@ -1682,16 +1691,18 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
-    def __init__(self, name, allow_measurements_value=False):
+    def __init__(self, name, allow_array_value=False):
         super().__init__(name)
-        self.allow_measurements_value = allow_measurements_value
+        self.allow_array_value = allow_array_value
 
     def normalize(self, value, params):
-        # `measurement_value` is actually an array of Float64s. But when used
-        # in this context, we always want to expand it using `arrayJoin`. The
-        # resulting column will be a numeric column of type Float64.
-        if self.allow_measurements_value and value == "measurements_value":
-            return ["arrayJoin", ["measurements_value"]]
+        # `measurement_value` and `span_op_breakdowns_value` are actually an
+        # array of Float64s. But when used in this context, we always want to
+        # expand it using `arrayJoin`. The resulting column will be a numeric
+        # column of type Float64.
+        if self.allow_array_value:
+            if value in {"measurements_value", "span_op_breakdowns_value"}:
+                return ["arrayJoin", [value]]
 
         super().normalize(value, params)
         return value
@@ -1701,6 +1712,8 @@ class DurationColumn(FunctionArg):
     def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_duration_measurement(value):
+            return value
+        if not snuba_column and is_span_op_breakdown(value):
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
@@ -1717,7 +1730,7 @@ class DurationColumnNoLookup(DurationColumn):
 
 class StringArrayColumn(FunctionArg):
     def normalize(self, value, params):
-        if value in ["tags.key", "tags.value", "measurements_key"]:
+        if value in ["tags.key", "tags.value", "measurements_key", "span_op_breakdowns_key"]:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
 
@@ -2125,7 +2138,7 @@ FUNCTIONS = {
         Function(
             "histogram",
             required_args=[
-                NumericColumnNoLookup("column", allow_measurements_value=True),
+                NumericColumnNoLookup("column", allow_array_value=True),
                 # the bucket_size and start_offset should already be adjusted
                 # using the multiplier before it is passed here
                 NumberRange("bucket_size", 0, None),
@@ -2384,6 +2397,29 @@ FUNCTIONS = {
                 None,
             ],
             default_result_type="number",
+        ),
+        # Currently only used by trace meta so we can count event types which is why this only accepts strings
+        Function(
+            "count_if",
+            required_args=[
+                ColumnNoLookup("column", allowed_columns=["event.type", "http.status_code"]),
+                ConditionArg("condition"),
+                StringArg("value"),
+            ],
+            aggregate=[
+                "countIf",
+                [
+                    [
+                        ArgValue("condition"),
+                        [
+                            ArgValue("column"),
+                            ArgValue("value"),
+                        ],
+                    ]
+                ],
+                None,
+            ],
+            default_result_type="integer",
         ),
         Function(
             "compare_numeric_aggregate",

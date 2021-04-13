@@ -2,13 +2,13 @@ from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 
-from sentry.utils.samples import load_data
+from sentry.api.endpoints.organization_events_trends import OrganizationEventsTrendsEndpointBase
+from sentry.api.event_search import get_filter
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.api.event_search import get_filter
-from sentry.api.endpoints.organization_events_trends import OrganizationEventsTrendsEndpointBase
+from sentry.utils.samples import load_data
 
 
 class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
@@ -395,6 +395,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "start": iso_format(self.day_ago),
+                    "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
                 },
@@ -431,6 +432,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "start": iso_format(self.day_ago),
+                    "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
                     "trendFunction": "p50(measurements.lcp)",
@@ -468,6 +470,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "start": iso_format(self.day_ago),
+                    "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
                     "trendFunction": "p75()",
@@ -505,6 +508,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "start": iso_format(self.day_ago),
+                    "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
                     "trendFunction": "p95()",
@@ -542,6 +546,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "start": iso_format(self.day_ago),
+                    "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
                     "trendFunction": "p99()",
@@ -578,6 +583,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
                 format="json",
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
                     "start": iso_format(self.day_ago),
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -617,6 +623,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "middle": iso_format(self.day_ago + timedelta(hours=1, minutes=31)),
                     "start": iso_format(self.day_ago),
+                    "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
                     "trendFunction": "avg(transaction.duration)",
@@ -720,6 +727,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
                     # Set the timeframe to where the second range has no transactions so all the counts/percentile are 0
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "start": iso_format(self.day_ago - timedelta(hours=2)),
+                    "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
                     "project": [self.project.id],
