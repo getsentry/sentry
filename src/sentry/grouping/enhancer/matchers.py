@@ -167,20 +167,23 @@ def path_like_match(pattern, value):
 
 class PathLikeMatch(FrameMatch):
     def _positive_frame_match(self, frame_data, platform, exception_data, cache):
+        value = self._value(frame_data)
+        if value is None:
+            return False
 
-        return cached(cache, path_like_match, self.pattern, self._value(frame_data))
+        return cached(cache, path_like_match, self.pattern, value)
 
 
 class PackageMatch(PathLikeMatch):
     @staticmethod
     def _value(frame_data):
-        return frame_data.get("package") or ""
+        return frame_data.get("package")
 
 
 class PathMatch(PathLikeMatch):
     @staticmethod
     def _value(frame_data):
-        return frame_data.get("abs_path") or frame_data.get("filename") or ""
+        return frame_data.get("abs_path") or frame_data.get("filename")
 
 
 class FamilyMatch(FrameMatch):
@@ -226,6 +229,9 @@ class FunctionMatch(FrameMatch):
 class FrameFieldMatch(FrameMatch):
     def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         field = get_path(frame_data, *self.field_path)
+        if field is None:
+            return False
+
         return cached(cache, glob_match, field, self.pattern)
 
 
