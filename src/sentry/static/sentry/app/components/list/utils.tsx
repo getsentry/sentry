@@ -1,10 +1,11 @@
 import {css} from '@emotion/core';
 
+import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
 const commonSymbolStyle = css`
   & > li {
-    padding-left: 34px;
+    padding-left: ${space(4)};
     :before {
       border-radius: 50%;
       position: absolute;
@@ -20,7 +21,7 @@ const bulletStyle = (theme: Theme) => css`
     height: 6px;
     left: 5px;
     top: 10px;
-    border: 1px solid ${theme.gray500};
+    border: 1px solid ${theme.subText};
   }
 `;
 
