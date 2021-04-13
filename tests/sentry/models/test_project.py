@@ -12,9 +12,9 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     Rule,
 )
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import zip
 
 

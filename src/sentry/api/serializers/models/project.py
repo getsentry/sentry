@@ -20,7 +20,6 @@ from sentry.ingest.inbound_filters import FilterTypes
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
-    ExternalProviders,
     NotificationSetting,
     Project,
     ProjectAvatar,
@@ -35,6 +34,7 @@ from sentry.models import (
 from sentry.notifications.helpers import transform_to_notification_settings_by_parent_id
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import zip
 
 STATUS_LABELS = {
