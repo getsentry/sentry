@@ -3,7 +3,6 @@
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
 import sentry.models.integration
