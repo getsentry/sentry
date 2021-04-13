@@ -39,11 +39,12 @@ type State = {
 };
 
 class IncidentDetails extends React.Component<Props, State> {
-  state: State = {isLoading: false, hasError: false};
   constructor(props) {
     super(props);
     this.fetchData();
   }
+
+  state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
     const {api, organization, params} = this.props;

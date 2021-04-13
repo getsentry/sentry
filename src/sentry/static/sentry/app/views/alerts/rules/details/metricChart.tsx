@@ -424,21 +424,6 @@ class MetricChart extends React.PureComponent<Props, State> {
 
           const series: LineChartSeries[] = [...timeseriesData];
 
-          if (incidentStats.length && incidents?.length) {
-            incidentStats.forEach((incidentStat, idx) => {
-              if (incidents[idx].alertRule.status === AlertRuleStatus.SNAPSHOT) {
-                series.push({
-                  seriesName: t('Alert %s', incidents[idx].identifier),
-                  type: 'line',
-                  data: incidentStat.eventStats.data.map(([name, valueArr]) => ({
-                    name: name * 1000,
-                    value: valueArr.length ? valueArr[0].count : 0,
-                  })),
-                });
-              }
-            });
-          }
-
           // Ensure series data appears above incident lines
           series[0].z = 100;
           const dataArr = timeseriesData[0].data;
@@ -451,6 +436,23 @@ class MetricChart extends React.PureComponent<Props, State> {
           const totalDuration = lastPoint - firstPoint;
           let criticalDuration = 0;
           let warningDuration = 0;
+
+          if (incidentStats.length && incidents?.length) {
+            incidentStats.forEach((incidentStat, idx) => {
+              if (incidents[idx].alertRule.status === AlertRuleStatus.SNAPSHOT) {
+                series.push({
+                  seriesName: t('Alert %s', incidents[idx].identifier),
+                  type: 'line',
+                  data: incidentStat.eventStats.data
+                    .filter(([timeStamp]) => timeStamp * 1000 < lastPoint && timeStamp * 1000 > firstPoint)
+                    .map(([timeStamp, valueArr]) => ({
+                      name: timeStamp * 1000,
+                      value: valueArr.length ? valueArr[0].count : 0,
+                    })),
+                });
+              }
+            });
+          }
 
           series.push(createStatusAreaSeries(theme.green300, firstPoint, lastPoint));
           if (incidents) {
