@@ -1,4 +1,4 @@
-from typing import Any, Mapping, MutableMapping, Tuple, Union
+from typing import Any, Mapping, MutableMapping, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from django.core.urlresolvers import reverse
@@ -108,16 +108,7 @@ class ActivityNotification:
         raise NotImplementedError
 
     def get_context(self) -> MutableMapping[str, Any]:
-        description = self.get_description()
-        try:
-            description, params, html_params = description
-        except ValueError:
-            try:
-                description, params = description
-                html_params = params
-            except ValueError:
-                params, html_params = {}, {}
-
+        description, params, html_params = self.get_description()
         return {
             "activity_name": self.get_activity_name(),
             "text_description": self.description_as_text(description, params),
@@ -151,7 +142,7 @@ class ActivityNotification:
 
         return headers
 
-    def get_description(self) -> Union[str, Tuple[str, Any], Tuple[str, Any, Any]]:
+    def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         raise NotImplementedError
 
     def avatar_as_html(self) -> str:
