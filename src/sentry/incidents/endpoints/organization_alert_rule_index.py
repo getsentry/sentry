@@ -128,9 +128,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             )
 
         if sort_key == "date_triggered" or "date_triggered" in sort_key:
-            far_past_date = Value(
-                datetime.utcfromtimestamp(0), output_field=DateTimeField()
-            )  # timezone.now() - timedelta(days=1)#timezone.now()
+            far_past_date = Value(datetime.utcfromtimestamp(0), output_field=DateTimeField())
             alert_rules = alert_rules.annotate(
                 date_triggered=Coalesce(
                     Subquery(
