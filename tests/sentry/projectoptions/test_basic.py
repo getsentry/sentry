@@ -34,9 +34,9 @@ def test_defaults(default_project):
 
 
 @pytest.mark.django_db
-def freeze_option(factories, default_team):
+def test_freeze_option(default_fixtures, default_team):
     with latest_epoch(42):
-        project = factories.create_project(name="Bar", slug="bar", teams=[default_team])
+        project = default_fixtures.create_project(name="Bar", slug="bar", teams=[default_team])
         assert project.get_option("sentry:option-epoch", defaults.LATEST_EPOCH)
 
 

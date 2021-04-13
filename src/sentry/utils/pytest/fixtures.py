@@ -135,15 +135,6 @@ DEFAULT_EVENT_DATA = {
 }
 
 
-@pytest.mark.django_db
-@pytest.fixture
-def factories():
-    # XXX(dcramer): hack to prevent recursive imports
-    from sentry.testutils.factories import Factories
-
-    return Factories
-
-
 @pytest.fixture
 def task_runner():
     from sentry.testutils.helpers.task_runner import TaskRunner
@@ -156,11 +147,6 @@ def burst_task_runner():
     from sentry.testutils.helpers.task_runner import BurstTaskRunner
 
     return BurstTaskRunner
-
-
-@pytest.fixture(scope="function")
-def session():
-    return factories.create_session()
 
 
 @pytest.fixture()

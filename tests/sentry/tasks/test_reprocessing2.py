@@ -38,7 +38,7 @@ def process_and_save(default_project, task_runner):
         cache_key = event_processing_store.store(data)
 
         with task_runner():
-            # factories.store_event would almost be suitable for this, but let's
+            # default_fixtures.store_event would almost be suitable for this, but let's
             # actually run through stacktrace processing once
             preprocess_event(start_time=time(), cache_key=cache_key, data=data)
 

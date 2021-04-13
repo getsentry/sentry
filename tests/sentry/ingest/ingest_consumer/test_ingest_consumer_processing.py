@@ -140,7 +140,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
 )
 @pytest.mark.parametrize("with_group", [True, False], ids=["with_group", "without_group"])
 def test_individual_attachments(
-    default_project, factories, monkeypatch, event_attachments, chunks, with_group
+    default_project, default_fixtures, monkeypatch, event_attachments, chunks, with_group
 ):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: event_attachments)
 
@@ -150,7 +150,7 @@ def test_individual_attachments(
     group_id = None
 
     if with_group:
-        event = factories.store_event(
+        event = default_fixtures.store_event(
             data={"event_id": event_id, "message": "existence is pain"}, project_id=project_id
         )
 
@@ -286,7 +286,7 @@ def test_userreport_reverse_order(default_project, monkeypatch):
 
 
 @pytest.mark.django_db
-def test_individual_attachments_missing_chunks(default_project, factories, monkeypatch):
+def test_individual_attachments_missing_chunks(default_project, monkeypatch):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
 
     event_id = "515539018c9b4260a6f999572f1661ee"
