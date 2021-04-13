@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
+from sentry.integrations.repositories import update_repo
 from sentry.models import Commit, CommitAuthor, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
@@ -63,16 +64,7 @@ class Webhook:
         # (all entries are from the `api` subdomain, rather than bitbucket.org)
         url_from_event = f"https://bitbucket.org/{name_from_event}"
 
-        if (
-            repo.name != name_from_event
-            or repo.config.get("name") != name_from_event
-            or repo.url != url_from_event
-        ):
-            repo.update(
-                name=name_from_event,
-                url=url_from_event,
-                config=dict(repo.config, name=name_from_event),
-            )
+        update_repo(repo, repo.config.get("name"), name_from_event, url_from_event=url_from_event)
 
 
 class PushEventWebhook(Webhook):

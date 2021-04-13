@@ -9,6 +9,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
+from sentry.integrations.repositories import update_repo
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
@@ -65,16 +66,13 @@ class Webhook:
         url_from_event = project["web_url"]
         path_from_event = project["path_with_namespace"]
 
-        if (
-            repo.name != name_from_event
-            or repo.url != url_from_event
-            or repo.config.get("path") != path_from_event
-        ):
-            repo.update(
-                name=name_from_event,
-                url=url_from_event,
-                config=dict(repo.config, path=path_from_event),
-            )
+        update_repo(
+            repo,
+            repo.name,
+            name_from_event,
+            url_from_event=url_from_event,
+            path_from_event=path_from_event,
+        )
 
 
 class MergeEventWebhook(Webhook):

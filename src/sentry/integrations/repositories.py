@@ -1,8 +1,49 @@
+import logging
+
+from django.db import IntegrityError
 from sentry_sdk import configure_scope
 
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
+
+logger = logging.getLogger("sentry.integrations.repository_mixin")
+
+
+def update_repo(repo, repo_name, name_from_event, url_from_event=None, path_from_event=None):
+    """
+    Compare the repository data we currently have with the repository
+    data coming in from a webhook. [name, url, and path]
+
+    repo_name: use an arg instead of getting it off the repo because it
+    can be either repo.name OR repo.config.get("name")
+
+    """
+    kwargs = {}
+    if name_from_event and repo_name != name_from_event:
+        kwargs["name"] = name_from_event
+    if url_from_event and repo.url != url_from_event:
+        kwargs["url"] = url_from_event
+    # GitLab seems to be the only one to check the path, but if we need
+    # to update, it seems like we update the config path in lieu of name
+    if path_from_event and repo.config.get("path") != path_from_event:
+        path = path_from_event
+    if path:
+        kwargs["config"] = dict(repo.config, path=path_from_event)
+
+    if kwargs.get("name") and not path:
+        kwargs["config"] = dict(repo.config, name=name_from_event)
+
+    if len(kwargs) > 0:
+        try:
+            repo.update(**kwargs)
+        except IntegrityError:
+            logging_data = kwargs.copy()
+            logging_data.update(dict(repo_id=repo.id, organization_id=repo.organization_id))
+            logger.info(
+                "update_repo_data.failed",
+                extra=logging_data,
+            )
 
 
 class RepositoryMixin:

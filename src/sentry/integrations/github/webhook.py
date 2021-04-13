@@ -13,6 +13,7 @@ from django.views.generic import View
 
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.integrations.repositories import update_repo
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -81,16 +82,7 @@ class Webhook:
         name_from_event = event["repository"]["full_name"]
         url_from_event = event["repository"]["html_url"]
 
-        if (
-            repo.name != name_from_event
-            or repo.config.get("name") != name_from_event
-            or repo.url != url_from_event
-        ):
-            repo.update(
-                name=name_from_event,
-                url=url_from_event,
-                config=dict(repo.config, name=name_from_event),
-            )
+        update_repo(repo, repo.config.get("name"), name_from_event, url_from_event=url_from_event)
 
 
 class InstallationEventWebhook(Webhook):

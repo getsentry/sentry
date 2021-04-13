@@ -8,6 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 
+from sentry.integrations.repositories import update_repo
 from sentry.models import Commit, CommitAuthor, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
@@ -27,8 +28,7 @@ class Webhook:
         """
 
         name_from_event = event["repository"]["project"]["key"] + "/" + event["repository"]["slug"]
-        if repo.name != name_from_event or repo.config.get("name") != name_from_event:
-            repo.update(name=name_from_event, config=dict(repo.config, name=name_from_event))
+        update_repo(repo, repo.name, name_from_event)
 
 
 class PushEventWebhook(Webhook):
