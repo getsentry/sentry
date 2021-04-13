@@ -10,6 +10,7 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import PickProjectToContinue from 'app/components/pickProjectToContinue';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {IconInfo, IconWarning} from 'app/icons';
@@ -36,7 +37,6 @@ import ReleaseHealthRequest, {
   ReleaseHealthRequestRenderProps,
 } from '../utils/releaseHealthRequest';
 
-import PickProjectToContinue from './pickProjectToContinue';
 import ReleaseHeader from './releaseHeader';
 
 const DEFAULT_FRESH_RELEASE_STATS_PERIOD = '24h';
@@ -300,10 +300,15 @@ class ReleasesDetailContainer extends AsyncComponent<
     if (this.isProjectMissingInUrl()) {
       return (
         <PickProjectToContinue
-          orgSlug={organization.slug}
-          version={params.release}
+          projects={projects.map(({id, slug}) => ({
+            id: String(id),
+            slug,
+          }))}
           router={router}
-          projects={projects}
+          nextPath={`/organizations/${organization.slug}/releases/${encodeURIComponent(
+            params.release
+          )}/`}
+          noProjectRedirectPath={`/organizations/${organization.slug}/releases/`}
         />
       );
     }
