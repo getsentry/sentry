@@ -20,7 +20,6 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utilities import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
-from sentry.mail.activity import emails
 from sentry.models import (
     Activity,
     Group,
@@ -32,6 +31,7 @@ from sentry.models import (
     Rule,
     Team,
 )
+from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -146,7 +146,7 @@ class MailPreview:
 class ActivityMailPreview:
     def __init__(self, request, activity):
         self.request = request
-        self.email = emails.get(activity.type)(activity)
+        self.email = EMAIL_CLASSES_BY_TYPE.get(activity.type)(activity)
 
     def get_context(self):
         context = self.email.get_base_context()
