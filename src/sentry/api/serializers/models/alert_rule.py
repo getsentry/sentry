@@ -73,16 +73,12 @@ class AlertRuleSerializer(Serializer):
                 result[alert_rule]["owner"] = f"{type}:{resolved_actors[type][alert_rule.owner_id]}"
 
         if "original_alert_rule" in self.expand:
-            for alert_rule in alert_rules.values():
-                if alert_rule.status == AlertRuleStatus.SNAPSHOT.value:
-                    snapshot_activity = AlertRuleActivity.objects.filter(
-                        alert_rule=alert_rule,
-                        type=AlertRuleActivityType.SNAPSHOT.value,
-                    )
-                    if snapshot_activity:
-                        result[alert_rule][
-                            "originalAlertRuleId"
-                        ] = snapshot_activity.get().previous_alert_rule.id
+            snapshot_activities = AlertRuleActivity.objects.filter(
+                alert_rule__in=item_list,
+                type=AlertRuleActivityType.SNAPSHOT.value,
+            )
+            for activity in snapshot_activities:
+                result[activity.alert_rule]["originalAlertRuleId"] = activity.previous_alert_rule_id
 
         return result
 
