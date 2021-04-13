@@ -186,6 +186,8 @@ const WizardOptions = styled('div')`
 `;
 
 const WizardPanel = styled('div')<{visible?: boolean}>`
+  position: sticky;
+  top: 20px;
   padding: 0;
   flex: 5;
   display: flex;
