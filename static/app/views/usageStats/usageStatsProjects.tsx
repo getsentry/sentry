@@ -241,6 +241,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         return {
           project: {...proj},
           projectLink: this.getTableLink(proj),
+          projectSettingsLink: `/settings/sentry/projects/${proj.slug}/`,
           ...stat,
         };
       });
