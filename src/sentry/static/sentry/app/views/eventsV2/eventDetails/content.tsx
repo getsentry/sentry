@@ -34,7 +34,11 @@ import {eventDetailsRoute} from 'app/utils/discover/urls';
 import {getMessage} from 'app/utils/events';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+import TraceMetaQuery, {
+  TraceMetaQueryChildrenProps,
+} from 'app/utils/performance/quickTrace/traceMetaQuery';
 import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
+import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 import EventMetas from 'app/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
@@ -154,7 +158,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
 
-    const renderContent = (results?: QuickTraceQueryChildrenProps) => (
+    const renderContent = (
+      results?: QuickTraceQueryChildrenProps,
+      metaResults?: TraceMetaQueryChildrenProps
+    ) => (
       <React.Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -197,6 +204,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             <Layout.Main fullWidth>
               <EventMetas
                 quickTrace={results}
+                meta={metaResults?.meta ?? null}
                 event={event}
                 organization={organization}
                 projectId={this.projectId}
@@ -276,10 +284,27 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       organization.features.includes('trace-view-summary');
 
     if (hasQuickTraceView) {
+      const traceId = event.contexts?.trace?.trace_id ?? '';
+      const {start, end} = getTraceTimeRangeFromEvent(event);
+
       return (
-        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-          {results => renderContent(results)}
-        </QuickTraceQuery>
+        <TraceMetaQuery
+          location={location}
+          orgSlug={organization.slug}
+          traceId={traceId}
+          start={start}
+          end={end}
+        >
+          {metaResults => (
+            <QuickTraceQuery
+              event={event}
+              location={location}
+              orgSlug={organization.slug}
+            >
+              {results => renderContent(results, metaResults)}
+            </QuickTraceQuery>
+          )}
+        </TraceMetaQuery>
       );
     }
 

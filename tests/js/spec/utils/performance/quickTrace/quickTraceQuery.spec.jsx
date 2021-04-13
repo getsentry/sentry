@@ -84,7 +84,6 @@ describe('TraceLiteQuery', function () {
 
     expect(traceLiteMock).toHaveBeenCalledTimes(1);
     expect(traceFullMock).toHaveBeenCalledTimes(1);
-    expect(traceMetaMock).toHaveBeenCalledTimes(1);
   });
 
   it('doesnt fetches meta when not needed', async function () {
