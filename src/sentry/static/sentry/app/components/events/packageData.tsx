@@ -3,7 +3,8 @@ import React from 'react';
 import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import {getMeta} from 'app/components/events/meta/metaProxy';
 import {t} from 'app/locale';
 import {Event} from 'app/types/event';
 
@@ -19,7 +20,12 @@ class EventPackageData extends React.Component<Props> {
   render() {
     const {event} = this.props;
     let longKeys: boolean, title: string;
-    const packages = Object.entries(event.packages || {});
+    const packages = Object.entries(event.packages || {}).map(([key, value]) => ({
+      key,
+      value,
+      subject: key,
+      meta: getMeta(event.packages, key),
+    }));
 
     switch (event.platform) {
       case 'csharp':

@@ -1,11 +1,11 @@
 import React from 'react';
 
 import ErrorBoundary from 'app/components/errorBoundary';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import {KeyValueListData} from 'app/types';
 
 type Props = {
-  data: Array<KeyValueListData>;
+  data: KeyValueListData;
   raw?: boolean;
 };
 

@@ -3,7 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 const data = {
   metadata: {
@@ -64,7 +64,12 @@ describe('KeyValueList', function () {
     plussomeotherstuff: 'here',
     andthis: 0,
   };
-  const extraDataArray = Object.entries(context);
+
+  const extraDataArray = Object.entries(context).map(([key, value]) => ({
+    key,
+    value,
+    subject: key,
+  }));
 
   it('renders formatted', function () {
     const component = mountWithTheme(

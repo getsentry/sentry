@@ -1,5 +1,5 @@
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import {KeyValueListData} from 'app/types';
 import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
 
@@ -10,8 +10,8 @@ function getAppKnownData(
   event: Event,
   data: AppData,
   appKnownDataValues: Array<AppKnownDataType>
-): Array<KeyValueListData> {
-  const knownData: Array<KeyValueListData> = [];
+): KeyValueListData {
+  const knownData: KeyValueListData = [];
 
   const dataKeys = appKnownDataValues.filter(appKnownDataValue =>
     defined(data[appKnownDataValue])

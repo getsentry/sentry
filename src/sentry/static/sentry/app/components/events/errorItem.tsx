@@ -1,12 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import isEmpty from 'lodash/isEmpty';
-import mapKeys from 'lodash/mapKeys';
 import startCase from 'lodash/startCase';
 import moment from 'moment';
 
 import Button from 'app/components/button';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import {getMeta} from 'app/components/events/meta/metaProxy';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -82,7 +81,12 @@ class ErrorItem extends React.Component<Props, State> {
       );
     }
 
-    return mapKeys(data, (_value, key) => t(keyMapping[key] || startCase(key)));
+    return Object.entries(data).map(([key, value]) => ({
+      key,
+      value,
+      subject: keyMapping[key] || startCase(key),
+      meta: getMeta(data, key),
+    }));
   }
 
   renderPath(data: NonNullable<Error['data']>) {
@@ -114,7 +118,7 @@ class ErrorItem extends React.Component<Props, State> {
             {this.renderPath(data)}
             {error.message}
           </div>
-          {!isEmpty(cleanedData) && (
+          {!!cleanedData.length && (
             <ToggleButton onClick={this.handleToggle} priority="link">
               {isOpen ? t('Collapse') : t('Expand')}
             </ToggleButton>

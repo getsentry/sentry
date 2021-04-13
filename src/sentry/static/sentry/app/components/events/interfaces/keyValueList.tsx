@@ -4,13 +4,12 @@ import sortBy from 'lodash/sortBy';
 
 import ContextData from 'app/components/contextData';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {KeyValueListData} from 'app/types';
 import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
 
-import {KeyValueListData} from './types';
-
 type Props = {
-  data?: Array<KeyValueListData>;
+  data?: KeyValueListData;
   onClick?: () => void;
   raw?: boolean;
   longKeys?: boolean;
@@ -47,9 +46,6 @@ const KeyValueList = ({
                 ? JSON.stringify(value, null, 2)
                 : value;
 
-            const valueIsReactRenderable: boolean =
-              typeof dataValue !== 'string' && React.isValidElement(dataValue);
-
             let contentComponent: React.ReactNode = (
               <pre className="val-string">
                 <AnnotatedText value={dataValue} meta={meta} />
@@ -67,7 +63,7 @@ const KeyValueList = ({
                   {subjectIcon}
                 </ContextData>
               );
-            } else if (valueIsReactRenderable) {
+            } else if (typeof dataValue !== 'string' && React.isValidElement(dataValue)) {
               contentComponent = dataValue;
             }
 

@@ -2,7 +2,9 @@ import React from 'react';
 
 import ClippedBox from 'app/components/clippedBox';
 import ContextBlock from 'app/components/events/contexts/contextBlock';
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
+
+type KeyValueListData = React.ComponentProps<typeof ContextBlock>['data'];
+
 import {t} from 'app/locale';
 
 type Props = {
@@ -11,7 +13,7 @@ type Props = {
 };
 
 class ReduxContextType extends React.Component<Props> {
-  getKnownData(): KeyValueListData[] {
+  getKnownData(): KeyValueListData {
     return [
       {
         key: 'value',
