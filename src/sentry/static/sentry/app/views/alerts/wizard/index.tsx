@@ -8,7 +8,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import PageHeading from 'app/components/pageHeading';
-import {Panel, PanelBody} from 'app/components/panels';
+import {PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Tag from 'app/components/tag';
@@ -103,14 +103,16 @@ class AlertWizard extends React.Component<Props, State> {
               title={t('Create Alert Rule')}
             />
             <StyledPageHeader>
-              <PageHeading>{t('What should we alert you about?')}</PageHeading>
+              <StyledPageHeading>
+                {t('What should we alert you about?')}
+              </StyledPageHeading>
             </StyledPageHeader>
-            <Heading>{t('Errors')}</Heading>
+            <Styledh2>{t('Errors')}</Styledh2>
             <WizardBody>
               <WizardOptions>
                 {AlertWizardOptions.map(({categoryHeading, options}, i) => (
                   <OptionsWrapper key={categoryHeading}>
-                    {i > 0 && <Heading>{categoryHeading}</Heading>}
+                    {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
                     <RadioPanelGroup
                       choices={options.map(alertType => {
                         return [
@@ -140,7 +142,7 @@ class AlertWizard extends React.Component<Props, State> {
                         </ExternalLink>
                       )}
                     </PanelDescription>
-                    <Placeholder height="250px" />
+                    <StyledPlaceholder height="250px" />
                     <ExampleHeader>{t('Examples')}</ExampleHeader>
                     <List symbol="bullet">
                       {panelContent.examples.map((example, i) => (
@@ -163,10 +165,13 @@ const StyledPageHeader = styled(PageHeader)`
   margin-bottom: ${space(4)};
 `;
 
-const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: normal;
-  margin-bottom: ${space(1)};
+const StyledPageHeading = styled(PageHeading)`
+  font-weight: bold;
+`;
+
+const StyledPlaceholder = styled(Placeholder)`
+  background-color: ${p => p.theme.border};
+  opacity: 0.6;
 `;
 
 const Styledh2 = styled('h2')`
@@ -181,11 +186,13 @@ const WizardBody = styled('div')`
 
 const WizardOptions = styled('div')`
   flex: 3;
-  margin-right: ${space(4)};
+  margin-right: ${space(3)};
+  border-right: 1px solid ${p => p.theme.innerBorder};
+  padding-right: ${space(3)};
 `;
 
-const WizardPanel = styled(Panel)<{visible?: boolean}>`
-  padding: ${space(3)};
+const WizardPanel = styled('div')<{visible?: boolean}>`
+  padding: 0;
   flex: 5;
   display: flex;
   ${p => !p.visible && 'visibility: hidden'};
@@ -227,6 +234,10 @@ const ExampleItem = styled(ListItem)`
 
 const OptionsWrapper = styled('div')`
   margin-bottom: ${space(4)};
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 export default AlertWizard;
