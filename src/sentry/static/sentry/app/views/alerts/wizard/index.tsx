@@ -212,6 +212,7 @@ const WizardPanel = styled('div')<{visible?: boolean}>`
 const WizardPanelBody = styled(PanelBody)`
   margin-bottom: ${space(2)};
   flex: 1;
+  min-width: 100%;
 `;
 
 const PanelDescription = styled('div')`
