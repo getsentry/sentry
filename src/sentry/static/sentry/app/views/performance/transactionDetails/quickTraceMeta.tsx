@@ -11,7 +11,10 @@ import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getShortEventId} from 'app/utils/events';
-import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
+import {
+  QuickTraceQueryChildrenProps,
+  TraceMeta,
+} from 'app/utils/performance/quickTrace/types';
 
 import {MetaData} from './styles';
 
@@ -23,7 +26,7 @@ type Props = Pick<
   location: Location;
   organization: OrganizationSummary;
   quickTrace: QuickTraceQueryChildrenProps;
-  traceSize?: number;
+  traceMeta: TraceMeta | null;
 };
 
 function handleTraceLink(organization: OrganizationSummary) {
@@ -40,7 +43,7 @@ export default function QuickTraceMeta({
   location,
   organization,
   quickTrace: {isLoading, error, trace, type},
-  traceSize,
+  traceMeta,
   errorDest,
   transactionDest,
 }: Props) {
@@ -52,7 +55,7 @@ export default function QuickTraceMeta({
       : t(
           'Trace ID: %s (%s events)',
           getShortEventId(traceId),
-          traceSize ? traceSize : '?'
+          traceMeta ? traceMeta.transactions + traceMeta.errors : '?'
         );
 
   const body = isLoading ? (

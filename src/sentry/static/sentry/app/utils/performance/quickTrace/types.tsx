@@ -57,10 +57,8 @@ export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
  */
 export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   children: TraceFullDetailed[];
-  environment: string;
   measurements?: Record<string, Measurement>;
   tags?: EventTag[];
-  release: string;
   start_timestamp: number;
   timestamp: number;
   'transaction.op': string;

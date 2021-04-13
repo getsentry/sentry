@@ -13,7 +13,7 @@ import {
 } from 'app/utils/performance/quickTrace/utils';
 import withApi from 'app/utils/withApi';
 
-type TraceMetaQueryChildrenProps = BaseTraceChildrenProps & {
+export type TraceMetaQueryChildrenProps = BaseTraceChildrenProps & {
   meta: TraceMeta | null;
 };
 

@@ -2,7 +2,6 @@ import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 
-import {fetchTotalCount} from 'app/actionCreators/events';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -25,11 +24,11 @@ import {Event, EventTag} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+import TraceMetaQuery, {
+  TraceMetaQueryChildrenProps,
+} from 'app/utils/performance/quickTrace/traceMetaQuery';
 import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
-import {
-  getTraceTimeRangeFromEvent,
-  makeEventView,
-} from 'app/utils/performance/quickTrace/utils';
+import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 import {appendTagCondition, decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
@@ -49,7 +48,6 @@ type Props = {
 type State = {
   event: Event | undefined;
   isSidebarVisible: boolean;
-  traceSize?: number;
 } & AsyncComponent['state'];
 
 class EventDetailsContent extends AsyncComponent<Props, State> {
@@ -63,19 +61,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     // local state
     isSidebarVisible: true,
-    traceSize: undefined,
   };
-
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    const {event} = this.state;
-    if (
-      event &&
-      event.contexts?.trace?.trace_id !== prevState?.event?.contexts?.trace?.trace_id
-    ) {
-      this.fetchTotal();
-    }
-    super.componentDidUpdate(prevProps, prevState);
-  }
 
   toggleSidebar = () => {
     this.setState({isSidebarVisible: !this.state.isSidebarVisible});
@@ -113,29 +99,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     });
   };
 
-  async fetchTotal() {
-    const {location, organization} = this.props;
-    const {event} = this.state;
-    if (!event) {
-      return;
-    }
-    const traceId = event.contexts?.trace?.trace_id ?? null;
-    if (!traceId) {
-      return;
-    }
-
-    const {start, end} = getTraceTimeRangeFromEvent(event);
-    const apiPayload = makeEventView({start, end});
-    apiPayload.query = `trace:${traceId}`;
-
-    const traceSize = await fetchTotalCount(
-      this.api,
-      organization.slug,
-      apiPayload.getEventsAPIPayload(location)
-    );
-    this.setState({traceSize});
-  }
-
   renderBody() {
     const {event} = this.state;
 
@@ -163,7 +126,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
 
-    const renderContent = (results?: QuickTraceQueryChildrenProps) => (
+    const renderContent = (
+      results?: QuickTraceQueryChildrenProps,
+      metaResults?: TraceMetaQueryChildrenProps
+    ) => (
       <React.Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -193,12 +159,12 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             <Layout.Main fullWidth>
               <EventMetas
                 quickTrace={results}
+                meta={metaResults?.meta ?? null}
                 event={event}
                 organization={organization}
                 projectId={this.projectId}
                 location={location}
                 errorDest="issue"
-                traceSize={this.state.traceSize}
                 transactionDest="performance"
               />
             </Layout.Main>
@@ -259,10 +225,27 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       organization.features.includes('trace-view-summary');
 
     if (hasQuickTraceView) {
+      const traceId = event.contexts?.trace?.trace_id ?? '';
+      const {start, end} = getTraceTimeRangeFromEvent(event);
+
       return (
-        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-          {results => renderContent(results)}
-        </QuickTraceQuery>
+        <TraceMetaQuery
+          location={location}
+          orgSlug={organization.slug}
+          traceId={traceId}
+          start={start}
+          end={end}
+        >
+          {metaResults => (
+            <QuickTraceQuery
+              event={event}
+              location={location}
+              orgSlug={organization.slug}
+            >
+              {results => renderContent(results, metaResults)}
+            </QuickTraceQuery>
+          )}
+        </TraceMetaQuery>
       );
     }
 
