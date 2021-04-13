@@ -152,7 +152,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     return {
       chartDateInterval: interval,
       chartDateStart: dateStart.format(),
-      chartDateEnd: chartDateEnd.format(),
+      chartDateEnd: dateEnd.format(),
       chartDateStartDisplay: dateStart.local().format(FORMAT_DATETIME_HOURLY),
       chartDateEndDisplay: dateEnd.local().format(FORMAT_DATETIME_HOURLY),
     };

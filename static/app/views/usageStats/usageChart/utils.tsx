@@ -15,7 +15,8 @@ export const FORMAT_DATETIME_DAILY = 'MMM D';
 
 /**
  * Used to generate X-axis data points and labels for UsageChart
- * Ensure that the format
+ * Ensure that this method is idempotent and doesn't change the moment object
+ * that is passed in
  */
 export function getDateFromMoment(m: moment.Moment, interval: IntervalPeriod = '1d') {
   const days = intervalToMilliseconds(interval) / (1000 * 60 * 60 * 24);
