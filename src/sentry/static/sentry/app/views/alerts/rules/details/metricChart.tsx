@@ -26,10 +26,8 @@ import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePrese
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 import {
-  AlertRuleStatus,
   Incident,
   IncidentActivityType,
-  IncidentStats,
   IncidentStatus,
 } from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
@@ -380,7 +378,6 @@ class MetricChart extends React.PureComponent<Props, State> {
       filter,
       query,
       incidents,
-      incidentStats,
     } = this.props;
 
     if (!rule) {
