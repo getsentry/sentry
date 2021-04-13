@@ -24,7 +24,10 @@ type State = {
  * Making 1 extra API call to display this number isn't very efficient.
  * The other approach would be to fetch the data in UsageStatsOrg with 1min
  * interval and roll it up on the frontend, but that adds unnecessary
- * complexity and it's gnarly to fetch 90 days of data at 1min intervals.
+ * complexity, it's gnarly to fetch 90 days of data at 1min intervals and
+ * that will exceed the max resultset size for Snuba (which is 10,000).
+ *
+ * Snuba's resultset has a limit of 10,000 so 90 days of 1min
  *
  * We're going with this approach for simplicity sake. By keeping the range
  * as small as possible, this call seems to be much faster too.
