@@ -1,5 +1,7 @@
+import pytest
 from django.utils.functional import cached_property
 
+from sentry.incidents.models import IncidentActivityType
 from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -8,7 +10,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
 # on a per-class method basis
-class Fixtures(Factories):
+class Fixtures:
     @cached_property
     def session(self):
         return Factories.create_session()
@@ -71,3 +73,249 @@ class Fixtures(Factories):
         return Activity.objects.create(
             group=self.group, project=self.project, type=Activity.NOTE, user=self.user, data={}
         )
+
+    def create_organization(self, *args, **kwargs):
+        return Factories.create_organization(*args, **kwargs)
+
+    def create_member(self, *args, **kwargs):
+        return Factories.create_member(*args, **kwargs)
+
+    def create_team_membership(self, *args, **kwargs):
+        return Factories.create_team_membership(*args, **kwargs)
+
+    def create_team(self, organization=None, **kwargs):
+        if organization is None:
+            organization = self.organization
+
+        return Factories.create_team(organization=organization, **kwargs)
+
+    def create_environment(self, project=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_environment(project=project, **kwargs)
+
+    def create_project(self, **kwargs):
+        kwargs.setdefault("teams", [self.team])
+        return Factories.create_project(**kwargs)
+
+    def create_project_bookmark(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_project_bookmark(project=project, *args, **kwargs)
+
+    def create_project_key(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_project_key(project=project, *args, **kwargs)
+
+    def create_project_rule(
+        self, project=None, action_match=None, condition_match=None, *args, **kwargs
+    ):
+        if project is None:
+            project = self.project
+        return Factories.create_project_rule(
+            project=project,
+            action_match=action_match,
+            condition_match=condition_match,
+            *args,
+            **kwargs,
+        )
+
+    def create_slack_project_rule(
+        self, project=None, integration_id=None, channel_id=None, channel_name=None, *args, **kwargs
+    ):
+        if project is None:
+            project = self.project
+        return Factories.create_slack_project_rule(
+            project,
+            integration_id=integration_id,
+            channel_id=channel_id,
+            channel_name=channel_name,
+            *args,
+            **kwargs,
+        )
+
+    def create_release(self, project=None, user=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_release(project=project, user=user, *args, **kwargs)
+
+    def create_release_file(self, release=None, file=None, name=None, dist=None):
+        if release is None:
+            release = self.release
+        return Factories.create_release_file(release, file, name, dist)
+
+    def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
+        if org is None:
+            org = self.organization.slug
+        if release is None:
+            release = self.release.version
+        return Factories.create_artifact_bundle(org, release, *args, **kwargs)
+
+    def create_code_mapping(self, project=None, repo=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_code_mapping(project, repo, **kwargs)
+
+    def create_repo(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_repo(project=project, *args, **kwargs)
+
+    def create_commit(self, *args, **kwargs):
+        return Factories.create_commit(*args, **kwargs)
+
+    def create_commit_author(self, *args, **kwargs):
+        return Factories.create_commit_author(*args, **kwargs)
+
+    def create_commit_file_change(self, *args, **kwargs):
+        return Factories.create_commit_file_change(*args, **kwargs)
+
+    def create_user(self, *args, **kwargs):
+        return Factories.create_user(*args, **kwargs)
+
+    def create_useremail(self, *args, **kwargs):
+        return Factories.create_useremail(*args, **kwargs)
+
+    def store_event(self, *args, **kwargs):
+        return Factories.store_event(*args, **kwargs)
+
+    def create_group(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_group(project=project, *args, **kwargs)
+
+    def create_file(self, **kwargs):
+        return Factories.create_file(**kwargs)
+
+    def create_file_from_path(self, *args, **kwargs):
+        return Factories.create_file_from_path(*args, **kwargs)
+
+    def create_event_attachment(self, event=None, *args, **kwargs):
+        if event is None:
+            event = self.event
+        return Factories.create_event_attachment(event=event, *args, **kwargs)
+
+    def create_dif_file(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_dif_file(project=project, *args, **kwargs)
+
+    def create_dif_from_path(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_dif_from_path(project=project, *args, **kwargs)
+
+    def add_user_permission(self, *args, **kwargs):
+        return Factories.add_user_permission(*args, **kwargs)
+
+    def create_sentry_app(self, *args, **kwargs):
+        return Factories.create_sentry_app(*args, **kwargs)
+
+    def create_internal_integration(self, *args, **kwargs):
+        return Factories.create_internal_integration(*args, **kwargs)
+
+    def create_internal_integration_token(self, *args, **kwargs):
+        return Factories.create_internal_integration_token(*args, **kwargs)
+
+    def create_sentry_app_installation(self, *args, **kwargs):
+        return Factories.create_sentry_app_installation(*args, **kwargs)
+
+    def create_issue_link_schema(self, *args, **kwargs):
+        return Factories.create_issue_link_schema(*args, **kwargs)
+
+    def create_alert_rule_action_schema(self, *args, **kwargs):
+        return Factories.create_alert_rule_action_schema(*args, **kwargs)
+
+    def create_sentry_app_feature(self, *args, **kwargs):
+        return Factories.create_sentry_app_feature(*args, **kwargs)
+
+    def create_service_hook(self, *args, **kwargs):
+        return Factories.create_service_hook(*args, **kwargs)
+
+    def create_userreport(self, *args, **kwargs):
+        return Factories.create_userreport(*args, **kwargs)
+
+    def create_platform_external_issue(self, *args, **kwargs):
+        return Factories.create_platform_external_issue(*args, **kwargs)
+
+    def create_integration_external_issue(self, *args, **kwargs):
+        return Factories.create_integration_external_issue(*args, **kwargs)
+
+    def create_incident(self, organization=None, projects=None, *args, **kwargs):
+        if not organization:
+            organization = self.organization
+        if projects is None:
+            projects = [self.project]
+
+        return Factories.create_incident(
+            organization=organization, projects=projects, *args, **kwargs
+        )
+
+    def create_incident_activity(self, incident, *args, **kwargs):
+        return Factories.create_incident_activity(incident=incident, *args, **kwargs)
+
+    def create_incident_comment(self, incident, *args, **kwargs):
+        return self.create_incident_activity(
+            incident, type=IncidentActivityType.COMMENT.value, *args, **kwargs
+        )
+
+    def create_alert_rule(self, organization=None, projects=None, *args, **kwargs):
+        if not organization:
+            organization = self.organization
+        if projects is None:
+            projects = [self.project]
+        return Factories.create_alert_rule(organization, projects, *args, **kwargs)
+
+    def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
+        if not alert_rule:
+            alert_rule = self.create_alert_rule()
+        return Factories.create_alert_rule_trigger(alert_rule, *args, **kwargs)
+
+    def create_alert_rule_trigger_action(
+        self,
+        alert_rule_trigger=None,
+        target_identifier=None,
+        triggered_for_incident=None,
+        *args,
+        **kwargs,
+    ):
+        if not alert_rule_trigger:
+            alert_rule_trigger = self.create_alert_rule_trigger()
+
+        if not target_identifier:
+            target_identifier = str(self.user.id)
+
+        if triggered_for_incident is not None:
+            Factories.create_incident_trigger(triggered_for_incident, alert_rule_trigger)
+
+        return Factories.create_alert_rule_trigger_action(
+            alert_rule_trigger, target_identifier=target_identifier, **kwargs
+        )
+
+    def create_external_user(self, user=None, organization=None, **kwargs):
+        if not user:
+            user = self.user
+        if not organization:
+            organization = self.organization
+
+        organizationmember = OrganizationMember.objects.get(user=user, organization=organization)
+        return Factories.create_external_user(organizationmember=organizationmember, **kwargs)
+
+    def create_external_team(self, team=None, **kwargs):
+        if not team:
+            team = self.team
+        return Factories.create_external_team(team=team, **kwargs)
+
+    def create_codeowners(self, project=None, code_mapping=None, **kwargs):
+        if not project:
+            project = self.project
+        if not code_mapping:
+            self.repo = self.create_repo(self.project)
+            code_mapping = self.create_code_mapping(self.project, self.repo)
+
+        return Factories.create_codeowners(project=project, code_mapping=code_mapping, **kwargs)
+
+    @pytest.fixture(autouse=True)
+    def _init_insta_snapshot(self, insta_snapshot):
+        self.insta_snapshot = insta_snapshot
