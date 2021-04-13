@@ -51,12 +51,8 @@ class UsageTable extends React.Component<Props> {
   render() {
     const {isLoading, headers, usageStats} = this.props;
 
-    if (isLoading) {
-      return <StyledPanelTable headers={headers} isLoading />;
-    }
-
     return (
-      <StyledPanelTable headers={headers}>
+      <StyledPanelTable isLoading={isLoading} headers={headers}>
         {usageStats.map(s => this.renderTableRow(s))}
       </StyledPanelTable>
     );
