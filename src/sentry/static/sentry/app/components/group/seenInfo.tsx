@@ -1,7 +1,6 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import DateTime from 'app/components/dateTime';
 import {Body, Header, Hovercard} from 'app/components/hovercard';
@@ -30,10 +29,6 @@ type Props = {
 };
 
 class SeenInfo extends React.Component<Props> {
-  static contextTypes = {
-    organization: PropTypes.object,
-  };
-
   shouldComponentUpdate(nextProps: Props) {
     const {date, release} = this.props;
 
