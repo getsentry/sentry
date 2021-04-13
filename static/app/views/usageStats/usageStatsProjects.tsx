@@ -1,16 +1,15 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {LocationDescriptorObject} from 'history';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {DateTimeObject} from 'app/components/charts/utils';
-import {Alignments} from 'app/components/gridEditable/sortLink';
+import SortLink, {Alignments, Directions} from 'app/components/gridEditable/sortLink';
 import {Panel, PanelBody} from 'app/components/panels';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconArrow, IconWarning} from 'app/icons';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {DataCategory, Organization, Project} from 'app/types';
 import withProjects from 'app/utils/withProjects';
 
@@ -24,7 +23,10 @@ type Props = {
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   tableSort?: string;
-  handleChangeState: (state: {sort?: string}) => void;
+  handleChangeState: (
+    state: {sort?: string},
+    options?: {willUpdateRouter?: boolean}
+  ) => LocationDescriptorObject;
 } & AsyncComponent['props'];
 
 type State = {
@@ -106,12 +108,12 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   get tableHeader() {
     const {key, direction} = this.tableSort;
 
-    const getArrowDirection = (linkKey: SortBy) => {
+    const getArrowDirection = (linkKey: SortBy): Directions => {
       if (linkKey !== key) {
         return undefined;
       }
 
-      return direction > 0 ? 'down' : 'up';
+      return direction > 0 ? 'desc' : 'asc';
     };
 
     return [
@@ -155,10 +157,13 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
       return (
         <Cell key={h.key}>
-          <PseudoLink align={h.align as Alignments} onClick={h.onClick}>
-            {h.title}
-            {h.direction && <IconArrow size="xs" direction={h.direction as any} />}
-          </PseudoLink>
+          <SortLink
+            canSort
+            title={h.title}
+            align={h.align as Alignments}
+            direction={h.direction}
+            generateSortLink={h.onClick}
+          />
         </Cell>
       );
     });
@@ -186,7 +191,10 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       nextDirection = -1; // Default PROJECT to ascending
     }
 
-    handleChangeState({sort: `${nextDirection > 0 ? '-' : ''}${nextKey}`});
+    return handleChangeState(
+      {sort: `${nextDirection > 0 ? '-' : ''}${nextKey}`},
+      {willUpdateRouter: false}
+    );
   };
 
   mapSeriesToTable(
@@ -296,16 +304,3 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 }
 
 export default withProjects(UsageStatsProjects);
-
-const PseudoLink = styled('div')<{align: Alignments}>`
-  text-align: ${p => p.align || 'left'};
-
-  &:hover {
-    cursor: pointer;
-  }
-
-  /* For arrow that indicates sort direction*/
-  > svg {
-    margin-left: ${space(0.5)};
-  }
-`;

@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import {LocationDescriptorObject} from 'history';
 
 import {DateTimeObject} from 'app/components/charts/utils';
 import PageHeading from 'app/components/pageHeading';
@@ -65,21 +66,33 @@ class OrganizationStats extends React.Component<Props> {
   /**
    * TODO: Enable user to set dateStart/dateEnd
    */
-  setStateOnUrl = (nextState: {
-    dataCategory?: DataCategory;
-    pagePeriod?: RelativePeriod;
-    chartTransform?: ChartDataTransform;
-    sort?: string;
-  }) => {
+  setStateOnUrl = (
+    nextState: {
+      dataCategory?: DataCategory;
+      pagePeriod?: RelativePeriod;
+      chartTransform?: ChartDataTransform;
+      sort?: string;
+    },
+    options: {
+      willUpdateRouter?: boolean;
+    } = {
+      willUpdateRouter: true,
+    }
+  ): LocationDescriptorObject => {
     const {location} = this.props;
-
-    browserHistory.push({
+    const nextLocation = {
       ...location,
       query: {
         ...location?.query,
         ...nextState,
       },
-    });
+    };
+
+    if (options.willUpdateRouter) {
+      browserHistory.push(nextLocation);
+    }
+
+    return nextLocation;
   };
 
   render() {
