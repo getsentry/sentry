@@ -248,3 +248,18 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 }
             ],
         }
+
+    def test_codeowners_scope_emails_to_org_security(self):
+        self.user2 = self.create_user("user2@sentry.io")
+        self.data = {
+            "raw": "docs/*    @NisanthanNanthakumar   user2@sentry.io\n",
+            "codeMappingId": self.code_mapping.id,
+        }
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 400
+        assert response.data == {
+            "raw": [
+                f"The following emails do not have an association in Sentry: {self.user2.email}."
+            ]
+        }
