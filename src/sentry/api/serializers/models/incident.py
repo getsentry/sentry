@@ -1,10 +1,8 @@
 from collections import defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleActivity,
-    AlertRuleStatus,
     Incident,
     IncidentActivity,
     IncidentProject,
@@ -29,50 +27,15 @@ class IncidentSerializer(Serializer):
         ).select_related("project"):
             incident_projects[incident_project.incident_id].append(incident_project.project.slug)
 
-        alert_rule_list = serialize({i.alert_rule for i in item_list if i.alert_rule.id}, user)
-        alert_rules = {d["id"]: d for d in alert_rule_list}
+        alert_rules = {
+            d["id"]: d
+            for d in serialize({i.alert_rule for i in item_list if i.alert_rule.id}, user, AlertRuleSerializer(expand=self.expand))
+        }
+
         results = {}
         for incident in item_list:
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
             results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))
-
-        if "original_alert_rule" in self.expand:
-            snapshot_alert_rules = filter(
-                lambda a: a["status"] == AlertRuleStatus.SNAPSHOT.value, alert_rule_list
-            )
-            snapshot_alert_rule_ids = [int(a["id"]) for a in snapshot_alert_rules]
-            alert_rule_activities = list(
-                AlertRuleActivity.objects.filter(alert_rule__in=snapshot_alert_rule_ids)
-            )
-
-            orig_alert_rules = serialize(
-                list(
-                    AlertRule.objects.filter(
-                        id__in=map(lambda a: a.previous_alert_rule.id, alert_rule_activities)
-                    )
-                ),
-                user,
-            )
-
-            orig_alert_rules_dict = dict()
-            for alert_rule_activity, serialized_orig_alert_rule in zip(
-                alert_rule_activities, serialize(orig_alert_rules, user)
-            ):
-                orig_alert_rules_dict[
-                    alert_rule_activity.alert_rule.id
-                ] = serialized_orig_alert_rule
-
-            for incident in item_list:
-                # for missing alert rule activity events we can't include the original alert rule
-                if (
-                    incident.alert_rule.status == AlertRuleStatus.SNAPSHOT.value
-                    and incident.alert_rule.id in orig_alert_rules_dict
-                ):
-                    results[incident]["orig_alert_rule"] = orig_alert_rules_dict[
-                        incident.alert_rule.id
-                    ]
-                else:
-                    results[incident]["orig_alert_rule"] = None
 
         if "seen_by" in self.expand:
             incident_seen_list = list(
@@ -109,9 +72,6 @@ class IncidentSerializer(Serializer):
             "organizationId": str(obj.organization_id),
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],
-            "originalAlertRule": attrs["orig_alert_rule"]
-            if "original_alert_rule" in self.expand
-            else None,
             "activities": attrs["activities"] if "activities" in self.expand else None,
             "seenBy": attrs["seen_by"] if "seen_by" in self.expand else None,
             "hasSeen": attrs["has_seen"] if "seen_by" in self.expand else None,

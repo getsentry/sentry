@@ -7,6 +7,7 @@ from sentry.incidents.models import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
+    AlertRuleStatus,
     AlertRuleTrigger,
 )
 from sentry.models import ACTOR_TYPES, Rule, actor_type_to_class, actor_type_to_string
@@ -17,6 +18,9 @@ from sentry.utils.db import attach_foreignkey
 
 @register(AlertRule)
 class AlertRuleSerializer(Serializer):
+    def __init__(self, expand=None):
+        self.expand = expand or []
+
     def get_attrs(self, item_list, user, **kwargs):
         alert_rules = {item.id: item for item in item_list}
         attach_foreignkey(item_list, AlertRule.snuba_query, related=("environment",))
@@ -68,6 +72,16 @@ class AlertRuleSerializer(Serializer):
                 type = actor_type_to_string(alert_rule.owner.type)
                 result[alert_rule]["owner"] = f"{type}:{resolved_actors[type][alert_rule.owner_id]}"
 
+        if "original_alert_rule" in self.expand:
+            for alert_rule in alert_rules.values():
+                if alert_rule.status == AlertRuleStatus.SNAPSHOT.value:
+                    snapshot_activity = AlertRuleActivity.objects.filter(
+                        alert_rule=alert_rule,
+                        type=AlertRuleActivityType.SNAPSHOT.value,
+                    )
+                    if snapshot_activity:
+                        result[alert_rule]["originalAlertRuleId"] = snapshot_activity.get().previous_alert_rule.id
+
         return result
 
     def serialize(self, obj, attrs, user):
@@ -94,6 +108,7 @@ class AlertRuleSerializer(Serializer):
             "projects": sorted(attrs.get("projects", [])),
             "includeAllProjects": obj.include_all_projects,
             "owner": attrs.get("owner", None),
+            "originalAlertRuleId": attrs.get("originalAlertRuleId", None),
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),

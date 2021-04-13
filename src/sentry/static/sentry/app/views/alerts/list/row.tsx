@@ -148,8 +148,8 @@ class AlertListRow extends AsyncComponent<Props, State> {
       ? {
           pathname: `/organizations/${orgId}/alerts/rules/details/${
             incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-            incident.originalAlertRule
-              ? incident.originalAlertRule.id
+            incident.alertRule.originalAlertRuleId
+              ? incident.alertRule.originalAlertRuleId
               : incident.alertRule.id
           }/`,
           query: makeRuleDetailsQuery(incident),
