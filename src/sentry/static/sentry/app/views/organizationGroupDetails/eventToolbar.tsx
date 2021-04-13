@@ -88,9 +88,7 @@ class GroupEventToolbar extends React.Component<Props> {
               <QuickTraceWrapper>
                 {results.isLoading ? (
                   <Placeholder height="24px" />
-                ) : results.error || results.trace === null ? (
-                  '\u2014'
-                ) : (
+                ) : results.error || results.trace === null ? null : (
                   <QuickTrace
                     event={event}
                     quickTrace={results}
