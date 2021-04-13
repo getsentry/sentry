@@ -230,7 +230,7 @@ class SpanDetail extends React.Component<Props, State> {
               size="xsmall"
               to={to}
             >
-              {t('View Span')}
+              {t('View Transaction')}
             </StyledDiscoverButton>
           );
         }}
@@ -240,8 +240,8 @@ class SpanDetail extends React.Component<Props, State> {
     const results = this.state.transactionResults[0];
 
     return (
-      <Row title="Child Span" extra={viewChildButton}>
-        {`${results['trace.span']} - ${results.transaction} (${results['project.name']})`}
+      <Row title="Child Transaction" extra={viewChildButton}>
+        {`${results.transaction} (${results['project.name']})`}
       </Row>
     );
   }
