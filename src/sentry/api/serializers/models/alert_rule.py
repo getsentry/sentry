@@ -7,7 +7,6 @@ from sentry.incidents.models import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
-    AlertRuleStatus,
     AlertRuleTrigger,
 )
 from sentry.models import ACTOR_TYPES, Rule, actor_type_to_class, actor_type_to_string
