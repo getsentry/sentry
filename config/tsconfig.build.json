@@ -33,11 +33,11 @@
     "baseUrl": "../",
     "outDir": "../src/sentry/static/sentry/dist",
     "paths": {
-      "app/*": ["src/sentry/static/sentry/app/*"],
+      "app/*": ["static/app/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
-      "sentry-images/*": ["src/sentry/static/sentry/images/*"],
-      "sentry-fonts/*": ["src/sentry/static/sentry/fonts/*"],
-      "@emotion/styled": ["src/sentry/static/sentry/app/styled.tsx"],
+      "sentry-images/*": ["static/images/*"],
+      "sentry-fonts/*": ["static/fonts/*"],
+      "@emotion/styled": ["static/app/styled.tsx"],
       "@original-emotion/*": ["node_modules/@emotion/*"],
       // Use the stub file for typechecking. Webpack resolver will use the real files
       // based on configuration.
@@ -48,6 +48,6 @@
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
-  "include": ["../src", "../tests"],
+  "include": ["../static", "../tests/js"],
   "exclude": ["../node_modules"]
 }

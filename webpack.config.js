@@ -76,9 +76,11 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
 const SENTRY_EXPERIMENTAL_SPA =
   !DEPLOY_PREVIEW_CONFIG && !IS_UI_DEV_ONLY ? env.SENTRY_EXPERIMENTAL_SPA : true;
 
-// this is set by setup.py sdist
-const staticPrefix = path.join(__dirname, 'src/sentry/static/sentry');
-const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(staticPrefix, 'dist');
+// this is the path to the django "sentry" app, we output the webpack build here to `dist`
+// so that `django collectstatic` and so that we can serve the post-webpack bundles
+const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
+const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryDjangoAppPath, 'dist');
+const staticPrefix = path.join(__dirname, 'static');
 
 /**
  * Locale file extraction build step
