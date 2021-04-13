@@ -80,7 +80,9 @@ class AlertRuleSerializer(Serializer):
                         type=AlertRuleActivityType.SNAPSHOT.value,
                     )
                     if snapshot_activity:
-                        result[alert_rule]["originalAlertRuleId"] = snapshot_activity.get().previous_alert_rule.id
+                        result[alert_rule][
+                            "originalAlertRuleId"
+                        ] = snapshot_activity.get().previous_alert_rule.id
 
         return result
 
