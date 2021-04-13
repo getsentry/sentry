@@ -38,7 +38,7 @@ class ExternalUserSerializer(CamelSnakeModelSerializer):
             return OrganizationMember.objects.get(
                 id=member_id, organization=self.context["organization"]
             )
-        except OrganizationMember.DoesNotExists:
+        except OrganizationMember.DoesNotExist:
             raise serializers.ValidationError("This member does not exist.")
 
     def create(self, validated_data):
