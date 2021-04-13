@@ -1,6 +1,5 @@
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
-import {Organization} from 'app/types';
+import {KeyValueListData, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
 
@@ -14,8 +13,8 @@ function getTraceKnownData(
   traceKnownDataValues: Array<TraceKnownDataType>,
   event: Event,
   organization: Organization
-): Array<KeyValueListData> {
-  const knownData: Array<KeyValueListData> = [];
+): KeyValueListData {
+  const knownData: KeyValueListData = [];
 
   const dataKeys = traceKnownDataValues.filter(traceKnownDataValue => {
     if (traceKnownDataValue === TraceKnownDataType.TRANSACTION_NAME) {

@@ -57,7 +57,9 @@ function AddWidget({onClick, orgFeatures, orgSlug}: Props) {
       {orgFeatures.includes('metrics') ? (
         <InnerWrapper>
           <ButtonBar gap={1}>
-            <Button to={`/organizations/${orgSlug}/dashboards/widget/new/`}>
+            <Button
+              to={`/organizations/${orgSlug}/dashboards/widget/new/?dataSet=metrics`}
+            >
               {t('Add metrics widget')}
             </Button>
             <Button onClick={onClick}>{t('Add events widget')}</Button>

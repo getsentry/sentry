@@ -12,13 +12,14 @@ import {
   TransactionDestination,
 } from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
+import {backend, frontend} from 'app/data/platformCategories';
 import {IconFire} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
-import {toTitleCase} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getDuration} from 'app/utils/formatters';
+import localStorage from 'app/utils/localStorage';
 import {
   QuickTrace as QuickTraceType,
   QuickTraceEvent,
@@ -28,11 +29,15 @@ import {parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
+const FRONTEND_PLATFORMS: string[] = [...frontend];
+const BACKEND_PLATFORMS: string[] = [...backend];
+
 import {
   DropdownItem,
   DropdownItemSubContainer,
   ErrorNodeContent,
   EventNode,
+  ExternalDropdownLink,
   QuickTraceContainer,
   SectionSubtext,
   SingleEventHoverText,
@@ -75,6 +80,7 @@ export default function QuickTrace({
     return <React.Fragment>{'\u2014'}</React.Fragment>;
   }
 
+  const traceLength = quickTrace.trace && quickTrace.trace.length;
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const nodes: React.ReactNode[] = [];
@@ -136,12 +142,12 @@ export default function QuickTrace({
     nodes.push(<TraceConnector key="parent-connector" />);
   }
 
-  nodes.push(
+  const currentNode = (
     <EventNodeSelector
       key="current-node"
       location={location}
       organization={organization}
-      text={t('This %s', toTitleCase(event.type))}
+      text={t('This Event')}
       events={[current]}
       currentEvent={event}
       anchor={anchor}
@@ -150,6 +156,50 @@ export default function QuickTrace({
       transactionDest={transactionDest}
     />
   );
+
+  if (traceLength === 1) {
+    nodes.push(
+      <Projects
+        key="missing-services"
+        orgId={organization.slug}
+        slugs={[current.project_slug]}
+      >
+        {({projects}) => {
+          const project = projects.find(p => p.slug === current.project_slug);
+          if (project?.platform) {
+            if (BACKEND_PLATFORMS.includes(project.platform as string)) {
+              return (
+                <React.Fragment>
+                  <MissingServiceNode
+                    anchor={anchor}
+                    organization={organization}
+                    platform={project.platform}
+                    connectorSide="right"
+                  />
+                  {currentNode}
+                </React.Fragment>
+              );
+            } else if (FRONTEND_PLATFORMS.includes(project.platform as string)) {
+              return (
+                <React.Fragment>
+                  {currentNode}
+                  <MissingServiceNode
+                    anchor={anchor}
+                    organization={organization}
+                    platform={project.platform}
+                    connectorSide="left"
+                  />
+                </React.Fragment>
+              );
+            }
+          }
+          return currentNode;
+        }}
+      </Projects>
+    );
+  } else {
+    nodes.push(currentNode);
+  }
 
   if (children.length) {
     nodes.push(<TraceConnector key="children-connector" />);
@@ -445,4 +495,93 @@ function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNo
       </EventNode>
     </Tooltip>
   );
+}
+
+type MissingServiceProps = Pick<QuickTraceProps, 'anchor' | 'organization'> & {
+  connectorSide: 'left' | 'right';
+  platform: string;
+};
+type MissingServiceState = {
+  hideMissing: boolean;
+};
+
+const HIDE_MISSING_SERVICE_KEY = 'quick-trace:hide-missing-services';
+// 30 days
+const HIDE_MISSING_EXPIRES = 1000 * 60 * 60 * 24 * 30;
+
+function readHideMissingServiceState() {
+  const value = localStorage.getItem(HIDE_MISSING_SERVICE_KEY);
+  if (value === null) {
+    return false;
+  }
+  const expires = parseInt(value, 10);
+  const now = new Date().getTime();
+  return expires > now;
+}
+
+class MissingServiceNode extends React.Component<
+  MissingServiceProps,
+  MissingServiceState
+> {
+  state: MissingServiceState = {
+    hideMissing: readHideMissingServiceState(),
+  };
+
+  dismissMissingService = () => {
+    const {organization, platform} = this.props;
+    const now = new Date().getTime();
+    localStorage.setItem(
+      HIDE_MISSING_SERVICE_KEY,
+      (now + HIDE_MISSING_EXPIRES).toString()
+    );
+    this.setState({hideMissing: true});
+    trackAnalyticsEvent({
+      eventKey: 'quick_trace.missing_service.dismiss',
+      eventName: 'Quick Trace: Missing Service Dismissed',
+      organization_id: parseInt(organization.id, 10),
+      platform,
+    });
+  };
+
+  trackExternalLink = () => {
+    const {organization, platform} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'quick_trace.missing_service.docs',
+      eventName: 'Quick Trace: Missing Service Clicked',
+      organization_id: parseInt(organization.id, 10),
+      platform,
+    });
+  };
+
+  render() {
+    const {hideMissing} = this.state;
+    const {anchor, connectorSide} = this.props;
+    if (hideMissing) {
+      return null;
+    }
+    // TODO(wmak): Replace doc link with one that is either platform specific or platform agnostic
+    return (
+      <React.Fragment>
+        {connectorSide === 'left' && <TraceConnector />}
+        <DropdownLink
+          caret={false}
+          title={<EventNode type="white">???</EventNode>}
+          anchorRight={anchor === 'right'}
+        >
+          <DropdownItem first width="small">
+            <ExternalDropdownLink
+              href="https://docs.sentry.io/platforms/javascript/performance/connect-services/"
+              onClick={this.trackExternalLink}
+            >
+              {t('Connect to a service')}
+            </ExternalDropdownLink>
+          </DropdownItem>
+          <DropdownItem onSelect={this.dismissMissingService} width="small">
+            {t('Dismiss')}
+          </DropdownItem>
+        </DropdownLink>
+        {connectorSide === 'right' && <TraceConnector />}
+      </React.Fragment>
+    );
+  }
 }

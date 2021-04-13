@@ -1,6 +1,6 @@
 from sentry.models import EventError, NotificationSetting
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityEmail
