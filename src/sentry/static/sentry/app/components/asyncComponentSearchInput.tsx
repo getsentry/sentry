@@ -23,7 +23,7 @@ type DefaultProps = {
   /**
    * Time in milliseconds to wait before firing off the request
    */
-  debounceWait?: number; // optional, otherwise src/sentry/static/sentry/app/views/settings/organizationMembers/organizationMembersList.tsx L:191 is not happy
+  debounceWait?: number; // optional, otherwise app/views/settings/organizationMembers/organizationMembersList.tsx L:191 is not happy
 };
 
 type Props = ReactRouter.WithRouterProps &
