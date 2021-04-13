@@ -1,5 +1,5 @@
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
