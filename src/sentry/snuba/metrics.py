@@ -249,6 +249,8 @@ class MockDataSource:
     def _verify_query(self, query: QueryDefinition):
         # TODO: this will probably be dropped in favor of an Open World assumption,
         #       i.e., every tag/value combination is assumed to exist
+        if not query.query:
+            return
 
         filter_ = parse_query(query.query)
         for conditions in filter_["or"]:
