@@ -23,7 +23,7 @@ def get_manifest_url(module, key):
     manifest_obj = get_manifest_obj()
     manifest_value = _load_from_manifest(manifest_obj, key=key)
 
-    return "{}/{}/{}".format(settings.STATIC_WEBPACK_URL.rstrip("/"), module, manifest_value)
+    return "{}/{}/{}".format(settings.STATIC_MANIFEST_URL.rstrip("/"), module, manifest_value)
 
 
 def get_asset_url(module, path):
