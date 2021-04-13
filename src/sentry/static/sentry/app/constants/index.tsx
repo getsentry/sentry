@@ -6,6 +6,9 @@
 import {t} from 'app/locale';
 import {Scope} from 'app/types';
 
+// This is the element id where we render our React application to
+export const ROOT_ELEMENT = 'blk_router';
+
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context
 //
