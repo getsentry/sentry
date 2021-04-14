@@ -2,8 +2,7 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-// eslint-disable-next-line no-restricted-imports
-import {Box} from 'reflexbox';
+import {Box} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -42,7 +41,7 @@ import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {TimePeriodType} from 'app/views/alerts/rules/details/body';
+import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
 import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [

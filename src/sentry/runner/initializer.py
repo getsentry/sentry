@@ -467,7 +467,9 @@ def monkeypatch_model_unpickle():
 def monkeypatch_django_migrations():
     # This monkeypatches django's migration executor with our own, which
     # adds some small but important customizations.
-    import sentry.new_migrations.monkey  # NOQA
+    from sentry.new_migrations.monkey import monkey_migrations
+
+    monkey_migrations()
 
 
 def bind_cache_to_option_store():

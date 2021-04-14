@@ -23,6 +23,8 @@ from sentry.utils.snuba import (
     SNUBA_OR,
     Dataset,
     SnubaTSResult,
+    get_array_column_alias,
+    get_array_column_field,
     get_measurement_name,
     get_span_op_breakdown_name,
     is_measurement,
@@ -1155,7 +1157,11 @@ def normalize_histogram_results(fields, key_column, histogram_params, results, a
     for row in results["data"]:
         # Fall back to the first field name if there is no `key_name`,
         # otherwise, this is an array value name and format it as such.
-        key = fields[0] if key_name is None else f"{array_column}.{row[key_name]}"
+        key = (
+            fields[0]
+            if key_name is None
+            else f"{get_array_column_alias(array_column)}.{get_array_column_field(array_column, row[key_name])}"
+        )
         # we expect the bin the be an integer, this is because all floating
         # point values are rounded during the calculation
         bucket = int(row[bin_name])

@@ -3,6 +3,7 @@ import {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'app/utils/discover/genericDiscoverQuery';
+import {Theme} from 'app/utils/theme';
 
 /**
  * `EventLite` represents the type of a simplified event from
@@ -28,6 +29,8 @@ export type TraceError = {
   transaction: string;
   project_id: number;
   project_slug: string;
+  title: string;
+  level: keyof Theme['level'];
 };
 
 export type TraceLite = EventLite[];
@@ -57,10 +60,8 @@ export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
  */
 export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   children: TraceFullDetailed[];
-  environment: string;
   measurements?: Record<string, Measurement>;
   tags?: EventTag[];
-  release: string;
   start_timestamp: number;
   timestamp: number;
   'transaction.op': string;
