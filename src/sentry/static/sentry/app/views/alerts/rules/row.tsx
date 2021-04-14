@@ -18,21 +18,20 @@ import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
-import {IssueAlertRule} from 'app/types/alerts';
 import {Color} from 'app/utils/theme';
 import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
 
 import AlertBadge from '../alertBadge';
-import {IncidentStatus} from '../types';
+import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
 
 type Props = {
-  rule: IssueAlertRule;
+  rule: CombinedMetricIssueAlerts;
   projects: Project[];
   projectsLoaded: boolean;
   orgId: string;
   organization: Organization;
-  onDelete: (projectId: string, rule: IssueAlertRule) => void;
+  onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   // Set of team ids that the user belongs to
   userTeams: Set<string>;
 };
@@ -49,14 +48,21 @@ class RuleListRow extends React.Component<Props, State> {
 
   activeIncident() {
     const {rule} = this.props;
-    return [IncidentStatus.CRITICAL, IncidentStatus.WARNING].includes(
-      (rule as any)?.latestIncident?.status
+    return (
+      rule.latestIncident?.status !== undefined &&
+      [IncidentStatus.CRITICAL, IncidentStatus.WARNING].includes(
+        rule.latestIncident.status
+      )
     );
   }
 
   renderLastIncidentDate(): React.ReactNode {
     const {rule} = this.props;
-    if (!(rule as any).latestIncident) {
+    if (isIssueAlert(rule)) {
+      return null;
+    }
+
+    if (!rule.latestIncident) {
       return t('Never triggered');
     }
 
@@ -64,7 +70,7 @@ class RuleListRow extends React.Component<Props, State> {
       return (
         <div>
           {t('Triggered ')}
-          <TimeSince date={(rule as any).latestIncident.dateCreated} />
+          <TimeSince date={rule.latestIncident.dateCreated} />
         </div>
       );
     }
@@ -72,7 +78,7 @@ class RuleListRow extends React.Component<Props, State> {
     return (
       <div>
         {t('Resolved ')}
-        <TimeSince date={(rule as any).latestIncident.dateClosed} />
+        <TimeSince date={rule.latestIncident.dateClosed!} />
       </div>
     );
   }
@@ -80,29 +86,30 @@ class RuleListRow extends React.Component<Props, State> {
   renderAlertRuleStatus(): React.ReactNode {
     const {rule} = this.props;
 
+    if (isIssueAlert(rule)) {
+      return null;
+    }
+
     const activeIncident = this.activeIncident();
-    const criticalTrigger = (rule as any)?.triggers.find(
-      ({label}) => label === 'critical'
-    );
-    const warningTrigger = (rule as any)?.triggers.find(({label}) => label === 'warning');
-    // TODO: figure out what trigger is
+    const criticalTrigger = rule?.triggers.find(({label}) => label === 'critical');
+    const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
     const trigger =
-      activeIncident && (rule as any).latestIncident.status === IncidentStatus.CRITICAL
+      activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
         ? criticalTrigger
         : warningTrigger ?? criticalTrigger;
 
     let iconColor: Color = 'green300';
     if (activeIncident) {
       iconColor =
-        trigger.label === 'critical'
+        trigger?.label === 'critical'
           ? 'red300'
-          : trigger.label === 'warning'
+          : trigger?.label === 'warning'
           ? 'yellow300'
           : 'green300';
     }
 
     const thresholdTypeText =
-      activeIncident && (rule as any).thresholdType === AlertRuleThresholdType.ABOVE
+      activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
         ? t('Above')
         : t('Below');
 
@@ -111,12 +118,12 @@ class RuleListRow extends React.Component<Props, State> {
         <IconArrow
           color={iconColor}
           direction={
-            activeIncident && (rule as any).thresholdType === AlertRuleThresholdType.ABOVE
+            activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
               ? 'up'
               : 'down'
           }
         />
-        <TriggerText>{`${thresholdTypeText} ${trigger.alertThreshold}`}</TriggerText>
+        <TriggerText>{`${thresholdTypeText} ${trigger?.alertThreshold}`}</TriggerText>
       </FlexCenter>
     );
   }
@@ -163,7 +170,7 @@ class RuleListRow extends React.Component<Props, State> {
             <AlertNameWrapper isIncident={isIssueAlert(rule)}>
               <FlexCenter>
                 <AlertBadge
-                  status={(rule as any)?.latestIncident?.status}
+                  status={rule?.latestIncident?.status}
                   isIssue={isIssueAlert(rule)}
                   hideText
                 />
@@ -173,11 +180,7 @@ class RuleListRow extends React.Component<Props, State> {
                 {!isIssueAlert(rule) && this.renderLastIncidentDate()}
               </AlertNameAndStatus>
             </AlertNameWrapper>
-            {hasAlertList && (
-              <FlexCenter>
-                {!isIssueAlert(rule) && this.renderAlertRuleStatus()}
-              </FlexCenter>
-            )}
+            <FlexCenter>{this.renderAlertRuleStatus()}</FlexCenter>
           </React.Fragment>
         )}
 

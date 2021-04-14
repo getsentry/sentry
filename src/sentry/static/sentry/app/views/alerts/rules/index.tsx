@@ -19,13 +19,13 @@ import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, Project, Team} from 'app/types';
-import {IssueAlertRule} from 'app/types/alerts';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTeams from 'app/utils/withTeams';
 
 import AlertHeader from '../list/header';
+import {CombinedMetricIssueAlerts} from '../types';
 import {isIssueAlert} from '../utils';
 
 import Filter from './filter';
@@ -41,7 +41,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 };
 
 type State = {
-  ruleList?: IssueAlertRule[];
+  ruleList?: CombinedMetricIssueAlerts[];
 };
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
@@ -110,7 +110,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     });
   };
 
-  handleDeleteRule = async (projectId: string, rule: IssueAlertRule) => {
+  handleDeleteRule = async (projectId: string, rule: CombinedMetricIssueAlerts) => {
     const {params} = this.props;
     const {orgId} = params;
     const alertPath = isIssueAlert(rule) ? 'rules' : 'alert-rules';
