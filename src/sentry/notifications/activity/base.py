@@ -1,5 +1,5 @@
 import re
-from typing import Any, Mapping, MutableMapping, Set, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Set, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from django.core.urlresolvers import reverse
@@ -7,7 +7,15 @@ from django.utils.html import escape, mark_safe
 from django.utils.safestring import SafeString
 
 from sentry import options
-from sentry.models import Activity, GroupSubscription, ProjectOption, User, UserAvatar, UserOption
+from sentry.models import (
+    Activity,
+    Group,
+    GroupSubscription,
+    ProjectOption,
+    User,
+    UserAvatar,
+    UserOption,
+)
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -228,6 +236,33 @@ class ActivityNotification:
 
         return mark_safe(description.format(**context))
 
+    def get_unsubscribe_link(self, user_id: int, group_id: int) -> str:
+        return generate_signed_link(
+            user_id,
+            "sentry-account-email-unsubscribe-issue",
+            kwargs={"issue_id": group_id},
+        )
+
+    def update_user_context_from_group(
+        self,
+        user: User,
+        reason: int,
+        context: MutableMapping[str, Any],
+        group: Optional[Group],
+    ) -> Mapping[str, Any]:
+        if group:
+            context.update(
+                {
+                    "reason": GroupSubscriptionReason.descriptions.get(
+                        reason, "are subscribed to this issue"
+                    ),
+                    "unsubscribe_link": self.get_unsubscribe_link(user.id, group.id),
+                }
+            )
+        user_context = self.get_user_context(user)
+        user_context.update(context)
+        return user_context
+
     def send(self) -> None:
         if not self.should_email():
             return
@@ -251,25 +286,7 @@ class ActivityNotification:
         for provider, participants in participants_by_provider.items():
             if provider == ExternalProviders.EMAIL:
                 for user, reason in participants.items():
-                    if group:
-                        context.update(
-                            {
-                                "reason": GroupSubscriptionReason.descriptions.get(
-                                    reason, "are subscribed to this issue"
-                                ),
-                                "unsubscribe_link": generate_signed_link(
-                                    user.id,
-                                    "sentry-account-email-unsubscribe-issue",
-                                    kwargs={"issue_id": group.id},
-                                ),
-                            }
-                        )
-                    user_context = self.get_user_context(user)
-                    if user_context:
-                        user_context.update(context)
-                    else:
-                        user_context = context
-
+                    user_context = self.update_user_context_from_group(user, reason, context, group)
                     msg = MessageBuilder(
                         subject=self.get_subject_with_prefix(),
                         template=template,
