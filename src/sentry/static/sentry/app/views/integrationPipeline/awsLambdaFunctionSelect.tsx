@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import reduce from 'lodash/reduce';
-import {computed} from 'mobx';
+import {computed, makeObservable} from 'mobx';
 import {Observer} from 'mobx-react';
 
 import List from 'app/components/list';
@@ -35,6 +35,11 @@ type State = {
 const getLabel = (func: LambdaFunction) => func.FunctionName;
 
 export default class AwsLambdaFunctionSelect extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    makeObservable(this);
+  }
+
   state = {
     submitting: false,
   };
