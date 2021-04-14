@@ -51,6 +51,10 @@ class DataExportQuerySerializer(serializers.Serializer):
                 detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 raise serializers.ValidationError(detail)
 
+            if "query" not in query_info:
+                detail = "query is a required to export, please pass an empty string if you don't want to set one"
+                raise serializers.ValidationError(detail)
+
             query_info["field"] = fields
 
             if "project" not in query_info:
