@@ -109,8 +109,6 @@ class AlertRuleDetails extends React.Component<Props, State> {
 
     this.setState({isLoading: true, hasError: false});
 
-    fetchOrgMembers(api, orgId);
-
     if (location.query.alert) {
       await fetchIncident(api, orgId, location.query.alert)
         .then(incident => this.setState({selectedIncident: incident}))
