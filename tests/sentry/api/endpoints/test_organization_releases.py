@@ -1076,7 +1076,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                 ],
                 "projects": [project2.slug],
             },
-            HTTP_AUTHORIZATION=u"Bearer {}".format(api_token.token),
+            HTTP_AUTHORIZATION=f"Bearer {api_token.token}",
         )
 
         assert response.status_code == 400
