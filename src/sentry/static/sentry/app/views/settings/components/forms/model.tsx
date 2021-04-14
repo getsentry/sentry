@@ -1,5 +1,5 @@
 import isEqual from 'lodash/isEqual';
-import {action, computed, observable, ObservableMap} from 'mobx';
+import {action, computed, makeObservable, observable, ObservableMap} from 'mobx';
 
 import {addErrorMessage, saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
 import {APIRequestMethod, Client} from 'app/api';
@@ -84,6 +84,8 @@ class FormModel {
   options: FormOptions;
 
   constructor({initialData, apiOptions, ...options}: OptionsWithInitial = {}) {
+    makeObservable(this);
+
     this.options = options ?? {};
 
     if (initialData) {
@@ -115,7 +117,7 @@ class FormModel {
    */
   @computed
   get formChanged() {
-    return !isEqual(this.initialData, this.fields.toJSON());
+    return !isEqual(this.initialData, Object.fromEntries(this.fields.toJSON()));
   }
 
   @computed
@@ -142,7 +144,7 @@ class FormModel {
    */
   setInitialData(initialData?: object) {
     this.fields.replace(initialData || {});
-    this.initialData = this.fields.toJSON() || {};
+    this.initialData = Object.fromEntries(this.fields.toJSON()) || {};
 
     this.snapshots = [new Map(this.fields.entries())];
   }
@@ -238,7 +240,7 @@ class FormModel {
    * Data represented in UI
    */
   getData() {
-    return this.fields.toJSON();
+    return Object.fromEntries(this.fields.toJSON());
   }
 
   /**

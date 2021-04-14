@@ -367,12 +367,16 @@ class FormField<P extends {} = {}> extends React.Component<Props<P>> {
               {() => {
                 const error = this.getError();
                 const value = model.getValue(name);
-                return (
-                  ((typeof props.visible === 'function'
+
+                const isVisible =
+                  typeof props.visible === 'function'
                     ? props.visible({...this.props, ...props} as ResolvedProps<P>)
-                    : true) &&
-                    selectionInfoFunction({...props, error, value})) ||
-                  null
+                    : true;
+
+                return (
+                  <React.Fragment>
+                    {isVisible ? selectionInfoFunction({...props, error, value}) : null}
+                  </React.Fragment>
                 );
               }}
             </Observer>

@@ -19,7 +19,7 @@ module.exports = {
     // here. Decorators must be processed first before class properties, see:
     // https://babeljs.io/docs/en/plugins#plugin-ordering
     ['@babel/plugin-proposal-decorators', {legacy: true}],
-    ['@babel/plugin-proposal-class-properties', {loose: true}],
+    '@babel/plugin-proposal-class-properties',
   ],
   env: {
     production: {
