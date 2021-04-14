@@ -42,13 +42,14 @@ const UnassignedWrapper = styled('div')`
 const StyledIconUser = styled(IconUser)`
   margin-left: ${space(0.25)};
   margin-right: ${space(1)};
+  color: ${p => p.theme.gray400};
 `;
 
 const unassignedOption = {
   value: null,
   label: (
     <UnassignedWrapper>
-      <StyledIconUser size="20px" color="gray400" />
+      <StyledIconUser size="20px" />
       {t('Unassigned')}
     </UnassignedWrapper>
   ),
@@ -388,7 +389,15 @@ class SelectMembers extends React.Component<Props, State> {
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
         value={this.state.options?.find(({value}) => value === this.props.value)}
-        styles={styles}
+        styles={{
+          styles,
+          option: (provided, state: any) => ({
+            ...provided,
+            svg: {
+              color: state.isSelected ? 'white' : p => p.theme.gray400,
+            },
+          }),
+        }}
       />
     );
   }
