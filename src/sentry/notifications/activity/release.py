@@ -20,7 +20,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.notifications.helpers import (
-    get_values_by_provider,
+    get_deploy_values_by_provider,
     transform_to_notification_settings_by_user,
 )
 from sentry.notifications.types import (
@@ -147,7 +147,7 @@ class ReleaseActivityNotification(ActivityNotification):
         ] = defaultdict(dict)
         for user in users:
             notification_settings_by_scope = notification_settings_by_user.get(user, {})
-            values_by_provider = get_values_by_provider(notification_settings_by_scope)
+            values_by_provider = get_deploy_values_by_provider(notification_settings_by_scope)
             for provider, value in values_by_provider.items():
                 reason_option = self.get_reason(user, value)
                 if reason_option:

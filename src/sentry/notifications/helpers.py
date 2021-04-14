@@ -95,7 +95,7 @@ def where_should_be_participating(
     ]
 
 
-def get_values_by_provider(
+def get_deploy_values_by_provider(
     notification_settings_by_scope: Mapping[
         NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]
     ]
