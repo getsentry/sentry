@@ -164,6 +164,11 @@ class GroupTest(TestCase, SnubaTestCase):
 
         assert group2 == group
 
+        with self.assertRaises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id(
+                group.organization.id, "server_name:my-server-with-dashes-0ac14dadda3b428cf"
+            )
+
         group.update(status=GroupStatus.PENDING_DELETION)
         with self.assertRaises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id(group.organization.id, short_id)

@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
@@ -10,6 +11,7 @@ import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
+import {decodeScalar} from 'app/utils/queryString';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
@@ -228,7 +230,7 @@ export function filterToField(option: SpanOperationBreakdownFilter) {
     case SpanOperationBreakdownFilter.None:
       return undefined;
     default: {
-      return `span_op_breakdowns.ops.${option}`;
+      return `spans.${option}`;
     }
   }
 }
@@ -251,6 +253,30 @@ export function filterToColour(option: SpanOperationBreakdownFilter) {
       return pickSpanBarColour(option);
     }
   }
+}
+
+export function stringToFilter(option: string) {
+  if (
+    Object.values(SpanOperationBreakdownFilter).includes(
+      option as SpanOperationBreakdownFilter
+    )
+  ) {
+    return option as SpanOperationBreakdownFilter;
+  }
+
+  return SpanOperationBreakdownFilter.None;
+}
+
+export function decodeFilterFromLocation(location: Location) {
+  return stringToFilter(
+    decodeScalar(location.query.breakdown, SpanOperationBreakdownFilter.None)
+  );
+}
+
+export function filterToLocationQuery(option: SpanOperationBreakdownFilter) {
+  return {
+    breakdown: option as string,
+  };
 }
 
 export default Filter;

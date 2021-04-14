@@ -18,6 +18,9 @@ from sentry.utils.db import attach_foreignkey
 
 @register(AlertRule)
 class AlertRuleSerializer(Serializer):
+    def __init__(self, expand=None):
+        self.expand = expand or []
+
     def get_attrs(self, item_list, user, **kwargs):
         alert_rules = {item.id: item for item in item_list}
         attach_foreignkey(item_list, AlertRule.snuba_query, related=("environment",))
@@ -69,6 +72,16 @@ class AlertRuleSerializer(Serializer):
                 type = actor_type_to_string(alert_rule.owner.type)
                 result[alert_rule]["owner"] = f"{type}:{resolved_actors[type][alert_rule.owner_id]}"
 
+        if "original_alert_rule" in self.expand:
+            snapshot_activities = AlertRuleActivity.objects.filter(
+                alert_rule__in=item_list,
+                type=AlertRuleActivityType.SNAPSHOT.value,
+            )
+            for activity in snapshot_activities:
+                result[alert_rules[activity.alert_rule_id]][
+                    "originalAlertRuleId"
+                ] = activity.previous_alert_rule_id
+
         return result
 
     def serialize(self, obj, attrs, user):
@@ -95,6 +108,7 @@ class AlertRuleSerializer(Serializer):
             "projects": sorted(attrs.get("projects", [])),
             "includeAllProjects": obj.include_all_projects,
             "owner": attrs.get("owner", None),
+            "originalAlertRuleId": attrs.get("originalAlertRuleId", None),
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),

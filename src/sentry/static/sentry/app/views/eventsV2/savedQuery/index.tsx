@@ -177,7 +177,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     handleUpdateQuery(api, organization, eventView).then((savedQuery: SavedQuery) => {
       const view = EventView.fromSavedQuery(savedQuery);
       this.setState({queryName: ''});
-      browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
+      browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
       updateCallback();
     });
   };
