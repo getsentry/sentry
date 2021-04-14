@@ -63,8 +63,7 @@ class ActivityNotification:
         }
         if (
             providers
-            and UserOption.objects.get_value(user=user, key="self_notifications", default="0")
-            == "1"
+            and UserOption.objects.get_value(user, key="self_notifications", default="0") == "0"
         ):
             return providers
         return set()
@@ -77,7 +76,7 @@ class ActivityNotification:
         participants_by_provider = GroupSubscription.objects.get_participants(self.group)
         user_option = self.activity.user
         if user_option:
-            # Remove the actor that created the activity from the recipients list.
+            # Optionally remove the actor that created the activity from the recipients list.
             providers = self.get_providers_from_which_to_remove_user(
                 user_option, participants_by_provider
             )
