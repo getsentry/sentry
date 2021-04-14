@@ -21,12 +21,12 @@ import {AvatarProject, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
 import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
-import {TimePeriodType} from 'app/views/alerts/rules/details/body';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
+import {TimePeriodType} from './constants';
 
 const X_AXIS_BOUNDARY_GAP = 20;
 const VERTICAL_PADDING = 22;
@@ -399,7 +399,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         query={query}
         environment={rule.environment ? [rule.environment] : undefined}
         project={(projects as Project[])
-          .filter(p => p && p.slug)
+          .filter(p => p && p.slug).filter(p => p && p.slug)
           .map(project => Number(project.id))}
         interval={interval}
         start={viableStartDate}
@@ -415,7 +415,6 @@ class MetricChart extends React.PureComponent<Props, State> {
           }
 
           const series: LineChartSeries[] = [...timeseriesData];
-
           // Ensure series data appears above incident lines
           series[0].z = 100;
           const dataArr = timeseriesData[0].data;

@@ -38,18 +38,10 @@ import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/u
 
 import {Incident, IncidentStatus} from '../../types';
 
-import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS} from './constants';
+import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
-
-export type TimePeriodType = {
-  start: string;
-  end: string;
-  period: string;
-  label: string;
-  custom?: boolean;
-};
 
 type Props = {
   api: Client;
