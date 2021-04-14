@@ -597,10 +597,8 @@ class CombinedQuerysetPaginator:
                 annotate[key] = Lower(intermediary.order_by[0])
 
             if asc:
-                # order_by = key
                 filter_condition = f"{key}__gte"
             else:
-                # order_by = f"-{key}"
                 filter_condition = f"{key}__lte"
 
             if value is not None:
