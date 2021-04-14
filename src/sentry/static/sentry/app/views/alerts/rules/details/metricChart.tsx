@@ -26,6 +26,7 @@ import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
+
 import {TimePeriodType} from './constants';
 
 const X_AXIS_BOUNDARY_GAP = 20;
@@ -399,7 +400,8 @@ class MetricChart extends React.PureComponent<Props, State> {
         query={query}
         environment={rule.environment ? [rule.environment] : undefined}
         project={(projects as Project[])
-          .filter(p => p && p.slug).filter(p => p && p.slug)
+          .filter(p => p && p.slug)
+          .filter(p => p && p.slug)
           .map(project => Number(project.id))}
         interval={interval}
         start={viableStartDate}
