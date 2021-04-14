@@ -58,16 +58,16 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
             organization=self.org, name="Mariachi Band", members=[self.user]
         )
         self.frontend_project = self.create_project(
-            organization=self.org, teams=[self.team], name="Frontend"
+            organization=self.org, teams=[self.team], name="Frontend", platform="javascript"
         )
         self.backend_project = self.create_project(
-            organization=self.org, teams=[self.team], name="Backend"
+            organization=self.org, teams=[self.team], name="Backend", platform="python"
         )
         self.service_project = self.create_project(
-            organization=self.org, teams=[self.team], name="Service"
+            organization=self.org, teams=[self.team], name="Service", platform="go"
         )
         self.task_project = self.create_project(
-            organization=self.org, teams=[self.team], name="Task"
+            organization=self.org, teams=[self.team], name="Task", platform="rust"
         )
         self.login_as(self.user)
 
@@ -193,4 +193,5 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
+            self.browser.elements('[data-test-id="transaction-row-title"]')[1].click()
             self.browser.snapshot("performance trace view - with data")
