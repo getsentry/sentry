@@ -2,6 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {Organization, Project, Team} from 'app/types';
+import {metric} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import withTeams from 'app/utils/withTeams';
 import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
@@ -36,6 +37,7 @@ class IncidentRulesCreate extends React.Component<Props> {
     const {router} = this.props;
     const {orgId} = this.props.params;
 
+    metric.endTransaction({name: 'saveAlertRule'});
     router.push(`/organizations/${orgId}/alerts/rules/`);
   };
 
