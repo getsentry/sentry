@@ -73,7 +73,7 @@ class SentryAppFormModel extends FormModel {
    * ultimately sent to the API.
    */
   getData() {
-    return Object.entries(this.fields.toJSON()).reduce((data, [k, v]) => {
+    return this.fields.toJSON().reduce((data, [k, v]) => {
       if (!k.endsWith('--permission')) {
         data[k] = v;
       }

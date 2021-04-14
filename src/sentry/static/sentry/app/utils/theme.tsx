@@ -305,6 +305,15 @@ const tag = {
   },
 };
 
+const level = {
+  sample: colors.purple300,
+  info: colors.blue300,
+  warning: colors.yellow300,
+  error: colors.orange400,
+  fatal: colors.red300,
+  default: colors.gray300,
+};
+
 const generateButtonTheme = alias => ({
   borderRadius: '3px',
 
@@ -504,6 +513,8 @@ const commonTheme = {
   },
 
   tag,
+
+  level,
 
   charts: {
     colors: CHART_PALETTE[CHART_PALETTE.length - 1],

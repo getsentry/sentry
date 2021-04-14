@@ -1,4 +1,5 @@
 import datetime
+import re
 import unittest
 from datetime import timedelta
 
@@ -61,8 +62,8 @@ def test_get_json_meta_type():
     assert get_json_meta_type("count_thing", "Nullable(String)") == "string"
     assert get_json_meta_type("measurements.size", "Float64") == "number"
     assert get_json_meta_type("measurements.fp", "Float64") == "duration"
-    assert get_json_meta_type("span_op_breakdowns.ops.browser", "Float64") == "duration"
-    assert get_json_meta_type("span_op_breakdowns.total.time", "Float64") == "duration"
+    assert get_json_meta_type("spans.browser", "Float64") == "duration"
+    assert get_json_meta_type("spans.total.time", "Float64") == "duration"
     assert (
         get_json_meta_type(
             "percentile_measurements_fp_0_5",
@@ -89,24 +90,24 @@ def test_get_json_meta_type():
     )
     assert (
         get_json_meta_type(
-            "percentile_span_op_breakdowns_fp_0_5",
+            "percentile_spans_fp_0_5",
             "Nullable(Float64)",
             FunctionDetails(
-                "percentile(span_op_breakdowns.fp, 0.5)",
+                "percentile(spans.fp, 0.5)",
                 FUNCTIONS["percentile"],
-                {"column": "span_op_breakdowns.fp", "percentile": 0.5},
+                {"column": "spans.fp", "percentile": 0.5},
             ),
         )
         == "duration"
     )
     assert (
         get_json_meta_type(
-            "percentile_span_op_breakdowns_foo_0_5",
+            "percentile_spans_foo_0_5",
             "Nullable(Float64)",
             FunctionDetails(
-                "percentile(span_op_breakdowns.foo, 0.5)",
+                "percentile(spans.foo, 0.5)",
                 FUNCTIONS["percentile"],
-                {"column": "span_op_breakdowns.foo", "percentile": 0.5},
+                {"column": "spans.foo", "percentile": 0.5},
             ),
         )
         == "duration"
@@ -125,9 +126,9 @@ def test_parse_function():
         None,
     )
     assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"], None)
-    assert parse_function("p75(span_op_breakdowns.ops.http)") == (
+    assert parse_function("p75(spans.http)") == (
         "p75",
-        ["span_op_breakdowns.ops.http"],
+        ["spans.http"],
         None,
     )
     assert parse_function("apdex(300)") == ("apdex", ["300"], None)
@@ -137,9 +138,9 @@ def test_parse_function():
         ["measurements_value", "1", "0", "1"],
         None,
     )
-    assert parse_function("histogram(span_op_breakdowns_value, 1,0,1)") == (
+    assert parse_function("histogram(spans_value, 1,0,1)") == (
         "histogram",
-        ["span_op_breakdowns_value", "1", "0", "1"],
+        ["spans_value", "1", "0", "1"],
         None,
     )
     assert parse_function("count_unique(transaction.status)") == (
@@ -1194,41 +1195,41 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_numeric_aggregate_op_breakdowns_filter(self):
-        assert parse_search_query("min(span_op_breakdowns.ops.browser):3.1415") == [
+        assert parse_search_query("min(spans.browser):3.1415") == [
             SearchFilter(
-                key=SearchKey(name="min(span_op_breakdowns.ops.browser)"),
+                key=SearchKey(name="min(spans.browser)"),
                 operator="=",
                 value=SearchValue(raw_value=3.1415),
             )
         ]
 
-        assert parse_search_query("min(span_op_breakdowns.ops.browser):>3.1415") == [
+        assert parse_search_query("min(spans.browser):>3.1415") == [
             SearchFilter(
-                key=SearchKey(name="min(span_op_breakdowns.ops.browser)"),
+                key=SearchKey(name="min(spans.browser)"),
                 operator=">",
                 value=SearchValue(raw_value=3.1415),
             )
         ]
 
-        assert parse_search_query("min(span_op_breakdowns.ops.browser):<3.1415") == [
+        assert parse_search_query("min(spans.browser):<3.1415") == [
             SearchFilter(
-                key=SearchKey(name="min(span_op_breakdowns.ops.browser)"),
+                key=SearchKey(name="min(spans.browser)"),
                 operator="<",
                 value=SearchValue(raw_value=3.1415),
             )
         ]
 
-        assert parse_search_query("min(span_op_breakdowns.ops.browser):<3k") == [
+        assert parse_search_query("min(spans.browser):<3k") == [
             SearchFilter(
-                key=SearchKey(name="min(span_op_breakdowns.ops.browser)"),
+                key=SearchKey(name="min(spans.browser)"),
                 operator="<",
                 value=SearchValue(raw_value=3000.0),
             )
         ]
 
-        assert parse_search_query("min(span_op_breakdowns.ops.browser):2m") == [
+        assert parse_search_query("min(spans.browser):2m") == [
             SearchFilter(
-                key=SearchKey(name="min(span_op_breakdowns.ops.browser)"),
+                key=SearchKey(name="min(spans.browser)"),
                 operator="=",
                 value=SearchValue(raw_value=120000.0),
             )
@@ -1266,25 +1267,25 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_duration_op_breakdowns_filter(self):
-        assert parse_search_query("span_op_breakdowns.ops.browser:1.5s") == [
+        assert parse_search_query("spans.browser:1.5s") == [
             SearchFilter(
-                key=SearchKey(name="span_op_breakdowns.ops.browser"),
+                key=SearchKey(name="spans.browser"),
                 operator="=",
                 value=SearchValue(raw_value=1500),
             )
         ]
 
-        assert parse_search_query("span_op_breakdowns.ops.browser:>1.5s") == [
+        assert parse_search_query("spans.browser:>1.5s") == [
             SearchFilter(
-                key=SearchKey(name="span_op_breakdowns.ops.browser"),
+                key=SearchKey(name="spans.browser"),
                 operator=">",
                 value=SearchValue(raw_value=1500),
             )
         ]
 
-        assert parse_search_query("span_op_breakdowns.ops.browser:<1.5s") == [
+        assert parse_search_query("spans.browser:<1.5s") == [
             SearchFilter(
-                key=SearchKey(name="span_op_breakdowns.ops.browser"),
+                key=SearchKey(name="spans.browser"),
                 operator="<",
                 value=SearchValue(raw_value=1500),
             )
@@ -1316,25 +1317,25 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_duration_aggregate_op_breakdowns_filter(self):
-        assert parse_search_query("percentile(span_op_breakdowns.ops.browser, 0.5):3.3s") == [
+        assert parse_search_query("percentile(spans.browser, 0.5):3.3s") == [
             SearchFilter(
-                key=SearchKey(name="percentile(span_op_breakdowns.ops.browser, 0.5)"),
+                key=SearchKey(name="percentile(spans.browser, 0.5)"),
                 operator="=",
                 value=SearchValue(raw_value=3300),
             )
         ]
 
-        assert parse_search_query("percentile(span_op_breakdowns.ops.browser, 0.5):>3.3s") == [
+        assert parse_search_query("percentile(spans.browser, 0.5):>3.3s") == [
             SearchFilter(
-                key=SearchKey(name="percentile(span_op_breakdowns.ops.browser, 0.5)"),
+                key=SearchKey(name="percentile(spans.browser, 0.5)"),
                 operator=">",
                 value=SearchValue(raw_value=3300),
             )
         ]
 
-        assert parse_search_query("percentile(span_op_breakdowns.ops.browser, 0.5):<3.3s") == [
+        assert parse_search_query("percentile(spans.browser, 0.5):<3.3s") == [
             SearchFilter(
-                key=SearchKey(name="percentile(span_op_breakdowns.ops.browser, 0.5)"),
+                key=SearchKey(name="percentile(spans.browser, 0.5)"),
                 operator="<",
                 value=SearchValue(raw_value=3300),
             )
@@ -1947,7 +1948,9 @@ class ParseBooleanSearchQueryTest(TestCase):
         project3 = self.create_project()
         with self.assertRaisesRegexp(
             InvalidSearchQuery,
-            f"Project {project3.slug} does not exist or is not an actively selected project.",
+            re.escape(
+                f"Invalid query. Project(s) {str(project3.slug)} do not exist or are not actively selected."
+            ),
         ):
             get_filter(
                 f"project:{project1.slug} OR project:{project3.slug}",
@@ -2098,6 +2101,38 @@ class GetSnubaQueryArgsTest(TestCase):
 
         assert get_filter("tags[project_id]:123").conditions == [
             [["ifNull", ["tags[project_id]", "''"]], "=", "123"]
+        ]
+
+    def test_in_syntax(self):
+        project_2 = self.create_project()
+        group = self.create_group(project=self.project, short_id=self.project.next_short_id())
+        group_2 = self.create_group(project=project_2, short_id=self.project.next_short_id())
+        assert (
+            get_filter(
+                f"project.name:[{self.project.slug}, {project_2.slug}]",
+                params={"project_id": [self.project.id, project_2.id]},
+            ).conditions
+            == [["project_id", "IN", [project_2.id, self.project.id]]]
+        )
+        assert (
+            get_filter(
+                f"issue:[{group.qualified_short_id}, {group_2.qualified_short_id}]",
+                params={"organization_id": self.project.organization_id},
+            ).conditions
+            == [["issue.id", "IN", [group.id, group_2.id]]]
+        )
+        assert (
+            get_filter(
+                f"issue:[{group.qualified_short_id}, unknown]",
+                params={"organization_id": self.project.organization_id},
+            ).conditions
+            == [[["coalesce", ["issue.id", 0]], "IN", [0, group.id]]]
+        )
+        assert get_filter("environment:[prod, dev]").conditions == [
+            [["environment", "IN", {"prod", "dev"}]]
+        ]
+        assert get_filter("random_tag:[what, hi]").conditions == [
+            [["ifNull", ["random_tag", "''"]], "IN", ["what", "hi"]]
         ]
 
     def test_no_search(self):
@@ -2402,7 +2437,7 @@ class GetSnubaQueryArgsTest(TestCase):
         exc = exc_info.value
         exc_str = f"{exc}"
         assert (
-            f"Invalid query. Project {p1.slug} does not exist or is not an actively selected project"
+            f"Invalid query. Project(s) {p1.slug} do not exist or are not actively selected."
             in exc_str
         )
 
@@ -2575,6 +2610,13 @@ class GetSnubaQueryArgsTest(TestCase):
         # When organization id isn't included, project_id should unfortunately be an object
         result = get_filter("release:latest", params={"project_id": [self.project]})
         assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+
+        release_2 = self.create_release(self.project)
+
+        result = get_filter("release:[latest]", params={"project_id": [self.project]})
+        assert result.conditions == [["release", "IN", [release_2.version]]]
+        result = get_filter("release:[latest,1]", params={"project_id": [self.project]})
+        assert result.conditions == [["release", "IN", [release_2.version, "1"]]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
@@ -2926,7 +2968,7 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_stddev_function(self):
         fields = [
             "stddev(measurements.fcp)",
-            "stddev(span_op_breakdowns.ops.browser)",
+            "stddev(spans.browser)",
             "stddev(transaction.duration)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
@@ -2934,8 +2976,8 @@ class ResolveFieldListTest(unittest.TestCase):
             ["stddevSamp", "measurements.fcp", "stddev_measurements_fcp"],
             [
                 "stddevSamp",
-                "span_op_breakdowns.ops.browser",
-                "stddev_span_op_breakdowns_ops_browser",
+                "spans.browser",
+                "stddev_spans_browser",
             ],
             ["stddevSamp", "transaction.duration", "stddev_transaction_duration"],
         ]
@@ -3437,7 +3479,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "measurements.lcp",
             "measurements.fid",
             "measurements.bar",
-            "span_op_breakdowns.ops.browser",
+            "spans.browser",
         ]
 
         for column in columns:
@@ -3619,8 +3661,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "avg(measurements.foo)",
             "percentile(measurements.fcp, 0.5)",
             "stddev(measurements.foo)",
-            "percentile(span_op_breakdowns.ops.browser, 0.5)",
-            "avg(span_op_breakdowns.total.time)",
+            "percentile(spans.browser, 0.5)",
+            "avg(spans.total.time)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         functions = result["functions"]
@@ -3646,18 +3688,14 @@ class ResolveFieldListTest(unittest.TestCase):
         assert functions["stddev_measurements_foo"].instance.name == "stddev"
         assert functions["stddev_measurements_foo"].arguments == {"column": "measurements.foo"}
 
-        assert (
-            functions["percentile_span_op_breakdowns_ops_browser_0_5"].instance.name == "percentile"
-        )
-        assert functions["percentile_span_op_breakdowns_ops_browser_0_5"].arguments == {
-            "column": "span_op_breakdowns.ops.browser",
+        assert functions["percentile_spans_browser_0_5"].instance.name == "percentile"
+        assert functions["percentile_spans_browser_0_5"].arguments == {
+            "column": "spans.browser",
             "percentile": 0.5,
         }
 
-        assert functions["avg_span_op_breakdowns_total_time"].instance.name == "avg"
-        assert functions["avg_span_op_breakdowns_total_time"].arguments == {
-            "column": "span_op_breakdowns.total.time"
-        }
+        assert functions["avg_spans_total_time"].instance.name == "avg"
+        assert functions["avg_spans_total_time"].arguments == {"column": "spans.total.time"}
 
     def test_to_other_function_basic(self):
         fields = [
@@ -3773,13 +3811,13 @@ class ResolveFieldListTest(unittest.TestCase):
             ["last_seen()", "timestamp"],
             ["avg(measurements.lcp)", "measurements.lcp"],
             ["stddev(measurements.lcp)", "measurements.lcp"],
-            ["avg(span_op_breakdowns.ops.browser)", "span_op_breakdowns.ops.browser"],
-            ["stddev(span_op_breakdowns.ops.browser)", "span_op_breakdowns.ops.browser"],
+            ["avg(spans.browser)", "spans.browser"],
+            ["stddev(spans.browser)", "spans.browser"],
             ["min(timestamp)", "timestamp"],
             ["max(timestamp)", "timestamp"],
             ["p95()", "transaction.duration"],
             ["any(measurements.fcp)", "measurements.fcp"],
-            ["any(span_op_breakdowns.ops.browser)", "span_op_breakdowns.ops.browser"],
+            ["any(spans.browser)", "spans.browser"],
         ]
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as error:

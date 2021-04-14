@@ -74,6 +74,7 @@ export type SavedIncidentRule = UnsavedIncidentRule & {
   status: number;
   name: string;
   createdBy?: {id: number; email: string; name: string} | null;
+  originalAlertRuleId?: number | null;
 };
 
 export type IncidentRule = Partial<SavedIncidentRule> & UnsavedIncidentRule;
