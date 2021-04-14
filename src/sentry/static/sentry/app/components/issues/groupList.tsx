@@ -25,7 +25,6 @@ import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
 
 import GroupListHeader from './groupListHeader';
 
-
 const defaultProps = {
   canSelectGroups: true,
   withChart: true,
