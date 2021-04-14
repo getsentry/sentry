@@ -33,6 +33,7 @@ from sentry.models import (
     CommitAuthor,
     CommitFileChange,
     File,
+    Organization,
     Project,
     ProjectKey,
     Release,
@@ -408,12 +409,12 @@ def update_context(event, trace=None):
 
 class DataPopulation:
     """
-    This class is used to populate data for a single organizationo
+    This class is used to populate data for a single organization
     """
 
-    def __init__(self, quick, org):
-        self.quick = quick
+    def __init__(self, org: Organization, quick: bool):
         self.org = org
+        self.quick = quick
 
     def get_config(self):
         """
@@ -1100,5 +1101,5 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     """
     Handles all data population for the React + Python scenario
     """
-    data_population = DataPopulation(quick, python_project.organization)
+    data_population = DataPopulation(python_project.organization, quick)
     data_population.handle_react_python_scenario(react_project, python_project)
