@@ -63,15 +63,22 @@ type State = {
 
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {params, location} = this.props;
+    const {params, location, organization} = this.props;
     const {query} = location;
     const status = getQueryStatus(query.status);
+    const incidentsQuery = {
+      ...query,
+      ...(organization.features.includes('alert-details-redesign')
+        ? {expand: ['original_alert_rule']}
+        : {}),
+      status,
+    };
 
     return [
       [
         'incidentList',
         `/organizations/${params && params.orgId}/incidents/`,
-        {query: {...query, status}},
+        {query: incidentsQuery},
       ],
     ];
   }

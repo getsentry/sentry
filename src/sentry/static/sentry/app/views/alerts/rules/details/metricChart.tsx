@@ -398,7 +398,9 @@ class MetricChart extends React.PureComponent<Props, State> {
         organization={organization}
         query={query}
         environment={rule.environment ? [rule.environment] : undefined}
-        project={(projects as Project[]).map(project => Number(project.id))}
+        project={(projects as Project[])
+          .filter(p => p && p.slug)
+          .map(project => Number(project.id))}
         interval={interval}
         start={viableStartDate}
         end={timePeriod.end}
@@ -413,6 +415,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           }
 
           const series: LineChartSeries[] = [...timeseriesData];
+
           // Ensure series data appears above incident lines
           series[0].z = 100;
           const dataArr = timeseriesData[0].data;

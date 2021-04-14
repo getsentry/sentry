@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.incidents.models import (
     Incident,
     IncidentActivity,
@@ -28,7 +29,11 @@ class IncidentSerializer(Serializer):
 
         alert_rules = {
             d["id"]: d
-            for d in serialize({i.alert_rule for i in item_list if i.alert_rule.id}, user)
+            for d in serialize(
+                {i.alert_rule for i in item_list if i.alert_rule.id},
+                user,
+                AlertRuleSerializer(expand=self.expand),
+            )
         }
 
         results = {}

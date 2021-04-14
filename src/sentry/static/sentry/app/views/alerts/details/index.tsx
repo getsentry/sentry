@@ -13,7 +13,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
 
-import {Incident, IncidentStats, IncidentStatus} from '../types';
+import {AlertRuleStatus, Incident, IncidentStats, IncidentStatus} from '../types';
 import {
   fetchIncident,
   fetchIncidentStats,
@@ -75,7 +75,12 @@ class IncidentDetails extends React.Component<Props, State> {
           location && location.query && location.query.redirect === 'false';
         if (hasRedesign && !stopRedirect) {
           browserHistory.replace({
-            pathname: `/organizations/${orgId}/alerts/rules/details/${incident.alertRule?.id}/`,
+            pathname: `/organizations/${orgId}/alerts/rules/details/${
+              incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+              incident.alertRule.originalAlertRuleId
+                ? incident.alertRule.originalAlertRuleId
+                : incident.alertRule.id
+            }/`,
             query: makeRuleDetailsQuery(incident),
           });
         }
