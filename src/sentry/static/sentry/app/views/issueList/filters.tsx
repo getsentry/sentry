@@ -1,7 +1,6 @@
 import React from 'react';
 import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import PageHeading from 'app/components/pageHeading';
@@ -40,10 +39,6 @@ type Props = {
 };
 
 class IssueListFilters extends React.Component<Props> {
-  static contextTypes = {
-    location: PropTypes.object,
-  };
-
   handleSavedSearchSelect = (savedSearch: SavedSearch) => {
     trackAnalyticsEvent({
       eventKey: 'organization_saved_search.selected',

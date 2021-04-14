@@ -117,10 +117,8 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <Filters>
-        <span>
-          {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
-        </span>
-        <span>{rule?.query && <code>{rule?.query}</code>}</span>
+        <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>&nbsp;&nbsp;
+        {rule.query && <code>{rule.query}</code>}
       </Filters>
     );
   }
@@ -519,8 +517,7 @@ const RuleText = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-const Filters = styled('div')`
-  display: inline-flex;
+const Filters = styled('span')`
   width: 100%;
   overflow-wrap: break-word;
   font-size: ${p => p.theme.fontSizeMedium};

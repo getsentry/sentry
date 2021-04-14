@@ -106,6 +106,9 @@ def _do_process_event(message, projects):
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
 
+    if project_id == settings.SENTRY_PROJECT:
+        metrics.incr("internal.captured.ingest_consumer.unparsed")
+
     # check that we haven't already processed this event (a previous instance of the forwarder
     # died before it could commit the event queue offset)
     #
@@ -146,6 +149,12 @@ def _do_process_event(message, projects):
     # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
     # which assumes that data passed in is a raw dictionary.
     data = json.loads(payload)
+
+    if project_id == settings.SENTRY_PROJECT:
+        metrics.incr(
+            "internal.captured.ingest_consumer.parsed",
+            tags={"event_type": data.get("type") or "null"},
+        )
 
     cache_key = event_processing_store.store(data)
 
