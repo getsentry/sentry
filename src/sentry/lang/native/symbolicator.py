@@ -413,11 +413,13 @@ class SymbolicatorSession:
             for candidate in module.get("candidates") or ():
                 # Reverse internal source aliases from the response.
                 source_id = candidate["source"]
-                if source_id in self.reverse_source_aliases:
-                    candidate["source"] = source_id = self.reverse_source_aliases[source_id]
+                original_source_id = self.reverse_source_aliases.get(source_id)
+                if original_source_id is not None:
+                    candidate["source"] = original_source_id
+                    source_id = original_source_id
 
                 # Add a "source_name" field to save the UI a lookup.
-                candidate["source_name"] = self.source_names.get(candidate["source"], "unknown")
+                candidate["source_name"] = self.source_names.get(source_id, "unknown")
 
         redact_internal_sources(json)
         return json
