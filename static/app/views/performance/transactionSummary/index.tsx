@@ -281,19 +281,6 @@ function generateSummaryEventView(
     if (isAggregateField(field)) conditions.removeTag(field);
   });
 
-  // Handle duration filters from the latency chart
-  if (location.query.startDuration || location.query.endDuration) {
-    conditions.setTagValues(
-      'transaction.duration',
-      [
-        decodeScalar(location.query.startDuration),
-        decodeScalar(location.query.endDuration),
-      ]
-        .filter(item => item)
-        .map((item, index) => (index === 0 ? `>${item}` : `<${item}`))
-    );
-  }
-
   let durationField = 'transaction.duration';
 
   if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
