@@ -150,7 +150,7 @@ class InnerGlobalSdkSuggestions extends React.Component<Props, State> {
       <Alert type="info" icon={<IconUpgrade />} {...props}>
         <Content>
           {t(
-            `You have outdated SDKs in your projects. Update for important fixes and features.`
+            `You have outdated SDKs in your projects. Update them for important fixes and features.`
           )}
           <Actions>
             <Button
