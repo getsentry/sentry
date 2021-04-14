@@ -176,6 +176,7 @@ export default function QuickTrace({
                     organization={organization}
                     platform={project.platform}
                     connectorSide="right"
+                    serviceType="frontend"
                   />
                   {currentNode}
                 </React.Fragment>
@@ -189,6 +190,7 @@ export default function QuickTrace({
                     organization={organization}
                     platform={project.platform}
                     connectorSide="left"
+                    serviceType="backend"
                   />
                 </React.Fragment>
               );
@@ -500,6 +502,7 @@ function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNo
 
 type MissingServiceProps = Pick<QuickTraceProps, 'anchor' | 'organization'> & {
   connectorSide: 'left' | 'right';
+  serviceType: 'frontend' | 'backend';
   platform: string;
 };
 type MissingServiceState = {
@@ -556,7 +559,7 @@ class MissingServiceNode extends React.Component<
 
   render() {
     const {hideMissing} = this.state;
-    const {anchor, connectorSide, platform} = this.props;
+    const {anchor, connectorSide, platform, serviceType} = this.props;
     if (hideMissing) {
       return null;
     }
@@ -576,7 +579,7 @@ class MissingServiceNode extends React.Component<
         >
           <DropdownItem first width="small">
             <ExternalDropdownLink href={docsHref} onClick={this.trackExternalLink}>
-              {t('Connect to a service')}
+              {t('Connect your %s service', serviceType)}
             </ExternalDropdownLink>
           </DropdownItem>
           <DropdownItem onSelect={this.dismissMissingService} width="small">

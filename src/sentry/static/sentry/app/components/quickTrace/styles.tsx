@@ -63,7 +63,7 @@ export const TraceConnector = styled('div')`
 
 const StyledMenuItem = styled(MenuItem)<{first?: boolean; width: 'small' | 'large'}>`
   border-top: ${p => (!p.first ? `1px solid ${p.theme.innerBorder}` : null)};
-  width: ${p => (p.width === 'large' ? '350px' : '200px')};
+  width: ${p => (p.width === 'large' ? '350px' : '250px')};
 `;
 
 const MenuItemContent = styled('div')`
