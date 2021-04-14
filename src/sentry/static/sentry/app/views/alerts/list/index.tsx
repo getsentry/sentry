@@ -68,9 +68,11 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const status = getQueryStatus(query.status);
     const incidentsQuery = {
       ...query,
-      ...(organization.features.includes('alert-details-redesign') ? {expand: ['original_alert_rule']} : {}),
+      ...(organization.features.includes('alert-details-redesign')
+        ? {expand: ['original_alert_rule']}
+        : {}),
       status,
-    }
+    };
 
     return [
       [
