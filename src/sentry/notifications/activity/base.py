@@ -305,7 +305,7 @@ class ActivityNotification:
                     msg.send_async()
             elif provider == ExternalProviders.SLACK:
                 integrations = Integration.objects.filter(
-                    organization_id=organization.id,
+                    organizations__in=[organization],
                     provider=get_provider_name(provider.value),
                     status=ObjectStatus.VISIBLE,
                 )

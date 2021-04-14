@@ -147,9 +147,9 @@ class ReleaseTestCase(TestCase):
         # for that org -- also tests to make sure org overrides default preference
         # user5 committed with another email address and is still included.
 
-        assert len(email.get_participants()) == 3
-
-        assert email.get_participants() == {
+        participants = email.get_participants()[ExternalProviders.EMAIL]
+        assert len(participants) == 3
+        assert participants == {
             self.user1: GroupSubscriptionReason.committed,
             self.user3: GroupSubscriptionReason.deploy_setting,
             self.user5: GroupSubscriptionReason.committed,
@@ -204,9 +204,9 @@ class ReleaseTestCase(TestCase):
         )
 
         # only user3 is included because they opted into all deploy emails
-        assert len(email.get_participants()) == 1
-
-        assert email.get_participants() == {self.user3: GroupSubscriptionReason.deploy_setting}
+        participants = email.get_participants()[ExternalProviders.EMAIL]
+        assert len(participants) == 1
+        assert participants == {self.user3: GroupSubscriptionReason.deploy_setting}
 
         context = email.get_context()
         assert context["environment"] == "production"
@@ -249,9 +249,9 @@ class ReleaseTestCase(TestCase):
 
         # user3 and user 6 are included because they oped into all deploy emails
         # (one on an org level, one as their default)
-        assert len(email.get_participants()) == 2
-
-        assert email.get_participants() == {
+        participants = email.get_participants()[ExternalProviders.EMAIL]
+        assert len(participants) == 2
+        assert participants == {
             user6: GroupSubscriptionReason.deploy_setting,
             self.user3: GroupSubscriptionReason.deploy_setting,
         }
