@@ -1,3 +1,4 @@
+import re
 from typing import Any, Mapping, MutableMapping, Tuple
 from urllib.parse import urlparse, urlunparse
 
@@ -65,7 +66,7 @@ class ActivityNotification:
         return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))
 
     def get_group_link(self) -> str:
-        referrer = self.__class__.__name__
+        referrer = re.sub("Notification$", "Email", self.__class__.__name__)
         return str(self.group.get_absolute_url(params={"referrer": referrer}))
 
     def get_base_context(self) -> MutableMapping[str, Any]:
