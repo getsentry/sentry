@@ -7,17 +7,20 @@ from django.utils.html import escape, mark_safe
 from django.utils.safestring import SafeString
 
 from sentry import options
+from sentry.integrations.slack.notifications import send_slack_message_to_user
 from sentry.models import (
     Activity,
     Group,
     GroupSubscription,
+    Integration,
+    ObjectStatus,
     ProjectOption,
     User,
     UserAvatar,
     UserOption,
 )
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviders, get_provider_name
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
@@ -271,6 +274,7 @@ class ActivityNotification:
         if not participants_by_provider:
             return
 
+        organization = self.organization
         activity = self.activity
         project = self.project
         group = self.group
@@ -299,3 +303,17 @@ class ActivityNotification:
                     )
                     msg.add_users([user.id], project=project)
                     msg.send_async()
+            elif provider == ExternalProviders.SLACK:
+                integrations = Integration.objects.filter(
+                    organization_id=organization.id,
+                    provider=get_provider_name(provider.value),
+                    status=ObjectStatus.VISIBLE,
+                )
+                for integration in integrations:
+                    for user, reason in participants.items():
+                        user_context = self.update_user_context_from_group(
+                            user, reason, context, group
+                        )
+                        send_slack_message_to_user(
+                            organization, integration, project, user, activity, group, user_context
+                        )
