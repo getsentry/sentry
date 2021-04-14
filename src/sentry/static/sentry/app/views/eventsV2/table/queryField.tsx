@@ -409,7 +409,7 @@ class QueryField extends React.Component<Props> {
         break;
       case FieldValueKind.BREAKDOWN:
         text = 'breakdown';
-        tagType = 'info';
+        tagType = 'error';
         break;
       case FieldValueKind.TAG:
         text = kind;
