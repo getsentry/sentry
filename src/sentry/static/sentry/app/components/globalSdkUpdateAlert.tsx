@@ -149,15 +149,19 @@ class InnerGlobalSdkSuggestions extends React.Component<Props, State> {
     const notice = (
       <Alert type="info" icon={<IconUpgrade />} {...props}>
         <Content>
-          {t(`You have outdated SDKs. Update for important fixes and features.`)}
-          <Button
-            priority="link"
-            title={t('Dismiss for the next two weeks')}
-            onClick={this.snoozePrompt}
-          >
-            {t('Remind me later')}
-          </Button>
-          |{showBroadcastsPanel}
+          {t(
+            `You have outdated SDKs in your projects. Update for important fixes and features.`
+          )}
+          <Actions>
+            <Button
+              priority="link"
+              title={t('Dismiss for the next two weeks')}
+              onClick={this.snoozePrompt}
+            >
+              {t('Remind me later')}
+            </Button>
+            |{showBroadcastsPanel}
+          </Actions>
         </Content>
       </Alert>
     );
@@ -171,10 +175,14 @@ const Content = styled('div')`
   flex-wrap: wrap;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: grid;
-    grid-template-columns: 1fr repeat(3, max-content);
-    grid-gap: ${space(1)};
+    justify-content: space-between;
   }
+`;
+
+const Actions = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(3, max-content);
+  grid-gap: ${space(1)};
 `;
 
 const GlobalSdkSuggestions = withOrganization(
