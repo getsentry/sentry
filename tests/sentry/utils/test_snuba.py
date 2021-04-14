@@ -185,6 +185,36 @@ class SnubaUtilsTest(TestCase):
             get_snuba_column_name("measurements.KEY", Dataset.Transactions) == "measurements[key]"
         )
 
+        # span op breakdowns are not available on the Events dataset, so it's seen as a tag
+        assert (
+            get_snuba_column_name("span_op_breakdowns_key", Dataset.Events)
+            == "tags[span_op_breakdowns_key]"
+        )
+        assert (
+            get_snuba_column_name("span_op_breakdowns.key", Dataset.Events)
+            == "tags[span_op_breakdowns.key]"
+        )
+
+        # span op breakdowns are available on the Discover and Transactions dataset, so its parsed as such
+        assert (
+            get_snuba_column_name("span_op_breakdowns_key", Dataset.Discover)
+            == "span_op_breakdowns.key"
+        )
+        assert (
+            get_snuba_column_name("span_op_breakdowns_key", Dataset.Transactions)
+            == "span_op_breakdowns.key"
+        )
+        assert get_snuba_column_name("spans.key", Dataset.Discover) == "span_op_breakdowns[ops.key]"
+        assert (
+            get_snuba_column_name("spans.key", Dataset.Transactions)
+            == "span_op_breakdowns[ops.key]"
+        )
+        assert get_snuba_column_name("spans.KEY", Dataset.Discover) == "span_op_breakdowns[ops.key]"
+        assert (
+            get_snuba_column_name("spans.KEY", Dataset.Transactions)
+            == "span_op_breakdowns[ops.key]"
+        )
+
 
 class PrepareQueryParamsTest(TestCase):
     def test_events_dataset_with_project_id(self):

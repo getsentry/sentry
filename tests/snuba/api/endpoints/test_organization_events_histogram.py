@@ -9,6 +9,7 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
+from sentry.utils.snuba import get_array_column_alias
 
 HistogramSpec = namedtuple("HistogramSpec", ["start", "end", "fields"])
 
@@ -30,7 +31,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     data = deepcopy(self.data)
 
                     measurement_name = suffix_key
-                    breakdown_name = suffix_key
+                    breakdown_name = f"ops.{suffix_key}"
 
                     data["timestamp"] = iso_format(start)
                     data["start_timestamp"] = iso_format(start - timedelta(seconds=i))
@@ -74,10 +75,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_good_params(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "query": "event.type:transaction",
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": 10,
             }
 
@@ -86,10 +88,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_good_params_with_optionals(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "query": "event.type:transaction",
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": 10,
                 "precision": 0,
                 "min": 0,
@@ -101,10 +104,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_bad_params_reverse_min_max(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "query": "event.type:transaction",
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": 10,
                 "precision": 0,
                 "min": 10,
@@ -147,7 +151,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             for other_array_column in ARRAY_COLUMNS:
                 query = {
                     "project": [self.project.id],
-                    "field": ["foo", f"{array_column}.foo", f"{other_array_column}.bar"],
+                    "field": [
+                        "foo",
+                        f"{get_array_column_alias(array_column)}.foo",
+                        f"{get_array_column_alias(other_array_column)}.bar",
+                    ],
                     "numBuckets": 10,
                     "min": 0,
                     "max": 100,
@@ -175,9 +183,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_bad_params_invalid_num_buckets(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": "baz",
             }
             response = self.do_request(query)
@@ -188,9 +197,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_bad_params_invalid_negative_num_buckets(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": -1,
             }
             response = self.do_request(query)
@@ -201,9 +211,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_bad_params_num_buckets_too_large(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": 150,
             }
             response = self.do_request(query)
@@ -214,9 +225,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_bad_params_invalid_precision_too_small(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": 10,
                 "precision": -1,
             }
@@ -229,9 +241,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_bad_params_invalid_precision_too_big(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": 10,
                 "precision": 100,
             }
@@ -244,9 +257,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_bad_params_invalid_min(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": 10,
                 "min": "qux",
             }
@@ -259,9 +273,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_bad_params_invalid_max(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": 10,
                 "max": "qux",
             }
@@ -274,18 +289,16 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_histogram_empty(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
-            expected = [
-                (i, i + 1, [(f"{array_column}.foo", 0), (f"{array_column}.bar", 0)])
-                for i in range(5)
-            ]
+            expected = [(i, i + 1, [(f"{alias}.foo", 0), (f"{alias}.bar", 0)]) for i in range(5)]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
     def test_histogram_simple(self):
@@ -299,20 +312,21 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1, [(f"{array_column}.foo", 1)]),
-                (1, 2, [(f"{array_column}.foo", 1)]),
-                (2, 3, [(f"{array_column}.foo", 1)]),
-                (3, 4, [(f"{array_column}.foo", 0)]),
-                (4, 5, [(f"{array_column}.foo", 1)]),
+                (0, 1, [(f"{alias}.foo", 1)]),
+                (1, 2, [(f"{alias}.foo", 1)]),
+                (2, 3, [(f"{alias}.foo", 1)]),
+                (3, 4, [(f"{alias}.foo", 0)]),
+                (4, 5, [(f"{alias}.foo", 1)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -327,9 +341,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
                 "min": 0,
                 "max": 5,
@@ -338,11 +353,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1, [(f"{array_column}.foo", 1)]),
-                (1, 2, [(f"{array_column}.foo", 1)]),
-                (2, 3, [(f"{array_column}.foo", 1)]),
-                (3, 4, [(f"{array_column}.foo", 0)]),
-                (4, 5, [(f"{array_column}.foo", 1)]),
+                (0, 1, [(f"{alias}.foo", 1)]),
+                (1, 2, [(f"{alias}.foo", 1)]),
+                (2, 3, [(f"{alias}.foo", 1)]),
+                (3, 4, [(f"{alias}.foo", 0)]),
+                (4, 5, [(f"{alias}.foo", 1)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -358,9 +373,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
                 "min": 6,
             }
@@ -368,7 +384,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (6, 7, [(f"{array_column}.foo", 0)]),
+                (6, 7, [(f"{alias}.foo", 0)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -384,9 +400,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
                 "max": 6,
             }
@@ -394,7 +411,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (5, 6, [(f"{array_column}.foo", 0)]),
+                (5, 6, [(f"{alias}.foo", 0)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -408,20 +425,21 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 20, [(f"{array_column}.foo", 2)]),
-                (20, 40, [(f"{array_column}.foo", 0)]),
-                (40, 60, [(f"{array_column}.foo", 0)]),
-                (60, 80, [(f"{array_column}.foo", 0)]),
-                (80, 100, [(f"{array_column}.foo", 2)]),
+                (0, 20, [(f"{alias}.foo", 2)]),
+                (20, 40, [(f"{alias}.foo", 0)]),
+                (40, 60, [(f"{alias}.foo", 0)]),
+                (60, 80, [(f"{alias}.foo", 0)]),
+                (80, 100, [(f"{alias}.foo", 2)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -436,20 +454,21 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (10, 11, [(f"{array_column}.foo", 1)]),
-                (11, 12, [(f"{array_column}.foo", 0)]),
-                (12, 13, [(f"{array_column}.foo", 1)]),
-                (13, 14, [(f"{array_column}.foo", 1)]),
-                (14, 15, [(f"{array_column}.foo", 1)]),
+                (10, 11, [(f"{alias}.foo", 1)]),
+                (11, 12, [(f"{alias}.foo", 0)]),
+                (12, 13, [(f"{alias}.foo", 1)]),
+                (13, 14, [(f"{alias}.foo", 1)]),
+                (14, 15, [(f"{alias}.foo", 1)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -468,9 +487,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
                 "min": 11,
                 "max": 16,
@@ -479,11 +499,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (11, 12, [(f"{array_column}.foo", 1)]),
-                (12, 13, [(f"{array_column}.foo", 1)]),
-                (13, 14, [(f"{array_column}.foo", 1)]),
-                (14, 15, [(f"{array_column}.foo", 1)]),
-                (15, 16, [(f"{array_column}.foo", 1)]),
+                (11, 12, [(f"{alias}.foo", 1)]),
+                (12, 13, [(f"{alias}.foo", 1)]),
+                (13, 14, [(f"{alias}.foo", 1)]),
+                (14, 15, [(f"{alias}.foo", 1)]),
+                (15, 16, [(f"{alias}.foo", 1)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -497,20 +517,21 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (10, 20, [(f"{array_column}.foo", 1)]),
-                (20, 30, [(f"{array_column}.foo", 0)]),
-                (30, 40, [(f"{array_column}.foo", 0)]),
-                (40, 50, [(f"{array_column}.foo", 1)]),
-                (50, 60, [(f"{array_column}.foo", 2)]),
+                (10, 20, [(f"{alias}.foo", 1)]),
+                (20, 30, [(f"{alias}.foo", 0)]),
+                (30, 40, [(f"{alias}.foo", 0)]),
+                (40, 50, [(f"{alias}.foo", 1)]),
+                (50, 60, [(f"{alias}.foo", 2)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -524,20 +545,21 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (-9, -8, [(f"{array_column}.foo", 3)]),
-                (-8, -7, [(f"{array_column}.foo", 0)]),
-                (-7, -6, [(f"{array_column}.foo", 0)]),
-                (-6, -5, [(f"{array_column}.foo", 0)]),
-                (-5, -4, [(f"{array_column}.foo", 1)]),
+                (-9, -8, [(f"{alias}.foo", 3)]),
+                (-8, -7, [(f"{alias}.foo", 0)]),
+                (-7, -6, [(f"{alias}.foo", 0)]),
+                (-6, -5, [(f"{alias}.foo", 0)]),
+                (-5, -4, [(f"{alias}.foo", 1)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -552,20 +574,21 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
             }
 
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (-50, -30, [(f"{array_column}.foo", 1)]),
-                (-30, -10, [(f"{array_column}.foo", 0)]),
-                (-10, 10, [(f"{array_column}.foo", 2)]),
-                (10, 30, [(f"{array_column}.foo", 0)]),
-                (30, 50, [(f"{array_column}.foo", 1)]),
+                (-50, -30, [(f"{alias}.foo", 1)]),
+                (-30, -10, [(f"{alias}.foo", 0)]),
+                (-10, 10, [(f"{alias}.foo", 2)]),
+                (10, 30, [(f"{alias}.foo", 0)]),
+                (30, 50, [(f"{alias}.foo", 1)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -578,9 +601,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
                 "precision": 2,
             }
@@ -588,11 +612,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (1.00, 1.25, [(f"{array_column}.foo", 3)]),
-                (1.25, 1.50, [(f"{array_column}.foo", 0)]),
-                (1.50, 1.75, [(f"{array_column}.foo", 0)]),
-                (1.75, 2.00, [(f"{array_column}.foo", 0)]),
-                (2.00, 2.25, [(f"{array_column}.foo", 1)]),
+                (1.00, 1.25, [(f"{alias}.foo", 3)]),
+                (1.25, 1.50, [(f"{alias}.foo", 0)]),
+                (1.50, 1.75, [(f"{alias}.foo", 0)]),
+                (1.75, 2.00, [(f"{alias}.foo", 0)]),
+                (2.00, 2.25, [(f"{alias}.foo", 1)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -605,9 +629,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 3,
                 "precision": 2,
                 "min": 1.25,
@@ -617,9 +642,9 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (1.25, 1.50, [(f"{array_column}.foo", 0)]),
-                (1.50, 1.75, [(f"{array_column}.foo", 0)]),
-                (1.75, 2.00, [(f"{array_column}.foo", 0)]),
+                (1.25, 1.50, [(f"{alias}.foo", 0)]),
+                (1.50, 1.75, [(f"{alias}.foo", 0)]),
+                (1.75, 2.00, [(f"{alias}.foo", 0)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -633,9 +658,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
                 "precision": 4,
             }
@@ -643,11 +669,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (10.0000, 20.0000, [(f"{array_column}.foo", 1)]),
-                (20.0000, 30.0000, [(f"{array_column}.foo", 0)]),
-                (30.0000, 40.0000, [(f"{array_column}.foo", 1)]),
-                (40.0000, 50.0000, [(f"{array_column}.foo", 0)]),
-                (50.0000, 60.0000, [(f"{array_column}.foo", 2)]),
+                (10.0000, 20.0000, [(f"{alias}.foo", 1)]),
+                (20.0000, 30.0000, [(f"{alias}.foo", 0)]),
+                (30.0000, 40.0000, [(f"{alias}.foo", 1)]),
+                (40.0000, 50.0000, [(f"{alias}.foo", 0)]),
+                (50.0000, 60.0000, [(f"{alias}.foo", 2)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -661,9 +687,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.bar", f"{array_column}.baz", f"{array_column}.foo"],
+                "field": [f"{alias}.bar", f"{alias}.baz", f"{alias}.foo"],
                 "numBuckets": 5,
             }
 
@@ -674,45 +701,45 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     10,
                     20,
                     [
-                        (f"{array_column}.bar", 0),
-                        (f"{array_column}.baz", 0),
-                        (f"{array_column}.foo", 1),
+                        (f"{alias}.bar", 0),
+                        (f"{alias}.baz", 0),
+                        (f"{alias}.foo", 1),
                     ],
                 ),
                 (
                     20,
                     30,
                     [
-                        (f"{array_column}.bar", 0),
-                        (f"{array_column}.baz", 0),
-                        (f"{array_column}.foo", 0),
+                        (f"{alias}.bar", 0),
+                        (f"{alias}.baz", 0),
+                        (f"{alias}.foo", 0),
                     ],
                 ),
                 (
                     30,
                     40,
                     [
-                        (f"{array_column}.bar", 2),
-                        (f"{array_column}.baz", 0),
-                        (f"{array_column}.foo", 0),
+                        (f"{alias}.bar", 2),
+                        (f"{alias}.baz", 0),
+                        (f"{alias}.foo", 0),
                     ],
                 ),
                 (
                     40,
                     50,
                     [
-                        (f"{array_column}.bar", 0),
-                        (f"{array_column}.baz", 0),
-                        (f"{array_column}.foo", 0),
+                        (f"{alias}.bar", 0),
+                        (f"{alias}.baz", 0),
+                        (f"{alias}.foo", 0),
                     ],
                 ),
                 (
                     50,
                     60,
                     [
-                        (f"{array_column}.bar", 0),
-                        (f"{array_column}.baz", 1),
-                        (f"{array_column}.foo", 0),
+                        (f"{alias}.bar", 0),
+                        (f"{alias}.baz", 1),
+                        (f"{alias}.foo", 0),
                     ],
                 ),
             ]
@@ -729,9 +756,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.bar", f"{array_column}.baz", f"{array_column}.foo"],
+                "field": [f"{alias}.bar", f"{alias}.baz", f"{alias}.foo"],
                 "numBuckets": 5,
             }
 
@@ -742,27 +770,27 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     10,
                     15,
                     [
-                        (f"{array_column}.bar", 0),
-                        (f"{array_column}.baz", 0),
-                        (f"{array_column}.foo", 1),
+                        (f"{alias}.bar", 0),
+                        (f"{alias}.baz", 0),
+                        (f"{alias}.foo", 1),
                     ],
                 ),
                 (
                     15,
                     20,
                     [
-                        (f"{array_column}.bar", 0),
-                        (f"{array_column}.baz", 0),
-                        (f"{array_column}.foo", 0),
+                        (f"{alias}.bar", 0),
+                        (f"{alias}.baz", 0),
+                        (f"{alias}.foo", 0),
                     ],
                 ),
                 (
                     20,
                     25,
                     [
-                        (f"{array_column}.bar", 1),
-                        (f"{array_column}.baz", 1),
-                        (f"{array_column}.foo", 1),
+                        (f"{alias}.bar", 1),
+                        (f"{alias}.baz", 1),
+                        (f"{alias}.foo", 1),
                     ],
                 ),
             ]
@@ -776,9 +804,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.bar", f"{array_column}.baz", f"{array_column}.foo"],
+                "field": [f"{alias}.bar", f"{alias}.baz", f"{alias}.foo"],
                 "numBuckets": 5,
                 "min": 10,
                 "max": 21,
@@ -791,27 +820,27 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     10,
                     15,
                     [
-                        (f"{array_column}.bar", 0),
-                        (f"{array_column}.baz", 0),
-                        (f"{array_column}.foo", 1),
+                        (f"{alias}.bar", 0),
+                        (f"{alias}.baz", 0),
+                        (f"{alias}.foo", 1),
                     ],
                 ),
                 (
                     15,
                     20,
                     [
-                        (f"{array_column}.bar", 0),
-                        (f"{array_column}.baz", 0),
-                        (f"{array_column}.foo", 0),
+                        (f"{alias}.bar", 0),
+                        (f"{alias}.baz", 0),
+                        (f"{alias}.foo", 0),
                     ],
                 ),
                 (
                     20,
                     25,
                     [
-                        (f"{array_column}.bar", 0),
-                        (f"{array_column}.baz", 0),
-                        (f"{array_column}.foo", 0),
+                        (f"{alias}.bar", 0),
+                        (f"{alias}.baz", 0),
+                        (f"{alias}.foo", 0),
                     ],
                 ),
             ]
@@ -819,9 +848,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_bad_params_invalid_data_filter(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo", f"{array_column}.bar"],
+                "field": [f"{alias}.foo", f"{alias}.bar"],
                 "numBuckets": 10,
                 "dataFilter": "invalid",
             }
@@ -840,9 +870,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
                 "dataFilter": "all",
             }
@@ -850,11 +881,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1000, [(f"{array_column}.foo", 4)]),
-                (1000, 2000, [(f"{array_column}.foo", 0)]),
-                (2000, 3000, [(f"{array_column}.foo", 0)]),
-                (3000, 4000, [(f"{array_column}.foo", 0)]),
-                (4000, 5000, [(f"{array_column}.foo", 1)]),
+                (0, 1000, [(f"{alias}.foo", 4)]),
+                (1000, 2000, [(f"{alias}.foo", 0)]),
+                (2000, 3000, [(f"{alias}.foo", 0)]),
+                (3000, 4000, [(f"{alias}.foo", 0)]),
+                (4000, 5000, [(f"{alias}.foo", 1)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -866,9 +897,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
                 "dataFilter": "exclude_outliers",
             }
@@ -876,7 +908,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1, [(f"{array_column}.foo", 4)]),
+                (0, 1, [(f"{alias}.foo", 4)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -888,10 +920,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
                 # make sure to query a measurement that does not exist
-                "field": [f"{array_column}.bar"],
+                "field": [f"{alias}.bar"],
                 "numBuckets": 5,
                 "dataFilter": "exclude_outliers",
             }
@@ -899,11 +932,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1, [(f"{array_column}.bar", 0)]),
-                (1, 1, [(f"{array_column}.bar", 0)]),
-                (2, 2, [(f"{array_column}.bar", 0)]),
-                (3, 3, [(f"{array_column}.bar", 0)]),
-                (4, 4, [(f"{array_column}.bar", 0)]),
+                (0, 1, [(f"{alias}.bar", 0)]),
+                (1, 1, [(f"{alias}.bar", 0)]),
+                (2, 2, [(f"{alias}.bar", 0)]),
+                (3, 3, [(f"{alias}.bar", 0)]),
+                (4, 4, [(f"{alias}.bar", 0)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -915,10 +948,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
                 # make sure to query a measurement that does not exist
-                "field": [f"{array_column}.bar"],
+                "field": [f"{alias}.bar"],
                 "numBuckets": 5,
                 "dataFilter": "exclude_outliers",
                 "min": 10,
@@ -927,11 +961,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (10, 11, [(f"{array_column}.bar", 0)]),
-                (11, 11, [(f"{array_column}.bar", 0)]),
-                (12, 12, [(f"{array_column}.bar", 0)]),
-                (13, 13, [(f"{array_column}.bar", 0)]),
-                (14, 14, [(f"{array_column}.bar", 0)]),
+                (10, 11, [(f"{alias}.bar", 0)]),
+                (11, 11, [(f"{alias}.bar", 0)]),
+                (12, 12, [(f"{alias}.bar", 0)]),
+                (13, 13, [(f"{alias}.bar", 0)]),
+                (14, 14, [(f"{alias}.bar", 0)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
@@ -947,9 +981,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.populate_events(specs)
 
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             query = {
                 "project": [self.project.id],
-                "field": [f"{array_column}.foo"],
+                "field": [f"{alias}.foo"],
                 "numBuckets": 5,
                 "query": "tpm():>0.001",
             }
@@ -957,11 +992,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, f"failing for {array_column}"
             expected = [
-                (0, 1, [(f"{array_column}.foo", 1)]),
-                (1, 2, [(f"{array_column}.foo", 1)]),
-                (2, 3, [(f"{array_column}.foo", 1)]),
-                (3, 4, [(f"{array_column}.foo", 0)]),
-                (4, 5, [(f"{array_column}.foo", 1)]),
+                (0, 1, [(f"{alias}.foo", 1)]),
+                (1, 2, [(f"{alias}.foo", 1)]),
+                (2, 3, [(f"{alias}.foo", 1)]),
+                (3, 4, [(f"{alias}.foo", 0)]),
+                (4, 5, [(f"{alias}.foo", 1)]),
             ]
             assert response.data == self.as_response_data(expected), f"failing for {array_column}"
 
