@@ -148,7 +148,11 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         )
 
     def run_test(
-        self, expected_projects, user=None, project_ids=None, active_superuser=False,
+        self,
+        expected_projects,
+        user=None,
+        project_ids=None,
+        active_superuser=False,
     ):
         request_args = {}
         if project_ids:
