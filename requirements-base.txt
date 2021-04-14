@@ -74,7 +74,7 @@ kombu==4.6.11
 grpcio==1.35.0
 
 # not directly used, but provides a speedup for redis
-hiredis==0.3.1
+hiredis==2.0.0
 
 # not directly used, but pinned for at least semaphore/symbolic
 cffi==1.12.2; python_version <= '3.8'
