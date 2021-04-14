@@ -401,7 +401,6 @@ class MetricChart extends React.PureComponent<Props, State> {
         environment={rule.environment ? [rule.environment] : undefined}
         project={(projects as Project[])
           .filter(p => p && p.slug)
-          .filter(p => p && p.slug)
           .map(project => Number(project.id))}
         interval={interval}
         start={viableStartDate}
