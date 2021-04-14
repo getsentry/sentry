@@ -10,16 +10,20 @@ from sentry.api import client
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
-from sentry.api.helpers.group_index import prep_search, rate_limit_endpoint, update_groups
+from sentry.api.helpers.group_index import (
+    get_first_last_release,
+    prep_search,
+    rate_limit_endpoint,
+    update_groups,
+)
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.models import Activity, Group, GroupSeen, Release, User, UserReport
+from sentry.models import Activity, Group, GroupSeen, User, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
 from sentry.utils import metrics
-from sentry.utils.compat import zip
 from sentry.utils.safe import safe_execute
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -108,54 +112,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             PluginSerializer(project),
         )
 
-    def _get_first_last_release(self, request, group):
-        first_release = group.get_first_release()
-        if first_release is not None:
-            last_release = group.get_last_release()
-        else:
-            last_release = None
-
-        if first_release is not None and last_release is not None:
-            first_release, last_release = self._get_first_last_release_info(
-                request, group, [first_release, last_release]
-            )
-        elif first_release is not None:
-            first_release = self._get_release_info(request, group, first_release)
-        elif last_release is not None:
-            last_release = self._get_release_info(request, group, last_release)
-
-        return first_release, last_release
-
-    def _get_release_info(self, request, group, version):
-        try:
-            release = Release.objects.get(
-                projects=group.project,
-                organization_id=group.project.organization_id,
-                version=version,
-            )
-        except Release.DoesNotExist:
-            release = {"version": version}
-        return serialize(release, request.user)
-
-    def _get_first_last_release_info(self, request, group, versions):
-        releases = {
-            release.version: release
-            for release in Release.objects.filter(
-                projects=group.project,
-                organization_id=group.project.organization_id,
-                version__in=versions,
-            )
-        }
-        serialized_releases = serialize(
-            [releases.get(version) for version in versions],
-            request.user,
-        )
-        # Default to a dictionary if the release object wasn't found and not serialized
-        return [
-            item if item is not None else {"version": version}
-            for item, version in zip(serialized_releases, versions)
-        ]
-
     @rate_limit_endpoint(limit=5, window=1)
     def get(self, request, group):
         """
@@ -191,7 +147,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:
-                first_release, last_release = self._get_first_last_release(request, group)
+                first_release, last_release = get_first_last_release(request, group)
                 data.update(
                     {
                         "firstRelease": first_release,
