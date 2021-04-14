@@ -167,7 +167,6 @@ class OrganizationEndpoint(Endpoint):
         request,
         organization,
         force_global_perms=False,
-        include_all_accessible=False,
         project_ids=None,
     ):
         """
@@ -185,9 +184,6 @@ class OrganizationEndpoint(Endpoint):
         `request.auth.has_scope` way of checking permissions, don't use it
         for anything else, we plan to remove this once we remove uses of
         `auth.has_scope`.
-        :param include_all_accessible: Whether to factor the organization
-        allow_joinleave flag into permission checks. We should ideally
-        standardize how this is used and remove this parameter.
         :param project_ids: Projects if they were passed via request
         data instead of get params
         :return: A list of Project objects, or raises PermissionDenied.
@@ -195,7 +191,10 @@ class OrganizationEndpoint(Endpoint):
         if project_ids is None:
             project_ids = self.get_requested_project_ids(request)
         return self._get_projects_by_id(
-            project_ids, request, organization, force_global_perms, include_all_accessible
+            project_ids,
+            request,
+            organization,
+            force_global_perms,
         )
 
     def _get_projects_by_id(
@@ -204,8 +203,8 @@ class OrganizationEndpoint(Endpoint):
         request,
         organization,
         force_global_perms=False,
-        include_all_accessible=False,
     ):
+        include_all_accessible = False
         qs = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)
         user = getattr(request, "user", None)
 
@@ -371,7 +370,6 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             request,
             organization,
             force_global_perms=has_valid_api_key,
-            include_all_accessible=True,
             project_ids=project_ids,
         )
 
