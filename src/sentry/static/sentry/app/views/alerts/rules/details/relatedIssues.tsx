@@ -15,7 +15,6 @@ import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 import {TimePeriodType} from './constants';
 
-
 type Props = {
   organization: OrganizationSummary;
   rule: IncidentRule;
