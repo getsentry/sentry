@@ -117,7 +117,7 @@ function SavedSearchMenu({savedSearchList, ...props}: Props) {
           />
         ))
       )}
-      <SecondaryMenuHeader>{t('Recommended searches')}</SecondaryMenuHeader>
+      <SecondaryMenuHeader>{t('Recommended Searches')}</SecondaryMenuHeader>
       {/* Could only happen on self-hosted */}
       {globalSearches.length === 0 ? (
         <EmptyItem>{t('No recommended searches yet.')}</EmptyItem>
