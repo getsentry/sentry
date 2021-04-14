@@ -1,5 +1,4 @@
 from django import VERSION
-from django.db.migrations import executor, migration, writer
 
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.new_migrations.monkey.writer import SENTRY_MIGRATION_TEMPLATE
@@ -24,7 +23,13 @@ changes are backwards incompatible, change the monkeying to handle both versions
 if VERSION[:2] > LAST_VERIFIED_DJANGO_VERSION:
     raise Exception(CHECK_MESSAGE)
 
-# monkeypatch Django's migration executor and template.
-executor.MigrationExecutor = SentryMigrationExecutor
-migration.Migration.initial = None
-writer.MIGRATION_TEMPLATE = SENTRY_MIGRATION_TEMPLATE
+
+def monkey_migrations():
+    # This import needs to be below the other imports for `executor` and `writer` so
+    # that we can successfully monkeypatch them.
+    from django.db.migrations import executor, migration, writer
+
+    # monkeypatch Django's migration executor and template.
+    executor.MigrationExecutor = SentryMigrationExecutor
+    migration.Migration.initial = None
+    writer.MIGRATION_TEMPLATE = SENTRY_MIGRATION_TEMPLATE

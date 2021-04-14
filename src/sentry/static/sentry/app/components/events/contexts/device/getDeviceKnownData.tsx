@@ -1,5 +1,5 @@
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import {KeyValueListData} from 'app/types';
 import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
 
@@ -10,8 +10,8 @@ function getOperatingSystemKnownData(
   event: Event,
   data: DeviceData,
   deviceKnownDataValues: Array<DeviceKnownDataType>
-): Array<KeyValueListData> {
-  const knownData: Array<KeyValueListData> = [];
+): KeyValueListData {
+  const knownData: KeyValueListData = [];
 
   const dataKeys = deviceKnownDataValues.filter(deviceKnownDataValue =>
     defined(data[deviceKnownDataValue])

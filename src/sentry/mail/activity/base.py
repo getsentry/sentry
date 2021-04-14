@@ -4,14 +4,9 @@ from django.core.urlresolvers import reverse
 from django.utils.html import escape, mark_safe
 
 from sentry import options
-from sentry.models import (
-    GroupSubscription,
-    GroupSubscriptionReason,
-    ProjectOption,
-    UserAvatar,
-    UserOption,
-)
-from sentry.models.integration import ExternalProviders
+from sentry.models import GroupSubscription, ProjectOption, UserAvatar, UserOption
+from sentry.notifications.types import GroupSubscriptionReason
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar

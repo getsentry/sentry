@@ -1,13 +1,15 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
 
-from sentry.models.integration import ExternalProviders
-from sentry.notifications.legacy_mappings import get_legacy_value
 from sentry.notifications.types import (
+    NOTIFICATION_SETTING_DEFAULTS,
+    SUBSCRIPTION_REASON_MAP,
+    VALID_VALUES_FOR_KEY,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.types.integrations import ExternalProviders
 
 
 def _get_setting_mapping_from_mapping(
@@ -28,7 +30,8 @@ def _get_setting_mapping_from_mapping(
         ) or notification_settings_mapping.get(NotificationScopeType.USER)
         if notification_setting_option:
             return notification_setting_option
-    return {ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS}
+
+    return {ExternalProviders.EMAIL: NOTIFICATION_SETTING_DEFAULTS[type]}
 
 
 def where_should_user_be_notified(
@@ -47,9 +50,22 @@ def where_should_user_be_notified(
         user,
         NotificationSettingTypes.ISSUE_ALERTS,
     )
-    return list(
-        filter(lambda elem: mapping[elem] == NotificationSettingOptionValues.ALWAYS, mapping)
-    )
+    return [
+        provider
+        for provider, value in mapping.items()
+        if value == NotificationSettingOptionValues.ALWAYS
+    ]
+
+
+def should_be_participating(
+    subscriptions_by_user_id: Mapping[int, Any],
+    user: Any,
+    value: NotificationSettingOptionValues,
+) -> bool:
+    subscription = subscriptions_by_user_id.get(user.id)
+    return (
+        subscription and subscription.is_active and value != NotificationSettingOptionValues.NEVER
+    ) or (not subscription and value == NotificationSettingOptionValues.ALWAYS)
 
 
 def where_should_be_participating(
@@ -72,18 +88,11 @@ def where_should_be_participating(
         user,
         NotificationSettingTypes.WORKFLOW,
     )
-    output = []
-    for provider, value in mapping.items():
-        subscription = subscriptions_by_user_id.get(user.id)
-        if (subscription and not subscription.is_active) or (
-            value == NotificationSettingOptionValues.NEVER
-        ):
-            continue
-        if (subscription and subscription.is_active) or (
-            value == NotificationSettingOptionValues.ALWAYS
-        ):
-            output.append(provider)
-    return output
+    return [
+        provider
+        for provider, value in mapping.items()
+        if should_be_participating(subscriptions_by_user_id, user, value)
+    ]
 
 
 def transform_to_notification_settings_by_user(
@@ -111,32 +120,42 @@ def transform_to_notification_settings_by_user(
 
 def transform_to_notification_settings_by_parent_id(
     notification_settings: Iterable[Any],
+    user_default: Optional[NotificationSettingOptionValues] = None,
 ) -> Tuple[
-    Mapping[int, NotificationSettingOptionValues], Optional[NotificationSettingOptionValues]
+    Mapping[ExternalProviders, Mapping[int, NotificationSettingOptionValues]],
+    Mapping[ExternalProviders, Optional[NotificationSettingOptionValues]],
 ]:
     """
     Given a unorganized list of notification settings, create a mapping of
-    parents (projects or organizations) to setting values. Return this mapping
-    as a tuple with the user's parent-independent notification preference.
+    providers to a mapping parents (projects or organizations) to setting
+    values. Return this mapping as a tuple with a mapping of provider to the
+    user's parent-independent notification preference.
     """
-    notification_settings_by_parent_id = {}
-    notification_setting_user_default = None
+    notification_settings_by_parent_id: Dict[
+        ExternalProviders, Dict[int, NotificationSettingOptionValues]
+    ] = defaultdict(dict)
+
+    # This is the user's default value for any projects or organizations that
+    # don't have the option value specifically recorded.
+    notification_setting_user_default: Dict[
+        ExternalProviders, Optional[NotificationSettingOptionValues]
+    ] = defaultdict(lambda: user_default)
     for notification_setting in notification_settings:
-        if notification_setting.scope_type == NotificationScopeType.USER.value:
-            notification_setting_user_default = NotificationSettingOptionValues(
-                notification_setting.value
-            )
+        scope_type = NotificationScopeType(notification_setting.scope_type)
+        provider = ExternalProviders(notification_setting.provider)
+        value = NotificationSettingOptionValues(notification_setting.value)
+
+        if scope_type == NotificationScopeType.USER:
+            notification_setting_user_default[provider] = value
         else:
             key = int(notification_setting.scope_identifier)
-            notification_settings_by_parent_id[key] = NotificationSettingOptionValues(
-                notification_setting.value
-            )
+            notification_settings_by_parent_id[provider][key] = value
     return notification_settings_by_parent_id, notification_setting_user_default
 
 
 def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
     """ :returns boolean. True if the "value" is valid for the "type". """
-    return get_legacy_value(type, value) is not None
+    return value in VALID_VALUES_FOR_KEY.get(type, {})
 
 
 def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
@@ -178,3 +197,83 @@ def get_target_id(user: Optional[Any] = None, team: Optional[Any] = None) -> int
         return int(team.actor_id)
 
     raise Exception("target must be either a user or a team")
+
+
+def get_subscription_from_attributes(
+    attrs: Mapping[str, Any]
+) -> Tuple[bool, Optional[Mapping[str, Union[str, bool]]]]:
+    subscription_details: Optional[Mapping[str, Union[str, bool]]] = None
+    is_disabled, is_subscribed, subscription = attrs["subscription"]
+    if is_disabled:
+        subscription_details = {"disabled": True}
+    elif subscription and subscription.is_active:
+        subscription_details = {
+            "reason": SUBSCRIPTION_REASON_MAP.get(subscription.reason, "unknown")
+        }
+
+    return is_subscribed, subscription_details
+
+
+def get_groups_for_query(
+    groups_by_project: Mapping[Any, Set[Any]],
+    notification_settings_by_key: Mapping[int, NotificationSettingOptionValues],
+    global_default_workflow_option: NotificationSettingOptionValues,
+) -> Set[Any]:
+    """
+    If there is a subscription record associated with the group, we can just use
+    that to know if a user is subscribed or not, as long as notifications aren't
+    disabled for the project.
+    """
+    # Although this can be done with a comprehension, looping for clarity.
+    output = set()
+    for project, groups in groups_by_project.items():
+        value = notification_settings_by_key.get(project.id, global_default_workflow_option)
+        if value != NotificationSettingOptionValues.NEVER:
+            output |= groups
+    return output
+
+
+def collect_groups_by_project(groups: Iterable[Any]) -> Mapping[Any, Set[Any]]:
+    """
+    Collect all of the projects to look up, and keep a set of groups that are
+    part of that project. (Note that the common -- but not only -- case here is
+    that all groups are part of the same project.)
+    """
+    projects = defaultdict(set)
+    for group in groups:
+        projects[group.project].add(group)
+    return projects
+
+
+def get_user_subscriptions_for_groups(
+    groups_by_project: Mapping[Any, Set[Any]],
+    notification_settings_by_key: Mapping[int, NotificationSettingOptionValues],
+    subscriptions_by_group_id: Mapping[int, Any],
+    global_default_workflow_option: NotificationSettingOptionValues,
+) -> Mapping[int, Tuple[bool, bool, Optional[Any]]]:
+    """
+    Takes collected data and returns a mapping of group IDs to a two-tuple of
+    (subscribed: bool, subscription: Optional[GroupSubscription]).
+    """
+    results = {}
+    for project, groups in groups_by_project.items():
+        project_default_workflow_option = notification_settings_by_key.get(
+            project.id, global_default_workflow_option
+        )
+        for group in groups:
+            subscription = subscriptions_by_group_id.get(group.id)
+
+            is_disabled = False
+            if subscription:
+                is_active = subscription.is_active
+            elif project_default_workflow_option == NotificationSettingOptionValues.NEVER:
+                is_active = False
+                is_disabled = True
+            else:
+                is_active = (
+                    project_default_workflow_option == NotificationSettingOptionValues.ALWAYS
+                )
+
+            results[group.id] = (is_disabled, is_active, subscription)
+
+    return results

@@ -165,47 +165,47 @@ class TransactionsList extends React.Component<Props> {
     } = this.props;
 
     return (
-      <Header>
-        <DropdownControl
-          data-test-id="filter-transactions"
-          button={({isOpen, getActorProps}) => (
-            <StyledDropdownButton
-              {...getActorProps()}
-              isOpen={isOpen}
-              prefix={t('Filter')}
-              size="small"
-            >
-              {selected.label}
-            </StyledDropdownButton>
-          )}
-        >
-          {options.map(({value, label}) => (
-            <DropdownItem
-              data-test-id={`option-${value}`}
-              key={value}
-              onSelect={handleDropdownChange}
-              eventKey={value}
-              isActive={value === selected.value}
-            >
-              {label}
-            </DropdownItem>
-          ))}
-        </DropdownControl>
-        {!this.isTrend() && (
-          <HeaderButtonContainer>
-            <GuideAnchor target="release_transactions_open_in_discover">
-              <DiscoverButton
-                onClick={handleOpenInDiscoverClick}
-                to={this.getEventView().getResultsViewUrlTarget(organization.slug)}
+      <React.Fragment>
+        <div>
+          <DropdownControl
+            data-test-id="filter-transactions"
+            button={({isOpen, getActorProps}) => (
+              <StyledDropdownButton
+                {...getActorProps()}
+                isOpen={isOpen}
+                prefix={t('Filter')}
                 size="small"
-                data-test-id="discover-open"
               >
-                {t('Open in Discover')}
-              </DiscoverButton>
-            </GuideAnchor>
-          </HeaderButtonContainer>
+                {selected.label}
+              </StyledDropdownButton>
+            )}
+          >
+            {options.map(({value, label}) => (
+              <DropdownItem
+                data-test-id={`option-${value}`}
+                key={value}
+                onSelect={handleDropdownChange}
+                eventKey={value}
+                isActive={value === selected.value}
+              >
+                {label}
+              </DropdownItem>
+            ))}
+          </DropdownControl>
+        </div>
+        {!this.isTrend() && (
+          <GuideAnchor target="release_transactions_open_in_discover">
+            <DiscoverButton
+              onClick={handleOpenInDiscoverClick}
+              to={this.getEventView().getResultsViewUrlTarget(organization.slug)}
+              size="small"
+              data-test-id="discover-open"
+            >
+              {t('Open in Discover')}
+            </DiscoverButton>
+          </GuideAnchor>
         )}
-      </Header>
+      </React.Fragment>
     );
   }
 
@@ -234,6 +234,14 @@ class TransactionsList extends React.Component<Props> {
 
     let tableRenderer = ({isLoading, pageLinks, tableData, baselineData}) => (
       <React.Fragment>
+        <Header>
+          {this.renderHeader()}
+          <StyledPagination
+            pageLinks={pageLinks}
+            onCursor={this.handleCursor}
+            size="small"
+          />
+        </Header>
         <TransactionsTable
           eventView={eventView}
           organization={organization}
@@ -246,11 +254,6 @@ class TransactionsList extends React.Component<Props> {
           generateLink={generateLink}
           baselineTransactionName={baselineTransactionName}
           handleCellAction={handleCellAction}
-        />
-        <StyledPagination
-          pageLinks={pageLinks}
-          onCursor={this.handleCursor}
-          size="small"
         />
       </React.Fragment>
     );
@@ -324,6 +327,14 @@ class TransactionsList extends React.Component<Props> {
       >
         {({isLoading, trendsData, pageLinks}) => (
           <React.Fragment>
+            <Header>
+              {this.renderHeader()}
+              <StyledPagination
+                pageLinks={pageLinks}
+                onCursor={this.handleCursor}
+                size="small"
+              />
+            </Header>
             <TransactionsTable
               eventView={sortedEventView}
               organization={organization}
@@ -340,11 +351,6 @@ class TransactionsList extends React.Component<Props> {
               generateLink={generateLink}
               baselineTransactionName={null}
             />
-            <StyledPagination
-              pageLinks={pageLinks}
-              onCursor={this.handleCursor}
-              size="small"
-            />
           </React.Fragment>
         )}
       </TrendsEventsDiscoverQuery>
@@ -359,7 +365,6 @@ class TransactionsList extends React.Component<Props> {
   render() {
     return (
       <React.Fragment>
-        {this.renderHeader()}
         {this.isTrend() ? this.renderTrendsTable() : this.renderTransactionTable()}
       </React.Fragment>
     );
@@ -581,7 +586,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
     return (
-      <StyledPanelTable
+      <PanelTable
         isEmpty={!hasResults}
         emptyMessage={t('No transactions found')}
         headers={this.renderHeader()}
@@ -590,29 +595,19 @@ class TransactionsTable extends React.PureComponent<TableProps> {
         loader={loader}
       >
         {this.renderResults()}
-      </StyledPanelTable>
+      </PanelTable>
     );
   }
 }
 
 const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0 0 ${space(1)} 0;
-`;
-
-const HeaderButtonContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  margin-bottom: ${space(1)};
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
   min-width: 145px;
-`;
-
-const StyledPanelTable = styled(PanelTable)`
-  margin-bottom: ${space(1)};
 `;
 
 const HeadCellContainer = styled('div')`
@@ -625,7 +620,7 @@ const BodyCellContainer = styled('div')`
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 ${space(3)} 0;
+  margin: 0 0 0 ${space(1)};
 `;
 
 export default TransactionsList;

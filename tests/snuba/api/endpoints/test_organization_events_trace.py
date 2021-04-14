@@ -158,6 +158,42 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
             self.url_name,
             kwargs={"organization_slug": self.project.organization.slug, "trace_id": self.trace_id},
         )
+        start, _ = self.get_start_end(1000)
+
+    def load_errors(self):
+        start, _ = self.get_start_end(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.gen1_span_ids[0],
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.gen1_project.id)
+        error_data["level"] = "warning"
+        error1 = self.store_event(error_data, project_id=self.gen1_project.id)
+        return error, error1
+
+    def load_default(self):
+        start, _ = self.get_start_end(1000)
+        return self.store_event(
+            {
+                "timestamp": iso_format(start),
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": self.trace_id,
+                        "span_id": self.root_span_ids[0],
+                    },
+                },
+                "level": "debug",
+                "message": "this is a log message",
+            },
+            project_id=self.gen1_project.id,
+        )
 
 
 class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBase):
@@ -771,11 +807,12 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                     "trace_id": self.trace_id,
                 }
             ],
-            # Some random id so its separated from the rest of the trace
             parent_span_id=orphan_span_ids["root_span"],
             span_id=orphan_span_ids["child"],
             project_id=self.gen1_project.id,
-            duration=500,
+            # Because the snuba query orders based is_root then timestamp, this causes grandchild1-0 to be added to
+            # results first before child1-0
+            duration=2500,
         )
         grandchild_event = self.create_event(
             trace=self.trace_id,
@@ -789,7 +826,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                     "trace_id": self.trace_id,
                 }
             ],
-            # Some random id so its separated from the rest of the trace
             parent_span_id=orphan_span_ids["child_span"],
             span_id=orphan_span_ids["grandchild"],
             project_id=self.gen1_project.id,
@@ -811,27 +847,19 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.assert_event(orphans, root_event, "orphan-root")
         assert len(orphans["children"]) == 1
         assert orphans["generation"] == 0
+        assert orphans["parent_event_id"] is None
         child = orphans["children"][0]
         self.assert_event(child, child_event, "orphan-child")
         assert len(child["children"]) == 1
         assert child["generation"] == 1
+        assert child["parent_event_id"] == root_event.event_id
         grandchild = child["children"][0]
         self.assert_event(grandchild, grandchild_event, "orphan-grandchild")
         assert grandchild["generation"] == 2
+        assert grandchild["parent_event_id"] == child_event.event_id
 
     def test_with_errors(self):
-        start, _ = self.get_start_end(1000)
-        error_data = load_data(
-            "javascript",
-            timestamp=start,
-        )
-        error_data["contexts"]["trace"] = {
-            "type": "trace",
-            "trace_id": self.trace_id,
-            "span_id": self.gen1_span_ids[0],
-        }
-        error = self.store_event(error_data, project_id=self.gen1_project.id)
-        error1 = self.store_event(error_data, project_id=self.gen1_project.id)
+        error, error1 = self.load_errors()
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -850,6 +878,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "level": "fatal",
+            "title": error.title,
         } in gen1_event["errors"]
         assert {
             "event_id": error1.event_id,
@@ -857,23 +887,13 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "level": "warning",
+            "title": error1.title,
         } in gen1_event["errors"]
 
     def test_with_default(self):
         start, _ = self.get_start_end(1000)
-        default_event = self.store_event(
-            {
-                "timestamp": iso_format(start),
-                "contexts": {
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": self.trace_id,
-                        "span_id": self.root_span_ids[0],
-                    },
-                },
-            },
-            project_id=self.gen1_project.id,
-        )
+        default_event = self.load_default()
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -891,4 +911,98 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "span": self.root_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "level": "debug",
+            "title": "this is a log message",
         } in root_event["errors"]
+
+
+class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
+    url_name = "sentry-api-0-organization-events-trace-meta"
+
+    def test_no_projects(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+
+        url = reverse(
+            self.url_name,
+            kwargs={"organization_slug": org.slug, "trace_id": uuid4().hex},
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                url,
+                format="json",
+            )
+
+        assert response.status_code == 404, response.content
+
+    def test_bad_ids(self):
+        # Fake trace id
+        self.url = reverse(
+            self.url_name,
+            kwargs={"organization_slug": self.project.organization.slug, "trace_id": uuid4().hex},
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["projects"] == 0
+        assert data["transactions"] == 0
+        assert data["errors"] == 0
+
+        # Invalid trace id
+        with self.assertRaises(NoReverseMatch):
+            self.url = reverse(
+                self.url_name,
+                kwargs={
+                    "organization_slug": self.project.organization.slug,
+                    "trace_id": "not-a-trace",
+                },
+            )
+
+    def test_simple(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["projects"] == 4
+        assert data["transactions"] == 8
+        assert data["errors"] == 0
+
+    def test_with_errors(self):
+        self.load_errors()
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["projects"] == 4
+        assert data["transactions"] == 8
+        assert data["errors"] == 2
+
+    def test_with_default(self):
+        self.load_default()
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["projects"] == 4
+        assert data["transactions"] == 8
+        assert data["errors"] == 1

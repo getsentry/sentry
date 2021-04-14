@@ -1,9 +1,9 @@
+import copy
+import ipaddress
 import logging
+import time
 from datetime import datetime, timedelta
 from io import BytesIO
-import ipaddress
-import copy
-import time
 
 import sentry_sdk
 from django.conf import settings
@@ -778,6 +778,12 @@ def _nodestore_save_many(jobs):
 @metrics.wraps("save_event.eventstream_insert_many")
 def _eventstream_insert_many(jobs):
     for job in jobs:
+        if job["event"].project_id == settings.SENTRY_PROJECT:
+            metrics.incr(
+                "internal.captured.eventstream_insert",
+                tags={"event_type": job["event"].data.get("type") or "null"},
+            )
+
         eventstream.insert(
             group=job["group"],
             event=job["event"],
@@ -959,6 +965,10 @@ def _save_aggregate2(event, flat_hashes, hierarchical_hashes, release, **kwargs)
                 try:
                     short_id = project.next_short_id()
                 except OperationalError:
+                    metrics.incr(
+                        "next_short_id.timeout",
+                        tags={"platform": event.platform or "unknown"},
+                    )
                     raise HashDiscarded("Timeout when getting next_short_id")
 
                 # it's possible the release was deleted between
@@ -1107,6 +1117,10 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
         try:
             short_id = project.next_short_id()
         except OperationalError:
+            metrics.incr(
+                "next_short_id.timeout",
+                tags={"platform": event.platform or "unknown"},
+            )
             raise HashDiscarded("Timeout when getting next_short_id")
 
         with transaction.atomic():

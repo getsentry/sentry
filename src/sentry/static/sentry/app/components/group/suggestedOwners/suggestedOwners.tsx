@@ -112,7 +112,11 @@ class SuggestedOwners extends React.Component<Props, State> {
         rules: findMatchedRules(this.state.rules || [], owner),
       };
 
-      const existingIdx = owners.findIndex(o => o.actor.email === owner.email);
+      const existingIdx = owners.findIndex(o =>
+        this.props.committers.length === 0
+          ? o.actor === owner
+          : o.actor.email === owner.email
+      );
       if (existingIdx > -1) {
         owners[existingIdx] = {...normalizedOwner, ...owners[existingIdx]};
         return;

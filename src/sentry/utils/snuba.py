@@ -10,7 +10,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from hashlib import sha1
 from operator import itemgetter
-from typing import Any, Callable, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 from urllib.parse import urlparse
 
 import pytz
@@ -51,6 +51,7 @@ MAX_HASHES = 5000
 # in a single query to lessen the load on snuba
 MAX_FIELDS = 20
 
+SAFE_FUNCTIONS = frozenset(["NOT IN"])
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 # Match any text surrounded by quotes, can't use `.*` here since it
 # doesn't include new lines,
@@ -384,7 +385,9 @@ def get_function_index(column_expr, depth=0):
             # The assumption here is that a list that follows a string means
             # the string is a function name
             if isinstance(column_expr[i], str) and isinstance(column_expr[i + 1], (tuple, list)):
-                assert SAFE_FUNCTION_RE.match(column_expr[i])
+                assert column_expr[i] in SAFE_FUNCTIONS or SAFE_FUNCTION_RE.match(
+                    column_expr[i]
+                ), column_expr[i]
                 index = i
                 break
             else:
@@ -625,7 +628,7 @@ def raw_query(
     use_cache=False,
     use_snql=None,
     **kwargs,
-) -> [Dict[str, Any]]:
+) -> Mapping[str, Any]:
     """
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.
@@ -651,13 +654,49 @@ def raw_query(
     )[0]
 
 
-SnubaQuery = Tuple[MutableMapping[str, Any], Callable[[Any], Any], Callable[[Any], Any]]
-SnQLQuery = Tuple[Tuple[Query, Mapping[str, Any]], Callable[[Any], Any], Callable[[Any], Any]]
+SnubaQuery = Union[Query, MutableMapping[str, Any]]
+Translator = Callable[[Any], Any]
+SnubaQueryBody = Tuple[SnubaQuery, Translator, Translator]
 ResultSet = List[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
+
+
+def raw_snql_query(
+    query: Query,
+    referrer: Optional[str] = None,
+    use_cache: bool = False,
+) -> Mapping[str, Any]:
+    # XXX (evanh): This function does none of the extra processing that the
+    # other functions do here. It does not add any automatic conditions, format
+    # results, nothing. Use at your own risk.
+    metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
+    params: SnubaQuery = (query, lambda x: x, lambda x: x)
+    return _apply_cache_and_build_results([params], referrer=referrer, use_cache=use_cache)[0]
+
+
+def get_cache_key(query: SnubaQuery) -> str:
+    if isinstance(query, Query):
+        hashable = str(query)
+    else:
+        hashable = json.dumps(query, sort_keys=True)
+
+    # sqc - Snuba Query Cache
+    return f"sqc:{sha1(hashable.encode('utf-8')).hexdigest()}"
 
 
 def bulk_raw_query(
     snuba_param_list: Sequence[SnubaQueryParams],
+    referrer: Optional[str] = None,
+    use_cache: Optional[bool] = False,
+    use_snql: Optional[bool] = None,
+) -> ResultSet:
+    params = map(_prepare_query_params, snuba_param_list)
+    return _apply_cache_and_build_results(
+        params, referrer=referrer, use_cache=use_cache, use_snql=use_snql
+    )
+
+
+def _apply_cache_and_build_results(
+    snuba_param_list: Sequence[SnubaQueryBody],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
     use_snql: Optional[bool] = None,
@@ -667,20 +706,14 @@ def bulk_raw_query(
         headers["referer"] = referrer
 
     # Store the original position of the query so that we can maintain the order
-    query_param_list: List[Tuple[int, SnubaQuery]] = list(
-        enumerate(map(_prepare_query_params, snuba_param_list))
-    )
+    query_param_list = list(enumerate(snuba_param_list))
 
     results = []
 
     if use_cache:
-        # sqc - Snuba Query Cache
-        cache_keys = [
-            f"sqc:{sha1(json.dumps(query_params[0], sort_keys=True).encode('utf-8')).hexdigest()}"
-            for _, query_params in query_param_list
-        ]
+        cache_keys = [get_cache_key(query_params) for _, query_params in query_param_list]
         cache_data = cache.get_many(cache_keys)
-        to_query: List[Tuple[int, SnubaQuery, Optional[str]]] = []
+        to_query: List[Tuple[int, SnubaQueryBody, Optional[str]]] = []
         for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
             cached_result = cache_data.get(cache_key)
             metric_tags = {"referrer": referrer} if referrer else None
@@ -707,7 +740,9 @@ def bulk_raw_query(
 
 
 def _bulk_snuba_query(
-    snuba_param_list: List[SnubaQuery], headers: Mapping[str, str], use_snql: Optional[bool] = None
+    snuba_param_list: Sequence[SnubaQueryBody],
+    headers: Mapping[str, str],
+    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     with sentry_sdk.start_span(
         op="start_snuba_query",
@@ -718,7 +753,15 @@ def _bulk_snuba_query(
         # but we still want to know a general sense of how referrers impact performance
         span.set_tag("query.referrer", query_referrer)
         sentry_sdk.set_tag("query.referrer", query_referrer)
-        query_fn = _snql_query if use_snql else _snuba_query
+        # This is confusing because this function is overloaded right now with three cases:
+        # 1. A legacy JSON query (_snuba_query)
+        # 2. A dryrun SnQL query of a legacy query (_snql_dryrun_query)
+        # 3. A direct SnQL query using the new SDK (_snql_query)
+        query_fn = _snuba_query
+        if isinstance(snuba_param_list[0][0], Query):
+            query_fn = _snql_query
+        elif use_snql:
+            query_fn = _snql_dryrun_query
 
         if len(snuba_param_list) > 1:
             query_results = list(
@@ -728,8 +771,7 @@ def _bulk_snuba_query(
                 )
             )
         else:
-            # No need to submit to the thread pool if we're just performing a
-            # single query
+            # No need to submit to the thread pool if we're just performing a single query
             query_results = [query_fn((snuba_param_list[0], Hub(Hub.current), headers))]
 
     results = []
@@ -802,19 +844,36 @@ def _snuba_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult
 
 
 def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
+    # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
+    # the params here than in the calling function.
+    query_data, thread_hub, headers = params
+    query, forward, reverse = query_data
+    assert isinstance(query, Query)
+    try:
+        return _raw_snql_query(query, thread_hub, headers), forward, reverse
+    except Exception as err:
+        raise SnubaError(err)
+
+
+def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
     # Run the SnQL query in debug/dry_run mode
     # Run the legacy query in debug mode
     # Log any errors in SnQL execution and log if the returned SQL is not the same
     query_data, thread_hub, headers = params
     query_params, forward, reverse = query_data
     og_debug = query_params.get("debug", False)
+    referrer = headers.get("referer", "<unknown>")
     try:
+        metrics.incr("snuba.snql.dryrun.incoming", tags={"referrer": referrer})
         query = json_to_snql(query_params, query_params["dataset"])
         query.validate()  # Call this here just avoid it happening in the async all
     except Exception as e:
         logger.warning(
             "snuba.snql.parsing.error",
             extra={"error": str(e), "params": json.dumps(query_params)},
+        )
+        metrics.incr(
+            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "parsing.error"}
         )
         return _snuba_query(params)
 
@@ -835,6 +894,9 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
             "snuba.snql.dryrun.sending.error",
             extra={"error": str(e), "params": json.dumps(query_params), "query": str(query)},
         )
+        metrics.incr(
+            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "sending.error"}
+        )
         return legacy_result
 
     legacy_data = json.loads(legacy_resp.data)
@@ -850,11 +912,14 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
                 "resp": snql_resp.data,
             },
         )
+        metrics.incr(
+            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "json.error"}
+        )
         return legacy_result
 
     if "sql" not in snql_data or "sql" not in legacy_data:
         logger.warning(
-            "snuba.snql.dryrun.error",
+            "snuba.snql.dryrun.nosql",
             extra={
                 "params": json.dumps(query_params),
                 "query": str(query),
@@ -862,6 +927,7 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
                 "legacy": "sql" in legacy_data,
             },
         )
+        metrics.incr("snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "nosql"})
         return legacy_result
 
     if snql_data["sql"] != legacy_data["sql"]:
@@ -874,6 +940,11 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
                 "legacy": legacy_data["sql"],
             },
         )
+        metrics.incr(
+            "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "mismatch.error"}
+        )
+    else:
+        metrics.incr("snuba.snql.dryrun.success", tags={"referrer": referrer})
 
     return legacy_result
 
@@ -1023,12 +1094,9 @@ def resolve_condition(cond, column_resolver):
                                        current dataset.
     """
     index = get_function_index(cond)
-    if index is not None:
-        # IN conditions are detected as a function but aren't really.
-        if cond[index] == "IN":
-            cond[0] = column_resolver(cond[0])
-            return cond
-        elif cond[index] in FUNCTION_TO_OPERATOR:
+    # IN/NOT IN conditions are detected as a function but aren't really.
+    if index is not None and cond[index] not in ("IN", "NOT IN"):
+        if cond[index] in FUNCTION_TO_OPERATOR:
             func_args = cond[index + 1]
             for i, arg in enumerate(func_args):
                 if i == 0:

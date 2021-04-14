@@ -7,16 +7,16 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.models.integration import ExternalProviders, get_provider_name
 from sentry.notifications.manager import NotificationsManager
 from sentry.notifications.types import (
-    get_notification_scope_name,
-    get_notification_setting_type_name,
-    get_notification_setting_value_name,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
+    get_notification_scope_name,
+    get_notification_setting_type_name,
+    get_notification_setting_value_name,
 )
+from sentry.types.integrations import ExternalProviders, get_provider_name
 
 
 class NotificationSetting(Model):

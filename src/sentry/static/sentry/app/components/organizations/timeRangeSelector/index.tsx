@@ -1,7 +1,7 @@
 import React from 'react';
+import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
-import PropTypes from 'prop-types';
 
 import DropdownMenu from 'app/components/dropdownMenu';
 import HookOrDefault from 'app/components/hookOrDefault';
@@ -80,7 +80,7 @@ const defaultProps = {
   showRelative: true,
 };
 
-type Props = {
+type Props = ReactRouter.WithRouterProps & {
   /**
    * Start date value for absolute date selector
    */
@@ -126,7 +126,7 @@ type Props = {
    * Small info icon with tooltip hint text
    */
   hint?: string;
-} & typeof defaultProps;
+} & Partial<typeof defaultProps>;
 
 type State = {
   isOpen: boolean;
@@ -139,10 +139,6 @@ type State = {
 };
 
 class TimeRangeSelector extends React.PureComponent<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-  };
-
   static defaultProps = defaultProps;
 
   constructor(props: Props) {
@@ -292,7 +288,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   };
 
   handleUseUtc = () => {
-    const {onChange} = this.props;
+    const {onChange, router} = this.props;
     let {start, end} = this.props;
 
     this.setState(state => {
@@ -308,7 +304,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
 
       analytics('dateselector.utc_changed', {
         utc,
-        path: getRouteStringFromRoutes(this.context.router.routes),
+        path: getRouteStringFromRoutes(router.routes),
         org_id: parseInt(this.props.organization.id, 10),
       });
 
@@ -462,6 +458,6 @@ const SubmitRow = styled('div')`
   border-left: 1px solid ${p => p.theme.border};
 `;
 
-export default TimeRangeSelector;
+export default ReactRouter.withRouter(TimeRangeSelector);
 
 export {TimeRangeRoot};
