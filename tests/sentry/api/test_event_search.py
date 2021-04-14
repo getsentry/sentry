@@ -62,7 +62,7 @@ def test_get_json_meta_type():
     assert get_json_meta_type("count_thing", "Nullable(String)") == "string"
     assert get_json_meta_type("measurements.size", "Float64") == "number"
     assert get_json_meta_type("measurements.fp", "Float64") == "duration"
-    assert get_json_meta_type("spans.ops.browser", "Float64") == "duration"
+    assert get_json_meta_type("spans.browser", "Float64") == "duration"
     assert get_json_meta_type("spans.total.time", "Float64") == "duration"
     assert (
         get_json_meta_type(
@@ -126,9 +126,9 @@ def test_parse_function():
         None,
     )
     assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"], None)
-    assert parse_function("p75(spans.ops.http)") == (
+    assert parse_function("p75(spans.http)") == (
         "p75",
-        ["spans.ops.http"],
+        ["spans.http"],
         None,
     )
     assert parse_function("apdex(300)") == ("apdex", ["300"], None)
@@ -1195,41 +1195,41 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_numeric_aggregate_op_breakdowns_filter(self):
-        assert parse_search_query("min(spans.ops.browser):3.1415") == [
+        assert parse_search_query("min(spans.browser):3.1415") == [
             SearchFilter(
-                key=SearchKey(name="min(spans.ops.browser)"),
+                key=SearchKey(name="min(spans.browser)"),
                 operator="=",
                 value=SearchValue(raw_value=3.1415),
             )
         ]
 
-        assert parse_search_query("min(spans.ops.browser):>3.1415") == [
+        assert parse_search_query("min(spans.browser):>3.1415") == [
             SearchFilter(
-                key=SearchKey(name="min(spans.ops.browser)"),
+                key=SearchKey(name="min(spans.browser)"),
                 operator=">",
                 value=SearchValue(raw_value=3.1415),
             )
         ]
 
-        assert parse_search_query("min(spans.ops.browser):<3.1415") == [
+        assert parse_search_query("min(spans.browser):<3.1415") == [
             SearchFilter(
-                key=SearchKey(name="min(spans.ops.browser)"),
+                key=SearchKey(name="min(spans.browser)"),
                 operator="<",
                 value=SearchValue(raw_value=3.1415),
             )
         ]
 
-        assert parse_search_query("min(spans.ops.browser):<3k") == [
+        assert parse_search_query("min(spans.browser):<3k") == [
             SearchFilter(
-                key=SearchKey(name="min(spans.ops.browser)"),
+                key=SearchKey(name="min(spans.browser)"),
                 operator="<",
                 value=SearchValue(raw_value=3000.0),
             )
         ]
 
-        assert parse_search_query("min(spans.ops.browser):2m") == [
+        assert parse_search_query("min(spans.browser):2m") == [
             SearchFilter(
-                key=SearchKey(name="min(spans.ops.browser)"),
+                key=SearchKey(name="min(spans.browser)"),
                 operator="=",
                 value=SearchValue(raw_value=120000.0),
             )
@@ -1267,25 +1267,25 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_duration_op_breakdowns_filter(self):
-        assert parse_search_query("spans.ops.browser:1.5s") == [
+        assert parse_search_query("spans.browser:1.5s") == [
             SearchFilter(
-                key=SearchKey(name="spans.ops.browser"),
+                key=SearchKey(name="spans.browser"),
                 operator="=",
                 value=SearchValue(raw_value=1500),
             )
         ]
 
-        assert parse_search_query("spans.ops.browser:>1.5s") == [
+        assert parse_search_query("spans.browser:>1.5s") == [
             SearchFilter(
-                key=SearchKey(name="spans.ops.browser"),
+                key=SearchKey(name="spans.browser"),
                 operator=">",
                 value=SearchValue(raw_value=1500),
             )
         ]
 
-        assert parse_search_query("spans.ops.browser:<1.5s") == [
+        assert parse_search_query("spans.browser:<1.5s") == [
             SearchFilter(
-                key=SearchKey(name="spans.ops.browser"),
+                key=SearchKey(name="spans.browser"),
                 operator="<",
                 value=SearchValue(raw_value=1500),
             )
@@ -1317,25 +1317,25 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_duration_aggregate_op_breakdowns_filter(self):
-        assert parse_search_query("percentile(spans.ops.browser, 0.5):3.3s") == [
+        assert parse_search_query("percentile(spans.browser, 0.5):3.3s") == [
             SearchFilter(
-                key=SearchKey(name="percentile(spans.ops.browser, 0.5)"),
+                key=SearchKey(name="percentile(spans.browser, 0.5)"),
                 operator="=",
                 value=SearchValue(raw_value=3300),
             )
         ]
 
-        assert parse_search_query("percentile(spans.ops.browser, 0.5):>3.3s") == [
+        assert parse_search_query("percentile(spans.browser, 0.5):>3.3s") == [
             SearchFilter(
-                key=SearchKey(name="percentile(spans.ops.browser, 0.5)"),
+                key=SearchKey(name="percentile(spans.browser, 0.5)"),
                 operator=">",
                 value=SearchValue(raw_value=3300),
             )
         ]
 
-        assert parse_search_query("percentile(spans.ops.browser, 0.5):<3.3s") == [
+        assert parse_search_query("percentile(spans.browser, 0.5):<3.3s") == [
             SearchFilter(
-                key=SearchKey(name="percentile(spans.ops.browser, 0.5)"),
+                key=SearchKey(name="percentile(spans.browser, 0.5)"),
                 operator="<",
                 value=SearchValue(raw_value=3300),
             )
@@ -2968,7 +2968,7 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_stddev_function(self):
         fields = [
             "stddev(measurements.fcp)",
-            "stddev(spans.ops.browser)",
+            "stddev(spans.browser)",
             "stddev(transaction.duration)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
@@ -2976,8 +2976,8 @@ class ResolveFieldListTest(unittest.TestCase):
             ["stddevSamp", "measurements.fcp", "stddev_measurements_fcp"],
             [
                 "stddevSamp",
-                "spans.ops.browser",
-                "stddev_spans_ops_browser",
+                "spans.browser",
+                "stddev_spans_browser",
             ],
             ["stddevSamp", "transaction.duration", "stddev_transaction_duration"],
         ]
@@ -3479,7 +3479,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "measurements.lcp",
             "measurements.fid",
             "measurements.bar",
-            "spans.ops.browser",
+            "spans.browser",
         ]
 
         for column in columns:
@@ -3661,7 +3661,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "avg(measurements.foo)",
             "percentile(measurements.fcp, 0.5)",
             "stddev(measurements.foo)",
-            "percentile(spans.ops.browser, 0.5)",
+            "percentile(spans.browser, 0.5)",
             "avg(spans.total.time)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
@@ -3688,9 +3688,9 @@ class ResolveFieldListTest(unittest.TestCase):
         assert functions["stddev_measurements_foo"].instance.name == "stddev"
         assert functions["stddev_measurements_foo"].arguments == {"column": "measurements.foo"}
 
-        assert functions["percentile_spans_ops_browser_0_5"].instance.name == "percentile"
-        assert functions["percentile_spans_ops_browser_0_5"].arguments == {
-            "column": "spans.ops.browser",
+        assert functions["percentile_spans_browser_0_5"].instance.name == "percentile"
+        assert functions["percentile_spans_browser_0_5"].arguments == {
+            "column": "spans.browser",
             "percentile": 0.5,
         }
 
@@ -3811,13 +3811,13 @@ class ResolveFieldListTest(unittest.TestCase):
             ["last_seen()", "timestamp"],
             ["avg(measurements.lcp)", "measurements.lcp"],
             ["stddev(measurements.lcp)", "measurements.lcp"],
-            ["avg(spans.ops.browser)", "spans.ops.browser"],
-            ["stddev(spans.ops.browser)", "spans.ops.browser"],
+            ["avg(spans.browser)", "spans.browser"],
+            ["stddev(spans.browser)", "spans.browser"],
             ["min(timestamp)", "timestamp"],
             ["max(timestamp)", "timestamp"],
             ["p95()", "transaction.duration"],
             ["any(measurements.fcp)", "measurements.fcp"],
-            ["any(spans.ops.browser)", "spans.ops.browser"],
+            ["any(spans.browser)", "spans.browser"],
         ]
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as error:
