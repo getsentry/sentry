@@ -1,5 +1,5 @@
 import re
-from typing import Any, Mapping, MutableMapping, Optional, Set, Tuple
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Set, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from django.core.urlresolvers import reverse
@@ -7,26 +7,25 @@ from django.utils.html import escape, mark_safe
 from django.utils.safestring import SafeString
 
 from sentry import options
-from sentry.integrations.slack.notifications import send_slack_message_to_user
 from sentry.models import (
     Activity,
     Group,
     GroupSubscription,
-    Integration,
-    ObjectStatus,
     ProjectOption,
     User,
     UserAvatar,
     UserOption,
 )
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.types.integrations import ExternalProviders, get_provider_name
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
-from sentry.utils.email import MessageBuilder, group_id_to_email
+from sentry.utils.email import group_id_to_email
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
+
+registry: MutableMapping[ExternalProviders, Callable] = {}
 
 
 class ActivityNotification:
@@ -35,6 +34,10 @@ class ActivityNotification:
         self.project = activity.project
         self.organization = self.project.organization
         self.group = activity.group
+
+    @classmethod
+    def register(cls, provider: ExternalProviders, send_notification: Callable) -> None:
+        registry[provider] = send_notification
 
     def _get_subject_prefix(self) -> str:
         prefix = ProjectOption.objects.get_value(project=self.project, key="mail:subject_prefix")
@@ -273,46 +276,12 @@ class ActivityNotification:
         if not participants_by_provider:
             return
 
-        organization = self.organization
-        activity = self.activity
-        project = self.project
-        group = self.group
-
         context = self.get_base_context()
         context.update(self.get_context())
 
-        template = self.get_template()
-        html_template = self.get_html_template()
-        email_type = self.get_email_type()
-        headers = self.get_headers()
-
         for provider, participants in participants_by_provider.items():
-            if provider == ExternalProviders.EMAIL:
-                for user, reason in participants.items():
-                    user_context = self.update_user_context_from_group(user, reason, context, group)
-                    msg = MessageBuilder(
-                        subject=self.get_subject_with_prefix(),
-                        template=template,
-                        html_template=html_template,
-                        headers=headers,
-                        type=email_type,
-                        context=user_context,
-                        reference=activity,
-                        reply_reference=group,
-                    )
-                    msg.add_users([user.id], project=project)
-                    msg.send_async()
-            elif provider == ExternalProviders.SLACK:
-                integrations = Integration.objects.filter(
-                    organizations__in=[organization],
-                    provider=get_provider_name(provider.value),
-                    status=ObjectStatus.VISIBLE,
+            for user, reason in participants.items():
+                user_context = self.update_user_context_from_group(
+                    user, reason, context, self.group
                 )
-                for integration in integrations:
-                    for user, reason in participants.items():
-                        user_context = self.update_user_context_from_group(
-                            user, reason, context, group
-                        )
-                        send_slack_message_to_user(
-                            organization, integration, project, user, activity, group, user_context
-                        )
+                registry[provider](self, user, user_context)
