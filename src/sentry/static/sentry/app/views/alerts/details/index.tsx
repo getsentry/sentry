@@ -11,7 +11,6 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
-import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
 
 import {AlertRuleStatus, Incident, IncidentStats, IncidentStatus} from '../types';
 import {
