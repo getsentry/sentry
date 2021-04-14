@@ -70,12 +70,12 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       // If `user_window` is defined, than `user_count` users affected in `user_window` minutes.
       // else `user_count` events occurred since it was ignored.
       if (user_window) {
-        return t('Affected [count] user(s) in [duration]', {
+        return tct('Affected [count] user(s) in [duration]', {
           count: getCountText(user_count),
           duration: getDuration(user_window * 60, 0, true),
         });
       }
-      return t('Affected [count] user(s)', {
+      return tct('Affected [count] user(s)', {
         count: getCountText(user_count),
       });
     }
