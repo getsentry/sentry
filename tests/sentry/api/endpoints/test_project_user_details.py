@@ -33,6 +33,14 @@ class ProjectUserDetailsTest(APITestCase):
         assert response.status_code == 200
         assert EventUser.objects.count() == 1
 
+        # User doesn't exist
+        path = f"/api/0/projects/{self.org.slug}/{self.project.slug}/users/1234567abcdefg"
+        response = self.client.delete(path)
+
+        assert response.status_code == 404
+        assert EventUser.objects.count() == 1
+
+        # Not a superuser
         self.login_as(user=self.create_user(is_superuser=False))
 
         assert EventUser.objects.count() == 1

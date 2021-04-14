@@ -24,10 +24,14 @@ class ProjectUserDetailsEndpoint(ProjectEndpoint):
         :pparam string user_hash: the user hash.
         """
         if is_active_superuser(request):
-            euser = EventUser.objects.filter(project_id=project.id, hash=user_hash)
-            euser[0].delete()
+            try:
+                euser = EventUser.objects.get(project_id=project.id, hash=user_hash)
+            except EventUser.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
 
-            return Response(status=200)
+            euser.delete()
+
+            return Response(status=status.HTTP_200_OK)
 
         else:
             return Response(status=status.HTTP_403_FORBIDDEN)
