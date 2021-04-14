@@ -42,10 +42,10 @@ class FallingError extends React.Component<Props, State> {
         variants={{
           initial: {
             opacity: 0,
-            originX: '50%',
-            originY: '0',
           },
           hanging: {
+            originX: '50%',
+            originY: '0',
             opacity: [1, 1, 1],
             rotateZ: [8, -8, 8],
             transition: testableTransition({
@@ -65,12 +65,13 @@ class FallingError extends React.Component<Props, State> {
               originY: '0',
               scale: 1,
               rotate: 0,
-              y: 0,
-              x: 0,
+              y: '-10px',
             },
           },
         }}
-        onAnimationComplete={() => this.setState({isFalling: false})}
+        onAnimationComplete={variant =>
+          variant === 'falling' && this.setState({isFalling: false})
+        }
       >
         {!isFalling ? (
           <svg
