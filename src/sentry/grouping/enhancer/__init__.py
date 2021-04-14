@@ -97,6 +97,11 @@ class StacktraceState:
 
 
 class Enhancements:
+
+    # NOTE: You must bump the ``version`` any time attributes are added to
+    # this class, s.t. no enhancements lacking these attributes are loaded
+    # from cache.
+
     def __init__(self, rules, version=None, bases=None, id=None):
         self.id = id
         self.rules = rules
