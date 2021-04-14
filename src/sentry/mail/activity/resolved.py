@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from .base import ActivityEmail
 
 
@@ -8,7 +6,7 @@ class ResolvedActivityEmail(ActivityEmail):
         return "Resolved Issue"
 
     def get_description(self):
-        return u"{author} marked {an issue} as resolved"
+        return "{author} marked {an issue} as resolved"
 
     def get_category(self):
         return "resolved_activity_email"

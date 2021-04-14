@@ -1,6 +1,4 @@
 import React from 'react';
-import {number, string} from '@storybook/addon-knobs';
-import {withInfo} from '@storybook/addon-info';
 
 import SeenByList from 'app/components/seenByList';
 
@@ -12,22 +10,30 @@ const USER = {
 
 export default {
   title: 'UI/SeenByList',
+  args: {
+    avatarSize: 28,
+    iconTooltip: 'icon tooltip message',
+    maxVisibleAvatars: 5,
+  },
 };
 
-export const Default = withInfo(
-  'This displays a list of avatars but filters out the current user'
-)(() => {
+export const Default = ({maxVisibleAvatars, avatarSize, iconTooltip}) => {
   const user = {...USER};
   return (
     <SeenByList
       seenBy={[user]}
-      avatarSize={number('avatarSize', 28)}
-      iconTooltip={string('iconTooltip', 'icon tooltip message')}
-      maxVisibleAvatars={number('maxVisibleAvatars', 5)}
+      avatarSize={avatarSize}
+      iconTooltip={iconTooltip}
+      maxVisibleAvatars={maxVisibleAvatars}
     />
   );
-});
+};
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'default';
+Default.parameters = {
+  docs: {
+    description: {
+      story: 'This displays a list of avatars but filters out the current user',
+    },
+  },
 };

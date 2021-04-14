@@ -1,21 +1,18 @@
-from __future__ import absolute_import
-
-from abc import ABCMeta, abstractmethod
 import functools
-import six
+from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from datetime import timedelta
 
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.functional import SimpleLazyObject
 
 from sentry import quotas
-from sentry.api.event_search import InvalidSearchQuery
+from sentry.api.event_search import InvalidSearchQuery, equality_operators
 from sentry.models import (
-    Release,
-    GroupEnvironment,
     Group,
     GroupAssignee,
-    GroupInbox,
+    GroupEnvironment,
     GroupLink,
     GroupOwner,
     GroupStatus,
@@ -23,6 +20,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     PlatformExternalIssue,
+    Release,
     Team,
     User,
 )
@@ -30,42 +28,67 @@ from sentry.search.base import SearchBackend
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
 
 
-def assigned_to_filter(actor, projects):
+def assigned_to_filter(actors, projects, field_filter="id"):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
-    if isinstance(actor, Team):
-        return Q(
-            id__in=GroupAssignee.objects.filter(
-                team=actor, project_id__in=[p.id for p in projects]
-            ).values_list("group_id", flat=True)
+    include_none = False
+    types_to_actors = defaultdict(list)
+    for actor in actors:
+        if isinstance(actor, list) and actor[0] == "me_or_none":
+            include_none = True
+            actor = actor[1]
+        types_to_actors[type(actor) if not isinstance(actor, SimpleLazyObject) else User].append(
+            actor
         )
 
-    assigned_to_user = Q(
-        id__in=GroupAssignee.objects.filter(
-            user=actor, project_id__in=[p.id for p in projects]
-        ).values_list("group_id", flat=True)
-    )
-    assigned_to_team = Q(
-        id__in=GroupAssignee.objects.filter(
-            project_id__in=[p.id for p in projects],
-            team_id__in=Team.objects.filter(
-                id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__in=OrganizationMember.objects.filter(
-                        user=actor, organization_id=projects[0].organization_id
+    query = Q()
+
+    if Team in types_to_actors:
+        query |= Q(
+            **{
+                f"{field_filter}__in": GroupAssignee.objects.filter(
+                    team__in=types_to_actors[Team], project_id__in=[p.id for p in projects]
+                ).values_list("group_id", flat=True)
+            }
+        )
+
+    if User in types_to_actors:
+        users = types_to_actors[User]
+        query |= Q(
+            **{
+                f"{field_filter}__in": GroupAssignee.objects.filter(
+                    user__in=users, project_id__in=[p.id for p in projects]
+                ).values_list("group_id", flat=True)
+            }
+        )
+        query |= Q(
+            **{
+                f"{field_filter}__in": GroupAssignee.objects.filter(
+                    project_id__in=[p.id for p in projects],
+                    team_id__in=Team.objects.filter(
+                        id__in=OrganizationMemberTeam.objects.filter(
+                            organizationmember__in=OrganizationMember.objects.filter(
+                                user__in=users, organization_id=projects[0].organization_id
+                            ),
+                            is_active=True,
+                        ).values("team")
                     ),
-                    is_active=True,
-                ).values("team")
-            ),
-        ).values_list("group_id", flat=True)
-    )
-    return assigned_to_user | assigned_to_team
-
-
-def unassigned_filter(unassigned, projects):
-    query = Q(
-        id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
-            "group_id", flat=True
+                ).values_list("group_id", flat=True)
+            }
         )
+
+    if include_none:
+        query |= unassigned_filter(True, projects, field_filter=field_filter)
+    return query
+
+
+def unassigned_filter(unassigned, projects, field_filter="id"):
+    query = Q(
+        **{
+            f"{field_filter}__in": GroupAssignee.objects.filter(
+                project_id__in=[p.id for p in projects]
+            ).values_list("group_id", flat=True)
+        }
     )
     if unassigned:
         query = ~query
@@ -109,85 +132,118 @@ def linked_filter(linked, projects):
     return query
 
 
-def first_release_all_environments_filter(version, projects):
-    try:
-        release_id = Release.objects.get(
-            organization=projects[0].organization_id, version=version
-        ).id
-    except Release.DoesNotExist:
-        release_id = -1
+def first_release_all_environments_filter(versions, projects):
+    releases = {
+        id_: version
+        for id_, version in Release.objects.filter(
+            organization=projects[0].organization_id, version__in=versions
+        ).values_list("version", "id")
+    }
+    for version in versions:
+        if version not in releases:
+            # TODO: This is mostly around for legacy reasons - we should probably just
+            # raise a validation here an inform the user that they passed an invalid
+            # release
+            releases[None] = -1
+            # We only need to find the first non-existent release here
+            break
+
     return Q(
         # If no specific environments are supplied, we look at the
         # first_release of any environment that the group has been
         # seen in.
-        id__in=GroupEnvironment.objects.filter(first_release_id=release_id).values_list("group_id")
+        id__in=GroupEnvironment.objects.filter(
+            first_release_id__in=list(releases.values()),
+        ).values_list("group_id")
     )
 
 
 def inbox_filter(inbox, projects):
-    organization_id = projects[0].organization_id
-    query = Q(
-        id__in=GroupInbox.objects.filter(
-            organization_id=organization_id, project_id__in=[p.id for p in projects]
-        ).values_list("group_id", flat=True)
-    )
+    query = Q(groupinbox__id__isnull=False)
     if not inbox:
         query = ~query
+    else:
+        query = query & Q(groupinbox__project_id__in=[p.id for p in projects])
     return query
 
 
-def owner_filter(owner, projects):
+def assigned_or_suggested_filter(owners, projects, field_filter="id"):
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
-    if isinstance(owner, Team):
-        return Q(
-            id__in=GroupOwner.objects.filter(
-                team=owner, project_id__in=project_ids, organization_id=organization_id
-            )
-            .values_list("group_id", flat=True)
-            .distinct()
-        ) | assigned_to_filter(owner, projects)
-    elif isinstance(owner, User) or (isinstance(owner, list) and owner[0] == "me_or_none"):
-        include_none = False
+
+    types_to_owners = defaultdict(list)
+    include_none = False
+    for owner in owners:
         if isinstance(owner, list) and owner[0] == "me_or_none":
             include_none = True
             owner = owner[1]
+        types_to_owners[type(owner) if not isinstance(owner, SimpleLazyObject) else User].append(
+            owner
+        )
 
+    query = Q()
+
+    if Team in types_to_owners:
+        teams = types_to_owners[Team]
+        query |= (
+            Q(
+                **{
+                    f"{field_filter}__in": GroupOwner.objects.filter(
+                        Q(group__assignee_set__isnull=True),
+                        team__in=teams,
+                        project_id__in=project_ids,
+                        organization_id=organization_id,
+                    )
+                    .values_list("group_id", flat=True)
+                    .distinct()
+                }
+            )
+            | assigned_to_filter(teams, projects, field_filter=field_filter)
+        )
+
+    if User in types_to_owners:
+        users = types_to_owners[User]
         teams = Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember__in=OrganizationMember.objects.filter(
-                    user=owner, organization_id=organization_id
+                    user__in=users, organization_id=organization_id
                 ),
                 is_active=True,
             ).values("team")
         )
         owned_by_me = Q(
-            id__in=GroupOwner.objects.filter(
-                Q(user_id=owner.id) | Q(team__in=teams),
-                Q(group__assignee_set__isnull=True),
-                project_id__in=[p.id for p in projects],
-                organization_id=organization_id,
-            )
-            .values_list("group_id", flat=True)
-            .distinct()
+            **{
+                f"{field_filter}__in": GroupOwner.objects.filter(
+                    Q(user__in=users) | Q(team__in=teams),
+                    group__assignee_set__isnull=True,
+                    project_id__in=[p.id for p in projects],
+                    organization_id=organization_id,
+                )
+                .values_list("group_id", flat=True)
+                .distinct()
+            }
         )
 
-        owner_query = owned_by_me | assigned_to_filter(owner, projects)
+        owner_query = owned_by_me | assigned_to_filter(users, projects, field_filter=field_filter)
 
-        if include_none:
-            no_owner = unassigned_filter(True, projects) & ~Q(
-                id__in=GroupOwner.objects.filter(
-                    project_id__in=[p.id for p in projects]
-                ).values_list("group_id", flat=True)
-            )
-            return no_owner | owner_query
-        else:
-            return owner_query
+        query |= owner_query
 
-    raise InvalidSearchQuery(u"Unsupported owner type.")
+    if include_none:
+        query |= Q(
+            unassigned_filter(True, projects, field_filter),
+            ~Q(
+                **{
+                    f"{field_filter}__in": GroupOwner.objects.filter(
+                        project_id__in=[p.id for p in projects],
+                    ).values_list("group_id", flat=True)
+                }
+            ),
+        )
+
+    return query
 
 
-class Condition(object):
+class Condition:
     """\
     Adds a single filter to a ``QuerySet`` object. Used with
     ``QuerySetBuilder``.
@@ -204,11 +260,13 @@ class QCallbackCondition(Condition):
     def apply(self, queryset, search_filter):
         value = search_filter.value.raw_value
         q = self.callback(value)
-        if search_filter.operator not in ("=", "!="):
+        if search_filter.operator not in ("=", "!=", "IN", "NOT IN"):
             raise InvalidSearchQuery(
-                u"Operator {} not valid for search {}".format(search_filter.operator, search_filter)
+                f"Operator {search_filter.operator} not valid for search {search_filter}"
             )
-        queryset_method = queryset.filter if search_filter.operator == "=" else queryset.exclude
+        queryset_method = (
+            queryset.filter if search_filter.operator in equality_operators else queryset.exclude
+        )
         queryset = queryset_method(q)
         return queryset
 
@@ -228,21 +286,21 @@ class ScalarCondition(Condition):
     def _get_operator(self, search_filter):
         django_operator = self.OPERATOR_TO_DJANGO.get(search_filter.operator, "")
         if django_operator:
-            django_operator = "__{}".format(django_operator)
+            django_operator = f"__{django_operator}"
         return django_operator
 
     def apply(self, queryset, search_filter):
         django_operator = self._get_operator(search_filter)
         qs_method = queryset.exclude if search_filter.operator == "!=" else queryset.filter
 
-        q_dict = {"{}{}".format(self.field, django_operator): search_filter.value.raw_value}
+        q_dict = {f"{self.field}{django_operator}": search_filter.value.raw_value}
         if self.extra:
             q_dict.update(self.extra)
 
         return qs_method(**q_dict)
 
 
-class QuerySetBuilder(object):
+class QuerySetBuilder:
     def __init__(self, conditions):
         self.conditions = conditions
 
@@ -255,8 +313,7 @@ class QuerySetBuilder(object):
         return queryset
 
 
-@six.add_metaclass(ABCMeta)
-class SnubaSearchBackendBase(SearchBackend):
+class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def query(
         self,
         projects,
@@ -307,7 +364,7 @@ class SnubaSearchBackendBase(SearchBackend):
 
         # ensure sort strategy is supported by executor
         if not query_executor.has_sort_strategy(sort_by):
-            raise InvalidSearchQuery(u"Sort key '{}' not supported.".format(sort_by))
+            raise InvalidSearchQuery(f"Sort key '{sort_by}' not supported.")
 
         return query_executor.query(
             projects=projects,
@@ -360,7 +417,9 @@ class SnubaSearchBackendBase(SearchBackend):
         if environments is not None:
             environment_ids = [environment.id for environment in environments]
             group_queryset = group_queryset.filter(
-                groupenvironment__environment_id__in=environment_ids
+                id__in=GroupEnvironment.objects.filter(environment__in=environment_ids).values_list(
+                    "group_id"
+                )
             )
         return group_queryset
 
@@ -384,9 +443,9 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
 
     def _get_queryset_conditions(self, projects, environments, search_filters):
         queryset_conditions = {
-            "status": QCallbackCondition(lambda status: Q(status=status)),
+            "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
             "bookmarked_by": QCallbackCondition(
-                lambda user: Q(bookmark_set__project__in=projects, bookmark_set__user=user)
+                lambda users: Q(bookmark_set__project__in=projects, bookmark_set__user__in=users)
             ),
             "assigned_to": QCallbackCondition(
                 functools.partial(assigned_to_filter, projects=projects)
@@ -396,15 +455,17 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
             "linked": QCallbackCondition(functools.partial(linked_filter, projects=projects)),
             "subscribed_by": QCallbackCondition(
-                lambda user: Q(
+                lambda users: Q(
                     id__in=GroupSubscription.objects.filter(
-                        project__in=projects, user=user, is_active=True
+                        project__in=projects, user__in=users, is_active=True
                     ).values_list("group")
                 )
             ),
             "active_at": ScalarCondition("active_at"),
-            "needs_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
-            "owner": QCallbackCondition(functools.partial(owner_filter, projects=projects)),
+            "for_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
+            "assigned_or_suggested": QCallbackCondition(
+                functools.partial(assigned_or_suggested_filter, projects=projects)
+            ),
         }
 
         if environments is not None:
@@ -412,14 +473,14 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             queryset_conditions.update(
                 {
                     "first_release": QCallbackCondition(
-                        lambda version: Q(
+                        lambda versions: Q(
                             # if environment(s) are selected, we just filter on the group
                             # environment's first_release attribute.
-                            groupenvironment__first_release__organization_id=projects[
-                                0
-                            ].organization_id,
-                            groupenvironment__first_release__version=version,
-                            groupenvironment__environment_id__in=environment_ids,
+                            id__in=GroupEnvironment.objects.filter(
+                                first_release__organization_id=projects[0].organization_id,
+                                first_release__version__in=versions,
+                                environment_id__in=environment_ids,
+                            ).values_list("group_id"),
                         )
                     ),
                     "first_seen": ScalarCondition(
@@ -432,7 +493,10 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             queryset_conditions.update(
                 {
                     "first_release": QCallbackCondition(
-                        functools.partial(first_release_all_environments_filter, projects=projects)
+                        functools.partial(
+                            first_release_all_environments_filter,
+                            projects=projects,
+                        )
                     ),
                     "first_seen": ScalarCondition("first_seen"),
                 }

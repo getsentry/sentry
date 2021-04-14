@@ -1,9 +1,8 @@
-from __future__ import absolute_import
-
 import calendar
 import datetime
-import jwt
 import time
+
+import jwt
 
 from sentry import options
 

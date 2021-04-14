@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 from copy import deepcopy
-
-from sentry.utils.meta import Meta
 from unittest import TestCase
 
+from sentry.utils.meta import Meta
 
 input_meta = {"": {"err": ["existing"], "val": "original", "rem": [{"type": "x"}]}}
 

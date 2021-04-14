@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
@@ -17,11 +16,6 @@ type Props = {
  * We also have a link for users to click so they can go to Split's website.
  */
 export default class SplitInstallationIdModal extends React.Component<Props> {
-  static propTypes = {
-    installationId: PropTypes.string.isRequired,
-    closeModal: PropTypes.func.isRequired,
-  };
-
   onCopy = async () =>
     //This hack is needed because the normal copying methods with TextCopyInput do not work correctly
     await navigator.clipboard.writeText(this.props.installationId);

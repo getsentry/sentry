@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
-
-class SecurityHeadersMiddleware(object):
+class SecurityHeadersMiddleware:
     """
     Ensure that we have proper security headers set
     """

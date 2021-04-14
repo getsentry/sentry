@@ -1,9 +1,9 @@
 import React from 'react';
 import {Location} from 'history';
-import PropTypes from 'prop-types';
 
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import Hovercard from 'app/components/hovercard';
@@ -66,9 +66,6 @@ function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Prop
     </Button>
   );
 }
-renderBrowserExportButton.propTypes = {
-  title: PropTypes.string,
-};
 
 function renderAsyncExportButton(canEdit: boolean, props: Props) {
   const {isLoading, location} = props;
@@ -87,28 +84,24 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
   );
 }
 // Placate eslint proptype checking
-renderAsyncExportButton.propTypes = {
-  isLoading: PropTypes.bool,
-};
 
 function renderEditButton(canEdit: boolean, props: Props) {
   const onClick = canEdit ? props.onEdit : undefined;
   return (
-    <Button
-      size="small"
-      disabled={!canEdit}
-      onClick={onClick}
-      data-test-id="grid-edit-enable"
-      icon={<IconStack size="xs" />}
-    >
-      {t('Columns')}
-    </Button>
+    <GuideAnchor target="columns_header_button">
+      <Button
+        size="small"
+        disabled={!canEdit}
+        onClick={onClick}
+        data-test-id="grid-edit-enable"
+        icon={<IconStack size="xs" />}
+      >
+        {t('Columns')}
+      </Button>
+    </GuideAnchor>
   );
 }
 // Placate eslint proptype checking
-renderEditButton.propTypes = {
-  onEdit: PropTypes.func,
-};
 
 function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   return (

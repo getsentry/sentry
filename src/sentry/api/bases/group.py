@@ -1,13 +1,11 @@
-from __future__ import absolute_import
-
 import logging
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.models import Group, GroupLink, GroupStatus, get_group_with_redirect, Organization
+from sentry.models import Group, GroupLink, GroupStatus, Organization, get_group_with_redirect
 from sentry.tasks.integrations import create_comment, update_comment
+from sentry.utils.sdk import bind_organization_context, configure_scope
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +25,7 @@ class GroupPermission(ProjectPermission):
     }
 
     def has_object_permission(self, request, view, group):
-        return super(GroupPermission, self).has_object_permission(request, view, group.project)
+        return super().has_object_permission(request, view, group.project)
 
 
 class GroupEndpoint(Endpoint):

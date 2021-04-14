@@ -1,7 +1,7 @@
 import React from 'react';
-import $ from 'jquery';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select-new';
 
 import ResolveActions from 'app/components/actions/resolve';
 import GlobalModal from 'app/components/globalModal';
@@ -17,8 +17,8 @@ describe('ResolveActions', function () {
           onUpdate={spy}
           disabled
           hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
+          orgSlug="org-1"
+          projectSlug="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -45,8 +45,8 @@ describe('ResolveActions', function () {
           onUpdate={spy}
           disableDropdown
           hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
+          orgSlug="org-1"
+          projectSlug="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -78,8 +78,8 @@ describe('ResolveActions', function () {
           onUpdate={spy}
           disabled
           hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
+          orgSlug="org-1"
+          projectSlug="proj-1"
           isResolved
         />,
         TestStubs.routerContext()
@@ -106,8 +106,8 @@ describe('ResolveActions', function () {
           onUpdate={spy}
           disabled
           hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
+          orgSlug="org-1"
+          projectSlug="proj-1"
           isResolved
           isAutoResolved
         />,
@@ -127,8 +127,8 @@ describe('ResolveActions', function () {
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
+          orgSlug="org-1"
+          projectSlug="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -157,8 +157,8 @@ describe('ResolveActions', function () {
           <ResolveActions
             onUpdate={spy}
             hasRelease={false}
-            orgId="org-1"
-            projectId="proj-1"
+            orgSlug="org-1"
+            projectSlug="proj-1"
             shouldConfirm
             confirmMessage="Are you sure???"
           />
@@ -181,7 +181,7 @@ describe('ResolveActions', function () {
       const modal = component.find('Modal ModalDialog');
       expect(modal.text()).toContain('Are you sure???');
       expect(spy).not.toHaveBeenCalled();
-      $(document.body).find('.modal button:contains("Resolve")').click();
+      modal.find('.modal button[aria-label="Resolve"]').simulate('click');
 
       expect(spy).toHaveBeenCalled();
     });
@@ -198,8 +198,8 @@ describe('ResolveActions', function () {
         <GlobalModal />
         <ResolveActions
           hasRelease
-          orgId="org-slug"
-          projectId="project-slug"
+          orgSlug="org-slug"
+          projectSlug="project-slug"
           onUpdate={onUpdate}
         />
       </React.Fragment>,
@@ -207,7 +207,6 @@ describe('ResolveActions', function () {
     );
 
     wrapper.find('ActionLink').last().simulate('click');
-
     await tick();
     wrapper.update();
 
@@ -218,12 +217,9 @@ describe('ResolveActions', function () {
       }),
     ]);
 
-    wrapper.find('input[id="version"]').simulate('change', {target: {value: '1.2.0'}});
-
-    await tick();
-    wrapper.update();
-
-    wrapper.find('input[id="version"]').simulate('keyDown', {keyCode: 13});
+    selectByValue(wrapper, 'sentry-android-shop@1.2.0', {
+      selector: 'SelectAsyncControl[name="version"]',
+    });
 
     wrapper.find('CustomResolutionModal form').simulate('submit');
     expect(onUpdate).toHaveBeenCalledWith({

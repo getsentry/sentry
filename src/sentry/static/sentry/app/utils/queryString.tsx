@@ -1,5 +1,4 @@
 import isString from 'lodash/isString';
-import parseurl from 'parseurl';
 import * as queryString from 'query-string';
 
 import {escapeDoubleQuotes} from 'app/utils';
@@ -13,14 +12,19 @@ export function addQueryParamsToExistingUrl(
   origUrl: string,
   queryParams: object
 ): string {
-  const url = parseurl({url: origUrl});
-  if (!url) {
+  let url;
+
+  try {
+    url = new URL(origUrl);
+  } catch {
     return '';
   }
+
+  const searchEntries = url.searchParams.entries();
   // Order the query params alphabetically.
   // Otherwise ``queryString`` orders them randomly and it's impossible to test.
   const params = JSON.parse(JSON.stringify(queryParams));
-  const query = url.query ? {...queryString.parse(url.query), ...params} : params;
+  const query = {...Object.fromEntries(searchEntries), ...params};
 
   return `${url.protocol}//${url.host}${url.pathname}?${queryString.stringify(query)}`;
 }
@@ -51,26 +55,26 @@ export function appendTagCondition(
   return currentQuery;
 }
 
-export function decodeScalar(
-  value: string[] | string | undefined | null
-): string | undefined {
+// This function has multiple signatures to help with typing in callers.
+export function decodeScalar(value: QueryValue): string | undefined;
+export function decodeScalar(value: QueryValue, fallback: string): string;
+
+export function decodeScalar(value: QueryValue, fallback?: string): string | undefined {
   if (!value) {
-    return undefined;
+    return fallback;
   }
   const unwrapped =
     Array.isArray(value) && value.length > 0
       ? value[0]
       : isString(value)
       ? value
-      : undefined;
-  return isString(unwrapped) ? unwrapped : undefined;
+      : fallback;
+  return isString(unwrapped) ? unwrapped : fallback;
 }
 
-export function decodeList(
-  value: string[] | string | undefined | null
-): string[] | undefined {
+export function decodeList(value: string[] | string | undefined | null): string[] {
   if (!value) {
-    return undefined;
+    return [];
   }
   return Array.isArray(value) ? value : isString(value) ? [value] : [];
 }

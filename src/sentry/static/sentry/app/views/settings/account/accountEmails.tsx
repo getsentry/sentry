@@ -84,10 +84,10 @@ class AccountEmails extends AsyncView<Props, State> {
 
     return (
       <div>
-        <SettingsPageHeader title={t('Emails')} />
+        <SettingsPageHeader title={t('Email Addresses')} />
 
         <Panel>
-          <PanelHeader>{t('Emails')}</PanelHeader>
+          <PanelHeader>{t('Email Addresses')}</PanelHeader>
           <PanelBody>
             {primary && (
               <EmailRow

@@ -1,11 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Link from 'app/components/links/link';
-import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {AvatarUser, Member} from 'app/types';
@@ -71,19 +69,6 @@ const MemberBadge = ({
       </StyledNameAndEmail>
     </StyledUserBadge>
   );
-};
-
-MemberBadge.propTypes = {
-  displayName: PropTypes.node,
-  displayEmail: PropTypes.node,
-  avatarSize: PropTypes.number,
-  /**
-   * This is a Sentry member (not the user object that is a child of the member object)
-   */
-  member: SentryTypes.Member,
-  orgId: PropTypes.string,
-  useLink: PropTypes.bool,
-  hideEmail: PropTypes.bool,
 };
 
 const StyledUserBadge = styled('div')`

@@ -1,9 +1,6 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
-from __future__ import absolute_import
-
-from django.conf.global_settings import *  # NOQA
 
 import os
 import os.path
@@ -11,13 +8,14 @@ import re
 import socket
 import sys
 import tempfile
+from datetime import timedelta
+from urllib.parse import urlparse
+
+from django.conf.global_settings import *  # NOQA
 
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
-
-from datetime import timedelta
-from six.moves.urllib.parse import urlparse
 
 
 def gettext_noop(s):
@@ -69,6 +67,8 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
+
+ADMIN_ENABLED = DEBUG
 
 MAINTENANCE = False
 
@@ -129,6 +129,10 @@ CLICKHOUSE_CONFIG_PATH = os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "con
 RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
 SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
+
+# XXX(epurkhiser): The generated chartucterie config.js file will be stored
+# here. This directory may not exist until that file is generated.
+CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
@@ -383,7 +387,8 @@ STATICFILES_FINDERS = (
 ASSET_VERSION = 0
 
 # setup a default media root to somewhere useless
-MEDIA_ROOT = "/tmp/sentry-media"
+MEDIA_ROOT = "/tmp/sentry-files"
+MEDIA_URL = "_media/"
 
 LOCALE_PATHS = (os.path.join(PROJECT_ROOT, "locale"),)
 
@@ -534,6 +539,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
+    "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
     "sentry.tasks.members",
     "sentry.tasks.merge",
@@ -580,6 +586,9 @@ CELERY_QUEUES = [
     Queue("events.reprocess_events", routing_key="events.reprocess_events"),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("files.delete", routing_key="files.delete"),
+    Queue(
+        "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
+    ),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("integrations", routing_key="integrations"),
@@ -605,7 +614,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
 def create_partitioned_queues(name):
     exchange = Exchange(name, type="direct")
     for num in range(1):
-        CELERY_QUEUES.append(Queue(u"{0}-{1}".format(name, num), exchange=exchange))
+        CELERY_QUEUES.append(Queue(f"{name}-{num}", exchange=exchange))
 
 
 create_partitioned_queues("counters")
@@ -829,6 +838,8 @@ SENTRY_FEATURES = {
     "organizations:api-keys": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
+    # Enable unfurling charts using the Chartcuterie service
+    "organizations:chart-unfurls": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -836,10 +847,10 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable inline preview of attachments.
+    "organizations:event-attachments-viewer": True,
     # Enable Filters & Sampling in the org settings
     "organizations:filters-and-sampling": False,
-    # Enable inline preview of attachments.
-    "organizations:event-attachments-viewer": False,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -852,6 +863,10 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
+    # Enable the quick trace view on event details
+    "organizations:trace-view-quick": False,
+    # Enable the trace view summary
+    "organizations:trace-view-summary": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Lets organizations manage grouping configs
@@ -862,10 +877,10 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable the new Metrics page
+    "organizations:metrics": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
-    # Enable new GUI filters in the metric alert rule builder
-    "organizations:metric-alert-gui-filters": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -882,22 +897,24 @@ SENTRY_FEATURES = {
     # management integrations)
     "organizations:integrations-incident-management": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
-    "organizations:integrations-ticket-rules": False,
+    "organizations:integrations-ticket-rules": True,
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
-    # Enables aws lambda integration
-    "organizations:integrations-aws_lambda": False,
     # Temporary safety measure, turned on for specific orgs only if
     # absolutely necessary, to be removed shortly
     "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable custom dashboards (dashboards 2)
-    "organizations:dashboards-v2": False,
+    # Enable readonly dashboards (dashboards 2)
+    "organizations:dashboards-basic": False,
+    # Enable custom editable dashboards (dashboards 2)
+    "organizations:dashboards-edit": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
+    # Enable the API to importing CODEOWNERS for a project
+    "organizations:import-codeowners": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
@@ -914,13 +931,26 @@ SENTRY_FEATURES = {
     "organizations:performance-landing-v2": False,
     # Enable the views for performance vitals
     "organizations:performance-vitals-overview": False,
+    # Enable views for ops breakdown
+    "organizations:performance-ops-breakdown": False,
+    # Enable views for tag explorer
+    "organizations:performance-tag-explorer": False,
     # Enable the new Project Detail page
     "organizations:project-detail": False,
+    # Enable links to Project Detail page from all over the app
+    "organizations:project-detail-links": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enable the new charts on top of the Releases page
+    "organizations:releases-top-charts": False,
+    # Enable Session Stats down to a minute resolution
+    "organizations:minute-resolution-sessions": False,
+    # Enable option to send alert, workflow, and deploy notifications
+    # to 3rd parties (e.g. Slack) in addition to email
+    "organizations:notification-platform": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on
@@ -938,6 +968,8 @@ SENTRY_FEATURES = {
     "organizations:stacktrace-hover-preview": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
+    # Return unhandled information on the issue level
+    "organizations:unhandled-issue-flag": True,
     # Enable graph for subscription quota for errors, transactions and
     # attachments
     "organizations:usage-stats-graph": False,
@@ -945,16 +977,18 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
-    # Add `owner:me_or_none` to inbox tab query
+    # Add `assigned_or_suggested:me_or_none` to inbox tab query
     "organizations:inbox-owners-query": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
-    # Return unhandled information on the issue level
-    "organizations:unhandled-issue-flag": False,
-    # Enable "owner"/"suggested assignee" features.
-    "organizations:workflow-owners": False,
+    # Enable teams to have ownership of alert rules
+    "organizations:team-alerts-ownership": False,
+    # Enable the new alert creation wizard
+    "organizations:alert-wizard": False,
+    # Enable new alert rules + incidents view
+    "organizations:alert-list": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -972,6 +1006,8 @@ SENTRY_FEATURES = {
     "projects:minidump": True,
     # Enable functionality for project plugins.
     "projects:plugins": True,
+    # Enable alternative version of group creation that is supposed to be less racy.
+    "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
     # Enable functionality for sampling of events on projects.
@@ -1186,6 +1222,7 @@ SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 # Snuba configuration
 SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
 SENTRY_SNUBA_TIMEOUT = 30
+SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
@@ -1229,6 +1266,10 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+
+# Render charts on the backend. This uses the Chartcuterie external service.
+SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
+SENTRY_CHART_RENDERER_OPTIONS = {}
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
@@ -1281,29 +1322,27 @@ SENTRY_CACHE_MAX_VALUE_SIZE = None
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
 
-SENTRY_SCOPES = set(
-    [
-        "org:read",
-        "org:write",
-        "org:admin",
-        "org:integrations",
-        "member:read",
-        "member:write",
-        "member:admin",
-        "team:read",
-        "team:write",
-        "team:admin",
-        "project:read",
-        "project:write",
-        "project:admin",
-        "project:releases",
-        "event:read",
-        "event:write",
-        "event:admin",
-        "alerts:write",
-        "alerts:read",
-    ]
-)
+SENTRY_SCOPES = {
+    "org:read",
+    "org:write",
+    "org:admin",
+    "org:integrations",
+    "member:read",
+    "member:write",
+    "member:admin",
+    "team:read",
+    "team:write",
+    "team:admin",
+    "project:read",
+    "project:write",
+    "project:admin",
+    "project:releases",
+    "event:read",
+    "event:write",
+    "event:admin",
+    "alerts:write",
+    "alerts:read",
+}
 
 SENTRY_SCOPE_SETS = (
     (
@@ -1333,7 +1372,10 @@ SENTRY_SCOPE_SETS = (
         ("event:write", "Read and write access to events."),
         ("event:read", "Read access to events."),
     ),
-    (("alerts:write", "Read and write alerts"), ("alerts:read", "Read alerts"),),
+    (
+        ("alerts:write", "Read and write alerts"),
+        ("alerts:read", "Read alerts"),
+    ),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
@@ -1347,20 +1389,18 @@ SENTRY_ROLES = (
         "id": "member",
         "name": "Member",
         "desc": "Members can view and act on events, as well as view most other data within the organization.",
-        "scopes": set(
-            [
-                "event:read",
-                "event:write",
-                "event:admin",
-                "project:releases",
-                "project:read",
-                "org:read",
-                "member:read",
-                "team:read",
-                "alerts:read",
-                "alerts:write",
-            ]
-        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "project:releases",
+            "project:read",
+            "org:read",
+            "member:read",
+            "team:read",
+            "alerts:read",
+            "alerts:write",
+        },
     },
     {
         "id": "admin",
@@ -1369,53 +1409,49 @@ SENTRY_ROLES = (
         "as well as remove teams and projects which they already hold membership on (or all teams, "
         "if open membership is on). Additionally, they can manage memberships of teams that they are members "
         "of.",
-        "scopes": set(
-            [
-                "event:read",
-                "event:write",
-                "event:admin",
-                "org:read",
-                "member:read",
-                "project:read",
-                "project:write",
-                "project:admin",
-                "project:releases",
-                "team:read",
-                "team:write",
-                "team:admin",
-                "org:integrations",
-                "alerts:read",
-                "alerts:write",
-            ]
-        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "org:read",
+            "member:read",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
     },
     {
         "id": "manager",
         "name": "Manager",
         "desc": "Gains admin access on all teams as well as the ability to add and remove members.",
         "is_global": True,
-        "scopes": set(
-            [
-                "event:read",
-                "event:write",
-                "event:admin",
-                "member:read",
-                "member:write",
-                "member:admin",
-                "project:read",
-                "project:write",
-                "project:admin",
-                "project:releases",
-                "team:read",
-                "team:write",
-                "team:admin",
-                "org:read",
-                "org:write",
-                "org:integrations",
-                "alerts:read",
-                "alerts:write",
-            ]
-        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "member:read",
+            "member:write",
+            "member:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:read",
+            "org:write",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
     },
     {
         "id": "owner",
@@ -1423,29 +1459,27 @@ SENTRY_ROLES = (
         "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete "
         "projects and members, as well as make billing and plan changes.",
         "is_global": True,
-        "scopes": set(
-            [
-                "org:read",
-                "org:write",
-                "org:admin",
-                "org:integrations",
-                "member:read",
-                "member:write",
-                "member:admin",
-                "team:read",
-                "team:write",
-                "team:admin",
-                "project:read",
-                "project:write",
-                "project:admin",
-                "project:releases",
-                "event:read",
-                "event:write",
-                "event:admin",
-                "alerts:read",
-                "alerts:write",
-            ]
-        ),
+        "scopes": {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "org:integrations",
+            "member:read",
+            "member:write",
+            "member:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "event:read",
+            "event:write",
+            "event:admin",
+            "alerts:read",
+            "alerts:write",
+        },
     },
 )
 
@@ -1485,10 +1519,10 @@ SENTRY_WATCHERS = (
         "webpack",
         [
             os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            "serve",
             "--color",
-            "--output-pathinfo",
-            "--watch",
-            u"--config={}".format(
+            "--output-pathinfo=true",
+            "--config={}".format(
                 os.path.normpath(
                     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")
                 )
@@ -1559,10 +1593,10 @@ SENTRY_DEVSERVICES = {
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
         "healthcheck": {
-            "test": ["CMD", "pg_isready"],
-            "interval": 1000000000,  # Test every 1 second (in ns).
-            "timeout": 1000000000,  # Time we should expect the test to take.
-            "retries": 5,
+            "test": ["CMD", "pg_isready", "-U", "postgres"],
+            "interval": 30000000000,  # Test every 30 seconds (in ns).
+            "timeout": 5000000000,  # Time we should expect the test to take.
+            "retries": 3,
         },
     },
     "zookeeper": {
@@ -1664,6 +1698,17 @@ SENTRY_DEVSERVICES = {
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
         "with_devserver": True,
     },
+    "chartcuterie": {
+        "image": "us.gcr.io/sentryio/chartcuterie:nightly",
+        "pull": True,
+        "volumes": {CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
+        "environment": {
+            "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
+            "CHARTCUTERIE_CONFIG_POLLING": "true",
+        },
+        "ports": {"9090/tcp": 7901},
+        "only_if": lambda settings, options: options.get("chart-rendering.enabled"),
+    },
 }
 
 # Max file size for avatar photo uploads
@@ -1704,7 +1749,6 @@ SENTRY_SDK_CONFIG = {
     "release": sentry.__build__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
-    "_experiments": {"smart_transaction_trimming": True},
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
@@ -2101,3 +2145,28 @@ SENTRY_USE_UWSGI = True
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
+
+# Timeout for the project counter statement execution.
+# In case of contention on the project counter, prevent workers saturation with
+# save_event tasks from single project.
+# Value is in milliseconds. Set to `None` to disable.
+SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
+
+# Implemented in getsentry to run additional devserver workers.
+SENTRY_EXTRA_WORKERS = None
+
+# This controls whether Sentry is run in a demo mode.
+# Enabling this will allow users to create accounts without an email or password.
+DEMO_MODE = False
+
+# all demo orgs are owned by the user with this email
+DEMO_ORG_OWNER_EMAIL = None
+
+# paramters that determine how demo events are generated
+DEMO_DATA_GEN_PARAMS = {}
+
+# parameters for an org when quickly generating them synchronously
+DEMO_DATA_QUICK_GEN_PARAMS = {}
+
+# adds an extra JS to HTML template
+INJECTED_SCRIPT_ASSETS = []

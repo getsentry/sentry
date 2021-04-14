@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import base64
 
 from django.http import HttpRequest
@@ -60,7 +58,7 @@ class EndpointTest(APITestCase):
 
 class PaginateTest(APITestCase):
     def setUp(self):
-        super(PaginateTest, self).setUp()
+        super().setUp()
         self.request = HttpRequest()
         self.request.method = "GET"
         self.view = DummyPaginationEndpoint().as_view()
@@ -87,7 +85,7 @@ class PaginateTest(APITestCase):
 
 class EndpointJSONBodyTest(APITestCase):
     def setUp(self):
-        super(EndpointJSONBodyTest, self).setUp()
+        super().setUp()
 
         self.request = HttpRequest()
         self.request.method = "GET"

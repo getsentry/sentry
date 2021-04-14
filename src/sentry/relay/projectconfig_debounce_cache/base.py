@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.services import Service
 
 
@@ -37,4 +35,3 @@ class ProjectConfigDebounceCache(Service):
         Mark a task done such that `check_is_debounced` starts emitting False
         for the given parameters.
         """
-        pass

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 __all__ = ["ReleaseHook"]
 
 from django.db import IntegrityError, transaction
@@ -9,7 +7,7 @@ from sentry.exceptions import HookValidationError
 from sentry.models import Activity, Release
 
 
-class ReleaseHook(object):
+class ReleaseHook:
     def __init__(self, project):
         self.project = project
 

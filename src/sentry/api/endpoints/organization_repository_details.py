@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 import logging
+from uuid import uuid4
 
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework.response import Response
-from uuid import uuid4
-from django.db import transaction
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -69,7 +67,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 return Response({"detail": "Invalid integration id"}, status=400)
 
             update_kwargs["integration_id"] = integration.id
-            update_kwargs["provider"] = "integrations:%s" % (integration.provider,)
+            update_kwargs["provider"] = f"integrations:{integration.provider}"
 
         if update_kwargs:
             old_status = repo.status

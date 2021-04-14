@@ -1,8 +1,6 @@
-from __future__ import absolute_import
-
 from sentry.tsdb.base import TSDBModel
+from sentry.tsdb.redissnuba import READ, method_specifications, selector_func
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.tsdb.redissnuba import selector_func, method_specifications, READ
 
 
 def get_callargs(model):
@@ -25,7 +23,7 @@ def test_redissnuba_connects_to_correct_backend():
     assert TSDBModel.project_total_received in should_resolve_to_snuba
     assert TSDBModel.organization_total_received in should_resolve_to_snuba
 
-    methods = set(method_specifications.keys()) - set(["flush"])
+    methods = set(method_specifications.keys()) - {"flush"}
 
     for method in methods:
         for model in should_resolve_to_redis:

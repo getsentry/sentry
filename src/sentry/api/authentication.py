@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_text
-from django.conf import settings
 from rest_framework.authentication import BasicAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
-
 from sentry_relay import UnpackError
 
 from sentry.auth.system import SystemToken, is_internal_ip

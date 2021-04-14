@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 import zipfile
-from six import BytesIO
+from io import BytesIO
 
-from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.urlresolvers import reverse
 
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -308,6 +306,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         assert len(event.data["errors"]) == 1
         assert event.data["errors"][0] == {
-            "mapping_uuid": u"071207ac-b491-4a74-957c-2c94fd9594f2",
+            "mapping_uuid": "071207ac-b491-4a74-957c-2c94fd9594f2",
             "type": "proguard_missing_lineno",
         }

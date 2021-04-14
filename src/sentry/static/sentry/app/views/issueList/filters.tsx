@@ -1,7 +1,8 @@
 import React from 'react';
+import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import PageHeading from 'app/components/pageHeading';
 import QueryCount from 'app/components/queryCount';
 import {t} from 'app/locale';
@@ -38,10 +39,6 @@ type Props = {
 };
 
 class IssueListFilters extends React.Component<Props> {
-  static contextTypes = {
-    location: PropTypes.object,
-  };
-
   handleSavedSearchSelect = (savedSearch: SavedSearch) => {
     trackAnalyticsEvent({
       eventKey: 'organization_saved_search.selected',
@@ -76,6 +73,7 @@ class IssueListFilters extends React.Component<Props> {
       tags,
       isInbox,
     } = this.props;
+    const isAssignedQuery = /\bassigned:/.test(query);
 
     return (
       <PageHeader>
@@ -86,7 +84,7 @@ class IssueListFilters extends React.Component<Props> {
         )}
 
         <SearchContainer isInbox={isInbox}>
-          <IssueListSortOptions sort={sort} onSelect={onSortChange} />
+          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
 
           <SearchSelectorContainer isInbox={isInbox}>
             {!isInbox && (
@@ -97,21 +95,35 @@ class IssueListFilters extends React.Component<Props> {
                 onSavedSearchSelect={this.handleSavedSearchSelect}
                 onSavedSearchDelete={onSavedSearchDelete}
                 query={query}
+                sort={sort}
               />
             )}
 
-            <IssueListSearchBar
-              organization={organization}
-              query={query || ''}
-              onSearch={onSearch}
-              disabled={isSearchDisabled}
-              excludeEnvironment
-              supportedTags={tags}
-              tagValueLoader={tagValueLoader}
-              savedSearch={savedSearch}
-              onSidebarToggle={onSidebarToggle}
-              isInbox={isInbox}
-            />
+            <ClassNames>
+              {({css}) => (
+                <GuideAnchor
+                  target="assigned_or_suggested_query"
+                  disabled={!isAssignedQuery}
+                  containerClassName={css`
+                    width: 100%;
+                  `}
+                >
+                  <IssueListSearchBar
+                    organization={organization}
+                    query={query || ''}
+                    sort={sort}
+                    onSearch={onSearch}
+                    disabled={isSearchDisabled}
+                    excludeEnvironment
+                    supportedTags={tags}
+                    tagValueLoader={tagValueLoader}
+                    savedSearch={savedSearch}
+                    onSidebarToggle={onSidebarToggle}
+                    isInbox={isInbox}
+                  />
+                </GuideAnchor>
+              )}
+            </ClassNames>
           </SearchSelectorContainer>
         </SearchContainer>
       </PageHeader>

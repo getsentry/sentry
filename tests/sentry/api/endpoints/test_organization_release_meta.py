@@ -1,18 +1,16 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
-from sentry.utils import json
 from sentry.models import (
+    Commit,
+    CommitFileChange,
     File,
     Release,
     ReleaseCommit,
     ReleaseFile,
     Repository,
-    Commit,
-    CommitFileChange,
 )
 from sentry.testutils import APITestCase
+from sentry.utils import json
 
 
 class ReleaseMetaTest(APITestCase):
@@ -86,3 +84,5 @@ class ReleaseMetaTest(APITestCase):
         assert data["commitFilesChanged"] == 2
         assert data["releaseFileCount"] == 1
         assert len(data["projects"]) == 2
+        assert data["projects"][0]["sessions_upper_bound"] is None
+        assert data["projects"][0]["sessions_lower_bound"] is None

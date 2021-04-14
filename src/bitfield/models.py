@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.db.models.fields import BigIntegerField
 
 from bitfield.query import BitQueryExactLookupStub
@@ -12,7 +8,7 @@ from bitfield.types import Bit, BitHandler
 MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)
 
 
-class BitFieldFlags(object):
+class BitFieldFlags:
     def __init__(self, flags):
         if len(flags) > MAX_FLAG_COUNT:
             raise ValueError("Too many flags")
@@ -22,8 +18,7 @@ class BitFieldFlags(object):
         return repr(self._flags)
 
     def __iter__(self):
-        for flag in self._flags:
-            yield flag
+        yield from self._flags
 
     def __getattr__(self, key):
         if key not in self._flags:
@@ -37,8 +32,7 @@ class BitFieldFlags(object):
             yield flag, Bit(self._flags.index(flag))
 
     def iterkeys(self):
-        for flag in self._flags:
-            yield flag
+        yield from self._flags
 
     def itervalues(self):
         for flag in self._flags:
@@ -54,7 +48,7 @@ class BitFieldFlags(object):
         return list(self.itervalues())  # NOQA
 
 
-class BitFieldCreator(object):
+class BitFieldCreator:
     """
     A placeholder class that provides a way to set the attribute on the model.
     Descriptor for BitFields.  Checks to make sure that all flags of the
@@ -81,7 +75,7 @@ class BitFieldCreator(object):
 
 class BitField(BigIntegerField):
     def contribute_to_class(self, cls, name, **kwargs):
-        super(BitField, self).contribute_to_class(cls, name, **kwargs)
+        super().contribute_to_class(cls, name, **kwargs)
         setattr(cls, self.name, BitFieldCreator(self))
 
     def __init__(self, flags, default=None, *args, **kwargs):
@@ -136,7 +130,7 @@ class BitField(BigIntegerField):
             # Regression for #1425: fix bad data that was created resulting
             # in negative values for flags.  Compute the value that would
             # have been visible ot the application to preserve compatibility.
-            if isinstance(value, six.integer_types) and value < 0:
+            if isinstance(value, int) and value < 0:
                 new_value = 0
                 for bit_number, _ in enumerate(self.flags):
                     new_value |= value & (2 ** bit_number)
@@ -149,7 +143,7 @@ class BitField(BigIntegerField):
         return value
 
     def deconstruct(self):
-        name, path, args, kwargs = super(BitField, self).deconstruct()
+        name, path, args, kwargs = super().deconstruct()
         args.insert(0, self._arg_flags)
         return name, path, args, kwargs
 

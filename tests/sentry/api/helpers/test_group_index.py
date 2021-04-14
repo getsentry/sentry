@@ -1,16 +1,14 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat.mock import patch, Mock
 from django.http import QueryDict
 
-from sentry.models import add_group_to_inbox, GroupInbox, GroupInboxReason, GroupStatus
 from sentry.api.helpers.group_index import (
-    validate_search_filter_permissions,
     ValidationError,
     update_groups,
+    validate_search_filter_permissions,
 )
 from sentry.api.issue_search import parse_search_query
+from sentry.models import GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock, patch
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):
@@ -76,10 +74,12 @@ class UpdateGroupsTest(TestCase):
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "unresolved"}
-        request.GET = QueryDict(query_string="id={}".format(resolved_group.id))
+        request.GET = QueryDict(query_string=f"id={resolved_group.id}")
 
         search_fn = Mock()
-        update_groups(request, [self.project], self.organization.id, search_fn)
+        update_groups(
+            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+        )
 
         resolved_group.refresh_from_db()
 
@@ -96,10 +96,12 @@ class UpdateGroupsTest(TestCase):
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "resolved"}
-        request.GET = QueryDict(query_string="id={}".format(unresolved_group.id))
+        request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
 
         search_fn = Mock()
-        update_groups(request, [self.project], self.organization.id, search_fn)
+        update_groups(
+            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+        )
 
         unresolved_group.refresh_from_db()
 
@@ -115,10 +117,12 @@ class UpdateGroupsTest(TestCase):
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "ignored"}
-        request.GET = QueryDict(query_string="id={}".format(group.id))
+        request.GET = QueryDict(query_string=f"id={group.id}")
 
         search_fn = Mock()
-        update_groups(request, [self.project], self.organization.id, search_fn)
+        update_groups(
+            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+        )
 
         group.refresh_from_db()
 
@@ -133,10 +137,12 @@ class UpdateGroupsTest(TestCase):
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "unresolved"}
-        request.GET = QueryDict(query_string="id={}".format(group.id))
+        request.GET = QueryDict(query_string=f"id={group.id}")
 
         search_fn = Mock()
-        update_groups(request, [self.project], self.organization.id, search_fn)
+        update_groups(
+            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+        )
 
         group.refresh_from_db()
 
@@ -152,10 +158,12 @@ class UpdateGroupsTest(TestCase):
             request = self.make_request(user=self.user, method="GET")
             request.user = self.user
             request.data = {"inbox": False}
-            request.GET = QueryDict(query_string="id={}".format(group.id))
+            request.GET = QueryDict(query_string=f"id={group.id}")
 
             search_fn = Mock()
-            update_groups(request, [self.project], self.organization.id, search_fn)
+            update_groups(
+                request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+            )
 
             group.refresh_from_db()
 

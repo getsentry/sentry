@@ -1,13 +1,10 @@
-from __future__ import absolute_import
+from urllib.parse import quote, urlencode
 
 import responses
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-
-from six.moves.urllib.parse import quote
 
 
 class BitbucketIntegrationTest(APITestCase):
@@ -35,25 +32,29 @@ class BitbucketIntegrationTest(APITestCase):
     def test_get_repositories_with_uuid(self):
         uuid = "{a21bd75c-0ce2-402d-b70b-e57de6fba4b3}"
         self.integration.metadata["uuid"] = uuid
-        url = "https://api.bitbucket.org/2.0/repositories/{}".format(quote(uuid))
+        url = f"https://api.bitbucket.org/2.0/repositories/{quote(uuid)}"
         responses.add(
-            responses.GET, url, json={"values": [{"full_name": "sentryuser/stuf"}]},
+            responses.GET,
+            url,
+            json={"values": [{"full_name": "sentryuser/stuf"}]},
         )
         installation = self.integration.get_installation(self.organization)
         result = installation.get_repositories()
-        assert result == [{"identifier": u"sentryuser/stuf", "name": u"sentryuser/stuf"}]
+        assert result == [{"identifier": "sentryuser/stuf", "name": "sentryuser/stuf"}]
 
     @responses.activate
     def test_get_repositories_exact_match(self):
+        querystring = urlencode({"q": 'name="stuf"'})
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/sentryuser?name=stuf",
+            f"https://api.bitbucket.org/2.0/repositories/sentryuser?{querystring}",
             json={"values": [{"full_name": "sentryuser/stuf"}]},
         )
 
+        querystring = urlencode({"q": 'name~"stuf"'})
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/sentryuser?name~stuf",
+            f"https://api.bitbucket.org/2.0/repositories/sentryuser?{querystring}",
             json={
                 "values": [
                     {"full_name": "sentryuser/stuff"},
@@ -91,9 +92,10 @@ class BitbucketIntegrationTest(APITestCase):
 
     @responses.activate
     def test_get_repositories_no_exact_match(self):
+        querystring = urlencode({"q": 'name~"stu"'})
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/sentryuser?name~stuf",
+            f"https://api.bitbucket.org/2.0/repositories/sentryuser?{querystring}",
             json={
                 "values": [
                     {"full_name": "sentryuser/stuff"},
@@ -112,9 +114,10 @@ class BitbucketIntegrationTest(APITestCase):
             },
         )
 
+        querystring = urlencode({"q": 'name="stu"'})
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/sentryuser?name=stuf",
+            f"https://api.bitbucket.org/2.0/repositories/sentryuser?{querystring}",
             json={"values": []},
         )
 

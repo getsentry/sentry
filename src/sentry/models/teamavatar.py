@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey
@@ -13,7 +11,7 @@ class TeamAvatar(AvatarBase):
     and contains their preferences for avatar type.
     """
 
-    AVATAR_TYPES = ((0, u"letter_avatar"), (1, u"upload"))
+    AVATAR_TYPES = ((0, "letter_avatar"), (1, "upload"))
 
     FILE_TYPE = "avatar.file"
 
@@ -25,4 +23,4 @@ class TeamAvatar(AvatarBase):
         db_table = "sentry_teamavatar"
 
     def get_cache_key(self, size):
-        return "team_avatar:%s:%s" % (self.team_id, size)
+        return f"team_avatar:{self.team_id}:{size}"

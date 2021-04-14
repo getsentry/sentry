@@ -76,6 +76,9 @@ const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
     this.errorType = null;
 
     switch (err?.status) {
+      case 401:
+        this.errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS;
+        break;
       case 404:
         this.errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND;
         break;
@@ -123,4 +126,6 @@ const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
 
 type OrganizationStore = Reflux.Store & OrganizationStoreInterface;
 
-export default Reflux.createStore(storeConfig) as OrganizationStore;
+const OrganizationStore = Reflux.createStore(storeConfig) as OrganizationStore;
+
+export default OrganizationStore;

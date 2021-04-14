@@ -1,9 +1,7 @@
-from __future__ import absolute_import, print_function
-
 from django.views.generic import View
-from social_auth.models import UserSocialAuth
 
 from sentry.tasks.commits import generate_invalid_identity_email
+from social_auth.models import UserSocialAuth
 
 from .mail import MailPreview
 

@@ -10,37 +10,40 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
+import {openModal, openReprocessEventModal} from 'app/actionCreators/modal';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
 import {PanelTable} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import SearchBar from 'app/components/searchBar';
-import {IconSearch} from 'app/icons/iconSearch';
 import {t} from 'app/locale';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
 import {Image, ImageStatus} from 'app/types/debugImage';
 import {Event} from 'app/types/event';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {defined} from 'app/utils';
 
 import Status from './debugImage/status';
 import DebugImage from './debugImage';
-import DebugImageDetails, {modalCss} from './debugImageDetails';
 import Filter from './filter';
 import layout from './layout';
-import {combineStatus, getFileName, normalizeId} from './utils';
+import {
+  combineStatus,
+  getFileName,
+  IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT,
+  normalizeId,
+  shouldSkipSection,
+} from './utils';
 
-export const PANEL_MAX_HEIGHT = 400;
+const IMAGE_INFO_UNAVAILABLE = '-1';
 
 type DefaultProps = {
   data: {
-    images: Array<Image>;
+    images: Array<Image | null>;
   };
 };
 
@@ -52,6 +55,7 @@ type Props = DefaultProps &
     event: Event;
     organization: Organization;
     projectId: Project['id'];
+    groupId?: Group['id'];
   };
 
 type State = {
@@ -77,14 +81,18 @@ class DebugMeta extends React.PureComponent<Props, State> {
   state: State = {
     searchTerm: '',
     scrollbarWidth: 0,
-    filterOptions: [],
+    filterOptions: {},
     filteredImages: [],
     filteredImagesByFilter: [],
     filteredImagesBySearch: [],
   };
 
   componentDidMount() {
-    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange, undefined);
+    this.unsubscribeFromDebugMetaStore = DebugMetaStore.listen(
+      this.onDebugMetaStoreChange,
+      undefined
+    );
+
     cache.clearAll();
     this.getRelevantImages();
     this.openImageDetailsModal();
@@ -99,17 +107,17 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.unsubscribeFromStore) {
-      this.unsubscribeFromStore();
+    if (this.unsubscribeFromDebugMetaStore) {
+      this.unsubscribeFromDebugMetaStore();
     }
   }
 
-  unsubscribeFromStore: any;
+  unsubscribeFromDebugMetaStore: any;
 
   panelTableRef = React.createRef<HTMLDivElement>();
   listRef: List | null = null;
 
-  onStoreChange = (store: {filter: string}) => {
+  onDebugMetaStoreChange = (store: {filter: string}) => {
     const {searchTerm} = this.state;
 
     if (store.filter !== searchTerm) {
@@ -140,7 +148,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
   };
 
-  isValidImage(image: Image) {
+  isValidImage(image: Image | null) {
     // in particular proguard images do not have a code file, skip them
     if (image === null || image.code_file === null || image.type === 'proguard') {
       return false;
@@ -200,29 +208,46 @@ class DebugMeta extends React.PureComponent<Props, State> {
     );
   }
 
-  openImageDetailsModal() {
-    const {location, organization, projectId, data} = this.props;
+  openImageDetailsModal = async () => {
+    const {filteredImages} = this.state;
+
+    if (!filteredImages.length) {
+      return;
+    }
+
+    const {location, organization, projectId, groupId, event} = this.props;
     const {query} = location;
-    const {imageId} = query;
 
-    if (!imageId) {
+    const {imageCodeId, imageDebugId} = query;
+
+    if (!imageCodeId && !imageDebugId) {
       return;
     }
 
-    const {images} = data;
-    const image = images.find(({code_id}) => code_id === imageId);
+    const image =
+      imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
+        ? filteredImages.find(
+            ({code_id, debug_id}) => code_id === imageCodeId || debug_id === imageDebugId
+          )
+        : undefined;
 
-    if (!image) {
-      return;
-    }
+    const mod = await import(
+      /* webpackChunkName: "DebugImageDetails" */ 'app/components/events/interfaces/debugMeta-v2/debugImageDetails'
+    );
+
+    const {default: Modal, modalCss} = mod;
 
     openModal(
-      modalProps => (
-        <DebugImageDetails
-          {...modalProps}
+      deps => (
+        <Modal
+          {...deps}
           image={image}
           organization={organization}
           projectId={projectId}
+          event={event}
+          onReprocessEvent={
+            defined(groupId) ? this.handleReprocessEvent(groupId) : undefined
+          }
         />
       ),
       {
@@ -230,7 +255,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         onClose: this.handleCloseImageDetailsModal,
       }
     );
-  }
+  };
 
   getPanelBodyHeight() {
     const panelTableHeight = this.panelTableRef?.current?.offsetHeight;
@@ -245,8 +270,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
   getListHeight() {
     const {panelTableHeight} = this.state;
 
-    if (!panelTableHeight || panelTableHeight > PANEL_MAX_HEIGHT) {
-      return PANEL_MAX_HEIGHT;
+    if (!panelTableHeight || panelTableHeight > IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT) {
+      return IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT;
     }
 
     return panelTableHeight;
@@ -259,24 +284,31 @@ class DebugMeta extends React.PureComponent<Props, State> {
     // There are a bunch of images in debug_meta that are not relevant to this
     // component. Filter those out to reduce the noise. Most importantly, this
     // includes proguard images, which are rendered separately.
-    const relevantImages = images.filter(this.isValidImage).map(releventImage => {
-      const {debug_status, unwind_status} = releventImage;
+
+    const relevantImages = images.filter(this.isValidImage);
+
+    if (!relevantImages.length) {
+      return;
+    }
+
+    const formattedRelevantImages = relevantImages.map(releventImage => {
+      const {debug_status, unwind_status} = releventImage as Image;
       return {
         ...releventImage,
         status: combineStatus(debug_status, unwind_status),
       };
-    });
+    }) as Images;
 
     // Sort images by their start address. We assume that images have
     // non-overlapping ranges. Each address is given as hex string (e.g.
     // "0xbeef").
-    relevantImages.sort(
+    formattedRelevantImages.sort(
       (a, b) => parseAddress(a.image_addr) - parseAddress(b.image_addr)
     );
 
     const unusedImages: Images = [];
 
-    const usedImages = relevantImages.filter(image => {
+    const usedImages = formattedRelevantImages.filter(image => {
       if (image.debug_status === ImageStatus.UNUSED) {
         unusedImages.push(image as Images[0]);
         return false;
@@ -291,22 +323,27 @@ class DebugMeta extends React.PureComponent<Props, State> {
     this.setState({
       filteredImages,
       filterOptions,
-      filteredImagesByFilter: filteredImages,
+      filteredImagesByFilter: this.getFilteredImagesByFilter(
+        filteredImages,
+        filterOptions
+      ),
       filteredImagesBySearch: filteredImages,
     });
   }
 
   getFilterOptions(images: Images): FilterOptions {
-    return [...new Set(images.map(image => image.status))].map(status => ({
-      id: status,
-      symbol: <Status status={status} />,
-      isChecked: false,
-    }));
+    return {
+      [t('Status')]: [...new Set(images.map(image => image.status))].map(status => ({
+        id: status,
+        symbol: <Status status={status} />,
+        isChecked: status !== ImageStatus.UNUSED,
+      })),
+    };
   }
 
   getFilteredImagesByFilter(filteredImages: Images, filterOptions: FilterOptions) {
     const checkedOptions = new Set(
-      filterOptions
+      Object.values(filterOptions)[0]
         .filter(filterOption => filterOption.isChecked)
         .map(option => option.id)
     );
@@ -314,7 +351,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
     if (![...checkedOptions].length) {
       return filteredImages;
     }
-
     return filteredImages.filter(image => checkedOptions.has(image.status));
   }
 
@@ -336,10 +372,13 @@ class DebugMeta extends React.PureComponent<Props, State> {
     const {filterOptions} = this.state;
     this.setState(
       {
-        filterOptions: filterOptions.map(filterOption => ({
-          ...filterOption,
-          isChecked: false,
-        })),
+        filterOptions: Object.keys(filterOptions).reduce((accumulator, currentValue) => {
+          accumulator[currentValue] = filterOptions[currentValue].map(filterOption => ({
+            ...filterOption,
+            isChecked: false,
+          }));
+          return accumulator;
+        }, {}),
       },
       this.filterImagesBySearchTerm
     );
@@ -353,12 +392,19 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }));
   };
 
-  handleOpenImageDetailsModal = (code_id: Image['code_id']) => {
+  handleOpenImageDetailsModal = (
+    code_id: Image['code_id'],
+    debug_id: Image['debug_id']
+  ) => {
     const {location, router} = this.props;
 
     router.push({
       ...location,
-      query: {...location.query, imageId: code_id},
+      query: {
+        ...location.query,
+        imageCodeId: code_id ?? IMAGE_INFO_UNAVAILABLE,
+        imageDebugId: debug_id ?? IMAGE_INFO_UNAVAILABLE,
+      },
     });
   };
 
@@ -367,7 +413,16 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
     router.push({
       ...location,
-      query: {...location.query, imageId: undefined},
+      query: {...location.query, imageCodeId: undefined, imageDebugId: undefined},
+    });
+  };
+
+  handleReprocessEvent = (groupId: Group['id']) => () => {
+    const {organization} = this.props;
+    openReprocessEventModal({
+      organization,
+      groupId,
+      onClose: this.openImageDetailsModal,
     });
   };
 
@@ -395,9 +450,9 @@ class DebugMeta extends React.PureComponent<Props, State> {
     const {filteredImagesByFilter: images, panelTableHeight} = this.state;
 
     if (!panelTableHeight) {
-      return images.map(image => (
+      return images.map((image, index) => (
         <DebugImage
-          key={image.debug_file}
+          key={index}
           image={image}
           onOpenImageDetailsModal={this.handleOpenImageDetailsModal}
         />
@@ -425,49 +480,52 @@ class DebugMeta extends React.PureComponent<Props, State> {
     );
   }
 
-  renderContent() {
+  getEmptyMessage() {
     const {searchTerm, filteredImagesByFilter: images, filterOptions} = this.state;
 
+    if (!!images.length) {
+      return {};
+    }
+
     if (searchTerm && !images.length) {
-      const hasActiveFilter = filterOptions.find(filterOption => filterOption.isChecked);
-      return (
-        <EmptyMessage
-          icon={<IconSearch size="xl" />}
-          action={
-            hasActiveFilter ? (
-              <Button onClick={this.handleResetFilter} priority="primary">
-                {t('Reset Filter')}
-              </Button>
-            ) : (
-              <Button onClick={this.handleResetSearchBar} priority="primary">
-                {t('Clear Search Bar')}
-              </Button>
-            )
-          }
-        >
-          {t('Sorry, no images match your search query.')}
-        </EmptyMessage>
-      );
+      const hasActiveFilter = Object.values(filterOptions)
+        .flatMap(filterOption => filterOption)
+        .find(filterOption => filterOption.isChecked);
+
+      return {
+        emptyMessage: t('Sorry, no images match your search query'),
+        emptyAction: hasActiveFilter ? (
+          <Button onClick={this.handleResetFilter} priority="primary">
+            {t('Reset filter')}
+          </Button>
+        ) : (
+          <Button onClick={this.handleResetSearchBar} priority="primary">
+            {t('Clear search bar')}
+          </Button>
+        ),
+      };
     }
 
-    if (!images.length) {
-      return (
-        <EmptyStateWarning>
-          <p>{t('There are no images to be displayed')}</p>
-        </EmptyStateWarning>
-      );
-    }
-
-    return <div ref={this.panelTableRef}>{this.renderList()}</div>;
+    return {
+      emptyMessage: t('There are no images to be displayed'),
+    };
   }
 
   render() {
     const {
       searchTerm,
       filterOptions,
-      filteredImagesByFilter: images,
       scrollbarWidth,
+      filteredImagesByFilter: filteredImages,
     } = this.state;
+    const {data} = this.props;
+    const {images} = data;
+
+    if (shouldSkipSection(filteredImages, images)) {
+      return null;
+    }
+
+    const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
 
     return (
       <StyledEventDataSection
@@ -488,11 +546,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
         }
         actions={
           <Search>
-            <Filter options={filterOptions} onFilter={this.handleChangeFilter} />
+            {displayFilter && (
+              <Filter options={filterOptions} onFilter={this.handleChangeFilter} />
+            )}
             <StyledSearchBar
               query={searchTerm}
               onChange={value => this.handleChangeSearchTerm(value)}
-              placeholder={t('Search images\u2026')}
+              placeholder={t('Search images')}
+              blendWithFilter={displayFilter}
             />
           </Search>
         }
@@ -500,12 +561,12 @@ class DebugMeta extends React.PureComponent<Props, State> {
         isCentered
       >
         <StyledPanelTable
+          isEmpty={!filteredImages.length}
           scrollbarWidth={scrollbarWidth}
           headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
-          isEmpty={!images.length}
-          emptyMessage={t('There are no images to display')}
+          {...this.getEmptyMessage()}
         >
-          {this.renderContent()}
+          <div ref={this.panelTableRef}>{this.renderList()}</div>
         </StyledPanelTable>
       </StyledEventDataSection>
     );
@@ -530,23 +591,25 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
       ${overflowEllipsis};
       border-bottom: 1px solid ${p => p.theme.border};
       :nth-child(5n) {
+        height: 100%;
         ${p => !p.scrollbarWidth && `display: none`}
       }
     }
 
-    ${p =>
-      !p.isEmpty &&
-      `:nth-child(n + 6) {
-    display: grid;
-    grid-column: 1/-1;
-    padding: 0;
-  }`}
+    :nth-child(n + 6) {
+      grid-column: 1/-1;
+      ${p =>
+        !p.isEmpty &&
+        `
+          display: grid;
+          padding: 0;
+        `}
+    }
   }
 
   ${p => layout(p.theme, p.scrollbarWidth)}
 `;
 
-// Section Title
 const TitleWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
@@ -561,7 +624,6 @@ const Title = styled('h3')`
   height: 14px;
 `;
 
-// Virtual List
 const StyledList = styled(List)<{height: number}>`
   height: auto !important;
   max-height: ${p => p.height}px;
@@ -569,15 +631,26 @@ const StyledList = styled(List)<{height: number}>`
   outline: none;
 `;
 
-// Search
 const Search = styled('div')`
-  display: flex;
+  display: grid;
+  grid-gap: ${space(2)};
   width: 100%;
   margin-top: ${space(1)};
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    margin-top: 0;
+    grid-gap: 0;
+    grid-template-columns: ${p =>
+      p.children && React.Children.toArray(p.children).length === 1
+        ? '1fr'
+        : 'max-content 1fr'};
+    justify-content: flex-end;
+  }
+
   @media (min-width: ${props => props.theme.breakpoints[1]}) {
     width: 400px;
-    margin-top: 0;
   }
+
   @media (min-width: ${props => props.theme.breakpoints[3]}) {
     width: 600px;
   }
@@ -585,22 +658,28 @@ const Search = styled('div')`
 
 // TODO(matej): remove this once we refactor SearchBar to not use css classes
 // - it could accept size as a prop
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
   width: 100%;
   position: relative;
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   .search-input {
     height: 32px;
-  }
-  .search-input,
-  .search-input:focus {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
   }
   .search-clear-form,
   .search-input-icon {
     height: 32px;
     display: flex;
     align-items: center;
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    ${p =>
+      p.blendWithFilter &&
+      `
+        .search-input,
+        .search-input:focus {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+        }
+      `}
   }
 `;

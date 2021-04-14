@@ -162,4 +162,6 @@ const storeConfig: Reflux.StoreDefinition & GlobalSelectionStoreInterface = {
   },
 };
 
-export default Reflux.createStore(storeConfig) as GlobalSelectionStore;
+const GlobalSelectionStore = Reflux.createStore(storeConfig) as GlobalSelectionStore;
+
+export default GlobalSelectionStore;

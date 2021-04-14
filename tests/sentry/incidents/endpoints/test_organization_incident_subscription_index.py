@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from exam import fixture
 
 from sentry.incidents.logic import subscribe_to_incident
@@ -7,7 +5,7 @@ from sentry.incidents.models import IncidentSubscription
 from sentry.testutils import APITestCase
 
 
-class BaseOrganizationSubscriptionEndpointTest(object):
+class BaseOrganizationSubscriptionEndpointTest:
     endpoint = "sentry-api-0-organization-incident-subscription-index"
 
     @fixture

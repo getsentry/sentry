@@ -49,7 +49,7 @@ class VitalDetail extends React.Component<Props, State> {
     ),
   };
 
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
       eventView: generatePerformanceVitalDetailView(
@@ -109,7 +109,7 @@ class VitalDetail extends React.Component<Props, State> {
         : (vitalNameQuery as WebVital);
 
     return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
+      <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <GlobalSelectionHeader>
           <StyledPageContent>
             <LightWeightNoProjectMessage organization={organization}>

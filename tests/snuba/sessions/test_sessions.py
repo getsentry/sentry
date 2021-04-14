@@ -1,18 +1,18 @@
-from __future__ import absolute_import
-
 import time
-import pytz
 from datetime import datetime
 
-from sentry.testutils import SnubaTestCase, TestCase
+import pytz
+
 from sentry.snuba.sessions import (
-    get_oldest_health_data_for_releases,
+    _make_stats,
     check_has_health_data,
+    get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_release_adoption,
     get_release_health_data_overview,
-    _make_stats,
+    get_release_sessions_time_bounds,
 )
+from sentry.testutils import SnubaTestCase, TestCase
 
 
 def format_timestamp(dt):
@@ -27,7 +27,7 @@ def make_24h_stats(ts):
 
 class SnubaSessionsTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(SnubaSessionsTest, self).setUp()
+        super().setUp()
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
         self.session_release = "foo@1.0.0"
@@ -116,7 +116,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         data = check_has_health_data(
             [(self.project.id, self.session_release), (self.project.id, "dummy-release")]
         )
-        assert data == set([(self.project.id, self.session_release)])
+        assert data == {(self.project.id, self.session_release)}
 
     def test_get_project_releases_by_stability(self):
         # Add an extra session with a different `distinct_id` so that sorting by users
@@ -163,11 +163,17 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "sessions_24h": 2,
                 "users_24h": 1,
                 "adoption": 100.0,
+                "sessions_adoption": 66.66666666666666,
+                "project_sessions_24h": 3,
+                "project_users_24h": 1,
             },
             (self.project.id, self.session_crashed_release): {
                 "sessions_24h": 1,
                 "users_24h": 1,
                 "adoption": 100.0,
+                "sessions_adoption": 33.33333333333333,
+                "project_sessions_24h": 3,
+                "project_users_24h": 1,
             },
         }
 
@@ -203,11 +209,17 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "sessions_24h": 2,
                 "users_24h": 1,
                 "adoption": 50.0,
+                "sessions_adoption": 50.0,
+                "project_sessions_24h": 4,
+                "project_users_24h": 2,
             },
             (self.project.id, self.session_crashed_release): {
                 "sessions_24h": 2,
                 "users_24h": 2,
                 "adoption": 100.0,
+                "sessions_adoption": 50.0,
+                "project_sessions_24h": 4,
+                "project_users_24h": 2,
             },
         }
 
@@ -238,9 +250,12 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "stats": {"24h": stats_crash},
                 "crash_free_users": 0.0,
                 "adoption": 100.0,
+                "sessions_adoption": 33.33333333333333,
                 "has_health_data": True,
                 "crash_free_sessions": 0.0,
                 "duration_p50": None,
+                "total_project_sessions_24h": 3,
+                "total_project_users_24h": 1,
             },
             (self.project.id, self.session_release): {
                 "total_sessions": 2,
@@ -253,9 +268,12 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "stats": {"24h": stats_ok},
                 "crash_free_users": 100.0,
                 "adoption": 100.0,
+                "sessions_adoption": 66.66666666666666,
                 "has_health_data": True,
                 "crash_free_sessions": 100.0,
                 "duration_p50": 45.0,
+                "total_project_sessions_24h": 3,
+                "total_project_users_24h": 1,
             },
         }
 
@@ -287,9 +305,12 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "stats": {"24h": stats_crash},
                 "crash_free_users": 0.0,
                 "adoption": 100.0,
+                "sessions_adoption": 33.33333333333333,
                 "has_health_data": True,
                 "crash_free_sessions": 0.0,
                 "duration_p50": None,
+                "total_project_sessions_24h": 3,
+                "total_project_users_24h": 1,
             },
             (self.project.id, self.session_release): {
                 "total_sessions": 2,
@@ -301,9 +322,101 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "total_users_24h": 1,
                 "stats": {"24h": stats_ok},
                 "crash_free_users": 100.0,
+                "sessions_adoption": 66.66666666666666,
                 "adoption": 100.0,
                 "has_health_data": True,
                 "crash_free_sessions": 100.0,
                 "duration_p50": 45.0,
+                "total_project_sessions_24h": 3,
+                "total_project_users_24h": 1,
             },
+        }
+
+    def test_fetching_release_sessions_time_bounds_for_different_release(self):
+        """
+        Test that ensures only session bounds for releases are calculated according
+        to their respective release
+        """
+        # Same release session
+        self.store_session(
+            {
+                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "status": "exited",
+                "seq": 1,
+                "release": self.session_release,
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "duration": 30.0,
+                "errors": 0,
+                "started": self.session_started - 3600 * 2,
+                "received": self.received - 3600 * 2,
+            }
+        )
+        # Different release session
+        self.store_session(
+            {
+                "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf82",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "status": "crashed",
+                "seq": 0,
+                "release": self.session_crashed_release,
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "duration": 60.0,
+                "errors": 0,
+                "started": self.session_started - 3600 * 2,
+                "received": self.received - 3600 * 2,
+            }
+        )
+
+        expected_formatted_lower_bound = format_timestamp(
+            datetime.utcfromtimestamp(self.session_started - 3600 * 2).replace(minute=0)
+        )
+        expected_formatted_upper_bound = format_timestamp(
+            datetime.utcfromtimestamp(self.session_started).replace(minute=0)
+        )
+
+        # Test for self.session_release
+        data = get_release_sessions_time_bounds(
+            project_id=self.project.id,
+            release=self.session_release,
+            org_id=self.organization.id,
+            environments=["prod"],
+        )
+        assert data == {
+            "sessions_lower_bound": expected_formatted_lower_bound,
+            "sessions_upper_bound": expected_formatted_upper_bound,
+        }
+
+        # Test for self.session_crashed_release
+        data = get_release_sessions_time_bounds(
+            project_id=self.project.id,
+            release=self.session_crashed_release,
+            org_id=self.organization.id,
+            environments=["prod"],
+        )
+        assert data == {
+            "sessions_lower_bound": expected_formatted_lower_bound,
+            "sessions_upper_bound": expected_formatted_upper_bound,
+        }
+
+    def test_fetching_release_sessions_time_bounds_for_different_release_with_no_sessions(self):
+        """
+        Test that ensures if no sessions are available for a specific release then the bounds
+        should be returned as None
+        """
+        data = get_release_sessions_time_bounds(
+            project_id=self.project.id,
+            release="different_release",
+            org_id=self.organization.id,
+            environments=["prod"],
+        )
+        assert data == {
+            "sessions_lower_bound": None,
+            "sessions_upper_bound": None,
         }

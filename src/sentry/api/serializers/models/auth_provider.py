@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.db.models import F
 
 from sentry.api.serializers import Serializer, register
@@ -21,7 +17,7 @@ class AuthProviderSerializer(Serializer):
         login_url = organization.get_url()
 
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "provider_name": obj.provider,
             "pending_links_count": pending_links_count,
             "login_url": absolute_uri(login_url),

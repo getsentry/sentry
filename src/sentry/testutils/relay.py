@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 import requests
 import responses
@@ -36,7 +34,7 @@ def ensure_relay_is_registered():
         pass  # NOQA
 
 
-class RelayStoreHelper(object):
+class RelayStoreHelper:
     """
     Tests that post to the store entry point should use this helper class
     (together with RelayStoreHelper) to check the functionality with relay.
@@ -120,7 +118,11 @@ class RelayStoreHelper(object):
         url = self.get_relay_minidump_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
 
-        resp = requests.post(url, files=dict(files or ()), data=dict(data or ()),)
+        resp = requests.post(
+            url,
+            files=dict(files or ()),
+            data=dict(data or ()),
+        )
 
         assert resp.ok
         event_id = resp.text.strip().replace("-", "")
@@ -136,7 +138,10 @@ class RelayStoreHelper(object):
         url = self.get_relay_unreal_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
 
-        resp = requests.post(url, data=payload,)
+        resp = requests.post(
+            url,
+            data=payload,
+        )
 
         assert resp.ok
         event_id = resp.text.strip().replace("-", "")

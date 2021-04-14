@@ -1,32 +1,30 @@
-from __future__ import absolute_import
-
 import logging
+from urllib.parse import urlencode
 
-from django.db import transaction
 from django.core.urlresolvers import reverse
+from django.db import transaction
 from django.utils import timezone
-from six.moves.urllib.parse import urlencode
 
 from sentry.auth.access import from_user
 from sentry.incidents.models import (
-    AlertRuleTriggerAction,
+    INCIDENT_STATUS,
     AlertRuleStatus,
+    AlertRuleTriggerAction,
     Incident,
-    IncidentProject,
-    PendingIncidentSnapshot,
-    IncidentSnapshot,
     IncidentActivity,
     IncidentActivityType,
+    IncidentProject,
+    IncidentSnapshot,
     IncidentStatus,
     IncidentStatusMethod,
-    INCIDENT_STATUS,
+    PendingIncidentSnapshot,
 )
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -68,9 +66,9 @@ def send_subscriber_notifications(activity_id):
 def generate_incident_activity_email(activity, user):
     incident = activity.incident
     return MessageBuilder(
-        subject=u"Activity on Alert {} (#{})".format(incident.title, incident.identifier),
-        template=u"sentry/emails/incidents/activity.txt",
-        html_template=u"sentry/emails/incidents/activity.html",
+        subject=f"Activity on Alert {incident.title} (#{incident.identifier})",
+        template="sentry/emails/incidents/activity.txt",
+        html_template="sentry/emails/incidents/activity.html",
         type="incident.activity",
         context=build_activity_context(activity, user),
     )
@@ -80,13 +78,13 @@ def build_activity_context(activity, user):
     if activity.type == IncidentActivityType.COMMENT.value:
         action = "left a comment"
     else:
-        action = "changed status from %s to %s" % (
+        action = "changed status from {} to {}".format(
             INCIDENT_STATUS[IncidentStatus(int(activity.previous_value))],
             INCIDENT_STATUS[IncidentStatus(int(activity.value))],
         )
     incident = activity.incident
 
-    action = "%s on alert %s (#%s)" % (action, incident.title, incident.identifier)
+    action = f"{action} on alert {incident.title} (#{incident.identifier})"
 
     return {
         "user_name": activity.user.name if activity.user else "Sentry",
@@ -135,6 +133,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
     except AlertRuleTriggerAction.DoesNotExist:
         metrics.incr("incidents.alert_rules.action.skipping_missing_action")
         return
+
     try:
         incident = Incident.objects.select_related("organization").get(id=incident_id)
     except Incident.DoesNotExist:
@@ -152,7 +151,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
             AlertRuleTriggerAction.Type(action.type).name.lower(), method
         )
     )
-    getattr(action, method)(incident, project, metric_value=metric_value)
+    getattr(action, method)(action, incident, project, metric_value=metric_value)
 
 
 @instrumented_task(
@@ -162,8 +161,8 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
     max_retries=2,
 )
 def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
-    from sentry.incidents.models import AlertRule
     from sentry.incidents.logic import update_incident_status
+    from sentry.incidents.models import AlertRule
 
     try:
         alert_rule = AlertRule.objects_with_snapshots.get(id=alert_rule_id)
@@ -210,7 +209,9 @@ def process_pending_incident_snapshots(next_id=None):
         # of total pending snapshots so that we can alert if we notice the queue
         # constantly growing.
         metrics.incr(
-            "incidents.pending_snapshots", amount=pending_snapshots.count(), sample_rate=1.0,
+            "incidents.pending_snapshots",
+            amount=pending_snapshots.count(),
+            sample_rate=1.0,
         )
 
     if next_id is not None:

@@ -1,12 +1,10 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import BooleanField from 'app/components/forms/booleanField';
 import EmailField from 'app/components/forms/emailField';
 import FormField from 'app/components/forms/formField';
 import NumberField from 'app/components/forms/numberField';
 import PasswordField from 'app/components/forms/passwordField';
-import RangeField from 'app/components/forms/rangeField';
 import SelectAsyncField from 'app/components/forms/selectAsyncField';
 import SelectCreatableField from 'app/components/forms/selectCreatableField';
 import SelectField from 'app/components/forms/selectField';
@@ -92,8 +90,6 @@ const GenericField = ({
   switch (config.type) {
     case 'secret':
       return <PasswordField {...fieldProps} />;
-    case 'range':
-      return <RangeField {...fieldProps} />;
     case 'bool':
       return <BooleanField {...fieldProps} />;
     case 'email':
@@ -127,14 +123,6 @@ const GenericField = ({
     default:
       return null;
   }
-};
-
-GenericField.propTypes = {
-  config: PropTypes.object.isRequired,
-  formData: PropTypes.object,
-  formErrors: PropTypes.object,
-  formState: PropTypes.string.isRequired,
-  onChange: PropTypes.func,
 };
 
 export default GenericField;

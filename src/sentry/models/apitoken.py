@@ -1,13 +1,12 @@
-from __future__ import absolute_import, print_function
-
-from django.utils.encoding import force_text, python_2_unicode_compatible
 from datetime import timedelta
-from django.db import models, transaction
-from django.utils import timezone
 from uuid import uuid4
 
+from django.db import models, transaction
+from django.utils import timezone
+from django.utils.encoding import force_text, python_2_unicode_compatible
+
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
 from sentry.models.apiscopes import HasApiScopes
-from sentry.db.models import Model, BaseManager, FlexibleForeignKey, sane_repr
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 

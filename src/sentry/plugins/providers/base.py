@@ -1,17 +1,12 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.urlresolvers import reverse
 from rest_framework.response import Response
-from social_auth.models import UserSocialAuth
-
-from sentry.models import Integration, OrganizationIntegration
 
 from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.models import Integration, OrganizationIntegration
+from social_auth.models import UserSocialAuth
 
 
-class ProviderMixin(object):
+class ProviderMixin:
     auth_provider = None
     logger = None
 
@@ -45,7 +40,7 @@ class ProviderMixin(object):
                     "defaultAuthId": i.default_auth_id,
                     "user": associated_auth and {"email": associated_auth.user.email},
                     "externalId": i.external_id,
-                    "integrationId": six.text_type(i.id),
+                    "integrationId": str(i.id),
                     "linked": True,
                 }
             )
@@ -132,10 +127,10 @@ class ProviderMixin(object):
             status = 400
         elif isinstance(e, PluginError):
             # TODO(dcramer): we should have a proper validation error
-            context.update({"error_type": "validation", "errors": {"__all__": six.text_type(e)}})
+            context.update({"error_type": "validation", "errors": {"__all__": str(e)}})
             status = 400
         else:
             if self.logger:
-                self.logger.exception(six.text_type(e))
+                self.logger.exception(str(e))
             status = 500
         return Response(context, status=status)

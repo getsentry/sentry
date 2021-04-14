@@ -1,13 +1,11 @@
-from __future__ import absolute_import
-
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.discover.utils import transform_aliases_and_query
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class TransformAliasesAndQueryTest(SnubaTestCase, TestCase):
     def setUp(self):
-        super(TransformAliasesAndQueryTest, self).setUp()
+        super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
 

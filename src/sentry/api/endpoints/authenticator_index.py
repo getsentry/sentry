@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.models import Authenticator
@@ -11,8 +9,7 @@ class AuthenticatorIndexEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
-        """Returns u2f interface for a user, otherwise an empty array
-        """
+        """Returns u2f interface for a user, otherwise an empty array"""
 
         # Currently just expose u2f challenge, not sure if it's necessary to list all
         # authenticator interfaces that are enabled

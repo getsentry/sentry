@@ -1,26 +1,20 @@
-from __future__ import absolute_import
-
 import pytest
-import six
-
 from django.utils import timezone
 from freezegun import freeze_time
-from sentry.utils.compat.mock import patch
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.models import (
-    add_group_to_inbox,
     Commit,
     CommitAuthor,
     Environment,
+    ExternalIssue,
     Group,
     GroupInbox,
     GroupInboxReason,
+    GroupLink,
     GroupRelease,
     GroupResolution,
-    GroupLink,
     GroupStatus,
-    ExternalIssue,
     Integration,
     OrganizationIntegration,
     Release,
@@ -30,10 +24,11 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
     Repository,
+    add_group_to_inbox,
 )
+from sentry.testutils import SetRefsTestCase, TestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.strings import truncatechars
-
-from sentry.testutils import TestCase, SetRefsTestCase
 
 
 class MergeReleasesTest(TestCase):
@@ -303,7 +298,7 @@ class SetCommitsTestCase(TestCase):
 
         release = Release.objects.get(id=release.id)
         assert release.commit_count == 3
-        assert release.authors == [six.text_type(author.id)]
+        assert release.authors == [str(author.id)]
         assert release.last_commit_id == latest_commit.id
         assert not GroupInbox.objects.filter(group=group).exists()
 
@@ -354,7 +349,7 @@ class SetCommitsTestCase(TestCase):
 
         release = Release.objects.get(id=release.id)
         assert release.commit_count == 3
-        assert release.authors == [six.text_type(author.id)]
+        assert release.authors == [str(author.id)]
         assert release.last_commit_id == latest_commit.id
 
     @patch("sentry.models.Commit.update")
@@ -539,7 +534,7 @@ class SetCommitsTestCase(TestCase):
 
 class SetRefsTest(SetRefsTestCase):
     def setUp(self):
-        super(SetRefsTest, self).setUp()
+        super().setUp()
         self.release = Release.objects.create(version="abcdabc", organization=self.org)
         self.release.add_project(self.project)
 

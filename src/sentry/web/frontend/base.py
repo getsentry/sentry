@@ -1,9 +1,5 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
-from django.template.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponse,
@@ -12,8 +8,9 @@ from django.http import (
     HttpResponseRedirect,
 )
 from django.middleware.csrf import CsrfViewMiddleware
-from django.views.generic import View
+from django.template.context_processors import csrf
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import View
 from sudo.views import redirect_to_sudo
 
 from sentry import roles
@@ -32,15 +29,14 @@ from sentry.models import (
 )
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
-from sentry.web.helpers import render_to_response
 from sentry.web.frontend.generic import FOREVER_CACHE
-
+from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.ui")
 
 
-class OrganizationMixin(object):
+class OrganizationMixin:
     # TODO(dcramer): move the implicit organization logic into its own class
     # as it's only used in a single location and over complicates the rest of
     # the code
@@ -85,9 +81,7 @@ class OrganizationMixin(object):
 
         if active_organization is None and organization_slug:
             try:
-                active_organization = six.next(
-                    o for o in organizations if o.slug == organization_slug
-                )
+                active_organization = next(o for o in organizations if o.slug == organization_slug)
             except StopIteration:
                 logger.info("Active organization [%s] not found in scope", organization_slug)
                 if is_implicit:
@@ -102,7 +96,6 @@ class OrganizationMixin(object):
                 active_organization = organizations[0]
             except IndexError:
                 logger.info("User is not a member of any organizations")
-                pass
 
         if active_organization and self._is_org_member(request.user, active_organization):
             if active_organization.slug != request.session.get("activeorg"):
@@ -177,7 +170,7 @@ class BaseView(View, OrganizationMixin):
             self.sudo_required = sudo_required
         if csrf_protect is not None:
             self.csrf_protect = csrf_protect
-        super(BaseView, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
@@ -237,7 +230,7 @@ class BaseView(View, OrganizationMixin):
         return (args, kwargs)
 
     def handle(self, request, *args, **kwargs):
-        return super(BaseView, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def is_auth_required(self, request, *args, **kwargs):
         return self.auth_required and not (
@@ -269,7 +262,7 @@ class BaseView(View, OrganizationMixin):
         redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def get_no_permission_url(request, *args, **kwargs):
+    def get_no_permission_url(self, request, *args, **kwargs):
         return reverse("sentry-login")
 
     def get_not_2fa_compliant_url(self, request, *args, **kwargs):
@@ -317,7 +310,7 @@ class OrganizationView(BaseView):
         return access.from_request(request, organization)
 
     def get_context_data(self, request, organization, **kwargs):
-        context = super(OrganizationView, self).get_context_data(request)
+        context = super().get_context_data(request)
         context["organization"] = organization
         context["TEAM_LIST"] = self.get_team_list(request.user, organization)
         context["ACCESS"] = request.access.to_django_context()
@@ -342,7 +335,7 @@ class OrganizationView(BaseView):
         return True
 
     def is_auth_required(self, request, organization_slug=None, *args, **kwargs):
-        result = super(OrganizationView, self).is_auth_required(request, *args, **kwargs)
+        result = super().is_auth_required(request, *args, **kwargs)
         if result:
             return result
 
@@ -435,14 +428,14 @@ class TeamView(OrganizationView):
     """
 
     def get_context_data(self, request, organization, team, **kwargs):
-        context = super(TeamView, self).get_context_data(request, organization)
+        context = super().get_context_data(request, organization)
         context["team"] = team
         return context
 
     def has_permission(self, request, organization, team, *args, **kwargs):
         if team is None:
             return False
-        rv = super(TeamView, self).has_permission(request, organization)
+        rv = super().has_permission(request, organization)
         if not rv:
             return rv
         if self.required_scope:
@@ -489,7 +482,7 @@ class ProjectView(OrganizationView):
     """
 
     def get_context_data(self, request, organization, project, **kwargs):
-        context = super(ProjectView, self).get_context_data(request, organization)
+        context = super().get_context_data(request, organization)
         context["project"] = project
         context["processing_issues"] = serialize(project).get("processingIssues", 0)
         return context
@@ -497,7 +490,7 @@ class ProjectView(OrganizationView):
     def has_permission(self, request, organization, project, *args, **kwargs):
         if project is None:
             return False
-        rv = super(ProjectView, self).has_permission(request, organization)
+        rv = super().has_permission(request, organization)
         if not rv:
             return rv
 

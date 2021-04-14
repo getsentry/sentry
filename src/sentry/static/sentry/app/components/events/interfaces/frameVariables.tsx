@@ -1,11 +1,11 @@
 import React from 'react';
 
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import {KeyValueListData} from 'app/types';
 
 type Props = {
-  data: {[key: string]: string};
+  data: Record<string, string>;
 };
 
 const FrameVariables = ({data}: Props) => {
@@ -15,8 +15,8 @@ const FrameVariables = ({data}: Props) => {
     event.stopPropagation();
   };
 
-  const getTransformedData = (): Array<KeyValueListData> => {
-    const transformedData: Array<KeyValueListData> = [];
+  const getTransformedData = (): KeyValueListData => {
+    const transformedData: KeyValueListData = [];
 
     const dataKeys = Object.keys(data).reverse();
     for (const key of dataKeys) {

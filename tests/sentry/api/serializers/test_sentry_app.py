@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app import SentryAppSerializer
 from sentry.testutils import TestCase

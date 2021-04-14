@@ -170,7 +170,7 @@ export default function render(
 ) {
   const frames: string[] = [];
 
-  data?.frames.forEach((frame, frameIdx) => {
+  (data?.frames ?? []).forEach((frame, frameIdx) => {
     frames.push(getFrame(frame, frameIdx, platform));
   });
 

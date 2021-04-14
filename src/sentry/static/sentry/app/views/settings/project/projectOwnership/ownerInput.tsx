@@ -1,6 +1,7 @@
 import React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
@@ -10,7 +11,8 @@ import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import {inputStyles} from 'app/styles/input';
 import {Organization, Project, Team} from 'app/types';
-import theme from 'app/utils/theme';
+import {defined} from 'app/utils';
+import {Theme} from 'app/utils/theme';
 
 import RuleBuilder from './ruleBuilder';
 
@@ -21,14 +23,16 @@ const defaultProps = {
 };
 
 type Props = {
+  theme: Theme;
   organization: Organization;
   project: Project;
   initialText: string;
+  onSave?: (text: string | null) => void;
 } & typeof defaultProps;
 
 type State = {
   hasChanges: boolean;
-  text: string;
+  text: string | null;
   error: null | {
     raw: string[];
   };
@@ -39,7 +43,7 @@ class OwnerInput extends React.Component<Props, State> {
 
   state: State = {
     hasChanges: false,
-    text: '',
+    text: null,
     error: null,
   };
 
@@ -59,7 +63,7 @@ class OwnerInput extends React.Component<Props, State> {
   }
 
   handleUpdateOwnership = () => {
-    const {organization, project} = this.props;
+    const {organization, project, onSave} = this.props;
     const {text} = this.state;
     this.setState({error: null});
 
@@ -75,10 +79,13 @@ class OwnerInput extends React.Component<Props, State> {
     request
       .then(() => {
         addSuccessMessage(t('Updated issue ownership rules'));
-        this.setState({
-          hasChanges: false,
-          text,
-        });
+        this.setState(
+          {
+            hasChanges: false,
+            text,
+          },
+          () => onSave && onSave(text)
+        );
       })
       .catch(error => {
         this.setState({error: error.responseJSON});
@@ -143,7 +150,7 @@ class OwnerInput extends React.Component<Props, State> {
   };
 
   render() {
-    const {project, organization, disabled, urls, paths, initialText} = this.props;
+    const {theme, project, organization, disabled, urls, paths, initialText} = this.props;
     const {hasChanges, text, error} = this.state;
 
     return (
@@ -173,7 +180,7 @@ class OwnerInput extends React.Component<Props, State> {
             }
             onChange={this.handleChange}
             disabled={disabled}
-            value={text || initialText}
+            value={defined(text) ? text : initialText}
             spellCheck="false"
             autoComplete="off"
             autoCorrect="off"
@@ -245,4 +252,4 @@ const InvalidOwners = styled('div')`
   margin-top: 12px;
 `;
 
-export default OwnerInput;
+export default withTheme(OwnerInput);

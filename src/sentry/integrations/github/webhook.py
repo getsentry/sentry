@@ -1,19 +1,16 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
-import dateutil.parser
 import hashlib
 import hmac
 import logging
-import six
 
+import dateutil.parser
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
+from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from django.utils import timezone
+
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models import (
@@ -25,15 +22,15 @@ from sentry.models import (
     PullRequest,
     Repository,
 )
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 
-from sentry.shared_integrations.exceptions import ApiError
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
 
 
-class Webhook(object):
+class Webhook:
     provider = "github"
 
     def _handle(self, integration, event, organization, repo):
@@ -42,7 +39,7 @@ class Webhook(object):
     def __call__(self, event, host=None):
         external_id = event["installation"]["id"]
         if host:
-            external_id = u"{}:{}".format(host, event["installation"]["id"])
+            external_id = "{}:{}".format(host, event["installation"]["id"])
 
         try:
             integration = Integration.objects.get(external_id=external_id, provider=self.provider)
@@ -56,7 +53,7 @@ class Webhook(object):
                 extra={
                     "action": event.get("action"),
                     "repository": event.get("repository", {}).get("full_name", None),
-                    "external_id": six.text_type(external_id),
+                    "external_id": str(external_id),
                 },
             )
             return
@@ -68,7 +65,7 @@ class Webhook(object):
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
                 provider="integrations:%s" % self.provider,
-                external_id=six.text_type(event["repository"]["id"]),
+                external_id=str(event["repository"]["id"]),
             )
             for repo in repos:
                 self._handle(integration, event, orgs[repo.organization_id], repo)
@@ -103,7 +100,7 @@ class InstallationEventWebhook(Webhook):
         if installation and event["action"] == "deleted":
             external_id = event["installation"]["id"]
             if host:
-                external_id = u"{}:{}".format(host, event["installation"]["id"])
+                external_id = "{}:{}".format(host, event["installation"]["id"])
             try:
                 integration = Integration.objects.get(
                     external_id=external_id, provider=self.provider
@@ -119,7 +116,7 @@ class InstallationEventWebhook(Webhook):
                     extra={
                         "action": event["action"],
                         "installation_name": installation["account"]["login"],
-                        "external_id": six.text_type(external_id),
+                        "external_id": str(external_id),
                     },
                 )
 
@@ -183,7 +180,7 @@ class PushEventWebhook(Webhook):
 
             author_email = commit["author"]["email"]
             if "@" not in author_email:
-                author_email = u"{}@localhost".format(author_email[:65])
+                author_email = f"{author_email[:65]}@localhost"
             # try to figure out who anonymous emails are
             elif self.is_anonymous_email(author_email):
                 gh_username = commit["author"].get("username")
@@ -209,7 +206,7 @@ class PushEventWebhook(Webhook):
                             try:
                                 gh_user = client.get_user(gh_username)
                             except ApiError as exc:
-                                logger.exception(six.text_type(exc))
+                                logger.exception(str(exc))
                             else:
                                 # even if we can't find a user, set to none so we
                                 # don't re-query
@@ -328,7 +325,7 @@ class PullRequestEventWebhook(Webhook):
         # https://developer.github.com/v3/pulls/#get-a-single-pull-request
         merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
-        author_email = u"{}@localhost".format(user["login"][:65])
+        author_email = "{}@localhost".format(user["login"][:65])
         try:
             commit_author = CommitAuthor.objects.get(
                 external_id=self.get_external_id(user["login"]), organization_id=organization.id
@@ -389,7 +386,7 @@ class GitHubWebhookBase(View):
         if method == "sha1":
             mod = hashlib.sha1
         else:
-            raise NotImplementedError("signature method %s is not supported" % (method,))
+            raise NotImplementedError(f"signature method {method} is not supported")
         expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
         return constant_time_compare(expected, signature)
 
@@ -398,7 +395,7 @@ class GitHubWebhookBase(View):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(GitHubWebhookBase, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_logging_data(self):
         pass
@@ -413,7 +410,7 @@ class GitHubWebhookBase(View):
             logger.error("github.webhook.missing-secret", extra=self.get_logging_data())
             return HttpResponse(status=401)
 
-        body = six.binary_type(request.body)
+        body = bytes(request.body)
         if not body:
             logger.error("github.webhook.missing-body", extra=self.get_logging_data())
             return HttpResponse(status=400)
@@ -462,7 +459,7 @@ class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(GitHubIntegrationsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_secret(self):
         return options.get("github-app.webhook-secret")

@@ -1,13 +1,13 @@
-from __future__ import absolute_import
-
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
-from sentry.api.serializers import serialize
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.bases import OrganizationEndpoint
+
 from sentry import features
+from sentry.api.bases import NoProjects, OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
-from sentry.discover.models import DiscoverSavedQuery
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
+from sentry.discover.models import DiscoverSavedQuery
 
 
 class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
@@ -44,13 +44,16 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
+        try:
+            params = self.get_filter_params(
+                request, organization, project_ids=request.data.get("projects")
+            )
+        except NoProjects:
+            raise ParseError(detail="No Projects found, join a Team")
+
         serializer = DiscoverSavedQuerySerializer(
             data=request.data,
-            context={
-                "params": self.get_filter_params(
-                    request, organization, project_ids=request.data.get("projects")
-                )
-            },
+            context={"params": params},
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

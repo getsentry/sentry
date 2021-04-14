@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat.mock import patch, MagicMock
-
 from sentry.mediators.sentry_apps import InternalCreator
 from sentry.models import AuditLogEntryEvent, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
+from sentry.utils.compat.mock import MagicMock, patch
 
 
 class TestInternalCreator(TestCase):
@@ -22,7 +19,7 @@ class TestInternalCreator(TestCase):
             scopes=("project:read",),
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
-            **kwargs
+            **kwargs,
         )
 
     def test_slug(self):

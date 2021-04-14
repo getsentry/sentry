@@ -27,7 +27,6 @@ import {
 import {getTitle} from 'app/utils/events';
 import localStorage from 'app/utils/localStorage';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
-import {disableMacros} from 'app/views/discover/result/utils';
 
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
@@ -120,9 +119,11 @@ export function generateTitle({
   }
 
   const eventTitle = event ? getTitle(event, organization).title : undefined;
+
   if (eventTitle) {
     titles.push(eventTitle);
   }
+
   titles.reverse();
 
   return titles.join(' - ');
@@ -137,6 +138,16 @@ export function getPrebuiltQueries(organization: LightWeightOrganization) {
   }
 
   return views;
+}
+
+function disableMacros(value: string | null | boolean | number) {
+  const unsafeCharacterRegex = /^[\=\+\-\@]/;
+
+  if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {
+    return `'${value}`;
+  }
+
+  return value;
 }
 
 export function downloadAsCsv(tableData, columnOrder, filename) {
@@ -228,8 +239,6 @@ export function getExpandedResults(
     if (
       // if expanding the function failed
       column === null ||
-      // id is implicitly a part of all non-aggregate results
-      column.field === 'id' ||
       // the new column is already present
       fieldSet.has(column.field)
     ) {
@@ -241,6 +250,13 @@ export function getExpandedResults(
     return column;
   });
 
+  // id should be default column when expanded results in no columns; but only if
+  // the Discover query's columns is non-empty.
+  // This typically occurs in Discover drilldowns.
+  if (fieldSet.size === 0 && expandedColumns.length) {
+    expandedColumns[0] = {kind: 'field', field: 'id'};
+  }
+
   // update the columns according the the expansion above
   const nextView = expandedColumns.reduceRight(
     (newView, column, index) =>
@@ -249,6 +265,7 @@ export function getExpandedResults(
         : newView.withUpdatedColumn(index, column, undefined),
     eventView.clone()
   );
+
   nextView.query = generateExpandedConditions(nextView, additionalConditions, dataRow);
   return nextView;
 }
@@ -260,9 +277,9 @@ export function getExpandedResults(
 function generateAdditionalConditions(
   eventView: EventView,
   dataRow?: TableDataRow | Event
-): Record<string, string> {
+): Record<string, string | string[]> {
   const specialKeys = Object.values(URL_PARAM);
-  const conditions: Record<string, string> = {};
+  const conditions: Record<string, string | string[]> = {};
 
   if (!dataRow) {
     return conditions;
@@ -282,7 +299,18 @@ function generateAdditionalConditions(
     // more challenging to get at as their location in the structure does not
     // match their name.
     if (dataRow.hasOwnProperty(dataKey)) {
-      const value = dataRow[dataKey];
+      let value = dataRow[dataKey];
+
+      if (Array.isArray(value)) {
+        if (value.length > 1) {
+          conditions[column.field] = value;
+          return;
+        } else {
+          // An array with only one value is equivalent to the value itself.
+          value = value[0];
+        }
+      }
+
       // if the value will be quoted, then do not trim it as the whitespaces
       // may be important to the query and should not be trimmed
       const shouldQuote =
@@ -344,7 +372,7 @@ function generateExpandedConditions(
     }
   }
 
-  const conditions = Object.assign(
+  const conditions: Record<string, string | string[]> = Object.assign(
     {},
     additionalConditions,
     generateAdditionalConditions(eventView, dataRow)
@@ -353,6 +381,12 @@ function generateExpandedConditions(
   // Add additional conditions provided and generated.
   for (const key in conditions) {
     const value = conditions[key];
+
+    if (Array.isArray(value)) {
+      parsedQuery.setTagValues(key, value);
+      continue;
+    }
+
     if (key === 'project.id') {
       eventView.project = [...eventView.project, parseInt(value, 10)];
       continue;
@@ -369,7 +403,7 @@ function generateExpandedConditions(
       continue;
     }
 
-    parsedQuery.setTagValues(key, [conditions[key]]);
+    parsedQuery.setTagValues(key, [value]);
   }
 
   return stringifyQueryObject(parsedQuery);

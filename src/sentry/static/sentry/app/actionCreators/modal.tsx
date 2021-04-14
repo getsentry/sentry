@@ -5,7 +5,16 @@ import {css} from '@emotion/core';
 
 import ModalActions from 'app/actions/modalActions';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
-import {DebugFileSource, Group, Organization, Project, SentryApp, Team} from 'app/types';
+import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
+import {
+  DebugFileSource,
+  Group,
+  IssueOwnership,
+  Organization,
+  Project,
+  SentryApp,
+  Team,
+} from 'app/types';
 import {Event} from 'app/types/event';
 
 export type ModalRenderProps = {
@@ -21,6 +30,7 @@ export type ModalOptions = {
   modalClassName?: string;
   dialogClassName?: string;
   type?: string;
+  backdrop?: BoostrapModal['props']['backdrop'];
 };
 
 /**
@@ -107,6 +117,13 @@ type CreateOwnershipRuleModalOptions = {
   issueId: string;
 };
 
+export type EditOwnershipRulesModalOptions = {
+  organization: Organization;
+  project: Project;
+  ownership: IssueOwnership;
+  onSave: (text: string | null) => void;
+};
+
 export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {
   const mod = await import(
     /* webpackChunkName: "CreateOwnershipRuleModal" */ 'app/components/modals/createOwnershipRuleModal'
@@ -114,6 +131,15 @@ export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalO
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
+export async function openEditOwnershipRules(options: EditOwnershipRulesModalOptions) {
+  const mod = await import(
+    /* webpackChunkName: "EditOwnershipRulesModal" */ 'app/components/modals/editOwnershipRulesModal'
+  );
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
 export async function openCommandPalette(options: ModalOptions = {}) {
@@ -191,6 +217,7 @@ export type SentryAppDetailsModalOptions = {
 type DebugFileSourceModalOptions = {
   sourceType: DebugFileSource;
   onSave: (data: Record<string, string>) => void;
+  sourceConfig?: Record<string, string>;
 };
 
 export async function openDebugFileSourceModal(options: DebugFileSourceModalOptions) {
@@ -217,7 +244,20 @@ export async function openAddDashboardWidgetModal(options: DashboardWidgetModalO
   const mod = await import(
     /* webpackChunkName: "AddDashboardWidgetModal" */ 'app/components/modals/addDashboardWidgetModal'
   );
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+}
+
+export async function openReprocessEventModal({
+  onClose,
+  ...options
+}: ReprocessEventModalOptions & {onClose?: () => void}) {
+  const mod = await import(
+    /* webpackChunkName: "ReprocessEventModal" */ 'app/components/modals/reprocessEventModal'
+  );
+
   const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {});
+  openModal(deps => <Modal {...deps} {...options} />, {onClose});
 }

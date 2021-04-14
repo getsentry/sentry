@@ -1,11 +1,6 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
+from datetime import timedelta
 
 import pytz
-import six
-
-from datetime import timedelta
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
@@ -15,26 +10,28 @@ from sentry.api.serializers.models.group import (
     snuba_tsdb,
 )
 from sentry.models import (
-    Group,
     Environment,
+    Group,
     GroupEnvironment,
     GroupLink,
     GroupResolution,
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
+    NotificationSetting,
     UserOption,
-    UserOptionValue,
 )
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
 
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupSerializerSnubaTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1)
         self.week_ago = before_now(days=7)
@@ -43,7 +40,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         result = serialize(group, self.user, serializer=GroupSerializerSnuba())
         assert "http://" in result["permalink"]
-        assert "{}/issues/{}".format(group.organization.slug, group.id) in result["permalink"]
+        assert f"{group.organization.slug}/issues/{group.id}" in result["permalink"]
 
     def test_permalink_outside_org(self):
         outside_user = self.create_user()
@@ -87,7 +84,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert result["status"] == "ignored"
-        assert result["statusDetails"]["actor"]["id"] == six.text_type(user.id)
+        assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
     def test_resolved_in_next_release(self):
         release = self.create_release(project=self.project, version="a")
@@ -123,7 +120,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert result["status"] == "resolved"
-        assert result["statusDetails"]["actor"]["id"] == six.text_type(user.id)
+        assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
     def test_resolved_in_commit(self):
         repo = self.create_repo(project=self.project)
@@ -182,55 +179,113 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
 
         combinations = (
-            # ((default, project), (subscribed, details))
-            ((UserOptionValue.all_conversations, None), (True, None)),
-            ((UserOptionValue.all_conversations, UserOptionValue.all_conversations), (True, None)),
+            # (default, project, subscribed, has_details)
             (
-                (UserOptionValue.all_conversations, UserOptionValue.participating_only),
-                (False, None),
+                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingOptionValues.DEFAULT,
+                True,
+                False,
             ),
             (
-                (UserOptionValue.all_conversations, UserOptionValue.no_conversations),
-                (False, {"disabled": True}),
-            ),
-            ((None, None), (False, None)),
-            ((UserOptionValue.participating_only, None), (False, None)),
-            ((UserOptionValue.participating_only, UserOptionValue.all_conversations), (True, None)),
-            (
-                (UserOptionValue.participating_only, UserOptionValue.participating_only),
-                (False, None),
+                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingOptionValues.ALWAYS,
+                True,
+                False,
             ),
             (
-                (UserOptionValue.participating_only, UserOptionValue.no_conversations),
-                (False, {"disabled": True}),
+                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                False,
+                False,
             ),
-            ((UserOptionValue.no_conversations, None), (False, {"disabled": True})),
-            ((UserOptionValue.no_conversations, UserOptionValue.all_conversations), (True, None)),
-            ((UserOptionValue.no_conversations, UserOptionValue.participating_only), (False, None)),
             (
-                (UserOptionValue.no_conversations, UserOptionValue.no_conversations),
-                (False, {"disabled": True}),
+                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingOptionValues.NEVER,
+                False,
+                True,
+            ),
+            (
+                NotificationSettingOptionValues.DEFAULT,
+                NotificationSettingOptionValues.DEFAULT,
+                False,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingOptionValues.DEFAULT,
+                False,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingOptionValues.ALWAYS,
+                True,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                False,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingOptionValues.NEVER,
+                False,
+                True,
+            ),
+            (
+                NotificationSettingOptionValues.NEVER,
+                NotificationSettingOptionValues.DEFAULT,
+                False,
+                True,
+            ),
+            (
+                NotificationSettingOptionValues.NEVER,
+                NotificationSettingOptionValues.ALWAYS,
+                True,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.NEVER,
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                False,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.NEVER,
+                NotificationSettingOptionValues.NEVER,
+                False,
+                True,
             ),
         )
 
-        def maybe_set_value(project, value):
-            if value is not None:
-                UserOption.objects.set_value(
-                    user=user, project=project, key="workflow:notifications", value=value
-                )
-            else:
-                UserOption.objects.unset_value(
-                    user=user, project=project, key="workflow:notifications"
-                )
-
-        for options, (is_subscribed, subscription_details) in combinations:
-            default_value, project_value = options
+        for default_value, project_value, is_subscribed, has_details in combinations:
             UserOption.objects.clear_local_cache()
-            maybe_set_value(None, default_value)
-            maybe_set_value(group.project, project_value)
+
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.WORKFLOW,
+                default_value,
+                user=user,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.WORKFLOW,
+                project_value,
+                user=user,
+                project=group.project,
+            )
+
             result = serialize(group, user, serializer=GroupSerializerSnuba())
+            subscription_details = result.get("subscriptionDetails")
+
             assert result["isSubscribed"] is is_subscribed
-            assert result.get("subscriptionDetails") == subscription_details
+            assert (
+                subscription_details == {"disabled": True}
+                if has_details
+                else subscription_details is None
+            )
 
     def test_global_no_conversations_overrides_group_subscription(self):
         user = self.create_user()
@@ -240,11 +295,11 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             user=user, group=group, project=group.project, is_active=True
         )
 
-        UserOption.objects.set_value(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.NEVER,
             user=user,
-            project=None,
-            key="workflow:notifications",
-            value=UserOptionValue.no_conversations,
         )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
@@ -259,11 +314,12 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             user=user, group=group, project=group.project, is_active=True
         )
 
-        UserOption.objects.set_value(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.NEVER,
             user=user,
             project=group.project,
-            key="workflow:notifications",
-            value=UserOptionValue.no_conversations,
         )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
@@ -301,7 +357,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             )
 
         # Assert all events are in the same group
-        (group_id,) = set(e.group.id for e in events)
+        (group_id,) = {e.group.id for e in events}
 
         group = Group.objects.get(id=group_id)
         group.times_seen = 3

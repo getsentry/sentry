@@ -1,11 +1,6 @@
-from __future__ import absolute_import
-
-import six
-
 from django import forms
 from django.conf import settings
 from django.utils.html import format_html
-from social_auth.models import UserSocialAuth
 
 from sentry.models import Activity, GroupMeta
 from sentry.plugins.base.v1 import Plugin
@@ -13,6 +8,7 @@ from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+from social_auth.models import UserSocialAuth
 
 
 class NewIssueForm(forms.Form):
@@ -37,7 +33,7 @@ class IssueTrackingPlugin(Plugin):
 
     def _get_group_body(self, request, group, event, **kwargs):
         result = []
-        for interface in six.itervalues(event.interfaces):
+        for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event, _with_transaction=False)
             if output:
                 result.append(output)
@@ -154,7 +150,6 @@ class IssueTrackingPlugin(Plugin):
         Can be overridden for any actions needed when linking issues
         (like adding a comment to an existing issue).
         """
-        pass
 
     def get_initial_form_data(self, request, group, event, **kwargs):
         return {
@@ -192,9 +187,7 @@ class IssueTrackingPlugin(Plugin):
                     "project": group.project,
                     "has_auth_configured": has_auth_configured,
                     "required_auth_settings": required_auth_settings,
-                    "plugin_link": u"/settings/{}/projects/{}/plugins/{}/".format(
-                        project.organization.slug, project.slug, self.slug
-                    ),
+                    "plugin_link": f"/settings/{project.organization.slug}/projects/{project.slug}/plugins/{self.slug}/",
                 },
             )
 
@@ -225,7 +218,7 @@ class IssueTrackingPlugin(Plugin):
                         group=group, form_data=create_form.cleaned_data, request=request
                     )
                 except forms.ValidationError as e:
-                    create_form.errors["__all__"] = [u"Error creating issue: %s" % e]
+                    create_form.errors["__all__"] = ["Error creating issue: %s" % e]
 
             if create_form.is_valid():
                 GroupMeta.objects.set_value(group, "%s:tid" % prefix, issue_id)
@@ -257,7 +250,7 @@ class IssueTrackingPlugin(Plugin):
                 try:
                     self.link_issue(group=group, form_data=link_form.cleaned_data, request=request)
                 except forms.ValidationError as e:
-                    link_form.errors["__all__"] = [u"Error creating issue: %s" % e]
+                    link_form.errors["__all__"] = ["Error creating issue: %s" % e]
 
             if link_form.is_valid():
                 issue_id = int(link_form.cleaned_data["issue_id"])

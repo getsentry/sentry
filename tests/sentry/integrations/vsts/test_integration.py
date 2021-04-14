@@ -1,28 +1,27 @@
-from __future__ import absolute_import
+from urllib.parse import parse_qs, urlparse
 
 import pytest
-import six
 import responses
-from sentry.utils.compat.mock import patch, Mock
 
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
-from sentry.testutils.helpers import with_feature
 from sentry.models import (
     Integration,
     IntegrationExternalProject,
     OrganizationIntegration,
-    Repository,
     Project,
+    Repository,
 )
 from sentry.plugins.base import plugins
-from six.moves.urllib.parse import urlparse, parse_qs
+from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.testutils.helpers import with_feature
+from sentry.utils.compat.mock import Mock, patch
 from tests.sentry.plugins.testutils import (
+    VstsPlugin,
     register_mock_plugins,
     unregister_mock_plugins,
-    VstsPlugin,
 )
-from .testutils import VstsIntegrationTestCase, CREATE_SUBSCRIPTION
+
+from .testutils import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
@@ -32,12 +31,12 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     # Test data setup in ``VstsIntegrationTestCase``
 
     def setUp(self):
-        super(VstsIntegrationProviderTest, self).setUp()
+        super().setUp()
         register_mock_plugins()
 
     def tearDown(self):
         unregister_mock_plugins()
-        super(VstsIntegrationProviderTest, self).tearDown()
+        super().tearDown()
 
     def test_basic_flow(self):
         self.assert_installation()
@@ -75,7 +74,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         accessible_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a["name"],
-            url=u"{}/_git/{}".format(self.vsts_base_url, self.repo_name),
+            url=f"{self.vsts_base_url}/_git/{self.repo_name}",
             provider="visualstudio",
             external_id=self.repo_id,
             config={"name": self.project_a["name"], "project": self.project_a["name"]},
@@ -108,9 +107,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a["name"],
-            url=u"https://{}.visualstudio.com/_git/{}".format(
-                self.vsts_account_name, self.repo_name
-            ),
+            url=f"https://{self.vsts_account_name}.visualstudio.com/_git/{self.repo_name}",
             provider="visualstudio",
             external_id=self.repo_id,
             config={"name": self.project_a["name"], "project": self.project_a["name"]},
@@ -132,9 +129,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a["name"],
-            url=u"https://{}.visualstudio.com/_git/{}".format(
-                self.vsts_account_name, self.repo_name
-            ),
+            url=f"https://{self.vsts_account_name}.visualstudio.com/_git/{self.repo_name}",
             provider="visualstudio",
             external_id=self.repo_id,
         )
@@ -199,7 +194,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_fix_subscription(self, mock_get_scopes):
-        external_id = "1234567890"
+        external_id = self.vsts_account_id
         Integration.objects.create(metadata={}, provider="vsts", external_id=external_id)
         data = VstsIntegrationProvider().build_integration(
             {
@@ -251,9 +246,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     def test_create_subscription_forbidden(self, mock_get_scopes):
         responses.replace(
             responses.POST,
-            u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
-                self.vsts_account_name.lower()
-            ),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/hooks/subscriptions",
             status=403,
             json={
                 "$id": 1,
@@ -280,15 +273,13 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         with pytest.raises(IntegrationError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in six.text_type(err)
+        assert "sufficient account access to create webhooks" in str(err)
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_create_subscription_unauthorized(self, mock_get_scopes):
         responses.replace(
             responses.POST,
-            u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
-                self.vsts_account_name.lower()
-            ),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/hooks/subscriptions",
             status=401,
             json={
                 "$id": 1,
@@ -315,7 +306,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         with pytest.raises(IntegrationError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in six.text_type(err)
+        assert "sufficient account access to create webhooks" in str(err)
 
 
 class VstsIntegrationTest(VstsIntegrationTestCase):

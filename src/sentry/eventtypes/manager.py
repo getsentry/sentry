@@ -1,15 +1,10 @@
-from __future__ import absolute_import
-
-import six
-
-
-class EventTypeManager(object):
+class EventTypeManager:
     def __init__(self):
         self.__values = []
         self.__lookup = {}
 
     def __iter__(self):
-        return six.itervalues(self.__values)
+        yield from self.__values
 
     def __contains__(self, key):
         return key in self.__lookup

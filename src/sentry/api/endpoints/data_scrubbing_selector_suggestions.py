@@ -1,12 +1,8 @@
-from __future__ import absolute_import
-
-import six
 from rest_framework.response import Response
+from sentry_relay import pii_selector_suggestions_from_event
 
 from sentry import eventstore
 from sentry.api.bases.organization import OrganizationEndpoint
-
-from sentry_relay import pii_selector_suggestions_from_event
 
 
 class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
@@ -48,7 +44,7 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
             {
                 "suggestions": [
                     {"type": "value", "value": value, "examples": examples}
-                    for value, examples in six.iteritems(suggestions)
+                    for value, examples in suggestions.items()
                 ]
             }
         )

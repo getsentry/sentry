@@ -1,19 +1,14 @@
-from __future__ import absolute_import
-
-
 from exam import fixture
 
-from sentry.utils import json
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils import json
 
 
 class GroupEventJsonTest(TestCase):
     @fixture
     def path(self):
-        return u"/organizations/{}/issues/{}/events/{}/json/".format(
-            self.organization.slug, self.event.group_id, self.event.event_id
-        )
+        return f"/organizations/{self.organization.slug}/issues/{self.event.group_id}/events/{self.event.event_id}/json/"
 
     def test_does_render(self):
         self.login_as(self.user)

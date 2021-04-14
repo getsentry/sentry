@@ -1,36 +1,36 @@
-from __future__ import absolute_import
+import errno
+import re
+import unittest
+from copy import deepcopy
+from io import BytesIO
 
 import pytest
-import re
 import responses
-import six
-import unittest
+from requests.exceptions import RequestException
 from symbolic import SourceMapTokenMatch
 
-from copy import deepcopy
-from sentry.utils.compat.mock import patch, ANY, call
-from requests.exceptions import RequestException
-
 from sentry import http, options
+from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_exception
 from sentry.lang.javascript.processor import (
-    cache,
-    get_release_file_cache_key,
-    get_release_file_cache_key_meta,
-    JavaScriptStacktraceProcessor,
-    discover_sourcemap,
-    fetch_sourcemap,
-    fetch_file,
-    generate_module,
-    trim_line,
-    fetch_release_file,
-    UnparseableSourcemap,
-    get_max_age,
     CACHE_CONTROL_MAX,
     CACHE_CONTROL_MIN,
+    JavaScriptStacktraceProcessor,
+    UnparseableSourcemap,
+    cache,
+    discover_sourcemap,
+    fetch_file,
+    fetch_release_file,
+    fetch_sourcemap,
+    generate_module,
+    get_max_age,
+    get_release_file_cache_key,
+    get_release_file_cache_key_meta,
+    should_retry_fetch,
+    trim_line,
 )
-from sentry.lang.javascript.errormapping import rewrite_exception, REACT_MAPPING_URL
-from sentry.models import File, Release, ReleaseFile, EventError
+from sentry.models import EventError, File, Release, ReleaseFile
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import ANY, MagicMock, call, patch
 from sentry.utils.strings import truncatechars
 
 base64_sourcemap = "data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0="
@@ -62,6 +62,18 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         assert not r.allow_scraping
 
 
+def test_build_fetch_retry_condition() -> None:
+    e = OSError()
+    e.errno = errno.ESTALE
+
+    assert should_retry_fetch(1, e) is True
+    assert should_retry_fetch(2, e) is True
+    assert should_retry_fetch(3, e) is True
+    assert should_retry_fetch(4, e) is False
+
+    assert should_retry_fetch(1, Exception("something else")) is False
+
+
 class FetchReleaseFileTest(TestCase):
     def test_unicode(self):
         project = self.project
@@ -75,7 +87,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file
@@ -83,7 +95,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("file.min.js", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "file.min.js",
             {"content-type": "application/json; charset=utf-8"},
@@ -107,7 +119,7 @@ class FetchReleaseFileTest(TestCase):
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        foo_file.putfile(six.BytesIO(b"foo"))
+        foo_file.putfile(BytesIO(b"foo"))
         foo_dist = release.add_dist("foo")
         ReleaseFile.objects.create(
             name="file.min.js",
@@ -122,7 +134,7 @@ class FetchReleaseFileTest(TestCase):
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        bar_file.putfile(six.BytesIO(b"bar"))
+        bar_file.putfile(BytesIO(b"bar"))
         bar_dist = release.add_dist("bar")
         ReleaseFile.objects.create(
             name="file.min.js",
@@ -134,7 +146,7 @@ class FetchReleaseFileTest(TestCase):
 
         foo_result = fetch_release_file("file.min.js", release, foo_dist)
 
-        assert isinstance(foo_result.body, six.binary_type)
+        assert isinstance(foo_result.body, bytes)
         assert foo_result == http.UrlResult(
             "file.min.js", {"content-type": "application/json; charset=utf-8"}, b"foo", 200, "utf-8"
         )
@@ -160,7 +172,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="~/file.min.js",
@@ -171,7 +183,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("http://example.com/file.min.js?lol", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "http://example.com/file.min.js?lol",
             {"content-type": "application/json; charset=utf-8"},
@@ -195,7 +207,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file
@@ -203,7 +215,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("file.min.js", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "file.min.js",
             {"content-type": "application/json; charset=utf-8"},
@@ -242,7 +254,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file
@@ -335,6 +347,57 @@ class FetchReleaseFileTest(TestCase):
         assert cache.get(cache_key_meta)["compressed_size"] == len(binary_body)
         assert cache.get(cache_key)
 
+    def test_retry_file_open(self) -> None:
+        project = self.project
+
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        content = b"foo"
+
+        file = File.objects.create(
+            name="file.min.js",
+            type="release.file",
+            headers={"Content-Type": "application/json; charset=utf-8"},
+        )
+        file.putfile(BytesIO(content))
+
+        ReleaseFile.objects.create(
+            name=file.name,
+            release=release,
+            organization_id=project.organization_id,
+            file=file,
+        )
+
+        stale_file_error = OSError()
+        stale_file_error.errno = errno.ESTALE
+
+        bad_file = MagicMock()
+        bad_file.chunks.side_effect = stale_file_error
+
+        bad_file_reader = MagicMock()
+        bad_file_reader.__enter__.return_value = bad_file
+
+        good_file = MagicMock()
+        good_file.chunks.return_value = iter([content])
+
+        good_file_reader = MagicMock()
+        good_file_reader.__enter__.return_value = good_file
+
+        with patch("sentry.lang.javascript.processor.ReleaseFile.cache") as cache:
+            cache.getfile.side_effect = [bad_file_reader, good_file_reader]
+
+            assert fetch_release_file(file.name, release) == http.UrlResult(
+                file.name,
+                {k.lower(): v.lower() for k, v in file.headers.items()},
+                content,
+                200,
+                "utf-8",
+            )
+
+        assert bad_file.chunks.call_count == 1
+        assert good_file.chunks.call_count == 1
+
 
 class FetchFileTest(TestCase):
     @responses.activate
@@ -380,7 +443,7 @@ class FetchFileTest(TestCase):
         for i, (header_name_option_value, expected_request_header_name) in enumerate(header_pairs):
             self.project.update_option("sentry:token_header", header_name_option_value)
 
-            url = u"http://example.com/{}/".format(i)
+            url = f"http://example.com/{i}/"
             result = fetch_file(url, project=self.project)
 
             assert result.url == url
@@ -423,7 +486,7 @@ class FetchFileTest(TestCase):
         result = fetch_file("/example.js", release=release)
         assert result.url == "/example.js"
         assert result.body == b"foo"
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result.headers == {"content-type": "application/json"}
         assert result.encoding is None
 
@@ -451,6 +514,35 @@ class FetchFileTest(TestCase):
         assert len(responses.calls) == 1
 
         assert result == result2
+
+    @responses.activate
+    def test_too_large_for_cache(self):
+        # make the cache fail
+        domain_key = http.get_domain_key("http://example.com")
+
+        original_get = cache.get
+
+        def cache_get(key):
+            if key == domain_key:
+                return original_get(key)
+
+        with patch("sentry.utils.cache.cache.get", side_effect=cache_get):
+            responses.add(
+                responses.GET,
+                "http://example.com",
+                body=b"Stuff",
+                content_type="application/json; charset=utf-8",
+            )
+
+            with pytest.raises(http.CannotFetch) as exc:
+                fetch_file("http://example.com")
+
+            assert exc.value.data["type"] == EventError.TOO_LARGE_FOR_CACHE
+
+            assert cache.get(domain_key) == {
+                "type": "too_large_for_cache",
+                "url": "http://example.com",
+            }
 
     @responses.activate
     def test_truncated(self):
@@ -676,8 +768,8 @@ class FetchSourcemapTest(TestCase):
 
         assert list(smap_view) == tokens
         sv = smap_view.get_sourceview(0)
-        assert sv.get_source() == u'console.log("hello, World!")'
-        assert smap_view.get_source_name(0) == u"/test.js"
+        assert sv.get_source() == 'console.log("hello, World!")'
+        assert smap_view.get_source_name(0) == "/test.js"
 
     def test_base64_without_padding(self):
         smap_view = fetch_sourcemap(base64_sourcemap.rstrip("="))
@@ -685,8 +777,8 @@ class FetchSourcemapTest(TestCase):
 
         assert list(smap_view) == tokens
         sv = smap_view.get_sourceview(0)
-        assert sv.get_source() == u'console.log("hello, World!")'
-        assert smap_view.get_source_name(0) == u"/test.js"
+        assert sv.get_source() == 'console.log("hello, World!")'
+        assert smap_view.get_source_name(0) == "/test.js"
 
     def test_broken_base64(self):
         with pytest.raises(UnparseableSourcemap):
@@ -912,8 +1004,8 @@ class ErrorMappingTest(unittest.TestCase):
                     {
                         "type": "InvariantViolation",
                         "value": (
-                            u"Minified React error #108; visit http://facebook"
-                            u".github.io/react/docs/error-decoder.html?\u2026"
+                            "Minified React error #108; visit http://facebook"
+                            ".github.io/react/docs/error-decoder.html?\u2026"
                         ),
                         "stacktrace": {
                             "frames": [

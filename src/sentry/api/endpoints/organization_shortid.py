@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -32,7 +28,7 @@ class ShortIdLookupEndpoint(OrganizationEndpoint):
             {
                 "organizationSlug": organization.slug,
                 "projectSlug": group.project.slug,
-                "groupId": six.text_type(group.id),
+                "groupId": str(group.id),
                 "group": serialize(group, request.user),
                 "shortId": group.qualified_short_id,
             }

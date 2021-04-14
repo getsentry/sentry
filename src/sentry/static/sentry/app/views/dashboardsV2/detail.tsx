@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory, PlainRoute, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -16,6 +17,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -27,7 +29,7 @@ import DashboardTitle from './title';
 import {DashboardDetails, DashboardState, Widget} from './types';
 import {cloneDashboard} from './utils';
 
-const UNSAVED_MESSAGE = t('You have unsaved changes are you sure you want to leave?');
+const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
 type Props = {
   api: Client;
@@ -60,18 +62,34 @@ class DashboardDetail extends React.Component<Props, State> {
     if (!dashboard) {
       return;
     }
+
+    trackAnalyticsEvent({
+      eventKey: 'dashboards2.edit.start',
+      eventName: 'Dashboards2: Edit start',
+      organization_id: parseInt(this.props.organization.id, 10),
+    });
+
     this.setState({
       dashboardState: 'edit',
       modifiedDashboard: cloneDashboard(dashboard),
     });
   };
 
-  onRouteLeave = (): string | undefined => {
+  onRouteLeave = (nextLocation?: Location) => {
+    const {organization} = this.props;
+
+    if (
+      nextLocation?.pathname ===
+      `/organizations/${organization.slug}/dashboards/widget/new/`
+    ) {
+      return undefined;
+    }
+
     if (!['view', 'pending_delete'].includes(this.state.dashboardState)) {
       return UNSAVED_MESSAGE;
     }
-    // eslint-disable-next-line consistent-return
-    return;
+
+    return undefined;
   };
 
   onUnload = (event: BeforeUnloadEvent) => {
@@ -83,6 +101,11 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onCreate = () => {
+    trackAnalyticsEvent({
+      eventKey: 'dashboards2.create.start',
+      eventName: 'Dashboards2: Create start',
+      organization_id: parseInt(this.props.organization.id, 10),
+    });
     this.setState({
       dashboardState: 'create',
       modifiedDashboard: cloneDashboard(EMPTY_DASHBOARD),
@@ -90,6 +113,19 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onCancel = () => {
+    if (this.state.dashboardState === 'create') {
+      trackAnalyticsEvent({
+        eventKey: 'dashboards2.create.cancel',
+        eventName: 'Dashboards2: Create cancel',
+        organization_id: parseInt(this.props.organization.id, 10),
+      });
+    } else if (this.state.dashboardState === 'edit') {
+      trackAnalyticsEvent({
+        eventKey: 'dashboards2.edit.cancel',
+        eventName: 'Dashboards2: Edit cancel',
+        organization_id: parseInt(this.props.organization.id, 10),
+      });
+    }
     this.setState({
       dashboardState: 'view',
       modifiedDashboard: null,
@@ -109,6 +145,11 @@ class DashboardDetail extends React.Component<Props, State> {
         dashboardState: 'pending_delete',
       },
       () => {
+        trackAnalyticsEvent({
+          eventKey: 'dashboards2.delete',
+          eventName: 'Dashboards2: Delete',
+          organization_id: parseInt(this.props.organization.id, 10),
+        });
         deleteDashboard(api, organization.slug, dashboard.id)
           .then(() => {
             addSuccessMessage(t('Dashboard deleted'));
@@ -145,7 +186,11 @@ class DashboardDetail extends React.Component<Props, State> {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
-
+              trackAnalyticsEvent({
+                eventKey: 'dashboards2.create.complete',
+                eventName: 'Dashboards2: Create complete',
+                organization_id: parseInt(organization.id, 10),
+              });
               this.setState({
                 dashboardState: 'view',
                 modifiedDashboard: null,
@@ -178,6 +223,11 @@ class DashboardDetail extends React.Component<Props, State> {
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard updated'));
+              trackAnalyticsEvent({
+                eventKey: 'dashboards2.edit.complete',
+                eventName: 'Dashboards2: Edit complete',
+                organization_id: parseInt(organization.id, 10),
+              });
 
               this.setState({
                 dashboardState: 'view',
@@ -227,7 +277,7 @@ class DashboardDetail extends React.Component<Props, State> {
       return {
         ...prevState,
         modifiedDashboard: {
-          ...modifiedDashboard,
+          ...prevState.modifiedDashboard!,
           widgets,
         },
       };
@@ -313,7 +363,7 @@ const StyledPageHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.textColor};
   height: 40px;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     flex-direction: column;

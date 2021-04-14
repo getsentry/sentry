@@ -7,10 +7,26 @@ import space from 'app/styles/space';
  * Using Parameters<typeof FieldWrapper> in the Field component somehow
  * causes an infinite recursive depth so exporting the props is best workaround
  */
-export type Props = {
+type Props = {
+  /**
+   * When stacking forms the bottom border is hidden and padding is adjusted
+   * for form elements to be stacked on each other.
+   */
   stacked?: boolean;
+  /**
+   * Display the field control container in "inline" fashion. The label and
+   * description will be aligned to the left, while the control itself will be
+   * aligned to the right.
+   */
   inline?: boolean;
+  /**
+   * When false adds padding to the right of the element to ensure visual
+   * consistency with other fields that aren't using flexible control states.
+   */
   hasControlState?: boolean;
+  /**
+   * Is "highlighted", i.e. after a search
+   */
   highlighted?: boolean;
 };
 
@@ -33,9 +49,6 @@ const getPadding = (p: Props) =>
         padding: ${space(2)} ${p.hasControlState ? 0 : space(2)} ${space(2)} ${space(2)};
       `;
 
-/**
- * `hasControlState` - adds padding to right if this is false
- */
 const FieldWrapper = styled('div')<Props>`
   ${getPadding}
   ${inlineStyle}

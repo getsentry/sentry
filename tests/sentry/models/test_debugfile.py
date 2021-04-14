@@ -1,19 +1,17 @@
-from __future__ import absolute_import
-
 import os
 import time
 import zipfile
-from six import BytesIO, text_type
+from io import BytesIO
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 
+from sentry.models import DifMeta, File, ProjectDebugFile, debugfile
 from sentry.testutils import APITestCase, TestCase
-from sentry.models import debugfile, File, ProjectDebugFile, DifMeta
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
-PROGUARD_UUID = text_type("6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1")
+PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
 PROGUARD_SOURCE = b"""\
 org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 65:65:void <init>() -> <init>

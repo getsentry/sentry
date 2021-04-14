@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.utils import get_date_range_from_params
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_date_range_from_params
 from sentry.models import Environment
 
 
@@ -18,6 +16,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         Return a list of values associated with this key.  The `query`
         parameter can be used to to perform a "contains" match on
         values.
+        When paginated can return at most 1000 values.
 
         :pparam string organization_slug: the slug of the organization.
         :pparam string project_slug: the slug of the project.

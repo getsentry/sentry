@@ -1,8 +1,7 @@
-from __future__ import absolute_import
+from datetime import datetime
 
 import pytest
 import pytz
-from datetime import datetime
 
 from sentry.eventstream.kafka.protocol import (
     InvalidPayload,
@@ -57,7 +56,7 @@ def test_get_task_kwargs_for_message_version_1():
     assert kwargs.pop("is_regression") is False
     assert kwargs.pop("is_new_group_environment") is True
 
-    assert not kwargs, "unexpected values remaining: {!r}".format(kwargs)
+    assert not kwargs, f"unexpected values remaining: {kwargs!r}"
 
 
 def test_get_task_kwargs_for_message_version_1_skip_consume():

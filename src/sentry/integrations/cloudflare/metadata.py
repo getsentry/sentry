@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -20,7 +17,7 @@ class CloudflareMetadataEndpoint(Endpoint):
             {
                 "metadata": {
                     "username": request.user.username,
-                    "userId": six.text_type(request.user.id),
+                    "userId": str(request.user.id),
                     "email": request.user.email,
                 }
             }

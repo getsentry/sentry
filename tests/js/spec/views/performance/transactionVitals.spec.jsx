@@ -39,31 +39,26 @@ const vitals = [
   {
     slug: 'fp',
     heading: 'First Paint (FP)',
-    state: 'Fail',
     baseline: '4.57s',
   },
   {
     slug: 'fcp',
     heading: 'First Contentful Paint (FCP)',
-    state: 'Pass',
     baseline: '1.46s',
   },
   {
     slug: 'lcp',
     heading: 'Largest Contentful Paint (LCP)',
-    state: 'Pass',
     baseline: '1.34s',
   },
   {
     slug: 'fid',
     heading: 'First Input Delay (FID)',
-    state: 'Fail',
     baseline: '987.00ms',
   },
   {
     slug: 'cls',
     heading: 'Cumulative Layout Shift (CLS)',
-    state: 'Pass',
     baseline: '0.02',
   },
 ];
@@ -80,24 +75,13 @@ describe('Performance > Web Vitals', function () {
     });
     // Mock baseline measurements
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events-vitals/',
       body: {
-        meta: {
-          percentile_measurements_fp_0_75: 'duration',
-          percentile_measurements_fcp_0_75: 'duration',
-          percentile_measurements_lcp_0_75: 'duration',
-          percentile_measurements_fid_0_75: 'duration',
-          percentile_measurements_cls_0_75: 'number',
-        },
-        data: [
-          {
-            percentile_measurements_fp_0_75: 4567,
-            percentile_measurements_fcp_0_75: 1456,
-            percentile_measurements_lcp_0_75: 1342,
-            percentile_measurements_fid_0_75: 987,
-            percentile_measurements_cls_0_75: 0.02,
-          },
-        ],
+        'measurements.fp': {poor: 1, meh: 2, good: 3, total: 6, p75: 4567},
+        'measurements.fcp': {poor: 1, meh: 2, good: 3, total: 6, p75: 1456},
+        'measurements.lcp': {poor: 1, meh: 2, good: 3, total: 6, p75: 1342},
+        'measurements.fid': {poor: 1, meh: 2, good: 3, total: 6, p75: 987},
+        'measurements.cls': {poor: 1, meh: 2, good: 3, total: 6, p75: 0.02},
       },
     });
 
@@ -197,7 +181,6 @@ describe('Performance > Web Vitals', function () {
       expect(vitalCard.find('CardSectionHeading').text()).toEqual(
         expect.stringContaining(vitals[i].heading)
       );
-      expect(vitalCard.find('Tag').text()).toEqual(vitals[i].state);
       expect(vitalCard.find('StatNumber').text()).toEqual(vitals[i].baseline);
     });
     expect(vitalCards.find('BarChart')).toHaveLength(5);

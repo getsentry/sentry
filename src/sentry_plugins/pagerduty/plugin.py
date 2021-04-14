@@ -1,13 +1,8 @@
-from __future__ import absolute_import
-
-import six
-
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.notify import NotifyPlugin
 from sentry.utils.http import absolute_uri
-
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
-from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import PagerDutyClient
 
@@ -39,7 +34,7 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
         message = data.get("message", "unknown error")
         errors = data.get("errors", None)
         if errors:
-            return "%s: %s" % (message, " ".join(errors))
+            return "{}: {}".format(message, " ".join(errors))
 
         return message
 
@@ -110,7 +105,7 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
             response = client.trigger_incident(
                 description=description,
                 event_type="trigger",
-                incident_key=six.text_type(group.id),
+                incident_key=str(group.id),
                 details=details,
                 contexts=[
                     {

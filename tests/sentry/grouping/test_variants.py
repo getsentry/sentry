@@ -1,12 +1,9 @@
-from __future__ import absolute_import, print_function
-
 import pytest
 
+from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
-from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.utils import json
-
 from tests.sentry.grouping import with_grouping_input
 
 
@@ -30,18 +27,21 @@ def dump_variant(variant, lines=None, indent=0):
             if isinstance(value, GroupingComponent):
                 _dump_component(value, indent + 1)
             else:
-                lines.append("%s%s" % ("  " * (indent + 1), json.dumps(value)))
+                lines.append("{}{}".format("  " * (indent + 1), json.dumps(value)))
 
-    lines.append("%shash: %s" % ("  " * indent, json.dumps(variant.get_hash())))
+    lines.append("{}hash: {}".format("  " * indent, json.dumps(variant.get_hash())))
+
     for (key, value) in sorted(variant.__dict__.items()):
         if isinstance(value, GroupingComponent):
-            lines.append("%s%s:" % ("  " * indent, key))
+            if value.tree_label:
+                lines.append('{}tree_label: "{}"'.format("  " * indent, value.tree_label))
+            lines.append("{}{}:".format("  " * indent, key))
             _dump_component(value, indent + 1)
         elif key == "config":
             # We do not want to dump the config
             continue
         else:
-            lines.append("%s%s: %s" % ("  " * indent, key, json.dumps(value)))
+            lines.append("{}{}: {}".format("  " * indent, key, json.dumps(value)))
 
     return lines
 

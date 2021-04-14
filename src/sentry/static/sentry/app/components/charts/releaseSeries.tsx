@@ -2,6 +2,7 @@ import React from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import {EChartOption} from 'echarts/lib/echarts';
+import {withTheme} from 'emotion-theming';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
@@ -17,7 +18,7 @@ import {escape} from 'app/utils';
 import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import {formatVersion} from 'app/utils/formatters';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -62,6 +63,7 @@ function getOrganizationReleases(
 
 type Props = WithRouterProps & {
   api: Client;
+  theme: Theme;
   organization: Organization;
   children: (s: State) => React.ReactNode;
   projects: Readonly<number[]>;
@@ -180,16 +182,25 @@ class ReleaseSeries extends React.Component<Props, State> {
 
   setReleasesWithSeries(releases) {
     const {emphasizeReleases = []} = this.props;
-    const [unemphasizedReleases, emphasizedReleases] = partition(
-      releases,
-      release => !emphasizeReleases.includes(release.version)
-    );
     const releaseSeries: Series[] = [];
-    if (unemphasizedReleases.length) {
-      releaseSeries.push(this.getReleaseSeries(unemphasizedReleases));
-    }
-    if (emphasizedReleases.length) {
-      releaseSeries.push(this.getReleaseSeries(emphasizedReleases, 0.8));
+
+    if (emphasizeReleases.length) {
+      const [unemphasizedReleases, emphasizedReleases] = partition(
+        releases,
+        release => !emphasizeReleases.includes(release.version)
+      );
+      if (unemphasizedReleases.length) {
+        releaseSeries.push(this.getReleaseSeries(unemphasizedReleases, {type: 'dotted'}));
+      }
+      if (emphasizedReleases.length) {
+        releaseSeries.push(
+          this.getReleaseSeries(emphasizedReleases, {
+            opacity: 0.8,
+          })
+        );
+      }
+    } else {
+      releaseSeries.push(this.getReleaseSeries(releases));
     }
 
     this.setState({
@@ -198,7 +209,7 @@ class ReleaseSeries extends React.Component<Props, State> {
     });
   }
 
-  getReleaseSeries = (releases, opacity = 0.3) => {
+  getReleaseSeries = (releases, lineStyle = {}) => {
     const {
       organization,
       router,
@@ -209,6 +220,7 @@ class ReleaseSeries extends React.Component<Props, State> {
       period,
       preserveQueryParams,
       queryExtra,
+      theme,
     } = this.props;
 
     const query = {...queryExtra};
@@ -226,8 +238,9 @@ class ReleaseSeries extends React.Component<Props, State> {
       animation: false,
       lineStyle: {
         color: theme.purple300,
-        opacity,
+        opacity: 0.3,
         type: 'solid',
+        ...lineStyle,
       },
       label: {
         show: false,
@@ -280,6 +293,7 @@ class ReleaseSeries extends React.Component<Props, State> {
 
     return {
       seriesName: 'Releases',
+      color: theme.purple200,
       data: [],
       markLine,
     };
@@ -295,4 +309,4 @@ class ReleaseSeries extends React.Component<Props, State> {
   }
 }
 
-export default withRouter(withOrganization(withApi(ReleaseSeries)));
+export default withRouter(withOrganization(withApi(withTheme(ReleaseSeries))));

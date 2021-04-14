@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import ServiceHook
 from sentry.testutils import APITestCase
 
@@ -11,9 +9,7 @@ class ProjectServiceHookDetailsTest(APITestCase):
             project_id=project.id, actor_id=self.user.id, url="http://example.com"
         )[0]
         self.login_as(user=self.user)
-        path = u"/api/0/projects/{}/{}/hooks/{}/".format(
-            project.organization.slug, project.slug, hook.guid
-        )
+        path = f"/api/0/projects/{project.organization.slug}/{project.slug}/hooks/{hook.guid}/"
         response = self.client.get(path)
         assert response.status_code == 200
         assert response.data["id"] == hook.guid
@@ -21,15 +17,13 @@ class ProjectServiceHookDetailsTest(APITestCase):
 
 class UpdateProjectServiceHookTest(APITestCase):
     def setUp(self):
-        super(UpdateProjectServiceHookTest, self).setUp()
+        super().setUp()
         self.project = self.create_project()
         self.login_as(user=self.user)
         self.hook = ServiceHook.objects.get_or_create(
             project_id=self.project.id, actor_id=self.user.id, url="http://example.com"
         )[0]
-        self.path = u"/api/0/projects/{}/{}/hooks/{}/".format(
-            self.project.organization.slug, self.project.slug, self.hook.guid
-        )
+        self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/hooks/{self.hook.guid}/"
 
     def test_simple(self):
         resp = self.client.put(
@@ -44,15 +38,13 @@ class UpdateProjectServiceHookTest(APITestCase):
 
 class DeleteProjectServiceHookTest(APITestCase):
     def setUp(self):
-        super(DeleteProjectServiceHookTest, self).setUp()
+        super().setUp()
         self.project = self.create_project()
         self.login_as(user=self.user)
         self.hook = ServiceHook.objects.get_or_create(
             project_id=self.project.id, actor_id=self.user.id, url="http://example.com"
         )[0]
-        self.path = u"/api/0/projects/{}/{}/hooks/{}/".format(
-            self.project.organization.slug, self.project.slug, self.hook.guid
-        )
+        self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/hooks/{self.hook.guid}/"
 
     def test_simple(self):
         resp = self.client.delete(self.path)

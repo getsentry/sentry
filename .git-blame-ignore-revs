@@ -4,6 +4,9 @@
 # This file contains a list of commits that are not likely what you
 # are looking for in a blame, such as mass reformatting or renaming.
 
+# ref(py3): pre-commit upgrade + sweeping rerun + __future__ removals (#23197)
+658504a9b2cab9b2c2578cd2e0f474817819a7f9
+
 # chore: blacken take 2 (#14360)
 95767d455b8004ec4b4c5026d84b64b6348e6d37
 

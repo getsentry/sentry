@@ -1,10 +1,9 @@
-from __future__ import absolute_import
-
 from rest_framework import serializers
 
-from .list import ListField
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.mentions import MentionsMixin
+
+from .list import ListField
 
 
 class NoteSerializer(serializers.Serializer, MentionsMixin):

@@ -1,8 +1,8 @@
-from __future__ import absolute_import
+from collections import defaultdict
+from typing import Any, Mapping
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
-from django.db.models import Q
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -12,55 +12,11 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-
-
-class GroupSubscriptionReason(object):
-    implicit = -1  # not for use as a persisted field value
-    committed = -2  # not for use as a persisted field value
-    processing_issue = -3  # not for use as a persisted field value
-
-    unknown = 0
-    comment = 1
-    assigned = 2
-    bookmark = 3
-    status_change = 4
-    deploy_setting = 5
-    mentioned = 6
-    team_mentioned = 7
-
-    descriptions = {
-        implicit: u"have opted to receive updates for all issues within "
-        "projects that you are a member of",
-        committed: u"were involved in a commit that is part of this release",
-        processing_issue: u"are subscribed to alerts for this project",
-        comment: u"have commented on this issue",
-        assigned: u"have been assigned to this issue",
-        bookmark: u"have bookmarked this issue",
-        status_change: u"have changed the resolution status of this issue",
-        deploy_setting: u"opted to receive all deploy notifications for this organization",
-        mentioned: u"have been mentioned in this issue",
-        team_mentioned: u"are a member of a team mentioned in this issue",
-    }
-
-
-def get_user_options(key, user_ids, project, default):
-    from sentry.models import UserOption
-
-    options = {
-        (option.user_id, option.project_id): option.value
-        for option in UserOption.objects.filter(
-            Q(project__isnull=True) | Q(project=project),
-            user_id__in=user_ids,
-            key="workflow:notifications",
-        )
-    }
-
-    results = {}
-
-    for user_id in user_ids:
-        results[user_id] = options.get((user_id, project.id), options.get((user_id, None), default))
-
-    return results
+from sentry.notifications.helpers import (
+    transform_to_notification_settings_by_user,
+    where_should_be_participating,
+)
+from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
 
 
 class GroupSubscriptionManager(BaseManager):
@@ -78,7 +34,7 @@ class GroupSubscriptionManager(BaseManager):
             pass
 
     def subscribe_actor(self, group, actor, reason=GroupSubscriptionReason.unknown):
-        from sentry.models import User, Team
+        from sentry.models import Team, User
 
         if isinstance(actor, User):
             return self.subscribe(group, actor, reason)
@@ -126,59 +82,44 @@ class GroupSubscriptionManager(BaseManager):
                 if i == 0:
                     raise e
 
-    def get_participants(self, group):
+    def get_participants(self, group) -> Mapping[Any, Mapping[Any, GroupSubscriptionReason]]:
         """
         Identify all users who are participating with a given issue.
+        :param group: Group object
         """
-        from sentry.models import User, UserOptionValue
+        from sentry.models import NotificationSetting, User
 
-        users = {
-            user.id: user
-            for user in User.objects.filter(
-                sentry_orgmember_set__teams__in=group.project.teams.all(), is_active=True
-            )
+        users = User.objects.get_from_group(group)
+        user_ids = [user.id for user in users]
+        subscriptions = self.filter(group=group, user_id__in=user_ids)
+        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+            NotificationSettingTypes.WORKFLOW,
+            users=users,
+            parent=group.project,
+        )
+        subscriptions_by_user_id = {
+            subscription.user_id: subscription for subscription in subscriptions
         }
-
-        excluded_ids = set()
-
-        subscriptions = {
-            subscription.user_id: subscription
-            for subscription in GroupSubscription.objects.filter(
-                group=group, user_id__in=users.keys()
-            )
-        }
-
-        for user_id, subscription in subscriptions.items():
-            if not subscription.is_active:
-                excluded_ids.add(user_id)
-
-        options = get_user_options(
-            "workflow:notifications",
-            list(users.keys()),
-            group.project,
-            UserOptionValue.participating_only,
+        notification_settings_by_user = transform_to_notification_settings_by_user(
+            notification_settings, users
         )
 
-        for user_id, option in options.items():
-            if option == UserOptionValue.no_conversations:
-                excluded_ids.add(user_id)
-            elif option == UserOptionValue.participating_only:
-                if user_id not in subscriptions:
-                    excluded_ids.add(user_id)
+        result = defaultdict(dict)
+        for user in users:
+            providers = where_should_be_participating(
+                user,
+                subscriptions_by_user_id,
+                notification_settings_by_user,
+            )
+            for provider in providers:
+                value = getattr(
+                    subscriptions_by_user_id.get(user.id),
+                    "reason",
+                    GroupSubscriptionReason.implicit,
+                )
+                result[provider][user] = value
 
-        results = {}
-
-        for user_id, user in users.items():
-            if user_id in excluded_ids:
-                continue
-
-            subscription = subscriptions.get(user_id)
-            if subscription is not None:
-                results[user] = subscription.reason
-            else:
-                results[user] = GroupSubscriptionReason.implicit
-
-        return results
+        return result
 
 
 class GroupSubscription(Model):

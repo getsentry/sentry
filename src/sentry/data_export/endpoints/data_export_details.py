@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
+from django.http import StreamingHttpResponse
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from django.http import StreamingHttpResponse
 
 from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
+from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Project
 from sentry.utils import metrics
@@ -51,5 +49,5 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
             iter(lambda: raw_file.read(4096), b""), content_type="text/csv"
         )
         response["Content-Length"] = file.size
-        response["Content-Disposition"] = u'attachment; filename="{}"'.format(file.name)
+        response["Content-Disposition"] = f'attachment; filename="{file.name}"'
         return response

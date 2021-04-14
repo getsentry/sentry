@@ -1,12 +1,14 @@
-from __future__ import absolute_import
-
-import six
-
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
+from django.utils.translation import ugettext_lazy as _
 
+from sentry.auth.authenticators import (
+    AUTHENTICATOR_CHOICES,
+    AUTHENTICATOR_INTERFACES,
+    AUTHENTICATOR_INTERFACES_BY_TYPE,
+    available_authenticators,
+)
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -14,12 +16,6 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     EncryptedPickledObjectField,
     FlexibleForeignKey,
-)
-from sentry.auth.authenticators import (
-    AUTHENTICATOR_CHOICES,
-    AUTHENTICATOR_INTERFACES,
-    AUTHENTICATOR_INTERFACES_BY_TYPE,
-    available_authenticators,
 )
 
 
@@ -48,7 +44,7 @@ class AuthenticatorManager(BaseManager):
             rvm = dict(AUTHENTICATOR_INTERFACES)
             for iface in ifaces:
                 rvm.pop(iface.interface_id, None)
-            for iface_cls in six.itervalues(rvm):
+            for iface_cls in rvm.values():
                 if iface_cls.is_available:
                     ifaces.append(iface_cls())
 
@@ -94,8 +90,7 @@ class AuthenticatorManager(BaseManager):
             return interface()
 
     def user_has_2fa(self, user):
-        """Checks if the user has any 2FA configured.
-        """
+        """Checks if the user has any 2FA configured."""
         return Authenticator.objects.filter(
             user=user, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
         ).exists()
@@ -153,7 +148,4 @@ class Authenticator(BaseModel):
             self.save()
 
     def __repr__(self):
-        return "<Authenticator user=%r interface=%r>" % (
-            self.user.email,
-            self.interface.interface_id,
-        )
+        return f"<Authenticator user={self.user.email!r} interface={self.interface.interface_id!r}>"

@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 
 from sentry import features
-from sentry.utils.compat import mock
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class FeatureManagerTest(TestCase):

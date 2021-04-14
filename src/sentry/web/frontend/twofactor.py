@@ -1,18 +1,15 @@
-from __future__ import absolute_import
-
-import six
 import time
 
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.translation import ugettext as _
 
 from sentry import options
 from sentry.app import ratelimiter
-from sentry.web.frontend.base import BaseView
-from sentry.web.forms.accounts import TwoFactorForm
-from sentry.web.helpers import render_to_response
-from sentry.utils import auth, json
 from sentry.models import Authenticator
+from sentry.utils import auth, json
+from sentry.web.forms.accounts import TwoFactorForm
+from sentry.web.frontend.base import BaseView
+from sentry.web.helpers import render_to_response
 
 COOKIE_NAME = "s2fai"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 31
@@ -29,7 +26,7 @@ class TwoFactorAuthView(BaseView):
             if not interface.is_backup_interface:
                 rv.set_cookie(
                     COOKIE_NAME,
-                    six.text_type(interface.type).encode("utf-8"),
+                    str(interface.type).encode("utf-8"),
                     max_age=COOKIE_MAX_AGE,
                     path="/",
                 )
@@ -59,7 +56,7 @@ class TwoFactorAuthView(BaseView):
         interface_type = request.COOKIES.get(COOKIE_NAME)
         if interface_type:
             for interface in interfaces:
-                if six.text_type(interface.type) == interface_type:
+                if str(interface.type) == interface_type:
                     return interface
 
         # Fallback is to go the highest ranked as default.  This will be
@@ -118,7 +115,7 @@ class TwoFactorAuthView(BaseView):
         interface = self.negotiate_interface(request, interfaces)
 
         if request.method == "POST" and ratelimiter.is_limited(
-            u"auth-2fa:user:{}".format(user.id), limit=5, window=60
+            f"auth-2fa:user:{user.id}", limit=5, window=60
         ):
             # TODO: Maybe email the account owner or do something to notify someone
             # This would probably be good for them to know.

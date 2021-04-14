@@ -126,11 +126,11 @@ describe('IncidentsList', function () {
       body: [],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: {data: {dismissed_ts: null}},
     });
     const promptsUpdateMock = MockApiClient.addMockResponse({
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       method: 'PUT',
     });
 
@@ -157,7 +157,7 @@ describe('IncidentsList', function () {
       body: [],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
@@ -185,7 +185,7 @@ describe('IncidentsList', function () {
       body: [{id: 1}],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 

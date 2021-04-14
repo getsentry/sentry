@@ -1,24 +1,18 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
-
-const priorityColors = {
-  new: theme.red300,
-  strong: theme.blue300,
-  highlight: theme.green300,
-} as const;
+import type {Theme} from 'app/utils/theme';
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
+  children?: React.ReactNode;
   text?: string | number | null;
-  priority?: keyof typeof priorityColors;
+  type?: keyof Theme['badge'];
   className?: string;
 };
 
-const Badge = styled(({priority: _priority, text, ...props}: Props) => (
-  <span {...props}>{text}</span>
+const Badge = styled(({children, text, ...props}: Props) => (
+  <span {...props}>{children ?? text}</span>
 ))<Props>`
   display: inline-block;
   height: 20px;
@@ -31,16 +25,11 @@ const Badge = styled(({priority: _priority, text, ...props}: Props) => (
   font-weight: 600;
   text-align: center;
   color: #fff;
-  background: ${p => (p.priority ? priorityColors[p.priority] : theme.gray200)};
+  background: ${p => p.theme.badge[p.type ?? 'default'].background};
   transition: background 100ms linear;
 
   position: relative;
   top: -1px;
 `;
-
-Badge.propTypes = {
-  text: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  priority: PropTypes.oneOf(['strong', 'new', 'highlight']),
-} as any;
 
 export default Badge;

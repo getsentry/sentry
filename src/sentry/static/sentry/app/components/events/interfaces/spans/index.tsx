@@ -8,10 +8,10 @@ import SearchBar from 'app/components/searchBar';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
+import {objectIsEmpty} from 'app/utils';
 import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
@@ -39,18 +39,13 @@ type State = {
 };
 
 class SpansInterface extends React.Component<Props, State> {
-  static propTypes = {
-    event: SentryTypes.Event.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-  };
-
   state: State = {
     searchQuery: undefined,
     parsedTrace: parseTrace(this.props.event),
     operationNameFilters: noFilter,
   };
 
-  static getDerivedStateFromProps(props: Props, state: State): State {
+  static getDerivedStateFromProps(props: Readonly<Props>, state: State): State {
     return {
       ...state,
       parsedTrace: parseTrace(props.event),
@@ -124,7 +119,7 @@ class SpansInterface extends React.Component<Props, State> {
     });
 
     const conditions = new QueryResults([
-      'event.type:error',
+      '!event.type:transaction',
       `trace:${parsedTrace.traceID}`,
     ]);
 
@@ -158,11 +153,12 @@ class SpansInterface extends React.Component<Props, State> {
     });
 
     return (
-      <div>
+      <Container hasErrors={!objectIsEmpty(event.errors)}>
         <DiscoverQuery
           location={location}
           eventView={traceErrorsEventView}
           orgSlug={orgSlug}
+          referrer="api.trace-view.errors-view"
         >
           {({isLoading, tableData}) => {
             const spansWithErrors = filterSpansWithErrors(parsedTrace, tableData);
@@ -204,10 +200,22 @@ class SpansInterface extends React.Component<Props, State> {
             );
           }}
         </DiscoverQuery>
-      </div>
+      </Container>
     );
   }
 }
+
+const Container = styled('div')<{hasErrors: boolean}>`
+  ${p =>
+    p.hasErrors &&
+    `
+  padding: ${space(2)} 0;
+
+  @media (min-width: ${p.theme.breakpoints[0]}) {
+    padding: ${space(3)} 0 0 0;
+  }
+  `}
+`;
 
 const Search = styled('div')`
   display: flex;

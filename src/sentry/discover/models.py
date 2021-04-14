@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 from django.db import models, transaction
-from sentry.db.models.fields import JSONField
-from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models.fields import JSONField
 
 MAX_KEY_TRANSACTIONS = 10
 

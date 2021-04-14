@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import ProjectApdexScoreCard from './projectApdexScoreCard';
 import ProjectStabilityScoreCard from './projectStabilityScoreCard';
@@ -12,16 +11,39 @@ import ProjectVelocityScoreCard from './projectVelocityScoreCard';
 type Props = {
   organization: Organization;
   selection: GlobalSelection;
+  isProjectStabilized: boolean;
+  hasSessions: boolean | null;
+  hasTransactions?: boolean;
 };
 
-function ProjectScoreCards({organization, selection}: Props) {
+function ProjectScoreCards({
+  organization,
+  selection,
+  isProjectStabilized,
+  hasSessions,
+  hasTransactions,
+}: Props) {
   return (
     <CardWrapper>
-      <ProjectStabilityScoreCard organization={organization} selection={selection} />
+      <ProjectStabilityScoreCard
+        organization={organization}
+        selection={selection}
+        isProjectStabilized={isProjectStabilized}
+        hasSessions={hasSessions}
+      />
 
-      <ProjectVelocityScoreCard organization={organization} selection={selection} />
+      <ProjectVelocityScoreCard
+        organization={organization}
+        selection={selection}
+        isProjectStabilized={isProjectStabilized}
+      />
 
-      <ProjectApdexScoreCard organization={organization} selection={selection} />
+      <ProjectApdexScoreCard
+        organization={organization}
+        selection={selection}
+        isProjectStabilized={isProjectStabilized}
+        hasTransactions={hasTransactions}
+      />
     </CardWrapper>
   );
 }
@@ -29,8 +51,7 @@ function ProjectScoreCards({organization, selection}: Props) {
 const CardWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-gap: ${space(2)};
-  margin-bottom: ${space(3)};
+  grid-column-gap: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr;
@@ -38,4 +59,4 @@ const CardWrapper = styled('div')`
   }
 `;
 
-export default withGlobalSelection(ProjectScoreCards);
+export default ProjectScoreCards;

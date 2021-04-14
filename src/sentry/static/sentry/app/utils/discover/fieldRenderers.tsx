@@ -5,6 +5,16 @@ import partial from 'lodash/partial';
 
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
+import {
+  DurationPill,
+  getDurationDisplay,
+  SpanBarRectangle,
+} from 'app/components/events/interfaces/spans/spanBar';
+import {
+  getHumanDuration,
+  pickSpanBarColour,
+  toPercent,
+} from 'app/components/events/interfaces/spans/utils';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import UserMisery from 'app/components/userMisery';
@@ -12,7 +22,12 @@ import Version from 'app/components/version';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
-import {AGGREGATIONS, getAggregateAlias} from 'app/utils/discover/fields';
+import {
+  AGGREGATIONS,
+  getAggregateAlias,
+  getSpanOperationName,
+  isSpanOperationBreakdownField,
+} from 'app/utils/discover/fields';
 import {getShortEventId} from 'app/utils/events';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -39,13 +54,9 @@ type RenderFunctionBaggage = {
   location: Location;
 };
 
-type FieldFormatterRenderFunction = (
-  field: string,
-  data: EventData,
-  baggage: RenderFunctionBaggage
-) => React.ReactNode;
+type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
 
-export type FieldFormatterRenderFunctionPartial = (
+type FieldFormatterRenderFunctionPartial = (
   data: EventData,
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
@@ -170,6 +181,7 @@ type SpecialField = {
 
 type SpecialFields = {
   id: SpecialField;
+  trace: SpecialField;
   project: SpecialField;
   user: SpecialField;
   'user.display': SpecialField;
@@ -179,6 +191,8 @@ type SpecialFields = {
   release: SpecialField;
   key_transaction: SpecialField;
   'trend_percentage()': SpecialField;
+  'timestamp.to_hour': SpecialField;
+  'timestamp.to_day': SpecialField;
 };
 
 /**
@@ -190,6 +204,17 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'id',
     renderFunc: data => {
       const id: string | unknown = data?.id;
+      if (typeof id !== 'string') {
+        return null;
+      }
+
+      return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
+  trace: {
+    sortField: 'trace',
+    renderFunc: data => {
+      const id: string | unknown = data?.trace;
       if (typeof id !== 'string') {
         return null;
       }
@@ -345,6 +370,28 @@ const SPECIAL_FIELDS: SpecialFields = {
       </NumberContainer>
     ),
   },
+  'timestamp.to_hour': {
+    sortField: 'timestamp.to_hour',
+    renderFunc: data => (
+      <Container>
+        {getDynamicText({
+          value: <StyledDateTime date={data['timestamp.to_hour']} format="lll z" />,
+          fixed: 'timestamp.to_hour',
+        })}
+      </Container>
+    ),
+  },
+  'timestamp.to_day': {
+    sortField: 'timestamp.to_day',
+    renderFunc: data => (
+      <Container>
+        {getDynamicText({
+          value: <StyledDateTime date={data['timestamp.to_day']} format="MMM D, YYYY" />,
+          fixed: 'timestamp.to_day',
+        })}
+      </Container>
+    ),
+  },
 };
 
 type SpecialFunctions = {
@@ -357,27 +404,37 @@ type SpecialFunctions = {
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
   user_misery: data => {
-    const uniqueUsers = data.count_unique_user;
     let userMiseryField: string = '';
+    let countMiserableUserField: string = '';
     for (const field in data) {
       if (field.startsWith('user_misery')) {
         userMiseryField = field;
+      } else if (field.startsWith('count_miserable_user')) {
+        countMiserableUserField = field;
       }
     }
+
     if (!userMiseryField) {
       return <NumberContainer>{emptyValue}</NumberContainer>;
     }
 
+    const uniqueUsers = data.count_unique_user;
     const userMisery = data[userMiseryField];
-    if (!uniqueUsers && uniqueUsers !== 0) {
-      return (
-        <NumberContainer>
-          {typeof userMisery === 'number' ? formatFloat(userMisery, 4) : emptyValue}
-        </NumberContainer>
-      );
-    }
 
-    const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
+    const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10) || undefined;
+
+    let miserableUsers: number | undefined;
+
+    if (countMiserableUserField) {
+      const countMiserableMiseryLimit = parseInt(
+        countMiserableUserField.split('_').pop() || '',
+        10
+      );
+      miserableUsers =
+        countMiserableMiseryLimit === miseryLimit
+          ? data[countMiserableUserField]
+          : undefined;
+    }
 
     return (
       <BarContainer>
@@ -386,7 +443,8 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
           barHeight={20}
           miseryLimit={miseryLimit}
           totalUsers={uniqueUsers}
-          miserableUsers={userMisery}
+          userMisery={userMisery}
+          miserableUsers={miserableUsers}
         />
       </BarContainer>
     );
@@ -425,6 +483,43 @@ export function getSortField(
   return null;
 }
 
+const spanOperationBreakdownRenderer = (field: string) => (
+  data: EventData
+): React.ReactNode => {
+  if (!('transaction.duration' in data)) {
+    return FIELD_FORMATTERS.duration.renderFunc(field, data);
+  }
+  const transactionDuration = data['transaction.duration'];
+  const spanOpDuration = data[field];
+
+  const widthPercentage = spanOpDuration / transactionDuration;
+  const operationName = getSpanOperationName(field) ?? 'op';
+
+  return (
+    <div style={{position: 'relative'}}>
+      <SpanBarRectangle
+        spanBarHatch={false}
+        style={{
+          backgroundColor: pickSpanBarColour(operationName),
+          left: 0,
+          width: toPercent(widthPercentage || 0),
+        }}
+      >
+        <DurationPill
+          durationDisplay={getDurationDisplay({
+            left: 0,
+            width: widthPercentage,
+          })}
+          showDetail={false}
+          spanBarHatch={false}
+        >
+          {getHumanDuration(spanOpDuration / 1000)}
+        </DurationPill>
+      </SpanBarRectangle>
+    </div>
+  );
+};
+
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -439,6 +534,11 @@ export function getFieldRenderer(
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
   }
+
+  if (isSpanOperationBreakdownField(field)) {
+    return spanOperationBreakdownRenderer(field);
+  }
+
   const fieldName = getAggregateAlias(field);
   const fieldType = meta[fieldName];
 
@@ -447,6 +547,29 @@ export function getFieldRenderer(
       return SPECIAL_FUNCTIONS[alias];
     }
   }
+
+  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+    return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
+  }
+  return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
+}
+
+type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactNode;
+
+/**
+ * Get the field renderer for the named field only based on its type from the given
+ * metadata.
+ *
+ * @param {String} field name
+ * @param {object} metadata mapping.
+ * @returns {Function}
+ */
+export function getFieldFormatter(
+  field: string,
+  meta: MetaType
+): FieldTypeFormatterRenderFunctionPartial {
+  const fieldName = getAggregateAlias(field);
+  const fieldType = meta[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);

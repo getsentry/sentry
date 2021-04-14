@@ -1,26 +1,25 @@
-from __future__ import absolute_import
+from datetime import timedelta
+from urllib.parse import parse_qsl
 
-from six.moves.urllib.parse import parse_qsl
 from django.core.urlresolvers import reverse
 from django.db.models import F
-from datetime import timedelta
 
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
     Authenticator,
+    AuthProvider,
     InviteStatus,
     Organization,
     OrganizationMember,
-    AuthProvider,
 )
 from sentry.testutils import TestCase
 
 
 class AcceptInviteTest(TestCase):
     def setUp(self):
-        super(AcceptInviteTest, self).setUp()
+        super().setUp()
         self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
 

@@ -1,13 +1,10 @@
-from __future__ import absolute_import
-
 from django.views.generic import View
 
 from sentry.models import Organization, Project
-
-from .mail import MailPreview
-
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import create_sample_event
+
+from .mail import MailPreview
 
 
 class DebugNewUserFeedbackEmailView(View):
@@ -21,7 +18,7 @@ class DebugNewUserFeedbackEmailView(View):
 
         group = event.group
         link = absolute_uri(
-            u"/{}/{}/issues/{}/feedback/".format(project.organization.slug, project.slug, group.id)
+            f"/{project.organization.slug}/{project.slug}/issues/{group.id}/feedback/"
         )
 
         return MailPreview(

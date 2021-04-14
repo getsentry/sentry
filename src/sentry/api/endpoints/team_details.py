@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 from uuid import uuid4
 
@@ -27,7 +25,7 @@ class TeamSerializer(serializers.ModelSerializer):
             id=self.instance.id
         )
         if qs.exists():
-            raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
+            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
         return value
 
 

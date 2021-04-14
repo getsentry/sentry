@@ -1,22 +1,18 @@
-from __future__ import absolute_import
-
 import logging
-import six
-
-from io import BytesIO
 from gzip import GzipFile
-from rest_framework import status
-from six.moves.urllib.parse import urljoin
-from rest_framework.response import Response
-from django.core.urlresolvers import reverse
+from io import BytesIO
+from urllib.parse import urljoin
+
 from django.conf import settings
+from django.core.urlresolvers import reverse
+from rest_framework import status
+from rest_framework.response import Response
 
 from sentry import options
-from sentry.models import FileBlob
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
-from sentry.utils.files import get_max_file_size
+from sentry.models import FileBlob
 from sentry.utils.compat import zip
-
+from sentry.utils.files import get_max_file_size
 
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
@@ -36,7 +32,7 @@ class GzipChunk(BytesIO):
         data = GzipFile(fileobj=file, mode="rb").read()
         self.size = len(data)
         self.name = file.name
-        super(GzipChunk, self).__init__(data)
+        super().__init__(data)
 
 
 class ChunkUploadEndpoint(OrganizationEndpoint):
@@ -119,9 +115,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
 
         try:
             FileBlob.from_files(zip(files, checksums), organization=organization, logger=logger)
-        except IOError as err:
+        except OSError as err:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
-            return Response({"error": six.text_type(err)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
 
         logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
         return Response(status=status.HTTP_200_OK)

@@ -1,0 +1,110 @@
+[
+  {
+    "os": {
+      "name": "Mac OS X",
+      "version": "10.15.6",
+      "type": "os"
+    },
+    "browser": {
+      "name": "Chrome",
+      "version": "89.0.4389",
+      "type": "browser"
+    }
+  },
+  {
+    "os": {
+      "name": "Mac OS X",
+      "version": "10.15.6",
+      "type": "os"
+    },
+    "browser": {
+      "name": "Chrome",
+      "version": "86.0.4240",
+      "type": "browser"
+    }
+  },
+  {
+    "os": {
+      "name": "Mac OS X",
+      "version": "10.15.6",
+      "type": "os"
+    },
+    "browser": {
+      "name": "Chrome",
+      "version": "87.0.3352",
+      "type": "browser"
+    }
+  },
+  {
+    "os": {
+      "name": "Mac OS X",
+      "version": "10.15.6",
+      "type": "os"
+    },
+    "browser": {
+      "name": "Firefox",
+      "version": "87.0",
+      "type": "browser"
+    }
+  },
+  {
+    "os": {
+      "name": "Mac OS X",
+      "version": "10.14.6",
+      "type": "os"
+    },
+    "browser": {
+      "name": "Safari",
+      "version": "14.0.3",
+      "type": "browser"
+    }
+  },
+  {
+    "os": {
+      "name": "Windows",
+      "version": "10",
+      "type": "os"
+    },
+    "browser": {
+      "name": "Chrome",
+      "version": "89.0.4389",
+      "type": "browser"
+    }
+  },
+  {
+    "os": {
+      "name": "Windows",
+      "version": "10",
+      "type": "os"
+    },
+    "browser": {
+      "name": "Edge",
+      "version": "89.0.774",
+      "type": "browser"
+    }
+  },
+  {
+    "browser": {
+      "name": "Chrome Mobile",
+      "version": "89.0.4389",
+      "type": "browser"
+    },
+    "os": {
+      "name": "Android",
+      "version": "10",
+      "type": "os"
+    }
+  },
+  {
+    "browser": {
+      "name": "Mobile Safari",
+      "version": "14.0.3",
+      "type": "browser"
+    },
+    "os": {
+      "name": "iOS",
+      "version": "14.4.1",
+      "type": "os"
+    }
+  }
+]

@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat import mock
 import pytest
 
 from sentry.utils import metrics
+from sentry.utils.compat import mock
 
 
 def test_timer_success():

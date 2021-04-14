@@ -1,7 +1,6 @@
-from __future__ import absolute_import
+from io import BytesIO
 
 from django.core.urlresolvers import reverse
-from six import BytesIO
 
 from sentry.models import File, UserAvatar
 from sentry.testutils import TestCase

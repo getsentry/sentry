@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat.mock import patch
 from collections import namedtuple
 
 from sentry.coreapi import APIUnauthorized
@@ -8,6 +5,7 @@ from sentry.mediators.sentry_app_installations import InstallationNotifier
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
+from sentry.utils.compat.mock import patch
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 
@@ -21,7 +19,7 @@ MockResponse = namedtuple(
 MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatusFalse)
 
 
-class DictContaining(object):
+class DictContaining:
     def __init__(self, *keys):
         self.keys = keys
 
@@ -31,7 +29,7 @@ class DictContaining(object):
 
 class TestInstallationNotifier(TestCase):
     def setUp(self):
-        super(TestInstallationNotifier, self).setUp()
+        super().setUp()
 
         self.user = self.create_user(name="foo")
         self.org = self.create_organization(owner=self.user)

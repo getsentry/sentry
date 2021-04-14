@@ -1,15 +1,14 @@
-from __future__ import absolute_import
-
 import hashlib
 import hmac
+
 import responses
 
 from sentry import VERSION
 from sentry.models import (
     Integration,
     OrganizationIntegration,
-    SentryAppInstallationForProvider,
     SentryAppInstallation,
+    SentryAppInstallationForProvider,
     SentryAppInstallationToken,
 )
 from sentry.testutils import APITestCase
@@ -17,7 +16,7 @@ from sentry.testutils.helpers import override_options
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .testutils import EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, DEPLOYMENT_WEBHOOK_NO_COMMITS
+from .testutils import DEPLOYMENT_WEBHOOK_NO_COMMITS, EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE
 
 signature = "74b587857986545361e8a4253b74cd6224d34869"
 secret = "AiK52QASLJXmCXX3X9gO2Zyh"
@@ -45,7 +44,7 @@ class SignatureVercelTest(APITestCase):
 
 class VercelReleasesTest(APITestCase):
     def setUp(self):
-        super(VercelReleasesTest, self).setUp()
+        super().setUp()
         self.project = self.create_project(organization=self.organization)
         self.integration = Integration.objects.create(
             provider="vercel",
@@ -64,7 +63,9 @@ class VercelReleasesTest(APITestCase):
         )
 
         self.sentry_app = self.create_internal_integration(
-            webhook_url=None, name="Vercel Internal Integration", organization=self.organization,
+            webhook_url=None,
+            name="Vercel Internal Integration",
+            organization=self.organization,
         )
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=self.sentry_app)
         self.installation_for_provider = SentryAppInstallationForProvider.objects.create(
@@ -109,7 +110,7 @@ class VercelReleasesTest(APITestCase):
                     }
                 ],
             }
-            assert release_request.headers["User-Agent"] == u"sentry_vercel/{}".format(VERSION)
+            assert release_request.headers["User-Agent"] == f"sentry_vercel/{VERSION}"
 
     @responses.activate
     def test_no_match(self):
@@ -267,7 +268,7 @@ class VercelReleasesTest(APITestCase):
     @responses.activate
     def test_manual_vercel_deploy(self):
         local_signature = hmac.new(
-            key="vercel-client-secret".encode("utf-8"),
+            key=b"vercel-client-secret",
             msg=DEPLOYMENT_WEBHOOK_NO_COMMITS.encode("utf-8"),
             digestmod=hashlib.sha1,
         ).hexdigest()

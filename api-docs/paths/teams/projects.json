@@ -190,7 +190,7 @@
         "description": "Team not found"
       },
       "409": {
-        "description": "Team already exists"
+        "description": "A project with the given slug already exists"
       }
     },
     "security": [

@@ -1,12 +1,7 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import, print_function
-
 import unittest
-
 from collections import OrderedDict
 
-from sentry.utils.canonical import CanonicalKeyView, CanonicalKeyDict
+from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 
 
 class CanonicalKeyViewTests(unittest.TestCase):

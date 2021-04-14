@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat.mock import patch
-
-from sentry.models import Commit, GroupAssignee, GroupLink, Repository, Release
+from sentry.constants import SentryAppInstallationStatus
+from sentry.models import Commit, GroupAssignee, GroupLink, Release, Repository
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import faux
-from sentry.constants import SentryAppInstallationStatus
+from sentry.utils.compat.mock import patch
 
 
 # This testcase needs to be an APITestCase because all of the logic to resolve
@@ -21,9 +18,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             organization=self.organization, slug=self.sentry_app.slug
         )
 
-        self.url = u"/api/0/projects/{}/{}/issues/?id={}".format(
-            self.organization.slug, self.issue.project.slug, self.issue.id
-        )
+        self.url = f"/api/0/projects/{self.organization.slug}/{self.issue.project.slug}/issues/?id={self.issue.id}"
 
         self.login_as(self.user)
 
@@ -122,7 +117,7 @@ class TestIssueWorkflowNotifications(APITestCase):
                     "repository": repo.name,
                     "author_email": "foo@example.com",
                     "author_name": "Foo Bar",
-                    "message": u"FIXES {}".format(self.issue.qualified_short_id),
+                    "message": f"FIXES {self.issue.qualified_short_id}",
                 }
             ]
         )

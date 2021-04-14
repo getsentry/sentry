@@ -1,11 +1,11 @@
 import React from 'react';
-import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import ActionLink from 'app/components/actions/actionLink';
 import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import DropdownLink from 'app/components/dropdownLink';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
@@ -13,8 +13,6 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, ResolutionStatus} from 'app/types';
 import Projects from 'app/utils/projects';
-
-import {Query} from '../utils';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -65,15 +63,6 @@ function ActionSet({
 
   return (
     <Wrapper hasInbox={hasInbox}>
-      {hasInbox && (
-        <div className="hidden-sm hidden-xs">
-          <ReviewAction
-            primary={query === Query.NEEDS_REVIEW || query === Query.NEEDS_REVIEW_OWNER}
-            disabled={!anySelected}
-            onUpdate={onUpdate}
-          />
-        </div>
-      )}
       {selectedProjectSlug ? (
         <Projects orgId={orgSlug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -124,6 +113,14 @@ function ActionSet({
         confirmLabel={label('ignore')}
         disabled={!anySelected}
       />
+
+      {hasInbox && (
+        <GuideAnchor target="inbox_guide_review" position="bottom">
+          <div className="hidden-sm hidden-xs">
+            <ReviewAction disabled={!anySelected} onUpdate={onUpdate} />
+          </div>
+        </GuideAnchor>
+      )}
 
       <div className="hidden-md hidden-sm hidden-xs">
         <ActionLink
@@ -240,28 +237,10 @@ const Wrapper = styled('div')<{hasInbox?: boolean}>`
     width: 50%;
   }
   flex: 1;
-  margin-left: ${space(1)};
-  margin-right: ${space(1)};
+  margin: 0 ${space(1)};
   display: grid;
   gap: ${space(0.5)};
   grid-auto-flow: column;
   justify-content: flex-start;
   white-space: nowrap;
-
-  ${p =>
-    p.hasInbox &&
-    css`
-      animation: 0.15s linear ZoomUp forwards;
-    `};
-
-  @keyframes ZoomUp {
-    0% {
-      opacity: 0;
-      transform: translateY(5px);
-    }
-    100% {
-      opacity: 1;
-      transform: tranlsateY(0);
-    }
-  }
 `;

@@ -1,13 +1,11 @@
-from __future__ import absolute_import
-
-from datetime import datetime
-from django.conf import settings
-from enum import IntEnum
-import six
 import time
+from datetime import datetime
+from enum import IntEnum
+
+from django.conf import settings
 
 from sentry.constants import DataCategory
-from sentry.utils import json, metrics, kafka_config
+from sentry.utils import json, kafka_config, metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -20,6 +18,13 @@ class Outcome(IntEnum):
     RATE_LIMITED = 2
     INVALID = 3
     ABUSE = 4
+
+    def api_name(self) -> str:
+        return self.name.lower()
+
+    @classmethod
+    def parse(cls, name: str) -> "Outcome":
+        return Outcome[name.upper()]
 
 
 outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
@@ -57,9 +62,9 @@ def track_outcome(
     if quantity is None:
         quantity = 1
 
-    assert isinstance(org_id, six.integer_types)
-    assert isinstance(project_id, six.integer_types)
-    assert isinstance(key_id, (type(None), six.integer_types))
+    assert isinstance(org_id, int)
+    assert isinstance(project_id, int)
+    assert isinstance(key_id, (type(None), int))
     assert isinstance(outcome, Outcome)
     assert isinstance(timestamp, (type(None), datetime))
     assert isinstance(category, (type(None), DataCategory))

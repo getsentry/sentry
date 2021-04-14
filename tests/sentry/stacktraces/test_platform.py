@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.stacktraces.platform import get_behavior_family_for_platform

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import Environment, EnvironmentProject
@@ -28,7 +26,7 @@ class ProjectEnvironmentsTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data == {
-            "id": u"{}".format(
+            "id": "{}".format(
                 EnvironmentProject.objects.get(environment__name="production", project=project).id
             ),
             "name": "production",

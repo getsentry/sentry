@@ -1,13 +1,12 @@
-from __future__ import absolute_import
+from time import time
+from urllib.parse import parse_qs
 
 import responses
-
-from six.moves.urllib.parse import parse_qs
-from time import time
 
 from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json
+
 from .testutils import VstsIntegrationTestCase
 
 
@@ -37,8 +36,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert responses.calls[-2].request.url == "https://app.vssps.visualstudio.com/oauth2/token"
 
         # Then we request the Projects with the new token
-        assert responses.calls[-1].request.url.split("?")[0] == u"{}_apis/projects".format(
-            self.vsts_base_url.lower()
+        assert (
+            responses.calls[-1].request.url.split("?")[0]
+            == f"{self.vsts_base_url.lower()}_apis/projects"
         )
 
         identity = Identity.objects.get(id=identity.id)
@@ -77,8 +77,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert responses.calls[-2].request.url == "https://app.vssps.visualstudio.com/oauth2/token"
 
         # Then we request the Projects with the new token
-        assert responses.calls[-1].request.url.split("?")[0] == u"{}_apis/projects".format(
-            self.vsts_base_url.lower()
+        assert (
+            responses.calls[-1].request.url.split("?")[0]
+            == f"{self.vsts_base_url.lower()}_apis/projects"
         )
 
         identity = Identity.objects.get(id=identity.id)
@@ -103,7 +104,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         integration = Integration.objects.get(provider="vsts")
         responses.add_callback(
             responses.GET,
-            u"https://{}.visualstudio.com/_apis/projects".format(self.vsts_account_name.lower()),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/projects",
             callback=request_callback,
         )
 

@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from sentry.identity import register
 from sentry.identity.base import Provider
 from sentry.models import Identity, IdentityProvider

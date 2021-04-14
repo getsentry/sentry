@@ -26,13 +26,17 @@ export function nextStep() {
   GuideActions.nextStep();
 }
 
-export function closeGuide() {
-  GuideActions.closeGuide();
+export function toStep(step: number) {
+  GuideActions.toStep(step);
+}
+
+export function closeGuide(dismissed?: boolean) {
+  GuideActions.closeGuide(dismissed);
 }
 
 export function dismissGuide(guide: string, step: number, orgId: string) {
   recordDismiss(guide, step, orgId);
-  closeGuide();
+  closeGuide(true);
 }
 
 export function recordFinish(guide: string, orgId: string) {

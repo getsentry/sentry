@@ -1,6 +1,3 @@
-from __future__ import absolute_import, print_function
-
-
 from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
 
@@ -17,7 +14,9 @@ from .utils import get_preinstall_client
 
 def build_unlinking_url(conversation_id, service_url, teams_user_id):
     signed_params = sign(
-        conversation_id=conversation_id, service_url=service_url, teams_user_id=teams_user_id,
+        conversation_id=conversation_id,
+        service_url=service_url,
+        teams_user_id=teams_user_id,
     )
 
     return absolute_uri(
@@ -35,7 +34,9 @@ class MsTeamsUnlinkIdentityView(BaseView):
 
         if request.method != "POST":
             return render_to_response(
-                "sentry/integrations/msteams-unlink-identity.html", request=request, context={},
+                "sentry/integrations/msteams-unlink-identity.html",
+                request=request,
+                context={},
             )
 
         # find the identities linked to this team user and sentry user
@@ -45,7 +46,9 @@ class MsTeamsUnlinkIdentityView(BaseView):
         # if no identities, tell the user that
         if not identity_list:
             return render_to_response(
-                "sentry/integrations/msteams-no-identity.html", request=request, context={},
+                "sentry/integrations/msteams-no-identity.html",
+                request=request,
+                context={},
             )
 
         # otherwise, delete the identities, send message to the user, and render a success screen
@@ -55,5 +58,7 @@ class MsTeamsUnlinkIdentityView(BaseView):
         client.send_card(params["conversation_id"], card)
 
         return render_to_response(
-            "sentry/integrations/msteams-unlinked.html", request=request, context={},
+            "sentry/integrations/msteams-unlinked.html",
+            request=request,
+            context={},
         )

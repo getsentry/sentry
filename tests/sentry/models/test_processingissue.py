@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from sentry.models import ProcessingIssue, EventError, RawEvent, EventProcessingIssue
+from sentry.models import EventError, EventProcessingIssue, ProcessingIssue, RawEvent
 from sentry.testutils import TestCase
 
 

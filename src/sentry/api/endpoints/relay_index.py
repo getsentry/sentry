@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 
-from sentry.models import Relay
 from sentry.api.base import Endpoint
-from sentry.api.serializers import serialize
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SuperuserPermission
+from sentry.api.serializers import serialize
+from sentry.models import Relay
 
 
 class RelayIndexEndpoint(Endpoint):

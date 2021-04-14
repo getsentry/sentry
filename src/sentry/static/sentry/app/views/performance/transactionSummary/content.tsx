@@ -4,10 +4,14 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 import omit from 'lodash/omit';
 
+import Feature from 'app/components/acl/feature';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
+import SearchBar from 'app/components/events/searchBar';
+import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -20,10 +24,10 @@ import {generateEventSlug} from 'app/utils/discover/urls';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
-import SearchBar from 'app/views/events/searchBar';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import Tags from 'app/views/eventsV2/tags';
+import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -32,20 +36,30 @@ import {
 import {getTransactionDetailsUrl} from '../utils';
 
 import TransactionSummaryCharts from './charts';
+import Filter, {
+  filterToField,
+  filterToSearchConditions,
+  SpanOperationBreakdownFilter,
+} from './filter';
 import TransactionHeader, {Tab} from './header';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
+import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
-import {TransactionFilterOptions} from './utils';
+import {SidebarSpacer, TransactionFilterOptions} from './utils';
 
 type Props = {
   location: Location;
   eventView: EventView;
   transactionName: string;
   organization: Organization;
-  totalValues: Record<string, number>;
+  isLoading: boolean;
+  error: string | null;
+  totalValues: Record<string, number> | null;
   projects: Project[];
+  onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 };
 
 type State = {
@@ -146,31 +160,46 @@ class SummaryContent extends React.Component<Props, State> {
   };
 
   render() {
+    let {eventView} = this.props;
     const {
       transactionName,
       location,
-      eventView,
       organization,
       projects,
+      isLoading,
+      error,
       totalValues,
+      onChangeFilter,
+      spanOperationBreakdownFilter,
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
-    const query = decodeScalar(location.query.query) || '';
-    const totalCount = totalValues.count;
-    const slowDuration = totalValues?.p95;
+    const query = decodeScalar(location.query.query, '');
+    const totalCount = totalValues === null ? null : totalValues.count;
+
+    const spanOperationBreakdownConditions = filterToSearchConditions(
+      spanOperationBreakdownFilter
+    );
+
+    if (spanOperationBreakdownConditions) {
+      eventView = eventView.clone();
+      eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
+    }
 
     // NOTE: This is not a robust check for whether or not a transaction is a front end
     // transaction, however it will suffice for now.
-    const hasWebVitals = VITAL_GROUPS.some(group =>
-      group.vitals.some(vital => {
-        const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
-        return Number.isFinite(totalValues[alias]);
-      })
-    );
+    const hasWebVitals =
+      totalValues !== null &&
+      VITAL_GROUPS.some(group =>
+        group.vitals.some(vital => {
+          const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
+          return Number.isFinite(totalValues[alias]);
+        })
+      );
 
-    const {selectedSort, sortOptions} = getTransactionsListSort(location, {
-      p95: slowDuration,
-    });
+    const durationTableTitle =
+      spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
+        ? t('duration')
+        : `${spanOperationBreakdownFilter} duration`;
 
     return (
       <React.Fragment>
@@ -185,39 +214,72 @@ class SummaryContent extends React.Component<Props, State> {
           handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Layout.Body>
+          <StyledSdkUpdatesAlert />
           {incompatibleAlertNotice && (
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main>
-            <StyledSearchBar
-              organization={organization}
-              projectIds={eventView.project}
-              query={query}
-              fields={eventView.fields}
-              onSearch={this.handleSearch}
-            />
+            <Search>
+              <Filter
+                organization={organization}
+                currentFilter={spanOperationBreakdownFilter}
+                onChangeFilter={onChangeFilter}
+              />
+              <StyledSearchBar
+                organization={organization}
+                projectIds={eventView.project}
+                query={query}
+                fields={eventView.fields}
+                onSearch={this.handleSearch}
+                maxQueryLength={MAX_QUERY_LENGTH}
+              />
+            </Search>
             <TransactionSummaryCharts
               organization={organization}
               location={location}
               eventView={eventView}
               totalValues={totalCount}
+              currentFilter={spanOperationBreakdownFilter}
             />
             <TransactionsList
               location={location}
               organization={organization}
               eventView={eventView}
-              selected={selectedSort}
-              options={sortOptions}
-              titles={[t('id'), t('user'), t('duration'), t('timestamp')]}
+              titles={
+                organization.features.includes('trace-view-summary')
+                  ? [
+                      t('event id'),
+                      t('user'),
+                      durationTableTitle,
+                      t('trace id'),
+                      t('timestamp'),
+                    ]
+                  : [t('event id'), t('user'), durationTableTitle, t('timestamp')]
+              }
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
                 id: generateTransactionLink(transactionName),
+                trace: generateTraceLink(eventView.normalizeDateSelection(location)),
               }}
               baseline={transactionName}
               handleBaselineClick={this.handleViewDetailsClick}
               handleCellAction={this.handleCellAction}
               handleOpenInDiscoverClick={this.handleDiscoverViewClick}
+              {...getTransactionsListSort(location, {
+                p95: totalValues?.p95 ?? 0,
+                spanOperationBreakdownFilter,
+              })}
+              forceLoading={isLoading}
             />
+            <Feature features={['performance-tag-explorer']}>
+              <TagExplorer
+                eventView={eventView}
+                organization={organization}
+                location={location}
+                projects={projects}
+                transactionName={transactionName}
+              />
+            </Feature>
             <RelatedIssues
               organization={organization}
               location={location}
@@ -231,16 +293,27 @@ class SummaryContent extends React.Component<Props, State> {
             <UserStats
               organization={organization}
               location={location}
+              isLoading={isLoading}
+              hasWebVitals={hasWebVitals}
+              error={error}
               totals={totalValues}
               transactionName={transactionName}
               eventView={eventView}
             />
-            <SidebarCharts organization={organization} eventView={eventView} />
             <StatusBreakdown
               eventView={eventView}
               organization={organization}
               location={location}
             />
+            <SidebarSpacer />
+            <SidebarCharts
+              organization={organization}
+              isLoading={isLoading}
+              error={error}
+              totals={totalValues}
+              eventView={eventView}
+            />
+            <SidebarSpacer />
             <Tags
               generateUrl={this.generateTagUrl}
               totalValues={totalCount}
@@ -255,6 +328,21 @@ class SummaryContent extends React.Component<Props, State> {
   }
 }
 
+function generateTraceLink(dateSelection) {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    _query: Query
+  ): LocationDescriptor => {
+    const traceId = `${tableRow.trace}`;
+    if (!traceId) {
+      return {};
+    }
+
+    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+  };
+}
+
 function generateTransactionLink(transactionName: string) {
   return (
     organization: Organization,
@@ -266,23 +354,58 @@ function generateTransactionLink(transactionName: string) {
   };
 }
 
-function getFilterOptions({p95}: {p95: number}): DropdownOption[] {
+function getFilterOptions({
+  p95,
+  spanOperationBreakdownFilter,
+}: {
+  p95: number;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+}): DropdownOption[] {
+  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+    return [
+      {
+        sort: {kind: 'asc', field: 'transaction.duration'},
+        value: TransactionFilterOptions.FASTEST,
+        label: t('Fastest Transactions'),
+      },
+      {
+        query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
+        sort: {kind: 'desc', field: 'transaction.duration'},
+        value: TransactionFilterOptions.SLOW,
+        label: t('Slow Transactions (p95)'),
+      },
+      {
+        sort: {kind: 'desc', field: 'transaction.duration'},
+        value: TransactionFilterOptions.OUTLIER,
+        label: t('Outlier Transactions (p100)'),
+      },
+      {
+        sort: {kind: 'desc', field: 'timestamp'},
+        value: TransactionFilterOptions.RECENT,
+        label: t('Recent Transactions'),
+      },
+    ];
+  }
+
+  const field = filterToField(spanOperationBreakdownFilter)!;
+  const operationName = spanOperationBreakdownFilter;
+
   return [
     {
-      sort: {kind: 'asc', field: 'transaction.duration'},
+      sort: {kind: 'asc', field},
       value: TransactionFilterOptions.FASTEST,
-      label: t('Fastest Transactions'),
+      label: t('Fastest %s Operations', operationName),
     },
     {
       query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
-      sort: {kind: 'desc', field: 'transaction.duration'},
+      sort: {kind: 'desc', field},
       value: TransactionFilterOptions.SLOW,
-      label: t('Slow Transactions (p95)'),
+      label: t('Slow %s Operations (p95)', operationName),
     },
     {
-      sort: {kind: 'desc', field: 'transaction.duration'},
+      sort: {kind: 'desc', field},
       value: TransactionFilterOptions.OUTLIER,
-      label: t('Outlier Transactions (p100)'),
+      label: t('Outlier %s Operations (p100)', operationName),
     },
     {
       sort: {kind: 'desc', field: 'timestamp'},
@@ -294,17 +417,35 @@ function getFilterOptions({p95}: {p95: number}): DropdownOption[] {
 
 function getTransactionsListSort(
   location: Location,
-  options: {p95: number}
-): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
+  options: {p95: number; spanOperationBreakdownFilter: SpanOperationBreakdownFilter}
+): {selected: DropdownOption; options: DropdownOption[]} {
   const sortOptions = getFilterOptions(options);
-  const urlParam =
-    decodeScalar(location.query.showTransactions) || TransactionFilterOptions.SLOW;
+  const urlParam = decodeScalar(
+    location.query.showTransactions,
+    TransactionFilterOptions.SLOW
+  );
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
-  return {selectedSort, sortOptions};
+  return {selected: selectedSort, options: sortOptions};
 }
 
-const StyledSearchBar = styled(SearchBar)`
+const Search = styled('div')`
+  display: flex;
+  width: 100%;
   margin-bottom: ${space(3)};
 `;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
+`;
+
+const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
+`;
+
+StyledSdkUpdatesAlert.defaultProps = {
+  Wrapper: p => <Layout.Main fullWidth {...p} />,
+};
 
 export default withProjects(SummaryContent);

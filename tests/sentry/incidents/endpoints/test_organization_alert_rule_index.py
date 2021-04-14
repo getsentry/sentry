@@ -1,10 +1,7 @@
-from __future__ import absolute_import
+from copy import deepcopy
 
 import pytz
 import requests
-import six
-
-from copy import deepcopy
 from exam import fixture
 from freezegun import freeze_time
 
@@ -18,7 +15,7 @@ from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
-class AlertRuleBase(object):
+class AlertRuleBase:
     @fixture
     def organization(self):
         return self.create_organization()
@@ -39,6 +36,7 @@ class AlertRuleBase(object):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "JustAValidTestRule",
+            "owner": self.user.id,
             "resolveThreshold": 100,
             "thresholdType": 0,
             "triggers": [
@@ -173,6 +171,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "OneTriggerOnlyCritical",
+            "owner": self.user.id,
             "resolveThreshold": 100,
             "thresholdType": 1,
             "triggers": [
@@ -197,6 +196,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "OneTriggerOnlyCritical",
+            "owner": self.user.id,
             "resolveThreshold": 200,
             "thresholdType": 1,
             "triggers": [
@@ -225,13 +225,14 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "thresholdType": AlertRuleThresholdType.ABOVE.value,
             "projects": [self.project.slug],
             "name": "JustATestRuleWithNoTriggers",
+            "owner": self.user.id,
         }
 
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_no_triggers
             )
-            assert resp.data == {"triggers": [u"This field is required."]}
+            assert resp.data == {"triggers": ["This field is required."]}
 
     def test_no_critical_trigger(self):
         rule_one_trigger_only_warning = {
@@ -240,6 +241,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "JustATestRule",
+            "owner": self.user.id,
             "resolveThreshold": 100,
             "thresholdType": 1,
             "triggers": [
@@ -257,7 +259,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_warning
             )
-            assert resp.data == {"nonFieldErrors": [u'Trigger 1 must be labeled "critical"']}
+            assert resp.data == {"nonFieldErrors": ['Trigger 1 must be labeled "critical"']}
 
     def test_critical_trigger_no_action(self):
         rule_one_trigger_only_critical_no_action = {
@@ -266,6 +268,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "JustATestRule",
+            "owner": self.user.id,
             "resolveThreshold": 100,
             "thresholdType": 1,
             "triggers": [{"label": "critical", "alertThreshold": 75}],
@@ -289,6 +292,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
                     self.create_project(organization=self.create_organization()).slug,
                 ],
                 name="an alert",
+                owner=self.user.id,
                 thresholdType=1,
                 query="hi",
                 aggregate="count()",
@@ -309,7 +313,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
                     }
                 ],
             )
-            assert resp.data == {"projects": [u"Invalid project"]}
+            assert resp.data == {"projects": ["Invalid project"]}
 
     def test_no_feature(self):
         resp = self.get_response(self.organization.slug)
@@ -321,6 +325,25 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
 
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 403
+
+    def test_no_owner(self):
+        self.login_as(self.user)
+        rule_data = {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "JustATestRule",
+            "resolveThreshold": 100,
+            "thresholdType": 1,
+            "triggers": [{"label": "critical", "alertThreshold": 75}],
+        }
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug, status_code=201, **rule_data)
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
 
 
 class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
@@ -341,21 +364,30 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
     def setup_project_and_rules(self):
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
+        self.team = self.create_team(
+            organization=self.org, name="Mariachi Band", members=[self.user]
+        )
+        self.team2 = self.create_team(organization=self.org, name="Folk Band", members=[self.user])
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
-        self.project2 = self.create_project(organization=self.org)
+        self.project2 = self.create_project(
+            organization=self.org, teams=[self.team], name="Elephant"
+        )
         self.projects = [self.project, self.project2]
         self.project_ids = [self.project.id, self.project2.id]
         self.alert_rule = self.create_alert_rule(
+            name="alert rule",
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
+            owner=self.team.actor.get_actor_tuple(),
         )
         self.other_alert_rule = self.create_alert_rule(
+            name="other alert rule",
             organization=self.org,
             projects=[self.project2],
             date_added=before_now(minutes=5).replace(tzinfo=pytz.UTC),
+            owner=self.team.actor.get_actor_tuple(),
         )
         self.issue_rule = self.create_issue_alert_rule(
             data={
@@ -368,11 +400,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             }
         )
         self.yet_another_alert_rule = self.create_alert_rule(
+            name="yet another alert rule",
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC),
+            owner=self.team2.actor.get_actor_tuple(),
         )
-        self.combined_rules_url = "/api/0/organizations/{0}/combined-rules/".format(self.org.slug)
+        self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
 
     def test_invalid_limit(self):
         self.setup_project_and_rules()
@@ -395,10 +429,44 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 4
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
+        assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
         self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
+
+    def test_limit_as_1_with_paging_sort_name(self):
+        self.setup_project_and_rules()
+        # Test Limit as 1, no cursor:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "1", "project": self.project_ids, "sort": "name", "asc": 1}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 1
+        self.assert_alert_rule_serialized(self.alert_rule, result[0], skip_dates=True)
+        links = requests.utils.parse_header_links(
+            response.get("link").rstrip(">").replace(">,<", ",<")
+        )
+        next_cursor = links[1]["cursor"]
+        # Test Limit as 1, next page of previous request:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "cursor": next_cursor,
+                "per_page": "1",
+                "project": self.project.id,
+                "sort": "name",
+                "asc": 1,
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 1
+        assert result[0]["id"] == str(self.issue_rule.id)
+        assert result[0]["type"] == "rule"
 
     def test_limit_as_1_with_paging(self):
         self.setup_project_and_rules()
@@ -429,7 +497,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 1
-        assert result[0]["id"] == six.text_type(self.issue_rule.id)
+        assert result[0]["id"] == str(self.issue_rule.id)
         assert result[0]["type"] == "rule"
 
     def test_limit_as_2_with_paging(self):
@@ -446,7 +514,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 2
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
+        assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
 
         links = requests.utils.parse_header_links(
@@ -572,3 +640,267 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert len(result) == 2
         self.assert_alert_rule_serialized(self.three_alert_rule, result[0], skip_dates=True)
         self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
+
+    def test_team_filter(self):
+        self.setup_project_and_rules()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": [self.project.id]}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 3
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": [self.team.id],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 1
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": [self.team.id, self.team2.id],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 2
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "team": [self.team.id, self.team2.id],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 3
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": [self.project.id], "team": ["unassigned"]}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 1
+
+        self.an_unassigned_alert_rule = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC),
+            owner=None,
+        )
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": [self.project.id], "team": ["unassigned"]}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 2
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": [self.project.id], "team": ["notvalid"]}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 400
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": [self.project.id], "team": ["myteams"]}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 2
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "team": ["myteams"],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 3
+
+        self.create_issue_alert_rule(
+            data={
+                "project": self.project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
+                "owner": self.team.actor,
+            }
+        )
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": [self.team.id],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 2
+
+    def test_myteams_filter_superuser(self):
+        superuser = self.create_user(is_superuser=True)
+        another_org = self.create_organization(owner=superuser, name="Rowdy Tiger")
+        another_org_rules_url = f"/api/0/organizations/{another_org.slug}/combined-rules/"
+        another_org_team = self.create_team(organization=another_org, name="Meow Band", members=[])
+        another_project = self.create_project(
+            organization=another_org, teams=[another_org_team], name="Woof Choir"
+        )
+        self.login_as(superuser, superuser=True)
+        self.create_alert_rule(
+            name="alert rule",
+            organization=another_org,
+            projects=[another_project],
+            date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
+            owner=another_org_team.actor.get_actor_tuple(),
+        )
+
+        self.create_issue_alert_rule(
+            data={
+                "project": another_project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
+                "owner": another_org_team.actor,
+            }
+        )
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [another_project.id],
+                "team": ["myteams"],
+            }
+            response = self.client.get(
+                path=another_org_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [another_project.id],
+                "team": [another_org_team.id],
+            }
+            response = self.client.get(
+                path=another_org_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        assert len(response.data) == 2  # We are not on this team, but we are a superuser.
+
+    def test_team_filter_no_access(self):
+        self.setup_project_and_rules()
+        another_org = self.create_organization(owner=self.user, name="Rowdy Tiger")
+        another_org_team = self.create_team(organization=another_org, name="Meow Band", members=[])
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": [self.team.id, another_org_team.id],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 400
+
+    def test_name_filter(self):
+        self.setup_project_and_rules()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "name": "yet",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 1
+        assert result[0]["name"] == "yet another alert rule"
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "name": "issue rule",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 1
+        assert result[0]["name"] == "Issue Rule Test"
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "name": "aLeRt RuLe",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 3
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "name": "aLeRt this RuLe",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 0
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "name": "RuLe",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 4

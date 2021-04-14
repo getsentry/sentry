@@ -1,11 +1,7 @@
-# -*- coding: utf8 -*-
-
-from __future__ import absolute_import, print_function
-
 import re
 
 # Sentry colors taken from our design system. Might not look good on all
-# termianl themes tbh
+# terminal themes tbh
 COLORS = {
     "white": (255, 255, 255),
     "green": (77, 199, 13),
@@ -35,7 +31,7 @@ def colorize_code(pattern):
     if code >= 500:
         style = (COLORS["red"], COLORS["white"])
 
-    return u"{bg}{fg} {code} {reset} {method:4}".format(
+    return "{bg}{fg} {code} {reset} {method:4}".format(
         bg="\x1b[48;2;%s;%s;%sm" % (style[0]),
         fg="\x1b[38;2;%s;%s;%sm" % (style[1]),
         reset="\x1b[0m",
@@ -45,7 +41,7 @@ def colorize_code(pattern):
 
 
 def colorize_reboot(pattern):
-    return u"{bg}{fg}[ RELOADING ]{reset} {info_fg}{info}".format(
+    return "{bg}{fg}[ RELOADING ]{reset} {info_fg}{info}".format(
         bg="\x1b[48;2;%s;%s;%sm" % COLORS["red"],
         fg="\x1b[38;2;%s;%s;%sm" % COLORS["white"],
         info_fg="\x1b[38;2;%s;%s;%sm" % COLORS["white"],
@@ -55,7 +51,7 @@ def colorize_reboot(pattern):
 
 
 def colorize_booted(pattern):
-    return u"{bg}{fg}[ UWSGI READY ]{reset} {info_fg}{info}".format(
+    return "{bg}{fg}[ UWSGI READY ]{reset} {info_fg}{info}".format(
         bg="\x1b[48;2;%s;%s;%sm" % COLORS["green"],
         fg="\x1b[38;2;%s;%s;%sm" % COLORS["white"],
         info_fg="\x1b[38;2;%s;%s;%sm" % COLORS["white"],
@@ -65,7 +61,7 @@ def colorize_booted(pattern):
 
 
 def colorize_traceback(pattern):
-    return u"{bg}  {reset} {info_fg}{info}".format(
+    return "{bg}  {reset} {info_fg}{info}".format(
         bg="\x1b[48;2;%s;%s;%sm" % COLORS["red"],
         info_fg="\x1b[38;2;%s;%s;%sm" % COLORS["red"],
         reset="\x1b[0m",
@@ -95,7 +91,7 @@ def monkeypatch_honcho_write(self, message):
 
     blank_color = (74, 62, 86)
 
-    prefix = u"{name_fg}{name}{reset} {indicator_bg} {reset} ".format(
+    prefix = "{name_fg}{name}{reset} {indicator_bg} {reset} ".format(
         name=name.ljust(self.width),
         name_fg="\x1b[38;2;%s;%s;%sm" % SERVICE_COLORS.get(message.name, blank_color),
         indicator_bg="\x1b[48;2;%s;%s;%sm" % SERVICE_COLORS.get(message.name, blank_color),
@@ -103,4 +99,4 @@ def monkeypatch_honcho_write(self, message):
     )
 
     for line in string.splitlines():
-        self.output.write(u"{}{}\n".format(prefix, line))
+        self.output.write(f"{prefix}{line}\n")

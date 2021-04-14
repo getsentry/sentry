@@ -1,21 +1,18 @@
-from __future__ import absolute_import
-
 import logging
 import operator
 from copy import deepcopy
 from datetime import timedelta
-
 
 from django.conf import settings
 from django.db import transaction
 
 from sentry import features
 from sentry.incidents.logic import (
-    create_incident,
     CRITICAL_TRIGGER_LABEL,
+    WARNING_TRIGGER_LABEL,
+    create_incident,
     deduplicate_trigger_actions,
     update_incident_status,
-    WARNING_TRIGGER_LABEL,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -32,9 +29,8 @@ from sentry.incidents.models import (
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
 from sentry.utils import metrics, redis
-from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.compat import zip
-
+from sentry.utils.dates import to_datetime, to_timestamp
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -45,7 +41,7 @@ ALERT_RULE_BASE_TRIGGER_STAT_KEY = "%s:trigger:%s:%s"
 ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
 
 
-class SubscriptionProcessor(object):
+class SubscriptionProcessor:
     """
     Class for processing subscription updates for an alert rule. Accepts a subscription
     and then can process one or more updates via `process_update`. Keeps track of how
@@ -344,9 +340,6 @@ class SubscriptionProcessor(object):
             return incident_trigger
 
     def handle_trigger_actions(self, incident_triggers, metric_value):
-        # These will all be for the same incident and status, so just grab the first one
-        incident_trigger = incident_triggers[0]
-        method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
         actions = deduplicate_trigger_actions(
             list(
                 AlertRuleTriggerAction.objects.filter(
@@ -355,6 +348,10 @@ class SubscriptionProcessor(object):
             )
         )
 
+        # Grab the first trigger to get incident id (they are all the same)
+        # All triggers should either be firing or resolving, so doesn't matter which we grab.
+        incident_trigger = incident_triggers[0]
+        method = "fire" if incident_triggers[0].status == TriggerStatus.ACTIVE.value else "resolve"
         for action in actions:
             transaction.on_commit(
                 handle_trigger_action.s(

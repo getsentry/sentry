@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 import InputField from 'app/components/forms/inputField';
 
 type Props = {
@@ -8,12 +6,6 @@ type Props = {
 } & InputField['props'];
 
 export default class NumberField extends InputField<Props> {
-  static propTypes = {
-    ...InputField.propTypes,
-    min: PropTypes.number,
-    max: PropTypes.number,
-  };
-
   coerceValue(value) {
     const intValue = parseInt(value, 10);
 

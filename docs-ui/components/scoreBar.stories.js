@@ -1,67 +1,32 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
-import {number, boolean, array, color} from '@storybook/addon-knobs';
 
 import ScoreBar from 'app/components/scoreBar';
 
 export default {
   title: 'DataVisualization/ScoreBar',
+  args: {
+    vertical: false,
+    size: 40,
+    thickness: 4,
+    score: 3,
+  },
 };
 
-export const Horizontal = withInfo('Description')(() => (
+const Template = ({...args}) => (
   <div style={{backgroundColor: 'white', padding: 12}}>
-    <ScoreBar
-      vertical={boolean('Vertical', false)}
-      size={number('Size')}
-      thickness={number('Thickness')}
-      score={number('Score', 3)}
-    />
+    <ScoreBar {...args} />
   </div>
-));
+);
 
-Horizontal.story = {
-  name: 'horizontal',
-};
+export const Horizontal = Template.bind({});
+Horizontal.storyName = 'horizontal';
 
-export const Vertical = withInfo('Description')(() => {
-  return (
-    <div style={{backgroundColor: 'white', padding: 12}}>
-      <ScoreBar
-        vertical={boolean('Vertical', true)}
-        size={number('Size')}
-        thickness={number('Thickness')}
-        score={number('Score', 3)}
-      />
-    </div>
-  );
-});
+export const Vertical = Template.bind({});
+Vertical.args = {vertical: true};
+Vertical.storyName = 'vertical';
 
-Vertical.story = {
-  name: 'vertical',
-};
-
-export const CustomPalette = withInfo('Description')(() => {
-  const palette = array('Palette', [
-    color('Lower', 'pink'),
-    color('Low', 'yellow'),
-    color('Med', 'lime'),
-    color('High', 'blue'),
-    color('Higher', 'purple'),
-  ]);
-
-  return (
-    <div style={{backgroundColor: 'white', padding: 12}}>
-      <ScoreBar
-        vertical={boolean('Vertical', false)}
-        size={number('Size')}
-        thickness={number('Thickness')}
-        score={number('Score', 3)}
-        palette={palette}
-      />
-    </div>
-  );
-});
-
-CustomPalette.story = {
-  name: 'custom palette',
+export const CustomPalette = Template.bind({});
+CustomPalette.storyName = 'custom palette';
+CustomPalette.args = {
+  palette: ['pink', 'yellow', 'lime', 'blue', 'purple'],
 };

@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 from copy import deepcopy
-from exam import fixture
 
 from django.core.urlresolvers import reverse
 from django.utils import timezone
+from exam import fixture
 
 from sentry.assistant import manager
 from sentry.models import AssistantActivity
@@ -13,7 +11,7 @@ from sentry.testutils import APITestCase
 
 class AssistantActivityTest(APITestCase):
     def setUp(self):
-        super(AssistantActivityTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.path = reverse("sentry-api-0-assistant")
         self.guides = manager.all()
@@ -57,7 +55,7 @@ class AssistantActivityV2Test(APITestCase):
         return manager.all()
 
     def setUp(self):
-        super(AssistantActivityV2Test, self).setUp()
+        super().setUp()
         self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
@@ -97,7 +95,7 @@ class AssistantActivityV2UpdateTest(APITestCase):
         return manager.all()
 
     def setUp(self):
-        super(AssistantActivityV2UpdateTest, self).setUp()
+        super().setUp()
         self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 

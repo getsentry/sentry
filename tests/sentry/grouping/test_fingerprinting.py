@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import pytest
 
+from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
-
 from tests.sentry.grouping import with_fingerprint_input
+
+GROUPING_CONFIG = get_default_grouping_config_dict()
 
 
 def test_basic_parsing(insta_snapshot):
@@ -46,7 +44,7 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
-            {"matchers": [["message", u"\\x\xff"]], "fingerprint": ["stuff"], "attributes": {}},
+            {"matchers": [["message", "\\x\xff"]], "fingerprint": ["stuff"], "attributes": {}},
             {
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
@@ -180,6 +178,9 @@ def test_event_hash_variant(insta_snapshot, input):
             "config": config.to_json(),
             "fingerprint": evt.data["fingerprint"],
             "title": evt.data["title"],
-            "variants": {k: dump_variant(v) for (k, v) in evt.get_grouping_variants().items()},
+            "variants": {
+                k: dump_variant(v)
+                for (k, v) in evt.get_grouping_variants(force_config=GROUPING_CONFIG).items()
+            },
         }
     )

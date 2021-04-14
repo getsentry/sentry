@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import zipfile
-from six import BytesIO
+from io import BytesIO
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
@@ -46,7 +42,11 @@ class ProjectDsymsDocs(APIDocsTestCase):
             ),
         }
 
-        response = self.client.post(self.url, data, format="multipart",)
+        response = self.client.post(
+            self.url,
+            data,
+            format="multipart",
+        )
         request = RequestFactory().post(self.url, data)
 
         self.validate_schema(request, response)

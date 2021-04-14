@@ -133,7 +133,7 @@
           },
           "example": {
             "name": "/demo/hello.min.js.map",
-            "file": "hello.min.js.map"
+            "file": "@hello.min.js.map"
           }
         }
       }

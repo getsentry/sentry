@@ -79,7 +79,7 @@ function ProcessingIcon({status}: Props) {
     default: {
       Sentry.withScope(scope => {
         scope.setLevel(Sentry.Severity.Warning);
-        Sentry.captureException(new Error("Unknown Image's ProcessingIcon status"));
+        Sentry.captureException(new Error('Unknown image ProcessingIcon status'));
       });
       return null; // This shall not happen
     }

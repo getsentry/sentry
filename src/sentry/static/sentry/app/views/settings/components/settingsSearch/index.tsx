@@ -54,7 +54,8 @@ class SettingsSearch extends React.Component<Props> {
 const StyledSettingsSearch = styled(SettingsSearch)``;
 
 export default StyledSettingsSearch;
-export {SettingsSearch};
+// We use named export for StyledSettingsSearch to prevent circular import in `app/components/search/searchResult`
+export {SettingsSearch, StyledSettingsSearch};
 
 const SearchInputWrapper = styled('div')`
   position: relative;

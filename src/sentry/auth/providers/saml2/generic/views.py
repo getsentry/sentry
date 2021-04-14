@@ -1,9 +1,4 @@
-from __future__ import absolute_import, print_function
-
 from django.core.urlresolvers import reverse
-
-from sentry.auth.view import AuthView, ConfigureView
-from sentry.utils.http import absolute_uri
 
 from sentry.auth.providers.saml2.forms import (
     AttributeMappingForm,
@@ -12,6 +7,8 @@ from sentry.auth.providers.saml2.forms import (
     XMLMetadataForm,
     process_metadata,
 )
+from sentry.auth.view import AuthView, ConfigureView
+from sentry.utils.http import absolute_uri
 
 
 class SAML2ConfigureView(ConfigureView):

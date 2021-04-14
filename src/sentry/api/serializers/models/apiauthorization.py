@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import ApiAuthorization
 
@@ -11,7 +7,7 @@ class ApiAuthorizationSerializer(Serializer):
     def get_attrs(self, item_list, user):
         apps = {
             d["id"]: d
-            for d in serialize(set(i.application for i in item_list if i.application_id), user)
+            for d in serialize({i.application for i in item_list if i.application_id}, user)
         }
 
         attrs = {}
@@ -23,7 +19,7 @@ class ApiAuthorizationSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "scopes": obj.get_scopes(),
             "application": attrs["application"],
             "dateCreated": obj.date_added,

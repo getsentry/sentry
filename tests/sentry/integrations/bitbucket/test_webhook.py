@@ -1,16 +1,15 @@
-from __future__ import absolute_import
-
 from datetime import datetime
+
 from django.utils import timezone
+
+from sentry.integrations.bitbucket.webhook import (
+    PROVIDER_NAME,
+    parse_raw_user_email,
+    parse_raw_user_name,
+)
 from sentry.models import Commit, CommitAuthor, Repository
 from sentry.testutils import APITestCase, TestCase
 
-
-from sentry.integrations.bitbucket.webhook import (
-    parse_raw_user_email,
-    parse_raw_user_name,
-    PROVIDER_NAME,
-)
 from .testutils import PUSH_EVENT_EXAMPLE
 
 BAD_IP = "109.111.111.10"
@@ -30,7 +29,7 @@ class UtilityFunctionTest(TestCase):
 
 class WebhookTest(APITestCase):
     def setUp(self):
-        super(WebhookTest, self).setUp()
+        super().setUp()
         project = self.project  # force creation
         self.url = "/extensions/bitbucket/organizations/%s/webhook/" % project.organization_id
 
@@ -73,7 +72,7 @@ class WebhookTest(APITestCase):
 
 class PushEventWebhookTest(APITestCase):
     def setUp(self):
-        super(PushEventWebhookTest, self).setUp()
+        super().setUp()
         project = self.project  # force creation
         self.url = "/extensions/bitbucket/organizations/%s/webhook/" % project.organization.id
 
@@ -106,8 +105,8 @@ class PushEventWebhookTest(APITestCase):
         commit = commit_list[0]
 
         assert commit.key == "e0e377d186e4f0e937bdb487a23384fe002df649"
-        assert commit.message == u"README.md edited online with Bitbucket"
-        assert commit.author.name == u"Max Bittker"
+        assert commit.message == "README.md edited online with Bitbucket"
+        assert commit.author.name == "Max Bittker"
         assert commit.author.email == "max@getsentry.com"
         assert commit.author.external_id is None
         assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)
@@ -124,7 +123,7 @@ class PushEventWebhookTest(APITestCase):
             external_id="bitbucket:baxterthehacker",
             organization_id=self.project.organization_id,
             email="baxterthehacker@example.com",
-            name=u"baxterthehacker",
+            name="baxterthehacker",
         )
 
         response = self.client.post(
@@ -149,8 +148,8 @@ class PushEventWebhookTest(APITestCase):
         commit = commit_list[0]
 
         assert commit.key == "e0e377d186e4f0e937bdb487a23384fe002df649"
-        assert commit.message == u"README.md edited online with Bitbucket"
-        assert commit.author.name == u"Max Bittker"
+        assert commit.message == "README.md edited online with Bitbucket"
+        assert commit.author.name == "Max Bittker"
         assert commit.author.email == "max@getsentry.com"
         assert commit.author.external_id is None
         assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)

@@ -1,6 +1,5 @@
-from __future__ import absolute_import
-
 import logging
+
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -18,7 +17,7 @@ from sentry.db.models import (
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .base import ExportQueryType, ExportStatus, DEFAULT_EXPIRATION
+from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +60,7 @@ class ExportedData(Model):
         date = self.date_added.strftime("%Y-%B-%d")
         export_type = ExportQueryType.as_str(self.query_type)
         # Example: Discover_2020-July-21_27.csv
-        return "{}_{}_{}.csv".format(export_type, date, self.id)
+        return f"{export_type}_{date}_{self.id}.csv"
 
     @staticmethod
     def format_date(date):
@@ -74,7 +73,7 @@ class ExportedData(Model):
 
     def delete(self, *args, **kwargs):
         self.delete_file()
-        super(ExportedData, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
     def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION):
         self.delete_file()  # If a file is present, remove it

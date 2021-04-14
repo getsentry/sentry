@@ -2,9 +2,9 @@ import React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {inputStyles} from 'app/styles/input';
+import space from 'app/styles/space';
 
 type InputProps = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
 type Props = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
@@ -17,14 +17,18 @@ type Props = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
      * Number of rows to default to.
      */
     rows?: number;
+    /**
+     * Max number of rows to default to.
+     */
+    maxRows?: number;
   };
 
 const TextAreaControl = React.forwardRef(function TextAreaControl(
-  {autosize, rows, ...p}: Props,
+  {autosize, rows, maxRows, ...p}: Props,
   ref: React.Ref<HTMLTextAreaElement>
 ) {
   return autosize ? (
-    <TextareaAutosize async ref={ref} rows={rows ? rows : 2} {...p} />
+    <TextareaAutosize {...p} async ref={ref} rows={rows ? rows : 2} maxRows={maxRows} />
   ) : (
     <textarea ref={ref} {...p} />
   );
@@ -32,18 +36,20 @@ const TextAreaControl = React.forwardRef(function TextAreaControl(
 
 TextAreaControl.displayName = 'TextAreaControl';
 
-TextAreaControl.propTypes = {
-  autosize: PropTypes.bool,
-  rows: PropTypes.number,
-  monospace: PropTypes.bool,
-};
-
 const propFilter = (p: string) =>
   ['autosize', 'rows', 'maxRows'].includes(p) || isPropValid(p);
 
 const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
   ${inputStyles};
-  line-height: 1.3em;
+  min-height: 40px;
+  padding: calc(${space(1)} - 1px) ${space(1)};
+  line-height: 1.5em;
+  ${p =>
+    p.autosize &&
+    `
+      padding: calc(${space(1)} - 2px) ${space(1)};
+      line-height: 1.6em;
+    `}
 `;
 
 export default TextArea;

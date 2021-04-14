@@ -29,6 +29,9 @@ type Props = WithRouterProps<{orgId: string}> & {
   hideLevel?: boolean;
   query?: string;
   className?: string;
+  /** Group link clicked */
+  onClick?: () => void;
+  index?: number;
 } & Partial<DefaultProps>;
 
 /**
@@ -41,7 +44,7 @@ class EventOrGroupHeader extends React.Component<Props> {
   };
 
   getTitleChildren() {
-    const {hideIcons, hideLevel, data} = this.props;
+    const {hideIcons, hideLevel, data, index} = this.props;
     const {level, status, isBookmarked, hasSeen} = data as Group;
 
     return (
@@ -67,13 +70,15 @@ class EventOrGroupHeader extends React.Component<Props> {
           {...this.props}
           style={{fontWeight: hasSeen ? 400 : 600}}
           withStackTracePreview
+          hasGuideAnchor={index === 0}
+          guideAnchorName="issue_stream_title"
         />
       </React.Fragment>
     );
   }
 
   getTitle() {
-    const {includeLink, data, params, location} = this.props;
+    const {includeLink, data, params, location, onClick} = this.props;
 
     const orgId = params?.orgId;
 
@@ -99,6 +104,7 @@ class EventOrGroupHeader extends React.Component<Props> {
               ...(location.query.project !== undefined ? {} : {_allp: 1}), //This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
             },
           }}
+          onClick={onClick}
         >
           {this.getTitleChildren()}
         </GlobalSelectionLink>

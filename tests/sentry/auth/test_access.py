@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from django.contrib.auth.models import AnonymousUser
-from sentry.utils.compat.mock import Mock
 
 from sentry.auth import access
-from sentry.models import AuthProvider, AuthIdentity, Organization, ObjectStatus
+from sentry.models import AuthIdentity, AuthProvider, ObjectStatus, Organization
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock
 
 
 class FromUserTest(TestCase):
@@ -227,7 +225,7 @@ class FromUserTest(TestCase):
 
 class FromSentryAppTest(TestCase):
     def setUp(self):
-        super(FromSentryAppTest, self).setUp()
+        super().setUp()
 
         # Partner's normal Sentry account.
         self.user = self.create_user("integration@example.com")

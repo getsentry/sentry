@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import jsonschema
 from rest_framework.response import Response
 
@@ -7,10 +5,10 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Release
 from sentry.tasks.assemble import (
-    get_assemble_status,
-    set_assemble_status,
     AssembleTask,
     ChunkFileState,
+    get_assemble_status,
+    set_assemble_status,
 )
 from sentry.utils import json
 

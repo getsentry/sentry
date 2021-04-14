@@ -1,9 +1,6 @@
-from __future__ import absolute_import
+from datetime import datetime
 
 import pytz
-import six
-
-from datetime import datetime
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
@@ -11,12 +8,11 @@ from django.utils.text import capfirst, mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import newsletter, options
-from sentry.auth import password_validation
 from sentry.app import ratelimiter
-from sentry.utils.auth import find_users, logger
+from sentry.auth import password_validation
 from sentry.models import User
-from sentry.web.forms.fields import CustomTypedChoiceField, AllowedEmailField
-from six.moves import range
+from sentry.utils.auth import find_users, logger
+from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
 
 
 def _get_timezone_choices():
@@ -24,7 +20,7 @@ def _get_timezone_choices():
     for tz in pytz.common_timezones:
         now = datetime.now(pytz.timezone(tz))
         offset = now.strftime("%z")
-        results.append((int(offset), tz, "(UTC%s) %s" % (offset, tz)))
+        results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
     results.sort()
 
     for i in range(len(results)):
@@ -70,7 +66,7 @@ class AuthenticationForm(forms.Form):
         """
         self.request = request
         self.user_cache = None
-        super(AuthenticationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Set the label for the "username" field.
         UserModel = get_user_model()
@@ -99,7 +95,7 @@ class AuthenticationForm(forms.Form):
             return False
 
         ip_address = self.request.META["REMOTE_ADDR"]
-        return ratelimiter.is_limited(u"auth:ip:{}".format(ip_address), limit)
+        return ratelimiter.is_limited(f"auth:ip:{ip_address}", limit)
 
     def _is_user_rate_limited(self):
         limit = options.get("auth.user-rate-limit")
@@ -110,7 +106,7 @@ class AuthenticationForm(forms.Form):
         if not username:
             return False
 
-        return ratelimiter.is_limited(u"auth:username:{}".format(username), limit)
+        return ratelimiter.is_limited(f"auth:username:{username}", limit)
 
     def clean(self):
         username = self.cleaned_data.get("username")
@@ -166,11 +162,11 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         required=True,
     )
     subscribe = CustomTypedChoiceField(
-        coerce=lambda x: six.text_type(x) == u"1",
+        coerce=lambda x: str(x) == "1",
         label=_("Email updates"),
         choices=(
-            (1, u"Yes, I would like to receive updates via email"),
-            (0, u"No, I'd prefer not to receive these updates"),
+            (1, "Yes, I would like to receive updates via email"),
+            (0, "No, I'd prefer not to receive these updates"),
         ),
         widget=forms.RadioSelect,
         required=True,
@@ -178,7 +174,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
     )
 
     def __init__(self, *args, **kwargs):
-        super(PasswordlessRegistrationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if not newsletter.is_enabled():
             del self.fields["subscribe"]
         else:
@@ -210,7 +206,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         return value.lower()
 
     def save(self, commit=True):
-        user = super(PasswordlessRegistrationForm, self).save(commit=False)
+        user = super().save(commit=False)
         user.email = user.username
         if commit:
             user.save()
@@ -232,7 +228,7 @@ class RegistrationForm(PasswordlessRegistrationForm):
         return password
 
     def save(self, commit=True):
-        user = super(RegistrationForm, self).save(commit=False)
+        user = super().save(commit=False)
         user.set_password(self.cleaned_data["password"])
         if commit:
             user.save()
@@ -300,7 +296,7 @@ class EmailForm(forms.Form):
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
-        super(EmailForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         needs_password = user.has_usable_password()
 

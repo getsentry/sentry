@@ -9,7 +9,9 @@ import * as queryString from 'query-string';
 import Reflux from 'reflux';
 
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
+import SidebarPanelActions from 'app/actions/sidebarPanelActions';
 import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {
   IconActivity,
@@ -22,7 +24,6 @@ import {
   IconReleases,
   IconSettings,
   IconSiren,
-  IconStack,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -31,6 +32,7 @@ import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import PreferencesStore from 'app/stores/preferencesStore';
+import SidebarPanelStore from 'app/stores/sidebarPanelStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
@@ -43,20 +45,18 @@ import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
-import {getSidebarPanelContainer} from './sidebarPanel';
 import {SidebarOrientation, SidebarPanelKey} from './types';
 
 type Props = {
-  location: Location;
   organization: Organization;
+  activePanel: SidebarPanelKey | '';
   collapsed: boolean;
+  location?: Location;
   children?: never;
 };
 
 type State = {
   horizontal: boolean;
-  showPanel: boolean;
-  currentPanel: SidebarPanelKey;
 };
 
 class Sidebar extends React.Component<Props, State> {
@@ -75,32 +75,13 @@ class Sidebar extends React.Component<Props, State> {
 
   state: State = {
     horizontal: false,
-    currentPanel: '',
-    showPanel: false,
   };
 
   componentDidMount() {
     document.body.classList.add('body-sidebar');
-    document.addEventListener('click', this.panelCloseHandler);
 
-    this.hashChangeHandler();
+    this.checkHash();
     this.doCollapse(this.props.collapsed);
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    const {collapsed, location} = this.props;
-    const nextLocation = nextProps.location;
-
-    // Close active panel if we navigated anywhere
-    if (nextLocation && location && location.pathname !== nextLocation.pathname) {
-      this.hidePanel();
-    }
-
-    if (collapsed === nextProps.collapsed) {
-      return;
-    }
-
-    this.doCollapse(nextProps.collapsed);
   }
 
   // Sidebar doesn't use children, so don't use it to compare
@@ -125,8 +106,21 @@ class Sidebar extends React.Component<Props, State> {
     );
   }
 
+  componentDidUpdate(prevProps: Props) {
+    const {collapsed, location} = this.props;
+
+    // Close active panel if we navigated anywhere
+    if (location?.pathname !== prevProps.location?.pathname) {
+      this.hidePanel();
+    }
+
+    // Collapse
+    if (collapsed !== prevProps.collapsed) {
+      this.doCollapse(collapsed);
+    }
+  }
+
   componentWillUnmount() {
-    document.removeEventListener('click', this.panelCloseHandler);
     document.body.classList.remove('body-sidebar');
 
     if (this.mq) {
@@ -156,9 +150,9 @@ class Sidebar extends React.Component<Props, State> {
     }
   };
 
-  hashChangeHandler = () => {
+  checkHash = () => {
     if (window.location.hash === '#welcome') {
-      this.togglePanel('todos');
+      this.togglePanel(SidebarPanelKey.OnboardingWizard);
     }
   };
 
@@ -168,17 +162,8 @@ class Sidebar extends React.Component<Props, State> {
     });
   };
 
-  // Hide slideout panel
-  hidePanel = () => {
-    if (this.state.currentPanel === '') {
-      return;
-    }
-
-    this.setState({
-      showPanel: false,
-      currentPanel: '',
-    });
-  };
+  togglePanel = (panel: SidebarPanelKey) => SidebarPanelActions.togglePanel(panel);
+  hidePanel = () => SidebarPanelActions.hidePanel();
 
   // Keep the global selection querystring values in the path
   navigateWithGlobalSelection = (
@@ -188,7 +173,6 @@ class Sidebar extends React.Component<Props, State> {
     const globalSelectionRoutes = [
       'dashboards',
       'issues',
-      'events',
       'releases',
       'user-feedback',
       'discover',
@@ -198,7 +182,7 @@ class Sidebar extends React.Component<Props, State> {
 
     // Only keep the querystring if the current route matches one of the above
     if (globalSelectionRoutes.includes(pathname)) {
-      const query = extractSelectionParameters(this.props.location.query);
+      const query = extractSelectionParameters(this.props.location?.query);
 
       // Handle cmd-click (mac) and meta-click (linux)
       if (evt.metaKey) {
@@ -214,88 +198,12 @@ class Sidebar extends React.Component<Props, State> {
     this.hidePanel();
   };
 
-  // Show slideout panel
-  showPanel = (panel: SidebarPanelKey) => {
-    this.setState({
-      showPanel: true,
-      currentPanel: panel,
-    });
-  };
-
-  togglePanel = (panel: SidebarPanelKey) => {
-    if (this.state.currentPanel === panel) {
-      this.hidePanel();
-    } else {
-      this.showPanel(panel);
-    }
-  };
-
-  panelCloseHandler = (evt: MouseEvent) => {
-    if (!(evt.target instanceof Element)) {
-      return;
-    }
-
-    // Ignore if click occurs within sidebar
-    if (this.sidebarRef.current && this.sidebarRef.current.contains(evt.target)) {
-      return;
-    }
-
-    // Ignore if click occurs within the sidebar panel
-    const panel = getSidebarPanelContainer();
-    if (panel && panel.contains(evt.target)) {
-      return;
-    }
-
-    this.hidePanel();
-  };
-
-  /**
-   * Determine which mix of discovers and events tabs to show for an account.
-   */
-  discoverSidebarState() {
-    const {organization} = this.props;
-    // Default all things to off
-    const sidebarState = {
-      discover1: false,
-      discover2: false,
-      events: false,
-    };
-
-    // Bail as we can't do any more checks.
-    if (!organization || !organization.features) {
-      return sidebarState;
-    }
-    const features = organization.features;
-
-    if (features.includes('discover-basic')) {
-      sidebarState.discover2 = true;
-      return sidebarState;
-    }
-
-    // If an account has the old features they continue to have
-    // access to them.
-    if (features.includes('discover')) {
-      sidebarState.discover1 = true;
-    }
-    if (features.includes('events')) {
-      sidebarState.events = true;
-    }
-
-    // If an organization doesn't have events, or discover-basic
-    // Enable the tab so we can show an upsell state in saas.
-    if (!sidebarState.events) {
-      sidebarState.discover2 = true;
-    }
-
-    return sidebarState;
-  }
-
   render() {
-    const {organization, collapsed} = this.props;
-    const {currentPanel, showPanel, horizontal} = this.state;
+    const {activePanel, organization, collapsed} = this.props;
+    const {horizontal} = this.state;
     const config = ConfigStore.getConfig();
     const user = ConfigStore.get('user');
-    const hasPanel = !!currentPanel;
+    const hasPanel = !!activePanel;
     const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
     const sidebarItemProps = {
       orientation,
@@ -304,15 +212,13 @@ class Sidebar extends React.Component<Props, State> {
     };
     const hasOrganization = !!organization;
 
-    const discoverState = this.discoverSidebarState();
-
     const projects = hasOrganization && (
       <SidebarItem
         {...sidebarItemProps}
         index
         onClick={this.hidePanel}
         icon={<IconProject size="md" />}
-        label={t('Projects')}
+        label={<GuideAnchor target="projects">{t('Projects')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/projects/`}
         id="projects"
       />
@@ -328,52 +234,13 @@ class Sidebar extends React.Component<Props, State> {
           )
         }
         icon={<IconIssues size="md" />}
-        label={t('Issues')}
+        label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/issues/`}
         id="issues"
       />
     );
 
-    const events = hasOrganization && discoverState.events && (
-      <Feature
-        features={['events']}
-        hookName="feature-disabled:events-sidebar-item"
-        organization={organization}
-      >
-        <SidebarItem
-          {...sidebarItemProps}
-          onClick={(_id, evt) =>
-            this.navigateWithGlobalSelection(
-              `/organizations/${organization.slug}/events/`,
-              evt
-            )
-          }
-          icon={<IconStack size="md" />}
-          label={t('Events')}
-          to={`/organizations/${organization.slug}/events/`}
-          id="events"
-        />
-      </Feature>
-    );
-
-    const discover1 = hasOrganization && discoverState.discover1 && (
-      <Feature
-        features={['discover']}
-        hookName="feature-disabled:discover-sidebar-item"
-        organization={organization}
-      >
-        <SidebarItem
-          {...sidebarItemProps}
-          onClick={this.hidePanel}
-          icon={<IconTelescope size="md" />}
-          label={t('Discover')}
-          to={`/organizations/${organization.slug}/discover/`}
-          id="discover"
-        />
-      </Feature>
-    );
-
-    const discover2 = hasOrganization && discoverState.discover2 && (
+    const discover2 = hasOrganization && (
       <Feature
         hookName="feature-disabled:discover2-sidebar-item"
         features={['discover-basic']}
@@ -385,7 +252,7 @@ class Sidebar extends React.Component<Props, State> {
             this.navigateWithGlobalSelection(getDiscoverLandingUrl(organization), evt)
           }
           icon={<IconTelescope size="md" />}
-          label={t('Discover')}
+          label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
           to={getDiscoverLandingUrl(organization)}
           id="discover-v2"
         />
@@ -407,7 +274,7 @@ class Sidebar extends React.Component<Props, State> {
             )
           }
           icon={<IconLightning size="md" />}
-          label={t('Performance')}
+          label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/performance/`}
           id="performance"
         />
@@ -424,7 +291,7 @@ class Sidebar extends React.Component<Props, State> {
           )
         }
         icon={<IconReleases size="md" />}
-        label={t('Releases')}
+        label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/releases/`}
         id="releases"
       />
@@ -460,7 +327,6 @@ class Sidebar extends React.Component<Props, State> {
               label={t('Alerts')}
               to={alertsPath}
               id="alerts"
-              isNew
             />
           );
         }}
@@ -487,7 +353,7 @@ class Sidebar extends React.Component<Props, State> {
 
     const dashboards = hasOrganization && (
       <Feature
-        features={['discover', 'discover-query']}
+        features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
         organization={organization}
         requireAll={false}
       >
@@ -564,9 +430,7 @@ class Sidebar extends React.Component<Props, State> {
                   {releases}
                   {userFeedback}
                   {alerts}
-                  {discover1}
                   {discover2}
-                  {events}
                 </SidebarSection>
 
                 <SidebarSection>
@@ -590,9 +454,8 @@ class Sidebar extends React.Component<Props, State> {
             <SidebarSection noMargin noPadding>
               <OnboardingStatus
                 org={organization}
-                currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel('todos')}
-                showPanel={showPanel}
+                currentPanel={activePanel}
+                onShowPanel={() => this.togglePanel(SidebarPanelKey.OnboardingWizard)}
                 hidePanel={this.hidePanel}
                 {...sidebarItemProps}
               />
@@ -613,18 +476,16 @@ class Sidebar extends React.Component<Props, State> {
               <Broadcasts
                 orientation={orientation}
                 collapsed={collapsed}
-                showPanel={showPanel}
-                currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel('broadcasts')}
+                currentPanel={activePanel}
+                onShowPanel={() => this.togglePanel(SidebarPanelKey.Broadcasts)}
                 hidePanel={this.hidePanel}
                 organization={organization}
               />
               <ServiceIncidents
                 orientation={orientation}
                 collapsed={collapsed}
-                showPanel={showPanel}
-                currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel('statusupdate')}
+                currentPanel={activePanel}
+                onShowPanel={() => this.togglePanel(SidebarPanelKey.StatusUpdate)}
                 hidePanel={this.hidePanel}
               />
             </SidebarSection>
@@ -648,12 +509,16 @@ class Sidebar extends React.Component<Props, State> {
   }
 }
 
-const SidebarContainer = createReactClass<Omit<Props, 'collapsed'>>({
+const SidebarContainer = createReactClass<Omit<Props, 'collapsed' | 'activePanel'>>({
   displayName: 'SidebarContainer',
-  mixins: [Reflux.listenTo(PreferencesStore, 'onPreferenceChange') as any],
+  mixins: [
+    Reflux.listenTo(PreferencesStore, 'onPreferenceChange') as any,
+    Reflux.listenTo(SidebarPanelStore, 'onSidebarPanelChange') as any,
+  ],
   getInitialState() {
     return {
       collapsed: PreferencesStore.getInitialState().collapsed,
+      activePanel: '',
     };
   },
 
@@ -662,17 +527,19 @@ const SidebarContainer = createReactClass<Omit<Props, 'collapsed'>>({
       return;
     }
 
-    this.setState({
-      collapsed: preferences.collapsed,
-    });
+    this.setState({collapsed: preferences.collapsed});
+  },
+
+  onSidebarPanelChange(activePanel: SidebarPanelKey | '') {
+    this.setState({activePanel});
   },
 
   render() {
-    return <Sidebar {...this.props} collapsed={this.state.collapsed} />;
+    const {activePanel, collapsed} = this.state;
+    return <Sidebar {...this.props} {...{activePanel, collapsed}} />;
   },
 });
 
-export {Sidebar};
 export default withOrganization(SidebarContainer);
 
 const responsiveFlex = css`
@@ -692,7 +559,7 @@ const StyledSidebar = styled('div')<{collapsed: boolean}>`
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar.expandedWidth};
   position: fixed;
-  top: 0;
+  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
   bottom: 0;
   justify-content: space-between;

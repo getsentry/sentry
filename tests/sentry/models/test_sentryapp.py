@@ -1,8 +1,6 @@
-from __future__ import absolute_import
-
 from sentry.constants import SentryAppStatus
-from sentry.testutils import TestCase
 from sentry.models import ApiApplication, SentryApp
+from sentry.testutils import TestCase
 
 
 class SentryAppTest(TestCase):

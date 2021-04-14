@@ -5,11 +5,14 @@ export enum SessionTerm {
   CRASHES = 'crashes',
   CRASHED = 'crashed',
   ABNORMAL = 'abnormal',
+  CRASH_FREE = 'crashFree',
   CRASH_FREE_USERS = 'crash-free-users',
   CRASH_FREE_SESSIONS = 'crash-free-sessions',
   HEALTHY = 'healthy',
   ERRORED = 'errored',
   UNHANDLED = 'unhandled',
+  STABILITY = 'stability',
+  ADOPTION = 'adoption',
 }
 
 export const sessionTerm = {
@@ -21,13 +24,31 @@ export const sessionTerm = {
   [SessionTerm.HEALTHY]: t('Healthy'),
   [SessionTerm.ERRORED]: t('Errored'),
   [SessionTerm.UNHANDLED]: t('Unhandled'),
+  [SessionTerm.ADOPTION]: t('Adoption'),
+  duration: t('Session Duration'),
+  otherCrashed: t('Other Crashed'),
+  otherAbnormal: t('Other Abnormal'),
+  otherErrored: t('Other Errored'),
+  otherHealthy: t('Other Healthy'),
+  otherCrashFreeUsers: t('Other Crash Free Users'),
+  otherCrashFreeSessions: t('Other Crash Free Sessions'),
+  otherReleases: t('Other Releases'),
 };
 
 // This should never be used directly (except in tests)
 export const commonTermsDescription = {
   [SessionTerm.CRASHES]: t('Number of sessions with a crashed state'),
-  [SessionTerm.CRASH_FREE_USERS]: t('Number of unique users with non-crashed sessions'),
-  [SessionTerm.CRASH_FREE_SESSIONS]: t('Number of non-crashed sessions'),
+  [SessionTerm.CRASH_FREE]: t(
+    'Percentage of sessions/users who did not experience a crash.'
+  ),
+  [SessionTerm.CRASH_FREE_USERS]: t(
+    'Percentage of unique users with non-crashed sessions'
+  ),
+  [SessionTerm.CRASH_FREE_SESSIONS]: t('Percentage of non-crashed sessions'),
+  [SessionTerm.STABILITY]: t('The percentage of crash free sessions.'),
+  [SessionTerm.ADOPTION]: t(
+    'Adoption compares the sessions or users of a release with the total sessions or users for this project in the last 24 hours.'
+  ),
 };
 
 // This should never be used directly (except in tests)
@@ -35,7 +56,7 @@ export const mobileTermsDescription = {
   [SessionTerm.CRASHED]: t(
     'The process was terminated due to an unhandled exception or a request to the server that ended with an error'
   ),
-  [SessionTerm.CRASH_FREE_SESSIONS]: t('Number of unique sessions that did not crash'),
+  [SessionTerm.CRASH_FREE_SESSIONS]: t('Percentage of non-crashed sessions'),
   [SessionTerm.ABNORMAL]: t(
     'An unknown session exit. Like due to loss of power or killed by the operating system'
   ),
@@ -108,15 +129,15 @@ function getTermDescriptions(platform: PlatformKey | null) {
       return {
         ...commonTermsDescription,
         [SessionTerm.CRASHED]: t(
-          "During the session an error with mechanism.handled===false occurred calling the 'onerror' on 'unhandledrejection' handler"
+          'During the session an unhandled global error/promise rejection occurred.'
         ),
-        [SessionTerm.ABNORMAL]: t('Non applicable for Javascript'),
-        [SessionTerm.HEALTHY]: t('No errors were captured during session life-time'),
+        [SessionTerm.ABNORMAL]: t('Non applicable for Javascript.'),
+        [SessionTerm.HEALTHY]: t('No errors were captured during session life-time.'),
         [SessionTerm.ERRORED]: t(
-          'During the session at least one error occurred that did not bubble up to the global handler. The application loading process did not crash'
+          'During the session at least one handled error occurred.'
         ),
         [SessionTerm.UNHANDLED]:
-          "An error was captured by the global 'onerror' or 'onunhandledrejection' handler",
+          "An error was captured by the global 'onerror' or 'onunhandledrejection' handler.",
       };
     case 'apple-ios':
     case 'minidump':

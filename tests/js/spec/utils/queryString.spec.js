@@ -90,6 +90,14 @@ describe('decodeScalar()', function () {
     expect(utils.decodeScalar(false)).toBeUndefined();
     expect(utils.decodeScalar('')).toBeUndefined();
   });
+
+  it('uses fallback values', function () {
+    expect(utils.decodeScalar('value', 'default')).toEqual('value');
+    expect(utils.decodeScalar('', 'default')).toEqual('default');
+    expect(utils.decodeScalar(null, 'default')).toEqual('default');
+    expect(utils.decodeScalar(undefined, 'default')).toEqual('default');
+    expect(utils.decodeScalar([], 'default')).toEqual('default');
+  });
 });
 
 describe('decodeList()', function () {
@@ -102,8 +110,8 @@ describe('decodeList()', function () {
   });
 
   it('handles falsey values', function () {
-    expect(utils.decodeList(undefined)).toBeUndefined();
-    expect(utils.decodeList(false)).toBeUndefined();
-    expect(utils.decodeList('')).toBeUndefined();
+    expect(utils.decodeList(undefined)).toEqual([]);
+    expect(utils.decodeList(false)).toEqual([]);
+    expect(utils.decodeList('')).toEqual([]);
   });
 });

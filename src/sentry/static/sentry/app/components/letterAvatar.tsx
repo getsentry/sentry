@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {imageStyle} from 'app/components/avatar/styles';
 import theme from 'app/utils/theme';
@@ -100,12 +99,6 @@ const LetterAvatar = styled(
 )<Props>`
   ${imageStyle};
 `;
-
-LetterAvatar.propTypes = {
-  identifier: PropTypes.string,
-  displayName: PropTypes.string,
-  round: PropTypes.bool,
-};
 
 LetterAvatar.defaultProps = {
   round: false,

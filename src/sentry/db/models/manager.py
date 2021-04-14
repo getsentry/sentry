@@ -1,26 +1,22 @@
-from __future__ import absolute_import, print_function
-
 import logging
-import six
 import threading
 import weakref
-
 from contextlib import contextmanager
 
+from celery.signals import task_postrun
 from django.conf import settings
+from django.core.signals import request_finished
 from django.db import router
 from django.db.models import Model
 from django.db.models.manager import Manager, QuerySet
-from django.db.models.signals import post_save, post_delete, post_init, class_prepared
-from django.core.signals import request_finished
+from django.db.models.signals import class_prepared, post_delete, post_init, post_save
 from django.utils.encoding import smart_text
-from celery.signals import task_postrun
 
 from sentry.utils.cache import cache
+from sentry.utils.compat import zip
 from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
-from sentry.utils.compat import zip
 
 __all__ = ("BaseManager", "OptionManager")
 
@@ -36,7 +32,7 @@ def __prep_value(model, key, value):
     if isinstance(value, Model):
         value = value.pk
     else:
-        value = six.text_type(value)
+        value = str(value)
     return value
 
 
@@ -48,13 +44,13 @@ def __prep_key(model, key):
 
 def make_key(model, prefix, kwargs):
     kwargs_bits = []
-    for k, v in sorted(six.iteritems(kwargs)):
+    for k, v in sorted(kwargs.items()):
         k = __prep_key(model, k)
         v = smart_text(__prep_value(model, k, v))
-        kwargs_bits.append("%s=%s" % (k, v))
+        kwargs_bits.append(f"{k}={v}")
     kwargs_bits = ":".join(kwargs_bits)
 
-    return "%s:%s:%s" % (prefix, model.__name__, md5_text(kwargs_bits).hexdigest())
+    return f"{prefix}:{model.__name__}:{md5_text(kwargs_bits).hexdigest()}"
 
 
 class BaseQuerySet(QuerySet):
@@ -91,7 +87,7 @@ class BaseManager(Manager):
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
         self._cache_version = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
-        super(BaseManager, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @staticmethod
     @contextmanager
@@ -262,10 +258,10 @@ class BaseManager(Manager):
         return getattr(instance, field.attname)
 
     def contribute_to_class(self, model, name):
-        super(BaseManager, self).contribute_to_class(model, name)
+        super().contribute_to_class(model, name)
         class_prepared.connect(self.__class_prepared, sender=model)
 
-    def get_from_cache(self, **kwargs):
+    def get_from_cache(self, **kwargs) -> Model:  # TODO(typing): Properly type this
         """
         Wrapper around QuerySet.get which supports caching of the
         intermediate value.  Callee is responsible for making sure
@@ -274,7 +270,7 @@ class BaseManager(Manager):
         if not self.cache_fields or len(kwargs) > 1:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
-        key, value = next(six.iteritems(kwargs))
+        key, value = next(iter(kwargs.items()))
         pk_name = self.model._meta.pk.name
         if key == "pk":
             key = pk_name
@@ -486,10 +482,10 @@ class OptionManager(BaseManager):
         self._option_cache.clear()
 
     def contribute_to_class(self, model, name):
-        super(OptionManager, self).contribute_to_class(model, name)
+        super().contribute_to_class(model, name)
         task_postrun.connect(self.clear_local_cache)
         request_finished.connect(self.clear_local_cache)
 
     def _make_key(self, instance_id):
         assert instance_id
-        return u"%s:%s" % (self.model._meta.db_table, instance_id)
+        return f"{self.model._meta.db_table}:{instance_id}"

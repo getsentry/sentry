@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework import serializers
 
 
@@ -10,7 +8,7 @@ class MultipleChoiceField(serializers.Field):
 
     def __init__(self, choices=None, *args, **kwargs):
         self.choices = set(choices or ())
-        super(MultipleChoiceField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def to_representation(self, value):
         return value

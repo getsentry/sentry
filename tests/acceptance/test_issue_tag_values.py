@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
@@ -8,7 +6,7 @@ from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
 class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(IssueTagValuesTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")

@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
-import responses
 import time
 
-from sentry.utils import json
-from sentry.utils.compat.mock import patch
+import responses
 
+from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.models import (
     Identity,
     IdentityProvider,
@@ -14,7 +11,8 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import TestCase
-from sentry.integrations.msteams.link_identity import build_linking_url
+from sentry.utils import json
+from sentry.utils.compat.mock import patch
 
 
 class MsTeamsIntegrationLinkIdentityTest(TestCase):
@@ -55,7 +53,11 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         }
 
         linking_url = build_linking_url(
-            self.integration, self.org, "a_p_w_b_d", "1_50l3mnly_5w34r", "h0g5m34d3",
+            self.integration,
+            self.org,
+            "a_p_w_b_d",
+            "1_50l3mnly_5w34r",
+            "h0g5m34d3",
         )
 
         resp = self.client.get(linking_url)
@@ -111,7 +113,11 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         }
 
         linking_url = build_linking_url(
-            self.integration, self.org, "g_w", "1_50l3mnly_5w34r", "th3_burr0w",
+            self.integration,
+            self.org,
+            "g_w",
+            "1_50l3mnly_5w34r",
+            "th3_burr0w",
         )
 
         def user_conversation_id_callback(request):

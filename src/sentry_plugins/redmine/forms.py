@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
@@ -25,7 +23,7 @@ class RedmineOptionsForm(forms.Form):
     )
 
     def __init__(self, data=None, *args, **kwargs):
-        super(RedmineOptionsForm, self).__init__(data=data, *args, **kwargs)
+        super().__init__(data=data, *args, **kwargs)
 
         initial = kwargs.get("initial") or {}
         for key, value in self.data.items():
@@ -40,7 +38,7 @@ class RedmineOptionsForm(forms.Form):
                 has_credentials = False
             else:
                 project_choices = [
-                    (p["id"], "%s (%s)" % (p["name"], p["identifier"]))
+                    (p["id"], "{} ({})".format(p["name"], p["identifier"]))
                     for p in projects["projects"]
                 ]
                 self.fields["project_id"].choices = project_choices

@@ -6,11 +6,12 @@ import pick from 'lodash/pick';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {SectionHeading} from 'app/components/charts/styles';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import TimeSince from 'app/components/timeSince';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
+import {IconCheckmark, IconFire, IconOpen, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -20,12 +21,17 @@ import {Theme} from 'app/utils/theme';
 import {Incident, IncidentStatus} from '../alerts/types';
 
 import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
+import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
+import {didProjectOrEnvironmentChange} from './utils';
+
+const PLACEHOLDER_AND_EMPTY_HEIGHT = '172px';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   projectSlug: string;
   location: Location;
   theme: Theme;
+  isProjectStabilized: boolean;
 };
 
 type State = {
@@ -36,10 +42,12 @@ type State = {
 
 class ProjectLatestAlerts extends AsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
+    const {location, isProjectStabilized} = this.props;
     // TODO(project-detail): we temporarily removed refetching based on timeselector
     if (
       this.state !== nextState ||
-      this.props.location.query.environment !== nextProps.location.query.environment
+      didProjectOrEnvironmentChange(location, nextProps.location) ||
+      isProjectStabilized !== nextProps.isProjectStabilized
     ) {
       return true;
     }
@@ -47,8 +55,23 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     return false;
   }
 
+  componentDidUpdate(prevProps: Props) {
+    const {location, isProjectStabilized} = this.props;
+
+    if (
+      didProjectOrEnvironmentChange(prevProps.location, location) ||
+      prevProps.isProjectStabilized !== isProjectStabilized
+    ) {
+      this.remountComponent();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {location, organization} = this.props;
+    const {location, organization, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return [];
+    }
 
     const query = {
       ...pick(location.query, Object.values(URL_PARAM)),
@@ -75,7 +98,11 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
    */
   async onLoadAllEndpointsSuccess() {
     const {unresolvedAlerts, resolvedAlerts} = this.state;
-    const {location, organization} = this.props;
+    const {location, organization, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return;
+    }
 
     if ([...(unresolvedAlerts ?? []), ...(resolvedAlerts ?? [])].length !== 0) {
       this.setState({hasAlertRule: true});
@@ -98,18 +125,38 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     this.setState({hasAlertRule: alertRules.length > 0, loading: false});
   }
 
+  get alertsLink() {
+    const {organization} = this.props;
+
+    // as this is a link to latest alerts, we want to only preserve project and environment
+    return {
+      pathname: `/organizations/${organization.slug}/alerts/`,
+      query: {
+        statsPeriod: undefined,
+        start: undefined,
+        end: undefined,
+        utc: undefined,
+      },
+    };
+  }
+
   renderAlertRow = (alert: Incident) => {
     const {organization, theme} = this.props;
-    const isResolved = alert.status === IncidentStatus.CLOSED;
-    const isWarning = alert.status === IncidentStatus.WARNING;
+    const {status, id, identifier, title, dateClosed, dateStarted} = alert;
+    const isResolved = status === IncidentStatus.CLOSED;
+    const isWarning = status === IncidentStatus.WARNING;
 
-    const color = isResolved ? theme.gray200 : isWarning ? theme.yellow300 : theme.red300;
+    const color = isResolved
+      ? theme.green300
+      : isWarning
+      ? theme.yellow300
+      : theme.red300;
     const Icon = isResolved ? IconCheckmark : isWarning ? IconWarning : IconFire;
 
     return (
       <AlertRowLink
-        to={`/organizations/${organization.slug}/alerts/${alert.identifier}/`}
-        key={alert.id}
+        to={`/organizations/${organization.slug}/alerts/${identifier}/`}
+        key={id}
       >
         <AlertBadge color={color} icon={Icon}>
           <AlertIconWrapper>
@@ -117,11 +164,13 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
           </AlertIconWrapper>
         </AlertBadge>
         <AlertDetails>
-          <AlertTitle>{alert.title}</AlertTitle>
+          <AlertTitle>{title}</AlertTitle>
           <AlertDate color={color}>
             {isResolved
-              ? tct('Resolved [date]', {date: <TimeSince date={alert.dateClosed!} />})
-              : tct('Triggered [date]', {date: <TimeSince date={alert.dateStarted} />})}
+              ? tct('Resolved [date]', {
+                  date: dateClosed ? <TimeSince date={dateClosed} /> : null,
+                })
+              : tct('Triggered [date]', {date: <TimeSince date={dateStarted} />})}
           </AlertDate>
         </AlertDetails>
       </AlertRowLink>
@@ -129,7 +178,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
   };
 
   renderInnerBody() {
-    const {organization, projectSlug} = this.props;
+    const {organization, projectSlug, isProjectStabilized} = this.props;
     const {loading, unresolvedAlerts, resolvedAlerts, hasAlertRule} = this.state;
     const alertsUnresolvedAndResolved = [
       ...(unresolvedAlerts ?? []),
@@ -137,10 +186,10 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     ];
     const checkingForAlertRules =
       alertsUnresolvedAndResolved.length === 0 && hasAlertRule === undefined;
-    const showLoadingIndicator = loading || checkingForAlertRules;
+    const showLoadingIndicator = loading || checkingForAlertRules || !isProjectStabilized;
 
     if (showLoadingIndicator) {
-      return <Placeholder height="172px" />;
+      return <Placeholder height={PLACEHOLDER_AND_EMPTY_HEIGHT} />;
     }
 
     if (!hasAlertRule) {
@@ -150,7 +199,9 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     }
 
     if (alertsUnresolvedAndResolved.length === 0) {
-      return t('No alert triggered so far.');
+      return (
+        <StyledEmptyStateWarning small>{t('No alerts found')}</StyledEmptyStateWarning>
+      );
     }
 
     return alertsUnresolvedAndResolved.slice(0, 3).map(this.renderAlertRow);
@@ -162,17 +213,19 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
 
   renderBody() {
     return (
-      <Section>
-        <SectionHeading>{t('Latest Alerts')}</SectionHeading>
+      <SidebarSection>
+        <SectionHeadingWrapper>
+          <SectionHeading>{t('Latest Alerts')}</SectionHeading>
+          <SectionHeadingLink to={this.alertsLink}>
+            <IconOpen />
+          </SectionHeadingLink>
+        </SectionHeadingWrapper>
+
         <div>{this.renderInnerBody()}</div>
-      </Section>
+      </SidebarSection>
     );
   }
 }
-
-const Section = styled('section')`
-  margin-bottom: ${space(2)};
-`;
 
 const AlertRowLink = styled(Link)`
   display: flex;
@@ -213,21 +266,24 @@ const AlertIconWrapper = styled('div')`
 `;
 
 const AlertDetails = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
   margin-left: ${space(2)};
   ${overflowEllipsis}
 `;
 
-const AlertTitle = styled('h5')`
-  font-size: ${p => p.theme.fontSizeLarge};
+const AlertTitle = styled('div')`
   font-weight: 400;
-  margin-bottom: ${space(0.25)};
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
 const AlertDate = styled('span')<{color: string}>`
-  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.color};
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  height: ${PLACEHOLDER_AND_EMPTY_HEIGHT};
+  justify-content: center;
 `;
 
 export default withTheme(ProjectLatestAlerts);

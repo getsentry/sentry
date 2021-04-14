@@ -14,6 +14,7 @@
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
   <meta name="robots" content="NONE,NOARCHIVE">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
 
   <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
 
@@ -30,10 +31,16 @@
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
+  {% block initial_data %}
+    {% script %}
+    <script>
+      window.__initialData = {% get_react_config %};
+    </script>
+    {% endscript %}
+  {% endblock %}
+
   {% script %}
-  <script>
-    window.__initialData = {% get_react_config %};
-  </script>
+    {% include "sentry/partial/preload-data.html" %}
   {% endscript %}
 
   {% block scripts %}
@@ -41,8 +48,15 @@
   {% asset_url "sentry" "dist/vendor.js" as asset_url %}
   {% script src=asset_url %}{% endscript %}
 
-  {% asset_url "sentry" "dist/app.js" as asset_url %}
-  {% script src=asset_url data-entry="true" %}{% endscript %}
+  {% block scripts_main_entrypoint %}
+    {% asset_url "sentry" "dist/app.js" as asset_url %}
+    {% script src=asset_url data-entry="true" %}{% endscript %}
+  {% endblock %}
+
+  {% injected_script_assets as injected_assets %}
+  {% for asset_url in injected_assets %}
+    {% script src=asset_url %}{% endscript %}
+  {% endfor %}
 
   {% script %}
   <script>

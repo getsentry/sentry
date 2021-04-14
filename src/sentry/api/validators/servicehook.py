@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 from rest_framework import serializers
 
-from sentry.models import SERVICE_HOOK_EVENTS
-
 from sentry.api.serializers.rest_framework.list import ListField
+from sentry.models import SERVICE_HOOK_EVENTS
 
 
 class ServiceHookValidator(serializers.Serializer):
@@ -17,5 +14,5 @@ class ServiceHookValidator(serializers.Serializer):
         if value:
             for event in value:
                 if event not in SERVICE_HOOK_EVENTS:
-                    raise serializers.ValidationError(u"Invalid event name: {}".format(event))
+                    raise serializers.ValidationError(f"Invalid event name: {event}")
         return value

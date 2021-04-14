@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
-from sentry.models import Relay
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SuperuserPermission
+from sentry.models import Relay
 
 
 class RelayDetailsEndpoint(Endpoint):

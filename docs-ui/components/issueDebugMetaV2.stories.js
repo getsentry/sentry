@@ -1,5 +1,4 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import DebugMeta from 'app/components/events/interfaces/debugMeta-v2';
 
@@ -4285,7 +4284,7 @@ export default {
   title: 'Features/Issues/DebugMetaV2',
 };
 
-export const Default = withInfo('Images Loaded')(() => (
+export const Default = () => (
   <div className="section">
     <DebugMeta
       event={event}
@@ -4294,8 +4293,6 @@ export const Default = withInfo('Images Loaded')(() => (
       projectId="1"
     />
   </div>
-));
+);
 
-Default.story = {
-  name: 'default',
-};
+Default.storyName = 'default';

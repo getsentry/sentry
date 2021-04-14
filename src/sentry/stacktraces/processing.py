@@ -1,20 +1,15 @@
-from __future__ import absolute_import
-
-import six
 import logging
+from collections import OrderedDict, namedtuple
 from datetime import datetime
-from django.utils import timezone
-
-from collections import namedtuple, OrderedDict
 
 import sentry_sdk
+from django.utils import timezone
 
 from sentry.models import Project, Release
+from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, safe_execute
-from sentry.stacktraces.functions import set_in_app, trim_function_name
-
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +21,7 @@ StacktraceInfo.__eq__ = lambda a, b: a is b
 StacktraceInfo.__ne__ = lambda a, b: a is not b
 
 
-class ProcessableFrame(object):
+class ProcessableFrame:
     def __init__(self, frame, idx, processor, stacktrace_info, processable_frames):
         self.frame = frame
         self.idx = idx
@@ -38,7 +33,7 @@ class ProcessableFrame(object):
         self.processable_frames = processable_frames
 
     def __repr__(self):
-        return "<ProcessableFrame %r #%r at %r>" % (
+        return "<ProcessableFrame {!r} #{!r} at {!r}>".format(
             self.frame.get("function") or "unknown",
             self.idx,
             self.frame.get("instruction_addr"),
@@ -83,7 +78,7 @@ class ProcessableFrame(object):
         return rv
 
 
-class StacktraceProcessingTask(object):
+class StacktraceProcessingTask:
     def __init__(self, processable_stacktraces, processors):
         self.processable_stacktraces = processable_stacktraces
         self.processors = processors
@@ -96,7 +91,7 @@ class StacktraceProcessingTask(object):
         return iter(self.processors)
 
     def iter_processable_stacktraces(self):
-        return six.iteritems(self.processable_stacktraces)
+        return self.processable_stacktraces.items()
 
     def iter_processable_frames(self, processor=None):
         for _, frames in self.iter_processable_stacktraces():
@@ -105,7 +100,7 @@ class StacktraceProcessingTask(object):
                     yield frame
 
 
-class StacktraceProcessor(object):
+class StacktraceProcessor:
     def __init__(self, data, stacktrace_infos, project=None):
         self.data = data
         self.stacktrace_infos = stacktrace_infos
@@ -147,7 +142,6 @@ class StacktraceProcessor(object):
         to give the processor a chance to store additional data to the frame
         if wanted.  In particular a cache key can be set here.
         """
-        pass
 
     def process_exception(self, exception):
         """Processes an exception."""
@@ -185,10 +179,10 @@ def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        platforms = set(
+        platforms = {
             frame.get("platform") or data.get("platform")
             for frame in get_path(stacktrace, "frames", filter=True, default=())
-        )
+        }
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
@@ -226,19 +220,14 @@ def _has_system_frames(frames):
     return bool(system_frames) and len(frames) != system_frames
 
 
-def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
+def _normalize_in_app(stacktrace):
     """
     Ensures consistent values of in_app across a stacktrace.
     """
-    has_system_frames = _has_system_frames(stacktrace)
+    # Default to false in all cases where processors or grouping enhancers
+    # have not yet set in_app.
     for frame in stacktrace:
-        # If all frames are in_app, flip all of them. This is expected by the UI
-        if not has_system_frames:
-            set_in_app(frame, False)
-
-        # Default to false in all cases where processors or grouping enhancers
-        # have not yet set in_app.
-        elif frame.get("in_app") is None:
+        if frame.get("in_app") is None:
             set_in_app(frame, False)
 
 
@@ -290,7 +279,7 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
 
     # normalize in-app
     for stacktrace in stacktraces:
-        _normalize_in_app(stacktrace, platform=platform)
+        _normalize_in_app(stacktrace)
 
 
 def should_process_for_stacktraces(data):
@@ -476,7 +465,7 @@ def get_stacktrace_processing_task(infos, processors):
                 to_lookup[processable_frame.cache_key] = processable_frame
 
     frame_cache = lookup_frame_cache(to_lookup)
-    for cache_key, processable_frame in six.iteritems(to_lookup):
+    for cache_key, processable_frame in to_lookup.items():
         processable_frame.cache_value = frame_cache.get(cache_key)
 
     return StacktraceProcessingTask(

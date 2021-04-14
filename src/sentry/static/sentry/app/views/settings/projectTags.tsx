@@ -76,7 +76,7 @@ class ProjectTags extends AsyncView<Props, State> {
                  Learn how to [link:add custom tags].`,
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/enriching-error-data/additional-data/" />
+                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags/" />
               ),
             }
           )}
@@ -89,7 +89,7 @@ class ProjectTags extends AsyncView<Props, State> {
               <EmptyMessage>
                 {tct('There are no tags, [link:learn how to add tags]', {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/enriching-error-data/additional-data/" />
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/enrich-data/" />
                   ),
                 })}
               </EmptyMessage>

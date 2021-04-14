@@ -1,6 +1,5 @@
 import React from 'react';
 
-import {Project as ProjectPropType} from 'app/sentryTypes';
 import {Project} from 'app/types';
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
@@ -8,10 +7,6 @@ type Props = React.HTMLProps<HTMLSpanElement> & {
 };
 
 export default class ProjectLabel extends React.PureComponent<Props> {
-  static propTypes = {
-    project: ProjectPropType.isRequired,
-  };
-
   render() {
     const {project, ...props} = this.props;
 

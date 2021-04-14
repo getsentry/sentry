@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils.translation import ugettext_lazy as _
 
 from .base import AuthenticatorInterface, OtpMixin
@@ -18,5 +16,5 @@ class TotpInterface(OtpMixin, AuthenticatorInterface):
         "generated every 30 seconds."
     )
 
-    def get_provision_qrcode(self, user, issuer=None):
-        return self.make_otp().get_provision_qrcode(user, issuer=issuer)
+    def get_provision_url(self, user, issuer=None):
+        return self.make_otp().get_provision_url(user, issuer=issuer)

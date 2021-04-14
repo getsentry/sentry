@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from .base import ActivityEmail
 
 
@@ -8,7 +6,7 @@ class UnassignedActivityEmail(ActivityEmail):
         return "Unassigned"
 
     def get_description(self):
-        return u"{author} unassigned {an issue}"
+        return "{author} unassigned {an issue}"
 
     def get_category(self):
         return "unassigned_activity_email"

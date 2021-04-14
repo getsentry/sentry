@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
-
-class ServerlessMixin(object):
+class ServerlessMixin:
     def get_serverless_functions(self):
         """
         Returns a list of serverless functions

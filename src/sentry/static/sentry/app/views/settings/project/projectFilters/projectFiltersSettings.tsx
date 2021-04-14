@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import ProjectActions from 'app/actions/projectActions';
 import Access from 'app/components/acl/access';
@@ -14,7 +13,7 @@ import {
   PanelHeader,
   PanelItem,
 } from 'app/components/panels';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import filterGroups, {customFilterFields} from 'app/data/forms/inboundFilters';
 import {t} from 'app/locale';
 import HookStore from 'app/stores/hookStore';
@@ -90,12 +89,6 @@ type RowState = {
 };
 
 class LegacyBrowserFilterRow extends React.Component<RowProps, RowState> {
-  static propTypes = {
-    data: PropTypes.object.isRequired,
-    onToggle: PropTypes.func.isRequired,
-    disabled: PropTypes.bool,
-  };
-
   constructor(props) {
     super(props);
     let initialSubfilters;
@@ -376,7 +369,8 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
 
 export default ProjectFiltersSettings;
 
-const NestedForm = styled(Form)`
+// TODO(ts): Understand why styled is not correctly inheriting props here
+const NestedForm = styled(Form)<Form['props']>`
   flex: 1;
 `;
 

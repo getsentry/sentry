@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from sentry import features
-from sentry.api.bases.group import GroupEndpoint
-from sentry.api.serializers import serialize, EventAttachmentSerializer
-from sentry.api.paginator import DateTimePaginator
-from sentry.models import EventAttachment
 from sentry.api.base import EnvironmentMixin
+from sentry.api.bases.group import GroupEndpoint
+from sentry.api.paginator import DateTimePaginator
+from sentry.api.serializers import EventAttachmentSerializer, serialize
+from sentry.models import EventAttachment
 
 
 class GroupEventAttachmentSerializer(EventAttachmentSerializer):
@@ -15,7 +13,7 @@ class GroupEventAttachmentSerializer(EventAttachmentSerializer):
     """
 
     def serialize(self, obj, attrs, user):
-        result = super(GroupEventAttachmentSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         result["event_id"] = obj.event_id
         return result
 
@@ -38,7 +36,7 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
         ):
             return self.respond(status=404)
 
-        attachments = EventAttachment.objects.filter(group_id=group.id).select_related("file")
+        attachments = EventAttachment.objects.filter(group_id=group.id)
 
         types = request.GET.getlist("types") or ()
         if types:

@@ -18,6 +18,21 @@ const styles = (theme: Theme, isDark: boolean) => css`
     border-bottom: 1px dotted ${theme.gray300};
   }
 
+  a {
+    color: ${theme.linkColor};
+    &:hover {
+      color: ${theme.linkHoverColor};
+    }
+  }
+
+  .group-detail:before {
+    background: ${theme.border};
+  }
+
+  .form-actions {
+    border-top-color: ${theme.border};
+  }
+
   /**
    * See https://web.dev/prefers-reduced-motion/
    */
@@ -47,6 +62,9 @@ const styles = (theme: Theme, isDark: boolean) => css`
   /* Override css in LESS files here as we want to manually control dark mode for now */
   ${isDark
     ? css`
+        .box {
+          background: ${theme.background};
+        }
         .loading .loading-indicator {
           border-color: ${theme.background};
           border-left-color: ${theme.purple300};
@@ -81,6 +99,9 @@ const styles = (theme: Theme, isDark: boolean) => css`
             a:hover {
               color: ${theme.textColor} !important;
             }
+          }
+          &.border-bottom {
+            border-color: ${theme.border};
           }
         }
 

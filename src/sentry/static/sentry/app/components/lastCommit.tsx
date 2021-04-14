@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
 import TimeSince from 'app/components/timeSince';
@@ -25,11 +24,6 @@ const unknownUser: AvatarUser = {
 };
 
 class LastCommit extends React.Component<Props> {
-  static propTypes = {
-    commit: PropTypes.object.isRequired,
-    headerClass: PropTypes.string,
-  };
-
   renderMessage(message: Commit['message']): string {
     if (!message) {
       return t('No message provided');

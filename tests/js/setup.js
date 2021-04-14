@@ -1,9 +1,7 @@
 /* global __dirname */
 import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import Adapter from 'enzyme-adapter-react-16';
-import jQuery from 'jquery';
 import MockDate from 'mockdate';
-import fromEntries from 'object.fromentries';
 import PropTypes from 'prop-types';
 
 import ConfigStore from 'app/stores/configStore';
@@ -12,9 +10,9 @@ import {loadFixtures} from './sentry-test/loadFixtures';
 
 export * from './sentry-test/select';
 
-// We need this polyfill for testing only because
-// typescript handles it for main application
-fromEntries.shim();
+// We need this polyfill for testing only because typescript handles it for
+// main application
+import 'core-js/features/object/from-entries';
 
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
@@ -147,9 +145,6 @@ jest.mock('popper.js', () => {
   };
 });
 
-// We generally use actual jQuery, and jest mocks takes precedence over node_modules.
-jest.unmock('jquery');
-
 /**
  * Test Globals
  */
@@ -157,7 +152,6 @@ jest.unmock('jquery');
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));
 
-window.$ = window.jQuery = jQuery;
 window.scrollTo = jest.fn();
 
 // This is very commonly used, so expose it globally.
@@ -181,7 +175,7 @@ window.TestStubs = {
 
   location: (params = {}) => ({
     query: {},
-    pathame: '/mock-pathname/',
+    pathname: '/mock-pathname/',
     ...params,
   }),
 

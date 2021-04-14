@@ -1,11 +1,9 @@
-from __future__ import absolute_import
+from urllib.parse import urlsplit, urlunsplit
 
-from six.moves.urllib.parse import urlsplit, urlunsplit
+from sentry.utils.safe import get_path
+from sentry.utils.strings import strip
 
 from .base import BaseEvent
-
-from sentry.utils.strings import strip
-from sentry.utils.safe import get_path
 
 LOCAL = "'self'"
 

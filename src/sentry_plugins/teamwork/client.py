@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 from sentry import http
 from sentry.utils import json
 
 
-class TeamworkClient(object):
+class TeamworkClient:
     def __init__(self, base_url, token, timeout=5):
         self.base_url = base_url
         self._token = token
@@ -12,7 +10,7 @@ class TeamworkClient(object):
 
     def _request(self, path, method="GET", params=None, data=None):
         path = path.lstrip("/")
-        url = u"%s/%s" % (self.base_url, path)
+        url = f"{self.base_url}/{path}"
 
         if not params:
             params = {}
@@ -28,11 +26,11 @@ class TeamworkClient(object):
         return self._request(path="/projects.json")["projects"]
 
     def list_tasklists(self, project_id):
-        return self._request(path=u"/projects/{0}/tasklists.json".format(project_id))["tasklists"]
+        return self._request(path=f"/projects/{project_id}/tasklists.json")["tasklists"]
 
     def create_task(self, tasklist_id, **kwargs):
         return self._request(
             method="POST",
-            path=u"/tasklists/{0}/tasks.json".format(tasklist_id),
+            path=f"/tasklists/{tasklist_id}/tasks.json",
             data={"todo-item": kwargs},
         )["id"]

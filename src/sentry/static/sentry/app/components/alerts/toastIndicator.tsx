@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {motion} from 'framer-motion';
-import PropTypes from 'prop-types';
 
 import {Indicator} from 'app/actionCreators/indicator';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -122,15 +121,5 @@ function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
     </Toast>
   );
 }
-
-ToastIndicator.propTypes = {
-  indicator: PropTypes.shape({
-    type: PropTypes.oneOf(['error', 'success', 'loading', 'undo', '']),
-    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    message: PropTypes.node,
-    options: PropTypes.object,
-  }),
-  onDismiss: PropTypes.func,
-};
 
 export default ToastIndicator;

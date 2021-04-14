@@ -26,7 +26,8 @@ export default [
     fields: [
       {
         name: 'storeCrashReports',
-        type: 'array',
+        type: 'select',
+        deprecatedSelectControl: false,
         label: t('Store Native Crash Reports'),
         help: ({organization}) =>
           tct(
@@ -111,6 +112,7 @@ export default [
         multiline: true,
         autosize: true,
         maxRows: 10,
+        rows: 1,
         placeholder: t('email'),
         label: t('Additional Sensitive Fields'),
         help: t(
@@ -125,6 +127,7 @@ export default [
         multiline: true,
         autosize: true,
         maxRows: 10,
+        rows: 1,
         placeholder: t('business-email'),
         label: t('Safe Fields'),
         help: t(

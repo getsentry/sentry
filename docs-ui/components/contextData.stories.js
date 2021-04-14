@@ -1,17 +1,12 @@
 import React from 'react';
-// import {action} from '@storybook/addon-actions';
-import {withInfo} from '@storybook/addon-info';
 
 import ContextData from 'app/components/contextData';
 
 export default {
   title: 'UI/ContextData',
+  component: ContextData,
 };
 
-export const Strings = withInfo('Default')(() => (
-  <ContextData data="https://example.org/foo/bar/" />
-));
+export const Strings = () => <ContextData data="https://example.org/foo/bar/" />;
 
-Strings.story = {
-  name: 'strings',
-};
+Strings.storyName = 'strings';

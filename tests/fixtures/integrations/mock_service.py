@@ -1,7 +1,6 @@
 import json
 import os
 import shutil
-
 from collections import defaultdict
 
 from sentry.utils.numbers import base32_encode
@@ -21,7 +20,7 @@ class MockService(StubService):
         """
         Initialize the mock instance. Wipe the previous instance's data if it exists.
         """
-        super(MockService, self).__init__()
+        super().__init__()
         self.mode = mode
         self._next_error_code = None
         self._next_ids = defaultdict(lambda: 0)
@@ -71,8 +70,8 @@ class MockService(StubService):
         """
         if self._next_error_code:
             self._next_error_code = None
-            message = message_option or "{} is down".format(self.service_name)
-            raise Exception("{}: {}".format(self._next_error_code, message))
+            message = message_option or f"{self.service_name} is down"
+            raise Exception(f"{self._next_error_code}: {message}")
 
     def _get_project_names(self):
         return self._next_ids.keys()
@@ -81,7 +80,7 @@ class MockService(StubService):
         counter = self._next_ids[project]
         self._next_ids[project] = counter + 1
 
-        return "{}-{}".format(project, base32_encode(counter))
+        return f"{project}-{base32_encode(counter)}"
 
     def _get_project_path(self, project):
         path = os.path.join(FIXTURE_DIRECTORY, self.service_name, "data", project)
@@ -97,7 +96,7 @@ class MockService(StubService):
             self._memory[project][name] = data
             return
 
-        path = os.path.join(self._get_project_path(project), "{}.json".format(name))
+        path = os.path.join(self._get_project_path(project), f"{name}.json")
         with open(path, "w") as f:
             f.write(json.dumps(data, sort_keys=True, indent=4))
 
@@ -107,9 +106,9 @@ class MockService(StubService):
                 self._memory[project] = defaultdict()
             return self._memory[project].get(name)
 
-        path = os.path.join(self._get_project_path(project), "{}.json".format(name))
+        path = os.path.join(self._get_project_path(project), f"{name}.json")
         if not os.path.exists(path):
             return None
 
-        with open(path, 'r') as f:
+        with open(path) as f:
             return json.loads(f.read())

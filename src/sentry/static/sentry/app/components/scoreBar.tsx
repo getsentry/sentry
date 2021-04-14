@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import theme from 'app/utils/theme';
 
@@ -49,18 +48,6 @@ const ScoreBar = ({
       ))}
     </div>
   );
-};
-
-ScoreBar.propTypes = {
-  vertical: PropTypes.bool,
-  score: PropTypes.number.isRequired,
-  /** Array of strings */
-  palette: PropTypes.arrayOf(PropTypes.string),
-  /** Array of classNames whose index maps to score */
-  paletteClassNames: PropTypes.arrayOf(PropTypes.string),
-  size: PropTypes.number,
-  thickness: PropTypes.number,
-  radius: PropTypes.number,
 };
 
 const StyledScoreBar = styled(ScoreBar)`

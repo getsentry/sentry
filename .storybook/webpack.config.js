@@ -35,6 +35,7 @@ module.exports = ({config} = {config: emptyConfig}) => {
         !rule.use.find(({loader}) => loader && loader.includes('postcss-loader')))
     );
   });
+
   const newConfig = {
     ...config,
     module: {
@@ -46,45 +47,29 @@ module.exports = ({config} = {config: emptyConfig}) => {
           include: [path.join(__dirname), staticPath, path.join(__dirname, '../docs-ui')],
         },
         {
-          test: /app\/icons\/.*\.svg$/,
-          use: [
-            {
-              loader: 'svg-sprite-loader',
-            },
-            {
-              loader: 'svgo-loader',
-            },
-          ],
-        },
-        {
-          test: /\.css$/,
-          use: ['style-loader', 'css-loader'],
-        },
-        {
           test: /\.less$/,
-          use: [
-            {
-              loader: 'style-loader',
-            },
-            {
-              loader: 'css-loader',
-            },
-            {
-              loader: 'less-loader',
-            },
-          ],
+          use: ['style-loader', 'css-loader', 'less-loader'],
         },
         {
           test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
-          exclude: /app\/icons\/.*\.svg$/,
-          loader: 'file-loader?name=' + '[name].[ext]',
+          use: [
+            {
+              loader: 'file-loader',
+              options: {
+                esModule: false,
+                name: '[name].[hash:6].[ext]',
+              },
+            },
+          ],
         },
         {
           test: /\.po$/,
-          loader: 'po-catalog-loader',
-          query: {
-            referenceExtensions: ['.js', '.jsx'],
-            domain: 'sentry',
+          use: {
+            loader: 'po-catalog-loader',
+            options: {
+              referenceExtensions: ['.js', '.jsx'],
+              domain: 'sentry',
+            },
           },
         },
         ...filteredRules,
@@ -94,17 +79,10 @@ module.exports = ({config} = {config: emptyConfig}) => {
     plugins: [
       ...config.plugins,
       new webpack.ProvidePlugin({
-        $: 'jquery',
         jQuery: 'jquery',
-        'window.jQuery': 'jquery',
-        'root.jQuery': 'jquery',
-        underscore: 'underscore',
-        _: 'underscore',
       }),
       new webpack.DefinePlugin({
-        'process.env': {
-          FIXED_DYNAMIC_CONTENT: true,
-        },
+        'process.env.FIXED_DYNAMIC_CONTENT': true,
       }),
     ],
 
@@ -117,6 +95,9 @@ module.exports = ({config} = {config: emptyConfig}) => {
         ...config.resolve.alias,
         ...appConfig.resolve.alias,
         app: staticPath,
+      },
+      fallback: {
+        ...appConfig.resolve.fallback,
       },
     },
   };

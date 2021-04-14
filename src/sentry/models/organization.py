@@ -1,18 +1,14 @@
-from __future__ import absolute_import, print_function
-
 import logging
-import six
-
 from datetime import timedelta
 from enum import IntEnum
 
-from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
 
+from bitfield import BitField
 from sentry import roles
 from sentry.app import locks
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, RESERVED_PROJECT_SLUGS
@@ -40,14 +36,14 @@ class OrganizationStatus(IntEnum):
     @classmethod
     def as_choices(cls):
         result = []
-        for name, member in six.iteritems(cls.__members__):
+        for name, member in cls.__members__.items():
             # an alias
             if name != member.name:
                 continue
             # realistically Enum shouldn't even creating these, but alas
             if name.startswith("_"):
                 continue
-            result.append((member.value, six.text_type(member.label)))
+            result.append((member.value, str(member.label)))
         return tuple(result)
 
 
@@ -94,7 +90,6 @@ class Organization(Model):
     """
 
     __core__ = True
-
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
@@ -107,30 +102,30 @@ class Organization(Model):
         related_name="org_memberships",
         through_fields=("organization", "user"),
     )
-    default_role = models.CharField(max_length=32, default=six.text_type(roles.get_default().id))
+    default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
 
     flags = BitField(
         flags=(
             (
-                u"allow_joinleave",
-                u"Allow members to join and leave teams without requiring approval.",
+                "allow_joinleave",
+                "Allow members to join and leave teams without requiring approval.",
             ),
             (
-                u"enhanced_privacy",
-                u"Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.",
+                "enhanced_privacy",
+                "Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.",
             ),
             (
-                u"disable_shared_issues",
-                u"Disable sharing of limited details on issues to anonymous users.",
+                "disable_shared_issues",
+                "Disable sharing of limited details on issues to anonymous users.",
             ),
             (
-                u"early_adopter",
-                u"Enable early adopter status, gaining access to features prior to public release.",
+                "early_adopter",
+                "Enable early adopter status, gaining access to features prior to public release.",
             ),
-            (u"require_2fa", u"Require and enforce two-factor authentication for all members."),
+            ("require_2fa", "Require and enforce two-factor authentication for all members."),
             (
-                u"disable_new_visibility_features",
-                u"Temporarily opt out of new visibility features and ui",
+                "disable_new_visibility_features",
+                "Temporarily opt out of new visibility features and ui",
             ),
         ),
         default=1,
@@ -155,22 +150,28 @@ class Organization(Model):
 
         return cls.objects.filter(status=OrganizationStatus.ACTIVE)[0]
 
-    def __unicode__(self):
-        return u"%s (%s)" % (self.name, self.slug)
+    def __str__(self):
+        return f"{self.name} ({self.slug})"
 
     def save(self, *args, **kwargs):
         if not self.slug:
             lock = locks.get("slug:organization", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
-            super(Organization, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
         else:
-            super(Organization, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
 
-    def delete(self):
+    def delete(self, **kwargs):
+        from sentry.models import NotificationSetting
+
         if self.is_default:
             raise Exception("You cannot delete the the default organization.")
-        return super(Organization, self).delete()
+
+        # There is no foreign key relationship so we have to manually cascade.
+        NotificationSetting.objects.remove_for_organization(self)
+
+        return super().delete(**kwargs)
 
     @cached_property
     def is_default(self):
@@ -224,6 +225,7 @@ class Organization(Model):
             AuditLogEntry,
             AuthProvider,
             Commit,
+            Environment,
             OrganizationAvatar,
             OrganizationIntegration,
             OrganizationMember,
@@ -236,7 +238,6 @@ class Organization(Model):
             ReleaseHeadCommit,
             Repository,
             Team,
-            Environment,
         )
 
         for from_member in OrganizationMember.objects.filter(
@@ -337,7 +338,7 @@ class Organization(Model):
                             instance.update(**params)
                     except IntegrityError:
                         logger.info(
-                            "{}.migrate-skipped".format(model_name),
+                            f"{model_name}.migrate-skipped",
                             extra={
                                 "from_organization_id": from_org.id,
                                 "to_organization_id": to_org.id,
@@ -345,7 +346,7 @@ class Organization(Model):
                         )
                     else:
                         logger.info(
-                            "{}.migrate".format(model_name),
+                            f"{model_name}.migrate",
                             extra={
                                 "instance_id": instance.id,
                                 "from_organization_id": from_org.id,
@@ -354,7 +355,7 @@ class Organization(Model):
                         )
             else:
                 logger.info(
-                    "{}.migrate".format(model_name),
+                    f"{model_name}.migrate",
                     extra={"from_organization_id": from_org.id, "to_organization_id": to_org.id},
                 )
 
@@ -408,16 +409,12 @@ class Organization(Model):
         }
 
         MessageBuilder(
-            subject="%sOrganization Queued for Deletion" % (options.get("mail.subject-prefix"),),
+            subject="{}Organization Queued for Deletion".format(options.get("mail.subject-prefix")),
             template="sentry/emails/org_delete_confirm.txt",
             html_template="sentry/emails/org_delete_confirm.html",
             type="org.confirm_delete",
             context=context,
         ).send_async([o.email for o in owners])
-
-    def flag_has_changed(self, flag_name):
-        "Returns ``True`` if ``flag`` has changed since initialization."
-        return getattr(self.old_value("flags"), flag_name, None) != getattr(self.flags, flag_name)
 
     def handle_2fa_required(self, request):
         from sentry.models import ApiKey

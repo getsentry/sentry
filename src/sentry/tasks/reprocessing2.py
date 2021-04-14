@@ -1,23 +1,21 @@
-from __future__ import absolute_import
-
-import time
 import logging
-import six
-import zstandard
+import time
 
+import sentry_sdk
 from django.db import transaction
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
-from sentry.utils.query import celery_run_batch_query
-from sentry.utils import metrics
-from sentry.utils.sdk import set_current_project
-from sentry.eventstore.processing import event_processing_store
 from sentry.tasks.base import instrumented_task, retry
-from sentry.eventstore.processing.base import _get_unprocessed_key
-from sentry.lang.native.utils import is_minidump_event
+from sentry.utils.query import celery_run_batch_query
 
-GROUP_REPROCESSING_CHUNK_SIZE = 100
+# We have observed that the p95 of process_event is around 10s (p50 = 400ms),
+# so we need to make sure that the amount of events we process in
+# reprocess_group stays within its time_limit and soft_time_limit
+#
+# chunk_size         soft_time_limit
+# 10         * 10 <= 110
+GROUP_REPROCESSING_CHUNK_SIZE = 10
 
 nodestore_stats_logger = logging.getLogger("sentry.nodestore.stats")
 
@@ -31,19 +29,30 @@ nodestore_stats_logger = logging.getLogger("sentry.nodestore.stats")
 def reprocess_group(
     project_id,
     group_id,
+    remaining_events="delete",
     new_group_id=None,
     query_state=None,
     start_time=None,
     max_events=None,
     acting_user_id=None,
 ):
-    from sentry.reprocessing2 import start_group_reprocessing
+    sentry_sdk.set_tag("project", project_id)
+    from sentry.reprocessing2 import (
+        CannotReprocess,
+        logger,
+        reprocess_event,
+        start_group_reprocessing,
+    )
 
     if start_time is None:
         assert new_group_id is None
         start_time = time.time()
         new_group_id = start_group_reprocessing(
-            project_id, group_id, max_events=max_events, acting_user_id=acting_user_id
+            project_id,
+            group_id,
+            max_events=max_events,
+            acting_user_id=acting_user_id,
+            remaining_events=remaining_events,
         )
 
     assert new_group_id is not None
@@ -56,24 +65,46 @@ def reprocess_group(
     )
 
     if not events:
+        # Need to delay this until we have enqueued all events and stopped
+        # iterating over the batch query, if we take care of this in
+        # finish_reprocessing it won't work, as for small max_events
+        # finish_reprocessing may execute sooner than the last reprocess_group
+        # iteration.
+        eventstream.exclude_groups(project_id, [group_id])
         return
 
-    tombstoned_event_ids = []
+    remaining_event_ids = []
 
     for event in events:
         if max_events is None or max_events > 0:
-            reprocess_event.delay(
-                project_id=project_id, event_id=event.event_id, start_time=start_time,
-            )
-            if max_events is not None:
-                max_events -= 1
-        else:
-            tombstoned_event_ids.append(event.event_id)
+            with sentry_sdk.start_span(op="reprocess_event"):
+                try:
+                    reprocess_event(
+                        project_id=project_id,
+                        event_id=event.event_id,
+                        start_time=start_time,
+                    )
+                except CannotReprocess as e:
+                    logger.error(f"reprocessing2.{e}")
+                except Exception:
+                    sentry_sdk.capture_exception()
+                else:
+                    if max_events is not None:
+                        max_events -= 1
 
-    # len(tombstoned_event_ids) is upper-bounded by GROUP_REPROCESSING_CHUNK_SIZE
-    if tombstoned_event_ids:
-        tombstone_events.delay(
-            project_id=project_id, group_id=group_id, event_ids=tombstoned_event_ids
+                    continue
+
+        # In case of errors while kicking of reprocessing or if max_events has
+        # been exceeded, do the default action.
+        remaining_event_ids.append(event.event_id)
+
+    # len(remaining_event_ids) is upper-bounded by GROUP_REPROCESSING_CHUNK_SIZE
+    if remaining_event_ids:
+        handle_remaining_events.delay(
+            project_id=project_id,
+            new_group_id=new_group_id,
+            event_ids=remaining_event_ids,
+            remaining_events=remaining_events,
         )
 
     reprocess_group.delay(
@@ -83,20 +114,21 @@ def reprocess_group(
         query_state=query_state,
         start_time=start_time,
         max_events=max_events,
+        remaining_events=remaining_events,
     )
 
 
 @instrumented_task(
-    name="sentry.tasks.reprocessing2.tombstone_events",
+    name="sentry.tasks.reprocessing2.handle_remaining_events",
     queue="events.reprocessing.process_event",
     time_limit=60 * 5,
     max_retries=5,
 )
 @retry
-def tombstone_events(project_id, group_id, event_ids):
+def handle_remaining_events(project_id, new_group_id, event_ids, remaining_events):
     """
-    Delete associated per-event data: nodestore, event attachments, user
-    reports. Mark the event as "tombstoned" in Snuba.
+    Delete or merge/move associated per-event data: nodestore, event
+    attachments, user reports. Mark the event as "tombstoned" in Snuba.
 
     This is not full event deletion. Snuba can still only delete entire groups,
     however we must only run this task for event IDs that we don't intend to
@@ -106,31 +138,24 @@ def tombstone_events(project_id, group_id, event_ids):
     See doccomment in sentry.reprocessing2.
     """
 
-    from sentry.reprocessing2 import delete_unprocessed_events
+    assert remaining_events in ("delete", "keep")
 
-    models.EventAttachment.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
-    models.UserReport.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
+    if remaining_events == "delete":
+        models.EventAttachment.objects.filter(
+            project_id=project_id, event_id__in=event_ids
+        ).delete()
+        models.UserReport.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
 
-    # Remove from nodestore
-    node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
-    nodestore.delete_multi(node_ids)
+        # Remove from nodestore
+        node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
+        nodestore.delete_multi(node_ids)
 
-    delete_unprocessed_events(project_id, event_ids)
-
-    # Tell Snuba to delete the event data.
-    eventstream.tombstone_events(project_id, event_ids)
-
-
-@instrumented_task(
-    name="sentry.tasks.reprocessing2.reprocess_event",
-    queue="events.reprocessing.process_event",
-    time_limit=30,
-    soft_time_limit=20,
-)
-def reprocess_event(project_id, event_id, start_time):
-    from sentry.reprocessing2 import reprocess_event as reprocess_event_impl
-
-    reprocess_event_impl(project_id=project_id, event_id=event_id, start_time=start_time)
+        # Tell Snuba to delete the event data.
+        eventstream.tombstone_events_unsafe(project_id, event_ids)
+    elif remaining_events == "keep":
+        eventstream.replace_group_unsafe(project_id, event_ids, new_group_id=new_group_id)
+    else:
+        raise ValueError(f"Invalid value for remaining_events: {remaining_events}")
 
 
 @instrumented_task(
@@ -140,7 +165,7 @@ def reprocess_event(project_id, event_id, start_time):
     soft_time_limit=60 * 5,
 )
 def finish_reprocessing(project_id, group_id):
-    from sentry.models import Group, GroupRedirect, Activity
+    from sentry.models import Activity, Group, GroupRedirect
 
     with transaction.atomic():
         group = Group.objects.get(id=group_id)
@@ -165,98 +190,6 @@ def finish_reprocessing(project_id, group_id):
         # have moved to a successor group that may be deleted independently.
         group.delete()
 
-    # Need to delay this until we have enqueued all events.
-    eventstream.exclude_groups(project_id, [group_id])
-
     from sentry import similarity
 
     similarity.delete(None, group)
-
-
-def _json_size(*json_blobs):
-    from sentry.nodestore.bigtable.backend import json_dumps
-
-    bytestring = b"\n".join(json_dumps(data).encode("utf8") for data in json_blobs)
-    cctx = zstandard.ZstdCompressor()
-    return len(cctx.compress(bytestring))
-
-
-@instrumented_task(name="sentry.tasks.reprocessing2.capture_nodestore_stats")
-def capture_nodestore_stats(cache_key, project_id, event_id):
-    set_current_project(project_id)
-
-    from sentry.eventstore.compressor import deduplicate
-    from sentry.eventstore.models import Event
-
-    node_id = Event.generate_node_id(project_id, event_id)
-    data = nodestore.get(node_id)
-
-    if not data:
-        metrics.incr("eventstore.compressor.error", tags={"reason": "no_data"})
-        return
-
-    old_event_size = _json_size(data)
-
-    unprocessed_data = event_processing_store.get(_get_unprocessed_key(cache_key))
-    event_processing_store.delete_by_key(_get_unprocessed_key(cache_key))
-
-    tags = {
-        "with_reprocessing": bool(unprocessed_data),
-        "platform": data.get("platform") or "none",
-        "is_minidump": is_minidump_event(data),
-    }
-
-    if unprocessed_data:
-        metrics.incr("nodestore_stats.with_reprocessing")
-
-        concatenated_size = _json_size(data, unprocessed_data)
-        metrics.timing("events.size.concatenated", concatenated_size, tags=tags)
-        metrics.timing(
-            "events.size.concatenated.ratio", concatenated_size / old_event_size, tags=tags
-        )
-
-        _data = dict(data)
-        _data["__nodestore_reprocessing"] = unprocessed_data
-        simple_concatenated_size = _json_size(_data)
-        metrics.timing("events.size.simple_concatenated", simple_concatenated_size, tags=tags)
-        metrics.timing(
-            "events.size.simple_concatenated.ratio",
-            simple_concatenated_size / old_event_size,
-            tags=tags,
-        )
-    else:
-        metrics.incr("nodestore_stats.without_reprocessing")
-
-    new_data, extra_keys = deduplicate(dict(data))
-    total_size = event_size = _json_size(new_data)
-
-    for key, value in six.iteritems(extra_keys):
-        if nodestore.get(key) is not None:
-            metrics.incr("eventstore.compressor.hits", tags=tags)
-            # do not continue, nodestore.set() should bump TTL
-        else:
-            metrics.incr("eventstore.compressor.misses", tags=tags)
-            total_size += _json_size(value)
-
-        # key is md5sum of content
-        # do not store actual value to keep prod impact to a minimum
-        nodestore.set(key, {})
-
-    metrics.timing("events.size.deduplicated", event_size, tags=tags)
-    metrics.timing("events.size.deduplicated.total_written", total_size, tags=tags)
-
-    metrics.timing("events.size.deduplicated.ratio", event_size / old_event_size, tags=tags)
-    metrics.timing(
-        "events.size.deduplicated.total_written.ratio", total_size / old_event_size, tags=tags
-    )
-
-    if total_size > old_event_size:
-        nodestore_stats_logger.info(
-            "events.size.deduplicated.details",
-            extra={
-                "project_id": project_id,
-                "event_id": event_id,
-                "total_size": total_size,
-                "old_event_size": old_event_size,
-            },
-        )

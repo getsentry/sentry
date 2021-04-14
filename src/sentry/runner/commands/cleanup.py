@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import os
 from datetime import timedelta
 from uuid import uuid4
@@ -8,8 +6,6 @@ import click
 from django.utils import timezone
 
 from sentry.runner.decorators import log_options
-from six.moves import xrange
-
 
 # allows services like tagstore to add their own (abstracted) models
 # to cleanup
@@ -41,6 +37,7 @@ API_TOKEN_TTL_IN_DAYS = 30
 def multiprocess_worker(task_queue):
     # Configure within each Process
     import logging
+
     from sentry.utils.imports import import_string
 
     logger = logging.getLogger("sentry.cleanup")
@@ -59,9 +56,7 @@ def multiprocess_worker(task_queue):
 
             configure()
 
-            from sentry import models
-            from sentry import deletions
-            from sentry import similarity
+            from sentry import deletions, models, similarity
 
             skip_models = [
                 # Handled by other parts of cleanup
@@ -136,11 +131,12 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
-    from multiprocessing import Process, JoinableQueue as Queue
+    from multiprocessing import JoinableQueue as Queue
+    from multiprocessing import Process
 
     pool = []
     task_queue = Queue(1000)
-    for _ in xrange(concurrency):
+    for _ in range(concurrency):
         p = Process(target=multiprocess_worker, args=(task_queue,))
         p.daemon = True
         p.start()
@@ -151,13 +147,15 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     configure()
 
     from django.db import router as db_router
-    from sentry.app import nodestore
-    from sentry.db.deletion import BulkDeleteQuery
+
     from sentry import models
+    from sentry.app import nodestore
     from sentry.data_export.models import ExportedData
+    from sentry.db.deletion import BulkDeleteQuery
 
     if timed:
         import time
+
         from sentry.utils import metrics
 
         start_time = time.time()
@@ -210,11 +208,11 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     for model in [models.ApiGrant, models.ApiToken]:
         if not silent:
-            click.echo(u"Removing expired values for {}".format(model.__name__))
+            click.echo(f"Removing expired values for {model.__name__}")
 
         if is_filtered(model):
             if not silent:
-                click.echo(u">> Skipping {}".format(model.__name__))
+                click.echo(f">> Skipping {model.__name__}")
         else:
             queryset = model.objects.filter(
                 expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
@@ -266,7 +264,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         if not silent:
             click.echo(
-                u"Removing {model} for days={days} project={project}".format(
+                "Removing {model} for days={days} project={project}".format(
                     model=model.__name__, days=days, project=project or "*"
                 )
             )
@@ -281,7 +279,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     for model, dtfield, order_by in DELETES:
         if not silent:
             click.echo(
-                u"Removing {model} for days={days} project={project}".format(
+                "Removing {model} for days={days} project={project}".format(
                     model=model.__name__, days=days, project=project or "*"
                 )
             )

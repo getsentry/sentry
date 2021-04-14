@@ -1,27 +1,20 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-from django.utils.functional import cached_property
-
 import os
 
 import pytest
+from django.utils.functional import cached_property
 
 from sentry import eventstore
-from sentry.utils import json
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.event_manager import EventManager, materialize_metadata
+from sentry.grouping.api import apply_server_fingerprinting, load_grouping_config
 from sentry.grouping.enhancer import Enhancements
-from sentry.grouping.api import load_grouping_config
 from sentry.grouping.fingerprinting import FingerprintingRules
-from sentry.grouping.api import apply_server_fingerprinting
-
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.utils import json
 
 _grouping_fixture_path = os.path.join(os.path.dirname(__file__), "grouping_inputs")
 
 
-class GroupingInput(object):
+class GroupingInput:
     def __init__(self, filename):
         self.filename = filename
 
@@ -70,7 +63,7 @@ def with_grouping_input(name):
 _fingerprint_fixture_path = os.path.join(os.path.dirname(__file__), "fingerprint_inputs")
 
 
-class FingerprintInput(object):
+class FingerprintInput:
     def __init__(self, filename):
         self.filename = filename
 

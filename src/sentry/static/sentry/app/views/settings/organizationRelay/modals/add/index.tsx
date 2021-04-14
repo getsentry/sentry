@@ -45,7 +45,7 @@ class Add extends ModalManager {
             'Go to the file [jsonFile: credentials.json] to find the public key and enter it below.',
             {
               jsonFile: (
-                <CredentialsLink href="https://docs.sentry.io/product/relay/getting-started/#registering-relay-with-sentry" />
+                <ExternalLink href="https://docs.sentry.io/product/relay/getting-started/#registering-relay-with-sentry" />
               ),
             }
           )}
@@ -62,11 +62,4 @@ export default Add;
 const StyledList = styled(List)`
   display: grid;
   grid-gap: ${space(3)};
-`;
-
-const CredentialsLink = styled(ExternalLink)`
-  color: ${p => p.theme.active};
-  :hover {
-    color: ${p => p.theme.active};
-  }
 `;

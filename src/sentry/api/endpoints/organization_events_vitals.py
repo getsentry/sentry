@@ -1,10 +1,8 @@
-from __future__ import absolute_import
 import sentry_sdk
-
-from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import get_function_alias
 from sentry.snuba import discover
 
@@ -32,22 +30,20 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
 
             vitals = [vital.lower() for vital in request.GET.getlist("vital", [])]
             if len(vitals) == 0:
-                raise ParseError(detail=u"Need to pass at least one vital")
+                raise ParseError(detail="Need to pass at least one vital")
 
             selected_columns = []
             aliases = {}
             for vital in vitals:
                 if vital not in self.VITALS:
-                    raise ParseError(detail=u"{} is not a valid vital".format(vital))
+                    raise ParseError(detail=f"{vital} is not a valid vital")
                 aliases[vital] = []
                 for index, threshold in enumerate(self.VITALS[vital]["thresholds"]):
-                    column = "count_at_least({vital}, {threshold})".format(
-                        vital=vital, threshold=threshold
-                    )
+                    column = f"count_at_least({vital}, {threshold})"
                     # Order aliases for later calculation
                     aliases[vital].append(get_function_alias(column))
                     selected_columns.append(column)
-                selected_columns.append("p75({vital})".format(vital=vital))
+                selected_columns.append(f"p75({vital})")
 
         with self.handle_query_errors():
             events_results = discover.query(
@@ -78,8 +74,6 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                     total += group_count
 
                 results[vital]["total"] = total
-                results[vital]["p75"] = event_data.get(
-                    get_function_alias("p75({vital})".format(vital=vital))
-                )
+                results[vital]["p75"] = event_data.get(get_function_alias(f"p75({vital})"))
 
         return Response(results)

@@ -1,13 +1,10 @@
-from __future__ import absolute_import
-
+import logging
 import os
+import time
 
 import pytest
-import six
-from confluent_kafka.admin import AdminClient
 from confluent_kafka import Producer
-import time
-import logging
+from confluent_kafka.admin import AdminClient
 
 _log = logging.getLogger(__name__)
 
@@ -30,7 +27,7 @@ class _KafkaAdminWrapper:
         self.test_name = request.node.name
 
         kafka_config = {}
-        for key, val in six.iteritems(settings.KAFKA_CLUSTERS["default"]["common"]):
+        for key, val in settings.KAFKA_CLUSTERS["default"]["common"].items():
             kafka_config[key] = val
 
         self.admin_client = AdminClient(kafka_config)
@@ -113,8 +110,8 @@ def requires_kafka():
 @pytest.fixture(scope="session")
 def scope_consumers():
     """
-      Sets up an object to keep track of the scope consumers ( consumers that will only
-      be created once per test session).
+    Sets up an object to keep track of the scope consumers ( consumers that will only
+    be created once per test session).
 
     """
     all_consumers = {
@@ -126,7 +123,7 @@ def scope_consumers():
 
     yield all_consumers
 
-    for consumer_name, consumer in six.iteritems(all_consumers):
+    for consumer_name, consumer in all_consumers.items():
         if consumer is not None:
             try:
                 # stop the consumer
@@ -151,8 +148,8 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
 
     def ingest_consumer(settings):
         from sentry.ingest.ingest_consumer import (
-            create_batching_kafka_consumer,
             IngestConsumerWorker,
+            create_batching_kafka_consumer,
         )
 
         # Relay is configured to use this topic for all ingest messages. See

@@ -3,13 +3,11 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {selectByValue} from 'sentry-test/select';
+import {selectByValue} from 'sentry-test/select-new';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
-
-jest.mock('jquery');
 
 describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
@@ -258,7 +256,7 @@ describe('projectGeneralSettings', function () {
 
     // Slug does not save on blur
     expect(putMock).not.toHaveBeenCalled();
-    wrapper.find('SaveButton').simulate('click');
+    wrapper.find('MessageAndActions button[aria-label="Save"]').simulate('click');
 
     // fetches new slug
     const newProjectGet = MockApiClient.addMockResponse({
@@ -320,7 +318,9 @@ describe('projectGeneralSettings', function () {
       await tick();
       wrapper.update();
       // Initially does not have "Cancel" button
-      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(0);
+      expect(wrapper.find('MessageAndActions button[aria-label="Cancel"]')).toHaveLength(
+        0
+      );
       // Has initial value
       expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
 
@@ -333,12 +333,16 @@ describe('projectGeneralSettings', function () {
       // Has updated value
       expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(12);
       // Has "Cancel" button visible
-      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(1);
+      expect(wrapper.find('MessageAndActions button[aria-label="Cancel"]')).toHaveLength(
+        1
+      );
 
       // Click cancel
-      wrapper.find('MessageAndActions CancelButton').simulate('click');
+      wrapper.find('MessageAndActions button[aria-label="Cancel"]').simulate('click');
       // Cancel row should disappear
-      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(0);
+      expect(wrapper.find('MessageAndActions button[aria-label="Cancel"]')).toHaveLength(
+        0
+      );
       // Value should be reverted
       expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
       // PUT should not be called
@@ -349,7 +353,7 @@ describe('projectGeneralSettings', function () {
       await tick();
       wrapper.update();
       // Initially does not have "Save" button
-      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(0);
+      expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(0);
 
       // Change value
       wrapper
@@ -358,13 +362,13 @@ describe('projectGeneralSettings', function () {
         .simulate('mouseUp');
 
       // Has "Save" button visible
-      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(1);
+      expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(1);
 
       // Should not have put mock called yet
       expect(putMock).not.toHaveBeenCalled();
 
       // Click "Save"
-      wrapper.find('MessageAndActions SaveButton').simulate('click');
+      wrapper.find('MessageAndActions button[aria-label="Save"]').simulate('click');
       // API endpoint should have been called
       expect(putMock).toHaveBeenCalledWith(
         expect.anything(),
@@ -378,7 +382,7 @@ describe('projectGeneralSettings', function () {
       // Should hide "Save" button after saving
       await tick();
       wrapper.update();
-      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(0);
+      expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(0);
     });
   });
 });

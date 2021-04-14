@@ -1,21 +1,17 @@
-from __future__ import absolute_import
+import re
+import zipfile
+from io import BytesIO
 
 import pytest
-import zipfile
-from sentry.utils.compat.mock import patch
-
-from six import BytesIO
-
-from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.urlresolvers import reverse
 
 from sentry import eventstore
-from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models import File, ProjectDebugFile
-from sentry.testutils.helpers.datetime import iso_format, before_now
-
+from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
-
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
@@ -136,15 +132,15 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         event_data = {
             "contexts": {
                 "device": {"arch": "x86"},
-                "os": {"build": u"", "name": "Windows", "type": "os", "version": u"10.0.14393"},
+                "os": {"build": "", "name": "Windows", "type": "os", "version": "10.0.14393"},
             },
             "debug_meta": {
                 "images": [
                     {
-                        "id": u"3249d99d-0c40-4931-8610-f4e4fb0b6936-1",
+                        "id": "3249d99d-0c40-4931-8610-f4e4fb0b6936-1",
                         "image_addr": "0x2a0000",
                         "image_size": 36864,
-                        "name": u"C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe",
+                        "name": "C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe",
                         "type": "symbolic",
                     }
                 ]
@@ -155,13 +151,13 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
                         {
                             "function": "<unknown>",
                             "instruction_addr": "0x2a2a3d",
-                            "package": u"C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe",
+                            "package": "C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe",
                         }
                     ]
                 },
                 "thread_id": 1636,
-                "type": u"EXCEPTION_ACCESS_VIOLATION_WRITE",
-                "value": u"Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE",
+                "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
+                "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE",
             },
             "platform": "native",
             "timestamp": iso_format(before_now(seconds=1)),
@@ -187,3 +183,78 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         event = self.post_and_retrieve_event(payload)
         assert event.data["culprit"] == "unknown"
         insta_snapshot_stacktrace_data(self, event.data)
+
+    def test_resolving_with_candidates_sentry_source(self):
+        # Checks the candidates with a sentry source URI for location
+        file = File.objects.create(
+            name="crash.pdb", type="default", headers={"Content-Type": "text/x-breakpad"}
+        )
+
+        path = get_fixture_path("windows.sym")
+        with open(path, "rb") as f:
+            file.putfile(f)
+
+        ProjectDebugFile.objects.create(
+            file=file,
+            object_name="crash.pdb",
+            cpu_name="x86",
+            project=self.project,
+            debug_id="3249d99d-0c40-4931-8610-f4e4fb0b6936-1",
+            code_id="5AB380779000",
+        )
+
+        self.login_as(user=self.user)
+
+        event_data = {
+            "contexts": {
+                "device": {"arch": "x86"},
+            },
+            "debug_meta": {
+                "images": [
+                    {
+                        "id": "3249d99d-0c40-4931-8610-f4e4fb0b6936-1",
+                        "image_addr": "0x2a0000",
+                        "image_size": 36864,
+                        "name": "C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe",
+                        "type": "symbolic",
+                    }
+                ]
+            },
+            "exception": {
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "instruction_addr": "0x2a2a3d",
+                        }
+                    ]
+                },
+                "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
+                "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE",
+            },
+            "platform": "native",
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+
+        with self.feature("organizations:images-loaded-v2"):
+            event = self.post_and_retrieve_event(event_data)
+        assert event.data["culprit"] == "main"
+
+        candidates = event.data["debug_meta"]["images"][0]["candidates"]
+        redact_location(candidates)
+        self.insta_snapshot(candidates)
+
+
+def redact_location(candidates):
+    """Redacts the sentry location URI to be independent of the specific ID.
+
+    This modifies the data passed in, returns None.
+    """
+    location_re = re.compile("^sentry://project_debug_file/[0-9]+$")
+    for candidate in candidates:
+        try:
+            location = candidate["location"]
+        except KeyError:
+            continue
+        else:
+            if location_re.search(location):
+                candidate["location"] = "sentry://project_debug_file/x"

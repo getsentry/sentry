@@ -1,15 +1,10 @@
-from __future__ import absolute_import
-
-import six
-
 from uuid import uuid4
 
 from sentry.app import locks
 from sentry.models import OrganizationOption
 from sentry.plugins import providers
-from sentry.utils.http import absolute_uri
-
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.http import absolute_uri
 
 from .endpoints.webhook import parse_raw_user_email, parse_raw_user_name
 from .mixins import BitbucketMixin
@@ -46,11 +41,11 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
             except Exception as e:
                 self.raise_error(e, identity=client.auth)
             else:
-                config["external_id"] = six.text_type(repo["uuid"])
+                config["external_id"] = str(repo["uuid"])
         return config
 
     def get_webhook_secret(self, organization):
-        lock = locks.get(u"bitbucket:webhook-secret:{}".format(organization.id), duration=60)
+        lock = locks.get(f"bitbucket:webhook-secret:{organization.id}", duration=60)
         with lock.acquire():
             secret = OrganizationOption.objects.get_value(
                 organization=organization, key="bitbucket:webhook_secret"
@@ -73,7 +68,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
                 {
                     "description": "sentry-bitbucket-repo-hook",
                     "url": absolute_uri(
-                        u"/plugins/bitbucket/organizations/{}/webhook/".format(organization.id)
+                        f"/plugins/bitbucket/organizations/{organization.id}/webhook/"
                     ),
                     "active": True,
                     "events": ["repo:push"],
@@ -85,7 +80,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
             return {
                 "name": data["name"],
                 "external_id": data["external_id"],
-                "url": u"https://bitbucket.org/{}".format(data["name"]),
+                "url": "https://bitbucket.org/{}".format(data["name"]),
                 "config": {"name": data["name"], "webhook_id": resp["uuid"]},
             }
 

@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import SearchBar from 'app/components/events/searchBar';
+import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
@@ -13,7 +15,6 @@ import {generateAggregateFields} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import SearchBar from 'app/views/events/searchBar';
 
 import {FilterViews} from '../landing';
 import {getTransactionSearchQuery} from '../utils';
@@ -21,13 +22,13 @@ import {getTransactionSearchQuery} from '../utils';
 import ChangedTransactions from './changedTransactions';
 import {TrendChangeType, TrendFunctionField, TrendView} from './types';
 import {
-  CONFIDENCE_LEVELS,
   DEFAULT_MAX_DURATION,
-  getCurrentConfidenceLevel,
   getCurrentTrendFunction,
+  getCurrentTrendParameter,
   getSelectedQueryKey,
   resetCursors,
   TRENDS_FUNCTIONS,
+  TRENDS_PARAMETERS,
 } from './utils';
 
 type Props = {
@@ -94,24 +95,23 @@ class TrendsContent extends React.Component<Props, State> {
     });
   };
 
-  handleConfidenceChange = (label: string) => {
+  handleParameterChange = (label: string) => {
     const {organization, location} = this.props;
+    const cursors = resetCursors();
 
     trackAnalyticsEvent({
-      eventKey: 'performance_views.trends.change_confidence',
-      eventName: 'Performance Views: Change confidence',
+      eventKey: 'performance_views.trends.change_parameter',
+      eventName: 'Performance Views: Change Parameter',
       organization_id: parseInt(organization.id, 10),
-      confidence_level: label,
+      parameter_name: label,
     });
-
-    const cursors = resetCursors();
 
     browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
         ...cursors,
-        confidenceLevel: label,
+        trendParameter: label,
       },
     });
   };
@@ -146,7 +146,7 @@ class TrendsContent extends React.Component<Props, State> {
       ['epm()', 'eps()']
     );
     const currentTrendFunction = getCurrentTrendFunction(location);
-    const currentConfidenceLevel = getCurrentConfidenceLevel(location);
+    const currentTrendParameter = getCurrentTrendParameter(location);
     const query = getTransactionSearchQuery(location);
 
     return (
@@ -158,25 +158,8 @@ class TrendsContent extends React.Component<Props, State> {
             query={query}
             fields={fields}
             onSearch={this.handleSearch}
+            maxQueryLength={MAX_QUERY_LENGTH}
           />
-          <TrendsDropdown>
-            <DropdownControl
-              buttonProps={{prefix: t('Confidence')}}
-              label={currentConfidenceLevel.label}
-            >
-              {CONFIDENCE_LEVELS.map(({label}) => (
-                <DropdownItem
-                  key={label}
-                  onSelect={this.handleConfidenceChange}
-                  eventKey={label}
-                  data-test-id={label}
-                  isActive={label === currentConfidenceLevel.label}
-                >
-                  {label}
-                </DropdownItem>
-              ))}
-            </DropdownControl>
-          </TrendsDropdown>
           <TrendsDropdown>
             <DropdownControl
               buttonProps={{prefix: t('Display')}}
@@ -189,6 +172,24 @@ class TrendsContent extends React.Component<Props, State> {
                   eventKey={field}
                   data-test-id={field}
                   isActive={field === currentTrendFunction.field}
+                >
+                  {label}
+                </DropdownItem>
+              ))}
+            </DropdownControl>
+          </TrendsDropdown>
+          <TrendsDropdown>
+            <DropdownControl
+              buttonProps={{prefix: t('Parameter')}}
+              label={currentTrendParameter.label}
+            >
+              {TRENDS_PARAMETERS.map(({label}) => (
+                <DropdownItem
+                  key={label}
+                  onSelect={this.handleParameterChange}
+                  eventKey={label}
+                  data-test-id={label}
+                  isActive={label === currentTrendParameter.label}
                 >
                   {label}
                 </DropdownItem>
@@ -230,6 +231,7 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
     const {children, location, eventView} = this.props;
 
     const queryString = decodeScalar(location.query.query);
+    const trendParameter = getCurrentTrendParameter(location);
     const conditions = tokenizeSearch(queryString || '');
 
     if (queryString || this.hasPushedDefaults) {
@@ -238,7 +240,7 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
     } else {
       this.hasPushedDefaults = true;
       conditions.setTagValues('tpm()', ['>0.01']);
-      conditions.setTagValues('transaction.duration', ['>0', `<${DEFAULT_MAX_DURATION}`]);
+      conditions.setTagValues(trendParameter.column, ['>0', `<${DEFAULT_MAX_DURATION}`]);
     }
 
     const query = stringifyQueryObject(conditions);

@@ -1,11 +1,9 @@
-from __future__ import absolute_import, print_function
 from io import BytesIO
-
 from uuid import uuid4
-from sentry.models.eventattachment import EventAttachment
 
-from sentry.testutils import TransactionTestCase, RelayStoreHelper
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.models.eventattachment import EventAttachment
+from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):

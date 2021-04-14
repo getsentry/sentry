@@ -1,31 +1,30 @@
-from __future__ import absolute_import
-
 import logging
-import six
+from urllib.parse import urlparse
 
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
-from django.views.decorators.csrf import csrf_exempt
-from sentry.integrations import (
-    IntegrationFeatures,
-    IntegrationProvider,
-    IntegrationMetadata,
-    FeatureDescription,
-    IntegrationInstallation,
-)
-from six.moves.urllib.parse import urlparse
-from sentry.integrations.repositories import RepositoryMixin
-from sentry.pipeline import PipelineView
-from sentry.utils.compat import filter
 from django.utils.translation import ugettext_lazy as _
-from sentry.shared_integrations.exceptions import ApiError
+from django.views.decorators.csrf import csrf_exempt
+
+from sentry.integrations import (
+    FeatureDescription,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
+)
+from sentry.integrations.repositories import RepositoryMixin
 from sentry.models.repository import Repository
+from sentry.pipeline import PipelineView
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
+from sentry.utils.compat import filter
 from sentry.web.helpers import render_to_response
-from .repository import BitbucketServerRepositoryProvider
+
 from .client import BitbucketServer, BitbucketServerSetupClient
+from .repository import BitbucketServerRepositoryProvider
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
@@ -64,7 +63,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Bitbucket%20Server%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Bitbucket%Server%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket_server",
     aspects={},
 )
@@ -206,14 +205,12 @@ class OAuthCallbackView(PipelineView):
             return pipeline.next_step()
         except ApiError as error:
             logger.info("identity.bitbucket-server.access-token", extra={"error": error})
-            return pipeline.error(
-                u"Could not fetch an access token from Bitbucket. %s" % six.text_type(error)
-            )
+            return pipeline.error("Could not fetch an access token from Bitbucket. %s" % str(error))
 
 
 class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
     """
-        IntegrationInstallation implementation for Bitbucket Server
+    IntegrationInstallation implementation for Bitbucket Server
     """
 
     repo_search = True
@@ -318,7 +315,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
         access_token = state["access_token"]
 
         hostname = urlparse(install["url"]).netloc
-        external_id = u"{}:{}".format(hostname, install["consumer_key"])[:64]
+        external_id = "{}:{}".format(hostname, install["consumer_key"])[:64]
 
         credentials = {
             "consumer_key": install["consumer_key"],

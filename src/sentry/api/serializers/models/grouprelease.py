@@ -1,13 +1,10 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import namedtuple
 from datetime import timedelta
+
 from django.utils import timezone
 
-from sentry.app import tsdb
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.app import tsdb
 from sentry.models import GroupRelease, Release
 from sentry.utils.compat import zip
 
@@ -45,14 +42,14 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
         self.until = until
 
     def get_attrs(self, item_list, user):
-        attrs = super(GroupReleaseWithStatsSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         items = {}
         for item in item_list:
             items.setdefault(item.group_id, []).append(item.id)
             attrs[item]["stats"] = {}
 
-        for key, (segments, interval) in six.iteritems(self.STATS_PERIODS):
+        for key, (segments, interval) in self.STATS_PERIODS.items():
             until = self.until or timezone.now()
             since = self.since or until - (segments * interval)
 
@@ -76,6 +73,6 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(GroupReleaseWithStatsSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         result["stats"] = attrs["stats"]
         return result

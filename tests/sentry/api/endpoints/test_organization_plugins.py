@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.plugins.base import plugins
@@ -22,7 +20,7 @@ class OrganizationPluginsTest(APITestCase):
             kwargs={"organization_slug": self.projectA.organization.slug},
         )
 
-        url = u"{}?{}".format(url, "plugins=_all")
+        url = f"{url}?plugins=_all"
 
         response = self.client.get(url)
 
@@ -42,7 +40,7 @@ class OrganizationPluginsTest(APITestCase):
             kwargs={"organization_slug": self.projectA.organization.slug},
         )
 
-        url = u"{}?{}".format(url, "plugins=slack&plugins=webhooks")
+        url = f"{url}?plugins=slack&plugins=webhooks"
 
         response = self.client.get(url)
 
@@ -61,7 +59,7 @@ class OrganizationPluginsTest(APITestCase):
             kwargs={"organization_slug": self.projectA.organization.slug},
         )
 
-        url = "{}?plugins=slack".format(url)
+        url = f"{url}?plugins=slack"
         response = self.client.get(url)
 
         assert response.status_code == 200, (response.status_code, response.content)
@@ -79,7 +77,7 @@ class OrganizationPluginsTest(APITestCase):
             kwargs={"organization_slug": self.projectA.organization.slug},
         )
 
-        url = "{}?plugins=nope&plugins=beep&plugins=slack".format(url)
+        url = f"{url}?plugins=nope&plugins=beep&plugins=slack"
         response = self.client.get(url)
 
         assert response.status_code == 200, (response.status_code, response.content)

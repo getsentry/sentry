@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
-from sentry.utils import json
 from sentry.testutils import APITestCase
+from sentry.utils import json
 
 
 def assert_response_json(response, data):

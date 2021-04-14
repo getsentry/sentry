@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 
-from tests.apidocs.util import APIDocsTestCase
 from sentry.models import EventUser
+from tests.apidocs.util import APIDocsTestCase
 
 
 class ProjectUsersDocs(APIDocsTestCase):

@@ -8,7 +8,10 @@ description: 'Installs pip and configures cache dir as output. This is hopefully
 outputs:
   pip-cache-dir:
     description: 'Path to pip cache'
-    value: ${{ steps.pip-cache.outputs.pip-cache }}
+    value: ${{ steps.pip-info.outputs.pip-cache }}
+  pip-version:
+    description: 'Pip version'
+    value: ${{ steps.pip-info.outputs.pip-version }}
 
 runs:
   using: 'composite'
@@ -21,10 +24,12 @@ runs:
     - name: Install pip
       shell: bash
       run: |
-        pip install --no-cache-dir --upgrade "pip>=20.0.2"
+        make upgrade-pip
 
-    - name: Get pip cache dir
-      id: pip-cache
+    - name: Get pip cache dir & version
+      id: pip-info
       shell: bash
+      # pip versions before 20.1 do not have `pip cache`, `make upgrade-pip` ensures that version as a minimum
       run: |
         echo "::set-output name=pip-cache::$(pip cache dir)"
+        echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"

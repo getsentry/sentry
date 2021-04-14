@@ -67,7 +67,8 @@ export function createSearchGroups(
   recentSearchItems: SearchItem[] | undefined,
   tagName: string,
   type: ItemType,
-  maxSearchItems: number | undefined
+  maxSearchItems: number | undefined,
+  queryCharsLeft?: number
 ) {
   const activeSearchItem = 0;
 
@@ -76,6 +77,17 @@ export function createSearchGroups(
       (value: SearchItem, index: number) =>
         index < maxSearchItems || value.ignoreMaxSearchItems
     );
+  }
+
+  if (queryCharsLeft || queryCharsLeft === 0) {
+    searchItems = searchItems.filter(
+      (value: SearchItem) => value.value.length <= queryCharsLeft
+    );
+    if (recentSearchItems) {
+      recentSearchItems = recentSearchItems.filter(
+        (value: SearchItem) => value.value.length <= queryCharsLeft
+      );
+    }
   }
 
   const searchGroup: SearchGroup = {

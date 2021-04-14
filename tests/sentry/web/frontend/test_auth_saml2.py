@@ -1,28 +1,18 @@
-from __future__ import absolute_import
-
-import six
-import pytest
 import base64
-from sentry.utils.compat import mock
-from exam import fixture
-from six.moves.urllib.parse import urlencode, urlparse, parse_qs
+from urllib.parse import parse_qs, urlencode, urlparse
 
+import pytest
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
+from exam import fixture
 
 from sentry.auth.authenticators import TotpInterface
-from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes, HAS_SAML2
-from sentry.models import (
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    AuthProvider,
-    Organization,
-)
+from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Provider
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, AuthProvider, Organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
-from sentry.utils.compat import map
-
+from sentry.utils.compat import map, mock
 
 dummy_provider_config = {
     "idp": {
@@ -73,13 +63,13 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         settings.SENTRY_OPTIONS.update({"system.url-prefix": "http://testserver.com"})
 
-        super(AuthSAML2Test, self).setUp()
+        super().setUp()
 
     def tearDown(self):
         # restore url-prefix config
         settings.SENTRY_OPTIONS.update({"system.url-prefix": self.url_prefix})
 
-        super(AuthSAML2Test, self).tearDown()
+        super().tearDown()
 
     @fixture
     def login_path(self):
@@ -143,7 +133,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         auth = self.accept_auth(follow=True)
 
-        messages = map(lambda m: six.text_type(m), auth.context["messages"])
+        messages = map(lambda m: str(m), auth.context["messages"])
 
         assert len(messages) == 2
         assert messages[0] == "You have successfully linked your account to your SSO provider."
@@ -167,7 +157,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         assert auth.status_code == 200
 
-        messages = map(lambda m: six.text_type(m), auth.context["messages"])
+        messages = map(lambda m: str(m), auth.context["messages"])
         assert len(messages) == 1
         assert messages[0] == "The organization does not exist or does not have SAML SSO enabled."
 

@@ -1,31 +1,27 @@
-from __future__ import absolute_import
-
-import random
 import functools
 import logging
-import msgpack
+import random
 
+import msgpack
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
-import sentry_sdk
-
-from sentry import eventstore, features
-
+from sentry import eventstore, features, options
+from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.event_manager import save_attachment
+from sentry.eventstore.processing import event_processing_store
+from sentry.ingest.types import ConsumerType
+from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json, metrics
-from sentry.utils.sdk import mark_scope_as_unsafe
-from sentry.utils.dates import to_datetime
-from sentry.utils.cache import cache_key_for_event
-from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
-from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.ingest.types import ConsumerType
-from sentry.ingest.userreport import Conflict, save_userreport
-from sentry.event_manager import save_attachment
-from sentry.eventstore.processing import event_processing_store
+from sentry.utils.cache import cache_key_for_event
+from sentry.utils.dates import to_datetime
+from sentry.utils.kafka import create_batching_kafka_consumer
+from sentry.utils.sdk import mark_scope_as_unsafe
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +59,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 elif message_type == "user_report":
                     other_messages.append((process_userreport, message))
                 else:
-                    raise ValueError("Unknown message type: {}".format(message_type))
+                    raise ValueError(f"Unknown message type: {message_type}")
                 metrics.incr(
                     "ingest_consumer.flush.messages_seen", tags={"message_type": message_type}
                 )
@@ -110,6 +106,9 @@ def _do_process_event(message, projects):
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
 
+    if project_id == settings.SENTRY_PROJECT:
+        metrics.incr("internal.captured.ingest_consumer.unparsed")
+
     # check that we haven't already processed this event (a previous instance of the forwarder
     # died before it could commit the event queue offset)
     #
@@ -124,7 +123,7 @@ def _do_process_event(message, projects):
     # This code has been ripped from the old python store endpoint. We're
     # keeping it around because it does provide some protection against
     # reprocessing good events if a single consumer is in a restart loop.
-    deduplication_key = "ev:{}:{}".format(project_id, event_id)
+    deduplication_key = f"ev:{project_id}:{event_id}"
     if cache.get(deduplication_key) is not None:
         logger.warning(
             "pre-process-forwarder detected a duplicated event" " with id:%s for project:%s.",
@@ -132,6 +131,11 @@ def _do_process_event(message, projects):
             project_id,
         )
         return  # message already processed do not reprocess
+
+    if project_id in (options.get("store.load-shed-pipeline-projects") or ()):
+        # This killswitch is for the worst of scenarios and should probably not
+        # cause additional load on our logging infrastructure
+        return
 
     try:
         project = projects[project_id]
@@ -145,6 +149,12 @@ def _do_process_event(message, projects):
     # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
     # which assumes that data passed in is a raw dictionary.
     data = json.loads(payload)
+
+    if project_id == settings.SENTRY_PROJECT:
+        metrics.incr(
+            "internal.captured.ingest_consumer.parsed",
+            tags={"event_type": data.get("type") or "null"},
+        )
 
     cache_key = event_processing_store.store(data)
 
@@ -214,13 +224,11 @@ def process_individual_attachment(message, projects):
     # Attachments may be uploaded for events that already exist. Fetch the
     # existing group_id, so that the attachment can be fetched by group-level
     # APIs. This is inherently racy.
-    events = eventstore.get_unfetched_events(
-        filter=eventstore.Filter(event_ids=[event_id], project_ids=[project.id]), limit=1
-    )
+    event = eventstore.get_event_by_id(project.id, event_id)
 
     group_id = None
-    if events:
-        group_id = events[0].group_id
+    if event is not None:
+        group_id = event.group_id
 
     attachment = message["attachment"]
     attachment = attachment_cache.get_from_chunks(
@@ -262,6 +270,11 @@ def process_userreport(message, projects):
     except Conflict as e:
         logger.info("Invalid userreport: %s", e)
         return False
+    except Exception:
+        # XXX(markus): Hotfix because we have broken data in kafka
+        # If you want to remove this make sure to have triaged all errors in Sentry
+        logger.exception("userreport.save.crash")
+        return False
 
 
 def get_ingest_consumer(consumer_types, once=False, **options):
@@ -270,9 +283,7 @@ def get_ingest_consumer(consumer_types, once=False, **options):
 
     The events should have already been processed (normalized... ) upstream (by Relay).
     """
-    topic_names = set(
-        ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types
-    )
+    topic_names = {ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types}
     return create_batching_kafka_consumer(
         topic_names=topic_names, worker=IngestConsumerWorker(), **options
     )

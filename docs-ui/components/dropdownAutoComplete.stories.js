@@ -1,5 +1,4 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
@@ -85,20 +84,26 @@ const groupedItems = [
 ];
 
 export default {
-  title: 'Core/Dropdowns/DropdownAutoComplete',
+  title: 'Core/Buttons/Dropdowns/DropdownAutoComplete',
+  component: DropdownAutoComplete,
 };
 
-export const Ungrouped = withInfo('The item label can be a component or a string')(() => (
+export const Ungrouped = () => (
   <DropdownAutoComplete items={items}>
     {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
   </DropdownAutoComplete>
-));
+);
 
-Ungrouped.story = {
-  name: 'ungrouped',
+Ungrouped.storyName = 'ungrouped';
+Ungrouped.parameters = {
+  docs: {
+    description: {
+      story: 'The item label can be a component or a string',
+    },
+  },
 };
 
-export const Grouped = withInfo('Group labels can receive a component too')(() => (
+export const Grouped = () => (
   <DropdownAutoComplete
     items={groupedItems}
     virtualizedHeight={44}
@@ -106,15 +111,18 @@ export const Grouped = withInfo('Group labels can receive a component too')(() =
   >
     {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
   </DropdownAutoComplete>
-));
+);
 
-Grouped.story = {
-  name: 'grouped',
+Grouped.storyName = 'grouped';
+Grouped.parameters = {
+  docs: {
+    description: {
+      story: 'Group labels can receive a component too',
+    },
+  },
 };
 
-export const WithDropdownButton = withInfo(
-  'Use it with dropdownbutton for maximum fun'
-)(() => (
+export const WithDropdownButton = () => (
   <DropdownAutoComplete items={groupedItems}>
     {({isOpen, selectedItem}) => (
       <DropdownButton isOpen={isOpen}>
@@ -122,13 +130,18 @@ export const WithDropdownButton = withInfo(
       </DropdownButton>
     )}
   </DropdownAutoComplete>
-));
+);
 
-WithDropdownButton.story = {
-  name: 'with dropdownButton',
+WithDropdownButton.storyName = 'with dropdownButton';
+WithDropdownButton.parameters = {
+  docs: {
+    description: {
+      story: 'Use it with dropdownbutton for maximum fun',
+    },
+  },
 };
 
-export const WithExtraAction = withInfo('Add a call to action button')(() => (
+export const WithExtraAction = () => (
   <DropdownAutoComplete
     items={items}
     action={<Button priority="primary">Now click me!</Button>}
@@ -139,8 +152,13 @@ export const WithExtraAction = withInfo('Add a call to action button')(() => (
       </DropdownButton>
     )}
   </DropdownAutoComplete>
-));
+);
 
-WithExtraAction.story = {
-  name: 'with extra action',
+WithExtraAction.storyName = 'with extra action';
+WithExtraAction.parameters = {
+  docs: {
+    description: {
+      story: 'Add a call to action button',
+    },
+  },
 };

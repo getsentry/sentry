@@ -1,8 +1,8 @@
-from __future__ import absolute_import
-
 import os
+from unittest.mock import patch
 
 from django.core.files.base import ContentFile
+from django.db import DatabaseError
 
 from sentry.models import File, FileBlob, FileBlobIndex
 from sentry.testutils import TestCase
@@ -11,7 +11,7 @@ from sentry.utils.compat import map
 
 class FileBlobTest(TestCase):
     def test_from_file(self):
-        fileobj = ContentFile("foo bar".encode("utf-8"))
+        fileobj = ContentFile(b"foo bar")
 
         my_file1 = FileBlob.from_file(fileobj)
 
@@ -37,10 +37,28 @@ class FileBlobTest(TestCase):
         path2 = FileBlob.generate_unique_path()
         assert path != path2
 
+    @patch("sentry.models.file.delete_file_task")
+    def test_delete_handles_database_error(self, mock_delete_file):
+        fileobj = ContentFile(b"foo bar")
+        baz_file = File.objects.create(name="baz-v1.js", type="default", size=7)
+        baz_file.putfile(fileobj)
+        blob = baz_file.blobs.all()[0]
+
+        with patch("sentry.models.file.super") as mock_super:
+            mock_super.side_effect = DatabaseError("server closed connection")
+            with self.tasks(), self.assertRaises(DatabaseError):
+                blob.delete()
+        # Even those postgres failed we should stil queue
+        # a task to delete the filestore object.
+        assert mock_delete_file.apply_async.call_count == 1
+
+        # blob is still around.
+        assert FileBlob.objects.get(id=blob.id)
+
 
 class FileTest(TestCase):
     def test_delete_also_removes_blobs(self):
-        fileobj = ContentFile("foo bar".encode("utf-8"))
+        fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz.js", type="default", size=7)
         baz_file.putfile(fileobj, 3)
 
@@ -53,7 +71,7 @@ class FileTest(TestCase):
         assert FileBlob.objects.count() == 0
 
     def test_delete_does_not_remove_shared_blobs(self):
-        fileobj = ContentFile("foo bar".encode("utf-8"))
+        fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz-v1.js", type="default", size=7)
         baz_file.putfile(fileobj, 3)
         baz_id = baz_file.id
@@ -73,7 +91,7 @@ class FileTest(TestCase):
         assert len(raz_file.blobs.all()) == 3
 
     def test_file_handling(self):
-        fileobj = ContentFile("foo bar".encode("utf-8"))
+        fileobj = ContentFile(b"foo bar")
         file1 = File.objects.create(name="baz.js", type="default", size=7)
         results = file1.putfile(fileobj, 3)
         assert len(results) == 3

@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 import responses
-
 from exam import fixture
-from sentry.testutils import PluginTestCase
 
+from sentry.testutils import PluginTestCase
 from sentry_plugins.sessionstack.plugin import SessionStackPlugin
 
 EXPECTED_SESSION_URL = (

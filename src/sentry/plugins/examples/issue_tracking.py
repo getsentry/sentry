@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.plugins.bases.issue2 import IssuePlugin2
 
 
@@ -22,9 +20,7 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
         return bool(self.get_option("repo", project))
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(ExampleIssueTrackingPlugin, self).get_new_issue_fields(
-            request, group, event, **kwargs
-        )
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return [{"name": "tracker_url", "label": "Issue Tracker URL", "type": "text"}] + fields
 
     def create_issue(self, request, group, form_data, **kwargs):
@@ -36,7 +32,7 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
     def get_issue_url(self, group, issue_id, **kwargs):
         tracker_url = self.get_option("tracker_url", group.project)
 
-        return u"{}?issueID={}".format(tracker_url, issue_id)
+        return f"{tracker_url}?issueID={issue_id}"
 
     def get_configure_plugin_fields(self, project, **kwargs):
         return [

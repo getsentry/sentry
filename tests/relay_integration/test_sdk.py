@@ -1,18 +1,15 @@
-from __future__ import absolute_import, print_function
 import uuid
 
 import pytest
-
 import sentry_sdk
-from sentry_sdk import Hub, push_scope
-
 from django.conf import settings
-from sentry.utils.sdk import configure_sdk, bind_organization_context
-from sentry.utils.compat import mock
+from sentry_sdk import Hub, push_scope
 
 from sentry import eventstore
 from sentry.testutils import assert_mock_called_once_with_partial
+from sentry.utils.compat import mock
 from sentry.utils.pytest.relay import adjust_settings_for_relay_tests
+from sentry.utils.sdk import bind_organization_context, configure_sdk
 
 
 @pytest.fixture
@@ -56,9 +53,7 @@ def test_recursion_breaker(settings, post_event_with_sdk):
         with pytest.raises(ValueError):
             post_event_with_sdk({"message": "internal client test", "event_id": event_id})
 
-    assert_mock_called_once_with_partial(
-        save, settings.SENTRY_PROJECT, cache_key=u"e:{}:1".format(event_id)
-    )
+    assert_mock_called_once_with_partial(save, settings.SENTRY_PROJECT, cache_key=f"e:{event_id}:1")
 
 
 @pytest.mark.django_db

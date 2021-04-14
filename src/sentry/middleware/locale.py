@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 import pytz
-
 from django.conf import settings
 from django.middleware.locale import LocaleMiddleware
-from django.utils.translation import _trans, LANGUAGE_SESSION_KEY
+from django.utils.translation import LANGUAGE_SESSION_KEY, _trans
 
 from sentry.models import UserOption
 from sentry.utils.safe import safe_execute
@@ -28,12 +25,12 @@ class SentryLocaleMiddleware(LocaleMiddleware):
             try:
                 language = _trans.get_supported_language_variant(lang_code)
             except LookupError:
-                super(SentryLocaleMiddleware, self).process_request(request)
+                super().process_request(request)
             else:
                 _trans.activate(language)
                 request.LANGUAGE_CODE = _trans.get_language()
         else:
-            super(SentryLocaleMiddleware, self).process_request(request)
+            super().process_request(request)
 
     def load_user_conf(self, request):
         if not request.user.is_authenticated():
@@ -58,4 +55,4 @@ class SentryLocaleMiddleware(LocaleMiddleware):
             # catch ourselves in case __skip_caching never got set.
             # It's possible that process_request never ran.
             pass
-        return super(SentryLocaleMiddleware, self).process_response(request, response)
+        return super().process_response(request, response)

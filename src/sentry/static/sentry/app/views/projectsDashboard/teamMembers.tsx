@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import AvatarList from 'app/components/avatar/avatarList';
@@ -15,11 +14,6 @@ type State = AsyncComponent['state'] & {
 };
 
 class TeamMembers extends AsyncComponent<Props, State> {
-  static propTypes = {
-    teamId: PropTypes.string.isRequired,
-    orgId: PropTypes.string.isRequired,
-  };
-
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, teamId} = this.props;
     return [['members', `/teams/${orgId}/${teamId}/members/`]];

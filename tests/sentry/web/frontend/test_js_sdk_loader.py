@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat.mock import patch
-from exam import fixture
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from exam import fixture
 
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class JavaScriptSdkLoaderTest(TestCase):

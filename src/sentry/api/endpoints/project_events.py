@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 from functools import partial
 
 from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
+from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 
 
 class ProjectEventsEndpoint(ProjectEndpoint):
@@ -31,9 +29,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         query = request.GET.get("query")
         conditions = []
         if query:
-            conditions.append(
-                [["positionCaseInsensitive", ["message", "'%s'" % (query,)]], "!=", 0]
-            )
+            conditions.append([["positionCaseInsensitive", ["message", f"'{query}'"]], "!=", 0])
 
         full = request.GET.get("full", False)
 

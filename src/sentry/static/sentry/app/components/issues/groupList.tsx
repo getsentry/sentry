@@ -12,13 +12,16 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
-import StreamGroup from 'app/components/stream/group';
+import StreamGroup, {
+  DEFAULT_STREAM_GROUP_STATS_PERIOD,
+} from 'app/components/stream/group';
 import {t} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import {Group} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import StreamManager from 'app/utils/streamManager';
 import withApi from 'app/utils/withApi';
+import {TimePeriodType} from 'app/views/alerts/rules/details/body';
 
 import GroupListHeader from './groupListHeader';
 
@@ -26,6 +29,7 @@ const defaultProps = {
   canSelectGroups: true,
   withChart: true,
   withPagination: true,
+  useFilteredStats: true,
 };
 
 type Props = {
@@ -35,6 +39,7 @@ type Props = {
   endpointPath: string;
   renderEmptyMessage?: () => React.ReactNode;
   queryParams?: Record<string, number | string | string[] | undefined | null>;
+  customStatsPeriod?: TimePeriodType;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -172,7 +177,15 @@ class GroupList extends React.Component<Props, State> {
   }
 
   render() {
-    const {canSelectGroups, withChart, renderEmptyMessage, withPagination} = this.props;
+    const {
+      canSelectGroups,
+      withChart,
+      renderEmptyMessage,
+      withPagination,
+      useFilteredStats,
+      customStatsPeriod,
+      queryParams,
+    } = this.props;
     const {loading, error, groups, memberList, pageLinks} = this.state;
 
     if (loading) {
@@ -198,6 +211,11 @@ class GroupList extends React.Component<Props, State> {
       );
     }
 
+    const statsPeriod =
+      queryParams?.groupStatsPeriod === 'auto'
+        ? queryParams?.groupStatsPeriod
+        : DEFAULT_STREAM_GROUP_STATS_PERIOD;
+
     return (
       <React.Fragment>
         <Panel>
@@ -215,7 +233,9 @@ class GroupList extends React.Component<Props, State> {
                   canSelect={canSelectGroups}
                   withChart={withChart}
                   memberList={members}
-                  useFilteredStats
+                  useFilteredStats={useFilteredStats}
+                  customStatsPeriod={customStatsPeriod}
+                  statsPeriod={statsPeriod}
                 />
               );
             })}

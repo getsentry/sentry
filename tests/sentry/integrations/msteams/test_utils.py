@@ -1,7 +1,6 @@
-from __future__ import absolute_import
+import time
 
 import responses
-import time
 
 from sentry.integrations.msteams.utils import get_channel_id
 from sentry.models import Integration

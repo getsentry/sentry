@@ -27,7 +27,7 @@ describe('SentryAppExternalIssueForm', () => {
     component = TestStubs.SentryAppComponent();
     sentryApp = TestStubs.SentryApp();
     sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
-    submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`;
+    submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
     externalIssueRequest = Client.addMockResponse({
       url: submitUrl,
       method: 'POST',

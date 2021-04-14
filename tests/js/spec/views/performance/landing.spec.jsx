@@ -90,6 +90,14 @@ describe('Performance > Landing', function () {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
     MockApiClient.addMockResponse(
       {
         url: '/organizations/org-slug/eventsv2/',
@@ -104,6 +112,7 @@ describe('Performance > Landing', function () {
             failure_rate: 'number',
             apdex_300: 'number',
             count_unique_user: 'number',
+            count_miserable_user_300: 'number',
             user_misery_300: 'number',
           },
           data: [
@@ -117,7 +126,8 @@ describe('Performance > Landing', function () {
               failure_rate: 0.1,
               apdex_300: 0.6,
               count_unique_user: 1000,
-              user_misery_300: 122,
+              count_miserable_user_300: 122,
+              user_misery_300: 0.114,
             },
           ],
         },
@@ -147,6 +157,7 @@ describe('Performance > Landing', function () {
             failure_rate: 'number',
             apdex_300: 'number',
             count_unique_user: 'number',
+            count_miserable_user_300: 'number',
             user_misery_300: 'number',
           },
           data: [
@@ -161,7 +172,8 @@ describe('Performance > Landing', function () {
               failure_rate: 0.1,
               apdex_300: 0.6,
               count_unique_user: 1000,
-              user_misery_300: 122,
+              count_miserable_user_300: 122,
+              user_misery_300: 0.114,
             },
             {
               key_transaction: 0,
@@ -174,7 +186,8 @@ describe('Performance > Landing', function () {
               failure_rate: 0.1,
               apdex_300: 0.6,
               count_unique_user: 1000,
-              user_misery_300: 122,
+              count_miserable_user_300: 122,
+              user_misery_300: 0.114,
             },
           ],
         },

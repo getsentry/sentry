@@ -1,43 +1,62 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {DynamicSamplingCondition} from 'app/types/dynamicSampling';
+import {
+  DynamicSamplingCondition,
+  DynamicSamplingConditionLogicalInner,
+  DynamicSamplingConditionOperator,
+} from 'app/types/dynamicSampling';
 
-import {getOperatorLabel} from './utils';
+import {getInnerNameLabel} from './utils';
 
 type Props = {
-  conditions: Array<DynamicSamplingCondition>;
+  condition: DynamicSamplingCondition;
 };
 
-function Conditions({conditions}: Props) {
-  function getConvertedValue(value: DynamicSamplingCondition['value']) {
+function Conditions({condition}: Props) {
+  function getConvertedValue(value: DynamicSamplingConditionLogicalInner['value']) {
     if (Array.isArray(value)) {
       return (
-        <Values>
-          {value.map((v, index) => (
+        <React.Fragment>
+          {[...value].map((v, index) => (
             <React.Fragment key={v}>
               <Value>{v}</Value>
               {index !== value.length - 1 && <Separator>{'\u002C'}</Separator>}
             </React.Fragment>
           ))}
-        </Values>
+        </React.Fragment>
       );
     }
 
     return <Value>{String(value)}</Value>;
   }
 
-  return (
-    <Wrapper>
-      {conditions.map(({operator, value}, index) => (
-        <Condition key={index}>
-          {getOperatorLabel(operator)}
-          {getConvertedValue(value)}
-        </Condition>
-      ))}
-    </Wrapper>
-  );
+  switch (condition.op) {
+    case DynamicSamplingConditionOperator.AND: {
+      const {inner} = condition;
+      if (!inner.length) {
+        return <Label>{t('All')}</Label>;
+      }
+
+      return (
+        <Wrapper>
+          {inner.map(({value, name}, index) => (
+            <div key={index}>
+              <Label>{getInnerNameLabel(name)}</Label>
+              {getConvertedValue(value)}
+            </div>
+          ))}
+        </Wrapper>
+      );
+    }
+    default: {
+      Sentry.captureException(new Error('Unknown dynamic sampling condition operator'));
+      return null; //this shall not happen
+    }
+  }
 }
 
 export default Conditions;
@@ -47,15 +66,13 @@ const Wrapper = styled('div')`
   grid-gap: ${space(1.5)};
 `;
 
-const Condition = styled(Wrapper)`
-  grid-template-columns: max-content 1fr;
+const Label = styled('span')`
+  margin-right: ${space(1)};
 `;
 
-const Values = styled('div')`
-  display: flex;
-`;
-
-const Value = styled('div')`
+const Value = styled('span')`
+  word-break: break-all;
+  white-space: pre-wrap;
   color: ${p => p.theme.gray300};
 `;
 

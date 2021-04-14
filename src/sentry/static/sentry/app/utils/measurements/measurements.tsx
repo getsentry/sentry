@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 
 type Measurement = {
   name: string;
   key: string;
 };
 
-type MeasurementCollection = {[key: string]: Measurement};
+type MeasurementCollection = Record<string, Measurement>;
 
 const MEASUREMENTS: MeasurementCollection = Object.fromEntries(
   Object.entries(WEB_VITAL_DETAILS).map(([key, value]) => {

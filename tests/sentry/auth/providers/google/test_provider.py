@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.providers.google.constants import DATA_VERSION
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import TestCase
-
-from sentry.auth.providers.google.constants import DATA_VERSION
 
 
 class GoogleOAuth2ProviderTest(TestCase):
@@ -14,7 +11,7 @@ class GoogleOAuth2ProviderTest(TestCase):
         self.org = self.create_organization(owner=self.user)
         self.user = self.create_user("foo@example.com")
         self.auth_provider = AuthProvider.objects.create(provider="google", organization=self.org)
-        super(GoogleOAuth2ProviderTest, self).setUp()
+        super().setUp()
 
     def test_refresh_identity_without_refresh_token(self):
         auth_identity = AuthIdentity.objects.create(

@@ -1,20 +1,18 @@
-from __future__ import absolute_import, print_function
-
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model,
     BaseManager,
     BoundedPositiveIntegerField,
     EncryptedJsonField,
     FlexibleForeignKey,
+    Model,
     UUIDField,
     sane_repr,
 )
 
 
-class CheckInStatus(object):
+class CheckInStatus:
     UNKNOWN = 0
     OK = 1
     ERROR = 2
@@ -25,10 +23,10 @@ class CheckInStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.UNKNOWN, u"unknown"),
-            (cls.OK, u"ok"),
-            (cls.ERROR, u"error"),
-            (cls.IN_PROGRESS, u"in_progress"),
+            (cls.UNKNOWN, "unknown"),
+            (cls.OK, "ok"),
+            (cls.ERROR, "error"),
+            (cls.IN_PROGRESS, "in_progress"),
         )
 
 
@@ -57,7 +55,7 @@ class MonitorCheckIn(Model):
             self.date_added = timezone.now()
         if not self.date_updated:
             self.date_updated = self.date_added
-        return super(MonitorCheckIn, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     # XXX(dcramer): BaseModel is trying to automatically set date_updated which is not
     # what we want to happen, so kill it here

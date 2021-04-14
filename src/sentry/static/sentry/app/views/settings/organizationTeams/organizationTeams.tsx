@@ -65,7 +65,7 @@ function OrganizationTeams({
 
   return (
     <div data-test-id="team-list">
-      <SentryDocumentTitle title={title} objSlug={organization.slug} />
+      <SentryDocumentTitle title={title} orgSlug={organization.slug} />
       <SettingsPageHeader title={title} action={action} />
       <Panel>
         <PanelHeader>{t('Your Teams')}</PanelHeader>

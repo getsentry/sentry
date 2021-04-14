@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
-from django.contrib.auth import logout, REDIRECT_FIELD_NAME
+from django.contrib.auth import REDIRECT_FIELD_NAME, logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import is_safe_url
 
-from sentry.web.frontend.base import BaseView
 from sentry.utils import auth
+from sentry.web.frontend.base import BaseView
 
 
 class AuthLogoutView(BaseView):
@@ -15,7 +13,7 @@ class AuthLogoutView(BaseView):
         next = request.GET.get(REDIRECT_FIELD_NAME, "")
         if not is_safe_url(next, host=request.get_host()):
             next = auth.get_login_url()
-        return super(AuthLogoutView, self).redirect(next)
+        return super().redirect(next)
 
     def get(self, request):
         return self.respond("sentry/logout.html")

@@ -1,5 +1,4 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import PercentageAreaChart from 'app/components/charts/percentageAreaChart';
 
@@ -7,9 +6,10 @@ const TOTAL = 6;
 
 export default {
   title: 'DataVisualization/Charts/PercentageAreaChart',
+  component: PercentageAreaChart,
 };
 
-export const _PercentageAreaChart = withInfo('Stacked PercentageArea')(() => {
+export const _PercentageAreaChart = () => {
   const NOW = new Date().getTime();
   const getValue = () => Math.round(Math.random() * 1000);
   const getDate = num => NOW - (TOTAL - num) * 86400000;
@@ -157,8 +157,6 @@ export const _PercentageAreaChart = withInfo('Stacked PercentageArea')(() => {
       />
     </div>
   );
-});
-
-_PercentageAreaChart.story = {
-  name: 'PercentageAreaChart',
 };
+
+_PercentageAreaChart.storyName = 'PercentageAreaChart';

@@ -74,6 +74,22 @@ const httpFields: FieldMap = {
     placeholder: 'https://msdl.microsoft.com/download/symbols/',
     help: t('Full URL to the symbol server'),
   },
+  username: {
+    name: 'username',
+    type: 'string',
+    required: false,
+    label: t('User'),
+    placeholder: 'admin',
+    help: t('User for HTTP basic auth'),
+  },
+  password: {
+    name: 'password',
+    type: 'string',
+    required: false,
+    label: t('Password'),
+    placeholder: 'open-sesame',
+    help: t('Password for HTTP basic auth'),
+  },
 };
 
 const s3Fields: FieldMap = {
@@ -148,6 +164,7 @@ const gcsFields: FieldMap = {
     multiline: true,
     autosize: true,
     maxRows: 5,
+    rows: 3,
     label: t('Private Key'),
     placeholder: '-----BEGIN PRIVATE KEY-----\n[PRIVATE-KEY]\n-----END PRIVATE KEY-----',
     help: tct('The service account key. Credentials can be managed on the [link].', {
@@ -166,7 +183,10 @@ function getFormFields(type: DebugFileSource) {
       return [
         commonFields.id,
         commonFields.name,
+        commonFields.separator,
         httpFields.url,
+        httpFields.username,
+        httpFields.password,
         commonFields.separator,
         commonFields.layoutType,
         commonFields.layoutCasing,

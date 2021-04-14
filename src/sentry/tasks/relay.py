@@ -1,15 +1,12 @@
-from __future__ import absolute_import
-
 import logging
 
-from django.conf import settings
 import sentry_sdk
-from sentry.utils.sdk import set_current_project
+from django.conf import settings
 
+from sentry.relay import projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.relay import projectconfig_debounce_cache
-
+from sentry.utils.sdk import set_current_event_project
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +31,7 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
     from sentry.relay.config import get_project_config
 
     if project_id:
-        set_current_project(project_id)
+        set_current_event_project(project_id)
 
     if organization_id:
         # Cannot use bind_organization_context here because we do not have a

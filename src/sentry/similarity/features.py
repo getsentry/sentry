@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
 import functools
 import itertools
 import logging
 
+from sentry.utils.compat import map, zip
 from sentry.utils.dates import to_timestamp
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
 
 logger = logging.getLogger("sentry.similarity")
 
@@ -30,7 +27,7 @@ class InterfaceDoesNotExist(KeyError):
     pass
 
 
-class ExceptionFeature(object):
+class ExceptionFeature:
     def __init__(self, function):
         self.function = function
 
@@ -42,7 +39,7 @@ class ExceptionFeature(object):
         return self.function(interface.values[0])
 
 
-class MessageFeature(object):
+class MessageFeature:
     def __init__(self, function):
         self.function = function
 
@@ -54,7 +51,7 @@ class MessageFeature(object):
         return self.function(interface)
 
 
-class FeatureSet(object):
+class FeatureSet:
     def __init__(
         self,
         index,
@@ -73,10 +70,10 @@ class FeatureSet(object):
         assert set(self.aliases) == set(self.features)
 
     def __get_scope(self, project):
-        return u"{}".format(project.id)
+        return f"{project.id}"
 
     def __get_key(self, group):
-        return u"{}".format(group.id)
+        return f"{group.id}"
 
     def extract(self, event):
         results = {}
@@ -217,7 +214,7 @@ class FeatureSet(object):
         for source in sources:
             scopes.setdefault(self.__get_scope(source.project), set()).add(source)
 
-        unsafe_scopes = set(scopes.keys()) - set([self.__get_scope(destination.project)])
+        unsafe_scopes = set(scopes.keys()) - {self.__get_scope(destination.project)}
         if unsafe_scopes and not allow_unsafe:
             raise ValueError(
                 "all groups must belong to same project if unsafe merges are not allowed"

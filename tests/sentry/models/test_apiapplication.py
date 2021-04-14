@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
-from sentry.testutils import TestCase
 from sentry.models import ApiApplication
+from sentry.testutils import TestCase
 
 
 class ApiApplicationTest(TestCase):

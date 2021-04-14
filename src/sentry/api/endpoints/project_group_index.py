@@ -1,25 +1,22 @@
-from __future__ import absolute_import, division, print_function
-
 import functools
 
-import six
 from rest_framework.response import Response
 
-from sentry import analytics, eventstore, search, features
+from sentry import analytics, eventstore, features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
-    build_query_params_from_request,
+    ValidationError,
     delete_groups,
     get_by_short_id,
+    prep_search,
+    track_slo_response,
     update_groups,
-    ValidationError,
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
-from sentry.models import Environment, Group, GroupStatus, Organization
+from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus, Organization
 from sentry.signals import advanced_search
-from sentry.utils.cursors import CursorResult
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
@@ -28,28 +25,7 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectEventPermission,)
 
-    def _search(self, request, project, extra_query_kwargs=None):
-        try:
-            environment = self._get_environment_from_request(request, project.organization_id)
-        except Environment.DoesNotExist:
-            # XXX: The 1000 magic number for `max_hits` is an abstraction leak
-            # from `sentry.api.paginator.BasePaginator.get_result`.
-            result = CursorResult([], None, None, hits=0, max_hits=1000)
-            query_kwargs = {}
-        else:
-            environments = [environment] if environment is not None else environment
-            query_kwargs = build_query_params_from_request(
-                request, project.organization, [project], environments
-            )
-            if extra_query_kwargs is not None:
-                assert "environment" not in extra_query_kwargs
-                query_kwargs.update(extra_query_kwargs)
-
-            query_kwargs["environments"] = environments
-            result = search.query(**query_kwargs)
-        return result, query_kwargs
-
-    # statsPeriod=24h
+    @track_slo_response("workflow")
     def get(self, request, project):
         """
         List a Project's Issues
@@ -145,9 +121,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 return response
 
         try:
-            cursor_result, query_kwargs = self._search(request, project, {"count_hits": True})
+            cursor_result, query_kwargs = prep_search(self, request, project, {"count_hits": True})
         except ValidationError as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            return Response({"detail": str(exc)}, status=400)
 
         results = list(cursor_result)
 
@@ -161,8 +137,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             for search_filter in query_kwargs.get("search_filters", [])
             if search_filter.key.name == "status"
         ]
-        if status and status[0].value.raw_value == GroupStatus.UNRESOLVED:
-            context = [r for r in context if r["status"] == "unresolved"]
+        if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
+            status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
+            context = [r for r in context if "status" not in r or r["status"] in status_labels]
 
         response = Response(context)
 
@@ -180,6 +157,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         return response
 
+    @track_slo_response("workflow")
     def put(self, request, project):
         """
         Bulk Mutate a List of Issues
@@ -238,11 +216,19 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :auth: required
         """
 
-        search_fn = functools.partial(self._search, request, project)
+        search_fn = functools.partial(prep_search, self, request, project)
         organization = Organization.objects.get_from_cache(id=project.organization_id)
         has_inbox = features.has("organizations:inbox", organization, actor=request.user)
-        return update_groups(request, [project], project.organization_id, search_fn, has_inbox)
+        return update_groups(
+            request,
+            request.GET.getlist("id"),
+            [project],
+            project.organization_id,
+            search_fn,
+            has_inbox,
+        )
 
+    @track_slo_response("workflow")
     def delete(self, request, project):
         """
         Bulk Remove a List of Issues
@@ -265,5 +251,5 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                      belong to.
         :auth: required
         """
-        search_fn = functools.partial(self._search, request, project)
+        search_fn = functools.partial(prep_search, self, request, project)
         return delete_groups(request, [project], project.organization_id, search_fn)

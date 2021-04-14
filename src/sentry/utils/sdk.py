@@ -1,13 +1,9 @@
-from __future__ import absolute_import, print_function
-
 import inspect
-import six
-
-from django.conf import settings
-from django.urls import resolve
+import random
 
 import sentry_sdk
-
+from django.conf import settings
+from django.urls import resolve
 from sentry_sdk.client import get_options
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
@@ -26,14 +22,61 @@ UNSAFE_FILES = (
 
 # URLs that should always be sampled
 SAMPLED_URL_NAMES = {
+    # codeowners
+    "sentry-api-0-project-codeowners",
+    "sentry-api-0-project-codeowners-details",
+    # external teams POST, PUT, DELETE
+    "sentry-api-0-external-team",
+    "sentry-api-0-external-team-details",
+    # external users POST, PUT, DELETE
+    "sentry-api-0-organization-external-user",
+    "sentry-api-0-organization-external-user-details",
+    # integration platform
+    "external-issues",
+    "sentry-api-0-sentry-app-authorizations",
+    # integrations
+    "sentry-extensions-jira-issue-hook",
+    "sentry-extensions-vercel-webhook",
+    "sentry-extensions-vercel-delete",
+    "sentry-extensions-vercel-configure",
+    "sentry-extensions-vercel-ui-hook",
+    "sentry-api-0-group-integration-details",
+    # releases
     "sentry-api-0-organization-releases",
+    "sentry-api-0-organization-release-details",
+    "sentry-api-0-project-releases",
+    "sentry-api-0-project-release-details",
 }
+
+SAMPLED_TASKS = {
+    "sentry.tasks.send_ping",
+}
+
+_SYMBOLICATE_EVENT_TASKS = {
+    "sentry.tasks.store.symbolicate_event",
+    "sentry.tasks.store.symbolicate_event_from_reprocessing",
+}
+
+
+def _sample_process_event_tasks():
+    return random.random() < settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
+
+
+_PROCESS_EVENT_TASKS = {
+    "sentry.tasks.store.process_event",
+    "sentry.tasks.store.process_event_from_reprocessing",
+}
+
+
+def _sample_symbolicate_event_tasks():
+    return random.random() < settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING
+
 
 UNSAFE_TAG = "_unsafe"
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import configure_scope, push_scope, capture_message, capture_exception  # NOQA
+from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
 
 
 def is_current_event_safe():
@@ -48,7 +91,7 @@ def is_current_event_safe():
         if scope._tags.get(UNSAFE_TAG):
             return False
 
-        project_id = scope._tags.get("project")
+        project_id = scope._tags.get("processing_event_for_project")
 
         if project_id and project_id == settings.SENTRY_PROJECT:
             return False
@@ -71,7 +114,7 @@ def mark_scope_as_unsafe():
         scope.set_tag(UNSAFE_TAG, True)
 
 
-def set_current_project(project_id):
+def set_current_event_project(project_id):
     """
     Set the current project on the SDK scope for outgoing crash reports.
 
@@ -81,6 +124,7 @@ def set_current_project(project_id):
     sentry-internal errors, causing infinite recursion.
     """
     with configure_scope() as scope:
+        scope.set_tag("processing_event_for_project", project_id)
         scope.set_tag("project", project_id)
 
 
@@ -106,7 +150,7 @@ def get_project_key():
             extra={
                 "project_id": settings.SENTRY_PROJECT,
                 "project_key": settings.SENTRY_PROJECT_KEY,
-                "error_message": six.text_type(exc),
+                "error_message": str(exc),
             },
         )
     if key is None:
@@ -135,6 +179,18 @@ def traces_sampler(sampling_context):
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
 
+    if "celery_job" in sampling_context:
+        task_name = sampling_context["celery_job"].get("task")
+
+        if task_name in SAMPLED_TASKS:
+            return 1.0
+
+        if task_name in _PROCESS_EVENT_TASKS:
+            return _sample_process_event_tasks()
+
+        if task_name in _SYMBOLICATE_EVENT_TASKS:
+            return _sample_symbolicate_event_tasks()
+
     # Resolve the url, and see if we want to set our own sampling
     if "wsgi_environ" in sampling_context:
         try:
@@ -150,9 +206,9 @@ def traces_sampler(sampling_context):
 
 
 def configure_sdk():
-    from sentry_sdk.integrations.logging import LoggingIntegration
-    from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
 
     assert sentry_sdk.Hub.main.client is None
@@ -183,6 +239,19 @@ def configure_sdk():
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
+            # Temporarily capture envelope counts to compare to ingested
+            # transactions.
+            metrics.incr("internal.captured.events.envelopes")
+            transaction = envelope.get_transaction_event()
+
+            # Temporarily also capture counts for one specific transaction to check ingested amount
+            if (
+                transaction
+                and transaction.get("transaction")
+                == "/api/0/organizations/{organization_slug}/issues/"
+            ):
+                metrics.incr("internal.captured.events.envelopes.issues")
+
             # Assume only transactions get sent via envelopes
             if options.get("transaction-events.force-disable-internal-project"):
                 return
@@ -229,11 +298,11 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
         ],
-        **sdk_options
+        **sdk_options,
     )
 
 
-class RavenShim(object):
+class RavenShim:
     """Wrapper around sentry-sdk in case people are writing their own
     integrations that rely on this being here."""
 

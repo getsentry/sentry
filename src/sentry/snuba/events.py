@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
-from enum import Enum
 from collections import namedtuple
+from enum import Enum
 
 Column = namedtuple("Column", "group_name event_name transaction_name discover_name alias")
 
@@ -52,10 +50,18 @@ class Columns(Enum):
     )
 
     HTTP_METHOD = Column(
-        "events.http_method", "http_method", "http_method", "http_method", "http.method",
+        "events.http_method",
+        "http_method",
+        "http_method",
+        "http_method",
+        "http.method",
     )
     HTTP_REFERER = Column(
-        "events.http_referer", "http_referer", "http_referer", "http_referer", "http.referer",
+        "events.http_referer",
+        "http_referer",
+        "http_referer",
+        "http_referer",
+        "http.referer",
     )
     HTTP_URL = Column("events.tags[url]", "tags[url]", "tags[url]", "tags[url]", "http.url")
     OS_BUILD = Column(
@@ -264,10 +270,32 @@ class Columns(Enum):
         None, None, "transaction_status", "transaction_status", "transaction.status"
     )
     MEASUREMENTS_KEYS = Column(
-        None, None, "measurements.key", "measurements.key", "measurements_key",
+        None,
+        None,
+        "measurements.key",
+        "measurements.key",
+        "measurements_key",
     )
     MEASUREMENTS_VALUES = Column(
-        None, None, "measurements.value", "measurements.value", "measurements_value",
+        None,
+        None,
+        "measurements.value",
+        "measurements.value",
+        "measurements_value",
+    )
+    SPAN_OP_BREAKDOWNS_KEYS = Column(
+        None,
+        None,
+        "span_op_breakdowns.key",
+        "span_op_breakdowns.key",
+        "span_op_breakdowns_key",
+    )
+    SPAN_OP_BREAKDOWNS_VALUES = Column(
+        None,
+        None,
+        "span_op_breakdowns.value",
+        "span_op_breakdowns.value",
+        "span_op_breakdowns_value",
     )
     # Tracing context fields.
     TRACE_ID = Column(

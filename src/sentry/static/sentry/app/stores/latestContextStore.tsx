@@ -144,4 +144,6 @@ const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
 
 type LatestContextStore = Reflux.Store & LatestContextStoreInterface;
 
-export default Reflux.createStore(storeConfig) as LatestContextStore;
+const LatestContextStore = Reflux.createStore(storeConfig) as LatestContextStore;
+
+export default LatestContextStore;

@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 from sentry.utils import json
 from sentry.utils.signing import unsign
-
 from sentry.web.frontend.integration_extension_configuration import (
     IntegrationExtensionConfigurationView,
 )
@@ -20,6 +17,11 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
         params = params.copy()
         signed_params = params["signed_params"]
         del params["signed_params"]
-        params.update(unsign(signed_params, max_age=INSTALL_EXPIRATION_TIME,))
+        params.update(
+            unsign(
+                signed_params,
+                max_age=INSTALL_EXPIRATION_TIME,
+            )
+        )
         params["metadata"] = json.loads(params["metadata"])
         return params

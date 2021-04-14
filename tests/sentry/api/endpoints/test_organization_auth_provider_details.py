@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import PermissionTestCase
@@ -7,7 +5,7 @@ from sentry.testutils import PermissionTestCase
 
 class OrganizationAuthProviderPermissionTest(PermissionTestCase):
     def setUp(self):
-        super(OrganizationAuthProviderPermissionTest, self).setUp()
+        super().setUp()
         self.path = reverse(
             "sentry-api-0-organization-auth-provider", args=[self.organization.slug]
         )

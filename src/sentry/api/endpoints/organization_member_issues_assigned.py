@@ -1,8 +1,7 @@
-from __future__ import absolute_import
+from django.db.models import Q
 
 from sentry.api.bases import OrganizationIssuesEndpoint
 from sentry.models import Group, OrganizationMemberTeam, Team
-from django.db.models import Q
 
 
 class OrganizationMemberIssuesAssignedEndpoint(OrganizationIssuesEndpoint):

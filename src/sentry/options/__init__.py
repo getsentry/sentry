@@ -1,17 +1,15 @@
-from __future__ import absolute_import, print_function
-
-from .store import OptionsStore
-from .manager import OptionsManager
 from .manager import (  # NOQA
     DEFAULT_FLAGS,
+    FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
     FLAG_NOSTORE,
-    FLAG_STOREONLY,
-    FLAG_REQUIRED,
     FLAG_PRIORITIZE_DISK,
-    FLAG_ALLOW_EMPTY,
+    FLAG_REQUIRED,
+    FLAG_STOREONLY,
+    OptionsManager,
     UnknownOption,
 )
+from .store import OptionsStore
 
 __all__ = ("get", "set", "delete", "register", "isset", "lookup_key", "UnknownOption")
 

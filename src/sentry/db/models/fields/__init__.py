@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from .array import *  # NOQA
 from .bounded import *  # NOQA
 from .citext import *  # NOQA

@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import amixr from 'sentry-images/logos/logo-amixr.svg';
 import asana from 'sentry-images/logos/logo-asana.svg';
@@ -26,6 +25,7 @@ import lighthouse from 'sentry-images/logos/logo-lighthouse.svg';
 import linear from 'sentry-images/logos/logo-linear.svg';
 import msteams from 'sentry-images/logos/logo-msteams.svg';
 import netlify from 'sentry-images/logos/logo-netlify.svg';
+import octohook from 'sentry-images/logos/logo-octohook.svg';
 import opsgenie from 'sentry-images/logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-images/logos/logo-pagerduty.svg';
 import phabricator from 'sentry-images/logos/logo-phabricator.svg';
@@ -38,6 +38,7 @@ import rookout from 'sentry-images/logos/logo-rookout.svg';
 import segment from 'sentry-images/logos/logo-segment.svg';
 import sentry from 'sentry-images/logos/logo-sentry.svg';
 import slack from 'sentry-images/logos/logo-slack.svg';
+import spikesh from 'sentry-images/logos/logo-spikesh.svg';
 import split from 'sentry-images/logos/logo-split.svg';
 import taiga from 'sentry-images/logos/logo-taiga.svg';
 import teamwork from 'sentry-images/logos/logo-teamwork.svg';
@@ -89,6 +90,7 @@ export const ICON_PATHS = {
   linear,
   msteams,
   netlify,
+  octohook,
   opsgenie,
   pagerduty,
   phabricator,
@@ -100,6 +102,7 @@ export const ICON_PATHS = {
   rookout,
   segment,
   slack,
+  spikesh,
   split,
   taiga,
   teamwork,
@@ -136,11 +139,6 @@ const PluginIcon = styled('div')<Props>`
 PluginIcon.defaultProps = {
   pluginId: '_default',
   size: 20,
-};
-
-PluginIcon.propTypes = {
-  pluginId: PropTypes.string,
-  size: PropTypes.number,
 };
 
 export default PluginIcon;

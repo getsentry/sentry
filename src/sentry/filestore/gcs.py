@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
-import os
 import mimetypes
+import os
 import posixpath
 from tempfile import SpooledTemporaryFile
 
@@ -10,20 +8,17 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils import timezone
-from django.utils.encoding import force_bytes, smart_str, force_text
-
-from google.cloud.storage.client import Client
+from django.utils.encoding import force_bytes, force_text, smart_str
+from google.auth.exceptions import RefreshError, TransportError
+from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
-from google.cloud.exceptions import NotFound
-from google.auth.exceptions import TransportError, RefreshError
+from google.cloud.storage.client import Client
 from google.resumable_media.common import DataCorruption
 from requests.exceptions import RequestException
 
-from sentry.http import OpenSSLError
-from sentry.utils import metrics
 from sentry.net.http import TimeoutAdapter
-
+from sentry.utils import metrics
 
 # how many times do we want to try if stuff goes wrong
 GCS_RETRIES = 5
@@ -61,7 +56,7 @@ def try_repeated(func):
             metrics_tags.update({"success": "1"})
             metrics.timing(metrics_key, idx, tags=metrics_tags)
             return result
-        except (DataCorruption, TransportError, RefreshError, RequestException, OpenSSLError) as e:
+        except (DataCorruption, TransportError, RefreshError, RequestException) as e:
             if idx >= GCS_RETRIES:
                 metrics_tags.update({"success": "0", "exception_class": e.__class__.__name__})
                 metrics.timing(metrics_key, idx, tags=metrics_tags)
@@ -137,18 +132,14 @@ def safe_join(base, *paths):
 class FancyBlob(Blob):
     def __init__(self, download_url, *args, **kwargs):
         self.download_url = download_url
-        super(FancyBlob, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-    def _get_download_url(self):
-        if self.media_link is None:
-            download_url = u"{download_url}/download/storage/v1{path}?alt=media".format(
-                download_url=self.download_url, path=self.path
-            )
-            if self.generation is not None:
-                download_url += u"&generation={:d}".format(self.generation)
-            return download_url
-        else:
-            return self.media_link
+    def _get_download_url(self, *args, **kwargs):
+        # media_link is for public objects; we completely ignore it.
+        download_url = f"{self.download_url}/download/storage/v1{self.path}?alt=media"
+        if self.generation is not None:
+            download_url += f"&generation={self.generation:d}"
+        return download_url
 
 
 class GoogleCloudFile(File):
@@ -196,13 +187,13 @@ class GoogleCloudFile(File):
         if num_bytes is None:
             num_bytes = -1
 
-        return super(GoogleCloudFile, self).read(num_bytes)
+        return super().read(num_bytes)
 
     def write(self, content):
         if "w" not in self._mode:
             raise AttributeError("File was not opened in write mode.")
         self._is_dirty = True
-        return super(GoogleCloudFile, self).write(force_bytes(content))
+        return super().write(force_bytes(content))
 
     def close(self):
         def _try_upload():
@@ -328,7 +319,7 @@ class GoogleCloudStorage(Storage):
         blob = self.bucket.get_blob(name)
 
         if blob is None:
-            raise NotFound(u"File does not exist: {}".format(name))
+            raise NotFound(f"File does not exist: {name}")
 
         return blob
 
@@ -358,4 +349,4 @@ class GoogleCloudStorage(Storage):
         if self.file_overwrite:
             name = clean_name(name)
             return name
-        return super(GoogleCloudStorage, self).get_available_name(name, max_length)
+        return super().get_available_name(name, max_length)

@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import GroupActions from 'app/actions/groupActions';
 import PluginComponentBase from 'app/components/bases/pluginComponentBase';
@@ -73,12 +72,6 @@ class IssueActions extends PluginComponentBase<Props, State> {
       dependentFieldState: {},
     };
   }
-
-  static propTypes = {
-    plugin: PropTypes.object.isRequired,
-    actionType: PropTypes.oneOf(['unlink', 'link', 'create']).isRequired,
-    onSuccess: PropTypes.func,
-  };
 
   getGroup() {
     return this.props.group;

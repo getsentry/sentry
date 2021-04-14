@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import pytest
-
-from django.test import RequestFactory
 from django.template import engines
+from django.test import RequestFactory
 
 from sentry.testutils import TestCase
 

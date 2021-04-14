@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import responses
 
-from sentry.utils.compat.mock import patch
-
+from sentry.integrations.slack.unlink_identity import build_unlinking_url
 from sentry.models import (
     Identity,
     IdentityProvider,
@@ -12,7 +9,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import TestCase
-from sentry.integrations.slack.unlink_identity import build_unlinking_url
+from sentry.utils.compat.mock import patch
 
 
 class SlackIntegrationLinkIdentityTest(TestCase):
@@ -28,7 +25,10 @@ class SlackIntegrationLinkIdentityTest(TestCase):
         self.integration = Integration.objects.create(
             provider="slack",
             external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
         )
         OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
 

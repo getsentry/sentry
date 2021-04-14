@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 import abc
 
 
-class MinHashIndexBackendTestMixin(object):
+class MinHashIndexBackendTestMixin:
     __meta__ = abc.ABCMeta
 
     @abc.abstractproperty

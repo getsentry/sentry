@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import FormModel from 'app/views/settings/components/forms/model';
 import Subscriptions from 'app/views/settings/organizationDeveloperSettings/resourceSubscriptions';
@@ -12,7 +12,7 @@ describe('Resource Subscriptions', () => {
   describe('initial no-access permissions', () => {
     beforeEach(() => {
       onChange = jest.fn();
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Subscriptions
           events={[]}
           permissions={{
@@ -58,7 +58,7 @@ describe('Resource Subscriptions', () => {
   describe('inital access to permissions', () => {
     beforeEach(() => {
       onChange = jest.fn();
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Subscriptions
           events={['issue']}
           permissions={{

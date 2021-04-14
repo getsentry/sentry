@@ -1,8 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
-import Reflux from 'reflux';
 
 import {loadStatsForProject} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
@@ -11,10 +8,10 @@ import Link from 'app/components/links/link';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t, tn} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -30,12 +27,6 @@ type Props = {
 };
 
 class ProjectCard extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    project: SentryTypes.Project.isRequired,
-    hasProjectAccess: PropTypes.bool,
-  };
-
   componentDidMount() {
     const {organization, project, api} = this.props;
 
@@ -82,6 +73,7 @@ class ProjectCard extends React.Component<Props> {
                 <StyledIdBadge
                   project={project}
                   avatarSize={18}
+                  hideOverflow
                   displayName={
                     hasProjectAccess ? (
                       <Link to={projectLink}>
@@ -152,18 +144,27 @@ type ContainerState = {
   projectDetails: Project | null;
 };
 
-const ProjectCardContainer = createReactClass<ContainerProps, ContainerState>({
-  propTypes: {
-    project: SentryTypes.Project,
-  },
-  mixins: [Reflux.listenTo(ProjectsStatsStore, 'onProjectStoreUpdate') as any],
+class ProjectCardContainer extends React.Component<ContainerProps, ContainerState> {
+  state = this.getInitialState();
+
   getInitialState(): ContainerState {
     const {project} = this.props;
     const initialState = ProjectsStatsStore.getInitialState() || {};
     return {
       projectDetails: initialState[project.slug] || null,
     };
-  },
+  }
+
+  componentWillUnmount() {
+    this.listeners.forEach(callIfFunction);
+  }
+
+  listeners = [
+    ProjectsStatsStore.listen(itemsBySlug => {
+      this.onProjectStoreUpdate(itemsBySlug);
+    }, undefined),
+  ];
+
   onProjectStoreUpdate(itemsBySlug: typeof ProjectsStatsStore['itemsBySlug']) {
     const {project} = this.props;
 
@@ -178,7 +179,8 @@ const ProjectCardContainer = createReactClass<ContainerProps, ContainerState>({
     this.setState({
       projectDetails: itemsBySlug[project.slug],
     });
-  },
+  }
+
   render() {
     const {project, ...props} = this.props;
     const {projectDetails} = this.state;
@@ -191,8 +193,8 @@ const ProjectCardContainer = createReactClass<ContainerProps, ContainerState>({
         }}
       />
     );
-  },
-});
+  }
+}
 
 const ChartContainer = styled('div')`
   position: relative;
@@ -204,7 +206,8 @@ const CardHeader = styled('div')`
 `;
 
 const HeaderRow = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   justify-content: space-between;
   align-items: center;
 `;
@@ -225,6 +228,7 @@ const LoadingCard = styled('div')`
 const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
+  flex-shrink: 1;
 `;
 
 const SummaryLinks = styled('div')`

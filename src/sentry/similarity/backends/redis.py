@@ -1,16 +1,12 @@
-from __future__ import absolute_import
-
 import itertools
 import time
 
 from django.utils.encoding import force_text
 
 from sentry.similarity.backends.abstract import AbstractIndexBackend
+from sentry.utils.compat import map, zip
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
-
 
 index = load_script("similarity/index.lua")
 

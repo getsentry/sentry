@@ -1,53 +1,55 @@
 import React from 'react';
+import round from 'lodash/round';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {getDiffInMinutes} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import ScoreCard from 'app/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
-import {GlobalSelection, Organization} from 'app/types';
+import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
 import {defined, percent} from 'app/utils';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import {getPeriod} from 'app/utils/getPeriod';
 import {displayCrashFreePercent, getCrashFreePercent} from 'app/views/releases/utils';
+import {
+  getSessionTermDescription,
+  SessionTerm,
+} from 'app/views/releases/utils/sessionTerm';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 import {shouldFetchPreviousPeriod} from '../utils';
 
-type SessionApiResponse = {
-  query: string;
-  intervals: string[];
-  groups: {
-    by: Record<string, string>;
-    totals: Record<string, number>;
-    series: Record<string, number[]>;
-  }[];
-};
-
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   selection: GlobalSelection;
+  isProjectStabilized: boolean;
+  hasSessions: boolean | null;
 };
 
 type State = AsyncComponent['state'] & {
   currentSessions: SessionApiResponse | null;
   previousSessions: SessionApiResponse | null;
-  noSessionEver: boolean;
 };
 
 class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
+  shouldRenderBadRequests = true;
+
   getDefaultState() {
     return {
       ...super.getDefaultState(),
       currentSessions: null,
       previousSessions: null,
-      noSessionEver: false,
     };
   }
 
   getEndpoints() {
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized, hasSessions} = this.props;
+
+    if (!isProjectStabilized || !hasSessions) {
+      return [];
+    }
 
     const {projects, environments: environment, datetime} = selection;
     const {period} = datetime;
@@ -97,42 +99,16 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
-  /**
-   * If there are no sessions in the time frame, check if there are any in the last 90 days (empty message differs then)
-   */
-  async onLoadAllEndpointsSuccess() {
-    const {organization, selection} = this.props;
-
-    if (defined(this.score) || defined(this.trend)) {
-      this.setState({noSessionEver: false});
-      return;
-    }
-
-    this.setState({loading: true});
-
-    const response: SessionApiResponse = await this.api.requestPromise(
-      `/organizations/${organization.slug}/sessions/`,
-      {
-        query: {
-          project: selection.projects[0],
-          field: 'sum(session)',
-          statsPeriod: '90d',
-          interval: '90d',
-        },
-      }
-    );
-
-    const allSessions = response.groups[0].totals['sum(session)'];
-
-    this.setState({noSessionEver: !allSessions || allSessions === 0, loading: false});
-  }
-
   get cardTitle() {
-    return t('Stability Score');
+    return t('Crash Free Sessions');
   }
 
   get cardHelp() {
-    return t('Stability score is the percentage of crash free sessions.');
+    return this.trend
+      ? t(
+          'The percentage of crash free sessions and how it has changed since the last period.'
+        )
+      : getSessionTermDescription(SessionTerm.STABILITY, null);
   }
 
   get score() {
@@ -150,10 +126,10 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       return undefined;
     }
 
-    return this.score - previousScore;
+    return round(this.score - previousScore, 3);
   }
 
-  get trendStyle(): React.ComponentProps<typeof ScoreCard>['trendStyle'] {
+  get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
     if (!this.trend) {
       return undefined;
     }
@@ -162,7 +138,12 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.selection !== this.props.selection) {
+    const {selection, isProjectStabilized, hasSessions} = this.props;
+
+    if (
+      (prevProps.selection !== selection || prevProps.hasSessions !== hasSessions) &&
+      isProjectStabilized
+    ) {
       this.remountComponent();
     }
   }
@@ -200,7 +181,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       <ScoreCard
         title={this.cardTitle}
         help={this.cardHelp}
-        score={<MissingReleasesButtons organization={organization} />}
+        score={<MissingReleasesButtons organization={organization} health />}
       />
     );
   }
@@ -222,15 +203,22 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       return null;
     }
 
-    return `${this.trend >= 0 ? '+' : '-'}${formatAbbreviatedNumber(
-      Math.abs(this.trend)
-    )}\u0025`;
+    return (
+      <div>
+        {this.trend >= 0 ? (
+          <IconArrow direction="up" size="xs" />
+        ) : (
+          <IconArrow direction="down" size="xs" />
+        )}
+        {`${formatAbbreviatedNumber(Math.abs(this.trend))}\u0025`}
+      </div>
+    );
   }
 
   renderBody() {
-    const {noSessionEver} = this.state;
+    const {hasSessions} = this.props;
 
-    if (noSessionEver) {
+    if (hasSessions === false) {
       return this.renderMissingFeatureCard();
     }
 
@@ -240,7 +228,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
         help={this.cardHelp}
         score={this.renderScore()}
         trend={this.renderTrend()}
-        trendStyle={this.trendStyle}
+        trendStatus={this.trendStatus}
       />
     );
   }

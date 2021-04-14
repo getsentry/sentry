@@ -1,7 +1,6 @@
 import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import AutoSelectText from 'app/components/autoSelectText';
 
@@ -12,11 +11,6 @@ type Props = {
 };
 
 export default class ShortId extends React.Component<Props> {
-  static propTypes = {
-    shortId: PropTypes.string.isRequired,
-    avatar: PropTypes.node,
-  };
-
   render() {
     const {shortId, avatar} = this.props;
 

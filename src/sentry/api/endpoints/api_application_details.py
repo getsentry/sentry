@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 import logging
+from uuid import uuid4
 
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from uuid import uuid4
 
 from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.exceptions import ResourceDoesNotExist

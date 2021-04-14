@@ -106,13 +106,18 @@ class ProjectDetailsInner extends React.Component<DetailsProps, DetailsState> {
 
 const ProjectDetails = withApi(ProjectDetailsInner);
 
-type Props = WithRouterProps<{orgId: string; projectId: string}> & {
+type Params = {orgId: string; projectId: string} & Record<string, any>;
+
+type Props = WithRouterProps<Params> & {
   location: Location;
 };
 
 type RedirectOptions = {
   orgId: string;
   projectId: null | string;
+  router: {
+    params: Params;
+  };
 };
 
 type RedirectCallback = (options: RedirectOptions) => string;
@@ -133,11 +138,12 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
     };
 
     render() {
-      const {orgId} = this.props.params;
+      const {params} = this.props;
+      const {orgId} = params;
 
       return (
         <Wrapper>
-          <ProjectDetails orgId={orgId} projectSlug={this.props.params.projectId}>
+          <ProjectDetails orgId={orgId} projectSlug={params.projectId}>
             {({loading, error, hasProjectId, projectId, organizationId}) => {
               if (loading) {
                 return <LoadingIndicator />;
@@ -155,12 +161,10 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
                 return <LoadingError />;
               }
 
-              const routeProps = {
+              const routeProps: RedirectOptions = {
                 orgId,
                 projectId,
-                router: {
-                  params: this.props.params,
-                },
+                router: {params},
               };
 
               return (

@@ -1,16 +1,13 @@
-from __future__ import absolute_import
-
-import six
-import pytz
-
 from datetime import datetime
+
+import pytz
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators import Mediator, Param
-from sentry.mediators.token_exchange.validator import Validator
 from sentry.mediators.token_exchange.util import token_expiration
-from sentry.models import ApiApplication, ApiToken, ApiGrant, SentryApp
+from sentry.mediators.token_exchange.validator import Validator
+from sentry.models import ApiApplication, ApiGrant, ApiToken, SentryApp
 from sentry.utils.cache import memoize
 
 
@@ -20,8 +17,8 @@ class GrantExchanger(Mediator):
     """
 
     install = Param("sentry.models.SentryAppInstallation")
-    code = Param(six.string_types)
-    client_id = Param(six.string_types)
+    code = Param((str,))
+    client_id = Param((str,))
     user = Param("sentry.models.User")
 
     def call(self):

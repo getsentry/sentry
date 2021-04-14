@@ -6,10 +6,6 @@ import SettingsHeader from 'app/views/settings/components/settingsHeader';
 
 type Params = {
   /**
-   * If this is true, will make corners blend with its opener (so no border radius)
-   */
-  blendWithActor?: boolean;
-  /**
    * If this is true, will make a single corner blended with actor (depends on anchor orientation)
    */
   blendCorner: boolean;
@@ -20,11 +16,15 @@ type Params = {
   /**
    * The width of the menu
    */
-  width: string;
+  width?: string;
   /**
    * enable the arrow on the menu
    */
   menuWithArrow?: boolean;
+  /**
+   * If this is true, will make corners blend with its opener (so no border radius)
+   */
+  blendWithActor?: boolean;
 };
 
 /**

@@ -1,7 +1,3 @@
-from __future__ import absolute_import, print_function
-
-import six
-
 from rest_framework import serializers
 
 from sentry.models import User
@@ -16,7 +12,7 @@ class UserField(serializers.Field):
         if not data:
             return None
 
-        if isinstance(data, six.integer_types) or data.isdigit():
+        if isinstance(data, int) or data.isdigit():
             try:
                 return User.objects.get(id=data)
             except User.DoesNotExist:

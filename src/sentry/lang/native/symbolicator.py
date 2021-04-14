@@ -1,26 +1,22 @@
-from __future__ import absolute_import
-
-import sys
-import jsonschema
+import base64
 import logging
-import six
+import sys
 import time
+from urllib.parse import urljoin
 
+import jsonschema
+import sentry_sdk
 from django.conf import settings
 from django.core.urlresolvers import reverse
-
 from requests.exceptions import RequestException
-from six.moves.urllib.parse import urljoin
-
-import sentry_sdk
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
-from sentry.utils import json, metrics
+from sentry.models import Organization
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
-from sentry.models import Organization
+from sentry.utils import json, metrics
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
@@ -57,7 +53,9 @@ HTTP_SOURCE_SCHEMA = {
     "properties": dict(
         type={"type": "string", "enum": ["http"]},
         url={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        username={"type": "string"},
+        password={"type": "string"},
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "url", "layout"],
     "additionalProperties": False,
@@ -72,7 +70,7 @@ S3_SOURCE_SCHEMA = {
         access_key={"type": "string"},
         secret_key={"type": "string"},
         prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "region", "access_key", "secret_key", "layout"],
     "additionalProperties": False,
@@ -86,7 +84,7 @@ GCS_SOURCE_SCHEMA = {
         client_email={"type": "string"},
         private_key={"type": "string"},
         prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "client_email", "private_key", "layout"],
     "additionalProperties": False,
@@ -99,10 +97,10 @@ SOURCES_SCHEMA = {
 
 
 def _task_id_cache_key_for_event(project_id, event_id):
-    return u"symbolicator:{1}:{0}".format(project_id, event_id)
+    return f"symbolicator:{event_id}:{project_id}"
 
 
-class Symbolicator(object):
+class Symbolicator:
     def __init__(self, project, event_id):
         symbolicator_options = options.get("symbolicator.options")
         base_url = symbolicator_options["url"].rstrip("/")
@@ -117,8 +115,8 @@ class Symbolicator(object):
 
         self.sess = SymbolicatorSession(
             url=base_url,
-            project_id=six.text_type(project.id),
-            event_id=six.text_type(event_id),
+            project_id=str(project.id),
+            event_id=str(event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
             options=get_options_for_project(project),
@@ -173,14 +171,15 @@ class Symbolicator(object):
                 metrics.timing(
                     "events.symbolicator.response.completed.size", len(json.dumps(json_response))
                 )
-                return redact_internal_sources(json_response)
+                return json_response
 
     def process_minidump(self, minidump):
         return self._process(lambda: self.sess.upload_minidump(minidump), "process_minidump")
 
     def process_applecrashreport(self, report):
         return self._process(
-            lambda: self.sess.upload_applecrashreport(report), "process_applecrashreport",
+            lambda: self.sess.upload_applecrashreport(report),
+            "process_applecrashreport",
         )
 
     def process_payload(self, stacktraces, modules, signal=None):
@@ -190,74 +189,6 @@ class Symbolicator(object):
             ),
             "symbolicate_stacktraces",
         )
-
-
-def redact_internal_sources(response):
-    """Redacts information about internal sources from a response.
-
-    Symbolicator responses can contain a section about DIF object file candidates where were
-    attempted to be downloaded from the sources.  This includes a full URI of where the
-    download was attempted from.  For internal sources we want to redact this in order to
-    not leak any internal details.
-
-    Note that this modifies the argument passed in, thus redacting in-place.  It still
-    returns the modified response.
-    """
-    for module in response.get("modules", []):
-        redact_internal_sources_from_module(module)
-    return response
-
-
-def redact_internal_sources_from_module(module):
-    """Redacts information about internal sources from a single module.
-
-    This in-place redacts candidates from only a single module of the symbolicator response.
-
-    The strategy here is for each internal source to replace the location with the DebugID.
-    Furthermore if there are any "notfound" entries collapse them into a single entry and
-    only show this entry if there are no entries with another status.
-    """
-    sources_notfound = set()
-    sources_other = set()
-    new_candidates = []
-
-    for candidate in module.get("candidates", []):
-        source_id = candidate["source"]
-        if is_internal_source_id(source_id):
-
-            # Only keep location for sentry:project.
-            if source_id != "sentry:project":
-                candidate.pop("location", None)
-
-            # Collapse nofound statuses, collect info on sources which both have a notfound
-            # as well as other statusses.  This allows us to later filter the notfound ones.
-            try:
-                status = candidate.get("download", {})["status"]
-            except KeyError:
-                pass
-            else:
-                if status == "notfound":
-                    candidate.pop("location", None)  # This location is bogus, remove it.
-                    if source_id in sources_notfound:
-                        continue
-                    else:
-                        sources_notfound.add(source_id)
-                else:
-                    sources_other.add(source_id)
-        new_candidates.append(candidate)
-
-    def should_keep(candidate):
-        """Returns `False` if the candidate should be kept in the list of candidates.
-
-        This removes the candidates with a status of ``notfound`` *if* they also have
-        another status.
-        """
-        source_id = candidate["source"]
-        status = candidate.get("download", {}).get("status")
-        return status != "notfound" or source_id not in sources_other
-
-    if "candidates" in module:
-        module["candidates"] = [c for c in new_candidates if should_keep(c)]
 
 
 class TaskIdNotFound(Exception):
@@ -285,7 +216,7 @@ def get_internal_source(project):
             ).replace("127.0.0.1", "host.docker.internal")
 
     assert internal_url_prefix
-    sentry_source_url = "%s%s" % (
+    sentry_source_url = "{}{}".format(
         internal_url_prefix.rstrip("/"),
         reverse(
             "sentry-api-0-dsym-files",
@@ -309,6 +240,26 @@ def is_internal_source_id(source_id):
     return source_id.startswith("sentry")
 
 
+def normalize_user_source(source):
+    """Sources supplied from the user frontend might not match the format that
+    symbolicator expects.  For instance we currently do not permit headers to be
+    configured in the UI, but we allow basic auth to be configured for HTTP.
+    This means that we need to convert from username/password into the HTTP
+    basic auth header.
+    """
+    if source.get("type") == "http":
+        username = source.pop("username", None)
+        password = source.pop("password", None)
+        if username or password:
+            auth = base64.b64encode(
+                ("{}:{}".format(username or "", password or "")).encode("utf-8")
+            )
+            source["headers"] = {
+                "authorization": "Basic %s" % auth.decode("ascii"),
+            }
+    return source
+
+
 def parse_sources(config):
     """
     Parses the given sources in the config string (from JSON).
@@ -320,7 +271,7 @@ def parse_sources(config):
     try:
         sources = json.loads(config)
     except BaseException as e:
-        raise InvalidSourcesError(six.text_type(e))
+        raise InvalidSourcesError(str(e))
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
@@ -332,7 +283,7 @@ def parse_sources(config):
         if is_internal_source_id(source["id"]):
             raise InvalidSourcesError('Source ids must not start with "sentry:"')
         if source["id"] in ids:
-            raise InvalidSourcesError("Duplicate source id: %s" % (source["id"],))
+            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
         ids.add(source["id"])
 
     return sources
@@ -373,7 +324,7 @@ def get_sources_for_project(project):
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config)
-            sources.extend(custom_sources)
+            sources.extend(normalize_user_source(source) for source in custom_sources)
         except InvalidSourcesError:
             # Source configs should be validated when they are saved. If this
             # did not happen, this indicates a bug. Record this, but do not stop
@@ -385,15 +336,14 @@ def get_sources_for_project(project):
             other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
             if other_source:
                 if other_source.get("type") == "alias":
-                    for item in resolve_alias(other_source):
-                        yield item
+                    yield from resolve_alias(other_source)
                 else:
                     yield other_source
 
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
     builtin_sources = project.get_option("sentry:builtin_symbol_sources")
-    for key, source in six.iteritems(settings.SENTRY_BUILTIN_SOURCES):
+    for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
         if key not in builtin_sources:
             continue
 
@@ -408,7 +358,7 @@ def get_sources_for_project(project):
     return sources
 
 
-class SymbolicatorSession(object):
+class SymbolicatorSession:
     def __init__(
         self, url=None, sources=None, project_id=None, event_id=None, timeout=None, options=None
     ):
@@ -419,6 +369,18 @@ class SymbolicatorSession(object):
         self.options = options or None
         self.timeout = timeout
         self.session = None
+
+        # Build some maps for use in ._process_response()
+        self.reverse_source_aliases = reverse_aliases_map(settings.SENTRY_BUILTIN_SOURCES)
+        self.source_names = {source["id"]: source.get("name", "unknown") for source in self.sources}
+
+        # Add a name for the special "sentry:project" source.
+        self.source_names[INTERNAL_SOURCE_NAME] = "Sentry"
+
+        # Add names for aliased sources.
+        for source in settings.SENTRY_BUILTIN_SOURCES.values():
+            if source.get("type") == "alias":
+                self.source_names[source["id"]] = source.get("name", "unknown")
 
     def __enter__(self):
         self.open()
@@ -441,14 +403,25 @@ class SymbolicatorSession(object):
             raise RuntimeError("Session not opened")
 
     def _process_response(self, json):
-        source_names = {source["id"]: source.get("name") for source in self.sources}
-        source_names[INTERNAL_SOURCE_NAME] = "Sentry"
+        """Post-processes the JSON repsonse.
 
+        This modifies the candidates list from Symbolicator responses to undo aliased
+        sources, hide information about unknown sources and add names to sources rather then
+        just have their IDs.
+        """
         for module in json.get("modules") or ():
             for candidate in module.get("candidates") or ():
-                if candidate.get("source"):
-                    candidate["source_name"] = source_names.get(candidate["source"])
+                # Reverse internal source aliases from the response.
+                source_id = candidate["source"]
+                original_source_id = self.reverse_source_aliases.get(source_id)
+                if original_source_id is not None:
+                    candidate["source"] = original_source_id
+                    source_id = original_source_id
 
+                # Add a "source_name" field to save the UI a lookup.
+                candidate["source_name"] = self.source_names.get(source_id, "unknown")
+
+        redact_internal_sources(json)
         return json
 
     def _request(self, method, path, **kwargs):
@@ -497,7 +470,7 @@ class SymbolicatorSession(object):
                     json = {"status": "failed", "message": "internal server error"}
 
                 return self._process_response(json)
-            except (IOError, RequestException) as e:
+            except (OSError, RequestException) as e:
                 metrics.incr(
                     "events.symbolicator.request_error",
                     tags={
@@ -551,7 +524,7 @@ class SymbolicatorSession(object):
         )
 
     def query_task(self, task_id):
-        task_url = "requests/%s" % (task_id,)
+        task_url = f"requests/{task_id}"
 
         params = {
             "timeout": 0,  # Only wait when creating, but not when querying tasks
@@ -563,3 +536,93 @@ class SymbolicatorSession(object):
 
     def healthcheck(self):
         return self._request("get", "healthcheck")
+
+
+def reverse_aliases_map(builtin_sources):
+    """Returns a map of source IDs to their original un-aliased source ID.
+
+    :param builtin_sources: The value of `settings.SENTRY_BUILTIN_SOURCES`.
+    """
+    reverse_aliases = dict()
+    for key, source in builtin_sources.items():
+        if source.get("type") != "alias":
+            continue
+        try:
+            self_id = source["id"]
+        except KeyError:
+            continue
+        for aliased_source in source.get("sources", []):
+            try:
+                aliased_source = builtin_sources[aliased_source]
+                aliased_id = aliased_source["id"]
+            except KeyError:
+                continue
+            reverse_aliases[aliased_id] = self_id
+    return reverse_aliases
+
+
+def redact_internal_sources(response):
+    """Redacts information about internal sources from a response.
+
+    Symbolicator responses can contain a section about DIF object file candidates where were
+    attempted to be downloaded from the sources.  This includes a full URI of where the
+    download was attempted from.  For internal sources we want to redact this in order to
+    not leak any internal details.
+
+    Note that this modifies the argument passed in, thus redacting in-place.  It still
+    returns the modified response.
+    """
+    for module in response.get("modules", []):
+        redact_internal_sources_from_module(module)
+
+
+def redact_internal_sources_from_module(module):
+    """Redacts information about internal sources from a single module.
+
+    This in-place redacts candidates from only a single module of the symbolicator response.
+
+    The strategy here is for each internal source to replace the location with the DebugID.
+    Furthermore if there are any "notfound" entries collapse them into a single entry and
+    only show this entry if there are no entries with another status.
+    """
+    sources_notfound = set()
+    sources_other = set()
+    new_candidates = []
+
+    for candidate in module.get("candidates", []):
+        source_id = candidate["source"]
+        if is_internal_source_id(source_id):
+
+            # Only keep location for sentry:project.
+            if source_id != "sentry:project":
+                candidate.pop("location", None)
+
+            # Collapse nofound statuses, collect info on sources which both have a notfound
+            # as well as other statusses.  This allows us to later filter the notfound ones.
+            try:
+                status = candidate.get("download", {})["status"]
+            except KeyError:
+                pass
+            else:
+                if status == "notfound":
+                    candidate.pop("location", None)  # This location is bogus, remove it.
+                    if source_id in sources_notfound:
+                        continue
+                    else:
+                        sources_notfound.add(source_id)
+                else:
+                    sources_other.add(source_id)
+        new_candidates.append(candidate)
+
+    def should_keep(candidate):
+        """Returns `False` if the candidate should be kept in the list of candidates.
+
+        This removes the candidates with a status of ``notfound`` *if* they also have
+        another status.
+        """
+        source_id = candidate["source"]
+        status = candidate.get("download", {}).get("status")
+        return status != "notfound" or source_id not in sources_other
+
+    if "candidates" in module:
+        module["candidates"] = [c for c in new_candidates if should_keep(c)]

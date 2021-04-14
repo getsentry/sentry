@@ -1,8 +1,8 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat import mock
 from uuid import uuid4
 
+from sentry import nodestore
+from sentry.deletions.defaults.group import EventDataDeletionTask
+from sentry.eventstore.models import Event
 from sentry.models import (
     EventAttachment,
     File,
@@ -13,17 +13,15 @@ from sentry.models import (
     GroupRedirect,
     UserReport,
 )
-from sentry import nodestore
-from sentry.deletions.defaults.group import EventDataDeletionTask
-from sentry.eventstore.models import Event
 from sentry.tasks.deletion import delete_groups
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(DeleteGroupTest, self).setUp()
+        super().setUp()
         self.event_id = "a" * 32
         self.event_id2 = "b" * 32
         self.event_id3 = "c" * 32
@@ -69,7 +67,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         EventAttachment.objects.create(
             event_id=self.event.event_id,
             project_id=self.event.project_id,
-            file=file,
+            file_id=file.id,
             type=file.type,
             name="hello.png",
         )

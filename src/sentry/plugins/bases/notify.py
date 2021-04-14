@@ -1,18 +1,18 @@
-from __future__ import absolute_import, print_function
-
 import logging
-import six
-from six.moves.urllib.error import HTTPError as UrllibHTTPError
-from six.moves.urllib.parse import urlparse, urlencode, urlunparse, parse_qs
+from typing import Set
+from urllib.error import HTTPError as UrllibHTTPError
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from django import forms
-from requests.exceptions import SSLError, HTTPError
+from requests.exceptions import HTTPError, SSLError
 
 from sentry import digests, ratelimits
 from sentry.exceptions import PluginError
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.models import NotificationSetting
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.integrations import ExternalProviders
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -23,7 +23,7 @@ class BaseNotificationUserOptionsForm(forms.Form):
     def __init__(self, plugin, user, *args, **kwargs):
         self.plugin = plugin
         self.user = user
-        super(BaseNotificationUserOptionsForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_title(self):
         return self.plugin.get_conf_title()
@@ -54,7 +54,7 @@ class NotificationPlugin(Plugin):
         """
         This calls the notify_users method of the plugin.
         Normally this method eats the error and logs it but if we
-        set raise_exception=True like we do for the test plugin buttion,
+        set raise_exception=True like we do for the test plugin button,
         the exception is raised
         """
         event = notification.event
@@ -66,7 +66,7 @@ class NotificationPlugin(Plugin):
             self.logger.info(
                 "notification-plugin.notify-failed",
                 extra={
-                    "error": six.text_type(err),
+                    "error": str(err),
                     "plugin": self.slug,
                     "project_id": event.group.project_id,
                     "organization_id": event.group.project.organization_id,
@@ -101,16 +101,45 @@ class NotificationPlugin(Plugin):
     def notify_about_activity(self, activity):
         pass
 
-    @property
-    def alert_option_key(self):
-        return "%s:alert" % self.get_conf_key()
+    def get_notification_recipients(self, project, user_option: str) -> Set:
+        from sentry.models import UserOption
 
-    def get_sendable_users(self, project):
+        alert_settings = {
+            o.user_id: int(o.value)
+            for o in UserOption.objects.filter(project=project, key=user_option)
+        }
+
+        disabled = {u for u, v in alert_settings.items() if v == 0}
+
+        member_set = set(
+            project.member_set.exclude(user__in=disabled).values_list("user", flat=True)
+        )
+
+        # determine members default settings
+        members_to_check = {u for u in member_set if u not in alert_settings}
+        if members_to_check:
+            disabled = {
+                uo.user_id
+                for uo in UserOption.objects.filter(
+                    key="subscribe_by_default", user__in=members_to_check
+                )
+                if str(uo.value) == "0"
+            }
+            member_set = [x for x in member_set if x not in disabled]
+
+        return member_set
+
+    def get_sendable_user_objects(self, project):
         """
         Return a collection of user IDs that are eligible to receive
         notifications for the provided project.
         """
-        return project.get_notification_recipients(self.alert_option_key)
+        if self.get_conf_key() == "mail":
+            return NotificationSetting.objects.get_notification_recipients(project)[
+                ExternalProviders.EMAIL
+            ]
+
+        return self.get_notification_recipients(project, "%s:alert" % self.get_conf_key())
 
     def __is_rate_limited(self, group, event):
         return ratelimits.is_limited(project=group.project, key=self.get_conf_key(), limit=10)
@@ -129,7 +158,7 @@ class NotificationPlugin(Plugin):
         if not (
             hasattr(self, "notify_digest") and digests.enabled(project)
         ) and self.__is_rate_limited(group, event):
-            logger = logging.getLogger(u"sentry.plugins.{0}".format(self.get_conf_key()))
+            logger = logging.getLogger(f"sentry.plugins.{self.get_conf_key()}")
             logger.info("notification.rate_limited", extra={"project_id": project.id})
             return False
 
@@ -147,18 +176,16 @@ class NotificationPlugin(Plugin):
             test_results = self.test_configuration(project)
         except Exception as exc:
             if isinstance(exc, HTTPError) and hasattr(exc.response, "text"):
-                test_results = "%s\n%s" % (exc, exc.response.text[:256])
+                test_results = f"{exc}\n{exc.response.text[:256]}"
             elif hasattr(exc, "read") and callable(exc.read):
-                test_results = "%s\n%s" % (exc, exc.read()[:256])
+                test_results = f"{exc}\n{exc.read()[:256]}"
             else:
-                logging.exception(
-                    "Plugin(%s) raised an error during test, %s", self.slug, six.text_type(exc)
-                )
-                if six.text_type(exc).lower().startswith("error communicating with"):
-                    test_results = six.text_type(exc)[:256]
+                logging.exception("Plugin(%s) raised an error during test, %s", self.slug, str(exc))
+                if str(exc).lower().startswith("error communicating with"):
+                    test_results = str(exc)[:256]
                 else:
                     test_results = (
-                        "There was an internal error with the Plugin, %s" % six.text_type(exc)[:256]
+                        "There was an internal error with the Plugin, %s" % str(exc)[:256]
                     )
         if not test_results:
             test_results = "No errors returned"

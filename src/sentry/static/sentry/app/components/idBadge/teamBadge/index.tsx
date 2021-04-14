@@ -3,7 +3,6 @@ import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
 import Reflux from 'reflux';
 
-import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import {Team} from 'app/types';
 
@@ -17,9 +16,6 @@ type ContainerState = {
 
 const TeamBadgeContainer = createReactClass<Props, ContainerState>({
   displayName: 'TeamBadgeContainer',
-  propTypes: {
-    team: SentryTypes.Team.isRequired,
-  },
   mixins: [Reflux.listenTo(TeamStore, 'onTeamStoreUpdate') as any],
   getInitialState() {
     return {

@@ -2,12 +2,10 @@ import React from 'react';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import {EChartOption} from 'echarts/lib/echarts';
 import moment from 'moment';
-import PropTypes from 'prop-types';
 
 import {updateDateTime} from 'app/actionCreators/globalSelection';
 import DataZoomInside from 'app/components/charts/components/dataZoomInside';
 import ToolBox from 'app/components/charts/components/toolBox';
-import SentryTypes from 'app/sentryTypes';
 import {DateString} from 'app/types';
 import {
   EChartChartReadyHandler,
@@ -60,7 +58,7 @@ type Props = {
   onDataZoom?: EChartDataZoomHandler;
   onFinished?: EChartFinishedHandler;
   onRestore?: EChartRestoreHandler;
-  onZoom?: (Period) => void;
+  onZoom?: (period: Period) => void;
 };
 
 /**
@@ -72,30 +70,6 @@ type Props = {
  * generic if need be in the future.
  */
 class ChartZoom extends React.Component<Props> {
-  static propTypes = {
-    router: PropTypes.object,
-    period: PropTypes.string,
-    start: PropTypes.instanceOf(Date),
-    end: PropTypes.instanceOf(Date),
-    utc: PropTypes.bool,
-    disabled: PropTypes.bool,
-
-    xAxis: SentryTypes.EChartsXAxis,
-    /**
-     * If you need the dataZoom control to control more than one chart.
-     * you can provide a list of the axis indexes.
-     */
-    xAxisIndex: PropTypes.arrayOf(PropTypes.number),
-
-    // Callback for when chart has been zoomed
-    onZoom: PropTypes.func,
-    // Callbacks for eCharts events
-    onRestore: PropTypes.func,
-    onChartReady: PropTypes.func,
-    onDataZoom: PropTypes.func,
-    onFinished: PropTypes.func,
-  };
-
   constructor(props) {
     super(props);
 

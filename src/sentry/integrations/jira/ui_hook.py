@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from jwt import ExpiredSignatureError
 
 from sentry.integrations.atlassian_connect import (
@@ -9,8 +6,8 @@ from sentry.integrations.atlassian_connect import (
 )
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
-from sentry.utils.signing import sign
 from sentry.utils.http import absolute_uri
+from sentry.utils.signing import sign
 
 from .base_hook import JiraBaseHook
 
@@ -31,7 +28,7 @@ class JiraUiHookView(JiraBaseHook):
             "external_id": integration.external_id,
             "metadata": json.dumps(integration.metadata),
         }
-        finish_link = u"{}.?signed_params={}".format(
+        finish_link = "{}.?signed_params={}".format(
             absolute_uri("/extensions/jira/configure/"), sign(**signed_data)
         )
 

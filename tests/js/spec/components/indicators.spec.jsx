@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {
   addErrorMessage,
@@ -17,7 +17,7 @@ jest.useFakeTimers();
 describe('Indicators', function () {
   let wrapper;
   beforeEach(function () {
-    wrapper = mount(<Indicators />, TestStubs.routerContext());
+    wrapper = mountWithTheme(<Indicators />, TestStubs.routerContext());
 
     clearIndicators();
     jest.runAllTimers();

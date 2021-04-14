@@ -23,13 +23,6 @@ type Props = DefaultProps & {
 };
 
 export default class Subscriptions extends React.Component<Props> {
-  static propTypes = {
-    permissions: PropTypes.object.isRequired,
-    events: PropTypes.array.isRequired,
-    onChange: PropTypes.func.isRequired,
-    webhookDisabled: PropTypes.bool.isRequired,
-  };
-
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,

@@ -90,7 +90,7 @@ class KeyTransactionButton extends React.Component<Props, State> {
         this.setState({
           isLoading: false,
           keyFetchID: undefined,
-          error: err.responseJSON.detail,
+          error: err.responseJSON?.detail ?? null,
           isKeyTransaction: false,
         });
       });
@@ -128,13 +128,7 @@ class KeyTransactionButton extends React.Component<Props, State> {
 
     return (
       <Button
-        icon={
-          <IconStar
-            size="xs"
-            color={isKeyTransaction ? 'yellow300' : 'gray200'}
-            isSolid={!!isKeyTransaction}
-          />
-        }
+        icon={isKeyTransaction ? <IconStar color="yellow300" isSolid /> : <IconStar />}
         onClick={this.toggleKeyTransactionHandler}
       >
         {t('Key Transaction')}

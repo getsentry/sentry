@@ -1,9 +1,7 @@
-from __future__ import absolute_import, print_function
-
 import os
-import click
-
 from contextlib import contextmanager
+
+import click
 from django.db import transaction
 
 from sentry.runner.decorators import configuration
@@ -24,7 +22,7 @@ def catchable_atomic():
 
 def sync_docs():
     click.echo("Forcing documentation sync")
-    from sentry.utils.integrationdocs import sync_docs, DOC_FOLDER
+    from sentry.utils.integrationdocs import DOC_FOLDER, sync_docs
 
     if os.access(DOC_FOLDER, os.W_OK):
         try:
@@ -50,8 +48,9 @@ def create_missing_dsns():
 
 
 def fix_group_counters():
-    from sentry.models import Activity
     from django.db import connection
+
+    from sentry.models import Activity
 
     click.echo("Correcting Group.num_comments counter")
     cursor = connection.cursor()

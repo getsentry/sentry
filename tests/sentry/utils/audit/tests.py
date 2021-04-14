@@ -1,13 +1,11 @@
-from __future__ import absolute_import
-
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.models import (
     ApiKey,
     AuditLogEntryEvent,
     DeletedOrganization,
-    DeletedTeam,
     DeletedProject,
+    DeletedTeam,
     Organization,
     OrganizationStatus,
 )
@@ -17,7 +15,7 @@ from sentry.utils.audit import create_audit_entry
 username = "hello" * 20
 
 
-class FakeHttpRequest(object):
+class FakeHttpRequest:
     def __init__(self, user):
         self.user = user
         self.META = {"REMOTE_ADDR": "127.0.0.1"}

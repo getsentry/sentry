@@ -1,11 +1,12 @@
 import React from 'react';
-import {text} from '@storybook/addon-knobs';
-import {withInfo} from '@storybook/addon-info';
 
 import SeenInfo from 'app/components/group/seenInfo';
 
 export default {
   title: 'Features/Issues/Seen Info',
+  args: {
+    title: 'Last Seen',
+  },
 };
 
 const organization = {
@@ -13,7 +14,7 @@ const organization = {
 };
 const date = new Date();
 
-export const Default = withInfo('default')(() => {
+export const Default = ({title}) => {
   return (
     <SeenInfo
       hasRelease={false}
@@ -22,9 +23,9 @@ export const Default = withInfo('default')(() => {
       environment="prod"
       projectSlug="test-project"
       projectId="1"
-      title={text('title', 'Last Seen')}
+      title={title}
       date={date}
       dateGlobal={date}
     />
   );
-});
+};

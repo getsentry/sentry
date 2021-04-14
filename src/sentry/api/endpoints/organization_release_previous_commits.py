@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry import analytics
-
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -57,4 +54,9 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
         if not prev_release_with_commits:
             return Response({})
 
-        return Response(serialize(prev_release_with_commits[0], request.user,))
+        return Response(
+            serialize(
+                prev_release_with_commits[0],
+                request.user,
+            )
+        )

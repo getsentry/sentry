@@ -1,10 +1,9 @@
-from __future__ import absolute_import
+from datetime import datetime, timedelta
 
 import responses
-
-from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
-from sentry.models import Integration, Identity, IdentityProvider
+
+from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils import APITestCase
 
 
@@ -29,7 +28,7 @@ class GithubSearchTest(APITestCase):
         )
 
     def setUp(self):
-        super(GithubSearchTest, self).setUp()
+        super().setUp()
         self.integration = self.create_integration()
         identity = Identity.objects.create(
             idp=IdentityProvider.objects.create(type=self.provider, config={}),

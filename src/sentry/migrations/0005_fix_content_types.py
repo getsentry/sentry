@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
-from django.db import migrations, models
+from django.db import migrations
 
 
 def fix_content_types(apps, schema_editor):

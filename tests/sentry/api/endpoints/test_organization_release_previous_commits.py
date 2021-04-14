@@ -1,12 +1,6 @@
-from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
-from sentry.models import (
-    Commit,
-    Release,
-    ReleaseCommit,
-    Repository,
-)
+from sentry.models import Commit, Release, ReleaseCommit, Repository
 from sentry.testutils import APITestCase
 
 

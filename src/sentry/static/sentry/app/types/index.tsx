@@ -1,12 +1,10 @@
 import u2f from 'u2f-api';
 
-import {Props as AlertProps} from 'app/components/alert';
+import Alert from 'app/components/alert';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
 import {OrgExperiments, UserExperiments} from 'app/types/experiments';
-import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
-import {Query as DiscoverQuery} from 'app/views/discover/types';
 import {
   INSTALLED,
   NOT_INSTALLED,
@@ -28,14 +26,12 @@ declare global {
      * The config object provided by the backend.
      */
     __initialData: Config;
+
     /**
-     * Sentry SDK configuration
+     * Pipeline
      */
-    __SENTRY__OPTIONS: Config['sentryConfig'];
-    /**
-     * The authenticated user identity, a bare-bones version of User
-     */
-    __SENTRY__USER: Config['userIdentity'];
+    __pipelineInitialData: PipelineInitialData;
+
     /**
      * Sentrys version string
      */
@@ -67,6 +63,11 @@ declare global {
   }
 }
 
+export type PipelineInitialData = {
+  name: string;
+  props: Record<string, any>;
+};
+
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
@@ -90,11 +91,6 @@ export type Actor = {
   id: string;
   name: string;
   email?: string;
-};
-
-export type SuggestedAssignee = Actor & {
-  suggestedReason: SuggestedOwnerReason;
-  assignee: Team | User;
 };
 
 /**
@@ -179,7 +175,6 @@ export type LightWeightOrganization = OrganizationSummary & {
   apdexThreshold: number;
   onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: Relay[];
-  dynamicSampling: DynamicSamplingRules;
   role?: string;
 };
 
@@ -204,6 +199,7 @@ export type SharedViewOrganization = {
 export type AvatarProject = {
   slug: string;
   platform?: PlatformKey;
+  id?: string | number;
 };
 
 /**
@@ -231,16 +227,19 @@ export type Project = {
   environments: string[];
 
   // XXX: These are part of the DetailedProject serializer
+  dynamicSampling: {
+    next_id: number;
+    rules: DynamicSamplingRules;
+  } | null;
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
+  groupingConfig: string;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
   latestRelease?: Release;
-  groupingEnhancementsBase: string;
-  groupingConfig: string;
   options?: Record<string, boolean | string>;
 } & AvatarProject;
 
@@ -278,14 +277,17 @@ export type ProjectKey = {
 export type Health = {
   totalUsers: number;
   totalUsers24h: number | null;
+  totalProjectUsers24h: number | null;
   totalSessions: number;
   totalSessions24h: number | null;
+  totalProjectSessions24h: number | null;
   crashFreeUsers: number | null;
   crashFreeSessions: number | null;
   stats: HealthGraphData;
   sessionsCrashed: number;
   sessionsErrored: number;
   adoption: number | null;
+  sessionsAdoption: number | null;
   hasHealthData: boolean;
   durationP50: number | null;
   durationP90: number | null;
@@ -360,6 +362,13 @@ export type SDKUpdatesSuggestion =
   | EnableIntegrationSuggestion
   | UpdateSdkSuggestion
   | ChangeSdkSuggestion;
+
+export type ProjectSdkUpdates = {
+  projectId: string;
+  sdkName: string;
+  sdkVersion: string;
+  suggestions: SDKUpdatesSuggestion[];
+};
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -471,6 +480,7 @@ export type SavedSearch = {
   type: SavedSearchType;
   name: string;
   query: string;
+  sort: string;
   isGlobal: boolean;
   isPinned: boolean;
   isOrgCustom: boolean;
@@ -553,10 +563,11 @@ export type GlobalSelection = {
   };
 };
 
-type AuthenticatorDevice = {
+export type AuthenticatorDevice = {
   key_handle: string;
   authId: string;
   name: string;
+  timestamp?: string;
 };
 
 export type Authenticator = {
@@ -564,61 +575,59 @@ export type Authenticator = {
    * String used to display on button for user as CTA to enroll
    */
   enrollButton: string;
-
   /**
    * Display name for the authenticator
    */
   name: string;
-
   /**
    * Allows multiple enrollments to authenticator
    */
   allowMultiEnrollment: boolean;
-
   /**
    * String to display on button for user to remove authenticator
    */
   removeButton: string | null;
-
   canValidateOtp: boolean;
-
   /**
    * Is user enrolled to this authenticator
    */
   isEnrolled: boolean;
-
   /**
    * String to display on button for additional information about authenticator
    */
   configureButton: string;
-
-  /**
-   * Type of authenticator
-   */
-  id: string;
-
   /**
    * Is this used as a backup interface?
    */
   isBackupInterface: boolean;
-
   /**
    * Description of the authenticator
    */
   description: string;
-
   createdAt: string | null;
-
   lastUsedAt: string | null;
-
   codes: string[];
-
   devices: AuthenticatorDevice[];
-
   phone?: string;
-
-  challenge?: ChallengeData;
-} & Partial<EnrolledAuthenticator>;
+  secret?: string;
+  /**
+   * The form configuration for the authenticator is present during enrollment
+   */
+  form?: Field[];
+} & Partial<EnrolledAuthenticator> &
+  (
+    | {
+        id: 'sms';
+      }
+    | {
+        id: 'totp';
+        qrcode: string;
+      }
+    | {
+        id: 'u2f';
+        challenge: ChallengeData;
+      }
+  );
 
 export type ChallengeData = {
   authenticateRequests: u2f.SignRequest;
@@ -674,7 +683,19 @@ export interface Config {
   distPrefix: string;
   apmSampling: number;
   dsn_requests: string;
+  demoMode: boolean;
 }
+
+export enum DataCategory {
+  ERRORS = 'errors',
+  TRANSACTIONS = 'transactions',
+  ATTACHMENTS = 'attachments',
+}
+export const DataCategoryName = {
+  [DataCategory.ERRORS]: 'Errors',
+  [DataCategory.TRANSACTIONS]: 'Transactions',
+  [DataCategory.ATTACHMENTS]: 'Attachments',
+};
 
 export type EventOrGroupType =
   | 'error'
@@ -685,16 +706,18 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
+export type InboxReasonDetails = {
+  until?: string | null;
+  count?: number | null;
+  window?: number | null;
+  user_count?: number | null;
+  user_window?: number | null;
+};
+
 export type InboxDetails = {
+  reason_details: InboxReasonDetails;
   date_added?: string;
   reason?: number;
-  reason_details?: {
-    until?: string;
-    count?: number;
-    window?: number;
-    user_count?: number;
-    user_window?: number;
-  };
 };
 
 export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
@@ -726,6 +749,7 @@ export enum GroupActivityType {
   UNASSIGNED = 'unassigned',
   MERGE = 'merge',
   REPROCESS = 'reprocess',
+  MARK_REVIEWED = 'mark_reviewed',
 }
 
 type GroupActivityBase = {
@@ -776,6 +800,11 @@ type GroupActivityUnassigned = GroupActivityBase & {
 
 type GroupActivityFirstSeen = GroupActivityBase & {
   type: GroupActivityType.FIRST_SEEN;
+  data: Record<string, any>;
+};
+
+type GroupActivityMarkReviewed = GroupActivityBase & {
+  type: GroupActivityType.MARK_REVIEWED;
   data: Record<string, any>;
 };
 
@@ -889,6 +918,7 @@ export type GroupActivity =
   | GroupActivityMerge
   | GroupActivityReprocess
   | GroupActivityUnassigned
+  | GroupActivityMarkReviewed
   | GroupActivityUnmergeDestination
   | GroupActivitySetPublic
   | GroupActivitySetPrivate
@@ -913,7 +943,7 @@ export type GroupStats = GroupFiltered & {
   id: string;
 };
 
-type BaseGroupStatusReprocessing = {
+export type BaseGroupStatusReprocessing = {
   status: 'reprocessing';
   statusDetails: {
     pendingEvents: number;
@@ -935,7 +965,7 @@ export type BaseGroup = {
   latestEvent: Event;
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: User;
+  assignedTo: Actor;
   culprit: string;
   firstRelease: Release;
   firstSeen: string;
@@ -965,7 +995,7 @@ export type BaseGroup = {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  inbox?: InboxDetails | null;
+  inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 };
 
@@ -1040,6 +1070,11 @@ export type AccessRequest = {
   id: string;
   team: Team;
   member: Member;
+  requester?: Partial<{
+    name: string;
+    username: string;
+    email: string;
+  }>;
 };
 
 export type Repository = {
@@ -1061,17 +1096,25 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
-export type RepositoryProjectPathConfig = {
+type BaseRepositoryProjectPathConfig = {
   id: string;
   projectId: string;
   projectSlug: string;
   repoId: string;
   repoName: string;
-  integrationId: string;
-  provider: BaseIntegrationProvider;
   stackRoot: string;
   sourceRoot: string;
   defaultBranch?: string;
+};
+
+export type RepositoryProjectPathConfig = BaseRepositoryProjectPathConfig & {
+  integrationId: string | null;
+  provider: BaseIntegrationProvider | null;
+};
+
+export type RepositoryProjectPathConfigWithIntegration = BaseRepositoryProjectPathConfig & {
+  integrationId: string;
+  provider: BaseIntegrationProvider;
 };
 
 export type PullRequest = {
@@ -1087,8 +1130,7 @@ type IntegrationDialog = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<AlertProps & {text: string}>;
-  reauthentication_alert?: {alertText: string};
+  alerts?: Array<React.ComponentProps<typeof Alert> & {text: string}>;
   disable_dialog?: IntegrationDialog;
   removal_dialog?: IntegrationDialog;
   externalInstall?: {
@@ -1121,7 +1163,6 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     source_url: string;
     aspects: IntegrationAspects;
   };
-  hasStacktraceLinking?: boolean; // TODO: Remove when we GA the feature
 };
 
 export type IntegrationFeature = {
@@ -1194,16 +1235,6 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
-  //TODO(Steve): move configData to IntegrationWithConfig when we no longer check
-  //for workspace apps
-  configData: object & {
-    //installationType is only for Slack migration and can be removed after migrations are done
-    installationType?:
-      | 'workspace_app'
-      | 'classic_bot'
-      | 'born_as_bot'
-      | 'migrated_to_bot';
-  };
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -1217,6 +1248,7 @@ export type Integration = {
 // we include the configOrganization when we need it
 export type IntegrationWithConfig = Integration & {
   configOrganization: Field[];
+  configData: object | null;
 };
 
 export type IntegrationExternalIssue = {
@@ -1234,7 +1266,7 @@ export type GroupIntegration = Integration & {
 
 export type PlatformExternalIssue = {
   id: string;
-  groupId: string;
+  issueId: string;
   serviceType: string;
   displayName: string;
   webUrl: string;
@@ -1453,7 +1485,14 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear' | 'zepel';
+    slug:
+      | 'clickup'
+      | 'clubhouse'
+      | 'linear'
+      | 'rookout'
+      | 'spikesh'
+      | 'teamwork'
+      | 'zepel';
     name: string;
   };
 };
@@ -1471,6 +1510,7 @@ export type NewQuery = {
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
   orderby?: string;
+  expired?: boolean;
 
   // GlobalSelectionHeader
   projects: Readonly<number[]>;
@@ -1496,14 +1536,23 @@ export type SavedQueryState = {
   isLoading: boolean;
 };
 
+/**
+ * The option format used by react-select based components
+ */
 export type SelectValue<T> = {
-  label: string;
+  label: string | number | React.ReactElement;
   value: T;
   disabled?: boolean;
   tooltip?: string;
 };
 
-export type IssueConfigFieldChoices = [number | string, number | string][];
+/**
+ * The 'other' option format used by checkboxes, radios and more.
+ */
+export type Choices = [
+  value: string | number,
+  label: string | number | React.ReactElement
+][];
 
 /**
  * The issue config form fields we get are basically the form fields we use in
@@ -1513,7 +1562,7 @@ export type IssueConfigFieldChoices = [number | string, number | string][];
 export type IssueConfigField = Field & {
   name: string;
   default?: string | number;
-  choices?: IssueConfigFieldChoices;
+  choices?: Choices;
   url?: string;
   multiple?: boolean;
 };
@@ -1551,7 +1600,6 @@ export type OnboardingTaskDescriptor = {
   task: OnboardingTaskKey;
   title: string;
   description: string;
-  detailedDescription?: string;
   /**
    * Can this task be skipped?
    */
@@ -1754,13 +1802,6 @@ export type EventGroupingConfig = {
   strategies: string[];
 };
 
-export type GroupingEnhancementBase = {
-  latest: boolean;
-  id: string;
-  changelog: string;
-  bases: any[]; // TODO(ts): not sure what this is
-};
-
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
 export enum EventGroupVariantType {
@@ -1798,19 +1839,6 @@ export type Artifact = {
   sha1: string;
   size: number;
   headers: {'Content-Type': string};
-};
-
-// TODO(mark) remove when dashboards 1 is removed.
-export type Widget = {
-  queries: {
-    discover: DiscoverQuery[];
-  };
-  title: React.ReactNode;
-  type: WIDGET_DISPLAY;
-  fieldLabelMap?: object;
-  yAxisMapping?: [number[], number[]];
-  includeReleases?: boolean;
-  includePreviousPeriod?: boolean;
 };
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
@@ -1873,7 +1901,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  frames: Frame[];
+  frames?: Frame[];
 };
 
 export type ExceptionType = {
@@ -1924,10 +1952,8 @@ export type AuthProvider = {
 };
 
 export type PromptActivity = {
-  data: {
-    snoozed_ts?: number;
-    dismissed_ts?: number;
-  };
+  snoozedTime?: number;
+  dismissedTime?: number;
 };
 
 export type ServerlessFunction = {
@@ -1942,3 +1968,56 @@ export type ServerlessFunction = {
  * File storage service options for debug files
  */
 export type DebugFileSource = 'http' | 's3' | 'gcs';
+
+/**
+ * Base type for series   style API response
+ */
+export type SeriesApi = {
+  intervals: string[];
+  groups: {
+    by: Record<string, string | number>;
+    totals: Record<string, number>;
+    series: Record<string, number[]>;
+  }[];
+};
+
+export type SessionApiResponse = SeriesApi & {
+  query: string;
+  intervals: string[];
+  groups: {
+    by: Record<string, string | number>;
+    totals: Record<string, number>;
+    series: Record<string, number[]>;
+  }[];
+};
+
+export enum HealthStatsPeriodOption {
+  AUTO = 'auto',
+  TWENTY_FOUR_HOURS = '24h',
+}
+
+export type IssueOwnership = {
+  raw: string;
+  fallthrough: boolean;
+  dateCreated: string;
+  lastUpdated: string;
+  isActive: boolean;
+  autoAssignment: boolean;
+};
+
+export type CodeOwners = {
+  id: string;
+  raw: string;
+  dateCreated: string;
+  dateUpdated: string;
+  provider: 'github' | 'gitlab';
+};
+
+export type KeyValueListData = {
+  key: string;
+  subject: string;
+  value?: React.ReactNode;
+  meta?: Meta;
+  subjectDataTestId?: string;
+  subjectIcon?: React.ReactNode;
+}[];

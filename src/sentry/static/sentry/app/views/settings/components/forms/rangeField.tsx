@@ -12,7 +12,7 @@ type PlaceholderFunction = (props: any) => React.ReactNode;
 
 type Props = DefaultProps &
   Omit<RangeSlider['props'], 'value' | 'disabled' | 'placeholder'> &
-  Omit<InputField['props'], 'field'> & {
+  Omit<InputField['props'], 'disabled' | 'field'> & {
     disabled?: boolean | DisabledFunction;
     placeholder?: string | PlaceholderFunction;
   };
@@ -31,12 +31,17 @@ function defaultFormatMessageValue(value, props: Props) {
 
 export default function RangeField({
   formatMessageValue = defaultFormatMessageValue,
+  disabled,
   ...otherProps
 }: Props) {
-  if (typeof otherProps.disabled === 'function') {
-    otherProps.disabled = otherProps.disabled(otherProps);
-  }
-  const props: Props = Object.assign(otherProps, {formatMessageValue});
+  const resolvedDisabled =
+    typeof disabled === 'function' ? disabled(otherProps) : disabled;
+
+  const props: InputField['props'] = {
+    ...otherProps,
+    disabled: resolvedDisabled,
+    formatMessageValue,
+  };
 
   return (
     <InputField

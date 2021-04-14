@@ -1,6 +1,6 @@
 # Unassigned
 
-foo@example.com unassigned an issue
+foo@example.com unassigned PROJECT-1
 
 
 ## Issue Details

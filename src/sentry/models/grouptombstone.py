@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import logging
 
-import six
 from django.db import models
 
 from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
@@ -23,7 +20,7 @@ class GroupTombstone(Model):
     previous_group_id = BoundedBigIntegerField(unique=True)
     project = FlexibleForeignKey("sentry.Project")
     level = BoundedPositiveIntegerField(
-        choices=[(key, six.text_type(val)) for key, val in sorted(LOG_LEVELS.items())],
+        choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
         default=logging.ERROR,
         blank=True,
     )

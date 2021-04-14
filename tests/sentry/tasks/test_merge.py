@@ -1,14 +1,11 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat.mock import patch
-
-from sentry.tasks.merge import merge_groups
+from sentry import eventstore, eventstream
 from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
 from sentry.similarity import _make_index_backend
+from sentry.tasks.merge import merge_groups
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import redis
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry import eventstream, eventstore
+from sentry.utils.compat.mock import patch
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
@@ -178,7 +175,9 @@ class MergeGroupTest(TestCase):
 
         project2 = self.create_project()
         group2 = self.create_group(project2)
-        ur = UserReport.objects.create(project=project1, group=group1, event_id=event1.event_id)
+        ur = UserReport.objects.create(
+            project_id=project1.id, group_id=group1.id, event_id=event1.event_id
+        )
 
         with self.tasks():
             merge_groups([group1.id], group2.id)

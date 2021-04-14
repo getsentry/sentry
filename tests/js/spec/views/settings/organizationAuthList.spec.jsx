@@ -4,8 +4,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationAuthList from 'app/views/settings/organizationAuth/organizationAuthList';
 
-jest.mock('jquery');
-
 describe('OrganizationAuthList', function () {
   it('renders with no providers', function () {
     const wrapper = mountWithTheme(

@@ -1,7 +1,5 @@
-from __future__ import absolute_import, print_function
-
-from django.test import Client
 from django.core.urlresolvers import reverse
+from django.test import Client
 
 
 def test_healthcheck_endpoint():

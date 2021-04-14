@@ -1,7 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Badge from 'app/components/badge';
 import DropdownLink from 'app/components/dropdownLink';
+import QueryCount from 'app/components/queryCount';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -14,8 +16,10 @@ type Props = {
   savedSearchList: SavedSearch[];
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
+  sort: string;
   isActive?: boolean;
   query?: string;
+  queryCount?: number;
 };
 
 function SavedSearchTab({
@@ -25,10 +29,33 @@ function SavedSearchTab({
   onSavedSearchSelect,
   onSavedSearchDelete,
   query,
+  queryCount,
+  sort,
 }: Props) {
-  const result = savedSearchList.find(search => query === search.query);
-  const activeTitle = result ? result.name : t('Custom Search');
-  const title = isActive ? activeTitle : t('More');
+  const savedSearch = savedSearchList.find(
+    search => search.query === query && search.sort === sort
+  );
+
+  const title = (
+    <TitleWrapper>
+      {isActive ? (
+        <React.Fragment>
+          <TitleTextOverflow>
+            {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
+          </TitleTextOverflow>
+          {queryCount !== undefined && queryCount > 0 && (
+            <div>
+              <Badge>
+                <QueryCount hideParens count={queryCount} max={1000} />
+              </Badge>
+            </div>
+          )}
+        </React.Fragment>
+      ) : (
+        t('Saved Searches')
+      )}
+    </TitleWrapper>
+  );
 
   return (
     <TabWrapper isActive={isActive} className="saved-search-tab">
@@ -36,7 +63,7 @@ function SavedSearchTab({
         alwaysRenderMenu={false}
         anchorMiddle
         caret
-        title={<TitleWrapper>{title}</TitleWrapper>}
+        title={title}
         isActive={isActive}
       >
         <SavedSearchMenu
@@ -45,6 +72,7 @@ function SavedSearchTab({
           onSavedSearchSelect={onSavedSearchSelect}
           onSavedSearchDelete={onSavedSearchDelete}
           query={query}
+          sort={sort}
         />
       </StyledDropdownLink>
     </TabWrapper>
@@ -61,34 +89,40 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
     display: block;
   }
   & > span > .dropdown-menu {
+    padding: 0;
     margin-top: ${space(1)};
-    min-width: 30vw;
-    max-width: 35vw;
+    min-width: 20vw;
+    max-width: 25vw;
     z-index: ${p => p.theme.zIndex.globalSelectionHeader};
+
+    :after {
+      border-bottom-color: ${p => p.theme.backgroundSecondary};
+    }
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+  @media (max-width: ${p => p.theme.breakpoints[4]}) {
+    & > span > .dropdown-menu {
+      max-width: 30vw;
+    }
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     & > span > .dropdown-menu {
       max-width: 50vw;
     }
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    & > span > .dropdown-menu {
-      max-width: 55vw;
-    }
-  }
-
-  /* Fix nav tabs style leaking into menu */
-  * > li {
-    margin: 0;
   }
 `;
 
 const TitleWrapper = styled('span')`
   margin-right: ${space(0.5)};
-  max-width: 150px;
   user-select: none;
+  display: flex;
+  align-items: center;
+`;
+
+const TitleTextOverflow = styled('span')`
+  margin-right: ${space(0.5)};
+  max-width: 150px;
   ${overflowEllipsis};
 `;
 

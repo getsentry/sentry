@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
 from bs4 import BeautifulSoup
-import six
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.models import Integration
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.utils.compat import filter
 
 from .utils import build_user_choice
@@ -42,10 +39,10 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             try:
                 resp = installation.search_issues(query)
             except IntegrationError as e:
-                return Response({"detail": six.text_type(e)}, status=400)
+                return Response({"detail": str(e)}, status=400)
             return Response(
                 [
-                    {"label": "(%s) %s" % (i["key"], i["fields"]["summary"]), "value": i["key"]}
+                    {"label": "({}) {}".format(i["key"], i["fields"]["summary"]), "value": i["key"]}
                     for i in resp.get("issues", [])
                 ]
             )
@@ -68,7 +65,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             response = jira_client.get_field_autocomplete(name=field, value=query)
         except (ApiUnauthorized, ApiError):
             return Response(
-                {"detail": "Unable to fetch autocomplete for {} from Jira".format(field)},
+                {"detail": f"Unable to fetch autocomplete for {field} from Jira"},
                 status=400,
             )
         choices = [

@@ -1,32 +1,30 @@
-from __future__ import absolute_import
-
 from django.utils import timezone
 
 from sentry.models import FeatureAdoption, GroupAssignee, GroupTombstone, Rule
 from sentry.plugins.bases import IssueTrackingPlugin2, NotificationPlugin
+from sentry.receivers.rules import DEFAULT_RULE_DATA
 from sentry.signals import (
+    advanced_search,
     alert_rule_created,
+    data_scrubber_enabled,
     event_processed,
     first_event_received,
-    project_created,
-    member_joined,
-    plugin_enabled,
-    user_feedback_received,
+    inbound_filter_toggled,
     issue_assigned,
     issue_resolved,
-    advanced_search,
+    member_joined,
+    plugin_enabled,
+    project_created,
     save_search_created,
-    inbound_filter_toggled,
     sso_enabled,
-    data_scrubber_enabled,
+    user_feedback_received,
 )
-from sentry.receivers.rules import DEFAULT_RULE_DATA
 from sentry.testutils import SnubaTestCase, TestCase
 
 
 class FeatureAdoptionTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(FeatureAdoptionTest, self).setUp()
+        super().setUp()
         self.now = timezone.now()
         self.owner = self.create_user()
         self.organization = self.create_organization(owner=self.owner)

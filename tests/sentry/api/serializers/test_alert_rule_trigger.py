@@ -1,19 +1,13 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule_trigger import DetailedAlertRuleTriggerSerializer
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.testutils import TestCase
 
 
-class BaseAlertRuleTriggerSerializerTest(object):
+class BaseAlertRuleTriggerSerializerTest:
     def assert_alert_rule_trigger_serialized(self, trigger, result):
-        assert result["id"] == six.text_type(trigger.id)
-        assert result["alertRuleId"] == six.text_type(trigger.alert_rule_id)
+        assert result["id"] == str(trigger.id)
+        assert result["alertRuleId"] == str(trigger.alert_rule_id)
         assert result["label"] == trigger.label
         assert result["thresholdType"] == trigger.alert_rule.threshold_type
         assert result["alertThreshold"] == trigger.alert_threshold

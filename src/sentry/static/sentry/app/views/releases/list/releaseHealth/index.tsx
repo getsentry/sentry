@@ -7,20 +7,23 @@ import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
 import {tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection, Release} from 'app/types';
+import {GlobalSelection, Organization, Release} from 'app/types';
 
+import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest';
 import {DisplayOption} from '../utils';
 
 import Content from './content';
 
 type Props = {
   release: Release;
-  orgSlug: string;
+  organization: Organization;
   activeDisplay: DisplayOption;
   location: Location;
   showPlaceholders: boolean;
   selection: GlobalSelection;
   reloading: boolean;
+  isTopRelease: boolean;
+  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
 };
 
 class ReleaseHealth extends React.Component<Props> {
@@ -36,11 +39,13 @@ class ReleaseHealth extends React.Component<Props> {
   render() {
     const {
       release,
-      orgSlug,
+      organization,
       activeDisplay,
       location,
       showPlaceholders,
       selection,
+      isTopRelease,
+      getHealthData,
     } = this.props;
 
     // sort health rows inside release card alphabetically by project name,
@@ -68,12 +73,14 @@ class ReleaseHealth extends React.Component<Props> {
     return (
       <React.Fragment>
         <Content
+          organization={organization}
           activeDisplay={activeDisplay}
-          orgSlug={orgSlug}
           releaseVersion={release.version}
           projects={projectsToShow}
           location={location}
           showPlaceholders={showPlaceholders}
+          isTopRelease={isTopRelease}
+          getHealthData={getHealthData}
         />
 
         {projectsToHide.length > 0 && (
@@ -95,6 +102,8 @@ class ReleaseHealth extends React.Component<Props> {
 }
 
 const HiddenProjectsMessage = styled('div')`
+  display: flex;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   padding: 0 ${space(2)};
   border-top: 1px solid ${p => p.theme.border};

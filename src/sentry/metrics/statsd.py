@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ["StatsdMetricsBackend"]
 
 import statsd
@@ -10,11 +8,11 @@ from .base import MetricsBackend
 class StatsdMetricsBackend(MetricsBackend):
     def __init__(self, host="127.0.0.1", port=8125, **kwargs):
         self.client = statsd.StatsClient(host=host, port=port)
-        super(StatsdMetricsBackend, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _full_key(self, key, instance=None):
         if instance:
-            return u"{}.{}".format(key, instance)
+            return f"{key}.{instance}"
         return key
 
     def incr(self, key, instance=None, tags=None, amount=1, sample_rate=1):

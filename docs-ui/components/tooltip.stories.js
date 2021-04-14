@@ -1,9 +1,7 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
-import {text, boolean, select} from '@storybook/addon-knobs';
 
-import Tooltip from 'app/components/tooltip';
 import Button from 'app/components/button';
+import Tooltip from 'app/components/tooltip';
 
 class CustomThing extends React.Component {
   render() {
@@ -13,49 +11,22 @@ class CustomThing extends React.Component {
 
 export default {
   title: 'Core/Tooltips/Tooltip',
+  component: Tooltip,
 };
 
-export const _Tooltip = withInfo({
-  text: 'Adds a tooltip to any component,',
-  propTablesExclude: [CustomThing, Button, 'Button'],
-})(() => {
-  const title = text('tooltip', 'Basic tooltip content');
-  const disabled = boolean('Disabled', false);
-  const displayMode = select('Container display mode', [
-    'block',
-    'inline-block',
-    'inline',
-  ]);
-  const position = select(
-    'position',
-    {top: 'top', bottom: 'bottom', left: 'left', right: 'right'},
-    'top'
-  );
-  const isHoverable = boolean('isHoverable', false);
-
+export const _Tooltip = ({...args}) => {
   return (
     <React.Fragment>
       <h3>With styled component trigger</h3>
       <p>
-        <Tooltip
-          title={title}
-          position={position}
-          disabled={disabled}
-          containerDisplayMode={displayMode}
-          isHoverable={isHoverable}
-        >
+        <Tooltip {...args}>
           <Button>Styled button</Button>
         </Tooltip>
       </p>
 
       <h3>With class component trigger</h3>
       <p>
-        <Tooltip
-          title={title}
-          position={position}
-          disabled={disabled}
-          isHoverable={isHoverable}
-        >
+        <Tooltip {...args}>
           <CustomThing>Custom React Component</CustomThing>
         </Tooltip>
       </p>
@@ -68,13 +39,7 @@ export const _Tooltip = withInfo({
           height="100"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <Tooltip
-            title={title}
-            position={position}
-            disabled={disabled}
-            containerDisplayMode={displayMode}
-            isHoverable={isHoverable}
-          >
+          <Tooltip {...args}>
             <circle cx="50" cy="50" r="50" />
           </Tooltip>
         </svg>
@@ -88,14 +53,54 @@ export const _Tooltip = withInfo({
               <em>so strong</em>
             </span>
           }
-          containerDisplayMode={displayMode}
-          position={position}
-          disabled={disabled}
-          isHoverable={isHoverable}
+          {...args}
         >
           <button>Native button</button>
         </Tooltip>
       </p>
     </React.Fragment>
   );
-});
+};
+_Tooltip.args = {
+  title: 'Basic tooltip content',
+  disabled: false,
+  /** Container display mode */
+  displayMode: undefined,
+  position: 'top',
+  isHoverable: false,
+};
+_Tooltip.argTypes = {
+  displayMode: {
+    control: {
+      type: 'select',
+      options: ['block', 'inline-block', 'inline'],
+    },
+  },
+  position: {
+    control: {
+      type: 'select',
+      options: [
+        'bottom',
+        'top',
+        'left',
+        'right',
+        'bottom-start',
+        'bottom-end',
+        'top-start',
+        'top-end',
+        'left-start',
+        'left-end',
+        'right-start',
+        'right-end',
+        'auto',
+      ],
+    },
+  },
+};
+_Tooltip.parameters = {
+  docs: {
+    description: {
+      story: 'Adds a tooltip to any component',
+    },
+  },
+};

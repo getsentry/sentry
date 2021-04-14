@@ -12,6 +12,7 @@ describe('IssueListSavedSearchMenu', () => {
     {
       id: '789',
       query: 'is:unresolved',
+      sort: 'date',
       name: 'Unresolved',
       isPinned: false,
       isGlobal: true,
@@ -19,6 +20,7 @@ describe('IssueListSavedSearchMenu', () => {
     {
       id: '122',
       query: 'is:unresolved assigned:me',
+      sort: 'date',
       name: 'Assigned to me',
       isPinned: false,
       isGlobal: false,
@@ -47,8 +49,7 @@ describe('IssueListSavedSearchMenu', () => {
 
   describe('removing a saved search', () => {
     it('shows a delete button with access', () => {
-      // Second item should have a delete button as it is not a global search
-      const button = wrapper.find('MenuItem').at(1).find('button[aria-label="delete"]');
+      const button = wrapper.find('MenuItem').first().find('button[aria-label="delete"]');
       expect(button).toHaveLength(1);
     });
 
@@ -56,25 +57,33 @@ describe('IssueListSavedSearchMenu', () => {
       organization.access = [];
       wrapper.setProps({organization});
 
-      const button = wrapper.find('MenuItem').at(1).find('button[aria-label="delete"]');
-      expect(button).toHaveLength(0);
+      const button = wrapper.find('MenuItem').first().find('button[aria-label="delete"]');
+      expect(button.exists()).toBe(false);
     });
 
     it('does not show a delete button for global search', () => {
       // First item should not have a delete button as it is a global search
-      const button = wrapper.find('MenuItem').first().find('button[aria-label="delete"]');
+      const button = wrapper.find('MenuItem').at(1).find('button[aria-label="delete"]');
       expect(button).toHaveLength(0);
     });
 
     it('sends a request when delete button is clicked', async () => {
       // Second item should have a delete button as it is not a global search
-      const button = wrapper.find('MenuItem').at(1).find('button[aria-label="delete"]');
+      const button = wrapper.find('MenuItem').at(0).find('button[aria-label="delete"]');
       button.simulate('click');
       await wrapper.update();
 
       const modal = await mountGlobalModal();
       modal.find('Modal Button[priority="primary"] button').simulate('click');
       expect(onDelete).toHaveBeenCalledWith(savedSearchList[1]);
+    });
+
+    it('hides is:unresolved with inbox flag', () => {
+      expect(wrapper.find('MenuItem')).toHaveLength(2);
+      wrapper.setProps({
+        organization: TestStubs.Organization({features: ['inbox']}),
+      });
+      expect(wrapper.find('MenuItem')).toHaveLength(1);
     });
   });
 });

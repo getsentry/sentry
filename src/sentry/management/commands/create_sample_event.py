@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.management.base import BaseCommand, CommandError
 
 
@@ -14,6 +12,7 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         from django.conf import settings
+
         from sentry.models import Project
         from sentry.utils.samples import create_sample_event
 
@@ -33,6 +32,6 @@ class Command(BaseCommand):
         platform = options["platform"]
         event = create_sample_event(project, platform)
         if not event:
-            raise CommandError("Unable to create an event for platform %r" % (platform,))
+            raise CommandError(f"Unable to create an event for platform {platform!r}")
 
-        self.stdout.write("Event created: %s" % (event.group.get_absolute_url(),))
+        self.stdout.write(f"Event created: {event.group.get_absolute_url()}")

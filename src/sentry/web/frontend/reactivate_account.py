@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 
-from sentry.web.frontend.base import BaseView
 from sentry.utils import auth
+from sentry.web.frontend.base import BaseView
 
 
 class ReactivateAccountView(BaseView):

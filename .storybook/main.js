@@ -2,15 +2,14 @@
 /*eslint import/no-nodejs-modules:0 */
 module.exports = {
   stories: ['../docs-ui/components/*.stories.*'],
+  core: {
+    builder: 'webpack5',
+  },
   addons: [
     {
-      name: '@storybook/addon-docs',
-      options: {configureJSX: true},
+      name: '@storybook/addon-essentials',
+      options: {},
     },
-    '@storybook/addon-storysource',
-    '@storybook/addon-knobs',
-    '@storybook/addon-actions',
     '@storybook/addon-a11y',
-    '@storybook/addon-options',
   ],
 };

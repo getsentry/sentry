@@ -1,14 +1,12 @@
-from __future__ import absolute_import, print_function
+import types
+from datetime import datetime
 
 import pytest
-import types
-
-from datetime import datetime
 from django.utils import timezone
 
-from sentry.auth.helper import AuthHelper
-from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes, SAML2ACSView
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.helper import AuthHelper
+from sentry.auth.providers.saml2.provider import Attributes, SAML2ACSView, SAML2Provider
 from sentry.models import AuthProvider
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
@@ -28,7 +26,7 @@ class SAML2ProviderTest(TestCase):
         self.org = self.create_organization()
         self.auth_provider = AuthProvider.objects.create(provider="saml2", organization=self.org)
         self.provider = SAML2Provider(key=self.auth_provider.provider)
-        super(SAML2ProviderTest, self).setUp()
+        super().setUp()
 
     def test_build_config_adds_attributes(self):
         config = self.provider.build_config({})
@@ -84,7 +82,7 @@ class SAML2ACSViewTest(TestCase):
         self.provider = SAML2Provider(key=self.auth_provider.provider)
         self.provider.config = dummy_provider_config
         self.auth_provider.get_provider = mock.MagicMock(return_value=self.provider)
-        super(SAML2ACSViewTest, self).setUp()
+        super().setUp()
 
         request = self.make_request(user=None)
         request.META = {

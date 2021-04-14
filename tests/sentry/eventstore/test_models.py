@@ -1,13 +1,12 @@
-from __future__ import absolute_import
+import pickle
 
 import pytest
 
-from sentry.utils.compat import pickle
 from sentry.db.models.fields.node import NodeData
 from sentry.eventstore.models import Event
 from sentry.models import Environment
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import snuba
 
 

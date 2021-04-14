@@ -1,9 +1,8 @@
-from __future__ import absolute_import
+from unittest import TestCase
 
 from cryptography.fernet import Fernet
 
-from unittest import TestCase
-from sentry.utils.encryption import EncryptionManager, MARKER
+from sentry.utils.encryption import MARKER, EncryptionManager
 
 
 class EncryptionManagerTest(TestCase):
@@ -12,7 +11,7 @@ class EncryptionManagerTest(TestCase):
             schemes=(("1", Fernet("J5NxyG0w1OyZEDdEOX0Nyv2upm5H3J35rTEb1jEiVbs=")),)
         )
         value = manager.encrypt("hello world")
-        assert value.startswith(u"{}1$".format(MARKER))
+        assert value.startswith(f"{MARKER}1$")
         result = manager.decrypt(value)
         assert result == "hello world"
 
@@ -29,7 +28,7 @@ class EncryptionManagerTest(TestCase):
 
         value2 = manager.encrypt("hello world")
         assert value2 != value
-        assert value2.startswith(u"{}2$".format(MARKER))
+        assert value2.startswith(f"{MARKER}2$")
 
     def test_no_schemes(self):
         manager = EncryptionManager(schemes=())

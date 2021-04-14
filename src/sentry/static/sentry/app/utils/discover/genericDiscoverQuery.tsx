@@ -3,6 +3,7 @@ import {Location} from 'history';
 
 import {EventQuery} from 'app/actionCreators/events';
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
@@ -37,6 +38,15 @@ export type DiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
+  /**
+   * A callback to set an error so that the error can be rendered in parent components
+   */
+  setError?: (msg: string | undefined) => void;
+  /**
+   * Sets referrer parameter in the API Payload. Set of allowed referrers are defined
+   * on the OrganizationEventsV2Endpoint view.
+   */
+  referrer?: string;
 };
 
 type RequestProps<P> = DiscoverQueryProps & P;
@@ -66,11 +76,7 @@ type Props<T, P> = RequestProps<P> &
     /**
      * A hook to modify data into the correct output after data has been received
      */
-    afterFetch?: (data: any, props: Props<T, P>) => T;
-    /**
-     * A callback to set an error so that the error can be rendered in parent components
-     */
-    setError?: (msg: string | undefined) => void;
+    afterFetch?: (data: any, props?: Props<T, P>) => T;
   };
 
 type State<T> = {
@@ -142,6 +148,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       cursor,
       setError,
       noPagination,
+      referrer,
     } = this.props;
 
     if (!eventView.isValid()) {
@@ -165,6 +172,9 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     if (cursor) {
       apiPayload.cursor = cursor;
     }
+    if (referrer) {
+      apiPayload.referrer = referrer;
+    }
 
     beforeFetch?.(api);
 
@@ -185,7 +195,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
         tableData,
       }));
     } catch (err) {
-      const error = err?.responseJSON?.detail ?? null;
+      const error = err?.responseJSON?.detail || t('An unknown error occurred.');
       this.setState({
         isLoading: false,
         tableFetchID: undefined,
@@ -212,12 +222,12 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
   }
 }
 
-type RequestParameters = Partial<EventQuery & LocationQuery>;
+export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
 
 export async function doDiscoverQuery<T>(
   api: Client,
   url: string,
-  params: RequestParameters
+  params: DiscoverQueryRequestParams
 ): Promise<[T, string | undefined, JQueryXHR | undefined]> {
   return api.requestPromise(url, {
     method: 'GET',

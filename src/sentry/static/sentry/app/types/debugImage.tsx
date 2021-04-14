@@ -5,6 +5,25 @@ export enum CandidateProcessingStatus {
   ERROR = 'error',
 }
 
+export enum SymbolType {
+  UNKNOWN = 'unknown',
+  BREAKPAD = 'breakpad',
+  ELF = 'elf',
+  MACHO = 'macho',
+  PDB = 'pdb',
+  PE = 'pe',
+  SOURCEBUNDLE = 'sourcebundle',
+  WASM = 'wasm',
+  PROGUARD = 'proguard',
+}
+
+export enum ImageFeature {
+  has_sources = 'has_sources',
+  has_debug_info = 'has_debug_info',
+  has_unwind_info = 'has_unwind_info',
+  has_symbols = 'has_symbols',
+}
+
 type CandidateProcessingInfoOkStatus = {
   status: CandidateProcessingStatus.OK;
 };
@@ -30,16 +49,22 @@ export enum CandidateDownloadStatus {
 }
 
 type ImageFeatures = {
-  has_sources: boolean;
-  has_debug_info: boolean;
-  has_unwind_info: boolean;
-  has_symbols: boolean;
+  [ImageFeature.has_sources]: boolean;
+  [ImageFeature.has_debug_info]: boolean;
+  [ImageFeature.has_unwind_info]: boolean;
+  [ImageFeature.has_symbols]: boolean;
 };
 
-export type CandidateFeatures = ImageFeatures;
+type CandidateFeatures = ImageFeatures;
 
 type CandidateDownloadOkStatus = {
   status: CandidateDownloadStatus.OK;
+  features: CandidateFeatures;
+  details?: string;
+};
+
+type CandidateDownloadDeletedStatus = {
+  status: CandidateDownloadStatus.DELETED;
   features: CandidateFeatures;
   details?: string;
 };
@@ -49,12 +74,9 @@ type CandidateDownloadNotFoundStatus = {
   details?: string;
 };
 
-type CandidateDownloadDeletedStatus = {
-  status: CandidateDownloadStatus.DELETED;
-};
-
 type CandidateDownloadUnAppliedStatus = {
   status: CandidateDownloadStatus.UNAPPLIED;
+  features: CandidateFeatures;
 };
 
 type CandidateDownloadOtherStatus = {
@@ -78,24 +100,51 @@ type ImageCandidateBase = {
   location?: string;
 };
 
+type InternalSource = {
+  symbolType: SymbolType;
+  fileType: string | null;
+  cpuName: string;
+  size: number;
+  dateCreated: string;
+  location: string;
+  filename: string;
+};
+
 export type ImageCandidateOk = ImageCandidateBase & {
   download: CandidateDownloadOkStatus;
   unwind?: CandidateProcessingInfo;
   debug?: CandidateProcessingInfo;
 };
 
+export type ImageCandidateInternalOk = ImageCandidateBase &
+  InternalSource & {
+    download: CandidateDownloadOkStatus;
+    unwind?: CandidateProcessingInfo;
+    debug?: CandidateProcessingInfo;
+  };
+
+export type ImageCandidateUnApplied = ImageCandidateBase &
+  InternalSource & {
+    download: CandidateDownloadUnAppliedStatus;
+    source: string;
+    source_name?: string;
+  };
+
 type ImageCandidateOthers = ImageCandidateBase & {
   download:
     | CandidateDownloadNotFoundStatus
     | CandidateDownloadDeletedStatus
-    | CandidateDownloadUnAppliedStatus
     | CandidateDownloadOtherStatus;
   source: string;
   source_name?: string;
   location?: string;
 };
 
-export type ImageCandidate = ImageCandidateOk | ImageCandidateOthers;
+export type ImageCandidate =
+  | ImageCandidateOk
+  | ImageCandidateInternalOk
+  | ImageCandidateUnApplied
+  | ImageCandidateOthers;
 
 // Debug Status
 export enum ImageStatus {
@@ -109,16 +158,17 @@ export enum ImageStatus {
 }
 
 export type Image = {
-  debug_file: string;
-  code_file: string;
-  code_id: string;
   type: string;
-  image_size: number;
   features: ImageFeatures;
   candidates: Array<ImageCandidate>;
+  image_size?: number;
+  debug_file?: string;
+  code_file?: string | null;
+  code_id?: string;
   debug_id?: string;
   debug_status?: ImageStatus | null;
   unwind_status?: ImageStatus | null;
   arch?: string;
   image_addr?: string;
+  uuid?: string;
 };

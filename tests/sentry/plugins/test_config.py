@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import pytest
-
 from django import forms
 
 from sentry.exceptions import PluginError

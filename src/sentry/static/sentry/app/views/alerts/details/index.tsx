@@ -1,16 +1,19 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
+import {Location} from 'history';
 
 import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
+import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
 
-import {Incident, IncidentStats, IncidentStatus} from '../types';
+import {AlertRuleStatus, Incident, IncidentStats, IncidentStatus} from '../types';
 import {
   fetchIncident,
   fetchIncidentStats,
@@ -24,6 +27,7 @@ import DetailsHeader from './header';
 
 type Props = {
   api: Client;
+  location: Location;
   organization: Organization;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
@@ -57,14 +61,34 @@ class IncidentDetails extends React.Component<Props, State> {
 
     const {
       api,
+      location,
       params: {orgId, alertId},
     } = this.props;
 
     try {
       const incidentPromise = fetchIncident(api, orgId, alertId).then(incident => {
+        const hasRedesign =
+          incident.alertRule &&
+          this.props.organization.features.includes('alert-details-redesign');
+        // only stop redirect if param is explicitly set to false
+        const stopRedirect =
+          location && location.query && location.query.redirect === 'false';
+        if (hasRedesign && !stopRedirect) {
+          browserHistory.replace({
+            pathname: `/organizations/${orgId}/alerts/rules/details/${
+              incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+              incident.alertRule.originalAlertRuleId
+                ? incident.alertRule.originalAlertRuleId
+                : incident.alertRule.id
+            }/`,
+            query: makeRuleDetailsQuery(incident),
+          });
+        }
+
         this.setState({incident});
         markIncidentAsSeen(api, orgId, incident);
       });
+
       const statsPromise = fetchIncidentStats(api, orgId, alertId).then(stats =>
         this.setState({stats})
       );
@@ -140,10 +164,18 @@ class IncidentDetails extends React.Component<Props, State> {
 
   render() {
     const {incident, stats, hasError} = this.state;
-    const {params} = this.props;
+    const {params, organization} = this.props;
+    const {alertId} = params;
+
+    const project = incident?.projects?.[0];
 
     return (
       <React.Fragment>
+        <SentryDocumentTitle
+          title={t('Alert %s', alertId)}
+          orgSlug={organization.slug}
+          projectSlug={project}
+        />
         <DetailsHeader
           hasIncidentDetailsError={hasError}
           params={params}

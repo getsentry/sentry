@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 import {Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 const PanelItem = styled(Flex)`
@@ -10,9 +9,6 @@ const PanelItem = styled(Flex)`
   }
 `;
 
-PanelItem.propTypes = {
-  p: PropTypes.number,
-};
 PanelItem.defaultProps = {
   p: 2,
 };

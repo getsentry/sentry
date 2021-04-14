@@ -8,7 +8,7 @@ import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import categoryList, {PlatformKey} from 'app/data/platformCategories';
+import categoryList, {filterAliases, PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import {IconClose, IconProject, IconSearch} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -20,6 +20,8 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
 
+type Category = typeof PLATFORM_CATEGORIES[number]['id'];
+
 type Props = {
   setPlatform: (key: PlatformKey | null) => void;
   platform?: string | null;
@@ -27,10 +29,11 @@ type Props = {
   listClassName?: string;
   listProps?: React.HTMLProps<HTMLDivElement>;
   noAutoFilter?: boolean;
+  defaultCategory?: Category;
 };
 
 type State = {
-  category: typeof PLATFORM_CATEGORIES[number]['id'];
+  category: Category;
   filter: string;
 };
 
@@ -40,7 +43,7 @@ class PlatformPicker extends React.Component<Props, State> {
   };
 
   state: State = {
-    category: PLATFORM_CATEGORIES[0].id,
+    category: this.props.defaultCategory ?? PLATFORM_CATEGORIES[0].id,
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
   };
 
@@ -51,7 +54,9 @@ class PlatformPicker extends React.Component<Props, State> {
     const filter = this.state.filter.toLowerCase();
 
     const subsetMatch = (platform: PlatformIntegration) =>
-      platform.id.includes(filter) || platform.name.toLowerCase().includes(filter);
+      platform.id.includes(filter) ||
+      platform.name.toLowerCase().includes(filter) ||
+      filterAliases[platform.id as PlatformKey]?.some(alias => alias.includes(filter));
 
     const categoryMatch = (platform: PlatformIntegration) =>
       category === 'all' ||

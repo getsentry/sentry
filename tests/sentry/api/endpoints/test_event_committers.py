@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 import copy
 
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
 # TODO(dcramer): These tests rely too much on implicit fixtures

@@ -1,22 +1,17 @@
-from __future__ import absolute_import
+from http.client import HTTPException
+from urllib.parse import urljoin
 
-import six
-
+import phabricator
 from django.conf.urls import url
 from rest_framework.response import Response
 
 from sentry.exceptions import PluginError
-from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.integrations import FeatureDescription, IntegrationFeatures
-from six.moves.urllib.parse import urljoin
-from six.moves.http_client import HTTPException
-
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
-
-import phabricator
 
 DESCRIPTION = """
 Improve your productivity by creating tickets in Phabricator directly from Sentry issues.
@@ -29,10 +24,10 @@ code review, repository hosting, bug tracking, project management, and more.
 
 def query_to_result(field, result):
     if field == "issue_id":
-        return u"T{}: {}".format(result["id"], result["fields"]["name"])
+        return "T{}: {}".format(result["id"], result["fields"]["name"])
 
     if field == "assignee":
-        return u"{} ({})".format(result["fields"]["realName"], result["fields"]["username"])
+        return "{} ({})".format(result["fields"]["realName"], result["fields"]["username"])
 
     return result["fields"]["name"]
 
@@ -101,9 +96,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(PhabricatorPlugin, self).get_new_issue_fields(
-            request, group, event, **kwargs
-        )
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return fields + [
             {
                 "name": "tags",
@@ -137,7 +130,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": u"Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         group.get_absolute_url(params={"referrer": "phabricator_plugin"})
                     ),
@@ -150,7 +143,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def get_group_urls(self):
-        return super(PhabricatorPlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
@@ -176,11 +169,11 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             try:
                 api.user.whoami()
             except phabricator.APIError as e:
-                raise PluginError(u"%s %s" % (e.code, e))
+                raise PluginError(f"{e.code} {e}")
             except HTTPException as e:
-                raise PluginError(u"Unable to reach Phabricator host: %s" % (e,))
+                raise PluginError(f"Unable to reach Phabricator host: {e}")
             except Exception as e:
-                raise PluginError(u"Unhandled error from Phabricator: %s" % (e,))
+                raise PluginError(f"Unhandled error from Phabricator: {e}")
         return config
 
     def is_configured(self, request, project, **kwargs):
@@ -196,11 +189,11 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         return "Create Maniphest Task"
 
     def get_issue_label(self, group, issue_id, **kwargs):
-        return u"T%s" % issue_id
+        return "T%s" % issue_id
 
     def get_issue_url(self, group, issue_id, **kwargs):
         host = self.get_option("host", group.project)
-        return urljoin(host, u"T%s" % issue_id)
+        return urljoin(host, "T%s" % issue_id)
 
     def view_autocomplete(self, request, group, **kwargs):
         field = request.GET.get("autocomplete_field")
@@ -228,13 +221,13 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         api = self.get_api(group.project)
         try:
             data = api.maniphest.createtask(
-                title=six.text_type(form_data["title"]),
-                description=six.text_type(form_data["description"]),
+                title=str(form_data["title"]),
+                description=str(form_data["description"]),
                 ownerPHID=form_data.get("assignee"),
                 projectPHIDs=form_data.get("tags"),
             )
         except phabricator.APIError as e:
-            raise PluginError(u"%s %s" % (e.code, e))
+            raise PluginError(f"{e.code} {e}")
         except HTTPException as e:
             raise PluginError("Unable to reach Phabricator host: %s" % e)
 

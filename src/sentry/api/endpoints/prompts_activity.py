@@ -1,6 +1,5 @@
-from __future__ import absolute_import
-
 import calendar
+
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.utils import timezone
@@ -9,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.models import Organization, PromptsActivity, Project
+from sentry.models import Organization, Project, PromptsActivity
 from sentry.utils.compat import zip
 from sentry.utils.prompts import prompt_config
 

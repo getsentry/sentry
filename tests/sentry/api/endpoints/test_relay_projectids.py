@@ -1,17 +1,12 @@
-from __future__ import absolute_import
-
-import six
 import re
-
 from uuid import uuid4
 
 from django.core.urlresolvers import reverse
+from sentry_relay.auth import generate_key_pair
 
-from sentry.utils import safe, json
 from sentry.models.relay import Relay
 from sentry.testutils import APITestCase
-
-from sentry_relay.auth import generate_key_pair
+from sentry.utils import json, safe
 
 
 def _get_all_keys(config):
@@ -30,10 +25,12 @@ class RelayProjectIdsEndpointTest(APITestCase):
 
         self.public_key = self.key_pair[1]
         self.private_key = self.key_pair[0]
-        self.relay_id = six.text_type(uuid4())
+        self.relay_id = str(uuid4())
 
         self.relay = Relay.objects.create(
-            relay_id=self.relay_id, public_key=self.public_key, is_internal=internal,
+            relay_id=self.relay_id,
+            public_key=self.public_key,
+            is_internal=internal,
         )
 
         self.project = self.create_project()
@@ -47,7 +44,7 @@ class RelayProjectIdsEndpointTest(APITestCase):
         if add_org_key:
             org.update_option(
                 "sentry:trusted-relays",
-                [{"public_key": six.text_type(self.relay.public_key), "name": "main-relay"}],
+                [{"public_key": str(self.relay.public_key), "name": "main-relay"}],
             )
 
     def _call_endpoint(self, public_key):

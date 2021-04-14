@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-from sentry.testutils import TestCase
-from sentry.plugins.sentry_useragents.models import BrowserPlugin, DevicePlugin, OsPlugin
 from ua_parser.user_agent_parser import Parse
+
+from sentry.plugins.sentry_useragents.models import BrowserPlugin, DevicePlugin, OsPlugin
+from sentry.testutils import TestCase
 
 
 class UserAgentPlugins(TestCase):

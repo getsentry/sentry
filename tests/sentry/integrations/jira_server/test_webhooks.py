@@ -1,16 +1,14 @@
-from __future__ import absolute_import
-
 import jwt
 import responses
-
 from django.core.urlresolvers import reverse
 from exam import fixture
-from sentry.utils.compat.mock import patch
 from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
-from sentry.models import Integration, IdentityProvider, Identity, IdentityStatus
+from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
+
 from .testutils import EXAMPLE_PRIVATE_KEY
 
 

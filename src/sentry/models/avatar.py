@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
-import six
-
-from django.utils.encoding import force_bytes
-from django.db import models, transaction
-from PIL import Image
-from six import BytesIO
+from io import BytesIO
 from uuid import uuid4
+
+from django.db import models, transaction
+from django.utils.encoding import force_bytes
+from PIL import Image
 
 from sentry.db.models import FlexibleForeignKey, Model
 from sentry.utils.cache import cache
@@ -34,12 +31,12 @@ class AvatarBase(Model):
     def save(self, *args, **kwargs):
         if not self.ident:
             self.ident = uuid4().hex
-        return super(AvatarBase, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         if self.file:
             self.file.delete()
-        return super(AvatarBase, self).delete(*args, **kwargs)
+        return super().delete(*args, **kwargs)
 
     def get_cache_key(self, size):
         raise NotImplementedError
@@ -73,7 +70,7 @@ class AvatarBase(Model):
                 photo = File.objects.create(name=filename, type=cls.FILE_TYPE)
                 # XXX: Avatar may come in as a string instance in python2
                 # if it's not wrapped in BytesIO.
-                if isinstance(avatar, six.string_types):
+                if isinstance(avatar, str):
                     avatar = BytesIO(force_bytes(avatar))
                 photo.putfile(avatar)
         else:

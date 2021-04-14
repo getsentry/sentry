@@ -1,47 +1,41 @@
-from __future__ import absolute_import
-
-import re
-import six
-import jsonschema
 import logging
 import posixpath
+import re
 
+import jsonschema
 from django.db import transaction
-from django.db.models import Q, Count
-from django.http import StreamingHttpResponse, HttpResponse, Http404
+from django.db.models import Count, Q
+from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.response import Response
-from symbolic import normalize_debug_id, SymbolicError
+from symbolic import SymbolicError, normalize_debug_id
 
 from sentry import ratelimits, roles
-
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.models import (
-    FileBlobOwner,
-    ProjectDebugFile,
-    create_files_from_dif_zip,
-    Release,
-    ReleaseFile,
-    OrganizationMember,
-)
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.tasks.assemble import (
-    get_assemble_status,
-    set_assemble_status,
-    AssembleTask,
-    ChunkFileState,
-)
-from sentry.utils import json
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
-from sentry.constants import DEBUG_FILES_ROLE_DEFAULT
-
+from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
+from sentry.models import (
+    FileBlobOwner,
+    OrganizationMember,
+    ProjectDebugFile,
+    Release,
+    ReleaseFile,
+    create_files_from_dif_zip,
+)
+from sentry.tasks.assemble import (
+    AssembleTask,
+    ChunkFileState,
+    get_assemble_status,
+    set_assemble_status,
+)
+from sentry.utils import json
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"
-DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
+DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 
 
@@ -87,7 +81,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
     def download(self, debug_file_id, project):
         rate_limited = ratelimits.is_limited(
             project=project,
-            key="rl:DSymFilesEndpoint:download:%s:%s" % (debug_file_id, project.id),
+            key=f"rl:DSymFilesEndpoint:download:{debug_file_id}:{project.id}",
             limit=10,
         )
         if rate_limited:
@@ -108,12 +102,12 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
             response["Content-Length"] = debug_file.file.size
-            response["Content-Disposition"] = 'attachment; filename="%s%s"' % (
+            response["Content-Disposition"] = 'attachment; filename="{}{}"'.format(
                 posixpath.basename(debug_file.debug_id),
                 debug_file.file_extension,
             )
             return response
-        except IOError:
+        except OSError:
             raise Http404
 
     def get(self, request, project):
@@ -312,7 +306,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
         file_response = {}
 
-        for checksum, file_to_assemble in six.iteritems(files):
+        for checksum, file_to_assemble in files.items():
             name = file_to_assemble.get("name", None)
             debug_id = file_to_assemble.get("debug_id", None)
             chunks = file_to_assemble.get("chunks", [])

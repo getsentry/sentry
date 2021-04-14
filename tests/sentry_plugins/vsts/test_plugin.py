@@ -1,17 +1,14 @@
-from __future__ import absolute_import
-
 import responses
-
-from exam import fixture
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
+from exam import fixture
+
 from sentry.exceptions import PluginError
 from sentry.models import GroupMeta
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-from social_auth.models import UserSocialAuth
-
 from sentry_plugins.vsts.plugin import VstsPlugin
+from social_auth.models import UserSocialAuth
 
 WORK_ITEM_RESPONSE = """{
   "id": 309,

@@ -1,10 +1,8 @@
-from __future__ import absolute_import, print_function
-
 from django.core import mail
 
 from sentry.models import InviteStatus, OrganizationMember
-from sentry.testutils import TestCase
 from sentry.tasks.members import send_invite_request_notification_email
+from sentry.testutils import TestCase
 
 
 class InviteRequestNotificationTest(TestCase):
@@ -34,5 +32,5 @@ class InviteRequestNotificationTest(TestCase):
         assert mail.outbox[0].to == ["manager@localhost"]
         assert mail.outbox[1].to == ["owner@localhost"]
 
-        expected_subject = "Access request to %s" % (organization.name,)
+        expected_subject = f"Access request to {organization.name}"
         assert mail.outbox[0].subject == expected_subject

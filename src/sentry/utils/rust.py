@@ -1,14 +1,10 @@
-from __future__ import absolute_import
-
 import re
-import six
 
 from sentry_sdk.hub import Hub
 from sentry_sdk.integrations import Integration
 from sentry_sdk.scope import add_global_event_processor
 
 from sentry.utils.safe import get_path
-
 
 SYSTEM_FRAMES = [
     "std::",
@@ -200,7 +196,7 @@ def strip_backtrace_message(target, field):
     """
     Strips the backtrace off a message, if it contains one.
     """
-    if target and isinstance(target.get(field), six.string_types):
+    if target and isinstance(target.get(field), str):
         target[field] = target[field].split("\n\nstacktrace:", 1)[0].strip()
 
 

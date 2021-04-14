@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat.mock import patch
-
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange import Validator
 from sentry.models import SentryApp
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class TestValidator(TestCase):

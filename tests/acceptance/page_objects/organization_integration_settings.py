@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from .base import BasePage, ButtonElement, ModalElement
 
 
@@ -7,7 +6,7 @@ class ExampleIntegrationSetupWindowElement(ModalElement):
     submit_button_selector = '[type="submit"]'
 
     def __init__(self, *args, **kwargs):
-        super(ExampleIntegrationSetupWindowElement, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.name = self.element.find_element_by_name("name")
         continue_button_element = self.element.find_element_by_css_selector(
             self.submit_button_selector

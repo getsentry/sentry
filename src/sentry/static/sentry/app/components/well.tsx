@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 type Props = {
   hasImage?: boolean;
@@ -20,10 +19,5 @@ const Well = styled('div')<WellProps>`
   border-radius: 3px;
   ${p => p.centered && 'text-align: center'};
 `;
-
-Well.propTypes = {
-  hasImage: PropTypes.bool,
-  centered: PropTypes.bool,
-};
 
 export default Well;

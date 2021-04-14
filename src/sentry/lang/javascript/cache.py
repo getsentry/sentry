@@ -1,7 +1,5 @@
-from __future__ import absolute_import, print_function
-
-from six import text_type
 from symbolic import SourceView
+
 from sentry.utils.strings import codec_lookup
 
 __all__ = ["SourceCache", "SourceMapCache"]
@@ -12,7 +10,7 @@ def is_utf8(codec):
     return name in ("utf-8", "ascii")
 
 
-class SourceCache(object):
+class SourceCache:
     def __init__(self):
         self._cache = {}
         self._errors = {}
@@ -42,7 +40,7 @@ class SourceCache(object):
         url = self._get_canonical_url(url)
 
         if not isinstance(source, SourceView):
-            if isinstance(source, text_type):
+            if isinstance(source, str):
                 source = source.encode("utf-8")
             # If an encoding is provided and it's not utf-8 compatible
             # we try to re-encoding the source and create a source view
@@ -61,7 +59,7 @@ class SourceCache(object):
         self._errors[url].append(error)
 
 
-class SourceMapCache(object):
+class SourceMapCache:
     """
     Stores mappings between
 

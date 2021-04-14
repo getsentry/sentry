@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from sentry.lang.native.processing import (
     process_applecrashreport,
     process_minidump,
     process_payload,
 )
-from sentry.lang.native.utils import is_native_event, is_minidump_event, is_applecrashreport_event
+from sentry.lang.native.utils import is_applecrashreport_event, is_minidump_event, is_native_event
 from sentry.plugins.base.v2 import Plugin2
 
 

@@ -12,8 +12,14 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
+import {
+  AlertType as WizardAlertType,
+  AlertWizardAlertNames,
+  WizardRuleTemplate,
+} from 'app/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
-import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
+import IssueRuleEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
 
 import AlertTypeChooser from './alertTypeChooser';
 
@@ -33,6 +39,7 @@ type AlertType = 'metric' | 'issue' | null;
 type State = {
   alertType: AlertType;
   eventView: EventView | undefined;
+  wizardTemplate?: WizardRuleTemplate;
 };
 
 class Create extends React.Component<Props, State> {
@@ -56,10 +63,28 @@ class Create extends React.Component<Props, State> {
       session_id: this.sessionId,
     });
 
-    if (location?.query?.createFromDiscover) {
-      const eventView = EventView.fromLocation(location);
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({alertType: 'metric', eventView});
+    if (location?.query) {
+      const {query} = location;
+      const {createFromDiscover, createFromWizard} = query;
+      if (createFromDiscover) {
+        const eventView = EventView.fromLocation(location);
+        // eslint-disable-next-line react/no-did-mount-set-state
+        this.setState({alertType: 'metric', eventView});
+      } else if (createFromWizard) {
+        const {aggregate, dataset, eventTypes} = query;
+        if (aggregate && dataset && eventTypes) {
+          // eslint-disable-next-line react/no-did-mount-set-state
+          this.setState({
+            alertType: 'metric',
+            wizardTemplate: {aggregate, dataset, eventTypes},
+          });
+        } else {
+          // eslint-disable-next-line react/no-did-mount-set-state
+          this.setState({
+            alertType: 'issue',
+          });
+        }
+      }
     }
   }
 
@@ -77,23 +102,36 @@ class Create extends React.Component<Props, State> {
       organization,
       project,
       params: {projectId},
+      location,
     } = this.props;
-    const {alertType, eventView} = this.state;
+    const {alertType, eventView, wizardTemplate} = this.state;
 
-    const shouldShowAlertTypeChooser = hasMetricAlerts;
+    const hasWizard = organization.features.includes('alert-wizard');
+    const shouldShowAlertTypeChooser = hasMetricAlerts && !hasWizard;
+    let wizardAlertType: undefined | WizardAlertType;
+    if (location?.query?.createFromWizard) {
+      wizardAlertType = wizardTemplate
+        ? getAlertTypeFromAggregateDataset(wizardTemplate)
+        : 'issues';
+    }
+
     const title = t('New Alert Rule');
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={projectId} />
+        <SentryDocumentTitle title={title} projectSlug={projectId} />
         <PageContent>
           <BuilderBreadCrumbs
             hasMetricAlerts={hasMetricAlerts}
             orgSlug={organization.slug}
-            title={title}
+            alertName={wizardAlertType && AlertWizardAlertNames[wizardAlertType]}
+            title={wizardAlertType ? t('Create Alert Rule') : title}
+            projectSlug={projectId}
           />
           <StyledPageHeader>
-            <PageHeading>{title}</PageHeading>
+            <PageHeading>
+              {wizardAlertType ? t('Set Alert Conditions') : title}
+            </PageHeading>
           </StyledPageHeader>
           {shouldShowAlertTypeChooser && (
             <AlertTypeChooser
@@ -104,13 +142,14 @@ class Create extends React.Component<Props, State> {
           )}
 
           {(!hasMetricAlerts || alertType === 'issue') && (
-            <IssueEditor {...this.props} project={project} />
+            <IssueRuleEditor {...this.props} project={project} />
           )}
 
           {hasMetricAlerts && alertType === 'metric' && (
             <IncidentRulesCreate
               {...this.props}
               eventView={eventView}
+              wizardTemplate={wizardTemplate}
               sessionId={this.sessionId}
               project={project}
             />

@@ -1,13 +1,10 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat import mock
-
 from django.core.urlresolvers import reverse
 
 from sentry import tagstore
 from sentry.tagstore import TagKeyStatus
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 
 
 class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
@@ -17,7 +14,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
         def make_event(i):
             self.store_event(
                 data={
-                    "tags": {"foo": "val{}".format(i)},
+                    "tags": {"foo": f"val{i}"},
                     "timestamp": iso_format(before_now(seconds=1)),
                 },
                 project_id=project.id,

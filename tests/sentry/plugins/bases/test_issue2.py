@@ -1,17 +1,11 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-
-from social_auth.models import UserSocialAuth
-
 from sentry.models import GroupMeta, User
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
 from sentry.utils.compat import mock
+from social_auth.models import UserSocialAuth
 
 
 class PluginWithFields(IssueTrackingPlugin2):
@@ -79,7 +73,7 @@ class GetAuthForUserTest(TestCase):
 
 class IssuePlugin2GroupActionTest(TestCase):
     def setUp(self):
-        super(IssuePlugin2GroupActionTest, self).setUp()
+        super().setUp()
         self.project = self.create_project()
         self.plugin_instance = plugins.get(slug="issuetrackingplugin2")
         min_ago = iso_format(before_now(minutes=1))

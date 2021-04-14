@@ -1,8 +1,7 @@
-from __future__ import absolute_import
-
 from django.views.generic import View
 
-from sentry.models import GroupSubscriptionReason, Organization, Project
+from sentry.models import Organization, Project
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview
@@ -50,7 +49,7 @@ class DebugNewProcessingIssuesEmailView(View):
                 ),
                 "reprocessing_active": self.reprocessing_active,
                 "info_url": absolute_uri(
-                    "/settings/{}/projects/{}/processing-issues/".format(org.slug, project.slug)
+                    f"/settings/{org.slug}/projects/{project.slug}/processing-issues/"
                 ),
             },
         ).render(request)

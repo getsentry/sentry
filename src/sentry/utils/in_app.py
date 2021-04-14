@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import re
-
 
 # Absolute paths where iOS mounts application files.
 IOS_APP_PATHS = (

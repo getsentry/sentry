@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEndpoint
@@ -14,7 +12,7 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
         if visibility not in environment_visibility_filter_options:
             return Response(
                 {
-                    "detail": u"Invalid value for 'visibility', valid values are: {!r}".format(
+                    "detail": "Invalid value for 'visibility', valid values are: {!r}".format(
                         sorted(environment_visibility_filter_options.keys())
                     )
                 },

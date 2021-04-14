@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from django.db.models.signals import post_save, post_delete, pre_delete
+from django.db.models.signals import post_delete, post_save, pre_delete
 
 from sentry import tagstore
 from sentry.api.serializers.models.project import bulk_fetch_project_latest_releases
@@ -10,7 +8,7 @@ from sentry.utils.cache import cache
 
 
 def get_project_release_cache_key(project_id):
-    return u"project:{}:latest_release".format(project_id)
+    return f"project:{project_id}:latest_release"
 
 
 # clear the cache given a Release object
@@ -52,7 +50,7 @@ class LatestReleaseFilter(EventFilter):
         )
 
         for release in releases:
-            if release == latest_release.version:
+            if release == latest_release.version.lower():
                 return True
 
         return False

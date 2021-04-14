@@ -4,6 +4,7 @@ const GuideActions = Reflux.createActions([
   'closeGuide',
   'fetchSucceeded',
   'nextStep',
+  'toStep',
   'registerAnchor',
   'unregisterAnchor',
 ]);

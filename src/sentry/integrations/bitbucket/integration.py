@@ -1,31 +1,28 @@
-from __future__ import absolute_import
+from django.utils.datastructures import OrderedSet
+from django.utils.translation import ugettext_lazy as _
 
+from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
-    IntegrationInstallation,
-    IntegrationFeatures,
-    IntegrationProvider,
-    IntegrationMetadata,
     FeatureDescription,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
 )
 from sentry.integrations.atlassian_connect import (
     AtlassianConnectValidationError,
     get_integration_from_request,
 )
 from sentry.integrations.repositories import RepositoryMixin
-from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.identity.pipeline import IdentityProviderPipeline
-from django.utils.translation import ugettext_lazy as _
-
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.models import Repository
+from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 
-from .repository import BitbucketRepositoryProvider
 from .client import BitbucketApiClient
 from .issues import BitbucketIssueBasicMixin
-
-from django.utils.datastructures import OrderedSet
+from .repository import BitbucketRepositoryProvider
 
 DESCRIPTION = """
 Connect your Sentry organization to Bitbucket, enabling the following features:
@@ -65,7 +62,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Bitbucket%Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket",
     aspects={},
 )
@@ -99,8 +96,8 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
                 for repo in resp.get("values", [])
             ]
 
-        exact_query = (u'name="%s"' % (query)).encode("utf-8")
-        fuzzy_query = (u'name~"%s"' % (query)).encode("utf-8")
+        exact_query = ('name="%s"' % (query)).encode("utf-8")
+        fuzzy_query = ('name~"%s"' % (query)).encode("utf-8")
         exact_search_resp = self.get_client().search_repositories(username, exact_query)
         fuzzy_search_resp = self.get_client().search_repositories(username, fuzzy_query)
 

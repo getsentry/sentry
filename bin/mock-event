@@ -1,18 +1,16 @@
 #!/usr/bin/env python
-# isort:skip_file
+
 from sentry.runner import configure
 
 configure()
 
+import argparse
 import sys
 
 from django.utils import timezone
 
 from sentry.models import Project
 from sentry.utils.samples import create_sample_event
-
-
-import argparse
 
 
 def main(project, sample_type):
@@ -28,7 +26,7 @@ def main(project, sample_type):
     if not project.first_event:
         project.update(first_event=timezone.now())
 
-    print("> Created event {}".format(event.event_id))
+    sys.stdout.write(f"> Created event {event.event_id}\n")
 
 
 if __name__ == "__main__":

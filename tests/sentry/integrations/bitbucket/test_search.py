@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import responses
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import Integration

@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GroupList from 'app/components/issues/groupList';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody} from 'app/components/panels';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -16,12 +17,16 @@ import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 
+import NoGroupsHandler from '../issueList/noGroupsHandler';
+
 type Props = {
   organization: Organization;
   location: Location;
+  projectId: number;
+  api: Client;
 };
 
-function ProjectIssues({organization, location}: Props) {
+function ProjectIssues({organization, location, projectId, api}: Props) {
   function handleOpenClick() {
     trackAnalyticsEvent({
       eventKey: 'project_detail.open_issues',
@@ -30,11 +35,25 @@ function ProjectIssues({organization, location}: Props) {
     });
   }
 
+  const endpointPath = `/organizations/${organization.slug}/issues/`;
+  const issueQuery = 'is:unresolved error.unhandled:true';
+  const queryParams = {
+    limit: 5,
+    ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor'])),
+    query: issueQuery,
+    sort: 'freq',
+  };
+
+  const issueSearch = {
+    pathname: endpointPath,
+    query: queryParams,
+  };
+
   function renderEmptyMessage() {
     const selectedTimePeriod = location.query.start
       ? null
       : DEFAULT_RELATIVE_PERIODS[
-          decodeScalar(location.query.statsPeriod) ?? DEFAULT_STATS_PERIOD
+          decodeScalar(location.query.statsPeriod, DEFAULT_STATS_PERIOD)
         ];
     const displayedPeriod = selectedTimePeriod
       ? selectedTimePeriod.toLowerCase()
@@ -43,32 +62,25 @@ function ProjectIssues({organization, location}: Props) {
     return (
       <Panel>
         <PanelBody>
-          <EmptyStateWarning small withIcon={false}>
-            {tct('No issues for the [timePeriod].', {
+          <NoGroupsHandler
+            api={api}
+            organization={organization}
+            query={issueQuery}
+            selectedProjectIds={[projectId]}
+            groupIds={[]}
+            emptyMessage={tct('No unhandled issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
-          </EmptyStateWarning>
+          />
         </PanelBody>
       </Panel>
     );
   }
 
-  const endpointPath = `/organizations/${organization.slug}/issues/`;
-  const queryParams = {
-    limit: 5,
-    ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
-    query: 'is:unresolved',
-  };
-
-  const issueSearch = {
-    pathname: endpointPath,
-    query: queryParams,
-  };
-
   return (
     <React.Fragment>
       <ControlsWrapper>
-        <SectionHeading>{t('Project Issues')}</SectionHeading>
+        <SectionHeading>{t('Frequent Unhandled Issues')}</SectionHeading>
         <Button
           data-test-id="issues-open"
           size="small"

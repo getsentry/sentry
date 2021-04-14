@@ -72,6 +72,14 @@ describe('Performance > TransactionSummary', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/is-key-transactions/',
       body: [],
     });
@@ -83,18 +91,24 @@ describe('Performance > TransactionSummary', function () {
         body: {
           meta: {
             count: 'number',
-            apdex_300: 'number',
-            user_misery_300: 'number',
+            apdex_400: 'number',
+            count_miserable_user_400: 'number',
+            user_misery_400: 'number',
             count_unique_user: 'number',
             p95: 'number',
+            failure_rate: 'number',
+            tpm: 'number',
           },
           data: [
             {
               count: 2,
-              apdex_300: 0.6,
-              user_misery_300: 122,
+              apdex_400: 0.6,
+              count_miserable_user_400: 122,
+              user_misery_400: 0.114,
               count_unique_user: 1,
               p95: 750.123,
+              failure_rate: 1,
+              tpm: 1,
             },
           ],
         },
@@ -179,6 +193,39 @@ describe('Performance > TransactionSummary', function () {
           topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
         },
       ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-vitals/',
+      body: {
+        'measurements.fcp': {
+          poor: 3,
+          meh: 100,
+          good: 47,
+          total: 150,
+          p75: 1500,
+        },
+        'measurements.lcp': {
+          poor: 2,
+          meh: 38,
+          good: 40,
+          total: 80,
+          p75: 2750,
+        },
+        'measurements.fid': {
+          poor: 2,
+          meh: 53,
+          good: 5,
+          total: 60,
+          p75: 1000,
+        },
+        'measurements.cls': {
+          poor: 3,
+          meh: 10,
+          good: 4,
+          total: 17,
+          p75: 0.2,
+        },
+      },
     });
   });
 

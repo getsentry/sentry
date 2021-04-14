@@ -25,6 +25,11 @@ type Props = {
    * Use this if the component should be a controlled component
    */
   selectedProjects: Array<Project>;
+  children: (
+    args: Parameters<DropdownAutoCompleteProps['children']>[0] & {
+      selectedProjects: Project[];
+    }
+  ) => React.ReactElement;
   /**
    * Allow selecting multiple projects
    */
@@ -56,7 +61,7 @@ type Props = {
   onMultiSelect?: (projects: Array<Project>, event: React.MouseEvent) => void;
 } & Pick<
   DropdownAutoCompleteProps,
-  'menuFooter' | 'children' | 'onScroll' | 'onClose' | 'rootClassName' | 'className'
+  'menuFooter' | 'onScroll' | 'onClose' | 'rootClassName' | 'className'
 >;
 
 const ProjectSelector = ({

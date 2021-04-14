@@ -1,17 +1,12 @@
-from __future__ import absolute_import
-
+from urllib.parse import urlencode
 
 import responses
-
-from six.moves.urllib.parse import urlencode
-
 
 from sentry.integrations.msteams import MsTeamsIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 from sentry.utils.compat.mock import patch
 from sentry.utils.signing import sign
-
 
 team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
 
@@ -20,7 +15,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
     provider = MsTeamsIntegrationProvider
 
     def setUp(self):
-        super(MsTeamsIntegrationTest, self).setUp()
+        super().setUp()
         self.start_time = 1594768808
         self.pipeline_state = {
             "team_id": team_id,
@@ -33,7 +28,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
             json={},
         )
 
@@ -78,7 +73,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 integration=integration, organization=self.organization
             )
 
-            integration_url = u"organizations/{}/rules/".format(self.organization.slug)
+            integration_url = f"organizations/{self.organization.slug}/rules/"
             assert integration_url in responses.calls[1].request.body.decode("utf-8")
             assert self.organization.name in responses.calls[1].request.body.decode("utf-8")
 

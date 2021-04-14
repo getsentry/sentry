@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ("check_all", "sort_by_severity", "Problem", "StatusCheck")
 
 from sentry.utils.warnings import seen_warnings

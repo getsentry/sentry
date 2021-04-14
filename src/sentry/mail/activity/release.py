@@ -1,11 +1,7 @@
-from __future__ import absolute_import
-
 from collections import defaultdict
 from itertools import chain
 
-import six
-
-from django.db.models import Count, Q
+from django.db.models import Count
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -13,8 +9,8 @@ from sentry.models import (
     Deploy,
     Environment,
     Group,
-    GroupSubscriptionReason,
     GroupLink,
+    NotificationSetting,
     ProjectTeam,
     Release,
     ReleaseCommit,
@@ -22,18 +18,22 @@ from sentry.models import (
     Team,
     User,
     UserEmail,
-    UserOption,
-    UserOptionValue,
 )
+from sentry.notifications.types import (
+    GroupSubscriptionReason,
+    NotificationScopeType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
+from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityEmail
-from sentry.utils.compat import zip
 
 
 class ReleaseActivityEmail(ActivityEmail):
     def __init__(self, activity):
-        super(ReleaseActivityEmail, self).__init__(activity)
+        super().__init__(activity)
         self.organization = self.project.organization
         self.user_id_team_lookup = None
         self.email_list = {}
@@ -68,7 +68,7 @@ class ReleaseActivityEmail(ActivityEmail):
                 ).values_list("id", "name")
             }
 
-            self.email_list = set([c.author.email for c in self.commit_list if c.author])
+            self.email_list = {c.author.email for c in self.commit_list if c.author}
             if self.email_list:
                 users = {
                     ue.email: ue.user
@@ -78,7 +78,7 @@ class ReleaseActivityEmail(ActivityEmail):
                         user__sentry_orgmember_set__organization=self.organization,
                     ).select_related("user")
                 }
-                self.user_ids = {u.id for u in six.itervalues(users)}
+                self.user_ids = {u.id for u in users.values()}
 
             else:
                 users = {}
@@ -127,47 +127,55 @@ class ReleaseActivityEmail(ActivityEmail):
 
         # get all the involved users' settings for deploy-emails (user default
         # saved without org set)
-        user_options = UserOption.objects.filter(
-            Q(organization=self.organization) | Q(organization=None),
-            user__in=users,
-            key="deploy-emails",
+        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+            NotificationSettingTypes.DEPLOY,
+            users=users,
+            parent=self.organization,
         )
 
+        actor_mapping = {user.actor: user for user in users}
+
         options_by_user_id = defaultdict(dict)
-        for uoption in user_options:
-            key = "default" if uoption.organization is None else "org"
-            options_by_user_id[uoption.user_id][key] = uoption.value
+        for notification_setting in notification_settings:
+            key = (
+                "default"
+                if notification_setting.scope_type == NotificationScopeType.USER.value
+                else "org"
+            )
+            user_option = actor_mapping.get(notification_setting.target)
+            if user_option:
+                options_by_user_id[user_option.id][key] = notification_setting.value
 
         # and couple them with the the users' setting value for deploy-emails
         # prioritize user/org specific, then user default, then product default
-        users_with_options = []
+        users_with_options = {}
         for user in users:
             options = options_by_user_id.get(user.id, {})
-            users_with_options.append(
-                (
-                    user,
-                    options.get(
-                        "org", options.get("default", UserOptionValue.committed_deploys_only)
-                    ),
-                )
+            users_with_options[user] = (
+                options.get("org")  # org-specific
+                or options.get("default")  # user default
+                or NotificationSettingOptionValues.COMMITTED_ONLY.value  # product default
             )
 
         # filter down to members which have been seen in the commit log:
         participants_committed = {
             user: GroupSubscriptionReason.committed
-            for user, option in users_with_options
-            if option == UserOptionValue.committed_deploys_only and user.id in self.user_ids
+            for user, option in users_with_options.items()
+            if (
+                option == NotificationSettingOptionValues.COMMITTED_ONLY.value
+                and user.id in self.user_ids
+            )
         }
 
         # or who opt into all deploy emails:
         participants_opted = {
             user: GroupSubscriptionReason.deploy_setting
-            for user, option in users_with_options
-            if option == UserOptionValue.all_deploys
+            for user, option in users_with_options.items()
+            if option == NotificationSettingOptionValues.ALWAYS.value
         }
 
         # merge the two type of participants
-        return dict(chain(six.iteritems(participants_committed), six.iteritems(participants_opted)))
+        return dict(chain(participants_committed.items(), participants_opted.items()))
 
     def get_users_by_teams(self):
         if not self.user_id_team_lookup:
@@ -198,9 +206,7 @@ class ReleaseActivityEmail(ActivityEmail):
             "release": self.release,
             "deploy": self.deploy,
             "environment": self.environment,
-            "setup_repo_link": absolute_uri(
-                u"/organizations/{}/repos/".format(self.organization.slug)
-            ),
+            "setup_repo_link": absolute_uri(f"/organizations/{self.organization.slug}/repos/"),
         }
 
     def get_user_context(self, user):
@@ -217,9 +223,7 @@ class ReleaseActivityEmail(ActivityEmail):
 
         release_links = [
             absolute_uri(
-                u"/organizations/{}/releases/{}/?project={}".format(
-                    self.organization.slug, self.release.version, p.id
-                )
+                f"/organizations/{self.organization.slug}/releases/{self.release.version}/?project={p.id}"
             )
             for p in projects
         ]
@@ -231,7 +235,7 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
-        return u"Deployed version {} to {}".format(self.release.version, self.environment)
+        return f"Deployed version {self.release.version} to {self.environment}"
 
     def get_template(self):
         return "sentry/emails/activity/release.txt"

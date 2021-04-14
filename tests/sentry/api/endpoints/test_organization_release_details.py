@@ -1,11 +1,10 @@
-from __future__ import absolute_import
 import unittest
-from sentry.utils.compat.mock import patch
 from datetime import datetime
 
 import pytz
 from django.core.urlresolvers import reverse
 
+from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
 from sentry.app import locks
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import (
@@ -13,15 +12,15 @@ from sentry.models import (
     Environment,
     File,
     Release,
-    ReleaseStatus,
     ReleaseCommit,
     ReleaseFile,
     ReleaseProject,
     ReleaseProjectEnvironment,
+    ReleaseStatus,
     Repository,
 )
 from sentry.testutils import APITestCase
-from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
+from sentry.utils.compat.mock import patch
 
 
 class ReleaseDetailsTest(APITestCase):
@@ -559,7 +558,7 @@ class ReleaseDeleteTest(APITestCase):
             },
         )
         assert response.status_code == 400
-        assert response.data == {"refs": [u"Invalid repository names: not_a_repo"]}
+        assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
 
     def test_bad_commit_list(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -595,7 +594,7 @@ class ReleaseDeleteTest(APITestCase):
 
 class ReleaseSerializerTest(unittest.TestCase):
     def setUp(self):
-        super(ReleaseSerializerTest, self).setUp()
+        super().setUp()
         self.repo_name = "repo/name"
         self.repo2_name = "repo2/name"
         self.commits = [{"id": "a" * 40}, {"id": "b" * 40}]

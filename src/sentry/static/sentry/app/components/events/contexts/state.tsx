@@ -3,9 +3,10 @@ import upperFirst from 'lodash/upperFirst';
 
 import ClippedBox from 'app/components/clippedBox';
 import ContextBlock from 'app/components/events/contexts/contextBlock';
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import {t} from 'app/locale';
+
+type KeyValueListData = React.ComponentProps<typeof ContextBlock>['data'];
 
 type StateDescription = {
   type?: string;
@@ -25,7 +26,7 @@ class StateContextType extends React.Component<Props> {
     return `${name}${type ? ` (${upperFirst(type)})` : ''}`;
   }
 
-  getKnownData(): KeyValueListData[] {
+  getKnownData(): KeyValueListData {
     const primaryState = this.props.data.state;
 
     if (!primaryState) {
@@ -41,7 +42,7 @@ class StateContextType extends React.Component<Props> {
     ];
   }
 
-  getUnknownData(): KeyValueListData[] {
+  getUnknownData(): KeyValueListData {
     const {data} = this.props;
 
     return Object.entries(data)

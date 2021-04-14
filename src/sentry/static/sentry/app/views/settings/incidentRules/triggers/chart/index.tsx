@@ -15,7 +15,6 @@ import {
 } from 'app/components/charts/styles';
 import SelectControl from 'app/components/forms/selectControl';
 import LoadingMask from 'app/components/loadingMask';
-import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -39,6 +38,8 @@ type Props = {
   triggers: Trigger[];
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
@@ -193,6 +194,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
       resolveThreshold,
       thresholdType,
       environment,
+      header,
+      footer,
     } = this.props;
     const {statsPeriod, totalEvents} = this.state;
 
@@ -214,6 +217,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
               yAxis={aggregate}
               includePrevious={false}
               currentSeriesName={aggregate}
+              partial={false}
             >
               {({loading, reloading, timeseriesData}) => {
                 let maxValue: SeriesDataUnit | undefined;
@@ -258,6 +262,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                       <ChartPlaceholder />
                     ) : (
                       <React.Fragment>
+                        {header}
                         <TransparentLoadingMask visible={reloading} />
                         <ThresholdsChart
                           period={statsPeriod}
@@ -271,11 +276,17 @@ class TriggersChart extends React.PureComponent<Props, State> {
                     )}
                     <ChartControls>
                       <InlineContainer>
-                        <SectionHeading>{t('Total Events')}</SectionHeading>
-                        {totalEvents !== null ? (
-                          <SectionValue>{totalEvents.toLocaleString()}</SectionValue>
+                        {footer ? (
+                          footer
                         ) : (
-                          <SectionValue>&mdash;</SectionValue>
+                          <React.Fragment>
+                            <SectionHeading>{t('Total Events')}</SectionHeading>
+                            {totalEvents !== null ? (
+                              <SectionValue>{totalEvents.toLocaleString()}</SectionValue>
+                            ) : (
+                              <SectionValue>&mdash;</SectionValue>
+                            )}
+                          </React.Fragment>
                         )}
                       </InlineContainer>
                       <InlineContainer>
@@ -305,24 +316,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   </React.Fragment>
                 );
 
-                return (
-                  <Feature
-                    organization={organization}
-                    features={['metric-alert-gui-filters']}
-                  >
-                    {({hasFeature: hasGuiFilters}) =>
-                      hasGuiFilters ? (
-                        <React.Fragment>{chart}</React.Fragment>
-                      ) : (
-                        <StickyWrapper>
-                          <StyledPanel>
-                            <StyledPanelBody>{chart}</StyledPanelBody>
-                          </StyledPanel>
-                        </StickyWrapper>
-                      )
-                    }
-                  </Feature>
-                );
+                return chart;
               }}
             </EventsRequest>
           );
@@ -346,28 +340,11 @@ const ChartPlaceholder = styled(Placeholder)`
   height: 184px;
 `;
 
-const StickyWrapper = styled('div')`
-  position: sticky;
-  top: ${space(1)};
-  z-index: ${p => p.theme.zIndex.dropdown - 1};
-`;
-
-const StyledPanel = styled(Panel)`
-  /* Remove margin for the sticky window */
-  margin-bottom: 0;
-`;
-
-const StyledPanelBody = styled(PanelBody)`
-  h4 {
-    margin-bottom: ${space(1)};
-  }
-  padding-top: ${space(2)};
-`;
-
 const PeriodSelectControl = styled(SelectControl)`
   display: inline-block;
   width: 180px;
   font-weight: normal;
   text-transform: none;
   border: 0;
+  margin-right: ${space(2)};
 `;

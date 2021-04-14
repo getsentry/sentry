@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
-from sentry.models import EventUser, Group, Project
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.models import EventUser, Group, Project
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
@@ -21,7 +19,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
     ]
 
     def setUp(self):
-        super(IssuesByTagProcessorTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)

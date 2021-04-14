@@ -145,7 +145,7 @@ class ProjectKeyCredentials extends React.Component<Props, State> {
               'Use this endpoint to upload [link], for example with Electron, Crashpad or Breakpad.',
               {
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/clients/minidump/">
+                  <ExternalLink href="https://docs.sentry.io/platforms/native/guides/minidumps/">
                     minidump crash reports
                   </ExternalLink>
                 ),

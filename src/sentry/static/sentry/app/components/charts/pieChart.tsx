@@ -1,11 +1,9 @@
 import React from 'react';
 import {EChartOption} from 'echarts';
-import PropTypes from 'prop-types';
 
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 
-import Legend from './components/legend';
 import PieSeries from './series/pieSeries';
 import BaseChart from './baseChart';
 
@@ -19,14 +17,6 @@ type Props = Omit<ChartProps, 'series'> & {
 };
 
 class PieChart extends React.Component<Props> {
-  static propTypes = {
-    // We passthrough all props exception `options`
-    ...BaseChart.propTypes,
-
-    // Attempt to select first series in chart (to show in center of PieChart)
-    selectOnRender: PropTypes.bool,
-  };
-
   componentDidMount() {
     const {selectOnRender} = this.props;
 
@@ -133,7 +123,7 @@ class PieChart extends React.Component<Props> {
         }}
         {...props}
         options={{
-          legend: Legend({
+          legend: {
             orient: 'vertical',
             align: 'left',
             show: true,
@@ -146,7 +136,7 @@ class PieChart extends React.Component<Props> {
                   ? `(${seriesPercentages[name]}%)`
                   : ''
               }`,
-          }),
+          },
         }}
         series={[
           PieSeries({

@@ -1,24 +1,14 @@
-from __future__ import absolute_import
-
 import datetime
 
 import pytz
 from django.views.generic import View
 
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Deploy,
-    GroupSubscriptionReason,
-    Organization,
-    Project,
-    Release,
-    User,
-)
+from sentry.models import Commit, CommitAuthor, Deploy, Organization, Project, Release, User
+from sentry.notifications.types import GroupSubscriptionReason
+from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview
-from sentry.utils.compat import zip
 
 
 class DebugNewReleaseEmailView(View):
@@ -43,9 +33,7 @@ class DebugNewReleaseEmailView(View):
         )
 
         release_links = [
-            absolute_uri(
-                u"/organizations/{}/releases/{}/?project={}".format(org.slug, release.version, p.id)
-            )
+            absolute_uri(f"/organizations/{org.slug}/releases/{release.version}/?project={p.id}")
             for p in projects
         ]
 
@@ -117,6 +105,6 @@ class DebugNewReleaseEmailView(View):
                 "file_count": 5,
                 "environment": "production",
                 "deploy": deploy,
-                "setup_repo_link": absolute_uri("/organizations/{}/repos/".format(org.slug)),
+                "setup_repo_link": absolute_uri(f"/organizations/{org.slug}/repos/"),
             },
         ).render(request)

@@ -71,8 +71,11 @@ class AcceptProjectTransfer extends AsyncView<Props, State> {
 
   renderBody() {
     const {transferDetails} = this.state;
-    const choices = transferDetails?.organizations.map(org => [org.slug, org.slug]);
-    const organization = choices?.[0]?.[0];
+    const options = transferDetails?.organizations.map(org => ({
+      label: org.slug,
+      value: org.slug,
+    }));
+    const organization = options?.[0]?.value;
 
     return (
       <NarrowLayout>
@@ -107,8 +110,7 @@ class AcceptProjectTransfer extends AsyncView<Props, State> {
           initialData={organization ? {organization} : undefined}
         >
           <SelectField
-            deprecatedSelectControl
-            choices={choices}
+            options={options}
             label={t('Organization')}
             name="organization"
             style={{borderBottom: 'none'}}

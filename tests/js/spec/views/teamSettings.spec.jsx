@@ -41,7 +41,7 @@ describe('TeamSettings', function () {
       .simulate('change', {target: {value: 'NEW SLUG'}})
       .simulate('blur');
 
-    wrapper.find('SaveButton').simulate('click');
+    wrapper.find('button[aria-label="Save"]').simulate('click');
 
     expect(putMock).toHaveBeenCalledWith(
       `/teams/org/${team.slug}/`,

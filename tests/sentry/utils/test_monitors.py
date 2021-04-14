@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.monitors import get_api_root_from_dsn
 
 

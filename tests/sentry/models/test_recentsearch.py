@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 
 from django.utils import timezone
-from sentry.utils.compat.mock import patch
 
-from sentry.testutils import TestCase
 from sentry.models.recentsearch import RecentSearch, remove_excess_recent_searches
+from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.hashlib import md5_text
 
 

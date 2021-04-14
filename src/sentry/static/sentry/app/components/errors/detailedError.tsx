@@ -1,7 +1,6 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import {IconFlag} from 'app/icons';
@@ -36,14 +35,6 @@ function openFeedback(e: React.MouseEvent) {
 }
 
 class DetailedError extends React.Component<Props> {
-  static propTypes = {
-    className: PropTypes.string,
-    onRetry: PropTypes.func,
-    heading: PropTypes.string.isRequired,
-    message: PropTypes.node,
-    hideSupportLinks: PropTypes.bool,
-  };
-
   static defaultProps: DefaultProps = {
     hideSupportLinks: false,
   };

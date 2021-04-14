@@ -1,12 +1,10 @@
-from __future__ import absolute_import
+from urllib.parse import urlencode
 
 import pytz
 
-from six.moves.urllib.parse import urlencode
-from mock import patch
-
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
 from .page_objects.transaction_summary import TransactionSummaryPage
@@ -24,7 +22,7 @@ def make_event(event_data):
 
 class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(PerformanceSummaryTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]
@@ -32,7 +30,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
-        self.path = u"/organizations/{}/performance/summary/?{}".format(
+        self.path = "/organizations/{}/performance/summary/?{}".format(
             self.org.slug,
             urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
         )
@@ -46,7 +44,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         # Create a transaction
         event = make_event(load_data("transaction", timestamp=before_now(minutes=1)))
         self.store_event(data=event, project_id=self.project.id)
-        self.wait_for_event_count(self.project.id, 1)
 
         self.store_event(
             data={
@@ -75,7 +72,9 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         event = make_event(
-            load_data("transaction", timestamp=before_now(minutes=1), trace="a" * 32, span="ab" * 8)
+            load_data(
+                "transaction", timestamp=before_now(minutes=1), trace="a" * 32, span_id="ab" * 8
+            )
         )
         self.store_event(data=event, project_id=self.project.id)
 
@@ -92,7 +91,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def test_transaction_vitals(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        vitals_path = u"/organizations/{}/performance/summary/vitals/?{}".format(
+        vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
             urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
         )
@@ -104,7 +103,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event_data["measurements"]["fp"]["value"] = 5000
         event = make_event(event_data)
         self.store_event(data=event, project_id=self.project.id)
-        self.wait_for_event_count(self.project.id, 1)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
@@ -116,7 +114,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def test_transaction_vitals_filtering(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        vitals_path = u"/organizations/{}/performance/summary/vitals/?{}".format(
+        vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
             urlencode(
                 {
@@ -163,8 +161,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event_data["measurements"]["fid"]["value"] = 3000000000
         event_data["measurements"]["cls"]["value"] = 3000000000
         self.store_event(data=event_data, project_id=self.project.id)
-
-        self.wait_for_event_count(self.project.id, 5)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)

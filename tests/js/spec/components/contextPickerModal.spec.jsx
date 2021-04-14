@@ -8,8 +8,6 @@ import OrganizationsStore from 'app/stores/organizationsStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
 
-jest.mock('jquery');
-
 describe('ContextPickerModal', function () {
   let project, project2, org, org2;
   const onFinish = jest.fn();

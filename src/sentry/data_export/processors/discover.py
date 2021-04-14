@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from sentry.api.event_search import get_function_alias
@@ -13,7 +11,7 @@ from ..base import ExportError
 logger = logging.getLogger(__name__)
 
 
-class DiscoverProcessor(object):
+class DiscoverProcessor:
     """
     Processor for exports of discover data based on a provided query
     """
@@ -34,7 +32,10 @@ class DiscoverProcessor(object):
             self.params["environment"] = self.environments
         self.header_fields = map(lambda x: get_function_alias(x), discover_query["field"])
         self.data_fn = self.get_data_fn(
-            fields=discover_query["field"], query=discover_query["query"], params=self.params
+            fields=discover_query["field"],
+            query=discover_query["query"],
+            params=self.params,
+            sort=discover_query.get("sort"),
         )
 
     @staticmethod
@@ -66,13 +67,14 @@ class DiscoverProcessor(object):
         return environment_names
 
     @staticmethod
-    def get_data_fn(fields, query, params):
+    def get_data_fn(fields, query, params, sort):
         def data_fn(offset, limit):
             return discover.query(
                 selected_columns=fields,
                 query=query,
                 params=params,
                 offset=offset,
+                orderby=sort,
                 limit=limit,
                 referrer="data_export.tasks.discover",
                 auto_fields=True,
@@ -87,7 +89,7 @@ class DiscoverProcessor(object):
         # (originally in `/api/bases/organization_events.py`)
         new_result_list = result_list[:]
         if "issue" in self.header_fields:
-            issue_ids = set(result["issue.id"] for result in new_result_list)
+            issue_ids = {result["issue.id"] for result in new_result_list}
             issues = {
                 i.id: i.qualified_short_id
                 for i in Group.objects.filter(

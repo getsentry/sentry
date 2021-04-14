@@ -1,15 +1,12 @@
-from __future__ import absolute_import
-
-import six
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.response import Response
 
-from sentry.api.bases import SentryInternalAppTokenPermission, SentryAppBaseEndpoint
-from sentry.models import ApiToken, SentryAppInstallation
-from sentry.models.sentryapp import MASKED_VALUE
-from sentry.mediators.sentry_app_installation_tokens import Creator
+from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
+from sentry.mediators.sentry_app_installation_tokens import Creator
+from sentry.models import ApiToken, SentryAppInstallation
+from sentry.models.sentryapp import MASKED_VALUE
 
 
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
@@ -46,7 +43,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
                 request=request, sentry_app_installation=sentry_app_installation, user=request.user
             )
         except ApiTokenLimitError as e:
-            return Response(six.text_type(e), status=status.HTTP_403_FORBIDDEN)
+            return Response(str(e), status=status.HTTP_403_FORBIDDEN)
 
         # hack so the token is included in the response
         attrs = {"application": None}

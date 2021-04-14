@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from django.core.signing import SignatureExpired
 
 from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
-from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView
 from sentry.utils.compat.mock import patch
 from sentry.utils.signing import sign
+from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView
 
 
 class MsTeamsExtensionConfigurationTest(TestCase):
@@ -14,7 +12,7 @@ class MsTeamsExtensionConfigurationTest(TestCase):
         self.login_as(self.user)
         org = self.create_organization()
         OrganizationMember.objects.create(user=self.user, organization=org, role="admin")
-        path = u"/extensions/msteams/configure/"
+        path = "/extensions/msteams/configure/"
         return self.client.get(path, params)
 
     def test_map_params(self):

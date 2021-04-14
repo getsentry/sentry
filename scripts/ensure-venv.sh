@@ -21,8 +21,7 @@ EOF
 }
 
 if [[ -n "$VIRTUAL_ENV" ]]; then
-    major=`python -c "import sys; print(sys.version_info[0])"`
-    minor=`python -c "import sys; print(sys.version_info[1])"`
+    minor=$(python -c "import sys; print(sys.version_info[1])")
     # If .venv is less than Python 3.6 fail
     [[ "$minor" -lt 6 ]] &&
         die "Remove $VIRTUAL_ENV and try again since the Python version installed should be at least 3.6."

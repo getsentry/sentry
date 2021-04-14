@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
 import Body from './body';
@@ -17,10 +16,6 @@ const SimilarTraceID = ({event, ...props}: Props) => {
       <Body traceID={traceID} event={event} {...props} />
     </Wrapper>
   );
-};
-
-SimilarTraceID.propTypes = {
-  event: SentryTypes.Event,
 };
 
 export default SimilarTraceID;

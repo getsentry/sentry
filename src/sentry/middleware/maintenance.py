@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 from django.conf import settings
@@ -19,7 +17,7 @@ else:
 DB_ERRORS = tuple(DB_ERRORS)
 
 
-class ServicesUnavailableMiddleware(object):
+class ServicesUnavailableMiddleware:
     def process_request(self, request):
         if settings.MAINTENANCE:
             return HttpResponse("Sentry is currently in maintenance mode", status=503)

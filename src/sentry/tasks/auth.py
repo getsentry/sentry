@@ -1,23 +1,21 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 from django.db import IntegrityError
 from django.db.models import F
 
 from sentry import options
+from sentry.auth import manager
+from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import (
     ApiKey,
-    AuditLogEntryEvent,
     AuditLogEntry,
+    AuditLogEntryEvent,
     Authenticator,
     Organization,
     OrganizationMember,
     User,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.auth import manager
-from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.utils.email import MessageBuilder
 
 logger = logging.getLogger("sentry.auth")
@@ -103,7 +101,7 @@ def _remove_2fa_non_compliant_member(member, org, actor=None, actor_key=None, ip
 
         # send invite to setup 2fa
         email_context = {"url": member.get_invite_link(), "organization": org}
-        subject = u"{} {} Mandatory: Enable Two-Factor Authentication".format(
+        subject = "{} {} Mandatory: Enable Two-Factor Authentication".format(
             options.get("mail.subject-prefix"), org.name.capitalize()
         )
         message = MessageBuilder(

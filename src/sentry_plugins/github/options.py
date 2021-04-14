@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 from sentry.options import FLAG_PRIORITIZE_DISK, register
-
 
 register("github.integration-private-key", default="", flags=FLAG_PRIORITIZE_DISK)
 register("github.integration-hook-secret", default="", flags=FLAG_PRIORITIZE_DISK)

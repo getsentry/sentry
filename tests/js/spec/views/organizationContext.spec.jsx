@@ -91,6 +91,7 @@ describe('OrganizationContext', function () {
       api,
       'org-slug',
       true,
+      true,
       true
     );
   });

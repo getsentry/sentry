@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from sentry.testutils import AcceptanceTestCase
 
 
 class OAuthAuthorizeTest(AcceptanceTestCase):
     def setUp(self):
-        super(OAuthAuthorizeTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com", is_superuser=True)
         self.login_as(self.user)
 

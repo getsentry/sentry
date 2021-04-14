@@ -1,10 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-
-import NotAvailable from '../notAvailable';
-
 type Props = {
   items: Array<React.ReactElement>;
   className?: string;
@@ -12,7 +8,7 @@ type Props = {
 
 function List({items, className}: Props) {
   if (!items.length) {
-    return <NotAvailable />;
+    return null;
   }
 
   return <Wrapper className={className}>{items}</Wrapper>;
@@ -21,8 +17,7 @@ function List({items, className}: Props) {
 export default List;
 
 const Wrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(2)};
+  display: flex;
+  flex-wrap: wrap;
   font-size: ${p => p.theme.fontSizeSmall};
 `;

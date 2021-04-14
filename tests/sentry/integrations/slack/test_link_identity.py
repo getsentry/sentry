@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import responses
 
-from sentry.utils.compat.mock import patch
-
+from sentry.integrations.slack.link_identity import build_linking_url
 from sentry.models import (
     Identity,
     IdentityProvider,
@@ -12,7 +9,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import TestCase
-from sentry.integrations.slack.link_identity import build_linking_url
+from sentry.utils.compat.mock import patch
 
 
 class SlackIntegrationLinkIdentityTest(TestCase):

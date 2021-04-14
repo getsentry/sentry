@@ -1,14 +1,8 @@
-from __future__ import absolute_import
-
-import six
-
 from django import forms
 from django.core.urlresolvers import reverse
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
-from sentry.plugins.base import plugins
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -17,7 +11,9 @@ from sentry.api.serializers.models.plugin import (
     PluginWithConfigSerializer,
     serialize_field,
 )
+from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
 from sentry.models import AuditLogEntryEvent
+from sentry.plugins.base import plugins
 from sentry.signals import plugin_enabled
 
 ERR_ALWAYS_ENABLED = "This plugin is always enabled."
@@ -40,7 +36,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
         except PluginIdentityRequired as e:
             context = serialize(plugin, request.user, PluginSerializer(project))
-            context["config_error"] = six.text_type(e)
+            context["config_error"] = str(e)
             context["auth_url"] = reverse("socialauth_associate", args=[plugin.slug])
 
         return Response(context)
@@ -133,7 +129,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                 InvalidIdentity,
                 PluginError,
             ) as e:
-                errors[key] = six.text_type(e)
+                errors[key] = str(e)
 
             if not errors.get(key):
                 cleaned[key] = value
@@ -144,12 +140,12 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     project=project, config=cleaned, actor=request.user
                 )
             except (InvalidIdentity, PluginError) as e:
-                errors["__all__"] = six.text_type(e)
+                errors["__all__"] = str(e)
 
         if errors:
             return Response({"errors": errors}, status=400)
 
-        for key, value in six.iteritems(cleaned):
+        for key, value in cleaned.items():
             if value is None:
                 plugin.unset_option(project=project, key=key)
             else:

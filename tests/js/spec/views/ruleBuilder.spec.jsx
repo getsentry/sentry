@@ -1,13 +1,12 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {findOption, openMenu, selectByValueAsync} from 'sentry-test/select-new';
 
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder';
-
-jest.mock('jquery');
 
 describe('RuleBuilder', function () {
   const organization = TestStubs.Organization();
@@ -90,9 +89,9 @@ describe('RuleBuilder', function () {
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
 
-    // Simulate select first element via down arrow / enter
-    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
-    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
+    // Select the first item in the list.
+    await selectByValueAsync(wrapper, 'user:1', {name: 'owners', control: true});
+    await wrapper.update();
 
     expect(wrapper.find('Button').prop('disabled')).toBe(false);
     add.simulate('click');
@@ -116,13 +115,10 @@ describe('RuleBuilder', function () {
       TestStubs.routerContext()
     );
 
-    wrapper.find('SelectOwners .Select-input input').simulate('focus');
-
+    // Open the menu so we can do some assertions.
+    openMenu(wrapper, {name: 'owners', control: true});
     await tick();
     wrapper.update();
-
-    // Simulate select first element via down arrow / enter
-    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
 
     // Should have all 4 users/teams listed
     expect(wrapper.find('IdBadge')).toHaveLength(4);
@@ -137,7 +133,9 @@ describe('RuleBuilder', function () {
     expect(wrapper.find('DisabledLabel IdBadge').at(1).prop('user').id).toBe('2');
 
     // Enter to select Jane Bloggs
-    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
+    findOption(wrapper, {value: 'user:1'}, {name: 'owners', control: true})
+      .at(0)
+      .simulate('click');
 
     const ruleCandidate = wrapper.find('RuleCandidate').first();
     ruleCandidate.simulate('click');

@@ -1,20 +1,17 @@
-from __future__ import absolute_import
-
 import datetime
-import jwt
+from urllib.parse import urlparse
 
+import jwt
 from unidiff import PatchSet
 
-from six.moves.urllib.parse import urlparse
-
-from sentry.utils.http import absolute_uri
 from sentry.integrations.atlassian_connect import get_query_hash
 from sentry.integrations.client import ApiClient
+from sentry.utils.http import absolute_uri
 
 BITBUCKET_KEY = "%s.bitbucket" % urlparse(absolute_uri()).hostname
 
 
-class BitbucketAPIPath(object):
+class BitbucketAPIPath:
     """
     All UUID's must be surrounded by curlybraces.
 
@@ -24,16 +21,16 @@ class BitbucketAPIPath(object):
     username - username or UUID
     """
 
-    issue = u"/2.0/repositories/{repo}/issues/{issue_id}"
-    issues = u"/2.0/repositories/{repo}/issues"
-    issue_comments = u"/2.0/repositories/{repo}/issues/{issue_id}/comments"
+    issue = "/2.0/repositories/{repo}/issues/{issue_id}"
+    issues = "/2.0/repositories/{repo}/issues"
+    issue_comments = "/2.0/repositories/{repo}/issues/{issue_id}/comments"
 
-    repository = u"/2.0/repositories/{repo}"
-    repositories = u"/2.0/repositories/{username}"
-    repository_commits = u"/2.0/repositories/{repo}/commits/{revision}"
-    repository_diff = u"/2.0/repositories/{repo}/diff/{spec}"
-    repository_hook = u"/2.0/repositories/{repo}/hooks/{uid}"
-    repository_hooks = u"/2.0/repositories/{repo}/hooks"
+    repository = "/2.0/repositories/{repo}"
+    repositories = "/2.0/repositories/{username}"
+    repository_commits = "/2.0/repositories/{repo}/commits/{revision}"
+    repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
+    repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
+    repository_hooks = "/2.0/repositories/{repo}/hooks"
 
 
 class BitbucketApiClient(ApiClient):
@@ -47,7 +44,7 @@ class BitbucketApiClient(ApiClient):
 
     def __init__(self, base_url, shared_secret, subject, *args, **kwargs):
         # subject is probably the clientKey
-        super(BitbucketApiClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.base_url = base_url
         self.shared_secret = shared_secret
         self.subject = subject

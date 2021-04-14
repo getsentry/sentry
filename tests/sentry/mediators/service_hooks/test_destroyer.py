@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.mediators.service_hooks import Destroyer
 from sentry.models import ServiceHook
 from sentry.testutils import TestCase

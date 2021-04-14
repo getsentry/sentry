@@ -1,12 +1,11 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
+
 from django.db import models
 from django.utils import timezone
 
-from sentry.utils.cache import cache
-from sentry.utils import metrics
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.utils import metrics
+from sentry.utils.cache import cache
 
 
 class ReleaseEnvironment(Model):
@@ -29,7 +28,7 @@ class ReleaseEnvironment(Model):
 
     @classmethod
     def get_cache_key(cls, organization_id, release_id, environment_id):
-        return u"releaseenv:2:{}:{}:{}".format(organization_id, release_id, environment_id)
+        return f"releaseenv:2:{organization_id}:{release_id}:{environment_id}"
 
     @classmethod
     def get_or_create(cls, project, release, environment, datetime, **kwargs):

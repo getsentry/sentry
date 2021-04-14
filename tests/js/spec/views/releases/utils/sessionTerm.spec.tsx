@@ -488,7 +488,7 @@ describe('Release Health Session Term', function () {
       'node-express'
     );
     expect(crashedSessionTerm).toEqual(
-      "During the session an error with mechanism.handled===false occurred calling the 'onerror' on 'unhandledrejection' handler"
+      'During the session an unhandled global error/promise rejection occurred.'
     );
 
     // Crash Free Users
@@ -510,7 +510,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.ABNORMAL,
       'node-express'
     );
-    expect(abnormalSessionTerm).toEqual('Non applicable for Javascript');
+    expect(abnormalSessionTerm).toEqual('Non applicable for Javascript.');
 
     // Healthy
     const healthySessionTerm = getSessionTermDescription(
@@ -518,7 +518,7 @@ describe('Release Health Session Term', function () {
       'node-express'
     );
     expect(healthySessionTerm).toEqual(
-      'No errors were captured during session life-time'
+      'No errors were captured during session life-time.'
     );
 
     // Errored
@@ -527,7 +527,7 @@ describe('Release Health Session Term', function () {
       'node-express'
     );
     expect(erroredSessionTerm).toEqual(
-      'During the session at least one error occurred that did not bubble up to the global handler. The application loading process did not crash'
+      'During the session at least one handled error occurred.'
     );
 
     // Unhandled
@@ -536,7 +536,7 @@ describe('Release Health Session Term', function () {
       'node-express'
     );
     expect(unhandledSessionTerm).toEqual(
-      "An error was captured by the global 'onerror' or 'onunhandledrejection' handler"
+      "An error was captured by the global 'onerror' or 'onunhandledrejection' handler."
     );
   });
 
@@ -554,7 +554,7 @@ describe('Release Health Session Term', function () {
       'javascript'
     );
     expect(crashedSessionTerm).toEqual(
-      "During the session an error with mechanism.handled===false occurred calling the 'onerror' on 'unhandledrejection' handler"
+      'During the session an unhandled global error/promise rejection occurred.'
     );
 
     // Crash Free Users
@@ -576,7 +576,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.ABNORMAL,
       'javascript'
     );
-    expect(abnormalSessionTerm).toEqual('Non applicable for Javascript');
+    expect(abnormalSessionTerm).toEqual('Non applicable for Javascript.');
 
     // Healthy
     const healthySessionTerm = getSessionTermDescription(
@@ -584,7 +584,7 @@ describe('Release Health Session Term', function () {
       'javascript'
     );
     expect(healthySessionTerm).toEqual(
-      'No errors were captured during session life-time'
+      'No errors were captured during session life-time.'
     );
 
     // Errored
@@ -593,7 +593,7 @@ describe('Release Health Session Term', function () {
       'javascript'
     );
     expect(erroredSessionTerm).toEqual(
-      'During the session at least one error occurred that did not bubble up to the global handler. The application loading process did not crash'
+      'During the session at least one handled error occurred.'
     );
 
     // Unhandled
@@ -602,7 +602,7 @@ describe('Release Health Session Term', function () {
       'javascript'
     );
     expect(unhandledSessionTerm).toEqual(
-      "An error was captured by the global 'onerror' or 'onunhandledrejection' handler"
+      "An error was captured by the global 'onerror' or 'onunhandledrejection' handler."
     );
   });
 

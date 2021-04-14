@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {logout} from 'app/actionCreators/account';
 import {Client} from 'app/api';
@@ -13,11 +12,6 @@ type Props = {
 };
 
 class NarrowLayout extends React.Component<Props> {
-  static propTypes = {
-    showLogout: PropTypes.bool,
-    maxWidth: PropTypes.string,
-  };
-
   UNSAFE_componentWillMount() {
     document.body.classList.add('narrow');
   }

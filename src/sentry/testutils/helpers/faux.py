@@ -1,14 +1,10 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import deque
 
 from sentry.utils import json
 from sentry.utils.functional import compact
 
 
-class Faux(object):
+class Faux:
     """
     Convenience functions for testing, and asserting, with ``unittest.mock``
     objects.
@@ -61,7 +57,7 @@ class Faux(object):
             return True
 
         raise AssertionError(
-            u"Expected to be called with {}. Received {}.".format(
+            "Expected to be called with {}. Received {}.".format(
                 self._invocation_to_s(*args, **kwargs),
                 self._invocation_to_s(*self.args, **self.kwargs),
             )
@@ -72,7 +68,7 @@ class Faux(object):
             return True
 
         raise AssertionError(
-            u"Expected kwargs to contain key '{}'. Received ({}).".format(
+            "Expected kwargs to contain key '{}'. Received ({}).".format(
                 key, self._kwargs_to_s(**self.kwargs)
             )
         )
@@ -83,16 +79,14 @@ class Faux(object):
         if actual == expected:
             return True
 
-        raise AssertionError(
-            u"Expected kwargs[{}] to equal {!r}. Received {!r}.".format(key, expected, actual)
-        )
+        raise AssertionError(f"Expected kwargs[{key}] to equal {expected!r}. Received {actual!r}.")
 
     def args_contain(self, value, **kwargs):
         if value in self.args:
             return True
 
         raise AssertionError(
-            u"Expected args to contain {!r}. Received ({}).".format(
+            "Expected args to contain {!r}. Received ({}).".format(
                 value, self._args_to_s(*self.args)
             )
         )
@@ -102,7 +96,7 @@ class Faux(object):
             return True
 
         raise AssertionError(
-            u"Expected args to equal ({}). Received ({}).".format(
+            "Expected args to equal ({}). Received ({}).".format(
                 self._args_to_s(*args), self._args_to_s(*self.args)
             )
         )
@@ -149,24 +143,24 @@ class Faux(object):
         """
         Convert a function invocation into a pretty printable string.
         """
-        return u"({})".format(
+        return "({})".format(
             ", ".join(compact([self._args_to_s(*args), self._kwargs_to_s(**kwargs)]))
         )
 
     def _args_to_s(self, *args):
         if not len(args):
             return None
-        return ", ".join(u"{!r}".format(arg) for arg in args)
+        return ", ".join(f"{arg!r}" for arg in args)
 
     def _kwargs_to_s(self, **kwargs):
         if not len(kwargs):
             return None
-        return ", ".join(u"{}={!r}".format(k, v) for k, v in six.iteritems(kwargs))
+        return ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
 
 
-class Mock(object):
+class Mock:
     def __init__(self, *args, **kwargs):
-        for k, v in six.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(self, k, v)
 
 

@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
 from sentry.mediators.service_hooks import Creator
-from sentry.mediators.service_hooks.creator import expand_events, consolidate_events
+from sentry.mediators.service_hooks.creator import consolidate_events, expand_events
 from sentry.models import ServiceHook
 from sentry.testutils import TestCase
 
@@ -37,14 +35,20 @@ class TestCreator(TestCase):
         self.creator.events = ["issue"]
         service_hook = self.creator.call()
 
-        assert set(service_hook.events) == set(
-            ["issue.created", "issue.resolved", "issue.ignored", "issue.assigned"]
-        )
+        assert set(service_hook.events) == {
+            "issue.created",
+            "issue.resolved",
+            "issue.ignored",
+            "issue.assigned",
+        }
 
     def test_expand_events(self):
-        assert expand_events(["issue"]) == set(
-            ["issue.created", "issue.resolved", "issue.ignored", "issue.assigned"]
-        )
+        assert expand_events(["issue"]) == {
+            "issue.created",
+            "issue.resolved",
+            "issue.ignored",
+            "issue.assigned",
+        }
 
     def test_consolidate_events(self):
-        assert consolidate_events(["issue.created"]) == set(["issue"])
+        assert consolidate_events(["issue.created"]) == {"issue"}

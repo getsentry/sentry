@@ -58,7 +58,8 @@ class ActivityItem extends React.Component<Props, State> {
 
   formatProjectActivity = (author, item) => {
     const data = item.data;
-    const orgId = this.props.organization.slug;
+    const {organization} = this.props;
+    const orgId = organization.slug;
     const project = item.project;
     const issue = item.issue;
     const basePath = `/organizations/${orgId}/issues/`;
@@ -71,7 +72,7 @@ class ActivityItem extends React.Component<Props, State> {
 
     const versionLink = data.version ? (
       <VersionHoverCard
-        orgSlug={orgId}
+        organization={organization}
         projectSlug={project.slug}
         releaseVersion={data.version}
       >
@@ -295,6 +296,11 @@ class ActivityItem extends React.Component<Props, State> {
           author,
           version: versionLink,
           environment: data.environment || 'Default Environment',
+        });
+      case 'mark_reviewed':
+        return tct('[author] marked [issue] as reviewed', {
+          author,
+          issue: issueLink,
         });
       default:
         return ''; // should never hit (?)

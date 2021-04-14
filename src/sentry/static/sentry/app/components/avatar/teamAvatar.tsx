@@ -1,7 +1,6 @@
 import React from 'react';
 
 import BaseAvatar from 'app/components/avatar/baseAvatar';
-import SentryTypes from 'app/sentryTypes';
 import {Team} from 'app/types';
 import {explodeSlug} from 'app/utils';
 
@@ -10,19 +9,14 @@ type Props = {
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
 class TeamAvatar extends React.Component<Props> {
-  static propTypes = {
-    team: SentryTypes.Team,
-    ...BaseAvatar.propTypes,
-  };
-
   render() {
-    const {team, ...props} = this.props;
+    const {team, tooltip: tooltipProp, ...props} = this.props;
     if (!team) {
       return null;
     }
     const slug = (team && team.slug) || '';
     const title = explodeSlug(slug);
-    const tooltip = `#${title}`;
+    const tooltip = tooltipProp ?? `#${title}`;
 
     return (
       <BaseAvatar

@@ -1,23 +1,21 @@
-from __future__ import absolute_import
+from datetime import datetime
 
 import pytz
-
-from datetime import datetime
 from django.utils import timezone
 
+from sentry.models import AssistantActivity, GroupInboxReason
+from sentry.models.groupinbox import add_group_to_inbox
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from tests.acceptance.page_objects.issue_list import IssueListPage
-
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
-
+from tests.acceptance.page_objects.issue_list import IssueListPage
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationGroupIndexTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
@@ -32,7 +30,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.dismiss_assistant()
 
     def create_issues(self):
-        self.store_event(
+        event_a = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
@@ -41,7 +39,8 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.store_event(
+        add_group_to_inbox(event_a.group, GroupInboxReason.NEW)
+        event_b = self.store_event(
             data={
                 "event_id": "b" * 32,
                 "message": "oh snap",
@@ -50,6 +49,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        add_group_to_inbox(event_b.group, GroupInboxReason.NEW)
 
     def test_with_onboarding(self):
         self.project.update(first_event=None)
@@ -107,3 +107,31 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             resolved_groups = self.page.find_resolved_issues()
 
             assert len(resolved_groups) == 2
+
+    @patch("django.utils.timezone.now")
+    def test_inbox_results(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        self.create_issues()
+        # Disable for_review_guide
+        AssistantActivity.objects.create(user=self.user, guide_id=9, viewed_ts=timezone.now())
+
+        with self.feature("organizations:inbox"):
+            self.page.visit_issue_list(
+                self.org.slug,
+                query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3Ame_or_none",
+            )
+            self.page.wait_for_stream()
+            self.browser.snapshot("organization issues inbox results")
+            groups = self.browser.elements('[data-test-id="event-issue-header"]')
+            assert len(groups) == 2
+
+            self.page.select_issue(1)
+            self.page.mark_reviewed_issues()
+
+            self.page.visit_issue_list(
+                self.org.slug,
+                query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3Ame_or_none",
+            )
+            self.page.wait_for_stream()
+            groups = self.browser.elements('[data-test-id="event-issue-header"]')
+            assert len(groups) == 1

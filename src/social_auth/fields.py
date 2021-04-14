@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.exceptions import ValidationError
 from django.db.models import TextField
 from django.utils.encoding import smart_text
@@ -20,7 +16,7 @@ class JSONField(TextField):
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super(JSONField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
     def to_python(self, value):
@@ -30,30 +26,30 @@ class JSONField(TextField):
         """
         if self.blank and not value:
             return None
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             try:
                 return json.loads(value)
             except Exception as e:
-                raise ValidationError(six.text_type(e))
+                raise ValidationError(str(e))
         else:
             return value
 
     def validate(self, value, model_instance):
         """Check value is a valid JSON string, raise ValidationError on
         error."""
-        if isinstance(value, six.string_types):
-            super(JSONField, self).validate(value, model_instance)
+        if isinstance(value, str):
+            super().validate(value, model_instance)
             try:
                 json.loads(value)
             except Exception as e:
-                raise ValidationError(six.text_type(e))
+                raise ValidationError(str(e))
 
     def get_prep_value(self, value):
         """Convert value to JSON string before save"""
         try:
             return json.dumps(value)
         except Exception as e:
-            raise ValidationError(six.text_type(e))
+            raise ValidationError(str(e))
 
     def value_to_string(self, obj):
         """Return value from object converted to string properly"""

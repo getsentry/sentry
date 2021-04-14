@@ -1,15 +1,13 @@
-from __future__ import absolute_import
-
 from exam import mock
 
+from sentry import features
+from sentry.features import OrganizationFeature
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
 from tests.acceptance.page_objects.organization_integration_settings import (
     ExampleIntegrationSetupWindowElement,
     OrganizationIntegrationDetailViewPage,
 )
-from sentry.features import OrganizationFeature
-from sentry import features
 
 
 class OrganizationIntegrationDetailView(AcceptanceTestCase):
@@ -18,12 +16,12 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
     """
 
     def setUp(self):
-        super(OrganizationIntegrationDetailView, self).setUp()
+        super().setUp()
         features.add("organizations:integrations-feature_flag_integration", OrganizationFeature)
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
-        url = u"/settings/{}/integrations/{}/".format(self.organization.slug, slug)
+        url = f"/settings/{self.organization.slug}/integrations/{slug}/"
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)
@@ -49,9 +47,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
         assert integration
         assert (
-            u"/settings/{}/integrations/{}/{}/".format(
-                self.organization.slug, self.provider.key, integration.id
-            )
+            f"/settings/{self.organization.slug}/integrations/{self.provider.key}/{integration.id}/"
             in self.browser.driver.current_url
         )
 

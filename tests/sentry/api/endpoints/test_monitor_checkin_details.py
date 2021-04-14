@@ -1,6 +1,5 @@
-from __future__ import absolute_import, print_function
-
 from datetime import timedelta
+
 from django.utils import timezone
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
@@ -29,7 +28,7 @@ class UpdateMonitorCheckInTest(APITestCase):
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
             resp = self.client.put(
-                "/api/0/monitors/{}/checkins/{}/".format(monitor.guid, checkin.guid),
+                f"/api/0/monitors/{monitor.guid}/checkins/{checkin.guid}/",
                 data={"status": "ok"},
             )
 
@@ -64,7 +63,7 @@ class UpdateMonitorCheckInTest(APITestCase):
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
             resp = self.client.put(
-                "/api/0/monitors/{}/checkins/{}/".format(monitor.guid, checkin.guid),
+                f"/api/0/monitors/{monitor.guid}/checkins/{checkin.guid}/",
                 data={"status": "error"},
             )
 

@@ -1,21 +1,19 @@
-from __future__ import absolute_import
-
 import functools
 
 import pytest
 from django.core import mail
-from sentry.utils.compat.mock import patch
 
 from sentry import options
 from sentry.models import GroupEmailThread, User, UserOption
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.email import (
     ListResolver,
     MessageBuilder,
+    create_fake_email,
     default_list_type_handlers,
     get_from_email_domain,
     get_mail_backend,
-    create_fake_email,
     send_mail,
 )
 
@@ -32,7 +30,7 @@ class ListResolverTestCase(TestCase):
             self.resolver(object())
 
     def test_generates_list_ids(self):
-        expected = u"<{0.project.slug}.{0.organization.slug}.namespace>".format(self.event)
+        expected = "<{0.project.slug}.{0.organization.slug}.namespace>".format(self.event)
         assert self.resolver(self.event.group) == expected
         assert self.resolver(self.event.project) == expected
 
@@ -297,7 +295,7 @@ class MessageBuilderTest(TestCase):
             MessageBuilder, subject="Test", body="hello world", html_body="<b>hello world</b>"
         )
 
-        expected = u"<{event.project.slug}.{event.organization.slug}.{namespace}>".format(
+        expected = "<{event.project.slug}.{event.organization.slug}.{namespace}>".format(
             event=self.event, namespace=options.get("mail.list-namespace")
         )
 

@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
@@ -21,16 +22,16 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias, Sort} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {getDuration} from 'app/utils/formatters';
+import BaselineQuery, {
+  BaselineQueryResults,
+} from 'app/utils/performance/baseline/baselineQuery';
+import {TrendsEventsDiscoverQuery} from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {GridCell, GridCellNumber} from 'app/views/performance/styles';
-import BaselineQuery, {
-  BaselineQueryResults,
-} from 'app/views/performance/transactionSummary/baselineQuery';
-import {TrendsEventsDiscoverQuery} from 'app/views/performance/trends/trendsDiscoverQuery';
 import {
   TrendChangeType,
   TrendsDataEvents,
@@ -121,6 +122,10 @@ type Props = {
    * The callback for when Open in Discover is clicked.
    */
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  /**
+   * Show a loading indicator instead of the table, used for transaction summary p95.
+   */
+  forceLoading?: boolean;
 };
 
 class TransactionsList extends React.Component<Props> {
@@ -137,9 +142,21 @@ class TransactionsList extends React.Component<Props> {
     });
   };
 
+  getEventView() {
+    const {eventView, selected} = this.props;
+
+    const sortedEventView = eventView.withSorts([selected.sort]);
+    if (selected.query) {
+      const query = tokenizeSearch(sortedEventView.query);
+      selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
+      sortedEventView.query = stringifyQueryObject(query);
+    }
+
+    return sortedEventView;
+  }
+
   renderHeader(): React.ReactNode {
     const {
-      eventView,
       organization,
       selected,
       options,
@@ -148,71 +165,66 @@ class TransactionsList extends React.Component<Props> {
     } = this.props;
 
     return (
-      <Header>
-        <DropdownControl
-          data-test-id="filter-transactions"
-          button={({isOpen, getActorProps}) => (
-            <StyledDropdownButton
-              {...getActorProps()}
-              isOpen={isOpen}
-              prefix={t('Filter')}
-              size="small"
-            >
-              {selected.label}
-            </StyledDropdownButton>
-          )}
-        >
-          {options.map(({value, label}) => (
-            <DropdownItem
-              data-test-id={`option-${value}`}
-              key={value}
-              onSelect={handleDropdownChange}
-              eventKey={value}
-              isActive={value === selected.value}
-            >
-              {label}
-            </DropdownItem>
-          ))}
-        </DropdownControl>
+      <React.Fragment>
+        <div>
+          <DropdownControl
+            data-test-id="filter-transactions"
+            button={({isOpen, getActorProps}) => (
+              <StyledDropdownButton
+                {...getActorProps()}
+                isOpen={isOpen}
+                prefix={t('Filter')}
+                size="small"
+              >
+                {selected.label}
+              </StyledDropdownButton>
+            )}
+          >
+            {options.map(({value, label}) => (
+              <DropdownItem
+                data-test-id={`option-${value}`}
+                key={value}
+                onSelect={handleDropdownChange}
+                eventKey={value}
+                isActive={value === selected.value}
+              >
+                {label}
+              </DropdownItem>
+            ))}
+          </DropdownControl>
+        </div>
         {!this.isTrend() && (
-          <HeaderButtonContainer>
+          <GuideAnchor target="release_transactions_open_in_discover">
             <DiscoverButton
               onClick={handleOpenInDiscoverClick}
-              to={eventView
-                .withSorts([selected.sort])
-                .getResultsViewUrlTarget(organization.slug)}
+              to={this.getEventView().getResultsViewUrlTarget(organization.slug)}
               size="small"
               data-test-id="discover-open"
             >
               {t('Open in Discover')}
             </DiscoverButton>
-          </HeaderButtonContainer>
+          </GuideAnchor>
         )}
-      </Header>
+      </React.Fragment>
     );
   }
 
   renderTransactionTable(): React.ReactNode {
     const {
-      eventView,
       location,
       organization,
-      selected,
       handleCellAction,
       cursorName,
       limit,
       titles,
       generateLink,
       baseline,
+      forceLoading,
     } = this.props;
-    const sortedEventView = eventView.withSorts([selected.sort]);
-    const columnOrder = sortedEventView.getColumns();
+
+    const eventView = this.getEventView();
+    const columnOrder = eventView.getColumns();
     const cursor = decodeScalar(location.query?.[cursorName]);
-    if (selected.query) {
-      const query = tokenizeSearch(sortedEventView.query);
-      selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
-      sortedEventView.query = stringifyQueryObject(query);
-    }
 
     const baselineTransactionName = organization.features.includes(
       'transaction-comparison'
@@ -222,8 +234,16 @@ class TransactionsList extends React.Component<Props> {
 
     let tableRenderer = ({isLoading, pageLinks, tableData, baselineData}) => (
       <React.Fragment>
+        <Header>
+          {this.renderHeader()}
+          <StyledPagination
+            pageLinks={pageLinks}
+            onCursor={this.handleCursor}
+            size="small"
+          />
+        </Header>
         <TransactionsTable
-          eventView={sortedEventView}
+          eventView={eventView}
           organization={organization}
           location={location}
           isLoading={isLoading}
@@ -235,13 +255,17 @@ class TransactionsList extends React.Component<Props> {
           baselineTransactionName={baselineTransactionName}
           handleCellAction={handleCellAction}
         />
-        <StyledPagination
-          pageLinks={pageLinks}
-          onCursor={this.handleCursor}
-          size="small"
-        />
       </React.Fragment>
     );
+
+    if (forceLoading) {
+      return tableRenderer({
+        isLoading: true,
+        pageLinks: null,
+        tableData: null,
+        baselineData: null,
+      });
+    }
 
     if (baselineTransactionName) {
       const orgTableRenderer = tableRenderer;
@@ -262,10 +286,11 @@ class TransactionsList extends React.Component<Props> {
     return (
       <DiscoverQuery
         location={location}
-        eventView={sortedEventView}
+        eventView={eventView}
         orgSlug={organization.slug}
         limit={limit}
         cursor={cursor}
+        referrer="api.discover.transactions-list"
       >
         {tableRenderer}
       </DiscoverQuery>
@@ -302,6 +327,14 @@ class TransactionsList extends React.Component<Props> {
       >
         {({isLoading, trendsData, pageLinks}) => (
           <React.Fragment>
+            <Header>
+              {this.renderHeader()}
+              <StyledPagination
+                pageLinks={pageLinks}
+                onCursor={this.handleCursor}
+                size="small"
+              />
+            </Header>
             <TransactionsTable
               eventView={sortedEventView}
               organization={organization}
@@ -318,11 +351,6 @@ class TransactionsList extends React.Component<Props> {
               generateLink={generateLink}
               baselineTransactionName={null}
             />
-            <StyledPagination
-              pageLinks={pageLinks}
-              onCursor={this.handleCursor}
-              size="small"
-            />
           </React.Fragment>
         )}
       </TrendsEventsDiscoverQuery>
@@ -337,7 +365,6 @@ class TransactionsList extends React.Component<Props> {
   render() {
     return (
       <React.Fragment>
-        {this.renderHeader()}
         {this.isTrend() ? this.renderTrendsTable() : this.renderTransactionTable()}
       </React.Fragment>
     );
@@ -429,9 +456,14 @@ class TransactionsTable extends React.PureComponent<TableProps> {
       baselineData,
       handleBaselineClick,
       handleCellAction,
+      titles,
     } = this.props;
     const fields = eventView.getFields();
-    const tableTitles = this.getTitles();
+
+    if (titles && titles.length) {
+      // Slice to match length of given titles
+      columnOrder = columnOrder.slice(0, titles.length);
+    }
 
     const resultsRow = columnOrder.map((column, index) => {
       const field = String(column.key);
@@ -442,11 +474,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
       const fieldRenderer = getFieldRenderer(field, tableMeta);
       let rendered = fieldRenderer(row, {organization, location});
 
-      const target = generateLink?.[tableTitles[index]]?.(
-        organization,
-        row,
-        location.query
-      );
+      const target = generateLink?.[field]?.(organization, row, location.query);
 
       if (target) {
         rendered = (
@@ -558,7 +586,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
     return (
-      <StyledPanelTable
+      <PanelTable
         isEmpty={!hasResults}
         emptyMessage={t('No transactions found')}
         headers={this.renderHeader()}
@@ -567,29 +595,19 @@ class TransactionsTable extends React.PureComponent<TableProps> {
         loader={loader}
       >
         {this.renderResults()}
-      </StyledPanelTable>
+      </PanelTable>
     );
   }
 }
 
 const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0 0 ${space(1)} 0;
-`;
-
-const HeaderButtonContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  margin-bottom: ${space(1)};
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
   min-width: 145px;
-`;
-
-const StyledPanelTable = styled(PanelTable)`
-  margin-bottom: ${space(1)};
 `;
 
 const HeadCellContainer = styled('div')`
@@ -602,7 +620,7 @@ const BodyCellContainer = styled('div')`
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 ${space(3)} 0;
+  margin: 0 0 0 ${space(1)};
 `;
 
 export default TransactionsList;

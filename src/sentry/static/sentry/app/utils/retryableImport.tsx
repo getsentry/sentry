@@ -9,7 +9,7 @@ export default async function retryableImport<T>(
   const tryLoad = async () => {
     try {
       const module = await fn();
-      return module.default || module;
+      return module.default ?? module;
     } catch (err) {
       if (isWebpackChunkLoadingError(err) && retries < MAX_RETRIES) {
         retries++;

@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 from collections import Counter
 from unittest import TestCase
 
 from sentry.similarity.signatures import MinHashSignatureBuilder
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
+from sentry.utils.compat import map, zip
 
 
 class MinHashSignatureBuilderTestCase(TestCase):
@@ -13,7 +10,7 @@ class MinHashSignatureBuilderTestCase(TestCase):
         n = 32
         r = 0xFFFF
         get_signature = MinHashSignatureBuilder(n, r)
-        get_signature(set(["foo", "bar", "baz"])) == get_signature(set(["foo", "bar", "baz"]))
+        get_signature({"foo", "bar", "baz"}) == get_signature({"foo", "bar", "baz"})
 
         assert len(get_signature("hello world")) == n
         for value in get_signature("hello world"):

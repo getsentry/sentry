@@ -29,15 +29,19 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:events-page',
   'feature-disabled:events-sidebar-item',
   'feature-disabled:grid-editable-actions',
+  'feature-disabled:open-discover',
+  'feature-disabled:dashboards-edit',
   'feature-disabled:incidents-sidebar-item',
   'feature-disabled:performance-new-project',
   'feature-disabled:performance-page',
   'feature-disabled:performance-sidebar-item',
+  'feature-disabled:project-performance-score-card',
   'feature-disabled:project-selector-checkbox',
   'feature-disabled:rate-limits',
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
+  'feature-disabled:trace-view-link',
   'footer',
   'help-modal:footer',
   'integrations:feature-gates',
@@ -48,14 +52,17 @@ const validHookNames = new Set<HookName>([
   'organization:header',
   'routes',
   'routes:admin',
+  'routes:api',
   'routes:organization',
   'routes:organization-root',
+  'settings:api-navigation-config',
   'settings:organization-navigation',
   'settings:organization-navigation-config',
   'sidebar:bottom-items',
   'sidebar:help-menu',
   'sidebar:item-label',
   'sidebar:organization-dropdown-menu',
+  'sidebar:organization-dropdown-menu-bottom',
 ]);
 
 type HookStoreInterface = {
@@ -117,4 +124,6 @@ type HookStore = Reflux.Store & HookStoreInterface;
  *
  * This functionality is primarily used by the SASS sentry.io product.
  */
-export default Reflux.createStore(hookStoreConfig) as HookStore;
+const HookStore = Reflux.createStore(hookStoreConfig) as HookStore;
+
+export default HookStore;

@@ -1,10 +1,9 @@
-from __future__ import absolute_import
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.models import RelayUsage
-from sentry import features
 
 
 class OrganizationRelayUsage(OrganizationEndpoint):

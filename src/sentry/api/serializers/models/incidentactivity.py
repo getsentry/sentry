@@ -1,9 +1,4 @@
-from __future__ import absolute_import
-
-import six
-
-from sentry.api.serializers import Serializer, register
-from sentry.api.serializers import serialize
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.incidents.models import IncidentActivity
 from sentry.utils.db import attach_foreignkey
@@ -16,19 +11,19 @@ class IncidentActivitySerializer(Serializer):
         attach_foreignkey(item_list, IncidentActivity.user)
         user_serializer = UserSerializer()
         serialized_users = serialize(
-            set(item.user for item in item_list if item.user_id),
+            {item.user for item in item_list if item.user_id},
             user=user,
             serializer=user_serializer,
         )
         user_lookup = {user["id"]: user for user in serialized_users}
-        return {item: {"user": user_lookup.get(six.text_type(item.user_id))} for item in item_list}
+        return {item: {"user": user_lookup.get(str(item.user_id))} for item in item_list}
 
     def serialize(self, obj, attrs, user):
         incident = obj.incident
 
         return {
-            "id": six.text_type(obj.id),
-            "incidentIdentifier": six.text_type(incident.identifier),
+            "id": str(obj.id),
+            "incidentIdentifier": str(incident.identifier),
             "user": attrs["user"],
             "type": obj.type,
             "value": obj.value,

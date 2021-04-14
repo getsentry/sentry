@@ -1,12 +1,8 @@
-from __future__ import absolute_import
-
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-
 from rest_framework.response import Response
 
 from sentry import analytics
-
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
@@ -15,14 +11,12 @@ from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
 from sentry.models import Activity, Environment, Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.signals import release_created
-from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.web.decorators import transaction_start
+from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    @transaction_start("ProjectReleasesEndpoint.get")
     def get(self, request, project):
         """
         List a Project's Releases
@@ -45,7 +39,10 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             environment = None
         else:
             queryset = (
-                Release.objects.filter(projects=project, organization_id=project.organization_id,)
+                Release.objects.filter(
+                    projects=project,
+                    organization_id=project.organization_id,
+                )
                 .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
                 .select_related("owner")
             )
@@ -70,7 +67,6 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             ),
         )
 
-    @transaction_start("ProjectReleasesEndpoint.post")
     def post(self, request, project):
         """
         Create a New Release for a Project
@@ -180,6 +176,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     created_status=status,
                 )
                 scope.set_tag("success_status", status)
-                return Response(serialize(release, request.user), status=status)
+
+                # Disable snuba here as it often causes 429s when overloaded and
+                # a freshly created release won't have health data anyways.
+                return Response(serialize(release, request.user, no_snuba=True), status=status)
             scope.set_tag("failure_reason", "serializer_error")
             return Response(serializer.errors, status=400)

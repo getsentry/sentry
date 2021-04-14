@@ -1,9 +1,8 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
-from sentry.utils import json
+from sentry.models.groupinbox import GroupInbox
 from sentry.testutils import APITestCase
+from sentry.utils import json
 
 
 class ProjectCreateSampleTest(APITestCase):
@@ -22,6 +21,7 @@ class ProjectCreateSampleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert "groupID" in json.loads(response.content)
+        assert GroupInbox.objects.filter(group=response.data["groupID"]).exists()
 
     def test_project_platform(self):
         project = self.create_project(teams=[self.team], name="foo", platform="javascript-react")

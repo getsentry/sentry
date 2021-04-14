@@ -150,5 +150,3 @@ and snapshots exist for all tests and all versions of the grouping algorithm.
 If you add a new one copy the folder in the snapshot directory over to match
 the new name which makes it easier to evaluate differences.
 """
-
-from __future__ import absolute_import

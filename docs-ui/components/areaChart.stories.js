@@ -1,13 +1,16 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import AreaChart from 'app/components/charts/areaChart';
 
 export default {
   title: 'DataVisualization/Charts/AreaChart',
+  component: AreaChart,
+  parameters: {
+    controls: {hideNoControlsWarning: true},
+  },
 };
 
-export const _AreaChart = withInfo('Stacked AreaChart with previous period')(() => {
+export const _AreaChart = () => {
   const TOTAL = 6;
   const NOW = new Date().getTime();
   const getValue = () => Math.round(Math.random() * 1000);
@@ -37,8 +40,13 @@ export const _AreaChart = withInfo('Stacked AreaChart with previous period')(() 
       />
     </div>
   );
-});
+};
 
-_AreaChart.story = {
-  name: 'AreaChart',
+_AreaChart.storyName = 'AreaChart';
+_AreaChart.parameters = {
+  docs: {
+    description: {
+      story: 'Stacked AreaChart with previous period',
+    },
+  },
 };

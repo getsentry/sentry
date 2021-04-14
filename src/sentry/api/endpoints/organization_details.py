@@ -1,14 +1,14 @@
-from __future__ import absolute_import
-
 import logging
-import six
-
+from copy import copy
 from datetime import datetime
-
-from pytz import UTC
-from rest_framework import serializers, status
 from uuid import uuid4
 
+from django.db import models
+from django.db.models.query_utils import DeferredAttribute
+from pytz import UTC
+from rest_framework import serializers, status
+
+from bitfield.types import BitHandler
 from sentry import roles
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -18,10 +18,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import (
-    LEGACY_RATE_LIMIT_OPTIONS,
-    RESERVED_ORGANIZATION_SLUGS,
-)
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_DEFAULT, convert_crashreport_count
 from sentry.models import (
@@ -36,10 +33,10 @@ from sentry.models import (
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.cache import memoize
 
-ERR_DEFAULT_ORG = u"You cannot remove the default organization."
-ERR_NO_USER = u"This request requires an authenticated user."
-ERR_NO_2FA = u"Cannot require two-factor authentication without personal two-factor enabled."
-ERR_SSO_ENABLED = u"Cannot require two-factor authentication with SSO enabled"
+ERR_DEFAULT_ORG = "You cannot remove the default organization."
+ERR_NO_USER = "This request requires an authenticated user."
+ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
+ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -79,13 +76,13 @@ ORG_OPTIONS = (
     (
         "attachmentsRole",
         "sentry:attachments_role",
-        six.text_type,
+        str,
         org_serializers.ATTACHMENTS_ROLE_DEFAULT,
     ),
     (
         "debugFilesRole",
         "sentry:debug_files_role",
-        six.text_type,
+        str,
         org_serializers.DEBUG_FILES_ROLE_DEFAULT,
     ),
     (
@@ -106,7 +103,7 @@ ORG_OPTIONS = (
         bool,
         org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ),
-    ("relayPiiConfig", "sentry:relay_pii_config", six.text_type, None),
+    ("relayPiiConfig", "sentry:relay_pii_config", str, None),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
 )
@@ -116,6 +113,9 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 DELETION_STATUSES = frozenset(
     [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
 )
+
+UNSAVED = object()
+DEFERRED = object()
 
 
 class OrganizationSerializer(serializers.Serializer):
@@ -173,15 +173,13 @@ class OrganizationSerializer(serializers.Serializer):
         # just preventing new bad values.
         if len(value) < 3:
             raise serializers.ValidationError(
-                'This slug "%s" is too short. Minimum of 3 characters.' % (value,)
+                f'This slug "{value}" is too short. Minimum of 3 characters.'
             )
         if value in RESERVED_ORGANIZATION_SLUGS:
-            raise serializers.ValidationError(
-                'This slug "%s" is reserved and not allowed.' % (value,)
-            )
+            raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
         qs = Organization.objects.filter(slug=value).exclude(id=self.context["organization"].id)
         if qs.exists():
-            raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
+            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
         return value
 
     def validate_relayPiiConfig(self, value):
@@ -239,9 +237,7 @@ class OrganizationSerializer(serializers.Serializer):
             for key_info in value:
                 key = key_info.get("public_key")
                 if key in public_keys:
-                    raise serializers.ValidationError(
-                        "Duplicated key in Trusted Relays: '{}'".format(key)
-                    )
+                    raise serializers.ValidationError(f"Duplicated key in Trusted Relays: '{key}'")
                 public_keys.add(key)
 
         return value
@@ -261,7 +257,7 @@ class OrganizationSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(OrganizationSerializer, self).validate(attrs)
+        attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
             has_existing_file = OrganizationAvatar.objects.filter(
                 organization=self.context["organization"], file__isnull=False
@@ -311,12 +307,12 @@ class OrganizationSerializer(serializers.Serializer):
             # we have some modifications create a log message
             if existing is not None:
                 # generate an update log message
-                changed_data["trustedRelays"] = u"from {} to {}".format(existing, incoming)
+                changed_data["trustedRelays"] = f"from {existing} to {incoming}"
                 existing.value = incoming
                 existing.save()
             else:
                 # first time we set trusted relays, generate a create log message
-                changed_data["trustedRelays"] = u"to {}".format(incoming)
+                changed_data["trustedRelays"] = f"to {incoming}"
                 OrganizationOption.objects.set_value(
                     organization=organization, key=option_key, value=incoming
                 )
@@ -326,25 +322,28 @@ class OrganizationSerializer(serializers.Serializer):
     def save(self):
         org = self.context["organization"]
         changed_data = {}
+        if not hasattr(org, "__data"):
+            update_tracked_data(org)
 
         for key, option, type_, default_value in ORG_OPTIONS:
             if key not in self.initial_data:
                 continue
             try:
                 option_inst = OrganizationOption.objects.get(organization=org, key=option)
+                update_tracked_data(option_inst)
             except OrganizationOption.DoesNotExist:
                 OrganizationOption.objects.set_value(
                     organization=org, key=option, value=type_(self.initial_data[key])
                 )
 
                 if self.initial_data[key] != default_value:
-                    changed_data[key] = u"to {}".format(self.initial_data[key])
+                    changed_data[key] = f"to {self.initial_data[key]}"
             else:
                 option_inst.value = self.initial_data[key]
                 # check if ORG_OPTIONS changed
-                if option_inst.has_changed("value"):
-                    old_val = option_inst.old_value("value")
-                    changed_data[key] = u"from {} to {}".format(old_val, option_inst.value)
+                if has_changed(option_inst, "value"):
+                    old_val = old_value(option_inst, "value")
+                    changed_data[key] = f"from {old_val} to {option_inst.value}"
                 option_inst.save()
 
         trusted_realy_info = self.validated_data.get("trustedRelays")
@@ -380,16 +379,16 @@ class OrganizationSerializer(serializers.Serializer):
         }
 
         # check if fields changed
-        for f, v in six.iteritems(org_tracked_field):
+        for f, v in org_tracked_field.items():
             if f != "flag_field":
-                if org.has_changed(f):
-                    old_val = org.old_value(f)
-                    changed_data[f] = u"from {} to {}".format(old_val, v)
+                if has_changed(org, f):
+                    old_val = old_value(org, f)
+                    changed_data[f] = f"from {old_val} to {v}"
             else:
                 # check if flag fields changed
-                for f, v in six.iteritems(org_tracked_field["flag_field"]):
-                    if org.flag_has_changed(f):
-                        changed_data[f] = u"to {}".format(v)
+                for f, v in org_tracked_field["flag_field"].items():
+                    if flag_has_changed(org, f):
+                        changed_data[f] = f"to {v}"
 
         org.save()
 
@@ -398,7 +397,7 @@ class OrganizationSerializer(serializers.Serializer):
                 relation={"organization": org},
                 type=self.initial_data.get("avatarType", "upload"),
                 avatar=self.initial_data.get("avatar"),
-                filename=u"{}.png".format(org.slug),
+                filename=f"{org.slug}.png",
             )
         if "require2FA" in self.initial_data and self.initial_data["require2FA"] is True:
             org.handle_2fa_required(self.context["request"])
@@ -411,12 +410,13 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
 
     def save(self, *args, **kwargs):
         org = self.context["organization"]
+        update_tracked_data(org)
         cancel_deletion = "cancelDeletion" in self.initial_data and org.status in DELETION_STATUSES
         if "defaultRole" in self.initial_data:
             org.default_role = self.initial_data["defaultRole"]
         if cancel_deletion:
             org.status = OrganizationStatus.VISIBLE
-        return super(OwnerOrganizationSerializer, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
 
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
@@ -568,3 +568,59 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :auth: required, user-context-needed
         """
         return self.handle_delete(request, organization)
+
+
+def flag_has_changed(org, flag_name):
+    "Returns ``True`` if ``flag`` has changed since initialization."
+    return getattr(old_value(org, "flags"), flag_name, None) != getattr(org.flags, flag_name)
+
+
+def update_tracked_data(model):
+    "Updates a local copy of attributes values"
+    if model.id:
+        data = {}
+        for f in model._meta.fields:
+            # XXX(dcramer): this is how Django determines this (copypasta from Model)
+            if isinstance(type(f).__dict__.get(f.attname), DeferredAttribute) or f.column is None:
+                continue
+            try:
+                v = get_field_value(model, f)
+            except AttributeError as e:
+                # this case can come up from pickling
+                logging.exception(str(e))
+            else:
+                if isinstance(v, BitHandler):
+                    v = copy(v)
+                data[f.column] = v
+        model.__data = data
+    else:
+        model.__data = UNSAVED
+
+
+def get_field_value(model, field):
+    if isinstance(type(field).__dict__.get(field.attname), DeferredAttribute):
+        return DEFERRED
+    if isinstance(field, models.ForeignKey):
+        return getattr(model, field.column, None)
+    return getattr(model, field.attname, None)
+
+
+def has_changed(model, field_name):
+    "Returns ``True`` if ``field`` has changed since initialization."
+    if model.__data is UNSAVED:
+        return False
+    field = model._meta.get_field(field_name)
+    value = get_field_value(model, field)
+    if value is DEFERRED:
+        return False
+    return model.__data.get(field_name) != value
+
+
+def old_value(model, field_name):
+    "Returns the previous value of ``field``"
+    if model.__data is UNSAVED:
+        return None
+    value = model.__data.get(field_name)
+    if value is DEFERRED:
+        return None
+    return model.__data.get(field_name)

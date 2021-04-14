@@ -1,16 +1,12 @@
-from __future__ import absolute_import
-
 import unittest
 from datetime import datetime, timedelta
 from random import randint
 from uuid import uuid4
 
 import pytz
-import six
 from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
-from sentry.utils.compat.mock import call, Mock
 
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import (
@@ -25,20 +21,20 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.subscription_processor import (
+    SubscriptionProcessor,
     build_alert_rule_stat_keys,
     build_alert_rule_trigger_stat_key,
     build_trigger_stat_keys,
     get_alert_rule_stats,
     get_redis_client,
     partition,
-    SubscriptionProcessor,
     update_alert_rule_stats,
 )
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils import TestCase
-from sentry.utils.dates import to_timestamp
 from sentry.utils.compat import map
-
+from sentry.utils.compat.mock import Mock, call
+from sentry.utils.dates import to_timestamp
 
 EMPTY = object()
 
@@ -48,7 +44,7 @@ class ProcessUpdateTest(TestCase):
     metrics = patcher("sentry.incidents.subscription_processor.metrics")
 
     def setUp(self):
-        super(ProcessUpdateTest, self).setUp()
+        super().setUp()
         self.old_handlers = AlertRuleTriggerAction._type_registrations
         AlertRuleTriggerAction._type_registrations = {}
         self.email_action_handler = Mock()
@@ -59,7 +55,7 @@ class ProcessUpdateTest(TestCase):
         self._run_tasks.__enter__()
 
     def tearDown(self):
-        super(ProcessUpdateTest, self).tearDown()
+        super().tearDown()
         AlertRuleTriggerAction._type_registrations = self.old_handlers
         self._run_tasks.__exit__(None, None, None)
 
@@ -93,7 +89,7 @@ class ProcessUpdateTest(TestCase):
             trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            six.text_type(self.user.id),
+            str(self.user.id),
         )
         return rule
 
@@ -294,14 +290,14 @@ class ProcessUpdateTest(TestCase):
             self.trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            six.text_type(self.user.id),
+            str(self.user.id),
         )
         w_trigger = create_alert_rule_trigger(self.rule, "hello", c_trigger.alert_threshold - 10)
         create_alert_rule_trigger_action(
             w_trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            six.text_type(self.user.id),
+            str(self.user.id),
         )
 
         processor = self.send_update(rule, c_trigger.alert_threshold + 1)

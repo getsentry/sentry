@@ -15,7 +15,7 @@ import Version from 'app/components/version';
 import {IconCopy} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Deploy, Release, Repository} from 'app/types';
+import {Deploy, Organization, Release, Repository} from 'app/types';
 import {defined} from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withRelease from 'app/utils/withRelease';
@@ -23,10 +23,10 @@ import withRepositories from 'app/utils/withRepositories';
 
 type Props = {
   api: Client;
-  orgSlug: string;
   projectSlug: string;
   releaseVersion: string;
 
+  organization: Organization;
   release?: Release;
   releaseLoading?: boolean;
   releaseError?: Error;
@@ -37,6 +37,7 @@ type Props = {
   repositoriesLoading?: boolean;
   repositoriesError?: Error;
 };
+
 type State = {
   visible: boolean;
 };
@@ -53,7 +54,8 @@ class VersionHoverCard extends React.Component<Props, State> {
   }
 
   getRepoLink() {
-    const {orgSlug} = this.props;
+    const {organization} = this.props;
+    const orgSlug = organization.slug;
     return {
       header: null,
       body: (

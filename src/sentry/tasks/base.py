@@ -1,14 +1,12 @@
-from __future__ import absolute_import
-
 import resource
-
-from celery.task import current
 from contextlib import contextmanager
 from functools import wraps
 
+from celery.task import current
+
 from sentry.celery import app
 from sentry.utils import metrics
-from sentry.utils.sdk import configure_scope, capture_exception
+from sentry.utils.sdk import capture_exception, configure_scope
 
 
 def get_rss_usage():
@@ -34,7 +32,7 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
 
             key = "jobs.duration"
             if stat_suffix:
-                instance = u"{}.{}".format(name, stat_suffix(*args, **kwargs))
+                instance = f"{name}.{stat_suffix(*args, **kwargs)}"
             else:
                 instance = name
 

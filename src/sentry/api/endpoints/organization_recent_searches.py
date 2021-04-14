@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from django.utils import six, timezone
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -37,16 +35,12 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         try:
             search_type = SearchType(int(request.GET.get("type", 0)))
         except ValueError as e:
-            return Response(
-                {"detail": "Invalid input for `type`. Error: %s" % six.text_type(e)}, status=400
-            )
+            return Response({"detail": "Invalid input for `type`. Error: %s" % str(e)}, status=400)
 
         try:
             limit = int(request.GET.get("limit", 3))
         except ValueError as e:
-            return Response(
-                {"detail": "Invalid input for `limit`. Error: %s" % six.text_type(e)}, status=400
-            )
+            return Response({"detail": "Invalid input for `limit`. Error: %s" % str(e)}, status=400)
 
         query_kwargs = {"organization": organization, "user": request.user, "type": search_type}
 
@@ -76,5 +70,5 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
                 remove_excess_recent_searches(organization, request.user, result["type"])
             status = 201 if created else 204
 
-            return Response("", status=status)
+            return Response(status=status)
         return Response(serializer.errors, status=400)

@@ -1,10 +1,9 @@
-from __future__ import absolute_import
-
 __all__ = ["MetricsBackend"]
 
-from django.conf import settings
 from random import random
 from threading import local
+
+from django.conf import settings
 
 
 class MetricsBackend(local):
@@ -15,7 +14,7 @@ class MetricsBackend(local):
 
     def _get_key(self, key):
         if self.prefix:
-            return u"{}{}".format(self.prefix, key)
+            return f"{self.prefix}{key}"
         return key
 
     def _should_sample(self, sample_rate):

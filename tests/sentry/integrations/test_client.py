@@ -1,15 +1,13 @@
-from __future__ import absolute_import
+from time import time
 
 import responses
 
-from sentry.utils.compat import mock
-from time import time
-from sentry.testutils import TestCase
-
 from sentry.identity import register
-from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.identity.oauth2 import OAuth2Provider
+from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.models import Identity, IdentityProvider
+from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class ApiClientTest(TestCase):
@@ -124,7 +122,7 @@ class OAuthProvider(OAuth2Provider):
 
 class OAuth2ApiClient(ApiClient, OAuth2RefreshMixin):
     def __init__(self, identity, *args, **kwargs):
-        super(OAuth2ApiClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.identity = identity
 
 

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'app/components/acl/access';
-import Alert, {Props as AlertProps} from 'app/components/alert';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel} from 'app/components/panels';
@@ -19,12 +19,14 @@ import {
   IntegrationInstallationStatus,
   IntegrationType,
   Organization,
-  SentryAppStatus,
 } from 'app/types';
+import {
+  IntegrationAnalyticsKey,
+  IntegrationEventParameters,
+} from 'app/utils/integrationEvents';
 import {
   getCategories,
   getIntegrationFeatureGate,
-  SingleIntegrationEvent,
   trackIntegrationEvent,
 } from 'app/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'app/utils/marked';
@@ -35,7 +37,7 @@ import IntegrationStatus from './integrationStatus';
 
 type Tab = 'overview' | 'configurations';
 
-type AlertType = AlertProps & {
+type AlertType = React.ComponentProps<typeof Alert> & {
   text: string;
 };
 
@@ -62,9 +64,7 @@ class AbstractIntegrationDetailedView<
   }
 
   onLoadAllEndpointsSuccess() {
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.integration_viewed',
-      eventName: 'Integrations: Integration Viewed',
+    this.trackIntegrationEvent('integrations.integration_viewed', {
       integration_tab: this.state.tab,
     });
   }
@@ -133,9 +133,7 @@ class AbstractIntegrationDetailedView<
   }
 
   onTabChange = (value: Tab) => {
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.integration_tab_clicked',
-      eventName: 'Integrations: Integration Tab Clicked',
+    this.trackIntegrationEvent('integrations.integration_tab_clicked', {
       integration_tab: value,
     });
     this.setState({tab: value});
@@ -191,29 +189,20 @@ class AbstractIntegrationDetailedView<
   }
 
   //Wrapper around trackIntegrationEvent that automatically provides many fields and the org
-  trackIntegrationEvent = (
-    options: Pick<
-      SingleIntegrationEvent,
-      'eventKey' | 'eventName' | 'integration_tab'
-    > & {
-      integration_status?: SentryAppStatus;
-      project_id?: string;
-    }
+  trackIntegrationEvent = <T extends IntegrationAnalyticsKey>(
+    eventKey: IntegrationAnalyticsKey,
+    options?: Partial<IntegrationEventParameters[T]>
   ) => {
+    options = options || {};
     //If we use this intermediate type we get type checking on the things we care about
-    const params: Omit<
-      Parameters<typeof trackIntegrationEvent>[0],
-      'integrations_installed'
-    > = {
+    const params = {
       view: 'integrations_directory_integration_detail',
       integration: this.integrationSlug,
       integration_type: this.integrationType,
       already_installed: this.installationStatus !== 'Not Installed', //pending counts as installed here
       ...options,
     };
-    //type cast here so TS won't complain
-    const typeCasted = params as Parameters<typeof trackIntegrationEvent>[0];
-    trackIntegrationEvent(typeCasted, this.props.organization);
+    trackIntegrationEvent(eventKey, params, this.props.organization);
   };
 
   //Returns the props as needed by the hooks integrations:feature-gates

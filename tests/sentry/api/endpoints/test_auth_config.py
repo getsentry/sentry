@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 from django.conf import settings
 from django.test.utils import override_settings
@@ -51,8 +49,9 @@ class AuthConfigEndpointTest(APITestCase):
         assert not response.data["hasNewsletter"]
         assert response.data["serverHostname"] == "testserver"
 
-    @pytest.mark.skipIf(
-        lambda x: settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter"
+    @pytest.mark.skipif(
+        settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
+        reason="Requires DummyNewsletter.",
     )
     def test_has_newsletter(self):
         newsletter.backend.enable()

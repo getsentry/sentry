@@ -1,6 +1,6 @@
-from __future__ import absolute_import
 from django.db import models
-from sentry.db.models import sane_repr, BoundedBigIntegerField
+
+from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.models.deletedentry import DeletedEntry
 
 

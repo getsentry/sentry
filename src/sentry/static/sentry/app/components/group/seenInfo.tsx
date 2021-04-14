@@ -1,7 +1,6 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import DateTime from 'app/components/dateTime';
 import {Body, Header, Hovercard} from 'app/components/hovercard';
@@ -11,14 +10,14 @@ import VersionHoverCard from 'app/components/versionHoverCard';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Release} from 'app/types';
+import {Organization, Release} from 'app/types';
 import {defined, toTitleCase} from 'app/utils';
 import theme from 'app/utils/theme';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
 type Props = {
-  orgSlug: string;
+  organization: Organization;
   projectSlug: string;
   projectId: string;
   hasRelease: boolean;
@@ -30,22 +29,6 @@ type Props = {
 };
 
 class SeenInfo extends React.Component<Props> {
-  static propTypes = {
-    orgSlug: PropTypes.string.isRequired,
-    projectSlug: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    date: PropTypes.any,
-    dateGlobal: PropTypes.any,
-    release: PropTypes.shape({
-      version: PropTypes.string.isRequired,
-    }),
-    environment: PropTypes.string,
-  };
-
-  static contextTypes = {
-    organization: PropTypes.object,
-  };
-
   shouldComponentUpdate(nextProps: Props) {
     const {date, release} = this.props;
 
@@ -53,7 +36,8 @@ class SeenInfo extends React.Component<Props> {
   }
 
   getReleaseTrackingUrl() {
-    const {orgSlug, projectSlug} = this.props;
+    const {organization, projectSlug} = this.props;
+    const orgSlug = organization.slug;
 
     return `/settings/${orgSlug}/projects/${projectSlug}/release-tracking/`;
   }
@@ -64,10 +48,11 @@ class SeenInfo extends React.Component<Props> {
       dateGlobal,
       environment,
       release,
-      orgSlug,
+      organization,
       projectSlug,
       projectId,
     } = this.props;
+
     return (
       <HovercardWrapper>
         <StyledHovercard
@@ -119,7 +104,7 @@ class SeenInfo extends React.Component<Props> {
             <React.Fragment>
               {t('in release ')}
               <VersionHoverCard
-                orgSlug={orgSlug}
+                organization={organization}
                 projectSlug={projectSlug}
                 releaseVersion={release.version}
               >

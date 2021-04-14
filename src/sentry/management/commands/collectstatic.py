@@ -1,15 +1,12 @@
-from __future__ import absolute_import
-
 import os
-
-from click import echo
+from hashlib import md5
 from itertools import chain
 from operator import itemgetter
-from hashlib import md5
+
+from click import echo
 from django.contrib.staticfiles.management.commands.collectstatic import Command as BaseCommand
 
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
+from sentry.utils.compat import map, zip
 
 BUFFER_SIZE = 65536
 VERSION_PATH = "version"
@@ -28,8 +25,8 @@ def checksum(file_):
 def get_bundle_version(files):
     hasher = md5()
     for (short, _), sum in zip(files, map(checksum, files)):
-        echo("%s  %s" % (sum, short))
-        hasher.update("{}  {}\n".format(sum, short).encode("utf-8"))
+        echo(f"{sum}  {short}")
+        hasher.update(f"{sum}  {short}\n".encode("utf-8"))
     return hasher.hexdigest()
 
 
@@ -40,7 +37,7 @@ class Command(BaseCommand):
         except OSError:
             pass
 
-        collected = super(Command, self).collect()
+        collected = super().collect()
         paths = sorted(set(chain(*itemgetter(*collected.keys())(collected))))
         abs_paths = map(self.storage.path, paths)
         version = get_bundle_version(zip(paths, abs_paths))

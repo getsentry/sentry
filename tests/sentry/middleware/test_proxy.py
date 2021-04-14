@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
-from exam import fixture
 from django.http import HttpRequest
+from exam import fixture
 
-from sentry.testutils import TestCase
 from sentry.middleware.proxy import SetRemoteAddrFromForwardedFor
+from sentry.testutils import TestCase
 
 
 class SetRemoteAddrFromForwardedForTestCase(TestCase):

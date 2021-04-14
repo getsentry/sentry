@@ -1,7 +1,6 @@
 // eslint-disable-next-line simple-import-sort/imports
 import React from 'react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
@@ -47,9 +46,8 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
 
   onLoadAllEndpointsSuccess() {
     trackIntegrationEvent(
+      'integrations.serverless_functions_viewed',
       {
-        eventKey: 'integrations.serverless_functions_viewed',
-        eventName: 'Integrations: Serverless Functions Viewed',
         integration: this.props.integration.provider.key,
         integration_type: 'first_party',
         num_functions: this.serverlessFunctions.length,
@@ -58,8 +56,15 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
     );
   }
 
-  handleFunctionUpdate = (serverlessFunction: ServerlessFunction, index: number) => {
-    const serverlessFunctions = cloneDeep(this.serverlessFunctions);
+  handleFunctionUpdate = (
+    serverlessFunctionUpdate: Partial<ServerlessFunction>,
+    index: number
+  ) => {
+    const serverlessFunctions = [...this.serverlessFunctions];
+    const serverlessFunction = {
+      ...serverlessFunctions[index],
+      ...serverlessFunctionUpdate,
+    };
     serverlessFunctions[index] = serverlessFunction;
     this.setState({serverlessFunctions});
   };
@@ -69,24 +74,22 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
       <React.Fragment>
         <Alert type="info">
           {t(
-            'Manage your AWS Lambda functions below. Only Node runtimes are currently supported.'
+            'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
           )}
         </Alert>
         <Panel>
           <StyledPanelHeader disablePadding hasButtons>
             <NameHeader>{t('Name')}</NameHeader>
-            <RuntimeHeader>{t('Runtime')}</RuntimeHeader>
-            <VersionHeader>{t('Version')}</VersionHeader>
+            <LayerStatusWrapper>{t('Layer Status')}</LayerStatusWrapper>
             <EnableHeader>{t('Enabled')}</EnableHeader>
-            <UpdateHeader>{t('Update')}</UpdateHeader>
           </StyledPanelHeader>
           <StyledPanelBody>
             {this.serverlessFunctions.map((serverlessFunction, i) => (
               <IntegrationServerlessRow
                 key={serverlessFunction.name}
                 serverlessFunction={serverlessFunction}
-                onUpdateFunction={(response: ServerlessFunction) =>
-                  this.handleFunctionUpdate(response, i)
+                onUpdateFunction={(update: Partial<ServerlessFunction>) =>
+                  this.handleFunctionUpdate(update, i)
                 }
                 {...this.props}
               />
@@ -101,15 +104,15 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
 export default withOrganization(IntegrationServerlessFunctions);
 
 const StyledPanelHeader = styled(PanelHeader)`
+  padding: ${space(2)};
   display: grid;
   grid-column-gap: ${space(1)};
   align-items: center;
-  grid-template-columns: 2fr 1fr 0.5fr 0.25fr 0.5fr;
-  grid-template-areas: 'function-name runtime version enable-switch update-button';
+  grid-template-columns: 2fr 1fr 0.5fr;
+  grid-template-areas: 'function-name layer-status enable-switch';
 `;
 
 const HeaderText = styled('div')`
-  padding-left: ${space(2)};
   flex: 1;
 `;
 
@@ -119,18 +122,10 @@ const NameHeader = styled(HeaderText)`
   grid-area: function-name;
 `;
 
-const RuntimeHeader = styled(HeaderText)`
-  grid-area: runtime;
-`;
-
-const VersionHeader = styled(HeaderText)`
-  grid-area: version;
+const LayerStatusWrapper = styled(HeaderText)`
+  grid-area: layer-status;
 `;
 
 const EnableHeader = styled(HeaderText)`
   grid-area: enable-switch;
-`;
-
-const UpdateHeader = styled(HeaderText)`
-  grid-area: update-button;
 `;

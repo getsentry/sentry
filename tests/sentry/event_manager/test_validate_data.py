@@ -1,10 +1,8 @@
-from __future__ import absolute_import
+from datetime import datetime, timedelta
 
 import pytest
 
-from datetime import datetime, timedelta
-
-from sentry.constants import MAX_VERSION_LENGTH, MAX_CULPRIT_LENGTH
+from sentry.constants import MAX_CULPRIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.event_manager import EventManager
 
 
@@ -127,7 +125,7 @@ def test_tags_out_of_bounds():
     data = validate_and_normalize(
         {"message": "foo", "tags": {"f" * 33: "value", "foo": "v" * 201, "bar": "value"}}
     )
-    assert data["tags"] == [["bar", "value"], None, None]
+    assert data["tags"] == [["bar", "value"], [None, "value"], ["foo", None]]
     assert len(data["errors"]) == 2
 
 
@@ -164,7 +162,7 @@ def test_extra_as_string():
 
 
 def test_release_tag_max_len():
-    release_key = u"sentry:release"
+    release_key = "sentry:release"
     release_value = "a" * MAX_VERSION_LENGTH
     data = validate_and_normalize({"message": "foo", "tags": [[release_key, release_value]]})
     assert "errors" not in data
@@ -172,14 +170,14 @@ def test_release_tag_max_len():
 
 
 def test_server_name_too_long():
-    key = u"server_name"
+    key = "server_name"
     value = "a" * (MAX_CULPRIT_LENGTH + 1)
     data = validate_and_normalize({key: value})
     assert len(dict(data["tags"]).get(key)) == MAX_CULPRIT_LENGTH
 
 
 def test_site_too_long():
-    key = u"site"
+    key = "site"
     value = "a" * (MAX_CULPRIT_LENGTH + 1)
     data = validate_and_normalize({key: value})
     assert len(dict(data["tags"]).get(key)) == MAX_CULPRIT_LENGTH

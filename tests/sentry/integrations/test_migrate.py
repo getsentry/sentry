@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations.example import ExampleIntegrationProvider
 from sentry.mediators.plugins import Migrator
 from sentry.models import Integration, Repository
@@ -17,7 +15,7 @@ plugins.register(ExamplePlugin)
 
 class MigratorTest(TestCase):
     def setUp(self):
-        super(MigratorTest, self).setUp()
+        super().setUp()
 
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)

@@ -25,6 +25,9 @@ type State = {
   collapsed: boolean;
 };
 
+/**
+ * This component is used to show first X items and collapse the rest
+ */
 class Collapsible extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     maxVisibleItems: 5,

@@ -1,18 +1,14 @@
-from __future__ import absolute_import
-
-import six
-
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.eventstore.base import Filter
+from sentry.eventstore.snuba.backend import SnubaEventStorage
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
 
 class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(SnubaEventStorageTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
         self.project1 = self.create_project()
@@ -71,15 +67,18 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
     def test_get_events(self):
         events = self.eventstore.get_events(
-            filter=Filter(project_ids=[self.project1.id, self.project2.id])
+            filter=Filter(
+                project_ids=[self.project1.id, self.project2.id],
+                conditions=[
+                    ["type", "!=", "transaction"]
+                ],  # TODO: Remove once errors storage rolled out
+            )
         )
-        assert len(events) == 5
+        assert len(events) == 3
         # Default sort is timestamp desc, event_id desc
-        assert events[0].event_id == "e" * 32
-        assert events[1].event_id == "d" * 32
-        assert events[2].event_id == "c" * 32
-        assert events[3].event_id == "b" * 32
-        assert events[4].event_id == "a" * 32
+        assert events[0].event_id == "c" * 32
+        assert events[1].event_id == "b" * 32
+        assert events[2].event_id == "a" * 32
 
         # No events found
         project = self.create_project()
@@ -132,10 +131,10 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
         next_event = self.eventstore.get_next_event_id(event, filter=_filter)
 
-        assert prev_event == (six.text_type(self.project1.id), "a" * 32)
+        assert prev_event == (str(self.project1.id), "a" * 32)
 
         # Events with the same timestamp are sorted by event_id
-        assert next_event == (six.text_type(self.project2.id), "c" * 32)
+        assert next_event == (str(self.project2.id), "c" * 32)
 
         # Returns None if no event
         assert self.eventstore.get_prev_event_id(None, filter=_filter) is None
@@ -147,8 +146,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         _filter = Filter(project_ids=[self.project1.id, self.project2.id])
         oldest_event = self.eventstore.get_earliest_event_id(event, filter=_filter)
         latest_event = self.eventstore.get_latest_event_id(event, filter=_filter)
-        assert oldest_event == (six.text_type(self.project1.id), "a" * 32)
-        assert latest_event == (six.text_type(self.project2.id), "e" * 32)
+        assert oldest_event == (str(self.project1.id), "a" * 32)
+        assert latest_event == (str(self.project2.id), "e" * 32)
 
         # Returns none when no latest/oldest event that meets conditions
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
@@ -167,11 +166,11 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         event = self.eventstore.get_event_by_id(self.project2.id, "e" * 32)
         prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
         next_event = self.eventstore.get_next_event_id(event, filter=_filter)
-        assert prev_event == (six.text_type(self.project2.id), "d" * 32)
+        assert prev_event == (str(self.project2.id), "d" * 32)
         assert next_event is None
 
         event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
         prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
         next_event = self.eventstore.get_next_event_id(event, filter=_filter)
         assert prev_event is None
-        assert next_event == (six.text_type(self.project2.id), "e" * 32)
+        assert next_event == (str(self.project2.id), "e" * 32)

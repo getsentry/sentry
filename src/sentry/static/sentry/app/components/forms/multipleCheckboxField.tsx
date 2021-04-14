@@ -1,17 +1,17 @@
 import React from 'react';
 import classNames from 'classnames';
-import PropTypes from 'prop-types';
 
 import FormField from 'app/components/forms/formField';
 import Tooltip from 'app/components/tooltip';
 import {IconQuestion} from 'app/icons';
+import {Choices} from 'app/types';
 import {defined} from 'app/utils';
 
 type Value = string | number | boolean;
 
 type Props = {
   hideLabelDivider?: boolean;
-  choices: Array<[number | string, number | string]>;
+  choices: Choices;
 } & FormField['props'];
 
 type State = FormField['state'] & {
@@ -19,12 +19,6 @@ type State = FormField['state'] & {
 };
 
 export default class MultipleCheckboxField extends FormField<Props, State> {
-  static propTypes = {
-    ...FormField.propTypes,
-    hideLabelDivider: PropTypes.bool,
-    choices: PropTypes.array.isRequired,
-  };
-
   onChange = (e: React.ChangeEvent<HTMLInputElement>, _value?: Value) => {
     const value = _value as Value; // Casting here to allow _value to be optional, which it has to be since it's overloaded.
     let allValues = this.state.values;

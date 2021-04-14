@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from django.contrib.auth.models import update_last_login
 from django.contrib.auth.signals import user_logged_in
 from django.db.utils import DatabaseError
+
 from sentry.models import UserOption
 
 
@@ -26,7 +24,7 @@ def safe_update_last_login(sender, user, **kwargs):
     try:
         update_last_login(sender, user, **kwargs)
     except DatabaseError as exc:
-        logging.warn(six.text_type(exc), exc_info=True)
+        logging.warn(str(exc), exc_info=True)
 
 
 def remove_lost_password_hashes(sender, user, **kwargs):

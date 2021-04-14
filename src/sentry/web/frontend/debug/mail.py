@@ -1,19 +1,16 @@
-from __future__ import absolute_import, print_function
-
 import itertools
 import logging
-import six
 import time
 import traceback
 import uuid
-
 from datetime import datetime, timedelta
+from random import Random
+
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
-from random import Random
 
 from sentry import eventstore
 from sentry.app import tsdb
@@ -21,12 +18,13 @@ from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
 from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utilities import get_digest_metadata
+from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
+from sentry.mail.activity import emails
 from sentry.models import (
     Activity,
     Group,
     GroupStatus,
-    GroupSubscriptionReason,
     Organization,
     OrganizationMember,
     Project,
@@ -34,8 +32,7 @@ from sentry.models import (
     Rule,
     Team,
 )
-from sentry.event_manager import EventManager, get_event_type
-from sentry.mail.activity import emails
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
@@ -44,13 +41,11 @@ from sentry.utils.samples import load_data
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
-from six.moves import xrange
-
 logger = logging.getLogger(__name__)
 
 
 def get_random(request):
-    seed = request.GET.get("seed", six.text_type(time.time()))
+    seed = request.GET.get("seed", str(time.time()))
     return Random(seed)
 
 
@@ -67,7 +62,7 @@ def make_culprit(random):
                 random.sample(loremipsum.words, random.randint(1, int(random.paretovariate(2.2))))
             )
 
-    return u"{module} in {function}".format(
+    return "{module} in {function}".format(
         module=".".join(make_module_path_components(1, 4)), function=random.choice(loremipsum.words)
     )
 
@@ -76,7 +71,7 @@ def make_group_metadata(random, group):
     return {
         "type": "error",
         "metadata": {
-            "type": u"{}Error".format(
+            "type": "{}Error".format(
                 "".join(
                     word.title() for word in random.sample(loremipsum.words, random.randint(1, 3))
                 )
@@ -98,6 +93,7 @@ def make_group_generator(random, project):
 
         group = Group(
             id=id,
+            short_id=id,
             project=project,
             culprit=culprit,
             level=level,
@@ -122,7 +118,7 @@ def add_unsubscribe_link(context):
 
 
 # TODO(dcramer): use https://github.com/disqus/django-mailviews
-class MailPreview(object):
+class MailPreview:
     def __init__(self, html_template, text_template, context=None, subject=None):
         self.html_template = html_template
         self.text_template = text_template
@@ -147,7 +143,7 @@ class MailPreview(object):
         )
 
 
-class ActivityMailPreview(object):
+class ActivityMailPreview:
     def __init__(self, request, activity):
         self.request = request
         self.email = emails.get(activity.type)(activity)
@@ -247,7 +243,7 @@ def alert(request):
     # XXX: this interface_list code needs to be the same as in
     #      src/sentry/mail/adapter.py
     interface_list = []
-    for interface in six.itervalues(event.interfaces):
+    for interface in event.interfaces.values():
         body = interface.to_email_html(event)
         if not body:
             continue
@@ -312,8 +308,7 @@ def digest(request):
     project = Project(id=1, slug="example", name="Example Project", organization=org)
 
     rules = {
-        i: Rule(id=i, project=project, label="Rule #%s" % (i,))
-        for i in range(1, random.randint(2, 4))
+        i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
 
     state = {
@@ -411,7 +406,7 @@ def report(request):
     organization = Organization(id=1, slug="example", name="Example")
 
     projects = []
-    for i in xrange(0, random.randint(1, 8)):
+    for i in range(0, random.randint(1, 8)):
         name = " ".join(random.sample(loremipsum.words, random.randint(1, 4)))
         projects.append(
             Project(
@@ -472,12 +467,12 @@ def report(request):
                 timestamp + (i * rollup),
                 (random.randint(0, daily_maximum), random.randint(0, daily_maximum)),
             )
-            for i in xrange(0, 7)
+            for i in range(0, 7)
         ]
 
         aggregates = [
             random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None
-            for _ in xrange(0, 4)
+            for _ in range(0, 4)
         ]
 
         return reports.Report(

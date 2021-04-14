@@ -1,5 +1,3 @@
-from __future__ import print_function, absolute_import
-
 import logging
 
 from django.db import IntegrityError, transaction
@@ -10,14 +8,14 @@ from sentry import analytics
 from sentry.models import (
     OnboardingTask,
     OnboardingTaskStatus,
+    Organization,
     OrganizationOnboardingTask,
     OrganizationOption,
-    Organization,
 )
-from sentry.plugins.bases import IssueTrackingPlugin
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.signals import (
+    alert_rule_created,
     event_processed,
     first_event_pending,
     first_event_received,
@@ -26,7 +24,6 @@ from sentry.signals import (
     member_joined,
     plugin_enabled,
     project_created,
-    alert_rule_created,
 )
 from sentry.utils.javascript import has_sourcemap
 
@@ -66,7 +63,7 @@ def record_new_project(project, user, **kwargs):
                 Organization.objects.get(id=project.organization_id).get_default_owner().id
             )
         except IndexError:
-            logging.getLogger("sentry").warn(
+            logging.getLogger("sentry").warning(
                 "Cannot initiate onboarding for organization (%s) due to missing owners",
                 project.organization_id,
             )

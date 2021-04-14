@@ -1,22 +1,17 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry import analytics
-
 from sentry.api import client
 from sentry.api.base import Endpoint
-from sentry.models import Group, Project, Identity, IdentityProvider, ApiKey
+from sentry.integrations.slack.message_builder.issues import build_group_attachment
+from sentry.models import ApiKey, Group, Identity, IdentityProvider, Project
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
-from sentry.shared_integrations.exceptions import ApiError
 
 from .client import SlackClient
 from .link_identity import build_linking_url
-from .unlink_identity import build_unlinking_url
 from .requests import SlackActionRequest, SlackRequestError
-from .utils import build_group_attachment, logger
-
+from .unlink_identity import build_unlinking_url
+from .utils import logger
 
 LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
 
@@ -44,9 +39,9 @@ class SlackActionEndpoint(Endpoint):
 
     def api_error(self, error, action_type, logging_data, error_text):
         logging_data = logging_data.copy()
-        logging_data["response"] = six.text_type(error.body)
+        logging_data["response"] = str(error.body)
         logging_data["action_type"] = action_type
-        logger.info("slack.action.api-error-pre-message: %s" % six.text_type(logging_data))
+        logger.info("slack.action.api-error-pre-message: %s" % str(logging_data))
         logger.info("slack.action.api-error", extra=logging_data)
 
         return self.respond(
@@ -90,9 +85,7 @@ class SlackActionEndpoint(Endpoint):
         )
 
         return client.put(
-            path=u"/projects/{}/{}/issues/".format(
-                group.project.organization.slug, group.project.slug
-            ),
+            path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
             params={"id": group.id},
             data=data,
             user=identity.user,
@@ -115,7 +108,7 @@ class SlackActionEndpoint(Endpoint):
 
         dialog = {
             "callback_id": callback_id,
-            "title": u"Resolve Issue",
+            "title": "Resolve Issue",
             "submit_label": "Resolve",
             "elements": [RESOLVE_SELECTOR],
         }
@@ -130,7 +123,7 @@ class SlackActionEndpoint(Endpoint):
         try:
             slack_client.post("/dialog.open", data=payload)
         except ApiError as e:
-            logger.error("slack.action.response-error", extra={"error": six.text_type(e)})
+            logger.error("slack.action.response-error", extra={"error": str(e)})
 
     def construct_reply(self, attachment, is_message=False):
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
@@ -198,7 +191,7 @@ class SlackActionEndpoint(Endpoint):
                 id=group_id,
             )
         except Group.DoesNotExist:
-            logger.error("slack.action.invalid-issue", extra=logging_data)
+            logger.info("slack.action.invalid-issue", extra=logging_data)
             return self.respond(status=403)
 
         logging_data["organization_id"] = group.organization.id
@@ -261,7 +254,7 @@ class SlackActionEndpoint(Endpoint):
                     slack_request.callback_data["orig_response_url"], data=body, json=True
                 )
             except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": six.text_type(e)})
+                logger.error("slack.action.response-error", extra={"error": str(e)})
 
             return self.respond()
 

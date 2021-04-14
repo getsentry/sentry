@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 from django.views.generic import View
 
-from .mail import MailPreview
-
 from sentry.models import Organization, OrganizationMember
+
+from .mail import MailPreview
 
 
 class DebugSetup2faEmailView(View):

@@ -1,13 +1,12 @@
-from __future__ import absolute_import
+import re
+import time
 
 import responses
-import time
-import re
 
-from sentry.utils import json
+from sentry.integrations.msteams import MsTeamsNotifyServiceAction
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
-from sentry.integrations.msteams import MsTeamsNotifyServiceAction
+from sentry.utils import json
 
 
 class MsTeamsNotifyActionTest(RuleTestCase):
@@ -62,7 +61,7 @@ class MsTeamsNotifyActionTest(RuleTestCase):
         # can't pass the title and title link separately
         # with MS Teams cards.
         title_card = attachments[0]["content"]["body"][0]
-        title_pattern = "\[%s\](.*)" % event.title
+        title_pattern = r"\[%s\](.*)" % event.title
         assert re.match(title_pattern, title_card["text"])
 
     def test_render_label(self):

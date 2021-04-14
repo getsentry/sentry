@@ -1,16 +1,20 @@
-from __future__ import absolute_import
-
 from collections import namedtuple
+from enum import Enum
 
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
-from enum import Enum
 
-from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes
-from sentry.db.models import ArrayField, sane_repr
+from sentry.db.models import (
+    ArrayField,
+    FlexibleForeignKey,
+    Model,
+    OneToOneCascadeDeletes,
+    UUIDField,
+    sane_repr,
+)
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
 from sentry.snuba.models import QuerySubscription
@@ -111,9 +115,7 @@ class IncidentManager(BaseManager):
             else:
                 identifier += 1
 
-            return super(IncidentManager, self).create(
-                organization=organization, identifier=identifier, **kwargs
-            )
+            return super().create(organization=organization, identifier=identifier, **kwargs)
 
 
 class IncidentType(Enum):
@@ -239,7 +241,10 @@ class TimeSeriesSnapshot(Model):
         # with what Snuba returns we cast floats to ints when they're whole numbers.
         return {
             "data": [
-                {"time": int(time), "count": count if not count.is_integer() else int(count)}
+                {
+                    "time": int(time),
+                    "count": count if count is None or not count.is_integer() else int(count),
+                }
                 for time, count in self.values
             ]
         }
@@ -302,11 +307,7 @@ class AlertRuleManager(BaseManager):
     CACHE_SUBSCRIPTION_KEY = "alert_rule:subscription:%s"
 
     def get_queryset(self):
-        return (
-            super(AlertRuleManager, self)
-            .get_queryset()
-            .exclude(status=AlertRuleStatus.SNAPSHOT.value)
-        )
+        return super().get_queryset().exclude(status=AlertRuleStatus.SNAPSHOT.value)
 
     def fetch_for_organization(self, organization, projects=None):
         queryset = self.filter(organization=organization)
@@ -370,6 +371,7 @@ class AlertRule(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
+    owner = FlexibleForeignKey("sentry.Actor", null=True)
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
@@ -591,20 +593,20 @@ class AlertRuleTriggerAction(Model):
             # ok to contact this email.
             return self.target_identifier
 
-    def build_handler(self, incident, project):
+    def build_handler(self, action, incident, project):
         type = AlertRuleTriggerAction.Type(self.type)
         if type in self._type_registrations:
-            return self._type_registrations[type].handler(self, incident, project)
+            return self._type_registrations[type].handler(action, incident, project)
         else:
-            metrics.incr("alert_rule_trigger.unhandled_type.{}".format(self.type))
+            metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
 
-    def fire(self, incident, project, metric_value):
-        handler = self.build_handler(incident, project)
+    def fire(self, action, incident, project, metric_value):
+        handler = self.build_handler(action, incident, project)
         if handler:
             return handler.fire(metric_value)
 
-    def resolve(self, incident, project, metric_value):
-        handler = self.build_handler(incident, project)
+    def resolve(self, action, incident, project, metric_value):
+        handler = self.build_handler(action, incident, project)
         if handler:
             return handler.resolve(metric_value)
 
@@ -626,7 +628,7 @@ class AlertRuleTriggerAction(Model):
                     handler, slug, type, frozenset(supported_target_types), integration_provider
                 )
             else:
-                raise Exception(u"Handler already registered for type %s" % type)
+                raise Exception("Handler already registered for type %s" % type)
             return handler
 
         return inner

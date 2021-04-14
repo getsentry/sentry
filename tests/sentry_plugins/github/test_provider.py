@@ -1,15 +1,11 @@
-from __future__ import absolute_import
-
 import responses
-
 from exam import fixture
-from sentry.utils.compat.mock import patch
-from social_auth.models import UserSocialAuth
+
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
-from sentry_plugins.github.client import GitHubClient, GitHubAppsClient
+from sentry.utils.compat.mock import patch
+from sentry_plugins.github.client import GitHubAppsClient, GitHubClient
 from sentry_plugins.github.plugin import GitHubAppsRepositoryProvider, GitHubRepositoryProvider
 from sentry_plugins.github.testutils import (
     COMPARE_COMMITS_EXAMPLE,
@@ -17,6 +13,7 @@ from sentry_plugins.github.testutils import (
     INTSTALLATION_REPOSITORIES_API_RESPONSE,
     LIST_INSTALLATION_API_RESPONSE,
 )
+from social_auth.models import UserSocialAuth
 
 
 class GitHubPluginTest(PluginTestCase):
@@ -84,9 +81,7 @@ class GitHubPluginTest(PluginTestCase):
         assert req_json == {
             "active": True,
             "config": {
-                "url": "http://testserver/plugins/github/organizations/{}/webhook/".format(
-                    organization.id
-                ),
+                "url": f"http://testserver/plugins/github/organizations/{organization.id}/webhook/",
                 "secret": self.provider.get_webhook_secret(organization),
                 "content_type": "json",
             },

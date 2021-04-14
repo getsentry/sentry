@@ -1,15 +1,11 @@
-from __future__ import absolute_import
-
 import responses
-import six
-
-from exam import fixture
 from django.core.urlresolvers import reverse
+from exam import fixture
+
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
 from sentry_plugins.pagerduty.plugin import PagerDutyPlugin
 
 INVALID_METHOD = (
@@ -79,20 +75,16 @@ class PagerDutyPluginTest(PluginTestCase):
             "contexts": [
                 {
                     "text": "View Sentry Issue Details",
-                    "href": "http://example.com/organizations/baz/issues/{}/?referrer=pagerduty_plugin".format(
-                        group.id
-                    ),
+                    "href": f"http://example.com/organizations/baz/issues/{group.id}/?referrer=pagerduty_plugin",
                     "type": "link",
                 }
             ],
-            "incident_key": six.text_type(group.id),
+            "incident_key": str(group.id),
             "client": "sentry",
             "details": {
                 "project": self.project.name,
                 "release": None,
-                "url": "http://example.com/organizations/baz/issues/{}/?referrer=pagerduty_plugin".format(
-                    group.id
-                ),
+                "url": f"http://example.com/organizations/baz/issues/{group.id}/?referrer=pagerduty_plugin",
                 "culprit": group.culprit,
                 "platform": "python",
                 "event_id": event.event_id,

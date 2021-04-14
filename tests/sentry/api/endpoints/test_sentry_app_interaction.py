@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
@@ -100,12 +98,14 @@ class PostSentryAppInteractionTest(SentryAppInteractionTest):
             self.owned_url, body, headers={"Content-Type": "application/json"}
         )
         assert response.status_code == 400
-        assert response.data[
-            "detail"
-        ] == "The field componentType is required and must be one of %s" % [
+        component_types = [
             "stacktrace-link",
             "issue-link",
         ]
+        assert (
+            response.data["detail"]
+            == f"The field componentType is required and must be one of {component_types}"
+        )
 
     def test_incorrect_component_type(self):
         self.login_as(self.user)
@@ -114,12 +114,14 @@ class PostSentryAppInteractionTest(SentryAppInteractionTest):
             self.owned_url, body, headers={"Content-Type": "application/json"}
         )
         assert response.status_code == 400
-        assert response.data[
-            "detail"
-        ] == "The field componentType is required and must be one of %s" % [
+        component_types = [
             "stacktrace-link",
             "issue-link",
         ]
+        assert (
+            response.data["detail"]
+            == f"The field componentType is required and must be one of {component_types}"
+        )
 
     def test_allows_logged_in_user_who_doesnt_own_app(self):
         self.login_as(self.user)

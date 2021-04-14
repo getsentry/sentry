@@ -1,14 +1,13 @@
-from __future__ import absolute_import
-from hashlib import sha256
 import hmac
+from hashlib import sha256
 from uuid import uuid1
-from rest_framework.response import Response
 
 from django.core.urlresolvers import reverse
-from sentry.utils.http import absolute_uri
+from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.models import ProjectOption
+from sentry.utils.http import absolute_uri
 
 
 def _get_webhook_url(project, plugin_id, token):
@@ -28,7 +27,7 @@ def _get_webhook_url(project, plugin_id, token):
 def _get_signature(project_id, plugin_id, token):
     return hmac.new(
         key=token.encode("utf-8"),
-        msg=("{}-{}".format(plugin_id, project_id)).encode("utf-8"),
+        msg=(f"{plugin_id}-{project_id}").encode("utf-8"),
         digestmod=sha256,
     ).hexdigest()
 

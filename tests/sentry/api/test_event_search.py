@@ -1,33 +1,33 @@
-from __future__ import absolute_import
-
 import datetime
-import pytest
-import six
+import re
 import unittest
 from datetime import timedelta
-from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME, SPAN_STATUS_NAME_TO_CODE
 
+import pytest
 from django.utils import timezone
 from freezegun import freeze_time
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME, SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
 from sentry.api.event_search import (
+    FUNCTIONS,
+    OPERATOR_TO_FUNCTION,
     AggregateKey,
-    event_search_grammar,
     Function,
     FunctionArg,
-    with_default,
-    get_filter,
-    resolve_field_list,
-    parse_function,
-    parse_search_query,
-    get_json_meta_type,
+    FunctionDetails,
     InvalidSearchQuery,
-    OPERATOR_TO_FUNCTION,
     SearchFilter,
     SearchKey,
     SearchValue,
     SearchVisitor,
+    event_search_grammar,
+    get_filter,
+    get_json_meta_type,
+    parse_function,
+    parse_search_query,
+    resolve_field_list,
+    with_default,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -54,6 +54,7 @@ def test_get_json_meta_type():
     assert get_json_meta_type("p100", "Float32") == "duration"
     assert get_json_meta_type("apdex_transaction_duration_300", "Float32") == "number"
     assert get_json_meta_type("failure_rate", "Float32") == "percentage"
+    assert get_json_meta_type("count_miserable_user_300", "Float32") == "number"
     assert get_json_meta_type("user_misery_300", "Float32") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "Float32") == "duration"
     assert get_json_meta_type("count_thing", "UInt64") == "integer"
@@ -61,6 +62,56 @@ def test_get_json_meta_type():
     assert get_json_meta_type("count_thing", "Nullable(String)") == "string"
     assert get_json_meta_type("measurements.size", "Float64") == "number"
     assert get_json_meta_type("measurements.fp", "Float64") == "duration"
+    assert get_json_meta_type("span_op_breakdowns.ops.browser", "Float64") == "duration"
+    assert get_json_meta_type("span_op_breakdowns.total.time", "Float64") == "duration"
+    assert (
+        get_json_meta_type(
+            "percentile_measurements_fp_0_5",
+            "Nullable(Float64)",
+            FunctionDetails(
+                "percentile(measurements.fp, 0.5)",
+                FUNCTIONS["percentile"],
+                {"column": "measurements.fp", "percentile": 0.5},
+            ),
+        )
+        == "duration"
+    )
+    assert (
+        get_json_meta_type(
+            "percentile_measurements_foo_0_5",
+            "Nullable(Float64)",
+            FunctionDetails(
+                "percentile(measurements.foo, 0.5)",
+                FUNCTIONS["percentile"],
+                {"column": "measurements.foo", "percentile": 0.5},
+            ),
+        )
+        == "number"
+    )
+    assert (
+        get_json_meta_type(
+            "percentile_span_op_breakdowns_fp_0_5",
+            "Nullable(Float64)",
+            FunctionDetails(
+                "percentile(span_op_breakdowns.fp, 0.5)",
+                FUNCTIONS["percentile"],
+                {"column": "span_op_breakdowns.fp", "percentile": 0.5},
+            ),
+        )
+        == "duration"
+    )
+    assert (
+        get_json_meta_type(
+            "percentile_span_op_breakdowns_foo_0_5",
+            "Nullable(Float64)",
+            FunctionDetails(
+                "percentile(span_op_breakdowns.foo, 0.5)",
+                FUNCTIONS["percentile"],
+                {"column": "span_op_breakdowns.foo", "percentile": 0.5},
+            ),
+        )
+        == "duration"
+    )
 
 
 def test_parse_function():
@@ -69,13 +120,27 @@ def test_parse_function():
         ["transaction.duration", "0.5"],
         None,
     )
-    assert parse_function("p50()") == ("p50", [], None,)
+    assert parse_function("p50()") == (
+        "p50",
+        [],
+        None,
+    )
     assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"], None)
+    assert parse_function("p75(span_op_breakdowns.ops.http)") == (
+        "p75",
+        ["span_op_breakdowns.ops.http"],
+        None,
+    )
     assert parse_function("apdex(300)") == ("apdex", ["300"], None)
     assert parse_function("failure_rate()") == ("failure_rate", [], None)
     assert parse_function("histogram(measurements_value, 1,0,1)") == (
         "histogram",
         ["measurements_value", "1", "0", "1"],
+        None,
+    )
+    assert parse_function("histogram(span_op_breakdowns_value, 1,0,1)") == (
+        "histogram",
+        ["span_op_breakdowns_value", "1", "0", "1"],
         None,
     )
     assert parse_function("count_unique(transaction.status)") == (
@@ -152,6 +217,125 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
             SearchFilter(
                 key=SearchKey(name="release"), operator="=", value=SearchValue(raw_value="1.2.1")
+            ),
+        ]
+
+    def test_simple_in(self):
+        assert parse_search_query("user.email:[test@test.com] test:[hello]") == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="IN",
+                value=SearchValue(raw_value=["hello"]),
+            ),
+        ]
+        assert parse_search_query(
+            "user.email:[test@test.com,test2@test.com,test3@test.com] test:[hello]"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com", "test2@test.com", "test3@test.com"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="IN",
+                value=SearchValue(raw_value=["hello"]),
+            ),
+        ]
+        assert parse_search_query(
+            "!user.email:[test@test.com, test@test2.com,     test@test3.com] test:[hello]"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="NOT IN",
+                value=SearchValue(raw_value=["test@test.com", "test@test2.com", "test@test3.com"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="IN",
+                value=SearchValue(raw_value=["hello"]),
+            ),
+        ]
+        # Make sure brackets still work in normal values
+        assert parse_search_query("test:h[e]llo]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="h[e]llo]"),
+            ),
+        ]
+        assert parse_search_query("test:[h[e]llo") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h[e]llo"),
+            ),
+        ]
+        assert parse_search_query('test:"[h]"') == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h]"),
+            ),
+        ]
+        assert parse_search_query("test:[h]*") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h]*"),
+            ),
+        ]
+        assert parse_search_query("test:[h e]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h"),
+            ),
+            SearchFilter(
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(raw_value="e]"),
+            ),
+        ]
+        assert parse_search_query("test:[[h]]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[[h]]"),
+            ),
+        ]
+        assert parse_search_query("test:[]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[]"),
+            ),
+        ]
+        assert parse_search_query('user.email:[test@test.com, "hi", 1]') == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com", "hi", "1"]),
+            )
+        ]
+        assert parse_search_query('user.email:[test@test.com, "hi", 1.0]') == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com", "hi", "1.0"]),
+            )
+        ]
+
+        assert parse_search_query("user.email:[test@test.com]user.email:hello@hello.com") == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="=",
+                value=SearchValue(raw_value="[test@test.com]user.email:hello@hello.com"),
             ),
         ]
 
@@ -361,7 +545,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_date_formats(self):
         invalid_queries = ["first_seen:hello", "first_seen:123", "first_seen:2018-01-01T00:01ZZ"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid date"):
                 parse_search_query(invalid_query)
 
     def test_specific_time_filter(self):
@@ -420,6 +604,24 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_timestamp_rollup(self):
+        assert parse_search_query("timestamp.to_hour:2018-01-01T05:06:07+00:00") == [
+            SearchFilter(
+                key=SearchKey(name="timestamp.to_hour"),
+                operator=">=",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                ),
+            ),
+            SearchFilter(
+                key=SearchKey(name="timestamp.to_hour"),
+                operator="<",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                ),
+            ),
+        ]
+
     def test_quoted_val(self):
         assert parse_search_query('release:"a release"') == [
             SearchFilter(
@@ -432,6 +634,46 @@ class ParseSearchQueryTest(unittest.TestCase):
             SearchFilter(
                 key=SearchKey(name="release"), operator="!=", value=SearchValue("a release")
             )
+        ]
+        assert parse_search_query('release:["a release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release"]),
+            )
+        ]
+        assert parse_search_query('release:["a release","b release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release", "b release"]),
+            )
+        ]
+        assert parse_search_query('release:["a release",    "b release", "c release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release", "b release", "c release"]),
+            )
+        ]
+        assert parse_search_query('!release:["a release","b release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="NOT IN",
+                value=SearchValue(raw_value=["a release", "b release"]),
+            )
+        ]
+        assert parse_search_query('release:["a release"] hello:["123"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="hello"),
+                operator="IN",
+                value=SearchValue(raw_value=["123"]),
+            ),
         ]
 
     def test_quoted_key(self):
@@ -573,7 +815,7 @@ class ParseSearchQueryTest(unittest.TestCase):
         for test in tests:
             with self.assertRaisesRegexp(
                 InvalidSearchQuery,
-                "Invalid quote at '{}': quotes must enclose text or be escaped.".format(test[0]),
+                f"Invalid quote at '{test[0]}': quotes must enclose text or be escaped.",
             ):
                 parse_search_query(test[1].format(test[0]))
 
@@ -601,6 +843,22 @@ class ParseSearchQueryTest(unittest.TestCase):
                 key=SearchKey(name="tags[project_id]"),
                 operator="=",
                 value=SearchValue(raw_value="123"),
+            ),
+        ]
+
+    def test_explicit_tags_in_filter(self):
+        assert parse_search_query("tags[fruit]:[apple, pear]") == [
+            SearchFilter(
+                key=SearchKey(name="tags[fruit]"),
+                operator="IN",
+                value=SearchValue(raw_value=["apple", "pear"]),
+            ),
+        ]
+        assert parse_search_query('tags[fruit]:["apple wow", "pear"]') == [
+            SearchFilter(
+                key=SearchKey(name="tags[fruit]"),
+                operator="IN",
+                value=SearchValue(raw_value=["apple wow", "pear"]),
             ),
         ]
 
@@ -660,7 +918,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_boolean_filter(self):
         truthy = ("true", "TRUE", "1")
         for val in truthy:
-            assert parse_search_query("stack.in_app:{}".format(val)) == [
+            assert parse_search_query(f"stack.in_app:{val}") == [
                 SearchFilter(
                     key=SearchKey(name="stack.in_app"),
                     operator="=",
@@ -669,7 +927,7 @@ class ParseSearchQueryTest(unittest.TestCase):
             ]
         falsey = ("false", "FALSE", "0")
         for val in falsey:
-            assert parse_search_query("stack.in_app:{}".format(val)) == [
+            assert parse_search_query(f"stack.in_app:{val}") == [
                 SearchFilter(
                     key=SearchKey(name="stack.in_app"),
                     operator="=",
@@ -679,14 +937,16 @@ class ParseSearchQueryTest(unittest.TestCase):
 
         assert parse_search_query("!stack.in_app:false") == [
             SearchFilter(
-                key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=1),
+                key=SearchKey(name="stack.in_app"),
+                operator="=",
+                value=SearchValue(raw_value=1),
             )
         ]
 
     def test_invalid_boolean_filter(self):
         invalid_queries = ["stack.in_app:lol", "stack.in_app:123", "stack.in_app:>true"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for boolean field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid boolean"):
                 parse_search_query(invalid_query)
 
     def test_numeric_filter(self):
@@ -700,6 +960,48 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_numeric_in_filter(self):
+        assert parse_search_query("project_id:[500,501,502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            )
+        ]
+        assert parse_search_query("project_id:[500, 501,     502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            )
+        ]
+        assert parse_search_query("project_id:[500,501,502] issue.id:[100]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="issue.id"),
+                operator="IN",
+                value=SearchValue(raw_value=[100]),
+            ),
+        ]
+        # Numeric format should still return a string if field isn't
+        # allowed
+        assert parse_search_query("project_id:[500,501,502] random_field:[500,501,502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="random_field"),
+                operator="IN",
+                value=SearchValue(raw_value=["500", "501", "502"]),
+            ),
+        ]
+
     def test_numeric_filter_with_decimals(self):
         assert parse_search_query("transaction.duration:>3.1415") == [
             SearchFilter(
@@ -709,11 +1011,40 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_numeric_filter_with_shorthand(self):
+        assert parse_search_query("stack.colno:>3k") == [
+            SearchFilter(
+                key=SearchKey(name="stack.colno"),
+                operator=">",
+                value=SearchValue(raw_value=3000.0),
+            )
+        ]
+        assert parse_search_query("stack.colno:>3m") == [
+            SearchFilter(
+                key=SearchKey(name="stack.colno"),
+                operator=">",
+                value=SearchValue(raw_value=3000000.0),
+            )
+        ]
+        assert parse_search_query("stack.colno:>3b") == [
+            SearchFilter(
+                key=SearchKey(name="stack.colno"),
+                operator=">",
+                value=SearchValue(raw_value=3000000000.0),
+            )
+        ]
+
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid number"):
                 parse_search_query(invalid_query)
+
+    def test_invalid_numeric_shorthand(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, expected_regex="is not a valid number suffix, must be k, m or b"
+        ):
+            parse_search_query("stack.colno:>3s")
 
     def test_negated_on_boolean_values_and_non_boolean_field(self):
         assert parse_search_query("!user.id:true") == [
@@ -751,12 +1082,32 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_duration_filter_overrides_numeric_shorthand(self):
+        # 2m should mean 2 minutes for duration filters (as opposed to 2 million)
+        assert parse_search_query("transaction.duration:>2m") == [
+            SearchFilter(
+                key=SearchKey(name="transaction.duration"),
+                operator=">",
+                value=SearchValue(raw_value=120000.0),
+            )
+        ]
+
     def test_aggregate_duration_filter(self):
         assert parse_search_query("avg(transaction.duration):>500s") == [
             SearchFilter(
                 key=AggregateKey(name="avg(transaction.duration)"),
                 operator=">",
                 value=SearchValue(raw_value=500000.0),
+            )
+        ]
+
+    def test_aggregate_duration_filter_overrides_numeric_shorthand(self):
+        # 2m should mean 2 minutes for duration filters (as opposed to 2 million)
+        assert parse_search_query("avg(transaction.duration):>2m") == [
+            SearchFilter(
+                key=AggregateKey(name="avg(transaction.duration)"),
+                operator=">",
+                value=SearchValue(raw_value=120000.0),
             )
         ]
 
@@ -827,6 +1178,69 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+        assert parse_search_query("min(measurements.size):<3k") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="<",
+                value=SearchValue(raw_value=3000.0),
+            )
+        ]
+
+        assert parse_search_query("min(measurements.size):2m") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="=",
+                value=SearchValue(raw_value=2000000.0),
+            )
+        ]
+
+    def test_numeric_aggregate_op_breakdowns_filter(self):
+        assert parse_search_query("min(span_op_breakdowns.ops.browser):3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="min(span_op_breakdowns.ops.browser)"),
+                operator="=",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+        assert parse_search_query("min(span_op_breakdowns.ops.browser):>3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="min(span_op_breakdowns.ops.browser)"),
+                operator=">",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+        assert parse_search_query("min(span_op_breakdowns.ops.browser):<3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="min(span_op_breakdowns.ops.browser)"),
+                operator="<",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+        assert parse_search_query("min(span_op_breakdowns.ops.browser):<3k") == [
+            SearchFilter(
+                key=SearchKey(name="min(span_op_breakdowns.ops.browser)"),
+                operator="<",
+                value=SearchValue(raw_value=3000.0),
+            )
+        ]
+
+        assert parse_search_query("min(span_op_breakdowns.ops.browser):2m") == [
+            SearchFilter(
+                key=SearchKey(name="min(span_op_breakdowns.ops.browser)"),
+                operator="=",
+                value=SearchValue(raw_value=120000.0),
+            )
+        ]
+
+    def test_invalid_numeric_aggregate_filter(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, expected_regex="is not a valid number suffix, must be k, m or b"
+        ):
+            parse_search_query("min(measurements.size):3s")
+
     def test_duration_measurements_filter(self):
         assert parse_search_query("measurements.fp:1.5s") == [
             SearchFilter(
@@ -852,6 +1266,31 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_duration_op_breakdowns_filter(self):
+        assert parse_search_query("span_op_breakdowns.ops.browser:1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="span_op_breakdowns.ops.browser"),
+                operator="=",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
+        assert parse_search_query("span_op_breakdowns.ops.browser:>1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="span_op_breakdowns.ops.browser"),
+                operator=">",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
+        assert parse_search_query("span_op_breakdowns.ops.browser:<1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="span_op_breakdowns.ops.browser"),
+                operator="<",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
     def test_duration_aggregate_measurements_filter(self):
         assert parse_search_query("percentile(measurements.fp, 0.5):3.3s") == [
             SearchFilter(
@@ -872,6 +1311,31 @@ class ParseSearchQueryTest(unittest.TestCase):
         assert parse_search_query("percentile(measurements.fp, 0.5):<3.3s") == [
             SearchFilter(
                 key=SearchKey(name="percentile(measurements.fp, 0.5)"),
+                operator="<",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
+
+    def test_duration_aggregate_op_breakdowns_filter(self):
+        assert parse_search_query("percentile(span_op_breakdowns.ops.browser, 0.5):3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(span_op_breakdowns.ops.browser, 0.5)"),
+                operator="=",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
+
+        assert parse_search_query("percentile(span_op_breakdowns.ops.browser, 0.5):>3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(span_op_breakdowns.ops.browser, 0.5)"),
+                operator=">",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
+
+        assert parse_search_query("percentile(span_op_breakdowns.ops.browser, 0.5):<3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(span_op_breakdowns.ops.browser, 0.5)"),
                 operator="<",
                 value=SearchValue(raw_value=3300),
             )
@@ -1011,12 +1475,12 @@ def _noeq(xy):
 
 # message ("foo bar baz")
 def _m(x):
-    return ["notEquals", [["positionCaseInsensitive", ["message", u"'{}'".format(x)]], 0]]
+    return ["notEquals", [["positionCaseInsensitive", ["message", f"'{x}'"]], 0]]
 
 
 # message ("foo bar baz") using operators instead of functions
 def _om(x):
-    return [["positionCaseInsensitive", ["message", "'{}'".format(x)]], "!=", 0]
+    return [["positionCaseInsensitive", ["message", f"'{x}'"]], "!=", 0]
 
 
 # x OR y
@@ -1041,11 +1505,11 @@ def _oc(op, val):
 
 class ParseBooleanSearchQueryTest(TestCase):
     def setUp(self):
-        super(ParseBooleanSearchQueryTest, self).setUp()
+        super().setUp()
         users = ["foo", "bar", "foobar", "hello", "hi"]
         for u in users:
-            self.__setattr__(u, ["equals", ["user.email", "{}@example.com".format(u)]])
-            self.__setattr__("o{}".format(u), ["user.email", "=", "{}@example.com".format(u)])
+            self.__setattr__(u, ["equals", ["user.email", f"{u}@example.com"]])
+            self.__setattr__(f"o{u}", ["user.email", "=", f"{u}@example.com"])
 
     def test_simple(self):
         result = get_filter("user.email:foo@example.com OR user.email:bar@example.com")
@@ -1070,7 +1534,8 @@ class ParseBooleanSearchQueryTest(TestCase):
         assert _filter.conditions == [
             [
                 _or(
-                    ["like", ["error.value", "Deadlock%"]], ["notLike", ["stack.filename", "%.py"]],
+                    ["like", ["error.value", "Deadlock%"]],
+                    ["notLike", ["stack.filename", "%.py"]],
                 ),
                 "=",
                 1,
@@ -1113,7 +1578,14 @@ class ParseBooleanSearchQueryTest(TestCase):
             "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com"
         )
         assert result.conditions == [
-            [_or(_and(self.foo, self.bar), _and(self.foobar, _and(self.hello, self.hi)),), "=", 1]
+            [
+                _or(
+                    _and(self.foo, self.bar),
+                    _and(self.foobar, _and(self.hello, self.hi)),
+                ),
+                "=",
+                1,
+            ]
         ]
 
         # absurdly long
@@ -1127,7 +1599,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                     _or(
                         _and(self.foobar, _and(self.hello, self.hi)),
                         _or(
-                            _and(self.foo, self.bar), _and(self.foobar, _and(self.hello, self.hi)),
+                            _and(self.foo, self.bar),
+                            _and(self.foobar, _and(self.hello, self.hi)),
                         ),
                     ),
                 ),
@@ -1164,7 +1637,14 @@ class ParseBooleanSearchQueryTest(TestCase):
             "(user.email:foo@example.com OR (user.email:bar@example.com OR (user.email:foobar@example.com AND user.email:hello@example.com OR user.email:hi@example.com)))"
         )
         assert result.conditions == [
-            [_or(self.foo, _or(self.bar, _or(_and(self.foobar, self.hello), self.hi)),), "=", 1]
+            [
+                _or(
+                    self.foo,
+                    _or(self.bar, _or(_and(self.foobar, self.hello), self.hi)),
+                ),
+                "=",
+                1,
+            ]
         ]
 
     def test_grouping_without_boolean_terms(self):
@@ -1178,7 +1658,7 @@ class ParseBooleanSearchQueryTest(TestCase):
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(user.email:foo@example.com OR user.email:bar@example.com")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at '(user.' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
@@ -1186,13 +1666,13 @@ class ParseBooleanSearchQueryTest(TestCase):
                 "((user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com)"
             )
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at '((user' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("user.email:foo@example.com OR user.email:bar@example.com)")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at '.com)' (column 57). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
@@ -1200,7 +1680,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 "(user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com))"
             )
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at 'com))' (column 91). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
@@ -1217,7 +1697,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                         _or(
                             _and(
                                 _eq("ab"),
-                                _and(_or(_eq("cd"), _eq("ef")), _and(_eq("gh"), _eq("ij")),),
+                                _and(
+                                    _or(_eq("cd"), _eq("ef")),
+                                    _and(_eq("gh"), _eq("ij")),
+                                ),
                             ),
                             _eq("kl"),
                         ),
@@ -1250,7 +1733,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                         _or(
                             _eq("ab"),
                             _or(
-                                _and(_eq("cd"), _and(_eq("ef"), _and(_eq("gh"), _eq("ij"))),),
+                                _and(
+                                    _eq("cd"),
+                                    _and(_eq("ef"), _and(_eq("gh"), _eq("ij"))),
+                                ),
                                 _eq("kl"),
                             ),
                         ),
@@ -1264,7 +1750,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _and(_or(_eq("ab"), _eq("cd")), _and(_eq("ef"), _eq("gh")),),
+                            _and(
+                                _or(_eq("ab"), _eq("cd")),
+                                _and(_eq("ef"), _eq("gh")),
+                            ),
                             _and(_eq("ij"), _eq("kl")),
                         ),
                         "=",
@@ -1277,7 +1766,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _and(_eq("ab"), _and(_eq("cd"), _eq("ef"))), _and(_eq("gh"), _eq("ij")),
+                            _and(_eq("ab"), _and(_eq("cd"), _eq("ef"))),
+                            _and(_eq("gh"), _eq("ij")),
                         ),
                         "=",
                         1,
@@ -1305,7 +1795,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _eq("ab"), _and(_eq("cd"), _or(_eq("ef"), _and(_eq("gh"), _eq("ef")))),
+                            _eq("ab"),
+                            _and(_eq("cd"), _or(_eq("ef"), _and(_eq("gh"), _eq("ef")))),
                         ),
                         "=",
                         1,
@@ -1369,25 +1860,25 @@ class ParseBooleanSearchQueryTest(TestCase):
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("count():>1 OR a:b")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(count():>1 AND a:b) OR a:b")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(count():>1 AND a:b) OR (a:b AND count():>2)")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("a:b OR (c:d AND (e:f AND count():>1))")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
 
@@ -1396,7 +1887,7 @@ class ParseBooleanSearchQueryTest(TestCase):
         project2 = self.create_project()
         tests = [
             (
-                "project:{} OR project:{}".format(project1.slug, project2.slug),
+                f"project:{project1.slug} OR project:{project2.slug}",
                 [
                     [
                         _or(
@@ -1410,7 +1901,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [project1.id, project2.id],
             ),
             (
-                "(project:{} OR project:{}) AND a:b".format(project1.slug, project2.slug),
+                f"(project:{project1.slug} OR project:{project2.slug}) AND a:b",
                 [
                     [
                         _or(
@@ -1425,7 +1916,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [project1.id, project2.id],
             ),
             (
-                "(project:{} AND a:b) OR (project:{} AND c:d)".format(project1.slug, project1.slug),
+                f"(project:{project1.slug} AND a:b) OR (project:{project1.slug} AND c:d)",
                 [
                     [
                         _or(
@@ -1457,12 +1948,12 @@ class ParseBooleanSearchQueryTest(TestCase):
         project3 = self.create_project()
         with self.assertRaisesRegexp(
             InvalidSearchQuery,
-            "Project {} does not exist or is not an actively selected project.".format(
-                project3.slug
+            re.escape(
+                f"Invalid query. Project(s) {str(project3.slug)} do not exist or are not actively selected."
             ),
         ):
             get_filter(
-                "project:{} OR project:{}".format(project1.slug, project3.slug),
+                f"project:{project1.slug} OR project:{project3.slug}",
                 params={
                     "organization_id": self.organization.id,
                     "project_id": [project1.id, project2.id],
@@ -1478,28 +1969,26 @@ class ParseBooleanSearchQueryTest(TestCase):
         group3 = self.create_group(project=self.project)
         tests = [
             (
-                "issue.id:{} OR issue.id:{}".format(group1.id, group2.id),
+                f"issue.id:{group1.id} OR issue.id:{group2.id}",
                 [],
                 [group1.id, group2.id],
             ),
-            ("issue.id:{} AND issue.id:{}".format(group1.id, group1.id), [], [group1.id]),
+            (f"issue.id:{group1.id} AND issue.id:{group1.id}", [], [group1.id]),
             (
-                "(issue.id:{} AND issue.id:{}) OR issue.id:{}".format(
-                    group1.id, group2.id, group3.id
-                ),
+                f"(issue.id:{group1.id} AND issue.id:{group2.id}) OR issue.id:{group3.id}",
                 [],
                 [group1.id, group2.id, group3.id],
             ),
-            ("issue.id:{} AND a:b".format(group1.id), [_oeq("ab")], [group1.id]),
+            (f"issue.id:{group1.id} AND a:b", [_oeq("ab")], [group1.id]),
             # TODO: Using OR with issue.id is broken. These return incorrect results.
-            ("issue.id:{} OR a:b".format(group1.id), [_oeq("ab")], [group1.id]),
+            (f"issue.id:{group1.id} OR a:b", [_oeq("ab")], [group1.id]),
             (
-                "(issue.id:{} AND a:b) OR issue.id:{}".format(group1.id, group2.id),
+                f"(issue.id:{group1.id} AND a:b) OR issue.id:{group2.id}",
                 [_oeq("ab")],
                 [group1.id, group2.id],
             ),
             (
-                "(issue.id:{} AND a:b) OR c:d".format(group1.id),
+                f"(issue.id:{group1.id} AND a:b) OR c:d",
                 [[_or(_eq("ab"), _eq("cd")), "=", 1]],
                 [group1.id],
             ),
@@ -1563,11 +2052,11 @@ class ParseBooleanSearchQueryTest(TestCase):
 
     def test_or_does_not_match_organization(self):
         result = get_filter(
-            "organization.slug:{}".format(self.organization.slug),
+            f"organization.slug:{self.organization.slug}",
             params={"organization_id": self.organization.id, "project_id": [self.project.id]},
         )
         assert result.conditions == [
-            [["ifNull", ["organization.slug", "''"]], "=", "{}".format(self.organization.slug)]
+            [["ifNull", ["organization.slug", "''"]], "=", f"{self.organization.slug}"]
         ]
 
 
@@ -1614,6 +2103,38 @@ class GetSnubaQueryArgsTest(TestCase):
             [["ifNull", ["tags[project_id]", "''"]], "=", "123"]
         ]
 
+    def test_in_syntax(self):
+        project_2 = self.create_project()
+        group = self.create_group(project=self.project, short_id=self.project.next_short_id())
+        group_2 = self.create_group(project=project_2, short_id=self.project.next_short_id())
+        assert (
+            get_filter(
+                f"project.name:[{self.project.slug}, {project_2.slug}]",
+                params={"project_id": [self.project.id, project_2.id]},
+            ).conditions
+            == [["project_id", "IN", [project_2.id, self.project.id]]]
+        )
+        assert (
+            get_filter(
+                f"issue:[{group.qualified_short_id}, {group_2.qualified_short_id}]",
+                params={"organization_id": self.project.organization_id},
+            ).conditions
+            == [["issue.id", "IN", [group.id, group_2.id]]]
+        )
+        assert (
+            get_filter(
+                f"issue:[{group.qualified_short_id}, unknown]",
+                params={"organization_id": self.project.organization_id},
+            ).conditions
+            == [[["coalesce", ["issue.id", 0]], "IN", [0, group.id]]]
+        )
+        assert get_filter("environment:[prod, dev]").conditions == [
+            [["environment", "IN", {"prod", "dev"}]]
+        ]
+        assert get_filter("random_tag:[what, hi]").conditions == [
+            [["ifNull", ["random_tag", "''"]], "IN", ["what", "hi"]]
+        ]
+
     def test_no_search(self):
         _filter = get_filter(
             params={
@@ -1637,7 +2158,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_wildcard_with_unicode(self):
         _filter = get_filter(
-            u"message:*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86."
+            "message:*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86."
         )
         assert _filter.conditions == [
             [
@@ -1645,7 +2166,7 @@ class GetSnubaQueryArgsTest(TestCase):
                     "match",
                     [
                         "message",
-                        u"'(?i).*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86\\.'",
+                        "'(?i).*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86\\.'",
                     ],
                 ],
                 "=",
@@ -1672,7 +2193,7 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_escaped_wildcard(self):
         assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
             [["match", ["release", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
-            [["match", ["user.email", "'(?i)^\*@example\\.com$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^\\*@example\\.com$'"]], "=", 1],
         ]
         assert get_filter("release:\\\\\\*").conditions == [
             [["match", ["release", "'(?i)^\\\\\\*$'"]], "=", 1]
@@ -1681,7 +2202,7 @@ class GetSnubaQueryArgsTest(TestCase):
             [["match", ["release", "'(?i)^\\\\.*$'"]], "=", 1]
         ]
         assert get_filter("message:.*?").conditions == [
-            [["match", ["message", "'(?i)\..*\?'"]], "=", 1]
+            [["match", ["message", r"'(?i)\..*\?'"]], "=", 1]
         ]
 
     def test_wildcard_array_field(self):
@@ -1705,7 +2226,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_wildcard_with_trailing_backslash(self):
         results = get_filter("title:*misgegaan\\")
-        assert results.conditions == [[["match", ["title", u"'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
+        assert results.conditions == [[["match", ["title", "'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
 
     def test_has(self):
         assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
@@ -1713,15 +2234,31 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_not_has(self):
         assert get_filter("!has:release").conditions == [[["isNull", ["release"]], "=", 1]]
 
+    def test_has_issue(self):
+        has_issue_filter = get_filter("has:issue")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "!=", 0]]
+
+    def test_not_has_issue(self):
+        has_issue_filter = get_filter("!has:issue")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "=", 0]]
+
     def test_has_issue_id(self):
         has_issue_filter = get_filter("has:issue.id")
         assert has_issue_filter.group_ids == []
-        assert has_issue_filter.conditions == [["issue.id", "!=", 0]]
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "!=", 0]]
 
     def test_not_has_issue_id(self):
         has_issue_filter = get_filter("!has:issue.id")
         assert has_issue_filter.group_ids == []
-        assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "=", 1]]
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "=", 0]]
+
+    def test_message_empty(self):
+        assert get_filter("has:message").conditions == [[["equals", ["message", ""]], "!=", 1]]
+        assert get_filter("!has:message").conditions == [[["equals", ["message", ""]], "=", 1]]
+        assert get_filter('message:""').conditions == [[["equals", ["message", ""]], "=", 1]]
+        assert get_filter('!message:""').conditions == [[["equals", ["message", ""]], "!=", 1]]
 
     def test_message_negative(self):
         assert get_filter('!message:"post_process.process_error HTTPError 403"').conditions == [
@@ -1763,13 +2300,13 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_issue_filter_invalid(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("issue:1", {"organization_id": 1})
-        assert "Invalid value '" in six.text_type(err)
-        assert "' for 'issue:' filter" in six.text_type(err)
+        assert "Invalid value '" in str(err)
+        assert "' for 'issue:' filter" in str(err)
 
     def test_issue_filter(self):
         group = self.create_group(project=self.project)
         _filter = get_filter(
-            "issue:{}".format(group.qualified_short_id), {"organization_id": self.organization.id}
+            f"issue:{group.qualified_short_id}", {"organization_id": self.organization.id}
         )
         assert _filter.conditions == [["issue.id", "=", group.id]]
         assert _filter.filter_keys == {}
@@ -1778,9 +2315,20 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_negated_issue_filter(self):
         group = self.create_group(project=self.project)
         _filter = get_filter(
-            "!issue:{}".format(group.qualified_short_id), {"organization_id": self.organization.id}
+            f"!issue:{group.qualified_short_id}", {"organization_id": self.organization.id}
         )
         assert _filter.conditions == [["issue.id", "!=", group.id]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_unknown_issue_filter(self):
+        _filter = get_filter("issue:unknown", {"organization_id": self.organization.id})
+        assert _filter.conditions == [[["coalesce", ["issue.id", 0]], "=", 0]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+        _filter = get_filter("!issue:unknown", {"organization_id": self.organization.id})
+        assert _filter.conditions == [[["coalesce", ["issue.id", 0]], "!=", 0]]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
 
@@ -1869,44 +2417,59 @@ class GetSnubaQueryArgsTest(TestCase):
         p2 = self.create_project(organization=self.organization)
 
         params = {"project_id": [p1.id, p2.id]}
-        _filter = get_filter("project.name:{}".format(p1.slug), params)
+        _filter = get_filter(f"project.name:{p1.slug}", params)
         assert _filter.conditions == [["project_id", "=", p1.id]]
         assert _filter.filter_keys == {"project_id": [p1.id]}
         assert _filter.project_ids == [p1.id]
 
         params = {"project_id": [p1.id, p2.id]}
-        _filter = get_filter("!project.name:{}".format(p1.slug), params)
+        _filter = get_filter(f"!project.name:{p1.slug}", params)
         assert _filter.conditions == [
             [[["isNull", ["project_id"]], "=", 1], ["project_id", "!=", p1.id]]
         ]
         assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
         assert _filter.project_ids == [p1.id, p2.id]
 
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             params = {"project_id": []}
-            get_filter("project.name:{}".format(p1.slug), params)
+            get_filter(f"project.name:{p1.slug}", params)
+
+        exc = exc_info.value
+        exc_str = f"{exc}"
         assert (
-            "Invalid query. Project %s does not exist or is not an actively selected project"
-            % p1.slug
-            in six.text_type(err)
+            f"Invalid query. Project(s) {p1.slug} do not exist or are not actively selected."
+            in exc_str
         )
+
+    def test_not_has_project(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("!has:project")
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("!has:project.name")
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
 
     def test_transaction_status(self):
         for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
-            result = get_filter("transaction.status:{}".format(val))
+            result = get_filter(f"transaction.status:{val}")
             assert result.conditions == [["transaction.status", "=", key]]
 
     def test_transaction_status_no_wildcard(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             get_filter("transaction.status:o*")
-        assert "Invalid value" in six.text_type(err)
-        assert "cancelled," in six.text_type(err)
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "Invalid value" in exc_str
+        assert "cancelled," in exc_str
 
     def test_transaction_status_invalid(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             get_filter("transaction.status:lol")
-        assert "Invalid value" in six.text_type(err)
-        assert "cancelled," in six.text_type(err)
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "Invalid value" in exc_str
+        assert "cancelled," in exc_str
 
     def test_error_handled(self):
         result = get_filter("error.handled:true")
@@ -1992,6 +2555,23 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("percentile(transaction.duration, 0.75):>100")
         assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
 
+    def test_function_arguments_with_spaces(self):
+        result = get_filter("percentile(     transaction.duration,     0.75   ):>100")
+        assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
+
+        result = get_filter("percentile    (transaction.duration, 0.75):>100")
+        assert result.conditions == [
+            _om("percentile"),
+            _om("transaction.duration, 0.75"),
+            _om(":>100"),
+        ]
+        assert result.having == []
+
+        result = get_filter(
+            "epm(       ):>100", {"start": before_now(minutes=5), "end": before_now()}
+        )
+        assert result.having == [["epm", ">", 100]]
+
     def test_function_with_float_arguments(self):
         result = get_filter("apdex(300):>0.5")
         assert result.having == [["apdex_300", ">", 0.5]]
@@ -2031,10 +2611,31 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("release:latest", params={"project_id": [self.project]})
         assert result.conditions == [[["isNull", ["release"]], "=", 1]]
 
+        release_2 = self.create_release(self.project)
+
+        result = get_filter("release:[latest]", params={"project_id": [self.project]})
+        assert result.conditions == [["release", "IN", [release_2.version]]]
+        result = get_filter("release:[latest,1]", params={"project_id": [self.project]})
+        assert result.conditions == [["release", "IN", [release_2.version, "1"]]]
+
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
-        result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
+        result = get_filter("trace:a0fa8803753e40fd8124b21eeb2986b5")
         assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
+
+    def test_group_id_query(self):
+        # If a user queries on group_id, make sure it gets turned into a tag not the actual group_id field
+        assert get_filter("group_id:not-a-group-id-but-a-string").conditions == [
+            [["ifNull", ["tags[group_id]", "''"]], "=", "not-a-group-id-but-a-string"]
+        ]
+
+        assert get_filter("group_id:wildcard-string*").conditions == [
+            [
+                ["match", [["ifNull", ["tags[group_id]", "''"]], "'(?i)^wildcard\\-string.*$'"]],
+                "=",
+                1,
+            ]
+        ]
 
 
 class ResolveFieldListTest(unittest.TestCase):
@@ -2042,7 +2643,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = [["any", "thing", "lol"]]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
-        assert "Field names" in six.text_type(err)
+        assert "Field names" in str(err)
 
     def test_tag_fields(self):
         fields = ["tags[test.foo:bar-123]"]
@@ -2067,7 +2668,7 @@ class ResolveFieldListTest(unittest.TestCase):
         ]:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list(fields, eventstore.Filter())
-            assert "Invalid character" in six.text_type(err)
+            assert "Invalid character" in str(err)
 
     def test_blank_field_ignored(self):
         fields = ["", "title", "   "]
@@ -2103,9 +2704,11 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_field_alias_duration_expansion_with_brackets(self):
         fields = [
             "avg(transaction.duration)",
+            "stddev(transaction.duration)",
             "latest_event()",
             "last_seen()",
             "apdex(300)",
+            "count_miserable(user, 300)",
             "user_misery(300)",
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
@@ -2119,10 +2722,20 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
+            ["stddevSamp", "transaction.duration", "stddev_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["max", "timestamp", "last_seen"],
             ["apdex(duration, 300)", None, "apdex_300"],
-            ["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"],
+            [
+                "uniqIf",
+                ["user", ["greater", ["transaction.duration", 1200.0]]],
+                "count_miserable_user_300",
+            ],
+            [
+                "ifNull(divide(plus(uniqIf(user, greater(duration, 1200)), 5.8875), plus(uniq(user), 117.75)), 0)",
+                None,
+                "user_misery_300",
+            ],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
             ["quantile(0.99)", "transaction.duration", "percentile_transaction_duration_0_99"],
@@ -2145,6 +2758,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "issue",
             "user.display",
             "message",
+            "timestamp.to_hour",
+            "timestamp.to_day",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == [
@@ -2152,6 +2767,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "issue.id",
             ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
+            ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
+            ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
             "project.id",
             [
                 "transform",
@@ -2168,6 +2785,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "issue.id",
             ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
+            "timestamp.to_hour",
+            "timestamp.to_day",
             "project.id",
         ]
 
@@ -2232,33 +2851,33 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["derp(user)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "derp(user) is not a valid function" in six.text_type(err)
+        assert "derp(user) is not a valid function" in str(err)
 
     def test_aggregate_function_case_sensitive(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["MAX(user)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "MAX(user) is not a valid function" in six.text_type(err)
+        assert "MAX(user) is not a valid function" in str(err)
 
     def test_aggregate_function_invalid_column(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             fields = ["min(message)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "InvalidSearchQuery: min(message): column argument invalid: message is not a numeric column"
-            in six.text_type(err)
-        )
+
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "min(message): column argument invalid: message is not a numeric column" == exc_str
 
     def test_aggregate_function_missing_parameter(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             fields = ["count_unique()"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "InvalidSearchQuery: count_unique(): column argument invalid: a column is required"
-            in six.text_type(err)
-        )
 
-        with pytest.raises(InvalidSearchQuery) as err:
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "count_unique(): column argument invalid: a column is required" == exc_str
+
+        with pytest.raises(InvalidSearchQuery):
             fields = ["count_unique(  )"]
             resolve_field_list(fields, eventstore.Filter())
 
@@ -2275,27 +2894,26 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75): expected 2 argument(s)" in six.text_type(err)
+        assert "percentile(0.75): expected 2 argument(s)" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75,)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75,): expected 2 argument(s)" in six.text_type(err)
+        assert "percentile(0.75,): expected 2 argument(s)" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(sanchez, 0.75)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "percentile(sanchez, 0.75): column argument invalid: sanchez is not a valid column"
-            in six.text_type(err)
+            in str(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(id, 0.75)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "percentile(id, 0.75): column argument invalid: id is not a numeric column"
-            in six.text_type(err)
+        assert "percentile(id, 0.75): column argument invalid: id is not a numeric column" in str(
+            err
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2303,7 +2921,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "percentile(transaction.duration, 75): percentile argument invalid: 75 must be less than 1"
-            in six.text_type(err)
+            in str(err)
         )
 
     def test_epm_function(self):
@@ -2316,24 +2934,26 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["epm(30)"]
+            fields = ["epm(0)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "epm(30): interval argument invalid: 30 must be greater than or equal to 60"
-            in six.text_type(err)
+        assert "epm(0): interval argument invalid: 0 must be greater than or equal to 1" in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["epm(-1)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "epm(-1): interval argument invalid: -1 must be greater than or equal to 1" in str(
+            err
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["epm()"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "epm(): invalid arguments: function called without default" in six.text_type(err)
+        assert "epm(): invalid arguments: function called without default" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["epm()"]
             resolve_field_list(fields, eventstore.Filter(start="abc", end="def"))
-        assert "epm(): invalid arguments: function called with invalid default" in six.text_type(
-            err
-        )
+        assert "epm(): invalid arguments: function called with invalid default" in str(err)
 
         fields = ["epm()"]
         result = resolve_field_list(
@@ -2344,6 +2964,35 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), divide(3600, 60))", None, "epm"],
         ]
         assert result["groupby"] == []
+
+    def test_stddev_function(self):
+        fields = [
+            "stddev(measurements.fcp)",
+            "stddev(span_op_breakdowns.ops.browser)",
+            "stddev(transaction.duration)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            ["stddevSamp", "measurements.fcp", "stddev_measurements_fcp"],
+            [
+                "stddevSamp",
+                "span_op_breakdowns.ops.browser",
+                "stddev_span_op_breakdowns_ops_browser",
+            ],
+            ["stddevSamp", "transaction.duration", "stddev_transaction_duration"],
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["stddev(user.id)"]
+            resolve_field_list(fields, eventstore.Filter())
+
+        assert "user.id is not a numeric column" in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["stddev()"]
+            resolve_field_list(fields, eventstore.Filter())
+
+        assert "stddev(): expected 1 argument(s)" in str(err)
 
     def test_tpm_function_alias(self):
         """ TPM should be functionally identical to EPM except in name """
@@ -2382,7 +3031,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "absolute_delta(transaction,100): column argument invalid: transaction is not a duration column"
-            in six.text_type(err)
+            in str(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2390,7 +3039,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "absolute_delta(transaction.duration,blah): target argument invalid: blah is not a number"
-            in six.text_type(err)
+            in str(err)
         )
 
     def test_eps_function(self):
@@ -2406,22 +3055,21 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["eps(0)"]
             result = resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "eps(0): interval argument invalid: 0 must be greater than or equal to 1"
-            in six.text_type(err)
-        )
+        assert "eps(0): interval argument invalid: 0 must be greater than or equal to 1" in str(err)
 
     def test_array_join_function(self):
         fields = [
             "array_join(tags.key)",
             "array_join(tags.value)",
             "array_join(measurements_key)",
+            "array_join(span_op_breakdowns_key)",
         ]
         result = resolve_field_list(fields, eventstore.Filter(), functions_acl=["array_join"])
         assert result["selected_columns"] == [
             ["arrayJoin", ["tags.key"], "array_join_tags_key"],
             ["arrayJoin", ["tags.value"], "array_join_tags_value"],
             ["arrayJoin", ["measurements_key"], "array_join_measurements_key"],
+            ["arrayJoin", ["span_op_breakdowns_key"], "array_join_span_op_breakdowns_key"],
             "id",
             "project.id",
             [
@@ -2435,7 +3083,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["array_join(tags.key)"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
-        assert "no access to private function" in six.text_type(err)
+        assert "no access to private function" in str(err)
 
     def test_histogram_function(self):
         fields = ["histogram(measurements_value, 10, 5, 1)"]
@@ -2484,11 +3132,64 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
+    def test_histogram_function_op_breakdowns(self):
+        fields = ["histogram(span_op_breakdowns_value, 10, 5, 1)"]
+        result = resolve_field_list(fields, eventstore.Filter(), functions_acl=["histogram"])
+        assert result["selected_columns"] == [
+            [
+                "plus",
+                [
+                    [
+                        "multiply",
+                        [
+                            [
+                                "floor",
+                                [
+                                    [
+                                        "divide",
+                                        [
+                                            [
+                                                "minus",
+                                                [
+                                                    [
+                                                        "multiply",
+                                                        [
+                                                            [
+                                                                "arrayJoin",
+                                                                ["span_op_breakdowns_value"],
+                                                            ],
+                                                            1,
+                                                        ],
+                                                    ],
+                                                    5,
+                                                ],
+                                            ],
+                                            10,
+                                        ],
+                                    ]
+                                ],
+                            ],
+                            10,
+                        ],
+                    ],
+                    5,
+                ],
+                "histogram_span_op_breakdowns_value_10_5_1",
+            ],
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
+
     def test_histogram_function_no_access(self):
         fields = ["histogram(measurements_value, 10, 5, 1)"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
-        assert "no access to private function" in six.text_type(err)
+        assert "no access to private function" in str(err)
 
     def test_count_at_least_function(self):
         fields = ["count_at_least(measurements.baz, 1000)"]
@@ -2516,16 +3217,31 @@ class ResolveFieldListTest(unittest.TestCase):
                 "percentile_range_1",
             ]
         ]
+        # Test a non duration field
+        fields = [
+            "percentile_range(measurements.lcp, 0.5, greater, 2020-05-03T06:48:57) as avg_range_1"
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "quantileIf(0.50)",
+                [
+                    "measurements.lcp",
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                ],
+                "avg_range_1",
+            ]
+        ]
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile_range(transaction.duration, 0.5, greater, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: tomorrow is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: tomorrow is in the wrong format" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile_range(transaction.duration, 0.5, lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: today is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: today is in the wrong format" in str(err)
 
     def test_average_range(self):
         fields = ["avg_range(transaction.duration, greater, 2020-05-03T06:48:57) as avg_range_1"]
@@ -2541,15 +3257,122 @@ class ResolveFieldListTest(unittest.TestCase):
             ]
         ]
 
+        # Test a non duration field
+        fields = ["avg_range(measurements.lcp, greater, 2020-05-03T06:48:57) as avg_range_1"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "avgIf",
+                [
+                    "measurements.lcp",
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                ],
+                "avg_range_1",
+            ]
+        ]
+
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, greater, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: tomorrow is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: tomorrow is in the wrong format" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: today is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: today is in the wrong format" in str(err)
+
+    def test_variance_range(self):
+        fields = [
+            "variance_range(transaction.duration, greater, 2020-05-03T06:48:57) as variance_range_1"
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "varSampIf",
+                [
+                    "transaction.duration",
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                ],
+                "variance_range_1",
+            ]
+        ]
+
+        # Test a non duration field
+        fields = [
+            "variance_range(measurements.lcp, greater, 2020-05-03T06:48:57) as variance_range_1"
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "varSampIf",
+                [
+                    "measurements.lcp",
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                ],
+                "variance_range_1",
+            ]
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["variance_range(transaction.duration, greater, tomorrow)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "middle argument invalid: tomorrow is in the wrong format" in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["variance_range(transaction.duration, lessOrEquals, today)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "middle argument invalid: today is in the wrong format" in str(err)
+
+    def test_count_range(self):
+        fields = ["count_range(greater, 2020-05-03T06:48:57) as count_range_1"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]]],
+                "count_range_1",
+            ]
+        ]
+
+        # Test a non duration field
+        fields = ["count_range(greater, 2020-05-03T06:48:57) as count_range_1"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]]],
+                "count_range_1",
+            ]
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["count_range(greater, tomorrow)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "middle argument invalid: tomorrow is in the wrong format" in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["count_range(lessOrEquals, today)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "middle argument invalid: today is in the wrong format" in str(err)
+
+    def test_count_if(self):
+        fields = [
+            "count_if(event.type,equals,transaction)",
+            "count_if(event.type,notEquals,transaction)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["equals", ["event.type", "'transaction'"]]],
+                "count_if_event_type_equals_transaction",
+            ],
+            [
+                "countIf",
+                [["notEquals", ["event.type", "'transaction'"]]],
+                "count_if_event_type_notEquals_transaction",
+            ],
+        ]
 
     def test_absolute_correlation(self):
         fields = ["absolute_correlation()"]
@@ -2558,7 +3381,7 @@ class ResolveFieldListTest(unittest.TestCase):
             [
                 "abs",
                 [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
-                u"absolute_correlation",
+                "absolute_correlation",
             ]
         ]
 
@@ -2631,7 +3454,7 @@ class ResolveFieldListTest(unittest.TestCase):
         for function in bad_function_aliases:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list([function], eventstore.Filter())
-            assert "Invalid characters in field" in six.text_type(err)
+            assert "Invalid characters in field" in str(err)
 
     def test_valid_alias(self):
         function_aliases = [
@@ -2656,6 +3479,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "measurements.lcp",
             "measurements.fid",
             "measurements.bar",
+            "span_op_breakdowns.ops.browser",
         ]
 
         for column in columns:
@@ -2670,11 +3494,11 @@ class ResolveFieldListTest(unittest.TestCase):
             result = resolve_field_list(fields, eventstore.Filter())
 
             assert result["aggregations"] == [
-                ["quantile(0.5)", snuba_column, "p50_{}".format(column_alias).strip("_")],
-                ["quantile(0.75)", snuba_column, "p75_{}".format(column_alias).strip("_")],
-                ["quantile(0.95)", snuba_column, "p95_{}".format(column_alias).strip("_")],
-                ["quantile(0.99)", snuba_column, "p99_{}".format(column_alias).strip("_")],
-                ["max", snuba_column, "p100_{}".format(column_alias).strip("_")],
+                ["quantile(0.5)", snuba_column, f"p50_{column_alias}".strip("_")],
+                ["quantile(0.75)", snuba_column, f"p75_{column_alias}".strip("_")],
+                ["quantile(0.95)", snuba_column, f"p95_{column_alias}".strip("_")],
+                ["quantile(0.99)", snuba_column, f"p99_{column_alias}".strip("_")],
+                ["max", snuba_column, f"p100_{column_alias}".strip("_")],
             ]
 
     def test_compare_numeric_aggregate(self):
@@ -2704,7 +3528,7 @@ class ResolveFieldListTest(unittest.TestCase):
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list([field], eventstore.Filter())
-            assert "is not a valid condition" in six.text_type(err), field
+            assert "is not a valid condition" in str(err), field
 
         fields = [
             "compare_numeric_aggregate(p50_tr(where,=,50)",
@@ -2713,13 +3537,13 @@ class ResolveFieldListTest(unittest.TestCase):
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list([field], eventstore.Filter())
-            assert "is not a valid function alias" in six.text_type(err), field
+            assert "is not a valid function alias" in str(err), field
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]
             resolve_field_list(fields, eventstore.Filter(rollup=15))
-        assert "rollup without an aggregate" in six.text_type(err)
+        assert "rollup without an aggregate" in str(err)
 
     def test_rollup_with_basic_and_aggregated_fields(self):
         fields = ["message", "count()"]
@@ -2740,7 +3564,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["message"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
-        assert "Cannot order" in six.text_type(err)
+        assert "Cannot order" in str(err)
 
     def test_orderby_basic_field(self):
         fields = ["message"]
@@ -2836,6 +3660,9 @@ class ResolveFieldListTest(unittest.TestCase):
             "p50(transaction.duration)",
             "avg(measurements.foo)",
             "percentile(measurements.fcp, 0.5)",
+            "stddev(measurements.foo)",
+            "percentile(span_op_breakdowns.ops.browser, 0.5)",
+            "avg(span_op_breakdowns.total.time)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         functions = result["functions"]
@@ -2852,13 +3679,26 @@ class ResolveFieldListTest(unittest.TestCase):
         assert functions["avg_measurements_foo"].instance.name == "avg"
         assert functions["avg_measurements_foo"].arguments == {"column": "measurements.foo"}
 
-        assert functions["avg_measurements_foo"].instance.name == "avg"
-        assert functions["avg_measurements_foo"].arguments == {"column": "measurements.foo"}
-
         assert functions["percentile_measurements_fcp_0_5"].instance.name == "percentile"
         assert functions["percentile_measurements_fcp_0_5"].arguments == {
             "column": "measurements.fcp",
             "percentile": 0.5,
+        }
+
+        assert functions["stddev_measurements_foo"].instance.name == "stddev"
+        assert functions["stddev_measurements_foo"].arguments == {"column": "measurements.foo"}
+
+        assert (
+            functions["percentile_span_op_breakdowns_ops_browser_0_5"].instance.name == "percentile"
+        )
+        assert functions["percentile_span_op_breakdowns_ops_browser_0_5"].arguments == {
+            "column": "span_op_breakdowns.ops.browser",
+            "percentile": 0.5,
+        }
+
+        assert functions["avg_span_op_breakdowns_total_time"].instance.name == "avg"
+        assert functions["avg_span_op_breakdowns_total_time"].arguments == {
+            "column": "span_op_breakdowns.total.time"
         }
 
     def test_to_other_function_basic(self):
@@ -2974,24 +3814,29 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = [
             ["last_seen()", "timestamp"],
             ["avg(measurements.lcp)", "measurements.lcp"],
+            ["stddev(measurements.lcp)", "measurements.lcp"],
+            ["avg(span_op_breakdowns.ops.browser)", "span_op_breakdowns.ops.browser"],
+            ["stddev(span_op_breakdowns.ops.browser)", "span_op_breakdowns.ops.browser"],
             ["min(timestamp)", "timestamp"],
             ["max(timestamp)", "timestamp"],
             ["p95()", "transaction.duration"],
+            ["any(measurements.fcp)", "measurements.fcp"],
+            ["any(span_op_breakdowns.ops.browser)", "span_op_breakdowns.ops.browser"],
         ]
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as error:
                 resolve_field_list(field, eventstore.Filter())
 
-            assert "you must first remove the function(s)" in six.text_type(error)
+            assert "you must first remove the function(s)" in str(error)
 
         with pytest.raises(InvalidSearchQuery) as error:
             resolve_field_list(
                 ["avg(transaction.duration)", "p95()", "transaction.duration"], eventstore.Filter()
             )
 
-        assert "avg(transaction.duration)" in six.text_type(error)
-        assert "p95" in six.text_type(error)
-        assert " more." not in six.text_type(error)
+        assert "avg(transaction.duration)" in str(error)
+        assert "p95" in str(error)
+        assert " more." not in str(error)
 
         with pytest.raises(InvalidSearchQuery) as error:
             resolve_field_list(
@@ -3006,7 +3851,7 @@ class ResolveFieldListTest(unittest.TestCase):
                 eventstore.Filter(),
             )
 
-        assert "and 3 more" in six.text_type(error)
+        assert "and 3 more" in str(error)
 
 
 def with_type(type, argument):
@@ -3017,7 +3862,9 @@ def with_type(type, argument):
 class FunctionTest(unittest.TestCase):
     def setUp(self):
         self.fn_wo_optionals = Function(
-            "wo_optionals", required_args=[FunctionArg("arg1"), FunctionArg("arg2")], transform="",
+            "wo_optionals",
+            required_args=[FunctionArg("arg1"), FunctionArg("arg2")],
+            transform="",
         )
         self.fn_w_optionals = Function(
             "w_optionals",
@@ -3031,13 +3878,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_no_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
     def test_no_optional_too_may_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count(
                 "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
@@ -3050,13 +3897,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_w_optionals\(\): expected at least 1 argument\(s\)"
+            InvalidSearchQuery, r"fn_w_optionals\(\): expected at least 1 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
     def test_optional_too_many_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_w_optionals\(\): expected at most 2 argument\(s\)"
+            InvalidSearchQuery, r"fn_w_optionals\(\): expected at most 2 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count(
                 "fn_w_optionals()", ["arg1", "arg2", "arg3"]
@@ -3064,13 +3911,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_optional_args_have_default(self):
         with self.assertRaisesRegexp(
-            AssertionError, u"test: optional argument at index 0 does not have default"
+            AssertionError, "test: optional argument at index 0 does not have default"
         ):
             Function("test", optional_args=[FunctionArg("arg1")])
 
     def test_defining_duplicate_args(self):
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",
@@ -3080,7 +3927,7 @@ class FunctionTest(unittest.TestCase):
             )
 
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",
@@ -3090,7 +3937,7 @@ class FunctionTest(unittest.TestCase):
             )
 
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",

@@ -1,6 +1,7 @@
 import pick from 'lodash/pick';
 import Reflux from 'reflux';
 
+import {mergeGroups} from 'app/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -442,7 +443,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
       // Disable merge button
       const {orgId, groupId} = params;
 
-      this.api.merge(
+      mergeGroups(
+        this.api,
         {
           orgId,
           projectId: projectId || params.projectId,
@@ -547,4 +549,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
   },
 };
 
-export default Reflux.createStore(storeConfig) as GroupingStore;
+const GroupingStore = Reflux.createStore(storeConfig) as GroupingStore;
+
+export default GroupingStore;

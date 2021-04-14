@@ -51,19 +51,21 @@ function MissingReleasesButtons({organization, health, projectId}: Props) {
       >
         {t('Start Setup')}
       </Button>
-      <FeatureTourModal
-        steps={RELEASES_TOUR_STEPS}
-        onAdvance={handleTourAdvance}
-        onCloseModal={handleClose}
-        doneText={t('Start Setup')}
-        doneUrl={health ? DOCS_HEALTH_URL : DOCS_URL}
-      >
-        {({showModal}) => (
-          <Button size="small" onClick={showModal}>
-            {t('Get a tour')}
-          </Button>
-        )}
-      </FeatureTourModal>
+      {!health && (
+        <FeatureTourModal
+          steps={RELEASES_TOUR_STEPS}
+          onAdvance={handleTourAdvance}
+          onCloseModal={handleClose}
+          doneText={t('Start Setup')}
+          doneUrl={health ? DOCS_HEALTH_URL : DOCS_URL}
+        >
+          {({showModal}) => (
+            <Button size="small" onClick={showModal}>
+              {t('Get a tour')}
+            </Button>
+          )}
+        </FeatureTourModal>
+      )}
     </StyledButtonBar>
   );
 }

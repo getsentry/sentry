@@ -1,16 +1,14 @@
-from __future__ import absolute_import
-
 import itertools
-from sentry.utils.compat import mock
-import pytest
-
 from datetime import datetime, timedelta
+
+import pytest
 from django.utils import timezone
+
 from sentry import tsdb
-from sentry.testutils import SnubaTestCase, TestCase
 from sentry.models import Group, GroupSnooze
-from six.moves import xrange
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 
 
 class GroupSnoozeTest(TestCase, SnubaTestCase):
@@ -51,7 +49,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
     def test_user_delta_reached(self):
         project = self.create_project()
 
-        for i in xrange(0, 100):
+        for i in range(0, 100):
             self.store_event(
                 data={
                     "user": {"id": i},
@@ -73,7 +71,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
         tsdb.record(
             tsdb.models.users_affected_by_group,
             self.group.id,
-            [next(self.sequence) for _ in xrange(0, 101)],
+            [next(self.sequence) for _ in range(0, 101)],
         )
         assert not snooze.is_valid(test_rates=True)
 

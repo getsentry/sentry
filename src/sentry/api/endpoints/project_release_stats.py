@@ -1,19 +1,15 @@
-from __future__ import absolute_import
-
-import six
-
 from rest_framework.response import Response
 
+from sentry.api.bases.project import ProjectEndpoint, ProjectEventsError, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission, ProjectEventsError
 from sentry.api.serializers import serialize
-from sentry.utils.dates import get_rollup_from_request
+from sentry.models import Release, ReleaseProject
 from sentry.snuba.sessions import (
-    get_project_release_stats,
     get_crash_free_breakdown,
     get_oldest_health_data_for_releases,
+    get_project_release_stats,
 )
-from sentry.models import Release, ReleaseProject
+from sentry.utils.dates import get_rollup_from_request
 
 
 def upsert_missing_release(project, version):
@@ -55,8 +51,8 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             rollup = get_rollup_from_request(
                 request,
                 params,
-                "24h",
-                ProjectEventsError(
+                default_interval="24h",
+                error=ProjectEventsError(
                     "Your interval and date range would create too many results. "
                     "Use a larger interval, or a smaller date range."
                 ),
@@ -64,7 +60,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             # The minimum interval is one hour on the server
             rollup = max(rollup, 3600)
         except ProjectEventsError as e:
-            return Response({"detail": six.text_type(e)}, status=400)
+            return Response({"detail": str(e)}, status=400)
 
         release = upsert_missing_release(project, version)
         if release is None:

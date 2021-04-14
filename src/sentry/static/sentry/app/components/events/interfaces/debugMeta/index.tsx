@@ -26,6 +26,8 @@ import {Frame, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
+import {shouldSkipSection} from '../debugMeta-v2/utils';
+
 import DebugImage from './debugImage';
 import {getFileName} from './utils';
 
@@ -192,6 +194,11 @@ class DebugMeta extends React.PureComponent<Props, State> {
     const foundFrame = this.getFrame();
     // skip null values indicating invalid debug images
     const debugImages = this.getDebugImages();
+
+    if (!debugImages.length) {
+      return;
+    }
+
     const filteredImages = debugImages.filter(image => this.filterImage(image));
 
     this.setState({debugImages, filteredImages, foundFrame});
@@ -406,12 +413,18 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
   render() {
     const {filteredImages, foundFrame} = this.state;
+    const {data} = this.props;
+    const {images} = data;
+
+    if (shouldSkipSection(filteredImages, images)) {
+      return null;
+    }
 
     return (
       <StyledEventDataSection
-        type="packages"
+        type="images-loaded"
         title={
-          <GuideAnchor target="packages" position="bottom">
+          <GuideAnchor target="images-loaded" position="bottom">
             <h3>{t('Images Loaded')}</h3>
           </GuideAnchor>
         }

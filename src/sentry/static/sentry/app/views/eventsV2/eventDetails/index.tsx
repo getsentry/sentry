@@ -2,12 +2,10 @@ import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import PropTypes from 'prop-types';
 
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -22,11 +20,6 @@ type Props = {
 };
 
 class EventDetails extends React.Component<Props> {
-  static propTypes: any = {
-    organization: SentryTypes.Organization.isRequired,
-    location: PropTypes.object.isRequired,
-  };
-
   getEventSlug = (): string => {
     const {eventSlug} = this.props.params;
 
@@ -51,11 +44,17 @@ class EventDetails extends React.Component<Props> {
   render() {
     const {organization, location, params} = this.props;
     const eventView = this.getEventView();
+    const eventSlug = this.getEventSlug();
 
     const documentTitle = this.getDocumentTitle(eventView.name).join(' - ');
+    const projectSlug = eventSlug.split(':')[0];
 
     return (
-      <SentryDocumentTitle title={documentTitle} objSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={documentTitle}
+        orgSlug={organization.slug}
+        projectSlug={projectSlug}
+      >
         <StyledPageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <EventDetailsContent
@@ -63,7 +62,7 @@ class EventDetails extends React.Component<Props> {
               location={location}
               params={params}
               eventView={eventView}
-              eventSlug={this.getEventSlug()}
+              eventSlug={eventSlug}
             />
           </LightWeightNoProjectMessage>
         </StyledPageContent>

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Radio from 'app/components/radio';
@@ -24,17 +23,6 @@ type Props = {
 };
 
 class RoleSelect extends React.Component<Props> {
-  static propTypes = {
-    /**
-     * Whether to disable or not using `allowed` prop from API request
-     */
-    enforceAllowed: PropTypes.bool,
-    disabled: PropTypes.bool,
-    selectedRole: PropTypes.string,
-    roleList: PropTypes.array,
-    setRole: PropTypes.func,
-  };
-
   render() {
     const {disabled, enforceAllowed, roleList, selectedRole} = this.props;
 

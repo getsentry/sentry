@@ -1,17 +1,13 @@
-from __future__ import absolute_import
-
-import six
-import uuid
-import itertools
 import hmac
+import itertools
+import uuid
+from hashlib import sha256
 
 from django.db import models
-from django.utils import timezone
 from django.template.defaultfilters import slugify
-from hashlib import sha256
-from sentry.utils import metrics
-from sentry.constants import SentryAppStatus, SENTRY_APP_SLUG_MAX_LENGTH
-from sentry.models.apiscopes import HasApiScopes
+from django.utils import timezone
+
+from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
 from sentry.db.models import (
     ArrayField,
     BoundedPositiveIntegerField,
@@ -19,7 +15,9 @@ from sentry.db.models import (
     FlexibleForeignKey,
     ParanoidModel,
 )
+from sentry.models.apiscopes import HasApiScopes
 from sentry.models.sentryappinstallation import SentryAppInstallation
+from sentry.utils import metrics
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
 # listening to a list of specific events. This is a mapping of what those
@@ -54,14 +52,14 @@ UUID_CHARS_IN_SLUG = 6
 
 
 def default_uuid():
-    return six.text_type(uuid.uuid4())
+    return str(uuid.uuid4())
 
 
 def generate_slug(name, is_internal=False):
     slug = slugify(name)
     # for internal, add some uuid to make it unique
     if is_internal:
-        slug = u"{}-{}".format(slug, default_uuid()[:UUID_CHARS_IN_SLUG])
+        slug = f"{slug}-{default_uuid()[:UUID_CHARS_IN_SLUG]}"
 
     return slug
 
@@ -172,11 +170,12 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
-        return super(SentryApp, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def is_installed_on(self, organization):
         return SentryAppInstallation.objects.filter(
-            organization=organization, sentry_app=self,
+            organization=organization,
+            sentry_app=self,
         ).exists()
 
     def build_signature(self, body):
@@ -186,5 +185,5 @@ class SentryApp(ParanoidModel, HasApiScopes):
         ).hexdigest()
 
     def show_auth_info(self, access):
-        encoded_scopes = set({u"%s" % scope for scope in list(access.scopes)})
+        encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
         return set(self.scope_list).issubset(encoded_scopes)

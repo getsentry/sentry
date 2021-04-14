@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
-import responses
-from sentry.utils.compat.mock import patch
 from time import time
 
-from sentry.testutils import APITestCase
+import responses
+
+from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models import (
     Activity,
     ExternalIssue,
@@ -15,13 +13,15 @@ from sentry.models import (
     IdentityProvider,
     Integration,
 )
-from sentry.integrations.vsts.integration import VstsIntegration
+from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
+
 from .testutils import (
-    WORK_ITEM_UPDATED,
-    WORK_ITEM_UNASSIGNED,
-    WORK_ITEM_UPDATED_STATUS,
     WORK_ITEM_STATES,
+    WORK_ITEM_UNASSIGNED,
+    WORK_ITEM_UPDATED,
+    WORK_ITEM_UPDATED_STATUS,
 )
 
 
@@ -30,7 +30,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.access_token = "1234567890"
-        self.account_id = u"80ded3e8-3cd3-43b1-9f96-52032624aa3a"
+        self.account_id = "80ded3e8-3cd3-43b1-9f96-52032624aa3a"
         self.instance = "https://instance.visualstudio.com/"
         self.shared_secret = "1234567890"
         self.model = Integration.objects.create(

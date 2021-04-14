@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
-import FrameRegisters from 'app/components/events/interfaces/frameRegisters/frameRegisters';
-import FrameRegistersValue from 'app/components/events/interfaces/frameRegisters/frameRegistersValue';
+import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
+import FrameRegistersValue from 'app/components/events/interfaces/frameRegisters/value';
 
 describe('FrameRegisters', () => {
   it('should render registers', () => {
@@ -13,7 +13,7 @@ describe('FrameRegisters', () => {
       r12: '0x0000000000000000',
     };
 
-    const wrapper = mount(<FrameRegisters data={registers} />);
+    const wrapper = mountWithTheme(<FrameRegisters registers={registers} />);
     expect(wrapper.find('[data-test-id="frame-registers-value"]')).toSnapshot();
   });
 
@@ -24,7 +24,7 @@ describe('FrameRegisters', () => {
       r12: '0x0000000000000000',
     };
 
-    const wrapper = mount(<FrameRegisters data={registers} />);
+    const wrapper = mountWithTheme(<FrameRegisters registers={registers} />);
     expect(wrapper.find('[data-test-id="frame-registers-value"]')).toSnapshot();
   });
 });
@@ -33,7 +33,7 @@ describe('RegisterValue', () => {
   let wrapper;
   describe('with string value', () => {
     beforeEach(() => {
-      wrapper = mount(<FrameRegistersValue value="0x000000000000000a" />);
+      wrapper = mountWithTheme(<FrameRegistersValue value="0x000000000000000a" />);
     });
 
     it('should display the hexadecimal value', () => {
@@ -48,7 +48,7 @@ describe('RegisterValue', () => {
 
   describe('with numeric value', () => {
     beforeEach(() => {
-      wrapper = mount(<FrameRegistersValue value={10} />);
+      wrapper = mountWithTheme(<FrameRegistersValue value={10} />);
     });
 
     it('should display the hexadecimal value', () => {
@@ -63,7 +63,7 @@ describe('RegisterValue', () => {
 
   describe('with unknown value', () => {
     beforeEach(() => {
-      wrapper = mount(<FrameRegistersValue value="xyz" />);
+      wrapper = mountWithTheme(<FrameRegistersValue value="xyz" />);
     });
 
     it('should display the hexadecimal value', () => {

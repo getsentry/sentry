@@ -1,10 +1,9 @@
-from __future__ import absolute_import
-
 import re
 
 from django.core.urlresolvers import reverse
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError, ApiUnauthorized
+
 from sentry.integrations.issues import IssueBasicMixin
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.utils.http import absolute_uri
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")
@@ -12,12 +11,12 @@ ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")
 
 class GitlabIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
-        return u"{}:{}".format(self.model.metadata["domain_name"], data["key"])
+        return "{}:{}".format(self.model.metadata["domain_name"], data["key"])
 
     def get_issue_url(self, key):
         match = ISSUE_EXTERNAL_KEY_FORMAT.match(key)
         project, issue_id = match.group(1), match.group(2)
-        return u"{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)
+        return "{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)
 
     def get_persisted_default_config_fields(self):
         return ["project"]
@@ -43,7 +42,7 @@ class GitlabIssueBasic(IssueBasicMixin):
     def get_create_issue_config(self, group, user, **kwargs):
         default_project, project_choices = self.get_projects_and_default(group, **kwargs)
         kwargs["link_referrer"] = "gitlab_integration"
-        fields = super(GitlabIssueBasic, self).get_create_issue_config(group, user, **kwargs)
+        fields = super().get_create_issue_config(group, user, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -79,7 +78,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-        project_and_issue_iid = "%s#%s" % (project["path_with_namespace"], issue["iid"])
+        project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
         return {
             "key": project_and_issue_iid,
             "title": issue["title"],
@@ -137,7 +136,7 @@ class GitlabIssueBasic(IssueBasicMixin):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": u"Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         group.get_absolute_url(params={"referrer": "gitlab_integration"})
                     ),
@@ -165,7 +164,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-        project_and_issue_iid = "%s#%s" % (project["path_with_namespace"], issue["iid"])
+        project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
         return {
             "key": project_and_issue_iid,
             "title": issue["title"],

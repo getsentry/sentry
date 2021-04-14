@@ -8,7 +8,6 @@ import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
 import * as queryString from 'query-string';
 
-import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
 import SelectControl from 'app/components/forms/selectControl';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -29,12 +28,10 @@ import {
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {
   getCategoriesForIntegration,
-  getReauthAlertText,
   getSentryAppInstallStatus,
   isDocumentIntegration,
   isPlugin,
   isSentryApp,
-  isSlackWorkspaceApp,
   trackIntegrationEvent,
 } from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
@@ -44,23 +41,32 @@ import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import {documentIntegrations, POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
 
+const fuseOptions = {
+  threshold: 0.3,
+  location: 0,
+  distance: 100,
+  includeScore: true as const,
+  keys: ['slug', 'key', 'name', 'id'],
+};
+
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
 };
 
 type State = {
-  integrations: Integration[];
-  plugins: PluginWithProjectList[];
-  appInstalls: SentryAppInstallation[];
-  orgOwnedApps: SentryApp[];
-  publishedApps: SentryApp[];
-  config: {providers: IntegrationProvider[]};
+  integrations: Integration[] | null;
+  plugins: PluginWithProjectList[] | null;
+  appInstalls: SentryAppInstallation[] | null;
+  orgOwnedApps: SentryApp[] | null;
+  publishedApps: SentryApp[] | null;
+  config: {providers: IntegrationProvider[]} | null;
   extraApp?: SentryApp;
   searchInput: string;
   list: AppOrProviderOrPlugin[];
   displayedList: AppOrProviderOrPlugin[];
   selectedCategory: string;
+  fuzzy?: Fuse<AppOrProviderOrPlugin, typeof fuseOptions>;
 };
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
@@ -88,13 +94,13 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {publishedApps, orgOwnedApps, extraApp, plugins} = this.state;
     const published = publishedApps || [];
     // If we have an extra app in state from query parameter, add it as org owned app
-    if (extraApp) {
+    if (orgOwnedApps !== null && extraApp) {
       orgOwnedApps.push(extraApp);
     }
 
     // we dont want the app to render twice if its the org that created
     // the published app.
-    const orgOwned = orgOwnedApps.filter(
+    const orgOwned = orgOwnedApps?.filter(
       app => !published.find(p => p.slug === app.slug)
     );
 
@@ -107,9 +113,9 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     const combined = ([] as AppOrProviderOrPlugin[])
       .concat(published)
-      .concat(orgOwned)
+      .concat(orgOwned ?? [])
       .concat(this.providers)
-      .concat(plugins)
+      .concat(plugins ?? [])
       .concat(Object.values(documentIntegrations));
 
     const list = this.sortIntegrations(combined);
@@ -128,23 +134,22 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {integrations, publishedApps, plugins} = this.state;
     const integrationsInstalled = new Set();
     //add installed integrations
-    integrations.forEach((integration: Integration) => {
+    integrations?.forEach((integration: Integration) => {
       integrationsInstalled.add(integration.provider.key);
     });
     //add sentry apps
-    publishedApps.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
+    publishedApps?.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
       integrationsInstalled.add(sentryApp.slug);
     });
     //add plugins
-    plugins.forEach((plugin: PluginWithProjectList) => {
+    plugins?.forEach((plugin: PluginWithProjectList) => {
       if (plugin.projectList.length) {
         integrationsInstalled.add(plugin.slug);
       }
     });
     trackIntegrationEvent(
+      'integrations.index_viewed',
       {
-        eventKey: 'integrations.index_viewed',
-        eventName: 'Integrations: Index Page Viewed',
         integrations_installed: integrationsInstalled.size,
         view: 'integrations_directory',
       },
@@ -188,11 +193,11 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   get providers(): IntegrationProvider[] {
-    return this.state.config.providers;
+    return this.state.config?.providers ?? [];
   }
 
   getAppInstall = (app: SentryApp) =>
-    this.state.appInstalls.find(i => i.app.slug === app.slug);
+    this.state.appInstalls?.find(i => i.app.slug === app.slug);
 
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
@@ -214,7 +219,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       return 0;
     }
 
-    return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
+    return integrations?.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
   getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
@@ -258,20 +263,14 @@ export class IntegrationListDirectory extends AsyncComponent<
   async createSearch() {
     const {list} = this.state;
     this.setState({
-      fuzzy: await createFuzzySearch(list || [], {
-        threshold: 0.3,
-        location: 0,
-        distance: 100,
-        keys: ['slug', 'key', 'name', 'id'],
-      }),
+      fuzzy: await createFuzzySearch(list || [], fuseOptions),
     });
   }
 
   debouncedTrackIntegrationSearch = debounce((search: string, numResults: number) => {
     trackIntegrationEvent(
+      'integrations.directory_item_searched',
       {
-        eventKey: 'integrations.directory_item_searched',
-        eventName: 'Integrations: Directory Item Searched',
         view: 'integrations_directory',
         search_term: search,
         num_results: numResults,
@@ -351,9 +350,8 @@ export class IntegrationListDirectory extends AsyncComponent<
 
       if (category) {
         trackIntegrationEvent(
+          'integrations.directory_category_selected',
           {
-            eventKey: 'integrations.directory_category_selected',
-            eventName: 'Integrations: Directory Category Selected',
             view: 'integrations_directory',
             category,
           },
@@ -367,36 +365,22 @@ export class IntegrationListDirectory extends AsyncComponent<
   renderProvider = (provider: IntegrationProvider) => {
     const {organization} = this.props;
     //find the integration installations for that provider
-    const integrations = this.state.integrations.filter(
-      i => i.provider.key === provider.key
-    );
-
-    const hasWorkspaceApp = integrations.some(isSlackWorkspaceApp);
+    const integrations =
+      this.state.integrations?.filter(i => i.provider.key === provider.key) ?? [];
 
     return (
-      <Feature
+      <IntegrationRow
         key={`row-${provider.key}`}
+        data-test-id="integration-row"
         organization={organization}
-        features={['slack-migration']}
-      >
-        {({hasFeature}) => (
-          <IntegrationRow
-            key={`row-${provider.key}`}
-            data-test-id="integration-row"
-            organization={organization}
-            type="firstParty"
-            slug={provider.slug}
-            displayName={provider.name}
-            status={integrations.length ? 'Installed' : 'Not Installed'}
-            publishStatus="published"
-            configurations={integrations.length}
-            categories={getCategoriesForIntegration(provider)}
-            alertText={
-              hasFeature && hasWorkspaceApp ? getReauthAlertText(provider) : undefined
-            }
-          />
-        )}
-      </Feature>
+        type="firstParty"
+        slug={provider.slug}
+        displayName={provider.name}
+        status={integrations.length ? 'Installed' : 'Not Installed'}
+        publishStatus="published"
+        configurations={integrations.length}
+        categories={getCategoriesForIntegration(provider)}
+      />
     );
   };
 
@@ -485,7 +469,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={orgId} />
+        <SentryDocumentTitle title={title} orgSlug={orgId} />
 
         {!this.props.hideHeader && (
           <SettingsPageHeader
@@ -530,7 +514,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                 <EmptyResultsBody>
                   {tct('[link:Build it on the Sentry Integration Platform.]', {
                     link: (
-                      <a href="https://docs.sentry.io/workflow/integrations/integration-platform/" />
+                      <a href="https://docs.sentry.io/product/integrations/integration-platform/" />
                     ),
                   })}
                 </EmptyResultsBody>

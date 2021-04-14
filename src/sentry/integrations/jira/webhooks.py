@@ -1,16 +1,15 @@
-from __future__ import absolute_import
 import logging
 
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
-
 from sentry.integrations.atlassian_connect import (
     AtlassianConnectValidationError,
     get_integration_from_jwt,
 )
 from sentry.models import sync_group_assignee_inbound
+
 from .client import JiraApiClient, JiraCloud
 
 logger = logging.getLogger("sentry.integrations.jira.webhooks")
@@ -84,7 +83,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
-        return super(JiraIssueUpdatedWebhook, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         try:

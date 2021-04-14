@@ -1,13 +1,10 @@
-from __future__ import absolute_import, division
-
-import six
 import itertools
-from functools import reduce, partial
+from functools import partial, reduce
 from operator import or_
 
 from django.db.models import Q
 
-from sentry.models import Release, Project, ProjectStatus, EventUser
+from sentry.models import EventUser, Project, ProjectStatus, Release
 from sentry.utils.dates import to_timestamp
 from sentry.utils.geo import geo_by_addr as _geo_by_addr
 
@@ -17,7 +14,7 @@ HEALTH_ID_KEY = "_health_id"
 def make_health_id(lookup, value):
     # Convert a lookup and value into
     # a string that can be used back in a request query.
-    return "%s:%s" % (lookup.name, lookup.encoder(value))
+    return f"{lookup.name}:{lookup.encoder(value)}"
 
 
 def serialize_releases(organization, item_list, user, lookup):
@@ -44,7 +41,7 @@ def geo_by_addr(ip):
     rv = {}
     for k in "country_code", "city", "region":
         d = geo.get(k)
-        if isinstance(d, six.binary_type):
+        if isinstance(d, bytes):
             d = d.decode("ISO-8859-1")
         rv[k] = d
 
@@ -77,7 +74,7 @@ def serialize_eventusers(organization, item_list, user, lookup):
         rv[(tag, project)] = {
             HEALTH_ID_KEY: make_health_id(lookup, [eu.tag_value, eu.project_id]),
             "value": {
-                "id": six.text_type(eu.id) if eu.id else None,
+                "id": str(eu.id) if eu.id else None,
                 "project": projects.get(eu.project_id),
                 "hash": eu.hash,
                 "tagValue": eu.tag_value,
@@ -124,7 +121,7 @@ def value_from_row(row, tagkey):
     return tuple(row[k] for k in tagkey)
 
 
-def zerofill(data, start, end, rollup):
+def zerofill(data, start, end, rollup, allow_partial_buckets=False):
     rv = []
     end = int(to_timestamp(end))
     rollup_start = (int(to_timestamp(start)) // rollup) * rollup
@@ -137,7 +134,7 @@ def zerofill(data, start, end, rollup):
     if rollup_end - rollup_start == rollup:
         rollup_end += 1
     i = 0
-    for key in six.moves.xrange(rollup_start, rollup_end, rollup):
+    for key in range(rollup_start, rollup_end, rollup):
         try:
             while data[i][0] < key:
                 rv.append(data[i])
@@ -153,12 +150,13 @@ def zerofill(data, start, end, rollup):
     # Add any remaining rows that are not aligned to the rollup and are lower than the
     # end date.
     if i < len(data):
-        rv.extend(row for row in data[i:] if row[0] < rollup_end)
+        end_timestamp = end if allow_partial_buckets else rollup_end
+        rv.extend(row for row in data[i:] if row[0] < end_timestamp)
 
     return rv
 
 
-class SnubaLookup(object):
+class SnubaLookup:
     """
     A SnubaLookup consists of all of the attributes needed to facilitate making
     a query for a column in Snuba. This covers which columns are selected, the extra conditions
@@ -246,7 +244,7 @@ for _tag in ("transaction", "os", "os.name", "browser", "browser.name", "device"
     SnubaLookup(_tag, "tags[%s]" % _tag)
 
 
-class BaseSnubaSerializer(object):
+class BaseSnubaSerializer:
     def __init__(self, organization, lookup, user):
         self.organization = organization
         self.lookup = lookup
@@ -306,7 +304,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
     Serializer for time-series Snuba data.
     """
 
-    def serialize(self, result, column="count", order=None):
+    def serialize(self, result, column="count", order=None, allow_partial_buckets=False):
         data = [
             (key, list(group))
             for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
@@ -326,7 +324,15 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
                 row.append(item)
             rv.append((k, row))
 
-        res = {"data": zerofill(rv, result.start, result.end, result.rollup)}
+        res = {
+            "data": zerofill(
+                rv,
+                result.start,
+                result.end,
+                result.rollup,
+                allow_partial_buckets=allow_partial_buckets,
+            )
+        }
 
         if result.data.get("totals"):
             res["totals"] = {"count": result.data["totals"][column]}

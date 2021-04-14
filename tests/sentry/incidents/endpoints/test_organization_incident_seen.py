@@ -1,8 +1,6 @@
-from __future__ import absolute_import
-
+from django.core.urlresolvers import reverse
 from exam import fixture
 
-from django.core.urlresolvers import reverse
 from sentry.incidents.models import IncidentSeen
 from sentry.testutils import APITestCase
 

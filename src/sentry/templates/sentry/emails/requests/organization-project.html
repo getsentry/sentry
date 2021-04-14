@@ -1,0 +1,54 @@
+{% extends "sentry/emails/base.html" %}
+{% load i18n %}
+{% block main %}
+
+<p>
+  {% trans "Fancy seeing you here. In your own inbox. In this email, we’ve addressed specifically to you." %}
+</p>
+<p>
+  {% blocktrans %}
+  {{ requester_name }} told us you’d be interested in Sentry App Monitoring for Mobile.
+  {% endblocktrans %}
+</p>
+<p>
+  {% blocktrans %}
+  Why? Well, because Sentry for Mobile shows a holistic overview of your application's health in real-time. So you can correlate errors with releases, tags, and devices to solve problems quickly, decrease churn, and improve user retention.
+  {% endblocktrans %}
+</p>
+<ul>
+  <li>
+    {% blocktrans %}
+    <strong>See</strong> session data, version adoption, and user impact by every release.
+    {% endblocktrans %}
+  </li>
+  <li>
+    {% blocktrans %}
+    <strong>Solve</strong> issues quickly with full context: contextualized stack traces, events that lead to the error, client, hardware information and the very commit that introduced the error.
+    {% endblocktrans %}
+  </li>
+  <li>
+    {% blocktrans %}
+    <strong>Learn</strong> and analyze event data to reduce regressions and ultimately improve user adoption and engagement.
+    {% endblocktrans %}
+  </li>
+</ul>
+<p>
+    {% blocktrans %}
+    And guess what? Set up takes less than five minutes.
+    {% endblocktrans %}
+</p>
+<p>
+    {% blocktrans %}
+    Sorry, but you won’t be able to use “debugging” as an excuse to get out of your second cousin’s Zoom birthday dinner.
+    {% endblocktrans %}
+</p>
+<p class="align-center">
+    <a class="btn btn-primary" href="{{ requester_link }}">{% trans "Get Started" %}</a>
+</p>
+<p>
+    {% trans "Mobile up," %}
+</p>
+<p>
+    {% trans "The Sentry Team" %}
+</p>
+{% endblock %}

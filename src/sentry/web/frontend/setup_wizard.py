@@ -1,14 +1,11 @@
-from __future__ import absolute_import
-
 from django.db.models import F
 
 from sentry import roles
-from sentry.cache import default_cache
-from sentry.models import ApiToken
+from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
-from sentry.web.frontend.base import BaseView
-from sentry.web.helpers import render_to_response
+from sentry.cache import default_cache
 from sentry.models import (
+    ApiToken,
     Organization,
     OrganizationStatus,
     Project,
@@ -16,7 +13,8 @@ from sentry.models import (
     ProjectKeyStatus,
     ProjectStatus,
 )
-from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
+from sentry.web.frontend.base import BaseView
+from sentry.web.helpers import render_to_response
 
 
 class SetupWizardView(BaseView):
@@ -26,7 +24,7 @@ class SetupWizardView(BaseView):
         Redirects to organization whenever cache has been deleted
         """
         context = {"hash": wizard_hash}
-        key = "%s%s" % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
+        key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
 
         wizard_data = default_cache.get(key)
         if wizard_data is None:
@@ -78,7 +76,7 @@ class SetupWizardView(BaseView):
 
         result = {"apiKeys": serialize(token), "projects": filled_projects}
 
-        key = "%s%s" % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
+        key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
         default_cache.set(key, result, SETUP_WIZARD_CACHE_TIMEOUT)
 
         return render_to_response("sentry/setup-wizard.html", context, request)

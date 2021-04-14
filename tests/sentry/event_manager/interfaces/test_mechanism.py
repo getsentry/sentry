@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry import eventstore
-from sentry.interfaces.exception import upgrade_legacy_mechanism
 from sentry.event_manager import EventManager
+from sentry.interfaces.exception import upgrade_legacy_mechanism
 
 
 @pytest.fixture

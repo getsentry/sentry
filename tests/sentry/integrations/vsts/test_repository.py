@@ -1,17 +1,15 @@
-from __future__ import absolute_import
-
-import responses
 import datetime
-
-from django.utils import timezone
-from exam import fixture
 from time import time
 
-from sentry.testutils import IntegrationRepositoryTestCase, TestCase
-from sentry.models import Identity, IdentityProvider, Integration, Repository
-from sentry.integrations.vsts.repository import VstsRepositoryProvider
+import responses
+from django.utils import timezone
+from exam import fixture
 
-from .testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DETAILS_EXAMPLE, FILE_CHANGES_EXAMPLE
+from sentry.integrations.vsts.repository import VstsRepositoryProvider
+from sentry.models import Identity, IdentityProvider, Integration, Repository
+from sentry.testutils import IntegrationRepositoryTestCase, TestCase
+
+from .testutils import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 
 
 class VisualStudioRepositoryProviderTest(TestCase):
@@ -71,7 +69,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
 
         assert res == [
             {
-                "patch_set": [{"path": u"/README.md", "type": "M"}],
+                "patch_set": [{"path": "/README.md", "type": "M"}],
                 "author_email": "max@sentry.io",
                 "author_name": "max bittker",
                 "message": "Updated README.md\n\nSecond line\n\nFixes SENTRY-1",
@@ -126,7 +124,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:vsts"
 
     def setUp(self):
-        super(AzureDevOpsRepositoryProviderTest, self).setUp()
+        super().setUp()
         self.base_url = "https://visualstudio.com/"
         self.vsts_external_id = "654321"
         self.integration = Integration.objects.create(
@@ -171,7 +169,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         return VstsRepositoryProvider("integrations:vsts")
 
     def tearDown(self):
-        super(AzureDevOpsRepositoryProviderTest, self).tearDown()
+        super().tearDown()
         responses.reset()
 
     def add_create_repository_responses(self, repository_config):

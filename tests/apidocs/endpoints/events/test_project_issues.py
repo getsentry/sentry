@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from django.test.client import RequestFactory
 
 from tests.apidocs.util import APIDocsTestCase
@@ -12,9 +8,7 @@ class ProjectIssuesDocs(APIDocsTestCase):
         self.create_event("a")
         self.create_event("b")
 
-        self.url = u"/api/0/projects/{}/{}/issues/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        self.url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
         self.login_as(user=self.user)
 

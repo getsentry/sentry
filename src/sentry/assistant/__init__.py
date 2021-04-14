@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
-from .manager import AssistantManager
 from .guides import GUIDES
+from .manager import AssistantManager
 
 manager = AssistantManager()
 manager.add(GUIDES)

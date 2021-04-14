@@ -1,10 +1,9 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
+
 from django.utils import timezone
 
 from sentry.models import GroupInbox, GroupStatus
-from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.tasks.auto_remove_inbox import auto_remove_inbox
 from sentry.testutils import TestCase
 

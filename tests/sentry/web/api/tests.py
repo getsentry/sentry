@@ -1,14 +1,9 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-from sentry.utils.compat import mock
-
 from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.utils.compat import mock
 
 
 class CrossDomainXmlTest(TestCase):

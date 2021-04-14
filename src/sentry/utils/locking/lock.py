@@ -1,8 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
-
 from contextlib import contextmanager
 
 from sentry.utils.locking import UnableToAcquireLock
@@ -10,7 +6,7 @@ from sentry.utils.locking import UnableToAcquireLock
 logger = logging.getLogger(__name__)
 
 
-class Lock(object):
+class Lock:
     def __init__(self, backend, key, duration, routing_key=None):
         self.backend = backend
         self.key = key
@@ -18,7 +14,7 @@ class Lock(object):
         self.routing_key = routing_key
 
     def __repr__(self):
-        return u"<Lock: {!r}>".format(self.key)
+        return f"<Lock: {self.key!r}>"
 
     def acquire(self):
         """
@@ -32,10 +28,9 @@ class Lock(object):
         try:
             self.backend.acquire(self.key, self.duration, self.routing_key)
         except Exception as error:
-            six.raise_from(
-                UnableToAcquireLock(u"Unable to acquire {!r} due to error: {}".format(self, error)),
-                error,
-            )
+            raise UnableToAcquireLock(
+                f"Unable to acquire {self!r} due to error: {error}"
+            ) from error
 
         @contextmanager
         def releaser():

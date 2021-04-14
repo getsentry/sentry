@@ -1,13 +1,10 @@
-from __future__ import absolute_import
-
 import logging
 
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
-from sentry import eventstream
+from sentry import eventstream, similarity
 from sentry.app import tsdb
-from sentry import similarity
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 
 logger = logging.getLogger("sentry.merge")
@@ -30,22 +27,22 @@ def merge_groups(
     transaction_id=None,
     recursed=False,
     eventstream_state=None,
-    **kwargs
+    **kwargs,
 ):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
         Activity,
+        Environment,
+        EventAttachment,
         Group,
         GroupAssignee,
         GroupEnvironment,
         GroupHash,
+        GroupMeta,
+        GroupRedirect,
         GroupRuleStatus,
         GroupSubscription,
-        Environment,
-        EventAttachment,
         UserReport,
-        GroupRedirect,
-        GroupMeta,
         get_group_with_redirect,
     )
 

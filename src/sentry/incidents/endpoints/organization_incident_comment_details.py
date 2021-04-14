@@ -1,14 +1,12 @@
-from __future__ import absolute_import
-
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.incidents.models import IncidentActivity, IncidentActivityType
 from sentry.incidents.logic import delete_comment, update_comment
+from sentry.incidents.models import IncidentActivity, IncidentActivityType
 
 
 class CommentSerializer(serializers.Serializer):
@@ -25,7 +23,7 @@ class CommentDetailsEndpoint(IncidentEndpoint):
         if not request.user.is_authenticated():
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
 
-        args, kwargs = super(CommentDetailsEndpoint, self).convert_args(request, *args, **kwargs)
+        args, kwargs = super().convert_args(request, *args, **kwargs)
 
         try:
             # Superusers may mutate any comment
@@ -36,7 +34,7 @@ class CommentDetailsEndpoint(IncidentEndpoint):
                 incident=kwargs["incident"],
                 # Only allow modifying comments
                 type=IncidentActivityType.COMMENT.value,
-                **user_filter
+                **user_filter,
             )
         except IncidentActivity.DoesNotExist:
             raise ResourceDoesNotExist

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import OrderedDict
 from functools import reduce
 from operator import or_
@@ -7,11 +5,10 @@ from operator import or_
 from django.db import models
 from django.utils import timezone
 
+from sentry.constants import MAX_EMAIL_FIELD_LENGTH
 from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.hashlib import md5_text
-from sentry.constants import MAX_EMAIL_FIELD_LENGTH
-
 
 # The order of these keys are significant to also indicate priority
 # when used in hashing and determining uniqueness. If you change the order
@@ -71,7 +68,7 @@ class EventUser(Model):
         ), "No identifying value found for user"
         if not self.hash:
             self.set_hash()
-        super(EventUser, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def set_hash(self):
         self.hash = self.build_hash()
@@ -88,7 +85,7 @@ class EventUser(Model):
         """
         for key, value in self.iter_attributes():
             if value:
-                return u"{}:{}".format(KEYWORD_MAP[key], value)
+                return f"{KEYWORD_MAP[key]}:{value}"
 
     def iter_attributes(self):
         """

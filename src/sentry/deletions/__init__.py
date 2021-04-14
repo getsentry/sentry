@@ -21,7 +21,6 @@ take a more efficient approach of batch deleting its indirect descendants, such
 as Event, so it can more efficiently bulk delete rows.
 """
 
-from __future__ import absolute_import
 
 from .base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation  # NOQA
 from .manager import DeletionTaskManager
@@ -31,6 +30,7 @@ default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
 
 def load_defaults():
     from sentry import models
+
     from . import defaults
 
     default_manager.register(models.Activity, BulkModelDeletionTask)

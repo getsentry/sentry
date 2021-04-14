@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Clip from 'clipboard';
-import PropTypes from 'prop-types';
+import copy from 'copy-text-to-clipboard';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
 
 type DefaultProps = {
   successMessage: string;
@@ -12,84 +12,75 @@ type DefaultProps = {
 };
 
 type Props = {
+  /** Text to be copied on click */
   value: string;
+  /** Hide children if browser does not support copy */
   hideUnsupported?: boolean;
   onSuccess?: () => void;
   onError?: () => void;
 } & DefaultProps;
 
+/**
+ * copy-text-to-clipboard relies on `document.execCommand('copy')`
+ */
+function isSupported() {
+  const support = !!document.queryCommandSupported;
+  return support && !!document.queryCommandSupported('copy');
+}
+
 class Clipboard extends React.Component<Props> {
-  static propTypes = {
-    value: PropTypes.string,
-    successMessage: PropTypes.string,
-    errorMessage: PropTypes.string,
-    hideMessages: PropTypes.bool,
-
-    /**
-     * Hide component if browser does not support "execCommand"
-     */
-    hideUnsupported: PropTypes.bool,
-    onSuccess: PropTypes.func,
-    onError: PropTypes.func,
-  };
-
   static defaultProps: DefaultProps = {
     hideMessages: false,
-    successMessage: 'Copied to clipboard',
-    errorMessage: 'Error copying to clipboard',
+    successMessage: t('Copied to clipboard'),
+    errorMessage: t('Error copying to clipboard'),
   };
 
   componentWillUnmount() {
-    if (this.clipboard) {
-      this.clipboard.destroy();
-    }
+    this.element?.removeEventListener('click', this.handleClick);
   }
 
-  clipboard!: ClipboardJS;
+  element?: ReturnType<typeof ReactDOM.findDOMNode>;
+
+  handleClick = () => {
+    const {
+      value,
+      hideMessages,
+      successMessage,
+      errorMessage,
+      onSuccess,
+      onError,
+    } = this.props;
+    // Copy returns whether it succeeded to copy the text
+    const success = copy(value);
+    if (!success) {
+      if (!hideMessages) {
+        addErrorMessage(errorMessage);
+      }
+      onError?.();
+      return;
+    }
+
+    if (!hideMessages) {
+      addSuccessMessage(successMessage);
+    }
+    onSuccess?.();
+  };
 
   handleMount = (ref: HTMLElement) => {
     if (!ref) {
       return;
     }
 
-    const {hideMessages, successMessage, errorMessage, onSuccess, onError} = this.props;
-    const hasSuccessCb = typeof onSuccess === 'function';
-    const hasErrorCb = typeof onError === 'function';
-    const bindEventHandlers = !hideMessages || hasSuccessCb || hasErrorCb;
-
     // eslint-disable-next-line react/no-find-dom-node
-    this.clipboard = new Clip(ReactDOM.findDOMNode(ref) as Element, {
-      text: () => this.props.value,
-    });
-
-    if (!bindEventHandlers) {
-      return;
-    }
-
-    this.clipboard
-      .on('success', () => {
-        if (!hideMessages) {
-          addSuccessMessage(successMessage);
-        }
-        if (onSuccess && hasSuccessCb) {
-          onSuccess();
-        }
-      })
-      .on('error', () => {
-        if (!hideMessages) {
-          addErrorMessage(errorMessage);
-        }
-        if (onError && hasErrorCb) {
-          onError();
-        }
-      });
+    this.element = ReactDOM.findDOMNode(ref);
+    this.element?.addEventListener('click', this.handleClick);
   };
 
   render() {
     const {children, hideUnsupported} = this.props;
 
     // Browser doesn't support `execCommand`
-    if (hideUnsupported && !Clip.isSupported()) {
+    if (hideUnsupported && !isSupported()) {
       return null;
     }
 

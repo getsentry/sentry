@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
-from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth import get_user as auth_get_user
+from django.contrib.auth.models import AnonymousUser
 from django.utils.functional import SimpleLazyObject
 
 from sentry.models import UserIP
-from sentry.utils.linksign import process_signature
 from sentry.utils.auth import AuthUserPasswordExpired, logger
+from sentry.utils.linksign import process_signature
 
 
 def get_user(request):
@@ -37,7 +35,7 @@ def get_user(request):
     return request._cached_user
 
 
-class AuthenticationMiddleware(object):
+class AuthenticationMiddleware:
     def process_request(self, request):
         request.user_from_signed_request = False
 

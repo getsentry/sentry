@@ -27,7 +27,13 @@ const RATE_LIMIT_FORMAT_MAP = new Map([
   [86400, '24 hours'],
 ]);
 
-const formatRateLimitWindow = val => RATE_LIMIT_FORMAT_MAP.get(val);
+type RateLimitValue = {
+  window: number;
+  count: number;
+};
+
+// This value isn't actually any, but the various angles on the types don't line up.
+const formatRateLimitWindow = (val: any) => RATE_LIMIT_FORMAT_MAP.get(val);
 
 type Props = {
   data: ProjectKey;
@@ -45,7 +51,13 @@ type Props = {
 >;
 
 class KeyRateLimitsForm extends React.Component<Props> {
-  handleChangeWindow = (onChange, onBlur, currentValueObj, value, e) => {
+  handleChangeWindow = (
+    onChange,
+    onBlur,
+    currentValueObj: RateLimitValue,
+    value: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const valueObj = {
       ...currentValueObj,
       window: value,
@@ -54,7 +66,11 @@ class KeyRateLimitsForm extends React.Component<Props> {
     onBlur(valueObj, e);
   };
 
-  handleChangeCount = (cb, value, e) => {
+  handleChangeCount = (
+    cb,
+    value: RateLimitValue,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const valueObj = {
       ...value,
       count: e.target.value,
@@ -93,10 +109,12 @@ class KeyRateLimitsForm extends React.Component<Props> {
               <PanelBody>
                 <PanelAlert type="info" icon={<IconFlag size="md" />}>
                   {t(
-                    `Rate limits provide a flexible way to manage your event
+                    `Rate limits provide a flexible way to manage your error
                       volume. If you have a noisy project or environment you
                       can configure a rate limit for this key to reduce the
-                      number of events processed.`
+                      number of errors processed. To manage your transaction
+                      volume, we recommend adjusting your sample rate in your
+                      SDK configuration.`
                   )}
                 </PanelAlert>
                 {!hasFeature &&
@@ -126,6 +144,13 @@ class KeyRateLimitsForm extends React.Component<Props> {
                     }
 
                     return [['rateLimit', t('Fill in both fields first')]];
+                  }}
+                  formatMessageValue={(value: RateLimitValue) => {
+                    return t(
+                      '%s errors in %s',
+                      value.count,
+                      formatRateLimitWindow(value.window)
+                    );
                   }}
                   help={t(
                     'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'

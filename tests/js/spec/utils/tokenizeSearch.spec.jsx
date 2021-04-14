@@ -180,6 +180,26 @@ describe('utils/tokenizeSearch', function () {
           tagValues: {country: ['>canada'], 'coronaFree()': ['<newzealand']},
         },
       },
+      {
+        name: 'correctly preserves leading/trailing escaped quotes',
+        string: 'a:"\\"a\\""',
+        object: {
+          tokens: [{type: TokenType.TAG, key: 'a', value: '\\"a\\"'}],
+          tagValues: {a: ['\\"a\\"']},
+        },
+      },
+      {
+        name: 'correctly tokenizes escaped quotes',
+        string: 'a:"i \\" quote" b:"b\\"bb" c:"cc"',
+        object: {
+          tokens: [
+            {type: TokenType.TAG, key: 'a', value: 'i \\" quote'},
+            {type: TokenType.TAG, key: 'b', value: 'b\\"bb'},
+            {type: TokenType.TAG, key: 'c', value: 'cc'},
+          ],
+          tagValues: {a: ['i \\" quote'], b: ['b\\"bb'], c: ['cc']},
+        },
+      },
     ];
 
     for (const {name, string, object} of cases) {
@@ -271,6 +291,27 @@ describe('utils/tokenizeSearch', function () {
       expect(results.formatString()).toEqual('transaction:def');
     });
 
+    it('does not remove boolean operators after setting tag values', function () {
+      const results = new QueryResults([
+        '(',
+        'start:xyz',
+        'AND',
+        'end:abc',
+        ')',
+        'OR',
+        '(',
+        'start:abc',
+        'AND',
+        'end:xyz',
+        ')',
+      ]);
+
+      results.setTagValues('transaction', ['def']);
+      expect(results.formatString()).toEqual(
+        '( start:xyz AND end:abc ) OR ( start:abc AND end:xyz ) transaction:def'
+      );
+    });
+
     it('removes tags from query object', function () {
       let results = new QueryResults(['x', 'a:a', 'b:b']);
       results.removeTag('a');
@@ -313,6 +354,18 @@ describe('utils/tokenizeSearch', function () {
       const results = new QueryResults(['tag:value', 'other:value', 'additional text']);
 
       expect(results.getTagKeys()).toEqual(['tag', 'other']);
+    });
+
+    it('getTagValues', () => {
+      const results = new QueryResults([
+        'tag:value',
+        'other:value',
+        'tag:value2',
+        'additional text',
+      ]);
+      expect(results.getTagValues('tag')).toEqual(['value', 'value2']);
+
+      expect(results.getTagValues('nonexistent')).toEqual([]);
     });
   });
 

@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 from time import time
 
 
-class FunctionWrapper(object):
+class FunctionWrapper:
     def __init__(self, collector):
         self.collector = collector
 

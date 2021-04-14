@@ -1,27 +1,21 @@
-from __future__ import absolute_import
-
-import six
-
-from rest_framework.response import Response
-from rest_framework import serializers, status
-
 from django.conf import settings
 from django.utils import timezone
+from rest_framework import serializers, status
+from rest_framework.response import Response
+from sentry_relay import (
+    UnpackErrorSignatureExpired,
+    create_register_challenge,
+    is_version_supported,
+    validate_register_response,
+)
 
 from sentry import options
 from sentry.api.authentication import is_internal_relay
-from sentry.utils import json
-from sentry.models import Relay, RelayUsage
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
+from sentry.models import Relay, RelayUsage
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-
-from sentry_relay import (
-    create_register_challenge,
-    validate_register_response,
-    is_version_supported,
-    UnpackErrorSignatureExpired,
-)
+from sentry.utils import json
 
 
 class RelayIdSerializer(serializers.Serializer):
@@ -94,7 +88,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
                 {"detail": str(exc).splitlines()[0]}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        relay_id = six.text_type(challenge["relay_id"])
+        relay_id = str(challenge["relay_id"])
         if relay_id != get_header_relay_id(request):
             return Response(
                 {"detail": "relay_id in payload did not match header"},
@@ -106,7 +100,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
         except Relay.DoesNotExist:
             pass
         else:
-            if relay.public_key != six.text_type(public_key):
+            if relay.public_key != str(public_key):
                 # This happens if we have an ID collision or someone copies an existing id
                 return Response(
                     {"detail": "Attempted to register agent with a different public key"},
@@ -156,8 +150,8 @@ class RelayRegisterResponseEndpoint(Endpoint):
                 {"detail": str(exc).splitlines()[0]}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        relay_id = six.text_type(validated["relay_id"])
-        version = six.text_type(validated["version"])
+        relay_id = str(validated["relay_id"])
+        version = str(validated["version"])
         public_key = validated["public_key"]
 
         if relay_id != get_header_relay_id(request):

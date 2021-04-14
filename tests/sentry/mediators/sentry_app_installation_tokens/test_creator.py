@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat.mock import patch
 from datetime import date
 
 from sentry.mediators.sentry_app_installation_tokens import Creator
 from sentry.mediators.sentry_app_installations import Creator as SentryAppInstallationCreator
-from sentry.models import AuditLogEntry, SentryAppInstallationToken, SentryAppInstallation
+from sentry.models import AuditLogEntry, SentryAppInstallation, SentryAppInstallationToken
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class TestCreatorBase(TestCase):
@@ -18,7 +16,7 @@ class TestCreatorBase(TestCase):
 
 class TestCreatorInternal(TestCreatorBase):
     def setUp(self):
-        super(TestCreatorInternal, self).setUp()
+        super().setUp()
 
         # will create the installation and the first token
         self.sentry_app = self.create_internal_integration(
@@ -93,7 +91,7 @@ class TestCreatorInternal(TestCreatorBase):
 
 class TestCreatorExternal(TestCreatorBase):
     def setUp(self):
-        super(TestCreatorExternal, self).setUp()
+        super().setUp()
 
         self.sentry_app = self.create_sentry_app(
             name="external_app", organization=self.org, scopes=("org:write", "team:admin")

@@ -1,22 +1,18 @@
-from __future__ import absolute_import
 import abc
 
-import six
 from django.db import transaction
 from django.http import Http404, HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
 from sentry.models import OrganizationMember
-from sentry.web.frontend.base import BaseView
 from sentry.web.decorators import signed_auth_required
-
+from sentry.web.frontend.base import BaseView
 
 signed_auth_required_m = method_decorator(signed_auth_required)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class UnsubscribeBaseView(BaseView):
+class UnsubscribeBaseView(BaseView, metaclass=abc.ABCMeta):
     auth_required = False
 
     @never_cache

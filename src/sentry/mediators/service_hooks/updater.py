@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import Iterable
 
 from sentry.mediators import Mediator, Param
@@ -15,7 +11,7 @@ class Updater(Mediator):
     actor = Param("sentry.models.User", required=False)
     project = Param("sentry.models.Project", required=False)
     events = Param(Iterable, required=False)
-    url = Param(six.string_types, required=False)
+    url = Param((str,), required=False)
 
     def call(self):
         self._update_application()

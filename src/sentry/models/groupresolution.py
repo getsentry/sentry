@@ -1,9 +1,8 @@
-from __future__ import absolute_import
-
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from sentry.db.models import BoundedPositiveIntegerField, Model, FlexibleForeignKey, sane_repr
+
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
 class GroupResolution(Model):
@@ -26,7 +25,7 @@ class GroupResolution(Model):
     # which allows us to indicate if it still happens in newer versions
     release = FlexibleForeignKey("sentry.Release")
     type = BoundedPositiveIntegerField(
-        choices=((Type.in_next_release, u"in_next_release"), (Type.in_release, u"in_release")),
+        choices=((Type.in_next_release, "in_next_release"), (Type.in_release, "in_release")),
         null=True,
     )
     actor_id = BoundedPositiveIntegerField(null=True)

@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 from datetime import datetime, timedelta
 
 import pytz
-from django.utils import timezone
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from exam import fixture
 
 from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
@@ -602,7 +600,7 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
 
 class ReleaseSerializerTest(TestCase):
     def setUp(self):
-        super(ReleaseSerializerTest, self).setUp()
+        super().setUp()
         self.version = "1234567890"
         self.repo_name = "repo/name"
         self.repo2_name = "repo2/name"

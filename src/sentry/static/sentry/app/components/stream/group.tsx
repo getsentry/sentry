@@ -2,9 +2,7 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import $ from 'jquery';
-// eslint-disable-next-line no-restricted-imports
-import {Box} from 'reflexbox';
+import {Box} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -20,7 +18,6 @@ import Placeholder from 'app/components/placeholder';
 import ProgressBar from 'app/components/progressBar';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
-import GroupRowActions from 'app/components/stream/groupRowActions';
 import TimeSince from 'app/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
@@ -32,17 +29,20 @@ import {
   GlobalSelection,
   Group,
   GroupReprocessing,
+  InboxDetails,
   NewQuery,
   Organization,
   User,
 } from 'app/types';
 import {defined, percent, valueIsEqual} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {Query} from 'app/views/issueList/utils';
+import {TimePeriodType} from 'app/views/alerts/rules/details/body';
+import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -59,8 +59,10 @@ const DiscoveryExclusionFields: string[] = [
   '__text',
 ];
 
+export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+
 const defaultProps = {
-  statsPeriod: '24h',
+  statsPeriod: DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect: true,
   withChart: true,
   useFilteredStats: false,
@@ -74,6 +76,9 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
+  showInboxTime?: boolean;
+  index?: number;
+  customStatsPeriod?: TimePeriodType;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -141,32 +146,93 @@ class StreamGroup extends React.Component<Props, State> {
 
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
-      // On the inbox tab and the inbox reason is removed
+      // When searching is:for_review and the inbox reason is removed
       const reviewed =
         state.reviewed ||
-        ((query === Query.NEEDS_REVIEW || query === Query.NEEDS_REVIEW_OWNER) &&
-          state.data.inbox?.reason !== undefined &&
+        (isForReviewQuery(query) &&
+          (state.data.inbox as InboxDetails)?.reason !== undefined &&
           data.inbox === false);
       return {data, reviewed};
     });
   }
 
+  /** Shared between two events */
+  sharedAnalytics() {
+    const {query, organization} = this.props;
+    const {data} = this.state;
+    const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
+    const owners = data?.owners || [];
+    return {
+      organization_id: organization.id,
+      group_id: data.id,
+      tab: tab?.analyticsName || 'other',
+      was_shown_suggestion: owners.length > 0,
+    };
+  }
+
+  trackClick = () => {
+    const {query, organization} = this.props;
+    const {data} = this.state;
+    if (query === Query.FOR_REVIEW) {
+      trackAnalyticsEvent({
+        eventKey: 'inbox_tab.issue_clicked',
+        eventName: 'Clicked Issue from Inbox Tab',
+        organization_id: organization.id,
+        group_id: data.id,
+      });
+    }
+
+    if (query !== undefined) {
+      trackAnalyticsEvent({
+        eventKey: 'issues_stream.issue_clicked',
+        eventName: 'Clicked Issue from Issues Stream',
+        ...this.sharedAnalytics(),
+      });
+    }
+  };
+
+  trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] = (
+    type,
+    _assignee,
+    suggestedAssignee
+  ) => {
+    const {query} = this.props;
+    if (query !== undefined) {
+      trackAnalyticsEvent({
+        eventKey: 'issues_stream.issue_assigned',
+        eventName: 'Assigned Issue from Issues Stream',
+        ...this.sharedAnalytics(),
+        did_assign_suggestion: !!suggestedAssignee,
+        assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
+        assigned_type: type,
+      });
+    }
+  };
+
   toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
-    if ((evt.target as HTMLElement)?.tagName === 'A') {
+    const targetElement = evt.target as Partial<HTMLElement>;
+
+    if (targetElement?.tagName?.toLowerCase() === 'a') {
       return;
     }
-    if ((evt.target as HTMLElement)?.tagName === 'INPUT') {
+
+    if (targetElement?.tagName?.toLowerCase() === 'input') {
       return;
     }
-    if ($(evt.target).parents('a').length !== 0) {
-      return;
+
+    let e = targetElement;
+    while (e.parentElement) {
+      if (e?.tagName?.toLowerCase() === 'a') {
+        return;
+      }
+      e = e.parentElement!;
     }
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
   };
 
   getDiscoverUrl(isFiltered?: boolean) {
-    const {organization, query, selection} = this.props;
+    const {organization, query, selection, customStatsPeriod} = this.props;
     const {data} = this.state;
 
     // when there is no discover feature open events page
@@ -194,7 +260,7 @@ class StreamGroup extends React.Component<Props, State> {
     const searchQuery = (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
 
     if (hasDiscoverQuery) {
-      const {period, start, end} = selection.datetime || {};
+      const {period, start, end} = customStatsPeriod ?? (selection.datetime || {});
 
       const discoverQuery: NewQuery = {
         ...commonQuery,
@@ -266,6 +332,7 @@ class StreamGroup extends React.Component<Props, State> {
   render() {
     const {data, reviewed} = this.state;
     const {
+      index,
       query,
       hasGuideAnchor,
       canSelect,
@@ -275,21 +342,28 @@ class StreamGroup extends React.Component<Props, State> {
       selection,
       organization,
       displayReprocessingLayout,
+      showInboxTime,
+      useFilteredStats,
+      customStatsPeriod,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
     const summary =
-      !!start && !!end
+      customStatsPeriod?.label.toLowerCase() ??
+      (!!start && !!end
         ? 'time range'
-        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
+        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
+    // Use data.filtered to decide on which value to use
+    // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
+    // we use useFilteredStats param passed to Group for deciding
     const primaryCount = data.filtered ? data.filtered.count : data.count;
     const secondaryCount = data.filtered ? data.count : undefined;
     const primaryUserCount = data.filtered ? data.filtered.userCount : data.userCount;
     const secondaryUserCount = data.filtered ? data.userCount : undefined;
 
     const showSecondaryPoints = Boolean(
-      withChart && data && data.filtered && statsPeriod
+      withChart && data && data.filtered && statsPeriod && useFilteredStats
     );
 
     const hasInbox = organization.features.includes('inbox');
@@ -313,13 +387,20 @@ class StreamGroup extends React.Component<Props, State> {
           flex="1"
         >
           <EventOrGroupHeader
+            index={index}
             organization={organization}
             includeLink
             data={data}
             query={query}
             size="normal"
+            onClick={this.trackClick}
           />
-          <EventOrGroupExtraDetails organization={organization} data={data} />
+          <EventOrGroupExtraDetails
+            hasGuideAnchor={hasGuideAnchor}
+            organization={organization}
+            data={data}
+            showInboxTime={showInboxTime}
+          />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && !displayReprocessingLayout && (
@@ -360,41 +441,43 @@ class StreamGroup extends React.Component<Props, State> {
                           <span {...getActorProps({})}>
                             <div className="dropdown-actor-title">
                               <PrimaryCount value={primaryCount} />
-                              {secondaryCount !== undefined && (
+                              {secondaryCount !== undefined && useFilteredStats && (
                                 <SecondaryCount value={secondaryCount} />
                               )}
                             </div>
                           </span>
-                          <StyledDropdownList
-                            {...getMenuProps({className: 'dropdown-menu inverted'})}
-                          >
-                            {data.filtered && (
-                              <React.Fragment>
-                                <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                                  <MenuItemText>
-                                    {t('Matching search filters')}
-                                  </MenuItemText>
-                                  <MenuItemCount value={data.filtered.count} />
-                                </StyledMenuItem>
-                                <MenuItem divider />
-                              </React.Fragment>
-                            )}
+                          {useFilteredStats && (
+                            <StyledDropdownList
+                              {...getMenuProps({className: 'dropdown-menu inverted'})}
+                            >
+                              {data.filtered && (
+                                <React.Fragment>
+                                  <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                                    <MenuItemText>
+                                      {t('Matching search filters')}
+                                    </MenuItemText>
+                                    <MenuItemCount value={data.filtered.count} />
+                                  </StyledMenuItem>
+                                  <MenuItem divider />
+                                </React.Fragment>
+                              )}
 
-                            <StyledMenuItem to={this.getDiscoverUrl()}>
-                              <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                              <MenuItemCount value={data.count} />
-                            </StyledMenuItem>
+                              <StyledMenuItem to={this.getDiscoverUrl()}>
+                                <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                                <MenuItemCount value={data.count} />
+                              </StyledMenuItem>
 
-                            {data.lifetime && (
-                              <React.Fragment>
-                                <MenuItem divider />
-                                <StyledMenuItem>
-                                  <MenuItemText>{t('Since issue began')}</MenuItemText>
-                                  <MenuItemCount value={data.lifetime.count} />
-                                </StyledMenuItem>
-                              </React.Fragment>
-                            )}
-                          </StyledDropdownList>
+                              {data.lifetime && (
+                                <React.Fragment>
+                                  <MenuItem divider />
+                                  <StyledMenuItem>
+                                    <MenuItemText>{t('Since issue began')}</MenuItemText>
+                                    <MenuItemCount value={data.lifetime.count} />
+                                  </StyledMenuItem>
+                                </React.Fragment>
+                              )}
+                            </StyledDropdownList>
+                          )}
                         </span>
                       </GuideAnchor>
                     );
@@ -422,41 +505,43 @@ class StreamGroup extends React.Component<Props, State> {
                         <span {...getActorProps({})}>
                           <div className="dropdown-actor-title">
                             <PrimaryCount value={primaryUserCount} />
-                            {secondaryUserCount !== undefined && (
+                            {secondaryUserCount !== undefined && useFilteredStats && (
                               <SecondaryCount dark value={secondaryUserCount} />
                             )}
                           </div>
                         </span>
-                        <StyledDropdownList
-                          {...getMenuProps({className: 'dropdown-menu inverted'})}
-                        >
-                          {data.filtered && (
-                            <React.Fragment>
-                              <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                                <MenuItemText>
-                                  {t('Matching search filters')}
-                                </MenuItemText>
-                                <MenuItemCount value={data.filtered.userCount} />
-                              </StyledMenuItem>
-                              <MenuItem divider />
-                            </React.Fragment>
-                          )}
+                        {useFilteredStats && (
+                          <StyledDropdownList
+                            {...getMenuProps({className: 'dropdown-menu inverted'})}
+                          >
+                            {data.filtered && (
+                              <React.Fragment>
+                                <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                                  <MenuItemText>
+                                    {t('Matching search filters')}
+                                  </MenuItemText>
+                                  <MenuItemCount value={data.filtered.userCount} />
+                                </StyledMenuItem>
+                                <MenuItem divider />
+                              </React.Fragment>
+                            )}
 
-                          <StyledMenuItem to={this.getDiscoverUrl()}>
-                            <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                            <MenuItemCount value={data.userCount} />
-                          </StyledMenuItem>
+                            <StyledMenuItem to={this.getDiscoverUrl()}>
+                              <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                              <MenuItemCount value={data.userCount} />
+                            </StyledMenuItem>
 
-                          {data.lifetime && (
-                            <React.Fragment>
-                              <MenuItem divider />
-                              <StyledMenuItem>
-                                <MenuItemText>{t('Since issue began')}</MenuItemText>
-                                <MenuItemCount value={data.lifetime.userCount} />
-                              </StyledMenuItem>
-                            </React.Fragment>
-                          )}
-                        </StyledDropdownList>
+                            {data.lifetime && (
+                              <React.Fragment>
+                                <MenuItem divider />
+                                <StyledMenuItem>
+                                  <MenuItemText>{t('Since issue began')}</MenuItemText>
+                                  <MenuItemCount value={data.lifetime.userCount} />
+                                </StyledMenuItem>
+                              </React.Fragment>
+                            )}
+                          </StyledDropdownList>
+                        )}
                       </span>
                     );
                   }}
@@ -464,18 +549,12 @@ class StreamGroup extends React.Component<Props, State> {
               )}
             </EventUserWrapper>
             <AssigneeWrapper className="hidden-xs hidden-sm">
-              <AssigneeSelector id={data.id} memberList={memberList} />
+              <AssigneeSelector
+                id={data.id}
+                memberList={memberList}
+                onAssign={this.trackAssign}
+              />
             </AssigneeWrapper>
-            {canSelect && hasInbox && (
-              <ActionsWrapper>
-                <GroupRowActions
-                  group={data}
-                  orgId={organization.slug}
-                  selection={selection}
-                  query={query}
-                />
-              </ActionsWrapper>
-            )}
           </React.Fragment>
         )}
       </Wrapper>
@@ -497,6 +576,26 @@ const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
     p.reviewed &&
     css`
       animation: tintRow 0.2s linear forwards;
+      position: relative;
+
+      /*
+       * A mask that fills the entire row and makes the text opaque. Doing this because
+       * opacity adds a stacking context in CSS so we need to apply it to another element.
+       */
+      &:after {
+        content: '';
+        pointer-events: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background-color: ${p.theme.bodyBackground};
+        opacity: 0.4;
+        z-index: 1;
+      }
 
       @keyframes tintRow {
         0% {
@@ -599,16 +698,6 @@ const AssigneeWrapper = styled('div')`
   width: 80px;
   margin: 0 ${space(2)};
   align-self: center;
-`;
-
-const ActionsWrapper = styled('div')`
-  width: 80px;
-  margin: 0 ${space(2)};
-  align-self: center;
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    display: none;
-  }
 `;
 
 // Reprocessing

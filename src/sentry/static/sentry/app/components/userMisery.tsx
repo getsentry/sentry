@@ -1,52 +1,59 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import ScoreBar from 'app/components/scoreBar';
 import Tooltip from 'app/components/tooltip';
+import CHART_PALETTE from 'app/constants/chartPalette';
 import {tct} from 'app/locale';
-import theme from 'app/utils/theme';
+import {defined} from 'app/utils';
 
 type Props = {
   bars: number;
   barHeight: number;
-  miserableUsers: number;
-  totalUsers: number;
-  miseryLimit: number;
+  userMisery: number;
+  miseryLimit: number | undefined;
+  totalUsers: number | undefined;
+  miserableUsers: number | undefined;
 };
 
 function UserMisery(props: Props) {
-  const {bars, barHeight, miserableUsers, miseryLimit, totalUsers} = props;
+  const {bars, barHeight, userMisery, miseryLimit, totalUsers, miserableUsers} = props;
+  // User Misery will always be > 0 because of the maximum a posteriori estimate
+  // and below 5% will always be an overestimation of the actual proportion
+  // of miserable to total unique users. We are going to visualize it as
+  // 0 User Misery while still preserving the actual value for sorting purposes.
+  const adjustedMisery = userMisery > 0.05 ? userMisery : 0;
 
-  const palette = new Array(bars).fill(theme.purple300);
-  const rawScore = Math.floor(
-    (miserableUsers / Math.max(totalUsers, 1)) * palette.length
-  );
+  const palette = new Array(bars).fill([CHART_PALETTE[0][0]]);
+  const score = Math.round(adjustedMisery * palette.length);
 
-  const adjustedScore = rawScore > 0 ? rawScore : miserableUsers > 0 ? 1 : 0;
-
-  const miseryPercentage = ((100 * miserableUsers) / Math.max(totalUsers, 1)).toFixed(2);
-
-  const title = tct(
-    '[affectedUsers] out of [totalUsers] ([miseryPercentage]%) unique users waited more than [duration]ms',
-    {
-      affectedUsers: miserableUsers,
-      totalUsers,
-      miseryPercentage,
-      duration: 4 * miseryLimit,
-    }
-  );
+  let title: React.ReactNode;
+  if (defined(miserableUsers) && defined(totalUsers) && defined(miseryLimit)) {
+    title = tct(
+      '[miserableUsers] out of [totalUsers] unique users waited more than [duration]ms',
+      {
+        miserableUsers,
+        totalUsers,
+        duration: 4 * miseryLimit,
+      }
+    );
+  } else if (defined(miseryLimit)) {
+    title = tct(
+      'User Misery score is [userMisery], representing users who waited more than more than [duration]ms.',
+      {
+        duration: 4 * miseryLimit,
+        userMisery: userMisery.toFixed(3),
+      }
+    );
+  } else {
+    title = tct('User Misery score is [userMisery].', {
+      userMisery: userMisery.toFixed(3),
+    });
+  }
   return (
     <Tooltip title={title} containerDisplayMode="block">
-      <ScoreBar size={barHeight} score={adjustedScore} palette={palette} radius={0} />
+      <ScoreBar size={barHeight} score={score} palette={palette} radius={0} />
     </Tooltip>
   );
 }
-
-UserMisery.propTypes = {
-  bars: PropTypes.number,
-  miserableUsers: PropTypes.number,
-  totalUsers: PropTypes.number,
-  miseryLimit: PropTypes.number,
-};
 
 export default UserMisery;

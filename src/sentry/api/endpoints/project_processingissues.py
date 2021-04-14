@@ -1,15 +1,12 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.api.serializers import serialize
-from sentry.models import ProcessingIssue
+from sentry.models import ApiToken, ProcessingIssue
 from sentry.reprocessing import trigger_reprocessing
-from sentry.web.helpers import render_to_response
-from sentry.models import ApiToken
 from sentry.utils.http import absolute_uri
+from sentry.web.helpers import render_to_response
 
 
 class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
@@ -60,7 +57,7 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
         resp["Content-Type"] = "text/plain"
         return resp
 
-    def permission_denied(self, request):
+    def permission_denied(self, request, message=None):
         resp = render_to_response("sentry/reprocessing-script.sh", {"token": None})
         resp["Content-Type"] = "text/plain"
         return resp

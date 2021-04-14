@@ -7,7 +7,7 @@ import {
 describe('Utils', function () {
   describe('findNearestBucketIndex()', function () {
     it('returns null for insufficient data', function () {
-      expect(findNearestBucketIndex([], 1, 1)).toBeNull();
+      expect(findNearestBucketIndex([], 1)).toBeNull();
     });
 
     it('returns null for x axis that is too big', function () {
@@ -16,8 +16,8 @@ describe('Utils', function () {
         {bin: 20, count: 0},
       ];
 
-      expect(findNearestBucketIndex(data, 10, 30)).toBeNull();
-      expect(findNearestBucketIndex(data, 10, 35)).toBeNull();
+      expect(findNearestBucketIndex(data, 30)).toBeNull();
+      expect(findNearestBucketIndex(data, 35)).toBeNull();
     });
 
     it('returns -1 for x axis that is too small', function () {
@@ -26,8 +26,8 @@ describe('Utils', function () {
         {bin: 20, count: 0},
       ];
 
-      expect(findNearestBucketIndex(data, 10, 5)).toEqual(-1);
-      expect(findNearestBucketIndex(data, 10, 9.9999)).toEqual(-1);
+      expect(findNearestBucketIndex(data, 5)).toEqual(-1);
+      expect(findNearestBucketIndex(data, 9.9999)).toEqual(-1);
     });
 
     it('returns the correct bin for the x axis', function () {
@@ -38,21 +38,21 @@ describe('Utils', function () {
         {bin: 40, count: 0},
       ];
 
-      expect(findNearestBucketIndex(data, 10, 10)).toEqual(0);
-      expect(findNearestBucketIndex(data, 10, 12)).toEqual(0);
-      expect(findNearestBucketIndex(data, 10, 18.111)).toEqual(0);
-      expect(findNearestBucketIndex(data, 10, 19.999)).toEqual(0);
-      expect(findNearestBucketIndex(data, 10, 20)).toEqual(1);
-      expect(findNearestBucketIndex(data, 10, 25)).toEqual(1);
-      expect(findNearestBucketIndex(data, 10, 28.123)).toEqual(1);
-      expect(findNearestBucketIndex(data, 10, 29.321)).toEqual(1);
-      expect(findNearestBucketIndex(data, 10, 30)).toEqual(2);
-      expect(findNearestBucketIndex(data, 10, 30.421)).toEqual(2);
-      expect(findNearestBucketIndex(data, 10, 32.521)).toEqual(2);
-      expect(findNearestBucketIndex(data, 10, 39.921)).toEqual(2);
-      expect(findNearestBucketIndex(data, 10, 40)).toEqual(3);
-      expect(findNearestBucketIndex(data, 10, 40.992)).toEqual(3);
-      expect(findNearestBucketIndex(data, 10, 49.992)).toEqual(3);
+      expect(findNearestBucketIndex(data, 10)).toEqual(0);
+      expect(findNearestBucketIndex(data, 12)).toEqual(0);
+      expect(findNearestBucketIndex(data, 18.111)).toEqual(0);
+      expect(findNearestBucketIndex(data, 19.999)).toEqual(0);
+      expect(findNearestBucketIndex(data, 20)).toEqual(1);
+      expect(findNearestBucketIndex(data, 25)).toEqual(1);
+      expect(findNearestBucketIndex(data, 28.123)).toEqual(1);
+      expect(findNearestBucketIndex(data, 29.321)).toEqual(1);
+      expect(findNearestBucketIndex(data, 30)).toEqual(2);
+      expect(findNearestBucketIndex(data, 30.421)).toEqual(2);
+      expect(findNearestBucketIndex(data, 32.521)).toEqual(2);
+      expect(findNearestBucketIndex(data, 39.921)).toEqual(2);
+      expect(findNearestBucketIndex(data, 40)).toEqual(3);
+      expect(findNearestBucketIndex(data, 40.992)).toEqual(3);
+      expect(findNearestBucketIndex(data, 49.992)).toEqual(3);
     });
   });
 

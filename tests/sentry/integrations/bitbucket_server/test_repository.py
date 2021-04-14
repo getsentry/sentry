@@ -1,26 +1,25 @@
-from __future__ import absolute_import
-
 import datetime
-import responses
-import pytest
-import six
 
+import pytest
+import responses
 from django.utils import timezone
 from exam import fixture
-from sentry.models import Integration, Repository, IdentityProvider, Identity, IdentityStatus
-from sentry.testutils import APITestCase
+
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
+from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.testutils import APITestCase
+
 from .testutils import (
-    EXAMPLE_PRIVATE_KEY,
-    COMPARE_COMMITS_EXAMPLE,
-    REPO,
     COMMIT_CHANGELIST_EXAMPLE,
-    COMPARE_COMMITS_WITH_PAGES_1_2_EXAMPLE,
-    COMPARE_COMMITS_WITH_PAGES_2_2_EXAMPLE,
     COMMIT_CHANGELIST_WITH_PAGES_FIRST_COMMIT_EXAMPLE,
     COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_1_2,
     COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_2_2,
+    COMPARE_COMMITS_EXAMPLE,
+    COMPARE_COMMITS_WITH_PAGES_1_2_EXAMPLE,
+    COMPARE_COMMITS_WITH_PAGES_2_2_EXAMPLE,
+    EXAMPLE_PRIVATE_KEY,
+    REPO,
 )
 
 
@@ -132,13 +131,13 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
         responses.add(
             responses.GET,
-            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?merges=exclude&limit=100&start=0",
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?limit=1000&start=0",
             json=COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_1_2,
         )
 
         responses.add(
             responses.GET,
-            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?merges=exclude&limit=100&start=1",
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?limit=1000&start=1",
             json=COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_2_2,
         )
 
@@ -175,14 +174,14 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
     @responses.activate
     def test_build_repository_config(self):
-        project = u"laurynsentry"
-        repo = u"helloworld"
-        full_repo_name = u"%s/%s" % (project, repo)
+        project = "laurynsentry"
+        repo = "helloworld"
+        full_repo_name = f"{project}/{repo}"
 
         webhook_id = 79
         responses.add(
             responses.GET,
-            "https://bitbucket.example.com/rest/api/1.0/projects/%s/repos/%s" % (project, repo),
+            f"https://bitbucket.example.com/rest/api/1.0/projects/{project}/repos/{repo}",
             json=REPO,
         )
         responses.add(
@@ -209,7 +208,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             "identifier": project + "/" + repo,
             "name": full_repo_name,
             "installation": integration.id,
-            "external_id": six.text_type(REPO["id"]),
+            "external_id": str(REPO["id"]),
         }
 
         data["identifier"] = full_repo_name
@@ -217,7 +216,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
         assert data == {
             "name": full_repo_name,
-            "external_id": six.text_type(REPO["id"]),
+            "external_id": str(REPO["id"]),
             "url": "https://bitbucket.example.com/projects/laurynsentry/repos/helloworld/browse",
             "integration_id": integration.id,
             "config": {
@@ -243,4 +242,4 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
     def test_get_repository_data_no_installation_id(self):
         with pytest.raises(IntegrationError) as e:
             self.provider.get_repository_data(self.organization, {})
-            assert "requires an integration id" in six.text_type(e)
+            assert "requires an integration id" in str(e)

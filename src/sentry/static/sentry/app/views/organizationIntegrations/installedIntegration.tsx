@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
 import Access from 'app/components/acl/access';
 import Alert from 'app/components/alert';
@@ -7,14 +8,13 @@ import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import Confirm from 'app/components/confirm';
 import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconFlag, IconSettings, IconWarning} from 'app/icons';
+import {IconDelete, IconFlag, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'app/types';
-import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
-import theme from 'app/utils/theme';
+import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
+import {Theme} from 'app/utils/theme';
 
-import AddIntegrationButton from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
 export type Props = {
@@ -23,24 +23,13 @@ export type Props = {
   integration: Integration;
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
-  onReAuthIntegration: (integration: Integration) => void;
-  trackIntegrationEvent: (
-    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
-  ) => void; //analytics callback
+  trackIntegrationEvent: (eventKey: IntegrationAnalyticsKey) => void; //analytics callback
   className?: string;
-  showReauthMessage: boolean;
 };
 
 export default class InstalledIntegration extends React.Component<Props> {
-  handleReAuthIntegration = (integration: Integration) => {
-    this.props.onReAuthIntegration(integration);
-  };
-
   handleUninstallClick = () => {
-    this.props.trackIntegrationEvent({
-      eventKey: 'integrations.uninstall_clicked',
-      eventName: 'Integrations: Uninstall Clicked',
-    });
+    this.props.trackIntegrationEvent('integrations.uninstall_clicked');
   };
 
   getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
@@ -61,10 +50,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 
   handleRemove(integration: Integration) {
     this.props.onRemove(integration);
-    this.props.trackIntegrationEvent({
-      eventKey: 'integrations.uninstall_completed',
-      eventName: 'Integrations: Uninstall Completed',
-    });
+    this.props.trackIntegrationEvent('integrations.uninstall_completed');
   }
 
   get removeConfirmProps() {
@@ -106,13 +92,7 @@ export default class InstalledIntegration extends React.Component<Props> {
   }
 
   render() {
-    const {
-      className,
-      integration,
-      provider,
-      organization,
-      showReauthMessage,
-    } = this.props;
+    const {className, integration, provider, organization} = this.props;
 
     const removeConfirmProps =
       integration.status === 'active' && integration.provider.canDisable
@@ -127,26 +107,6 @@ export default class InstalledIntegration extends React.Component<Props> {
               <IntegrationItem integration={integration} />
             </IntegrationItemBox>
             <div>
-              {showReauthMessage && (
-                <Tooltip
-                  disabled={hasAccess}
-                  title={t(
-                    'You must be an organization owner, manager or admin to upgrade'
-                  )}
-                >
-                  <AddIntegrationButton
-                    disabled={!hasAccess}
-                    provider={provider}
-                    onAddIntegration={this.handleReAuthIntegration}
-                    integrationId={integration.id}
-                    priority="primary"
-                    size="small"
-                    buttonText={t('Upgrade Now')}
-                    organization={organization}
-                    icon={<IconWarning size="sm" />}
-                  />
-                </Tooltip>
-              )}
               <Tooltip
                 disabled={hasAccess}
                 position="left"
@@ -190,7 +150,7 @@ export default class InstalledIntegration extends React.Component<Props> {
               </Tooltip>
             </div>
 
-            <IntegrationStatus status={integration.status} />
+            <StyledIntegrationStatus status={integration.status} />
           </IntegrationFlex>
         )}
       </Access>
@@ -211,9 +171,9 @@ const IntegrationItemBox = styled('div')`
   flex: 1;
 `;
 
-const IntegrationStatus = styled(
-  (props: React.HTMLAttributes<HTMLElement> & {status: ObjectStatus}) => {
-    const {status, ...p} = props;
+const IntegrationStatus = withTheme(
+  (props: React.HTMLAttributes<HTMLElement> & {theme: Theme; status: ObjectStatus}) => {
+    const {theme, status, ...p} = props;
     const color = status === 'active' ? theme.success : theme.gray300;
     const titleText =
       status === 'active'
@@ -230,7 +190,9 @@ const IntegrationStatus = styled(
       </Tooltip>
     );
   }
-)`
+);
+
+const StyledIntegrationStatus = styled(IntegrationStatus)`
   display: flex;
   align-items: center;
   color: ${p => p.theme.gray300};

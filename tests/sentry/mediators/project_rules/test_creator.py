@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.mediators.project_rules import Creator
 from sentry.models import Rule
 from sentry.testutils import TestCase
@@ -14,6 +12,7 @@ class TestCreator(TestCase):
         )
         self.creator = Creator(
             name="New Cool Rule",
+            owner=self.user.actor.id,
             project=self.project,
             action_match="all",
             filter_match="any",
@@ -38,6 +37,7 @@ class TestCreator(TestCase):
         r = self.creator.call()
         rule = Rule.objects.get(id=r.id)
         assert rule.label == "New Cool Rule"
+        assert rule.owner == self.user.actor
         assert rule.project == self.project
         assert rule.environment_id is None
         assert rule.data == {

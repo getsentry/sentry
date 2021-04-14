@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import time
 
 import msgpack
@@ -11,7 +9,6 @@ from sentry.testutils import TestCase
 from sentry.utils import redis
 
 from .base import MinHashIndexBackendTestMixin
-
 
 signature_builder = MinHashSignatureBuilder(32, 0xFFFF)
 

@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from django.conf import settings
 from django.db import models
 from django.db.models import F
@@ -41,32 +38,34 @@ class Activity(Model):
     UNMERGE_DESTINATION = 20
     SET_RESOLVED_IN_PULL_REQUEST = 21
     REPROCESS = 22
+    MARK_REVIEWED = 23
 
     TYPE = (
         # (TYPE, verb-slug)
-        (SET_RESOLVED, u"set_resolved"),
-        (SET_RESOLVED_BY_AGE, u"set_resolved_by_age"),
-        (SET_RESOLVED_IN_RELEASE, u"set_resolved_in_release"),
-        (SET_RESOLVED_IN_COMMIT, u"set_resolved_in_commit"),
-        (SET_RESOLVED_IN_PULL_REQUEST, u"set_resolved_in_pull_request"),
-        (SET_UNRESOLVED, u"set_unresolved"),
-        (SET_IGNORED, u"set_ignored"),
-        (SET_PUBLIC, u"set_public"),
-        (SET_PRIVATE, u"set_private"),
-        (SET_REGRESSION, u"set_regression"),
-        (CREATE_ISSUE, u"create_issue"),
-        (NOTE, u"note"),
-        (FIRST_SEEN, u"first_seen"),
-        (RELEASE, u"release"),
-        (ASSIGNED, u"assigned"),
-        (UNASSIGNED, u"unassigned"),
-        (MERGE, u"merge"),
-        (DEPLOY, u"deploy"),
-        (NEW_PROCESSING_ISSUES, u"new_processing_issues"),
-        (UNMERGE_SOURCE, u"unmerge_source"),
-        (UNMERGE_DESTINATION, u"unmerge_destination"),
+        (SET_RESOLVED, "set_resolved"),
+        (SET_RESOLVED_BY_AGE, "set_resolved_by_age"),
+        (SET_RESOLVED_IN_RELEASE, "set_resolved_in_release"),
+        (SET_RESOLVED_IN_COMMIT, "set_resolved_in_commit"),
+        (SET_RESOLVED_IN_PULL_REQUEST, "set_resolved_in_pull_request"),
+        (SET_UNRESOLVED, "set_unresolved"),
+        (SET_IGNORED, "set_ignored"),
+        (SET_PUBLIC, "set_public"),
+        (SET_PRIVATE, "set_private"),
+        (SET_REGRESSION, "set_regression"),
+        (CREATE_ISSUE, "create_issue"),
+        (NOTE, "note"),
+        (FIRST_SEEN, "first_seen"),
+        (RELEASE, "release"),
+        (ASSIGNED, "assigned"),
+        (UNASSIGNED, "unassigned"),
+        (MERGE, "merge"),
+        (DEPLOY, "deploy"),
+        (NEW_PROCESSING_ISSUES, "new_processing_issues"),
+        (UNMERGE_SOURCE, "unmerge_source"),
+        (UNMERGE_DESTINATION, "unmerge_destination"),
         # The user has reprocessed the group, so events may have moved to new groups
-        (REPROCESS, u"reprocess"),
+        (REPROCESS, "reprocess"),
+        (MARK_REVIEWED, "mark_reviewed"),
     )
 
     project = FlexibleForeignKey("sentry.Project")
@@ -90,19 +89,19 @@ class Activity(Model):
         return (version or "")[:64]
 
     def __init__(self, *args, **kwargs):
-        super(Activity, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         from sentry.models import Release
 
         # XXX(dcramer): fix for bad data
         if self.type in (self.RELEASE, self.DEPLOY) and isinstance(self.data["version"], Release):
             self.data["version"] = self.data["version"].version
         if self.type == self.ASSIGNED:
-            self.data["assignee"] = six.text_type(self.data["assignee"])
+            self.data["assignee"] = str(self.data["assignee"])
 
     def save(self, *args, **kwargs):
         created = bool(not self.id)
 
-        super(Activity, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
         if not created:
             return
@@ -112,7 +111,7 @@ class Activity(Model):
             self.group.update(num_comments=F("num_comments") + 1)
 
     def delete(self, *args, **kwargs):
-        super(Activity, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
         if self.type == Activity.NOTE:

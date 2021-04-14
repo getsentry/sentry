@@ -3,7 +3,12 @@ import {defined} from 'app/utils';
 function getTransformedData(data: any): [string, string][] {
   if (Array.isArray(data)) {
     return data
-      .filter(dataValue => defined(dataValue))
+      .filter(dataValue => {
+        if (typeof dataValue === 'string') {
+          return !!dataValue;
+        }
+        return defined(dataValue);
+      })
       .map(dataValue => {
         if (Array.isArray(dataValue)) {
           return dataValue;

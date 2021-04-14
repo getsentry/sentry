@@ -1,17 +1,14 @@
-from __future__ import absolute_import
-
+import copy
 import functools
 from datetime import datetime, timedelta
 
-from sentry.utils.compat import mock
 import pytest
 import pytz
-import copy
 from django.core import mail
 from django.utils import timezone
 
 from sentry.app import tsdb
-from sentry.models import Project, UserOption, GroupStatus
+from sentry.models import GroupStatus, Project, UserOption
 from sentry.tasks.reports import (
     DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
     Report,
@@ -28,18 +25,17 @@ from sentry.tasks.reports import (
     merge_sequences,
     merge_series,
     month_to_index,
+    prepare_project_issue_summaries,
+    prepare_project_series,
     prepare_reports,
     safe_add,
     user_subscribed_to_organization_reports,
-    prepare_project_issue_summaries,
-    prepare_project_series,
 )
-from sentry.testutils.cases import TestCase, SnubaTestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.utils.dates import to_datetime, to_timestamp, floor_to_utc_day
 from sentry.testutils.helpers.datetime import iso_format
-
-from sentry.utils.compat import map
+from sentry.utils.compat import map, mock
+from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 
 
 @pytest.yield_fixture(scope="module")
@@ -72,11 +68,14 @@ def test_merge_mappings():
 
 
 def test_merge_mappings_custom_operator():
-    assert merge_mappings(
-        {"a": {"x": 1, "y": 1}, "b": {"x": 2, "y": 2}},
-        {"a": {"x": 1, "y": 1}, "b": {"x": 2, "y": 2}},
-        lambda left, right: merge_mappings(left, right),
-    ) == {"a": {"x": 2, "y": 2}, "b": {"x": 4, "y": 4}}
+    assert (
+        merge_mappings(
+            {"a": {"x": 1, "y": 1}, "b": {"x": 2, "y": 2}},
+            {"a": {"x": 1, "y": 1}, "b": {"x": 2, "y": 2}},
+            lambda left, right: merge_mappings(left, right),
+        )
+        == {"a": {"x": 2, "y": 2}, "b": {"x": 4, "y": 4}}
+    )
 
 
 def test_merge_mapping_different_keys():
@@ -89,11 +88,14 @@ def test_merge_sequences():
 
 
 def test_merge_sequences_custom_operator():
-    assert merge_sequences(
-        [{chr(65 + i): i} for i in range(0, 26)],
-        [{chr(65 + i): i} for i in range(0, 26)],
-        merge_mappings,
-    ) == [{chr(65 + i): i * 2} for i in range(0, 26)]
+    assert (
+        merge_sequences(
+            [{chr(65 + i): i} for i in range(0, 26)],
+            [{chr(65 + i): i} for i in range(0, 26)],
+            merge_mappings,
+        )
+        == [{chr(65 + i): i * 2} for i in range(0, 26)]
+    )
 
 
 def test_merge_series():
@@ -103,11 +105,14 @@ def test_merge_series():
 
 
 def test_merge_series_custom_operator():
-    assert merge_series(
-        [(i, {chr(65 + i): i}) for i in range(0, 26)],
-        [(i, {chr(65 + i): i}) for i in range(0, 26)],
-        merge_mappings,
-    ) == [(i, {chr(65 + i): i * 2}) for i in range(0, 26)]
+    assert (
+        merge_series(
+            [(i, {chr(65 + i): i}) for i in range(0, 26)],
+            [(i, {chr(65 + i): i}) for i in range(0, 26)],
+            merge_mappings,
+        )
+        == [(i, {chr(65 + i): i * 2}) for i in range(0, 26)]
+    )
 
 
 def test_merge_series_offset_timestamps():

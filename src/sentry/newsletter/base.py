@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.services import Service
 
 
@@ -46,7 +44,7 @@ class Newsletter(Service):
         verified=None,
         subscribed_date=None,
         unsubscribed_date=None,
-        **kwargs
+        **kwargs,
     ):
         return None
 
@@ -58,7 +56,7 @@ class Newsletter(Service):
         verified=None,
         subscribed_date=None,
         unsubscribed_date=None,
-        **kwargs
+        **kwargs,
     ):
         return self.update_subscriptions(
             user=user,
@@ -68,7 +66,7 @@ class Newsletter(Service):
             subscribed_date=subscribed_date,
             unsubscribed_date=unsubscribed_date,
             create=True,
-            **kwargs
+            **kwargs,
         )
 
     """
@@ -88,7 +86,7 @@ class Newsletter(Service):
         verified=None,
         subscribed_date=None,
         unsubscribed_date=None,
-        **kwargs
+        **kwargs,
     ):
         return None
 
@@ -100,7 +98,7 @@ class Newsletter(Service):
         verified=None,
         subscribed_date=None,
         unsubscribed_date=None,
-        **kwargs
+        **kwargs,
     ):
         return self.update_subscription(
             user=user,
@@ -110,5 +108,5 @@ class Newsletter(Service):
             subscribed_date=subscribed_date,
             unsubscribed_date=unsubscribed_date,
             create=True,
-            **kwargs
+            **kwargs,
         )

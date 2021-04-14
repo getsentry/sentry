@@ -1,8 +1,7 @@
-from __future__ import absolute_import
+from urllib.parse import urlencode
 
-from six.moves.urllib.parse import urlencode
-from django.test import RequestFactory
 from django.contrib.auth.models import AnonymousUser
+from django.test import RequestFactory
 
 from sentry.auth.helper import handle_new_user
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember

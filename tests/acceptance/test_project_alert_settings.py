@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from sentry.models import Rule
 from sentry.testutils import AcceptanceTestCase
 
 
 class ProjectAlertSettingsTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectAlertSettingsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -42,7 +40,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path1 = u"/settings/{}/projects/{}/alerts/".format(self.org.slug, self.project.slug)
+        self.path1 = f"/settings/{self.org.slug}/projects/{self.project.slug}/alerts/"
 
     def test_settings_load(self):
         self.browser.get(self.path1)

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.utils import timezone
 
 from sentry.utils.email import MessageBuilder
@@ -28,7 +26,7 @@ def generate_security_email(account, type, actor, ip_address, context=None, curr
         template = "sentry/emails/api-token-generated.txt"
         html_template = "sentry/emails/api-token-generated.html"
     else:
-        raise ValueError(u"unknown type: {}".format(type))
+        raise ValueError(f"unknown type: {type}")
 
     new_context = {
         "account": account,

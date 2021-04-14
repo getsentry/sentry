@@ -1,13 +1,8 @@
-from __future__ import absolute_import
-
-import six
-
 from uuid import uuid4
 
-from social_auth.utils import setting, module_member
-from social_auth.models import UserSocialAuth
 from social_auth.django_compat import get_all_field_names
-
+from social_auth.models import UserSocialAuth
+from social_auth.utils import module_member, setting
 
 slugify = module_member(
     setting("SOCIAL_AUTH_SLUGIFY_FUNCTION", "django.template.defaultfilters.slugify")
@@ -30,7 +25,7 @@ def get_username(
     if email_as_username and details.get("email"):
         username = details["email"]
     elif details.get("username"):
-        username = six.text_type(details["username"])
+        username = str(details["username"])
     else:
         username = uuid4().hex
 
@@ -89,7 +84,7 @@ def django_orm_maxlength_truncate(backend, details, user=None, is_new=False, *ar
         return
     out = {}
     names = get_all_field_names(user)
-    for name, value in six.iteritems(details):
+    for name, value in details.items():
         if name in names and not _ignore_field(name, is_new):
             max_length = user._meta.get_field(name).max_length
             try:
@@ -108,7 +103,7 @@ def update_user_details(backend, details, response, user=None, is_new=False, *ar
 
     changed = False  # flag to track changes
 
-    for name, value in six.iteritems(details):
+    for name, value in details.items():
         # do not update username, it was already generated, do not update
         # configured fields if user already existed
         if not _ignore_field(name, is_new):

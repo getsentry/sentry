@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from random import randint
 
 from sentry.models import ApiToken, Organization, User
@@ -29,7 +27,7 @@ class ForOrganizationMemberTestCase(TestCase):
         organization = Organization(id=1)
         for n in range(5):
             assert not ratelimits.for_organization_member_invite(
-                organization, "{}@example.com".format(randint(0, 1000000)), config=RELAXED_CONFIG
+                organization, f"{randint(0, 1000000)}@example.com", config=RELAXED_CONFIG
             )
 
         assert ratelimits.for_organization_member_invite(
@@ -41,7 +39,7 @@ class ForOrganizationMemberTestCase(TestCase):
         for n in range(5):
             assert not ratelimits.for_organization_member_invite(
                 Organization(id=randint(0, 100000)),
-                "{}@example.com".format(randint(0, 1000000)),
+                f"{randint(0, 1000000)}@example.com",
                 auth=token,
                 config=RELAXED_CONFIG,
             )
@@ -55,7 +53,7 @@ class ForOrganizationMemberTestCase(TestCase):
         for n in range(5):
             assert not ratelimits.for_organization_member_invite(
                 Organization(id=randint(0, 100000)),
-                "{}@example.com".format(randint(0, 1000000)),
+                f"{randint(0, 1000000)}@example.com",
                 user=user,
                 config=RELAXED_CONFIG,
             )

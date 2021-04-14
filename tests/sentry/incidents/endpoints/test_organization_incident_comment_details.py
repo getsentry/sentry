@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from exam import fixture
 
 from sentry.incidents.models import IncidentActivity, IncidentActivityType
 from sentry.testutils import APITestCase
 
 
-class BaseIncidentCommentDetailsTest(object):
+class BaseIncidentCommentDetailsTest:
     endpoint = "sentry-api-0-organization-incident-comment-details"
 
     def setUp(self):

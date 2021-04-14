@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework import serializers
 
 from sentry.models import Project
@@ -10,7 +8,7 @@ ValidationError = serializers.ValidationError
 class ProjectField(serializers.Field):
     def __init__(self, scope="project:write"):
         self.scope = scope
-        super(ProjectField, self).__init__()
+        super().__init__()
 
     def to_representation(self, value):
         return value

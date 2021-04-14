@@ -1,28 +1,23 @@
-from __future__ import absolute_import
-
 import logging
-import six
+from uuid import uuid4
 
 from django.conf.urls import url
 from rest_framework.response import Response
-from uuid import uuid4
-
-from social_auth.models import UserSocialAuth
 
 from sentry import options
 from sentry.app import locks
 from sentry.exceptions import PluginError
-from sentry.models import Integration, Organization, OrganizationOption, Repository
-from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
-from sentry.plugins import providers
-from sentry.utils.http import absolute_uri
-
-from sentry_plugins.base import CorePluginMixin
-from sentry.shared_integrations.constants import ERR_UNAUTHORIZED, ERR_INTERNAL
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.models import Integration, Organization, OrganizationOption, Repository
+from sentry.plugins import providers
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
+from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.http import absolute_uri
+from sentry_plugins.base import CorePluginMixin
+from social_auth.models import UserSocialAuth
 
-from .client import GitHubClient, GitHubAppsClient
+from .client import GitHubAppsClient, GitHubClient
 
 API_ERRORS = {
     404: "GitHub returned a 404 Not Found error. If this repository exists, ensure"
@@ -44,7 +39,7 @@ class GitHubMixin(CorePluginMixin):
             message = API_ERRORS.get(exc.code)
             if message:
                 return message
-            return "Error Communicating with GitHub (HTTP %s): %s" % (
+            return "Error Communicating with GitHub (HTTP {}): {}".format(
                 exc.code,
                 exc.json.get("message", "unknown error") if exc.json else "unknown error",
             )
@@ -90,7 +85,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
     ]
 
     def get_group_urls(self):
-        return super(GitHubPlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
@@ -104,7 +99,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
         return bool(self.get_option("repo", project))
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(GitHubPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return (
             [
                 {
@@ -145,7 +140,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": u"Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry issue: [{issue_id}]({url})".format(
                     url=absolute_uri(group.get_absolute_url(params={"referrer": "github_plugin"})),
                     issue_id=group.qualified_short_id,
                 ),
@@ -208,7 +203,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
         # XXX: get_option may need tweaked in Sentry so that it can be pre-fetched in bulk
         repo = self.get_option("repo", group.project)
 
-        return "https://github.com/%s/issues/%s" % (repo, issue_id)
+        return f"https://github.com/{repo}/issues/{issue_id}"
 
     def view_autocomplete(self, request, group, **kwargs):
         field = request.GET.get("autocomplete_field")
@@ -220,12 +215,12 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
         client = self.get_client(request.user)
 
         try:
-            response = client.search_issues(query=(u"repo:%s %s" % (repo, query)).encode("utf-8"))
+            response = client.search_issues(query=(f"repo:{repo} {query}").encode("utf-8"))
         except Exception as e:
             return self.handle_api_error(e)
 
         issues = [
-            {"text": "(#%s) %s" % (i["number"], i["title"]), "id": i["number"]}
+            {"text": "(#{}) {}".format(i["number"], i["title"]), "id": i["number"]}
             for i in response.get("items", [])
         ]
 
@@ -241,7 +236,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
                 "placeholder": "e.g. getsentry/sentry",
                 "help": (
                     "If you want to add a repository to integrate commit data with releases, please install the "
-                    u'new <a href="/settings/{}/integrations/github/">'
+                    'new <a href="/settings/{}/integrations/github/">'
                     "Github global integration</a>.  "
                     "You cannot add repositories to the legacy Github integration."
                 ).format(project.organization.slug),
@@ -297,11 +292,11 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
             except Exception as e:
                 self.raise_error(e)
             else:
-                config["external_id"] = six.text_type(repo["id"])
+                config["external_id"] = str(repo["id"])
         return config
 
     def get_webhook_secret(self, organization):
-        lock = locks.get(u"github:webhook-secret:{}".format(organization.id), duration=60)
+        lock = locks.get(f"github:webhook-secret:{organization.id}", duration=60)
         with lock.acquire():
             # TODO(dcramer): get_or_create would be a useful native solution
             secret = OrganizationOption.objects.get_value(
@@ -320,9 +315,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
             "active": True,
             "events": WEBHOOK_EVENTS,
             "config": {
-                "url": absolute_uri(
-                    u"/plugins/github/organizations/{}/webhook/".format(organization.id)
-                ),
+                "url": absolute_uri(f"/plugins/github/organizations/{organization.id}/webhook/"),
                 "content_type": "json",
                 "secret": self.get_webhook_secret(organization),
             },
@@ -357,7 +350,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
             return {
                 "name": data["name"],
                 "external_id": data["external_id"],
-                "url": u"https://github.com/{}".format(data["name"]),
+                "url": "https://github.com/{}".format(data["name"]),
                 "config": {
                     "name": data["name"],
                     "webhook_id": resp["id"],
@@ -470,7 +463,7 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
                 "defaultAuthId": None,
                 "user": None,
                 "externalId": i.external_id,
-                "integrationId": six.text_type(i.id),
+                "integrationId": str(i.id),
                 "linked": i.id in linked_integrations,
             }
             for i in _integrations
@@ -513,7 +506,7 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
         if not repo.config.get("webhook_id") and repo.integration_id is not None:
             return
 
-        return super(GitHubAppsRepositoryProvider, self).delete_repository(repo, actor=actor)
+        return super().delete_repository(repo, actor=actor)
 
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
         integration_id = repo.integration_id
@@ -561,10 +554,10 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
         res = client.get_repositories()
         return [
             {
-                "name": "%s/%s" % (r["owner"]["login"], r["name"]),
+                "name": "{}/{}".format(r["owner"]["login"], r["name"]),
                 "external_id": r["id"],
                 "url": r["html_url"],
-                "config": {"name": "%s/%s" % (r["owner"]["login"], r["name"])},
+                "config": {"name": "{}/{}".format(r["owner"]["login"], r["name"])},
             }
             for r in res["repositories"]
         ]

@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
 from botocore.client import ClientError
 from exam import fixture
-from sentry.utils.compat.mock import patch
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
+from sentry.utils.compat.mock import patch
 from sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
 
 
@@ -100,10 +97,8 @@ class AmazonSQSPluginTest(PluginTestCase):
     @patch("uuid.uuid4")
     @patch("boto3.client")
     def test_pass_message_group_id(self, mock_client, mock_uuid):
-        class uuid(object):
-            hex = "some-uuid"
+        mock_uuid.return_value = self.get_mock_uuid()
 
-        mock_uuid.return_value = uuid
         self.plugin.set_option("message_group_id", "my_group", self.project)
         event = self.run_test()
 
@@ -111,7 +106,7 @@ class AmazonSQSPluginTest(PluginTestCase):
             QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
             MessageBody=json.dumps(self.plugin.get_event_payload(event)),
             MessageGroupId="my_group",
-            MessageDeduplicationId="some-uuid",
+            MessageDeduplicationId="abc123",
         )
 
     @patch("boto3.client")
@@ -119,13 +114,13 @@ class AmazonSQSPluginTest(PluginTestCase):
         self.plugin.set_option("s3_bucket", "my_bucket", self.project)
         event = self.run_test()
         date = event.datetime.strftime("%Y-%m-%d")
-        key = "{}/{}/{}".format(event.project.slug, date, event.event_id)
+        key = f"{event.project.slug}/{date}/{event.event_id}"
 
         mock_client.return_value.send_message.assert_called_once_with(
             QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
             MessageBody=json.dumps(
                 {
-                    "s3Url": u"https://my_bucket.s3-us-east-1.amazonaws.com/{}".format(key),
+                    "s3Url": f"https://my_bucket.s3-us-east-1.amazonaws.com/{key}",
                     "eventID": event.event_id,
                 }
             ),
@@ -140,7 +135,8 @@ class AmazonSQSPluginTest(PluginTestCase):
     def test_invalid_s3_bucket(self, mock_client, logger):
         self.plugin.set_option("s3_bucket", "bad_bucket", self.project)
         mock_client.return_value.put_object.side_effect = ClientError(
-            {"Error": {"Code": "NoSuchBucket"}}, "PutObject",
+            {"Error": {"Code": "NoSuchBucket"}},
+            "PutObject",
         )
         self.run_test()
         assert len(logger.info.call_args_list) == 2

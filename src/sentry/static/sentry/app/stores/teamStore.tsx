@@ -102,4 +102,6 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
 
 type TeamStore = Reflux.Store & TeamStoreInterface;
 
-export default Reflux.createStore(teamStoreConfig) as TeamStore;
+const TeamStore = Reflux.createStore(teamStoreConfig) as TeamStore;
+
+export default TeamStore;

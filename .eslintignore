@@ -4,3 +4,6 @@
 **/tests/**/lang/javascript/example-project/**/*
 /examples/
 /scripts/
+!.github
+!.github/workflows/scripts/*
+!.storybook

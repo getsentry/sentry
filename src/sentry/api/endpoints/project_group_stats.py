@@ -1,13 +1,9 @@
-from __future__ import absolute_import
-
-import six
-
 from rest_framework.response import Response
 
-from sentry.app import tsdb
 from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.app import tsdb
 from sentry.models import Environment, Group
 
 
@@ -32,4 +28,4 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             model=tsdb.models.group, keys=group_ids, **self._parse_args(request, environment_id)
         )
 
-        return Response({six.text_type(k): v for k, v in data.items()})
+        return Response({str(k): v for k, v in data.items()})

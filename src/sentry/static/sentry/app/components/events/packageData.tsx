@@ -3,9 +3,9 @@ import React from 'react';
 import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import {getMeta} from 'app/components/events/meta/metaProxy';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Event} from 'app/types/event';
 
 type Props = {
@@ -13,10 +13,6 @@ type Props = {
 };
 
 class EventPackageData extends React.Component<Props> {
-  static propTypes = {
-    event: SentryTypes.Event.isRequired,
-  };
-
   shouldComponentUpdate(nextProps: Props) {
     return this.props.event.id !== nextProps.event.id;
   }
@@ -24,7 +20,12 @@ class EventPackageData extends React.Component<Props> {
   render() {
     const {event} = this.props;
     let longKeys: boolean, title: string;
-    const packages = Object.entries(event.packages || {});
+    const packages = Object.entries(event.packages || {}).map(([key, value]) => ({
+      key,
+      value,
+      subject: key,
+      meta: getMeta(event.packages, key),
+    }));
 
     switch (event.platform) {
       case 'csharp':

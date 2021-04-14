@@ -1,14 +1,12 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat.mock import patch
 from hashlib import sha1
 
-from django.core.urlresolvers import reverse
 from django.core.files.base import ContentFile
+from django.core.urlresolvers import reverse
 
 from sentry.models import ApiToken, FileBlob, FileBlobOwner
+from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils import APITestCase
-from sentry.tasks.assemble import assemble_artifacts, ChunkFileState
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationReleaseAssembleTest(APITestCase):
@@ -29,13 +27,25 @@ class OrganizationReleaseAssembleTest(APITestCase):
         assert response.status_code == 400, response.content
 
         checksum = sha1(b"1").hexdigest()
-        response = self.client.post(self.url, data={"checksum": "invalid"},)
+        response = self.client.post(
+            self.url,
+            data={"checksum": "invalid"},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
         assert response.status_code == 400, response.content
 
-        response = self.client.post(self.url, data={"checksum": checksum},)
+        response = self.client.post(
+            self.url,
+            data={"checksum": checksum},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
         assert response.status_code == 400, response.content
 
-        response = self.client.post(self.url, data={"checksum": checksum, "chunks": []},)
+        response = self.client.post(
+            self.url,
+            data={"checksum": checksum, "chunks": []},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.NOT_FOUND
 
@@ -53,7 +63,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
-        assert set(response.data["missingChunks"]) == set([])
+        assert set(response.data["missingChunks"]) == set()
 
         mock_assemble_artifacts.apply_async.assert_called_once_with(
             kwargs={

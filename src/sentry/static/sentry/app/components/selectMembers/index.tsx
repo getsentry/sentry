@@ -8,11 +8,12 @@ import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
 import Tooltip from 'app/components/tooltip';
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
+import space from 'app/styles/space';
 import {Member, Organization, Project, Team, User} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
@@ -33,6 +34,29 @@ type Mentionable<T> = {
   actor: Actor<T>;
 };
 
+const UnassignedWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledIconUser = styled(IconUser)`
+  margin-left: ${space(0.25)};
+  margin-right: ${space(1)};
+`;
+
+const unassignedOption = {
+  value: null,
+  label: (
+    <UnassignedWrapper>
+      <StyledIconUser size="20px" color="gray400" />
+      {t('Unassigned')}
+    </UnassignedWrapper>
+  ),
+  searchKey: 'unassigned',
+  actor: null,
+};
+type MentionableUnassigned = typeof unassignedOption;
+
 type Unmentionable = {
   disabled: boolean;
   label: React.ReactElement;
@@ -43,7 +67,8 @@ type UnmentionableTeam = MentionableTeam & Unmentionable;
 type MentionableUser = Mentionable<'user'>;
 type UnmentionableUser = MentionableUser & Unmentionable;
 
-type AllMentionable = (MentionableUser | MentionableTeam) & Partial<Unmentionable>;
+type AllMentionable = (MentionableUser | MentionableTeam | MentionableUnassigned) &
+  Partial<Unmentionable>;
 
 type Props = {
   api: Client;
@@ -56,6 +81,9 @@ type Props = {
   disabled?: boolean;
   placeholder?: string;
   styles?: {control?: (provided: any) => any};
+  filteredTeamIds?: Set<string>;
+  // Used to display an additional unassigned option
+  includeUnassigned?: boolean;
 };
 
 type State = {
@@ -86,7 +114,8 @@ class SelectMembers extends React.Component<Props, State> {
     this.unlisteners.forEach(callIfFunction);
   }
 
-  selectRef = React.createRef<typeof SelectControl>();
+  // TODO(ts) This type could be improved when react-select types are better.
+  selectRef = React.createRef<any>();
 
   unlisteners = [
     MemberListStore.listen(() => {
@@ -213,6 +242,8 @@ class SelectMembers extends React.Component<Props, State> {
       return;
     }
 
+    // @ts-ignore The types for react-select don't cover this property
+    // or the type of selectRef is incorrect.
     const select = this.selectRef.current.select.select;
     const input: HTMLInputElement = select.inputRef;
     if (input) {
@@ -226,7 +257,7 @@ class SelectMembers extends React.Component<Props, State> {
     const {options} = this.state;
 
     // Copy old value
-    const oldValue = [...value];
+    const oldValue = value ? [...value] : {value};
 
     // Optimistic update
     this.props.onChange(this.createMentionableTeam(team));
@@ -238,7 +269,7 @@ class SelectMembers extends React.Component<Props, State> {
 
         // Remove add to project button without changing order
         const newOptions = options!.map(option => {
-          if (option.actor.id === team.id) {
+          if (option.actor?.id === team.id) {
             option.disabled = false;
             option.label = <IdBadge team={team} />;
           }
@@ -286,10 +317,17 @@ class SelectMembers extends React.Component<Props, State> {
   }, 250);
 
   handleLoadOptions = (): Promise<AllMentionable[]> => {
-    if (this.props.showTeam) {
+    const {showTeam, filteredTeamIds, includeUnassigned} = this.props;
+    if (showTeam) {
       const teamsInProject = this.getMentionableTeams();
       const teamsNotInProject = this.getTeamsNotInProject(teamsInProject);
-      const options = [...teamsInProject, ...teamsNotInProject];
+      const unfilteredOptions = [...teamsInProject, ...teamsNotInProject];
+      const options: AllMentionable[] = filteredTeamIds
+        ? unfilteredOptions.filter(({value}) => !value || filteredTeamIds.has(value))
+        : unfilteredOptions;
+      if (includeUnassigned) {
+        options.push(unassignedOption);
+      }
       this.setState({options});
       return Promise.resolve(options);
     }

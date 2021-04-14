@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from django.test.client import RequestFactory
 
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -28,7 +24,7 @@ class ProjectGroupIssueDetailsDocs(APIDocsTestCase):
         for timestamp in last_release.values():
             event = self.create_event("c", release="1.0a", timestamp=iso_format(timestamp))
 
-        self.url = u"/api/0/issues/{}/".format(event.group.id)
+        self.url = f"/api/0/issues/{event.group.id}/"
 
         self.login_as(user=self.user)
 

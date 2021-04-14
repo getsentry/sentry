@@ -1,7 +1,6 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-import {formatBytes} from 'app/utils';
+import {formatBytesBase2} from 'app/utils';
 import getDynamicText from 'app/utils/getDynamicText';
 
 type Props = {
@@ -14,14 +13,9 @@ function FileSize(props: Props) {
 
   return (
     <span className={className}>
-      {getDynamicText({value: formatBytes(bytes), fixed: 'xx KB'})}
+      {getDynamicText({value: formatBytesBase2(bytes), fixed: 'xx KB'})}
     </span>
   );
 }
-
-FileSize.propTypes = {
-  className: PropTypes.string,
-  bytes: PropTypes.number.isRequired,
-};
 
 export default FileSize;

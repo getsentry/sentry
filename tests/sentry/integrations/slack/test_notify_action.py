@@ -1,14 +1,11 @@
-from __future__ import absolute_import
+from urllib.parse import parse_qs
 
 import responses
 
-from six.moves.urllib.parse import parse_qs
-
-from sentry.utils import json
+from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers import with_feature
-from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.utils import json
 
 
 class SlackNotifyActionTest(RuleTestCase):
@@ -22,7 +19,8 @@ class SlackNotifyActionTest(RuleTestCase):
             name="Awesome Team",
             external_id="TXXXXXXX1",
             metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
                 "domain_name": "sentry.slack.com",
             },
         )
@@ -34,50 +32,7 @@ class SlackNotifyActionTest(RuleTestCase):
         assert form.cleaned_data["channel"] == expected_channel
 
     @responses.activate
-    @with_feature("organizations:slack-allow-workspace")
-    def test_upgrade_notice_workspace_app(self):
-        event = self.get_event()
-        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
-
-        results = list(rule.after(event=event, state=self.get_state()))
-        assert len(results) == 1
-
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        # Trigger rule callback
-        results[0].callback(event, futures=[])
-        data = parse_qs(responses.calls[0].request.body)
-
-        assert "attachments" in data
-        attachments = json.loads(data["attachments"][0])
-
-        # all workspaces apps should have the upgrade notice
-        assert len(attachments) == 2
-        assert attachments[1]["title"] == event.title
-
-    def test_no_workspace_app_alerts(self):
-        event = self.get_event()
-        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
-
-        results = list(rule.after(event=event, state=self.get_state()))
-        assert len(results) == 0
-
-    @responses.activate
     def test_no_upgrade_notice_bot_app(self):
-        self.integration.metadata.update(
-            {
-                "installation_type": "born_as_bot",
-                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-            }
-        )
-        self.integration.save()
-
         event = self.get_event()
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
@@ -127,33 +82,6 @@ class SlackNotifyActionTest(RuleTestCase):
         )
 
     @responses.activate
-    @with_feature("organizations:slack-allow-workspace")
-    def test_valid_channel_selected(self):
-        rule = self.get_rule(
-            data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
-        )
-
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "my-channel", "id": "chan-id"},
-                {"name": "other-chann", "id": "chan-id"},
-            ],
-        }
-
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/channels.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(channels),
-        )
-
-        form = rule.get_form_instance()
-        assert form.is_valid()
-        self.assert_form_valid(form, "chan-id", "#my-channel")
-
-    @responses.activate
     def test_valid_bot_channel_selected(self):
         integration = Integration.objects.create(
             provider="slack",
@@ -191,43 +119,6 @@ class SlackNotifyActionTest(RuleTestCase):
         self.assert_form_valid(form, "chan-id", "#my-channel")
 
     @responses.activate
-    @with_feature("organizations:slack-allow-workspace")
-    def test_valid_private_channel_selected(self):
-        rule = self.get_rule(
-            data={"workspace": self.integration.id, "channel": "#my-private-channel", "tags": ""}
-        )
-
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "my-channel", "id": "chan-id"},
-                {"name": "other-chann", "id": "chan-id"},
-            ],
-        }
-
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/channels.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(channels),
-        )
-
-        groups = {"ok": "true", "groups": [{"name": "my-private-channel", "id": "chan-id"}]}
-
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/groups.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(groups),
-        )
-
-        form = rule.get_form_instance()
-        self.assert_form_valid(form, "chan-id", "#my-private-channel")
-
-    @responses.activate
-    @with_feature("organizations:slack-allow-workspace")
     def test_valid_member_selected(self):
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
@@ -243,20 +134,10 @@ class SlackNotifyActionTest(RuleTestCase):
 
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/channels.list",
+            url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps(channels),
-        )
-
-        groups = {"ok": "true", "groups": [{"name": "my-private-channel", "id": "chan-id"}]}
-
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/groups.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(groups),
         )
 
         members = {
@@ -279,7 +160,6 @@ class SlackNotifyActionTest(RuleTestCase):
         self.assert_form_valid(form, "morty-id", "@morty")
 
     @responses.activate
-    @with_feature("organizations:slack-allow-workspace")
     def test_invalid_channel_selected(self):
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
@@ -289,20 +169,10 @@ class SlackNotifyActionTest(RuleTestCase):
 
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/channels.list",
+            url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps(channels),
-        )
-
-        groups = {"ok": "true", "groups": [{"name": "my-private-channel", "id": "chan-id"}]}
-
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/groups.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(groups),
         )
 
         members = {"ok": "true", "members": [{"name": "other-member", "id": "member-id"}]}
@@ -320,7 +190,15 @@ class SlackNotifyActionTest(RuleTestCase):
         assert not form.is_valid()
         assert len(form.errors) == 1
 
+    @responses.activate
     def test_channel_id_provided(self):
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
+        )
         rule = self.get_rule(
             data={
                 "workspace": self.integration.id,
@@ -333,6 +211,53 @@ class SlackNotifyActionTest(RuleTestCase):
         form = rule.get_form_instance()
         assert form.is_valid()
 
+    @responses.activate
+    def test_invalid_channel_id_provided(self):
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+        )
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-chanel",
+                "input_channel_id": "C1234567",
+                "tags": "",
+            }
+        )
+
+        form = rule.get_form_instance()
+        assert not form.is_valid()
+        assert "Channel not found. Invalid ID provided." in str(form.errors.values())
+
+    @responses.activate
+    def test_invalid_channel_name_provided(self):
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
+        )
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-chanel",
+                "input_channel_id": "C1234567",
+                "tags": "",
+            }
+        )
+
+        form = rule.get_form_instance()
+        assert not form.is_valid()
+        assert (
+            "Received channel name my-channel does not match inputted channel name my-chanel."
+            in str(form.errors.values())
+        )
+
     def test_invalid_workspace(self):
         # the workspace _should_ be the integration id
 
@@ -340,10 +265,9 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert not form.is_valid()
-        assert [u"Slack workspace is a required field."] in form.errors.values()
+        assert ["Slack workspace is a required field."] in form.errors.values()
 
     @responses.activate
-    @with_feature("organizations:slack-allow-workspace")
     def test_display_name_conflict(self):
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
@@ -351,18 +275,10 @@ class SlackNotifyActionTest(RuleTestCase):
 
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/channels.list",
+            url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps({"ok": "true", "channels": []}),
-        )
-
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/groups.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": "true", "groups": []}),
         )
 
         members = {
@@ -385,15 +301,4 @@ class SlackNotifyActionTest(RuleTestCase):
         assert not form.is_valid()
         assert [
             'Multiple users were found with display name "@morty". Please use your username, found at sentry.slack.com/account/settings#username.'
-        ] in form.errors.values()
-
-    def test_deprecated_integration_error(self):
-        rule = self.get_rule(
-            data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
-        )
-
-        form = rule.get_form_instance()
-        assert not form.is_valid()
-        assert [
-            'Workspace "Awesome Team" is using the deprecated Slack integration. Please re-install your integration to enable Slack alerting again.'
         ] in form.errors.values()

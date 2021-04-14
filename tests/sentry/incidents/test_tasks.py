@@ -1,13 +1,9 @@
-from __future__ import absolute_import
-
-import six
-
 from datetime import datetime, timedelta
+
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
-from sentry.utils.compat.mock import Mock, patch
 
 from sentry.incidents.logic import (
     create_alert_rule_trigger,
@@ -17,26 +13,27 @@ from sentry.incidents.logic import (
     subscribe_to_incident,
 )
 from sentry.incidents.models import (
+    INCIDENT_STATUS,
     AlertRuleTriggerAction,
     IncidentActivityType,
+    IncidentSnapshot,
     IncidentStatus,
-    INCIDENT_STATUS,
     IncidentSubscription,
     PendingIncidentSnapshot,
-    IncidentSnapshot,
 )
 from sentry.incidents.tasks import (
     build_activity_context,
     generate_incident_activity_email,
     handle_trigger_action,
-    send_subscriber_notifications,
     process_pending_incident_snapshots,
+    send_subscriber_notifications,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock, patch
 from sentry.utils.http import absolute_uri
 
 
-class BaseIncidentActivityTest(object):
+class BaseIncidentActivityTest:
     @property
     def incident(self):
         return self.create_incident(title="hello")
@@ -86,9 +83,7 @@ class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
         incident = activity.incident
         recipient = self.create_user()
         message = generate_incident_activity_email(activity, recipient)
-        assert message.subject == "Activity on Alert {} (#{})".format(
-            incident.title, incident.identifier
-        )
+        assert message.subject == f"Activity on Alert {incident.title} (#{incident.identifier})"
         assert message.type == "incident.activity"
         assert message.context == build_activity_context(activity, recipient)
 
@@ -100,10 +95,9 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
         incident = activity.incident
         context = build_activity_context(activity, expected_recipient)
         assert context["user_name"] == expected_username
-        assert context["action"] == "%s on alert %s (#%s)" % (
-            expected_action,
-            activity.incident.title,
-            activity.incident.identifier,
+        assert (
+            context["action"]
+            == f"{expected_action} on alert {activity.incident.title} (#{activity.incident.identifier})"
         )
         assert (
             context["link"]
@@ -134,8 +128,8 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             expected_recipient=recipient,
         )
         activity.type = IncidentActivityType.STATUS_CHANGE
-        activity.value = six.text_type(IncidentStatus.CLOSED.value)
-        activity.previous_value = six.text_type(IncidentStatus.WARNING.value)
+        activity.value = str(IncidentStatus.CLOSED.value)
+        activity.previous_value = str(IncidentStatus.WARNING.value)
         self.run_test(
             activity,
             expected_username=activity.user.name,

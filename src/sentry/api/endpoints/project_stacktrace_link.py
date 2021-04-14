@@ -1,14 +1,12 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
+from sentry_sdk import configure_scope
 
 from sentry import analytics
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Integration, RepositoryProjectPathConfig
 from sentry.api.serializers import serialize
+from sentry.integrations import IntegrationFeatures
+from sentry.models import Integration, RepositoryProjectPathConfig
 from sentry.utils.compat import filter
-
-from sentry_sdk import configure_scope
 
 
 def get_link(config, filepath, default, version=None):
@@ -18,7 +16,12 @@ def get_link(config, filepath, default, version=None):
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
-    return install.get_stacktrace_link(config.repository, formatted_path, default, version)
+    attempted_url = None
+    link = install.get_stacktrace_link(config.repository, formatted_path, default, version)
+
+    if not link:
+        attempted_url = install.format_source_url(config.repository, formatted_path, default)
+    return (link, attempted_url)
 
 
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
@@ -48,13 +51,18 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         # no longer feature gated and is added as an IntegrationFeature
         result["integrations"] = [
             serialize(i, request.user)
-            for i in filter(lambda i: i.get_provider().has_stacktrace_linking, integrations)
+            for i in filter(
+                lambda i: i.has_feature(IntegrationFeatures.STACKTRACE_LINK), integrations
+            )
         ]
 
         # xxx(meredith): if there are ever any changes to this query, make
         # sure that we are still ordering by `id` because we want to make sure
         # the ordering is deterministic
-        configs = RepositoryProjectPathConfig.objects.filter(project=project)
+        # codepath mappings must have an associated integration for stacktrace linking.
+        configs = RepositoryProjectPathConfig.objects.filter(
+            project=project, organization_integration__isnull=False
+        )
         with configure_scope() as scope:
             for config in configs:
 
@@ -70,7 +78,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     result["error"] = "stack_root_mismatch"
                     continue
 
-                link = get_link(config, filepath, config.default_branch, commitId)
+                link, attempted_url = get_link(config, filepath, config.default_branch, commitId)
 
                 # it's possible for the link to be None, and in that
                 # case it means we could not find a match for the
@@ -80,6 +88,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     scope.set_tag("stacktrace_link.found", False)
                     scope.set_tag("stacktrace_link.error", "file_not_found")
                     result["error"] = "file_not_found"
+                    result["attemptedUrl"] = attempted_url
                 else:
                     scope.set_tag("stacktrace_link.found", True)
                     # if we found a match, we can break

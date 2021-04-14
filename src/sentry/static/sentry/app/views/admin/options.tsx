@@ -135,7 +135,7 @@ const definitions: Field[] = [
     help: tct(
       'If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the [link:documentation].',
       {
-        link: <a href="https://docs.sentry.io/server/beacon/" />,
+        link: <a href="https://develop.sentry.dev/self-hosted/" />,
       }
     ),
   },

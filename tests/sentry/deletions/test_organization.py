@@ -1,9 +1,9 @@
-from __future__ import absolute_import
-
 from sentry.models import (
     Commit,
     CommitAuthor,
     Dashboard,
+    DashboardWidget,
+    DashboardWidgetQuery,
     Environment,
     ExternalIssue,
     Organization,
@@ -13,8 +13,6 @@ from sentry.models import (
     ReleaseEnvironment,
     Repository,
     ScheduledDeletion,
-    DashboardWidget,
-    DashboardWidgetQuery,
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase

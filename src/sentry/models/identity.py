@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from django.conf import settings
@@ -15,13 +13,12 @@ from sentry.db.models import (
     Model,
 )
 
-
 logger = logging.getLogger(__name__)
 
 # TODO(dcramer): pull in enum library
 
 
-class IdentityStatus(object):
+class IdentityStatus:
     UNKNOWN = 0
     VALID = 1
     INVALID = 2

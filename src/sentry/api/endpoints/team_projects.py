@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import IntegrityError, transaction
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -7,8 +5,8 @@ from rest_framework.response import Response
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import serialize, ProjectSummarySerializer
-from sentry.models import Project, ProjectStatus, AuditLogEntryEvent
+from sentry.api.serializers import ProjectSummarySerializer, serialize
+from sentry.models import AuditLogEntryEvent, Project, ProjectStatus
 from sentry.signals import project_created
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"

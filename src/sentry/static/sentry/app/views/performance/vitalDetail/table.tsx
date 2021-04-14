@@ -210,7 +210,7 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    if (field.startsWith('key_transaction') || field.startsWith('user_misery')) {
+    if (field.startsWith('key_transaction')) {
       return rendered;
     }
 
@@ -381,6 +381,7 @@ class Table extends React.Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           limit={10}
+          referrer="api.performance.vital-detail"
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>
@@ -427,7 +428,7 @@ const UniqueTagCell = styled('div')`
 
 const GoodTag = styled(Tag)`
   div {
-    background-color: ${vitalStateColors[VitalState.GOOD]};
+    background-color: ${p => p.theme[vitalStateColors[VitalState.GOOD]]};
   }
   span {
     color: ${p => p.theme.white};
@@ -436,7 +437,7 @@ const GoodTag = styled(Tag)`
 
 const MehTag = styled(Tag)`
   div {
-    background-color: ${vitalStateColors[VitalState.MEH]};
+    background-color: ${p => p.theme[vitalStateColors[VitalState.MEH]]};
   }
   span {
     color: ${p => p.theme.white};
@@ -445,7 +446,7 @@ const MehTag = styled(Tag)`
 
 const PoorTag = styled(Tag)`
   div {
-    background-color: ${vitalStateColors[VitalState.POOR]};
+    background-color: ${p => p.theme[vitalStateColors[VitalState.POOR]]};
   }
   span {
     color: ${p => p.theme.white};

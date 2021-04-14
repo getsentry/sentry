@@ -6,7 +6,7 @@ import moment from 'moment';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import DateTime from 'app/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import {IconToggle} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';

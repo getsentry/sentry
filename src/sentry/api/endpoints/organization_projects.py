@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.db.models import Q
 from rest_framework.response import Response
 
@@ -30,7 +26,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         """
         stats_period = request.GET.get("statsPeriod")
         collapse = request.GET.getlist("collapse", [])
-        if stats_period not in (None, "", "24h", "14d", "30d"):
+        if stats_period not in (None, "", "1h", "24h", "7d", "14d", "30d"):
             return Response(
                 {"error": {"params": {"stats_period": {"message": ERR_INVALID_STATS_PERIOD}}}},
                 status=400,
@@ -73,7 +69,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))

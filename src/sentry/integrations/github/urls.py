@@ -1,9 +1,7 @@
-from __future__ import absolute_import, print_function
-
 from django.conf.urls import url
 
-from .webhook import GitHubIntegrationsWebhookEndpoint
 from .search import GitHubSearchEndpoint
+from .webhook import GitHubIntegrationsWebhookEndpoint
 
 urlpatterns = [
     url(r"^webhook/$", GitHubIntegrationsWebhookEndpoint.as_view()),

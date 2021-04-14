@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 /* TODO: replace with I/O when finished */
 import img from 'sentry-images/spot/hair-on-fire.svg';
@@ -9,7 +8,6 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import PageHeading from 'app/components/pageHeading';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {LightWeightOrganization, Organization, Project} from 'app/types';
@@ -18,20 +16,18 @@ type Props = {
   organization: LightWeightOrganization | Organization;
   projects?: Project[];
   loadingProjects?: boolean;
+  superuserNeedsToBeProjectMember?: boolean;
 };
 
 export default class NoProjectMessage extends React.Component<Props> {
-  static propTypes = {
-    /* if the user has access to any projects, we show whatever
-    children are included. Otherwise we show the message */
-    children: PropTypes.node,
-    organization: SentryTypes.Organization,
-    projects: PropTypes.arrayOf(SentryTypes.Project),
-    loadingProjects: PropTypes.bool,
-  };
-
   render() {
-    const {children, organization, projects, loadingProjects} = this.props;
+    const {
+      children,
+      organization,
+      projects,
+      loadingProjects,
+      superuserNeedsToBeProjectMember,
+    } = this.props;
     const orgId = organization.slug;
     const canCreateProject = organization.access.includes('project:write');
     const canJoinTeam = organization.access.includes('team:read');
@@ -43,9 +39,10 @@ export default class NoProjectMessage extends React.Component<Props> {
       const {isSuperuser} = ConfigStore.get('user');
 
       orgHasProjects = organization.projects.length > 0;
-      hasProjectAccess = isSuperuser
-        ? organization.projects.some(p => p.hasAccess)
-        : organization.projects.some(p => p.isMember && p.hasAccess);
+      hasProjectAccess =
+        isSuperuser && !superuserNeedsToBeProjectMember
+          ? organization.projects.some(p => p.hasAccess)
+          : organization.projects.some(p => p.isMember && p.hasAccess);
     } else {
       hasProjectAccess = projects ? projects.length > 0 : false;
       orgHasProjects = hasProjectAccess;

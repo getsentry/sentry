@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -28,10 +27,6 @@ type Props = {
 };
 
 export default class CspInterface extends React.Component<Props> {
-  static propTypes = {
-    data: PropTypes.object.isRequired,
-  };
-
   state = {view: 'report'};
 
   toggleView = value => {

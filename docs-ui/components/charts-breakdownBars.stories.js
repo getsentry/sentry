@@ -1,13 +1,16 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import BreakdownBars from 'app/components/charts/breakdownBars';
 
 export default {
-  title: 'Charts/BreakdownBars',
+  title: 'DataVisualization/Charts/BreakdownBars',
+  component: BreakdownBars,
+  parameters: {
+    controls: {hideNoControlsWarning: true},
+  },
 };
 
-export const Default = withInfo('Horizontal bar chart with labels')(() => {
+export const Default = () => {
   const data = [
     {label: 'unknown', value: 910},
     {label: 'not_found', value: 40},
@@ -19,8 +22,13 @@ export const Default = withInfo('Horizontal bar chart with labels')(() => {
       <BreakdownBars data={data} />
     </div>
   );
-});
+};
 
-Default.story = {
-  name: 'BreakdownBars',
+Default.storyName = 'BreakdownBars';
+Default.parameters = {
+  docs: {
+    description: {
+      story: 'Horizontal bar chart with labels',
+    },
+  },
 };

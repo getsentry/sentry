@@ -66,7 +66,8 @@ export default [
       },
       {
         name: 'storeCrashReports',
-        type: 'array',
+        type: 'select',
+        deprecatedSelectControl: false,
         label: t('Store Native Crash Reports'),
         help: t(
           'Store native crash reports such as Minidumps for improved processing and download in issue details'
@@ -129,6 +130,7 @@ export default [
         multiline: true,
         autosize: true,
         maxRows: 10,
+        rows: 1,
         placeholder: 'e.g. email',
         label: t('Global Sensitive Fields'),
         help: t(
@@ -146,6 +148,7 @@ export default [
         multiline: true,
         autosize: true,
         maxRows: 10,
+        rows: 1,
         placeholder: t('e.g. business-email'),
         label: t('Global Safe Fields'),
         help: t(

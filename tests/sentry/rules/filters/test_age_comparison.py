@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
-import pytz
-import six
 from datetime import datetime, timedelta
 
+import pytz
 from django.utils import timezone
 
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
@@ -20,7 +17,7 @@ class AgeComparisonFilterTest(RuleTestCase):
 
         event = self.get_event()
         value = 10
-        data = {"comparison_type": "older", "value": six.text_type(value), "time": "hour"}
+        data = {"comparison_type": "older", "value": str(value), "time": "hour"}
 
         rule = self.get_rule(data=data)
 
@@ -36,7 +33,7 @@ class AgeComparisonFilterTest(RuleTestCase):
 
         event = self.get_event()
         value = 10
-        data = {"comparison_type": "newer", "value": six.text_type(value), "time": "hour"}
+        data = {"comparison_type": "newer", "value": str(value), "time": "hour"}
 
         rule = self.get_rule(data=data)
 

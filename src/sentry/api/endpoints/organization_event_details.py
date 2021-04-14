@@ -1,15 +1,14 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry import eventstore
-from sentry.models.project import Project, ProjectStatus
+from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
+from sentry.models.project import Project, ProjectStatus
 
 
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization, project_slug, event_id):
+        """event_id is validated by a regex in the URL"""
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -27,7 +26,8 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified
-        event = eventstore.get_event_by_id(project.id, event_id)
+        with self.handle_query_errors():
+            event = eventstore.get_event_by_id(project.id, event_id)
 
         if event is None:
             return Response({"detail": "Event not found"}, status=404)

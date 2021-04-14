@@ -28,7 +28,7 @@ const popular = [
   'dart-flutter',
 ] as const;
 
-const frontend = [
+export const frontend = [
   'dart',
   'javascript',
   'javascript-react',
@@ -49,9 +49,10 @@ const mobile = [
   'flutter',
   'dart-flutter',
   'unity',
+  'dotnet-xamarin',
 ] as const;
 
-const backend = [
+export const backend = [
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
@@ -114,6 +115,7 @@ const desktop = [
   'native-crashpad',
   'native-breakpad',
   'native-minidump',
+  'native-qt',
   'minidump',
   'unity',
 ] as const;
@@ -158,6 +160,13 @@ export const performance: PlatformKey[] = [
   'node-koa',
   'node-connect',
 ];
+
+/**
+ * Additional aliases used for filtering in the platform picker
+ */
+export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
+  native: ['cpp', 'c++'],
+};
 
 export type PlatformKey =
   | typeof popular[number]

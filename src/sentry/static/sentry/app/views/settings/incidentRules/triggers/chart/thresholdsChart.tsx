@@ -1,15 +1,14 @@
 import React from 'react';
 import color from 'color';
-import {ECharts} from 'echarts';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
 import Graphic from 'app/components/charts/components/graphic';
-import Legend from 'app/components/charts/components/legend';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
 
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
@@ -69,13 +68,14 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     }
   }
 
-  chartRef: null | ECharts = null;
+  ref: null | ReactEchartsRef = null;
 
   // If we have ref to chart and data, try to update chart axis so that
   // alertThreshold or resolveThreshold is visible in chart
   handleUpdateChartAxis = () => {
     const {triggers, resolveThreshold} = this.props;
-    if (this.chartRef) {
+    const chartRef = this.ref?.getEchartsInstance?.();
+    if (chartRef) {
       this.updateChartAxis(
         Math.max(
           ...flatten(
@@ -103,7 +103,8 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
   /**
    * Syncs component state with the chart's width/heights
    */
-  updateDimensions = (chartRef: ECharts | null = this.chartRef) => {
+  updateDimensions = () => {
+    const chartRef = this.ref?.getEchartsInstance?.();
     if (!chartRef) {
       return;
     }
@@ -121,14 +122,14 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
   handleRef = (ref: ReactEchartsRef): void => {
     // When chart initially renders, we want to update state with its width, as well as initialize starting
     // locations (on y axis) for the draggable lines
-    if (ref && typeof ref.getEchartsInstance === 'function' && !this.chartRef) {
-      this.chartRef = ref.getEchartsInstance();
-      this.updateDimensions(this.chartRef);
+    if (ref && !this.ref) {
+      this.ref = ref;
+      this.updateDimensions();
       this.handleUpdateChartAxis();
     }
 
     if (!ref) {
-      this.chartRef = null;
+      this.ref = null;
     }
   };
 
@@ -150,27 +151,31 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         ? this.getChartPixelForThreshold(trigger[type])
         : this.getChartPixelForThreshold(resolveThreshold);
     const isInverted = thresholdType === AlertRuleThresholdType.BELOW;
+    const chartRef = this.ref?.getEchartsInstance?.();
 
     if (
       typeof position !== 'number' ||
       isNaN(position) ||
       !this.state.height ||
-      !this.chartRef
+      !chartRef
     ) {
       return [];
     }
 
-    const yAxisPixelPosition = this.chartRef.convertToPixel({yAxisIndex: 0}, '0');
+    const yAxisPixelPosition = chartRef.convertToPixel({yAxisIndex: 0}, '0');
     const yAxisPosition = typeof yAxisPixelPosition === 'number' ? yAxisPixelPosition : 0;
     // As the yAxis gets larger we want to start our line/area further to the right
     // Handle case where the graph max is 1 and includes decimals
-    const yAxisMax = Math.max(maxValue ?? 1, this.state.yAxisMax ?? 1);
+    const yAxisMax =
+      (Math.round(Math.max(maxValue ?? 1, this.state.yAxisMax ?? 1)) * 100) / 100;
     const yAxisSize = 15 + (yAxisMax <= 1 ? 15 : `${yAxisMax ?? ''}`.length * 8);
     // Shave off the right margin and yAxisSize from the width to get the actual area we want to render content in
     const graphAreaWidth =
       this.state.width - parseInt(CHART_GRID.right.slice(0, -2), 10) - yAxisSize;
     // Distance from the top of the chart to save for the legend
     const legendPadding = 20;
+    // Shave off the left margin
+    const graphAreaMargin = 7;
 
     const isCritical = trigger.label === 'critical';
     const LINE_STYLE = {
@@ -187,7 +192,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         invisible: position === null,
         draggable: false,
         position: [yAxisSize, position],
-        shape: {y1: 1, y2: 1, x1: 0, x2: graphAreaWidth},
+        shape: {y1: 1, y2: 1, x1: graphAreaMargin, x2: graphAreaWidth},
         style: LINE_STYLE,
       },
 
@@ -195,42 +200,48 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       // (or when they will be considered as resolved)
       //
       // Resolution is considered "off" if it is -1
-      ...(position !== null && [
-        {
-          type: 'rect',
-          draggable: false,
+      ...(position !== null
+        ? [
+            {
+              type: 'rect',
+              draggable: false,
 
-          position:
-            isResolution !== isInverted
-              ? [yAxisSize, position + 1]
-              : [yAxisSize, legendPadding],
-          shape: {
-            width: graphAreaWidth,
-            height:
-              isResolution !== isInverted
-                ? yAxisPosition - position
-                : position - legendPadding,
-          },
+              position:
+                isResolution !== isInverted
+                  ? [yAxisSize + graphAreaMargin, position + 1]
+                  : [yAxisSize + graphAreaMargin, legendPadding],
+              shape: {
+                width: graphAreaWidth - graphAreaMargin,
+                height:
+                  isResolution !== isInverted
+                    ? yAxisPosition - position
+                    : position - legendPadding,
+              },
 
-          style: {
-            fill: isResolution
-              ? COLOR.RESOLUTION_FILL
-              : isCritical
-              ? COLOR.CRITICAL_FILL
-              : COLOR.WARNING_FILL,
-          },
+              style: {
+                fill: isResolution
+                  ? COLOR.RESOLUTION_FILL
+                  : isCritical
+                  ? COLOR.CRITICAL_FILL
+                  : COLOR.WARNING_FILL,
+              },
 
-          // This needs to be below the draggable line
-          z: 100,
-        },
-      ]),
+              // This needs to be below the draggable line
+              z: 100,
+            },
+          ]
+        : []),
     ];
   };
 
-  getChartPixelForThreshold = (threshold: number | '' | null) =>
-    threshold !== '' &&
-    this.chartRef &&
-    this.chartRef.convertToPixel({yAxisIndex: 0}, `${threshold}`);
+  getChartPixelForThreshold = (threshold: number | '' | null) => {
+    const chartRef = this.ref?.getEchartsInstance?.();
+    return (
+      threshold !== '' &&
+      chartRef &&
+      chartRef.convertToPixel({yAxisIndex: 0}, `${threshold}`)
+    );
+  };
 
   render() {
     const {data, triggers, period} = this.props;
@@ -249,22 +260,26 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       },
       {}
     );
-    const legend = Legend({
+    const legend = {
       right: 10,
       top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left',
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
       selected,
-    });
+    };
 
+    const chartOptions = {
+      tooltip: {
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(value, seriesName);
+        },
+      },
+      yAxis: {
+        max: this.state.yAxisMax ?? undefined,
+        axisLabel: {
+          formatter: (value: number) =>
+            axisLabelFormatter(value, data.length ? data[0].seriesName : ''),
+        },
+      },
+    };
     return (
       <LineChart
         isGroupedByDate
@@ -272,9 +287,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         period={period}
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
-        yAxis={{
-          max: this.state.yAxisMax ?? undefined,
-        }}
+        {...chartOptions}
         legend={legend}
         graphic={Graphic({
           elements: flatten(
@@ -288,11 +301,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         onFinished={() => {
           // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
           // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-          if (!this.chartRef) {
-            return;
-          }
-
-          this.updateDimensions(this.chartRef);
+          this.updateDimensions();
         }}
       />
     );

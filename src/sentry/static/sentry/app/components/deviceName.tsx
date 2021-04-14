@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {IOSDeviceList} from 'app/types/iOSDeviceList';
 
@@ -27,11 +26,6 @@ type State = {
  * This asynchronously loads the ios-device-list library because of its size
  */
 export default class DeviceName extends React.Component<Props, State> {
-  static propTypes = {
-    value: PropTypes.string,
-    children: PropTypes.func,
-  };
-
   constructor(props) {
     super(props);
 

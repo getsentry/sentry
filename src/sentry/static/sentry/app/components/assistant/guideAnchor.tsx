@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
+import {Query} from 'history';
 import Reflux from 'reflux';
 
 import {
@@ -17,15 +17,21 @@ import {Guide} from 'app/components/assistant/types';
 import Button from 'app/components/button';
 import Hovercard, {Body as HovercardBody} from 'app/components/hovercard';
 import {t, tct} from 'app/locale';
-import GuideStore from 'app/stores/guideStore';
+import GuideStore, {GuideStoreState} from 'app/stores/guideStore';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 type Props = {
-  target?: string;
-  position?: string;
-  disabled?: boolean;
+  target?: string; //Shouldn't target be mandatory?
+  position?: React.ComponentProps<typeof Hovercard>['position'];
   offset?: string;
+  to?: {
+    pathname: string;
+    query: Query;
+  };
+  onFinish?: () => void;
+  /** Hovercard renders the container */
+  containerClassName?: string;
 };
 
 type State = {
@@ -41,14 +47,7 @@ type State = {
  * from one or more anchors on the page to determine which guides can
  * be shown on the page.
  */
-const GuideAnchor = createReactClass<Props, State>({
-  propTypes: {
-    target: PropTypes.string,
-    position: PropTypes.string,
-    disabled: PropTypes.bool,
-    offset: PropTypes.string,
-  },
-
+export const GuideAnchor = createReactClass<Props, State>({
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
 
   getInitialState() {
@@ -81,10 +80,10 @@ const GuideAnchor = createReactClass<Props, State>({
     target && unregisterAnchor(target);
   },
 
-  onGuideStateChange(data) {
+  onGuideStateChange(data: GuideStoreState) {
     const active =
       data.currentGuide &&
-      data.currentGuide.steps[data.currentStep].target === this.props.target;
+      data.currentGuide.steps[data.currentStep]?.target === this.props.target;
 
     this.setState({
       active,
@@ -103,6 +102,10 @@ const GuideAnchor = createReactClass<Props, State>({
    */
   handleFinish(e: React.MouseEvent) {
     e.stopPropagation();
+    const {onFinish} = this.props;
+    if (onFinish) {
+      onFinish();
+    }
     const {currentGuide, orgId} = this.state;
     recordFinish(currentGuide.guide, orgId);
     closeGuide();
@@ -120,6 +123,7 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   getHovercardBody() {
+    const {to} = this.props;
     const {currentGuide, step} = this.state;
 
     const totalStepCount = currentGuide.steps.length;
@@ -128,35 +132,39 @@ const GuideAnchor = createReactClass<Props, State>({
     const lastStep = currentStepCount === totalStepCount;
     const hasManySteps = totalStepCount > 1;
 
+    const dismissButton = (
+      <DismissButton
+        size="small"
+        href="#" // to clear `#assistant` from the url
+        onClick={this.handleDismiss}
+        priority="link"
+      >
+        {currentStep.dismissText || t('Dismiss')}
+      </DismissButton>
+    );
+
     return (
       <GuideContainer>
         <GuideContent>
-          <GuideTitle>{currentStep.title}</GuideTitle>
+          {currentStep.title && <GuideTitle>{currentStep.title}</GuideTitle>}
           <GuideDescription>{currentStep.description}</GuideDescription>
         </GuideContent>
         <GuideAction>
           <div>
             {lastStep ? (
-              <StyledButton
-                size="small"
-                href="#" // to clear `#assistant` from the url
-                onClick={this.handleFinish}
-              >
-                {hasManySteps ? t('Enough Already') : t('Got It')}
-              </StyledButton>
+              <React.Fragment>
+                <StyledButton size="small" to={to} onClick={this.handleFinish}>
+                  {currentStep.nextText ||
+                    (hasManySteps ? t('Enough Already') : t('Got It'))}
+                </StyledButton>
+                {currentStep.hasNextGuide && dismissButton}
+              </React.Fragment>
             ) : (
               <React.Fragment>
-                <DismissButton
-                  priority="primary"
-                  size="small"
-                  href="#" // to clear `#assistant` from the url
-                  onClick={this.handleDismiss}
-                >
-                  {t('Dismiss')}
-                </DismissButton>
-                <StyledButton size="small" onClick={this.handleNextStep}>
-                  {t('Next')}
+                <StyledButton size="small" onClick={this.handleNextStep} to={to}>
+                  {currentStep.nextText || t('Next')}
                 </StyledButton>
+                {!currentStep.cantDismiss && dismissButton}
               </React.Fragment>
             )}
           </div>
@@ -175,10 +183,10 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   render() {
-    const {disabled, children, position, offset} = this.props;
+    const {children, position, offset, containerClassName} = this.props;
     const {active} = this.state;
 
-    if (!active || disabled) {
+    if (!active) {
       return children ? children : null;
     }
 
@@ -189,12 +197,29 @@ const GuideAnchor = createReactClass<Props, State>({
         tipColor={theme.purple300}
         position={position}
         offset={offset}
+        containerClassName={containerClassName}
       >
         <span ref={el => (this.containerElement = el)}>{children}</span>
       </StyledHovercard>
     );
   },
 });
+
+/**
+ * Wraps the GuideAnchor so we don't have to render it if it's disabled
+ * Using a class so we automatically have children as a typed prop
+ */
+
+type WrapperProps = {disabled?: boolean} & Props;
+export default class GuideAnchorWrapper extends React.Component<WrapperProps> {
+  render() {
+    const {disabled, children, ...rest} = this.props;
+    if (disabled || window.localStorage.getItem('hide_anchors') === '1') {
+      return children || null;
+    }
+    return <GuideAnchor {...rest}>{children}</GuideAnchor>;
+  }
+}
 
 const GuideContainer = styled('div')`
   display: grid;
@@ -204,7 +229,7 @@ const GuideContainer = styled('div')`
   line-height: 1.5;
   background-color: ${p => p.theme.purple300};
   border-color: ${p => p.theme.purple300};
-  color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.white};
 `;
 
 const GuideContent = styled('div')`
@@ -213,7 +238,7 @@ const GuideContent = styled('div')`
   grid-gap: ${space(1)};
 
   a {
-    color: ${p => p.theme.backgroundSecondary};
+    color: ${p => p.theme.white};
     text-decoration: underline;
   }
 `;
@@ -234,18 +259,19 @@ const GuideAction = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  border-color: ${p => p.theme.border};
+  font-size: ${p => p.theme.fontSizeMedium};
   min-width: 40%;
 `;
 
 const DismissButton = styled(StyledButton)`
-  margin-right: ${space(1)};
+  margin-left: ${space(1)};
 
   &:hover,
   &:focus,
   &:active {
-    border-color: ${p => p.theme.border};
+    color: ${p => p.theme.white};
   }
+  color: ${p => p.theme.white};
 `;
 
 const StepCount = styled('div')`
@@ -259,7 +285,6 @@ const StyledHovercard = styled(Hovercard)`
     background-color: ${theme.purple300};
     margin: -1px;
     border-radius: ${theme.borderRadius};
+    width: 300px;
   }
 `;
-
-export default GuideAnchor;

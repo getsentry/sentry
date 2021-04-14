@@ -1,10 +1,6 @@
-from __future__ import absolute_import
-
 import itertools
 
-
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
+from sentry.utils.compat import map, zip
 
 
 def advance(n, iterator):

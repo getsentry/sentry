@@ -1,11 +1,9 @@
 # TODO: We should make the API a class, and UDP/HTTP just inherit from it
 #       This will make it so we can more easily control logging with various
 #       metadata (rather than generic log messages which aren't useful).
-from __future__ import absolute_import, print_function
 
 import logging
 import re
-
 from time import time
 
 from sentry.attachments import attachment_cache
@@ -13,7 +11,6 @@ from sentry.cache import default_cache
 from sentry.tasks.store import preprocess_event, preprocess_event_from_reprocessing
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CANONICAL_TYPES
-
 
 _dist_re = re.compile(r"^[a-zA-Z0-9_.-]+$")
 logger = logging.getLogger("sentry.api")

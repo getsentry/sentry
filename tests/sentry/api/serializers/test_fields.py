@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 from rest_framework import serializers
 
+from sentry.api.serializers.rest_framework import ActorField, ListField
+from sentry.models import Team, User
 from sentry.testutils import TestCase
-
-from sentry.api.serializers.rest_framework import ListField, ActorField
-from sentry.models import User, Team
 
 
 class ChildSerializer(serializers.Serializer):
@@ -75,4 +72,4 @@ class TestActorField(TestCase):
 
         serializer = DummySerializer(data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {"actor_field": [u"Unknown actor input"]}
+        assert serializer.errors == {"actor_field": ["Unknown actor input"]}

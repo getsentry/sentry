@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import PropTypes from 'prop-types';
 
 import {defined} from 'app/utils';
 
@@ -20,7 +19,7 @@ const ContextLine = function (props: Props) {
   let lineWs = '';
   let lineCode = '';
   if (defined(line[1]) && line[1].match) {
-    [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
+    [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m)!;
   }
   const Component = !props.children ? React.Fragment : Context;
   return (
@@ -32,11 +31,6 @@ const ContextLine = function (props: Props) {
       {props.children}
     </li>
   );
-};
-
-ContextLine.propTypes = {
-  line: PropTypes.array.isRequired,
-  isActive: PropTypes.bool,
 };
 
 export default ContextLine;

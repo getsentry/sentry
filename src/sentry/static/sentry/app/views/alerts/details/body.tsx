@@ -7,6 +7,7 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
 import Duration from 'app/components/duration';
+import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
@@ -16,7 +17,7 @@ import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
@@ -31,13 +32,14 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from '../types';
-import {DATA_SOURCE_LABELS, getIncidentMetricPreset} from '../utils';
+import {DATA_SOURCE_LABELS, getIncidentMetricPreset, isIssueAlert} from '../utils';
 
 import Activity from './activity';
 import Chart from './chart';
 
 type Props = {
   incident?: Incident;
+  organization: Organization;
   stats?: IncidentStats;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
@@ -80,59 +82,53 @@ export default class DetailsBody extends React.Component<Props> {
     );
 
     return (
-      <RuleDetails>
-        <span>{t('Data Source')}</span>
-        <span>{DATA_SOURCE_LABELS[incident.alertRule?.dataset]}</span>
-
-        <span>{t('Metric')}</span>
-        <span>{incident.alertRule?.aggregate}</span>
-
-        <span>{t('Time Window')}</span>
-        <span>
-          {incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
-        </span>
-
+      <KeyValueTable>
+        <KeyValueTableRow
+          keyName={t('Data Source')}
+          value={DATA_SOURCE_LABELS[incident.alertRule?.dataset]}
+        />
+        <KeyValueTableRow keyName={t('Metric')} value={incident.alertRule?.aggregate} />
+        <KeyValueTableRow
+          keyName={t('Time Window')}
+          value={incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
+        />
         {incident.alertRule?.query && (
-          <React.Fragment>
-            <span>{t('Filter')}</span>
-            <span title={incident.alertRule?.query}>{incident.alertRule?.query}</span>
-          </React.Fragment>
+          <KeyValueTableRow
+            keyName={t('Filter')}
+            value={
+              <span title={incident.alertRule?.query}>{incident.alertRule?.query}</span>
+            }
+          />
         )}
-
-        <span>{t('Critical Trigger')}</span>
-        <span>
-          {this.getThresholdText(
+        <KeyValueTableRow
+          keyName={t('Critical Trigger')}
+          value={this.getThresholdText(
             criticalTrigger?.alertThreshold,
             incident.alertRule?.thresholdType,
             true
           )}
-        </span>
-
+        />
         {defined(warningTrigger) && (
-          <React.Fragment>
-            <span>{t('Warning Trigger')}</span>
-            <span>
-              {this.getThresholdText(
-                warningTrigger?.alertThreshold,
-                incident.alertRule?.thresholdType,
-                true
-              )}
-            </span>
-          </React.Fragment>
+          <KeyValueTableRow
+            keyName={t('Warning Trigger')}
+            value={this.getThresholdText(
+              warningTrigger?.alertThreshold,
+              incident.alertRule?.thresholdType,
+              true
+            )}
+          />
         )}
 
         {defined(incident.alertRule?.resolveThreshold) && (
-          <React.Fragment>
-            <span>{t('Resolution')}</span>
-            <span>
-              {this.getThresholdText(
-                incident.alertRule?.resolveThreshold,
-                incident.alertRule?.thresholdType
-              )}
-            </span>
-          </React.Fragment>
+          <KeyValueTableRow
+            keyName={t('Resolution')}
+            value={this.getThresholdText(
+              incident.alertRule?.resolveThreshold,
+              incident.alertRule?.thresholdType
+            )}
+          />
         )}
-      </RuleDetails>
+      </KeyValueTable>
     );
   }
 
@@ -209,7 +205,20 @@ export default class DetailsBody extends React.Component<Props> {
   }
 
   render() {
-    const {params, incident, stats} = this.props;
+    const {params, incident, organization, stats} = this.props;
+
+    const hasRedesign =
+      incident?.alertRule &&
+      !isIssueAlert(incident?.alertRule) &&
+      organization.features.includes('alert-details-redesign');
+    const alertRuleLink = hasRedesign
+      ? `/organizations/${organization.slug}/alerts/rules/details/${
+          incident?.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+          incident?.alertRule.originalAlertRuleId
+            ? incident?.alertRule.originalAlertRuleId
+            : incident?.alertRule.id
+        }/`
+      : `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`;
 
     return (
       <StyledPageContent>
@@ -271,13 +280,14 @@ export default class DetailsBody extends React.Component<Props> {
             <Sidebar>
               <SidebarHeading>
                 <span>{t('Alert Rule')}</span>
-                {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
+                {(incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT ||
+                  hasRedesign) && (
                   <SideHeaderLink
                     disabled={!!incident?.id}
                     to={
                       incident?.id
                         ? {
-                            pathname: `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`,
+                            pathname: alertRuleLink,
                           }
                         : ''
                     }
@@ -402,32 +412,4 @@ const SeenByTab = styled('li')`
 
 const StyledSeenByList = styled(SeenByList)`
   margin-top: 0;
-`;
-
-const RuleDetails = styled('div')`
-  display: grid;
-  font-size: ${p => p.theme.fontSizeSmall};
-  grid-template-columns: auto max-content;
-  margin-bottom: ${space(2)};
-
-  & > span {
-    padding: ${space(0.5)} ${space(1)};
-  }
-
-  & > span:nth-child(2n + 1) {
-    width: 125px;
-  }
-
-  & > span:nth-child(2n + 2) {
-    text-align: right;
-    width: 215px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-
-  & > span:nth-child(4n + 1),
-  & > span:nth-child(4n + 2) {
-    background-color: ${p => p.theme.rowBackground};
-  }
 `;

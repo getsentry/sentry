@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 import {Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 import space from 'app/styles/space';
@@ -25,11 +24,6 @@ const PanelBody: React.FunctionComponent<Props> = ({
     {...(flexible ? {flexDirection: 'column'} : null)}
   />
 );
-
-PanelBody.propTypes = {
-  flexible: PropTypes.bool,
-  withPadding: PropTypes.bool,
-};
 
 PanelBody.defaultProps = {
   flexible: false,

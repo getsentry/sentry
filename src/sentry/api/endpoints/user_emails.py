@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from django.db import IntegrityError, transaction
@@ -217,7 +215,8 @@ class UserEmailsEndpoint(UserEndpoint):
         if primary_email == del_email:
             return self.respond({"detail": "Cannot remove primary email"}, status=400)
 
-        del_email.delete()
+        if del_email:
+            del_email.delete()
 
         logger.info(
             "user.email.remove",

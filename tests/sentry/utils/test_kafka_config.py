@@ -1,16 +1,13 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import os
+
 import pytest
-from django.test import override_settings
 from django.conf import settings
+from django.test import override_settings
 
 from sentry.utils.kafka_config import (
+    get_kafka_admin_cluster_options,
     get_kafka_consumer_cluster_options,
     get_kafka_producer_cluster_options,
-    get_kafka_admin_cluster_options,
 )
 
 settings.KAFKA_CLUSTERS["default"] = {

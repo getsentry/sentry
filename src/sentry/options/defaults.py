@@ -1,15 +1,13 @@
-from __future__ import absolute_import, print_function
-
 from sentry.logging import LoggingFormat
 from sentry.options import (
+    FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
-    FLAG_ALLOW_EMPTY,
     register,
 )
-from sentry.utils.types import Bool, Dict, String, Sequence, Int
+from sentry.utils.types import Bool, Dict, Int, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -112,6 +110,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
+# Backend chart rendering via chartcuterie
+register("chart-rendering.enabled", default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "chart-rendering.chartcuterie",
+    default={"url": "http://localhost:7901"},
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -121,14 +127,9 @@ register("cloudflare.secret-key", default="")
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
+# signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack.legacy-app", flags=FLAG_PRIORITIZE_DISK, type=Bool, default=True)
-
-# Slack V2 Integration
-register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.client-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.signing-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0)
@@ -141,7 +142,9 @@ register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
 # GitHub Auth
 register("github-login.client-id", default="", flags=FLAG_PRIORITIZE_DISK)
 register("github-login.client-secret", default="", flags=FLAG_PRIORITIZE_DISK)
-register("github-login.reqire-verified-email", type=Bool, default=False, flags=FLAG_PRIORITIZE_DISK)
+register(
+    "github-login.require-verified-email", type=Bool, default=False, flags=FLAG_PRIORITIZE_DISK
+)
 register("github-login.base-domain", default="github.com", flags=FLAG_PRIORITIZE_DISK)
 register("github-login.api-domain", default="api.github.com", flags=FLAG_PRIORITIZE_DISK)
 register("github-login.extended-permissions", type=Sequence, default=[], flags=FLAG_PRIORITIZE_DISK)
@@ -171,9 +174,11 @@ register("msteams.app-id")
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.cloudformation-url")
-register("aws-lambda.account-number")
-register("aws-lambda.node.layer-name")
+register("aws-lambda.account-number", default="943013980633")
+register("aws-lambda.node.layer-name", default="SentryNodeServerlessSDK")
 register("aws-lambda.node.layer-version")
+register("aws-lambda.python.layer-name", default="SentryPythonServerlessSDK")
+register("aws-lambda.python.layer-version")
 # the region of the host account we use for assuming the role
 register("aws-lambda.host-region", default="us-east-2")
 
@@ -188,6 +193,7 @@ register("snuba.search.max-chunk-size", default=2000)
 register("snuba.search.max-total-chunk-time-seconds", default=30.0)
 register("snuba.search.hits-sample-size", default=100)
 register("snuba.track-outcomes-sample-rate", default=0.0)
+register("snuba.snql.referrer-rate", default=0.0)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register("snuba.tagstore.cache-tagkeys-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
@@ -256,9 +262,6 @@ register("eventstore.use-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
 # Alerts / Workflow incremental rollout rate. Tied to feature handlers in getsentry
 register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
-# Incremental rollout rate for Workflow Owners related features.
-register("workflow-owners.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
-
 # Performance metric alerts incremental rollout rate. Tied to feature handlers
 # in getsentry
 register("incidents-performance.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
@@ -283,5 +286,20 @@ register("store.use-relay-dsn-sample-rate", default=1)
 # Mock out integrations and services for tests
 register("mocks.jira", default=False)
 
-# Record statistics about event payloads and their compressability
-register("store.nodestore-stats-sample-rate", default=0.0)
+# Record statistics about event payloads and their compressibility
+register("store.nodestore-stats-sample-rate", default=0.0)  # unused
+
+# Killswitch to stop storing any reprocessing payloads.
+register("store.reprocessing-force-disable", default=False)
+
+register("store.race-free-group-creation-force-disable", default=False)
+
+
+# Killswitch for dropping events if they were to create groups
+register("store.load-shed-group-creation-projects", type=Sequence, default=[])
+
+# Killswitch for dropping events in ingest consumer or really anywhere
+register("store.load-shed-pipeline-projects", type=Sequence, default=[])
+
+# Switch for more performant project counter incr
+register("store.projectcounter-modern-upsert-sample-rate", default=0.0)

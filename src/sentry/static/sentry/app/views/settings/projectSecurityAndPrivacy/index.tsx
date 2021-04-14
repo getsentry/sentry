@@ -41,7 +41,7 @@ class ProjectSecurityAndPrivacy extends React.Component<ProjectSecurityAndPrivac
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={projectSlug} />
+        <SentryDocumentTitle title={title} projectSlug={projectSlug} />
         <SettingsPageHeader title={title} />
         <Form
           saveOnBlur

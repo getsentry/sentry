@@ -1,16 +1,13 @@
-from __future__ import absolute_import
-
 import time
 
 from django.conf import settings
 
+from sentry.loader.browsersdkversion import get_browser_sdk_version
+from sentry.models import Project, ProjectKey
 from sentry.relay import config
 from sentry.utils import metrics
-from sentry.models import ProjectKey, Project
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
-from sentry.loader.browsersdkversion import get_browser_sdk_version
-
 
 CACHE_CONTROL = (
     "public, max-age=3600, s-maxage=60, stale-while-revalidate=315360000, stale-if-error=315360000"
@@ -75,10 +72,7 @@ class JavaScriptSdkLoader(BaseView):
         response["Access-Control-Allow-Origin"] = "*"
         response["Cache-Control"] = CACHE_CONTROL
         if sdk_version and key:
-            response["Surrogate-Key"] = "project/%s sdk/%s sdk-loader" % (
-                key.project_id,
-                sdk_version,
-            )
+            response["Surrogate-Key"] = f"project/{key.project_id} sdk/{sdk_version} sdk-loader"
 
         ms = int((time.time() - start_time) * 1000)
         metrics.timing("js-sdk-loader.duration", ms, instance=instance)

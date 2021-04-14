@@ -1,7 +1,7 @@
-from __future__ import absolute_import
-
 from datetime import datetime, timedelta
+
 from sentry.models import Integration
+
 from ..github.test_search import GithubSearchTest
 
 

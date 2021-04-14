@@ -1,29 +1,34 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
-import {action} from '@storybook/addon-actions';
 
-import ConfirmDelete from 'app/components/confirmDelete';
 import Button from 'app/components/button';
+import ConfirmDelete from 'app/components/confirmDelete';
 
+// TODO(scttcper): modal not working
 export default {
   title: 'Core/Buttons/Confirm',
+  component: ConfirmDelete,
+  args: {
+    confirmInput: 'Type this out',
+    message: 'Are you sure you want to do this?',
+  },
+  argTypes: {
+    onConfirm: {action: 'confirmed'},
+  },
 };
 
-export const _ConfirmDelete = withInfo({
-  text: 'A Confirm Modal that requires a user to enter a confirmation string.',
-  propTablesExclude: [Button],
-})(() => (
+export const _ConfirmDelete = ({...args}) => (
   <div>
-    <ConfirmDelete
-      onConfirm={action('confirmed')}
-      confirmInput="Type this out"
-      message="Are you sure you want to do this?"
-    >
+    <ConfirmDelete {...args}>
       <Button priority="primary">Confirm on Button click</Button>
     </ConfirmDelete>
   </div>
-));
+);
 
-_ConfirmDelete.story = {
-  name: 'ConfirmDelete',
+_ConfirmDelete.storyName = 'ConfirmDelete';
+_ConfirmDelete.parameters = {
+  docs: {
+    description: {
+      story: 'A Confirm Modal that requires a user to enter a confirmation string.',
+    },
+  },
 };

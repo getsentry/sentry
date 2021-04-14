@@ -6,8 +6,7 @@ import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
 import Button from 'app/components/button';
 import Hook from 'app/components/hook';
-import InlineSvg from 'app/components/inlineSvg';
-import {IconChevron} from 'app/icons';
+import {IconChevron, IconSentryFull} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -18,7 +17,7 @@ import withProjects from 'app/utils/withProjects';
 
 import PageCorners from './components/pageCorners';
 import OnboardingPlatform from './platform';
-import OnboardingProjectSetup from './projectSetup';
+import SdkConfiguration from './sdkConfiguration';
 import {StepData, StepDescriptor} from './types';
 import OnboardingWelcome from './welcome';
 
@@ -50,7 +49,7 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
   {
     id: 'get-started',
     title: t('Install the Sentry SDK'),
-    Component: OnboardingProjectSetup,
+    Component: SdkConfiguration,
   },
 ];
 
@@ -184,7 +183,6 @@ class Onboarding extends React.Component<Props, State> {
     // way to create framer-motion controls than by using the `useAnimation`
     // hook.
 
-    // eslint-disable-next-line sentry/no-react-hooks
     React.useEffect(updateCornerVariant, []);
 
     return (
@@ -210,7 +208,7 @@ class Onboarding extends React.Component<Props, State> {
       <OnboardingWrapper>
         <DocumentTitle title={this.activeStep.title} />
         <Header>
-          <LogoSvg src="logo" />
+          <LogoSvg />
           <HeaderRight>
             {this.renderProgressBar()}
             <Hook name="onboarding:extra-chrome" />
@@ -252,7 +250,7 @@ const Header = styled('header')`
   justify-content: space-between;
 `;
 
-const LogoSvg = styled(InlineSvg)`
+const LogoSvg = styled(IconSentryFull)`
   width: 130px;
   height: 30px;
   color: ${p => p.theme.textColor};
@@ -314,9 +312,10 @@ const Back = styled(({className, animate, ...props}) => (
   <motion.div
     className={className}
     animate={animate}
+    transition={testableTransition()}
     variants={{
       initial: {opacity: 0},
-      visible: {opacity: 1, transition: {delay: 1}},
+      visible: {opacity: 1, transition: testableTransition({delay: 1})},
       hidden: {opacity: 0},
     }}
   >

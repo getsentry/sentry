@@ -1,25 +1,23 @@
-from __future__ import absolute_import
-
 import re
-import six
 
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.component import GroupingComponent
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
+from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
+from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.utils import (
+    expand_title_template,
+    hash_from_values,
+    is_default_fingerprint_var,
+    resolve_fingerprint_values,
+)
 from sentry.grouping.variants import (
+    HIERARCHICAL_VARIANTS,
     ChecksumVariant,
-    FallbackVariant,
     ComponentVariant,
     CustomFingerprintVariant,
+    FallbackVariant,
     SaltedComponentVariant,
 )
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, ENHANCEMENT_BASES
-from sentry.grouping.utils import (
-    is_default_fingerprint_var,
-    hash_from_values,
-    resolve_fingerprint_values,
-    expand_title_template,
-)
-
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 
@@ -28,7 +26,7 @@ class GroupingConfigNotFound(LookupError):
     pass
 
 
-def get_grouping_config_dict_for_project(project, silent=True):
+def get_grouping_config_dict_for_project(project, silent=True, secondary=False):
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -36,7 +34,10 @@ def get_grouping_config_dict_for_project(project, silent=True):
     This is called early on in normalization so that everything that is needed
     to group the project is pulled into the event.
     """
-    config_id = project.get_option("sentry:grouping_config", validate=lambda x: x in CONFIGURATIONS)
+    config_id = project.get_option(
+        "sentry:grouping_config" if not secondary else "sentry:secondary_grouping_config",
+        validate=lambda x: x in CONFIGURATIONS,
+    )
 
     # At a later point we might want to store additional information here
     # such as frames that mark the end of a stacktrace and more.
@@ -48,20 +49,22 @@ def get_grouping_config_dict_for_event_data(data, project):
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
-def _get_project_enhancements_config(project):
+def _get_project_enhancements_config(project, secondary=False):
     enhancements = project.get_option("sentry:grouping_enhancements")
-    enhancements_base = project.get_option(
-        "sentry:grouping_enhancements_base", validate=lambda x: x in ENHANCEMENT_BASES
+
+    config_id = project.get_option(
+        "sentry:grouping_config" if not secondary else "sentry:secondary_grouping_config",
+        validate=lambda x: x in CONFIGURATIONS,
     )
+    enhancements_base = CONFIGURATIONS[config_id].enhancements_base
 
     # Instead of parsing and dumping out config here, we can make a
     # shortcut
     from sentry.utils.cache import cache
     from sentry.utils.hashlib import md5_text
 
-    cache_key = (
-        "grouping-enhancements:" + md5_text("%s|%s" % (enhancements_base, enhancements)).hexdigest()
-    )
+    cache_prefix = "grouping-enhancements:" if not secondary else "secondary-grouping-enhancements:"
+    cache_key = cache_prefix + md5_text(f"{enhancements_base}|{enhancements}").hexdigest()
     rv = cache.get(cache_key)
     if rv is not None:
         return rv
@@ -74,10 +77,12 @@ def _get_project_enhancements_config(project):
     return rv
 
 
-def get_default_enhancements():
-    from sentry.projectoptions.defaults import DEFAULT_GROUPING_ENHANCEMENTS_BASE
+def get_default_enhancements(config_id=None):
+    base = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    if config_id is not None:
+        base = CONFIGURATIONS[config_id].enhancements_base
 
-    return Enhancements(rules=[], bases=[DEFAULT_GROUPING_ENHANCEMENTS_BASE]).dumps()
+    return Enhancements(rules=[], bases=[base]).dumps()
 
 
 def get_default_grouping_config_dict(id=None):
@@ -86,7 +91,7 @@ def get_default_grouping_config_dict(id=None):
         from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 
         id = DEFAULT_GROUPING_CONFIG
-    return {"id": id, "enhancements": get_default_enhancements()}
+    return {"id": id, "enhancements": get_default_enhancements(id)}
 
 
 def load_grouping_config(config_dict=None):
@@ -149,24 +154,22 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
         }
 
 
-def _get_calculated_grouping_variants_for_event(event, config):
+def _get_calculated_grouping_variants_for_event(event, context):
     winning_strategy = None
     precedence_hint = None
     per_variant_components = {}
 
-    for strategy in config.iter_strategies():
-        rv = strategy.get_grouping_component_variants(event, config=config)
-        for (variant, component) in six.iteritems(rv):
+    for strategy in context.config.iter_strategies():
+        rv = strategy.get_grouping_component_variants(event, context=context)
+        for (variant, component) in rv.items():
             per_variant_components.setdefault(variant, []).append(component)
 
             if winning_strategy is None:
                 if component.contributes:
                     winning_strategy = strategy.name
-                    variants_hint = "/".join(
-                        sorted(k for k, v in six.iteritems(rv) if v.contributes)
-                    )
-                    precedence_hint = "%s take%s precedence" % (
-                        "%s of %s" % (strategy.name, variants_hint)
+                    variants_hint = "/".join(sorted(k for k, v in rv.items() if v.contributes))
+                    precedence_hint = "{} take{} precedence".format(
+                        f"{strategy.name} of {variants_hint}"
                         if variant != "default"
                         else strategy.name,
                         "" if strategy.name.endswith("s") else "s",
@@ -177,7 +180,7 @@ def _get_calculated_grouping_variants_for_event(event, config):
                 )
 
     rv = {}
-    for (variant, components) in six.iteritems(per_variant_components):
+    for (variant, components) in per_variant_components.items():
         component = GroupingComponent(id=variant, values=components)
         if not component.contributes and precedence_hint:
             component.update(hint=precedence_hint)
@@ -216,22 +219,23 @@ def get_grouping_variants_for_event(event, config=None):
 
     if config is None:
         config = load_default_grouping_config()
+    context = GroupingContext(config)
 
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
-    components = _get_calculated_grouping_variants_for_event(event, config)
+    components = _get_calculated_grouping_variants_for_event(event, context)
 
     # If no defaults are referenced we produce a single completely custom
     # fingerprint and mark all other variants as non-contributing
     if defaults_referenced == 0:
         rv = {}
-        for (key, component) in six.iteritems(components):
+        for (key, component) in components.items():
             component.update(
                 contributes=False,
                 contributes_to_similarity=True,
                 hint="custom fingerprint takes precedence",
             )
-            rv[key] = ComponentVariant(component, config)
+            rv[key] = ComponentVariant(component, context.config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
@@ -239,18 +243,47 @@ def get_grouping_variants_for_event(event, config=None):
     # If the fingerprints are unsalted, we can return them right away.
     elif defaults_referenced == 1 and len(fingerprint) == 1:
         rv = {}
-        for (key, component) in six.iteritems(components):
-            rv[key] = ComponentVariant(component, config)
+        for (key, component) in components.items():
+            rv[key] = ComponentVariant(component, context.config)
 
     # Otherwise we need to salt each of the components.
     else:
         rv = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        for (key, component) in six.iteritems(components):
-            rv[key] = SaltedComponentVariant(fingerprint, component, config, fingerprint_info)
+        for (key, component) in components.items():
+            rv[key] = SaltedComponentVariant(
+                fingerprint, component, context.config, fingerprint_info
+            )
 
     # Ensure we have a fallback hash if nothing else works out
-    if not any(x.contributes for x in six.itervalues(rv)):
+    if not any(x.contributes for x in rv.values()):
         rv["fallback"] = FallbackVariant()
 
     return rv
+
+
+def sort_grouping_variants(variants):
+    """ Sort a sequence of variants into flat and hierarchical variants """
+
+    flat_variants = []
+    hierarchical_variants = []
+
+    for name, variant in variants.items():
+
+        if name in HIERARCHICAL_VARIANTS:
+            hierarchical_variants.append((name, variant))
+        else:
+            flat_variants.append((name, variant))
+
+    # Sort system variant to the back of the list to resolve ambiguities when
+    # choosing primary_hash for Snuba
+    flat_variants.sort(key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0)
+    flat_variants = [variant for name, variant in flat_variants]
+
+    # Sort hierarchical_variants by order defined in HIERARCHICAL_VARIANTS
+    hierarchical_variants.sort(
+        key=lambda name_and_variant: HIERARCHICAL_VARIANTS.index(name_and_variant[0])
+    )
+    hierarchical_variants = [variant for name, variant in hierarchical_variants]
+
+    return flat_variants, hierarchical_variants

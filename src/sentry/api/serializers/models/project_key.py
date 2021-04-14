@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 from sentry.api.serializers import Serializer, register
 from sentry.loader.browsersdkversion import (
-    get_selected_browser_sdk_version,
     get_browser_sdk_version_choices,
+    get_selected_browser_sdk_version,
 )
 from sentry.models import ProjectKey
 

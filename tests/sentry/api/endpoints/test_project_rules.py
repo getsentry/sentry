@@ -1,5 +1,6 @@
-from __future__ import absolute_import
+from unittest.mock import patch
 
+import responses
 from django.core.urlresolvers import reverse
 
 from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType
@@ -45,6 +46,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": self.user.actor.get_actor_identifier(),
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -56,6 +58,7 @@ class CreateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"]
+        assert response.data["owner"] == self.user.actor.get_actor_identifier()
         assert response.data["createdBy"] == {
             "id": self.user.id,
             "name": self.user.get_display_name(),
@@ -64,6 +67,7 @@ class CreateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == "hello world"
+        assert rule.owner == self.user.actor
         assert rule.data["action_match"] == "any"
         assert rule.data["filter_match"] == "any"
         assert rule.data["actions"] == actions
@@ -129,6 +133,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "environment": None,
                 "conditions": conditions,
                 "actions": actions,
@@ -147,6 +152,7 @@ class CreateProjectRuleTest(APITestCase):
         assert rule.label == "hello world"
         assert rule.environment_id is None
 
+    @responses.activate
     def test_slack_channel_id_saved(self):
         self.login_as(user=self.user)
 
@@ -163,10 +169,20 @@ class CreateProjectRuleTest(APITestCase):
             "sentry-api-0-project-rules",
             kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channel": {"name": "team-team-team", "id": "CSVK0921"}}
+            ),
+        )
         response = self.client.post(
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "environment": None,
                 "actionMatch": "any",
                 "frequency": 5,
@@ -205,6 +221,7 @@ class CreateProjectRuleTest(APITestCase):
         response = self.client.post(
             url,
             data={
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -238,6 +255,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -262,6 +280,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -292,6 +311,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "conditions": conditions,
                 "filters": filters,
                 "actions": actions,
@@ -326,6 +346,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "conditions": conditions,
                 "actions": actions,
                 "actionMatch": "any",
@@ -359,6 +380,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "conditions": conditions,
                 "filters": filters,
                 "actions": actions,
@@ -388,6 +410,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "no action rule",
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "conditions": conditions,
@@ -414,3 +437,74 @@ class CreateProjectRuleTest(APITestCase):
         assert rule.created_by == self.user
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()
+
+    @patch(
+        "sentry.integrations.slack.notify_action.get_channel_id",
+        return_value=("#", None, True),
+    )
+    @patch("sentry.integrations.slack.tasks.find_channel_id_for_rule.apply_async")
+    @patch("sentry.integrations.slack.tasks.uuid4")
+    def test_kicks_off_slack_async_job(
+        self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
+    ):
+        project = self.create_project()
+
+        mock_uuid4.return_value = self.get_mock_uuid()
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(project.organization, self.user)
+
+        url = reverse(
+            "sentry-api-0-project-rules",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+            },
+        )
+        data = {
+            "name": "hello world",
+            "owner": f"user:{self.user.id}",
+            "environment": None,
+            "actionMatch": "any",
+            "frequency": 5,
+            "actions": [
+                {
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
+                    "workspace": str(integration.id),
+                    "channel": "#team-team-team",
+                    "tags": "",
+                }
+            ],
+            "conditions": [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            ],
+        }
+        self.client.post(
+            url,
+            data=data,
+            format="json",
+        )
+
+        assert not Rule.objects.filter(label="hello world").exists()
+        kwargs = {
+            "name": data["name"],
+            "owner": self.user.actor.id,
+            "environment": data.get("environment"),
+            "action_match": data["actionMatch"],
+            "filter_match": data.get("filterMatch"),
+            "conditions": data.get("conditions", []) + data.get("filters", []),
+            "actions": data.get("actions", []),
+            "frequency": data.get("frequency"),
+            "user_id": self.user.id,
+            "uuid": "abc123",
+        }
+        call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]
+        assert call_args.pop("project").id == project.id
+        assert call_args == kwargs

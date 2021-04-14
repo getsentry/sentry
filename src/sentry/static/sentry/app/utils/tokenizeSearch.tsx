@@ -16,6 +16,19 @@ function isOp(t: Token) {
   return t.type === TokenType.OP;
 }
 
+function isBooleanOp(value: string) {
+  return ['OR', 'AND'].includes(value.toUpperCase());
+}
+
+function isParen(token: Token, character: '(' | ')') {
+  return (
+    token !== undefined &&
+    isOp(token) &&
+    ['(', ')'].includes(token.value) &&
+    token.value === character
+  );
+}
+
 export class QueryResults {
   tagValues: Record<string, string[]>;
   tokens: Token[];
@@ -26,7 +39,7 @@ export class QueryResults {
     for (let token of strTokens) {
       let tokenState = TokenType.QUERY;
 
-      if (['OR', 'AND'].includes(token.toUpperCase())) {
+      if (isBooleanOp(token)) {
         this.addOp(token.toUpperCase());
         continue;
       }
@@ -125,7 +138,7 @@ export class QueryResults {
   }
 
   getTagValues(tag: string) {
-    return this.tagValues[tag];
+    return this.tagValues[tag] ?? [];
   }
 
   getTagKeys() {
@@ -203,8 +216,12 @@ export class QueryResults {
         const token = this.tokens[i];
         const prev = this.tokens[i - 1];
         const next = this.tokens[i + 1];
-        if (isOp(token) && ['OR', 'AND'].includes(token.value)) {
+        if (isOp(token) && isBooleanOp(token.value)) {
           if (prev === undefined || isOp(prev) || next === undefined || isOp(next)) {
+            // Want to avoid removing `(term) OR (term)`
+            if (isParen(prev, ')') && isParen(next, '(')) {
+              continue;
+            }
             toRemove = i;
             break;
           }
@@ -276,6 +293,8 @@ export function stringifyQueryObject(results: QueryResults) {
 
 /**
  * Splits search strings into tokens for parsing by tokenizeSearch.
+ *
+ * Should stay in sync with src.sentry.search.utils:split_query_into_tokens
  */
 function splitSearchIntoTokens(query: string) {
   const queryChars = Array.from(query);
@@ -286,7 +305,8 @@ function splitSearchIntoTokens(query: string) {
   let quoteType = '';
   let quoteEnclosed = false;
 
-  queryChars.forEach((char, idx) => {
+  for (let idx = 0; idx < queryChars.length; idx++) {
+    const char = queryChars[idx];
     const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1] : null;
     token += char;
 
@@ -305,7 +325,12 @@ function splitSearchIntoTokens(query: string) {
         quoteType = char;
       }
     }
-  });
+
+    if (quoteEnclosed && char === '\\' && nextChar === quoteType) {
+      token += nextChar;
+      idx++;
+    }
+  }
 
   const trimmedToken = token.trim();
   if (trimmedToken !== '') {
@@ -328,10 +353,33 @@ function isSpace(s: string) {
  */
 function formatTag(tag: string) {
   const idx = tag.indexOf(':');
-  const key = tag.slice(0, idx).replace(/^"+|"+$/g, '');
-  const value = tag.slice(idx + 1).replace(/^"+|"+$/g, '');
+  const key = removeSurroundingQuotes(tag.slice(0, idx));
+  const value = removeSurroundingQuotes(tag.slice(idx + 1));
 
   return [key, value];
+}
+
+function removeSurroundingQuotes(text: string) {
+  const length = text.length;
+  if (length <= 1) {
+    return text;
+  }
+
+  let left = 0;
+  for (; left <= length / 2; left++) {
+    if (text.charAt(left) !== '"') {
+      break;
+    }
+  }
+
+  let right = length - 1;
+  for (; right >= length / 2; right--) {
+    if (text.charAt(right) !== '"' || text.charAt(right - 1) === '\\') {
+      break;
+    }
+  }
+
+  return text.slice(left, right + 1);
 }
 
 /**

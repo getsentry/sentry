@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from typing import List, Optional
 
 from django.core.urlresolvers import reverse
 from rest_framework import status
@@ -29,6 +29,14 @@ class SentryAPIException(APIException):
         self.detail = {"detail": detail}
 
 
+class ParameterValidationError(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "parameter-validation-error"
+
+    def __init__(self, message: str, context: Optional[List[str]] = None) -> None:
+        super().__init__(message=message, context=".".join(context))
+
+
 class ProjectMoved(SentryAPIException):
     status_code = status.HTTP_302_FOUND
     # code/message currently don't get used
@@ -36,7 +44,7 @@ class ProjectMoved(SentryAPIException):
     message = "Resource has been moved"
 
     def __init__(self, new_url, slug):
-        super(ProjectMoved, self).__init__(url=new_url, slug=slug)
+        super().__init__(url=new_url, slug=slug)
 
 
 class SsoRequired(SentryAPIException):
@@ -45,9 +53,7 @@ class SsoRequired(SentryAPIException):
     message = "Must login via SSO"
 
     def __init__(self, organization):
-        super(SsoRequired, self).__init__(
-            loginUrl=reverse("sentry-auth-organization", args=[organization.slug])
-        )
+        super().__init__(loginUrl=reverse("sentry-auth-organization", args=[organization.slug]))
 
 
 class SuperuserRequired(SentryAPIException):
@@ -62,7 +68,7 @@ class SudoRequired(SentryAPIException):
     message = "Account verification required."
 
     def __init__(self, user):
-        super(SudoRequired, self).__init__(username=user.username)
+        super().__init__(username=user.username)
 
 
 class TwoFactorRequired(SentryAPIException):

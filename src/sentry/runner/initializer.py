@@ -1,23 +1,21 @@
-from __future__ import absolute_import, print_function
-
-import click
 import logging
 import os
-import six
 import sys
 
+import click
 from django.conf import settings
 
 from sentry.utils import metrics, warnings
+from sentry.utils.compat import map
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
-from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.runner.initializer")
 
 
 def register_plugins(settings, raise_on_plugin_load_failure=False):
     from pkg_resources import iter_entry_points
+
     from sentry.plugins.base import plugins
 
     # entry_points={
@@ -31,9 +29,7 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
         except Exception:
             import traceback
 
-            click.echo(
-                "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True
-            )
+            click.echo(f"Failed to load plugin {ep.name!r}:\n{traceback.format_exc()}", err=True)
             if raise_on_plugin_load_failure:
                 raise
         else:
@@ -52,7 +48,7 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
             import traceback
 
             click.echo(
-                "Failed to load integration %r:\n%s" % (integration_path, traceback.format_exc()),
+                f"Failed to load integration {integration_path!r}:\n{traceback.format_exc()}",
                 err=True,
             )
         else:
@@ -110,7 +106,7 @@ def get_asset_version(settings):
     try:
         with open(path) as fp:
             return fp.read().strip()
-    except IOError:
+    except OSError:
         from time import time
 
         return int(time())
@@ -158,20 +154,21 @@ def bootstrap_options(settings, config=None):
     options = {}
     if config is not None:
         # Attempt to load our config yaml file
-        from sentry.utils.yaml import safe_load
         from yaml.parser import ParserError
         from yaml.scanner import ScannerError
+
+        from sentry.utils.yaml import safe_load
 
         try:
             with open(config, "rb") as fp:
                 options = safe_load(fp)
-        except IOError:
+        except OSError:
             # Gracefully fail if yaml file doesn't exist
             pass
         except (AttributeError, ParserError, ScannerError) as e:
             from .importer import ConfigurationError
 
-            raise ConfigurationError("Malformed config.yml file: %s" % six.text_type(e))
+            raise ConfigurationError("Malformed config.yml file: %s" % str(e))
 
         # Empty options file, so fail gracefully
         if options is None:
@@ -185,21 +182,21 @@ def bootstrap_options(settings, config=None):
     from sentry.conf.server import DEAD
 
     # First move options from settings into options
-    for k, v in six.iteritems(options_mapper):
+    for k, v in options_mapper.items():
         if getattr(settings, v, DEAD) is not DEAD and k not in options:
             warnings.warn(DeprecatedSettingWarning(options_mapper[k], "SENTRY_OPTIONS['%s']" % k))
             options[k] = getattr(settings, v)
 
     # Stuff everything else into SENTRY_OPTIONS
     # these will be validated later after bootstrapping
-    for k, v in six.iteritems(options):
+    for k, v in options.items():
         settings.SENTRY_OPTIONS[k] = v
 
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
     for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
-        for k, v in six.iteritems(o):
+        for k, v in o.items():
             if k in options_mapper:
                 # Map the mail.backend aliases to something Django understands
                 if k == "mail.backend":
@@ -215,9 +212,11 @@ def configure_structlog():
     """
     Make structlog comply with all of our options.
     """
-    from django.conf import settings
     import logging.config
+
     import structlog
+    from django.conf import settings
+
     from sentry import options
     from sentry.logging import LoggingFormat
 
@@ -257,8 +256,7 @@ def configure_structlog():
     lvl = os.environ.get("SENTRY_LOG_LEVEL")
 
     if lvl:
-        levelNames = logging._levelNames if not six.PY3 else logging._nameToLevel
-        if lvl not in levelNames:
+        if lvl not in logging._nameToLevel:
             raise AttributeError("%s is not a valid logging level." % lvl)
 
     settings.LOGGING["root"].update({"level": lvl or settings.LOGGING["default_level"]})
@@ -274,35 +272,28 @@ def configure_structlog():
 
 
 def show_big_error(message):
-    if isinstance(message, six.string_types):
+    if isinstance(message, str):
         lines = message.strip().splitlines()
     else:
         lines = message
     maxline = max(map(len, lines))
     click.echo("", err=True)
-    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
+    click.secho("!!!{}!!!".format("!" * min(maxline, 80)), err=True, fg="red")
     click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
     for line in lines:
         click.secho("!! %s !!" % line.center(maxline), err=True, fg="red")
     click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
-    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
+    click.secho("!!!{}!!!".format("!" * min(maxline, 80)), err=True, fg="red")
     click.echo("", err=True)
 
 
 def initialize_app(config, skip_service_validation=False):
-    if six.PY2:
-        warning_text = (
-            "You are using Python 2 which is deprecated. "
-            "Sentry 21.1 will be the last version to support Python 2."
-        )
-        warnings.warn(warning_text)
-        show_big_error(warning_text)
-
     settings = config["settings"]
 
     if settings.DEBUG:
         # Enable line buffering for stderr, TODO(py3.9) can be removed after py3.9, see bpo-13601
         sys.stderr = os.fdopen(sys.stderr.fileno(), "w", 1)
+        sys.stdout = os.fdopen(sys.stdout.fileno(), "w", 1)
 
     # Just reuse the integration app for Single Org / Self-Hosted as
     # it doesn't make much sense to use 2 separate apps for SSO and
@@ -347,7 +338,7 @@ def initialize_app(config, skip_service_validation=False):
 
     for key in settings.CACHES:
         if not hasattr(settings.CACHES[key], "VERSION"):
-            settings.CACHES[key]["VERSION"] = 2 if six.PY3 else 1
+            settings.CACHES[key]["VERSION"] = 2
 
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)
@@ -380,6 +371,7 @@ def initialize_app(config, skip_service_validation=False):
     setup_services(validate=not skip_service_validation)
 
     from django.utils import timezone
+
     from sentry.app import env
     from sentry.runner.settings import get_sentry_conf
 
@@ -400,8 +392,9 @@ def setup_services(validate=True):
         tagstore,
         tsdb,
     )
-    from .importer import ConfigurationError
     from sentry.utils.settings import reraise_as
+
+    from .importer import ConfigurationError
 
     service_list = (
         analytics,
@@ -420,20 +413,16 @@ def setup_services(validate=True):
         if validate:
             try:
                 service.validate()
-            except AttributeError as exc:
+            except AttributeError as e:
                 reraise_as(
-                    ConfigurationError(
-                        f"{service.__name__} service failed to call validate()\n{six.text_type(exc)}"
-                    )
+                    ConfigurationError(f"{service.__name__} service failed to call validate()\n{e}")
                 )
         try:
             service.setup()
-        except AttributeError as exc:
+        except AttributeError as e:
             if not hasattr(service, "setup") or not callable(service.setup):
                 reraise_as(
-                    ConfigurationError(
-                        f"{service.__name__} service failed to call setup()\n{six.text_type(exc)}"
-                    )
+                    ConfigurationError(f"{service.__name__} service failed to call setup()\n{e}")
                 )
             raise
 
@@ -478,7 +467,9 @@ def monkeypatch_model_unpickle():
 def monkeypatch_django_migrations():
     # This monkeypatches django's migration executor with our own, which
     # adds some small but important customizations.
-    import sentry.new_migrations.monkey  # NOQA
+    from sentry.new_migrations.monkey import monkey_migrations
+
+    monkey_migrations()
 
 
 def bind_cache_to_option_store():
@@ -490,6 +481,7 @@ def bind_cache_to_option_store():
     # loaded at this point, so we can plug in the cache backend before
     # continuing to initialize the remainder of the application.
     from django.core.cache import cache as default_cache
+
     from sentry.options import default_store
 
     default_store.cache = default_cache

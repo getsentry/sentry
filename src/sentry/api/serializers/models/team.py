@@ -1,16 +1,13 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import defaultdict
+
 from django.db.models import Count
 
-
 from sentry import roles
-from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
+    ExternalTeam,
     InviteStatus,
     OrganizationAccessRequest,
     OrganizationMember,
@@ -74,7 +71,7 @@ def get_access_requests(item_list, user):
 class TeamSerializer(Serializer):
     def get_attrs(self, item_list, user):
         request = env.request
-        org_ids = set([t.organization_id for t in item_list])
+        org_ids = {t.organization_id for t in item_list}
 
         org_roles = get_org_roles(org_ids, user)
 
@@ -118,7 +115,7 @@ class TeamSerializer(Serializer):
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
             "dateCreated": obj.date_added,
@@ -138,6 +135,8 @@ class TeamWithProjectsSerializer(TeamSerializer):
             .select_related("project")
         )
 
+        external_teams = list(ExternalTeam.objects.filter(team__in=item_list))
+
         # TODO(dcramer): we should query in bulk for ones we're missing here
         orgs = {i.organization_id: i.organization for i in item_list}
 
@@ -153,12 +152,19 @@ class TeamWithProjectsSerializer(TeamSerializer):
         for project_team in project_teams:
             project_map[project_team.team_id].append(projects_by_id[project_team.project_id])
 
-        result = super(TeamWithProjectsSerializer, self).get_attrs(item_list, user)
+        external_teams_map = defaultdict(list)
+        for external_team in external_teams:
+            serialized = serialize(external_team, user)
+            external_teams_map[external_team.team_id].append(serialized)
+
+        result = super().get_attrs(item_list, user)
         for team in item_list:
             result[team]["projects"] = project_map[team.id]
+            result[team]["externalTeams"] = external_teams_map[team.id]
         return result
 
     def serialize(self, obj, attrs, user):
-        d = super(TeamWithProjectsSerializer, self).serialize(obj, attrs, user)
+        d = super().serialize(obj, attrs, user)
         d["projects"] = attrs["projects"]
+        d["externalTeams"] = attrs["externalTeams"]
         return d

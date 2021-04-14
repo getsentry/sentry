@@ -1,12 +1,11 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
+
 from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
-from sentry.api.serializers import serialize, GroupSerializer
+from sentry.api.serializers import GroupSerializer, serialize
 from sentry.models import Group, GroupStatus, Project
 
 
@@ -24,7 +23,7 @@ class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
 
         project_list = Project.objects.get_for_user(user=request.user, team=team)
 
-        project_dict = dict((p.id, p) for p in project_list)
+        project_dict = {p.id: p for p in project_list}
 
         cutoff = timedelta(minutes=minutes)
         cutoff_dt = timezone.now() - cutoff
@@ -37,7 +36,7 @@ class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
                 active_at__gte=cutoff_dt,
             )
             .extra(select={"sort_value": sort_value})
-            .order_by("-{}".format(sort_value), "-first_seen")[:limit]
+            .order_by(f"-{sort_value}", "-first_seen")[:limit]
         )
 
         for group in group_list:

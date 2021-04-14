@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
 import datetime
-import pytz
-
 from uuid import uuid4
-from freezegun import freeze_time
 
+import pytz
 from django.core.urlresolvers import reverse
+from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.utils.dates import to_timestamp
@@ -24,13 +21,13 @@ def result_sorted(result):
 
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationSessionsEndpointTest, self).setUp()
+        super().setUp()
         self.setup_fixture()
 
     def setup_fixture(self):
         self.timestamp = to_timestamp(datetime.datetime(2021, 1, 14, 12, 27, 28, tzinfo=pytz.utc))
         self.received = self.timestamp
-        self.session_started = self.timestamp // 60 * 60
+        self.session_started = self.timestamp // 3600 * 3600  # round to the hour
 
         self.organization1 = self.organization
         self.organization2 = self.create_organization()
@@ -45,6 +42,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             user=self.user2, organization=self.organization1, role="member", teams=[]
         )
         self.create_member(user=self.user, organization=self.organization3, role="admin", teams=[])
+
+        self.create_environment(self.project2, name="development")
 
         template = {
             "distinct_id": "00000000-0000-0000-0000-000000000000",
@@ -65,16 +64,18 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 session_id=uuid4().hex,
                 org_id=project.organization_id,
                 project_id=project.id,
-                **kwargs
+                **kwargs,
             )
 
-        self.store_session(make_session(self.project1))
-        self.store_session(make_session(self.project1, release="foo@1.1.0"))
+        self.store_session(make_session(self.project1, started=self.session_started + 12 * 60))
+        self.store_session(
+            make_session(self.project1, started=self.session_started + 24 * 60, release="foo@1.1.0")
+        )
         self.store_session(make_session(self.project1, started=self.session_started - 60 * 60))
         self.store_session(make_session(self.project1, started=self.session_started - 12 * 60 * 60))
         self.store_session(make_session(self.project2, status="crashed"))
         self.store_session(make_session(self.project2, environment="development"))
-        self.store_session(make_session(self.project3, errors=1))
+        self.store_session(make_session(self.project3, errors=1, release="foo@1.2.0"))
         self.store_session(
             make_session(
                 self.project3,
@@ -121,34 +122,60 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data == {"detail": 'Invalid groupBy: "envriomnent"'}
 
+    def test_invalid_query(self):
+        response = self.do_request(
+            {"statsPeriod": "1d", "field": ["sum(session)"], "query": ["foo:bar"]}
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": 'Invalid query field: "foo"'}
+
+        response = self.do_request(
+            {
+                "statsPeriod": "1d",
+                "field": ["sum(session)"],
+                "query": ["release:foo-bar@1.2.3 (123)"],
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        # TODO: it would be good to provide a better error here,
+        # since its not obvious where `message` comes from.
+        assert response.data == {"detail": 'Invalid query field: "message"'}
+
     def test_too_many_points(self):
-        # TODO: looks like this is well within the range of valid points
-        return
         # default statsPeriod is 90d
         response = self.do_request({"field": ["sum(session)"], "interval": "1h"})
 
         assert response.status_code == 400, response.content
-        assert response.data == {}
+        assert response.data == {
+            "detail": "Your interval and date range would create too many results. "
+            "Use a larger interval, or a smaller date range."
+        }
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_timeseries_interval(self):
         response = self.do_request(
-            {"statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]}
+            {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]}
         )
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
+            "start": "2021-01-14T00:00:00Z",
+            "end": "2021-01-14T12:28:00Z",
             "query": "",
             "intervals": ["2021-01-14T00:00:00Z"],
             "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
         }
 
         response = self.do_request(
-            {"statsPeriod": "1d", "interval": "6h", "field": ["sum(session)"]}
+            {"project": [-1], "statsPeriod": "1d", "interval": "6h", "field": ["sum(session)"]}
         )
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
+            "start": "2021-01-13T18:00:00Z",
+            "end": "2021-01-14T12:28:00Z",
             "query": "",
             "intervals": [
                 "2021-01-13T18:00:00Z",
@@ -164,11 +191,14 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_user_all_accessible(self):
         response = self.do_request(
-            {"statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]}, user=self.user2
+            {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]},
+            user=self.user2,
         )
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
+            "start": "2021-01-14T00:00:00Z",
+            "end": "2021-01-14T12:28:00Z",
             "query": "",
             "intervals": ["2021-01-14T00:00:00Z"],
             "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
@@ -176,7 +206,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_no_projects(self):
         response = self.do_request(
-            {"statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]},
+            {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]},
             org=self.organization3,
         )
 
@@ -187,17 +217,57 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def test_minimum_interval(self):
         # smallest interval is 1h
         response = self.do_request(
-            {"statsPeriod": "2h", "interval": "5m", "field": ["sum(session)"]}
+            {"project": [-1], "statsPeriod": "2h", "interval": "5m", "field": ["sum(session)"]}
         )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "The interval has to be a multiple of the minimum interval of one hour."
+        }
 
+        response = self.do_request(
+            {"project": [-1], "statsPeriod": "2h", "interval": "1h", "field": ["sum(session)"]}
+        )
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
+            "start": "2021-01-14T11:00:00Z",
+            "end": "2021-01-14T12:28:00Z",
             "query": "",
             "intervals": ["2021-01-14T11:00:00Z", "2021-01-14T12:00:00Z"],
             "groups": [
                 {"by": {}, "series": {"sum(session)": [2, 6]}, "totals": {"sum(session)": 8}}
             ],
         }
+
+    @freeze_time("2021-01-14T12:37:28.303Z")
+    def test_minute_resolution(self):
+        with self.feature("organizations:minute-resolution-sessions"):
+            response = self.do_request(
+                {
+                    "project": [self.project1.id, self.project2.id],
+                    "statsPeriod": "30m",
+                    "interval": "10m",
+                    "field": ["sum(session)"],
+                }
+            )
+            assert response.status_code == 200, response.content
+            assert result_sorted(response.data) == {
+                "start": "2021-01-14T12:00:00Z",
+                "end": "2021-01-14T12:38:00Z",
+                "query": "",
+                "intervals": [
+                    "2021-01-14T12:00:00Z",
+                    "2021-01-14T12:10:00Z",
+                    "2021-01-14T12:20:00Z",
+                    "2021-01-14T12:30:00Z",
+                ],
+                "groups": [
+                    {
+                        "by": {},
+                        "series": {"sum(session)": [2, 1, 1, 0]},
+                        "totals": {"sum(session)": 4},
+                    }
+                ],
+            }
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_filter_projects(self):
@@ -219,6 +289,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def test_filter_environment(self):
         response = self.do_request(
             {
+                "project": [-1],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(session)"],
@@ -231,10 +302,26 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
         ]
 
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "environment": ["development"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+        ]
+
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_filter_release(self):
         response = self.do_request(
             {
+                "project": [-1],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(session)"],
@@ -247,10 +334,51 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
         ]
 
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": 'release:"foo@1.1.0" or release:"foo@1.2.0"',
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {"by": {}, "series": {"sum(session)": [2]}, "totals": {"sum(session)": 2}}
+        ]
+
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": 'release:"foo@1.1.0" or release:"foo@1.2.0" or release:"foo@1.3.0"',
+                "groupBy": ["release"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"release": "foo@1.1.0"},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 1},
+            },
+            {
+                "by": {"release": "foo@1.2.0"},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 1},
+            },
+        ]
+
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_groupby_project(self):
         response = self.do_request(
             {
+                "project": [-1],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(session)"],
@@ -281,6 +409,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def test_groupby_environment(self):
         response = self.do_request(
             {
+                "project": [-1],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(session)"],
@@ -306,6 +435,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def test_groupby_release(self):
         response = self.do_request(
             {
+                "project": [-1],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(session)"],
@@ -317,11 +447,16 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"release": "foo@1.0.0"},
-                "series": {"sum(session)": [8]},
-                "totals": {"sum(session)": 8},
+                "series": {"sum(session)": [7]},
+                "totals": {"sum(session)": 7},
             },
             {
                 "by": {"release": "foo@1.1.0"},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 1},
+            },
+            {
+                "by": {"release": "foo@1.2.0"},
                 "series": {"sum(session)": [1]},
                 "totals": {"sum(session)": 1},
             },
@@ -331,6 +466,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def test_groupby_status(self):
         response = self.do_request(
             {
+                "project": [-1],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(session)"],
@@ -366,6 +502,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def test_groupby_cross(self):
         response = self.do_request(
             {
+                "project": [-1],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(session)"],
@@ -382,11 +519,16 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
             {
                 "by": {"environment": "production", "release": "foo@1.0.0"},
-                "series": {"sum(session)": [7]},
-                "totals": {"sum(session)": 7},
+                "series": {"sum(session)": [6]},
+                "totals": {"sum(session)": 6},
             },
             {
                 "by": {"environment": "production", "release": "foo@1.1.0"},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 1},
+            },
+            {
+                "by": {"environment": "production", "release": "foo@1.2.0"},
                 "series": {"sum(session)": [1]},
                 "totals": {"sum(session)": 1},
             },
@@ -395,7 +537,12 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_users_groupby(self):
         response = self.do_request(
-            {"statsPeriod": "1d", "interval": "1d", "field": ["count_unique(user)"]}
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["count_unique(user)"],
+            }
         )
 
         assert response.status_code == 200, response.content
@@ -405,6 +552,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             {
+                "project": [-1],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["count_unique(user)"],

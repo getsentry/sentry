@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import OrderedDict
 
 from sentry import tsdb
@@ -26,6 +22,4 @@ class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
             for ts, count in result:
                 stats.setdefault(int(ts), {})[name] = count
 
-        return self.respond(
-            [{"ts": ts, "total": data["total"]} for ts, data in six.iteritems(stats)]
-        )
+        return self.respond([{"ts": ts, "total": data["total"]} for ts, data in stats.items()])

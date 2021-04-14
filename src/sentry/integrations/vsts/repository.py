@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
-from sentry.plugins import providers
 from sentry.models import Integration
+from sentry.plugins import providers
 from sentry.shared_integrations.exceptions import IntegrationError
 
 MAX_COMMIT_DATA_REQUESTS = 90
@@ -40,7 +37,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
                 "instance": instance,
                 "project": repo["project"]["name"],
                 "name": repo["name"],
-                "external_id": six.text_type(repo["id"]),
+                "external_id": str(repo["id"]),
                 "url": repo["_links"]["web"]["href"],
             }
         )

@@ -1,16 +1,13 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import RepoLabel from 'app/components/repoLabel';
 
 export default {
-  title: 'Core/Badges+Tags/RepoLabel',
+  title: 'Core/Tags/RepoLabel',
 };
 
-export const Default = withInfo('A badge to use for repo names')(() => {
+export const Default = () => {
   return <RepoLabel>prod</RepoLabel>;
-});
-
-Default.story = {
-  name: 'default',
 };
+
+Default.storyName = 'default';

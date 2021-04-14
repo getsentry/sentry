@@ -1,32 +1,40 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import partition from 'lodash/partition';
+import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import AlertLink from 'app/components/alertLink';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
-import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
+import {BuiltinSymbolSource, DebugFile, DebugFileFeature} from 'app/types/debugFiles';
+import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
+import {Event} from 'app/types/event';
+import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
 import theme from 'app/utils/theme';
+import {getFileType} from 'app/views/settings/projectDebugFiles/utils';
 
-import Address from '../address';
-import NotAvailable from '../notAvailable';
 import {getFileName} from '../utils';
 
 import Candidates from './candidates';
-import {INTERNAL_SOURCE} from './utils';
+import GeneralInfo from './generalInfo';
+import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
-type Candidates = Image['candidates'];
+type ImageCandidates = Image['candidates'];
 
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     projectId: Project['id'];
     organization: Organization;
-    image: Image;
+    event: Event;
+    image?: Image & {status: ImageStatus};
+    onReprocessEvent?: () => void;
   };
 
 type State = AsyncComponent['state'] & {
@@ -34,7 +42,7 @@ type State = AsyncComponent['state'] & {
   builtinSymbolSources: Array<BuiltinSymbolSource> | null;
 };
 
-class DebugFileDetails extends AsyncComponent<Props, State> {
+class DebugImageDetails extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -43,12 +51,25 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     };
   }
 
-  getUplodedDebugFiles(candidates: Candidates) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (!prevProps.image && !!this.props.image) {
+      this.remountComponent();
+    }
+
+    super.componentDidUpdate(prevProps, prevState);
+  }
+
+  getUplodedDebugFiles(candidates: ImageCandidates) {
     return candidates.find(candidate => candidate.source === INTERNAL_SOURCE);
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, projectId, image} = this.props;
+
+    if (!image) {
+      return [];
+    }
+
     const {debug_id, candidates = []} = image;
     const {builtinSymbolSources} = this.state || {};
 
@@ -79,52 +100,158 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
+  sortCandidates(
+    candidates: ImageCandidates,
+    unAppliedCandidates: ImageCandidates
+  ): ImageCandidates {
+    const [noPermissionCandidates, restNoPermissionCandidates] = partition(
+      candidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.NO_PERMISSION
+    );
+
+    const [malFormedCandidates, restMalFormedCandidates] = partition(
+      restNoPermissionCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.MALFORMED
+    );
+
+    const [errorCandidates, restErrorCandidates] = partition(
+      restMalFormedCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.ERROR
+    );
+
+    const [okCandidates, restOKCandidates] = partition(
+      restErrorCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.OK
+    );
+
+    const [deletedCandidates, notFoundCandidates] = partition(
+      restOKCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.DELETED
+    );
+
+    return [
+      ...sortBy(noPermissionCandidates, ['source_name', 'location']),
+      ...sortBy(malFormedCandidates, ['source_name', 'location']),
+      ...sortBy(errorCandidates, ['source_name', 'location']),
+      ...sortBy(okCandidates, ['source_name', 'location']),
+      ...sortBy(deletedCandidates, ['source_name', 'location']),
+      ...sortBy(unAppliedCandidates, ['source_name', 'location']),
+      ...sortBy(notFoundCandidates, ['source_name', 'location']),
+    ];
+  }
+
   getCandidates() {
     const {debugFiles, loading} = this.state;
     const {image} = this.props;
-    const {candidates = []} = image;
+    const {candidates = []} = image ?? {};
 
     if (!debugFiles || loading) {
       return candidates;
     }
 
-    // Check for unapplied debug files
+    const debugFileCandidates = candidates.map(({location, ...candidate}) => ({
+      ...candidate,
+      location: location?.includes(INTERNAL_SOURCE_LOCATION)
+        ? location.split(INTERNAL_SOURCE_LOCATION)[1]
+        : location,
+    }));
+
     const candidateLocations = new Set(
-      candidates.map(candidate => candidate.location).filter(location => !!location)
+      debugFileCandidates.map(({location}) => location).filter(location => !!location)
     );
 
-    const unAppliedDebugFiles = debugFiles
-      .filter(debugFile => !candidateLocations.has(debugFile.id))
-      .map(debugFile => ({
+    const [unAppliedDebugFiles, appliedDebugFiles] = partition(
+      debugFiles,
+      debugFile => !candidateLocations.has(debugFile.id)
+    );
+
+    const unAppliedCandidates = unAppliedDebugFiles.map(debugFile => {
+      const {
+        data,
+        symbolType,
+        objectName: filename,
+        id: location,
+        size,
+        dateCreated,
+        cpuName,
+      } = debugFile;
+
+      const features = data?.features ?? [];
+
+      return {
         download: {
           status: CandidateDownloadStatus.UNAPPLIED,
-        },
-        location: debugFile.id,
-        source: INTERNAL_SOURCE,
-        source_name: debugFile.objectName,
-      }));
-
-    // Check for deleted debug files
-    const debugFileIds = new Set(debugFiles.map(debugFile => debugFile.id));
-
-    const convertedCandidates = candidates.map(candidate => {
-      if (
-        candidate.source === INTERNAL_SOURCE &&
-        candidate.location &&
-        !debugFileIds.has(candidate.location) &&
-        candidate.download.status === CandidateDownloadStatus.OK
-      ) {
-        return {
-          ...candidate,
-          download: {
-            status: CandidateDownloadStatus.DELETED,
+          features: {
+            has_sources: features.includes(DebugFileFeature.SOURCES),
+            has_debug_info: features.includes(DebugFileFeature.DEBUG),
+            has_unwind_info: features.includes(DebugFileFeature.UNWIND),
+            has_symbols: features.includes(DebugFileFeature.SYMTAB),
           },
-        };
-      }
-      return candidate;
+        },
+        cpuName,
+        location,
+        filename,
+        size,
+        dateCreated,
+        symbolType,
+        fileType: getFileType(debugFile),
+        source: INTERNAL_SOURCE,
+        source_name: t('Sentry'),
+      };
     });
 
-    return [...convertedCandidates, ...unAppliedDebugFiles] as Candidates;
+    const [debugFileInternalOkCandidates, debugFileOtherCandidates] = partition(
+      debugFileCandidates,
+      debugFileCandidate =>
+        debugFileCandidate.download.status === CandidateDownloadStatus.OK &&
+        debugFileCandidate.source === INTERNAL_SOURCE
+    );
+
+    const convertedDebugFileInternalOkCandidates = debugFileInternalOkCandidates.map(
+      debugFileOkCandidate => {
+        const internalDebugFileInfo = appliedDebugFiles.find(
+          appliedDebugFile => appliedDebugFile.id === debugFileOkCandidate.location
+        );
+
+        if (!internalDebugFileInfo) {
+          return {
+            ...debugFileOkCandidate,
+            download: {
+              ...debugFileOkCandidate.download,
+              status: CandidateDownloadStatus.DELETED,
+            },
+          };
+        }
+
+        const {
+          symbolType,
+          objectName: filename,
+          id: location,
+          size,
+          dateCreated,
+          cpuName,
+        } = internalDebugFileInfo;
+
+        return {
+          ...debugFileOkCandidate,
+          cpuName,
+          location,
+          filename,
+          size,
+          dateCreated,
+          symbolType,
+          fileType: getFileType(internalDebugFileInfo),
+        };
+      }
+    );
+
+    return this.sortCandidates(
+      [
+        ...convertedDebugFileInternalOkCandidates,
+        ...debugFileOtherCandidates,
+      ] as ImageCandidates,
+      unAppliedCandidates as ImageCandidates
+    );
   }
 
   handleDelete = async (debugId: string) => {
@@ -144,96 +271,131 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     }
   };
 
-  renderLoading() {
-    return this.renderBody();
+  getDebugFilesSettingsLink() {
+    const {organization, projectId, image} = this.props;
+    const orgSlug = organization.slug;
+    const debugId = image?.debug_id;
+
+    if (!orgSlug || !projectId || !debugId) {
+      return undefined;
+    }
+
+    return `/settings/${orgSlug}/projects/${projectId}/debug-symbols/?query=${debugId}`;
   }
 
   renderBody() {
-    const {Header, Body, Footer, image, organization, projectId} = this.props;
+    const {
+      Header,
+      Body,
+      Footer,
+      image,
+      organization,
+      projectId,
+      onReprocessEvent,
+      event,
+    } = this.props;
     const {loading, builtinSymbolSources} = this.state;
 
-    const {debug_id, debug_file, code_file, code_id, arch: architecture} = image;
-
+    const {code_file, status} = image ?? {};
+    const debugFilesSettingsLink = this.getDebugFilesSettingsLink();
     const candidates = this.getCandidates();
     const baseUrl = this.api.baseUrl;
-
-    const title = getFileName(code_file);
-    const imageAddress = <Address image={image} />;
+    const fileName = getFileName(code_file);
+    const haveCandidatesUnappliedDebugFile = candidates.some(
+      candidate => candidate.download.status === CandidateDownloadStatus.UNAPPLIED
+    );
+    const hasReprocessWarning =
+      haveCandidatesUnappliedDebugFile &&
+      displayReprocessEventAction(organization.features, event) &&
+      !!onReprocessEvent;
 
     return (
       <React.Fragment>
-        <Header closeButton>{title ?? t('Unknown')}</Header>
+        <Header closeButton>
+          <Title>
+            {t('Image')}
+            <FileName>{fileName ?? t('Unknown')}</FileName>
+          </Title>
+        </Header>
         <Body>
           <Content>
-            <GeneralInfo>
-              <Label>{t('Address Range')}</Label>
-              <Value>{imageAddress ?? <NotAvailable />}</Value>
-
-              <Label coloredBg>{t('Debug ID')}</Label>
-              <Value coloredBg>{debug_id ?? <NotAvailable />}</Value>
-
-              <Label>{t('Debug File')}</Label>
-              <Value>{debug_file}</Value>
-
-              <Label coloredBg>{t('Code ID')}</Label>
-              <Value coloredBg>{code_id}</Value>
-
-              <Label>{t('Code File')}</Label>
-              <Value>{code_file}</Value>
-
-              <Label coloredBg>{t('Architecture')}</Label>
-              <Value coloredBg>{architecture ?? <NotAvailable />}</Value>
-            </GeneralInfo>
+            {hasReprocessWarning && (
+              <AlertLink
+                priority="warning"
+                size="small"
+                onClick={onReprocessEvent}
+                withoutMarginBottom
+              >
+                {t(
+                  'You’ve uploaded new debug files. Reprocess events in this issue to view a better stack trace'
+                )}
+              </AlertLink>
+            )}
+            <GeneralInfo image={image} />
             <Candidates
+              imageStatus={status}
               candidates={candidates}
               organization={organization}
               projectId={projectId}
               baseUrl={baseUrl}
-              onDelete={this.handleDelete}
               isLoading={loading}
+              eventDateReceived={event.dateReceived}
               builtinSymbolSources={builtinSymbolSources}
+              onDelete={this.handleDelete}
+              hasReprocessWarning={hasReprocessWarning}
             />
           </Content>
         </Body>
         <Footer>
-          <Button
-            href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
-            external
-          >
-            {t('Read the docs')}
-          </Button>
+          <StyledButtonBar gap={1}>
+            <Button
+              href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
+              external
+            >
+              {t('Read the docs')}
+            </Button>
+            {debugFilesSettingsLink && (
+              <Button
+                title={t(
+                  'Search for this debug file in all images for the %s project',
+                  projectId
+                )}
+                to={debugFilesSettingsLink}
+              >
+                {t('Open in Settings')}
+              </Button>
+            )}
+          </StyledButtonBar>
         </Footer>
       </React.Fragment>
     );
   }
 }
 
-export default DebugFileDetails;
+export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(4)};
+  grid-gap: ${space(3)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const GeneralInfo = styled('div')`
+const Title = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-`;
-
-const Label = styled('div')<{coloredBg?: boolean}>`
-  color: ${p => p.theme.textColor};
-  ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1)};
-`;
-
-const Value = styled(Label)`
-  color: ${p => p.theme.gray400};
-  ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
-  padding: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
-  white-space: pre-wrap;
+  grid-gap: ${space(1)};
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  max-width: calc(100% - 40px);
   word-break: break-all;
+`;
+
+const FileName = styled('span')`
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  white-space: nowrap;
 `;
 
 export const modalCss = css`
@@ -243,8 +405,8 @@ export const modalCss = css`
 
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
-      width: 55%;
-      margin-left: -27.5%;
+      width: 90%;
+      margin-left: -45%;
     }
   }
 
@@ -252,6 +414,13 @@ export const modalCss = css`
     .modal-dialog {
       width: 70%;
       margin-left: -35%;
+    }
+  }
+
+  @media (min-width: ${theme.breakpoints[4]}) {
+    .modal-dialog {
+      width: 50%;
+      margin-left: -25%;
     }
   }
 `;

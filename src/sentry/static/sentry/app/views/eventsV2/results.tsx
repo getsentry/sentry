@@ -11,18 +11,21 @@ import {fetchProjectsCount} from 'app/actionCreators/projects';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
+import AsyncComponent from 'app/components/asyncComponent';
 import Confirm from 'app/components/confirm';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {MAX_QUERY_LENGTH} from 'app/constants';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
+import {GlobalSelection, Organization, SavedQuery} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
@@ -32,7 +35,6 @@ import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import SearchBar from 'app/views/events/searchBar';
 
 import {addRoutePerformanceContext} from '../performance/utils';
 
@@ -49,6 +51,8 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: GlobalSelection;
+  savedQuery?: SavedQuery;
+  loading: boolean;
 };
 
 type State = {
@@ -69,13 +73,22 @@ function readShowTagsState() {
 }
 
 class Results extends React.Component<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
-    const eventView = EventView.fromLocation(nextProps.location);
-    return {...prevState, eventView};
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
+    if (nextProps.savedQuery || !nextProps.loading) {
+      const eventView = EventView.fromSavedQueryOrLocation(
+        nextProps.savedQuery,
+        nextProps.location
+      );
+      return {...prevState, eventView};
+    }
+    return prevState;
   }
 
   state: State = {
-    eventView: EventView.fromLocation(this.props.location),
+    eventView: EventView.fromSavedQueryOrLocation(
+      this.props.savedQuery,
+      this.props.location
+    ),
     error: '',
     errorCode: 200,
     totalValues: null,
@@ -195,7 +208,8 @@ class Results extends React.Component<Props, State> {
 
   checkEventView() {
     const {eventView} = this.state;
-    if (eventView.isValid()) {
+    const {loading} = this.props;
+    if (eventView.isValid() || loading) {
       return;
     }
 
@@ -209,7 +223,7 @@ class Results extends React.Component<Props, State> {
       nextEventView.project = selection.projects;
     }
     if (location.query?.query) {
-      nextEventView.query = decodeScalar(location.query.query) || '';
+      nextEventView.query = decodeScalar(location.query.query, '');
     }
 
     ReactRouter.browserHistory.replace(
@@ -383,11 +397,11 @@ class Results extends React.Component<Props, State> {
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
-    const query = decodeScalar(location.query.query) || '';
+    const query = eventView.query;
     const title = this.getDocumentTitle();
 
     return (
-      <SentryDocumentTitle title={title} objSlug={organization.slug}>
+      <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <StyledPageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <ResultsHeader
@@ -407,6 +421,7 @@ class Results extends React.Component<Props, State> {
                   query={query}
                   fields={fields}
                   onSearch={this.handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
                 />
                 <ResultsChart
                   router={router}
@@ -476,6 +491,36 @@ export const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 
+type SavedQueryState = AsyncComponent['state'] & {
+  savedQuery?: SavedQuery | null;
+};
+
+class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {organization, location} = this.props;
+    if (location.query.id) {
+      return [
+        [
+          'savedQuery',
+          `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+        ],
+      ];
+    }
+    return [];
+  }
+
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderBody(): React.ReactNode {
+    const {savedQuery, loading} = this.state;
+    return (
+      <Results {...this.props} savedQuery={savedQuery ?? undefined} loading={loading} />
+    );
+  }
+}
+
 function ResultsContainer(props: Props) {
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
@@ -489,7 +534,7 @@ function ResultsContainer(props: Props) {
     <GlobalSelectionHeader
       skipLoadLastUsed={props.organization.features.includes('global-views')}
     >
-      <Results {...props} />
+      <SavedQueryAPI {...props} />
     </GlobalSelectionHeader>
   );
 }

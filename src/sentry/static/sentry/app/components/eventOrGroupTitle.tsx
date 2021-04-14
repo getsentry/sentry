@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import {Group, GroupTombstone, Organization} from 'app/types';
@@ -8,17 +9,31 @@ import withOrganization from 'app/utils/withOrganization';
 
 import StacktracePreview from './stacktracePreview';
 
-type Props = {
+type Props = Partial<DefaultProps> & {
   data: Event | Group | GroupTombstone;
   organization: Organization;
   style?: React.CSSProperties;
   hasGuideAnchor?: boolean;
   withStackTracePreview?: boolean;
+  guideAnchorName?: string;
+};
+
+type DefaultProps = {
+  guideAnchorName: string;
 };
 
 class EventOrGroupTitle extends React.Component<Props> {
+  static defaultProps: DefaultProps = {
+    guideAnchorName: 'issue_title',
+  };
   render() {
-    const {hasGuideAnchor, data, organization, withStackTracePreview} = this.props;
+    const {
+      hasGuideAnchor,
+      data,
+      organization,
+      withStackTracePreview,
+      guideAnchorName,
+    } = this.props;
     const {title, subtitle} = getTitle(data as Event, organization);
 
     const titleWithHoverStacktrace = (
@@ -33,16 +48,24 @@ class EventOrGroupTitle extends React.Component<Props> {
 
     return subtitle ? (
       <span style={this.props.style}>
-        <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
+        <GuideAnchor
+          disabled={!hasGuideAnchor}
+          target={guideAnchorName}
+          position="bottom"
+        >
           <span>{titleWithHoverStacktrace}</span>
         </GuideAnchor>
         <Spacer />
-        <em title={subtitle}>{subtitle}</em>
+        <Subtitle title={subtitle}>{subtitle}</Subtitle>
         <br />
       </span>
     ) : (
       <span style={this.props.style}>
-        <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
+        <GuideAnchor
+          disabled={!hasGuideAnchor}
+          target={guideAnchorName}
+          position="bottom"
+        >
           {titleWithHoverStacktrace}
         </GuideAnchor>
       </span>
@@ -58,3 +81,8 @@ export default withOrganization(EventOrGroupTitle);
  * title to be highlighted without spilling over to the subtitle.
  */
 const Spacer = () => <span style={{display: 'inline-block', width: 10}}>&nbsp;</span>;
+
+const Subtitle = styled('em')`
+  color: ${p => p.theme.gray300};
+  font-style: normal;
+`;

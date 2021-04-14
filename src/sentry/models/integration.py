@@ -1,20 +1,17 @@
-from __future__ import absolute_import
-
 import logging
 
-from django.db import models, IntegrityError
+from django.db import IntegrityError, models
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     EncryptedJsonField,
     FlexibleForeignKey,
     Model,
-    DefaultFieldsModel,
 )
 from sentry.signals import integration_added
-
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +50,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
 
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
+    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
     stack_root = models.TextField()
     source_root = models.TextField()
     default_branch = models.TextField(null=True)
@@ -165,15 +162,6 @@ class Integration(DefaultFieldsModel):
 
             return org_integration
 
-    def reauthorize(self, data):
-        """
-        The structure of `data` depends on the `build_integration`
-        method on the integration provider.
 
-        Each provider may have their own way of reauthorizing the
-        integration.
-        """
-        if self.provider == "slack":
-            metadata = data.get("metadata", {})
-            metadata["old_access_token"] = self.metadata["access_token"]
-            self.update(metadata=metadata)
+# REQUIRED for migrations to run
+from sentry.types.integrations import ExternalProviders  # NOQA

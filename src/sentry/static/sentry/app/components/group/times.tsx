@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import TimeSince from 'app/components/timeSince';
 import {IconClock} from 'app/icons';
@@ -36,10 +35,6 @@ const Times = ({lastSeen, firstSeen}: Props) => (
     </FlexWrapper>
   </Container>
 );
-Times.propTypes = {
-  lastSeen: PropTypes.string,
-  firstSeen: PropTypes.string,
-};
 
 const Container = styled('div')`
   flex-shrink: 1;

@@ -49,9 +49,8 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     recordInteraction(sentryApp.slug, 'sentry_app_viewed');
 
     trackIntegrationEvent(
+      'integrations.install_modal_opened',
       {
-        eventKey: 'integrations.install_modal_opened',
-        eventName: 'Integrations: Install Modal Opened',
         integration_type: 'sentry_app',
         integration: sentryApp.slug,
         already_installed: isInstalled,

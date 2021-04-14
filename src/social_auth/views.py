@@ -5,22 +5,19 @@ Notes:
       on third party providers that (if using POST) won't be sending csrf
       token back.
 """
-from __future__ import absolute_import
 
-import six
 
 from django.conf import settings
-from django.http import HttpResponseRedirect, HttpResponse
+from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.http import is_safe_url
+from django.views.decorators.csrf import csrf_exempt
 
-from social_auth.exceptions import AuthException
-from social_auth.utils import setting, backend_setting, clean_partial_pipeline
 from social_auth.decorators import dsa_view
-
+from social_auth.exceptions import AuthException
+from social_auth.utils import backend_setting, clean_partial_pipeline, setting
 
 DEFAULT_REDIRECT = setting("SOCIAL_AUTH_LOGIN_REDIRECT_URL", setting("LOGIN_REDIRECT_URL"))
 ASSOCIATE_ERROR_URL = setting("SOCIAL_AUTH_ASSOCIATE_ERROR_URL")
@@ -70,13 +67,13 @@ def complete(request, backend, *args, **kwargs):
     try:
         user = auth_complete(request, backend, request.user, *args, **kwargs)
     except AuthException as exc:
-        messages.add_message(request, messages.ERROR, six.text_type(exc))
+        messages.add_message(request, messages.ERROR, str(exc))
         user = None
     else:
         messages.add_message(
             request,
             messages.SUCCESS,
-            u"You have linked your account with {}.".format(
+            "You have linked your account with {}.".format(
                 settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name)
             ),
         )

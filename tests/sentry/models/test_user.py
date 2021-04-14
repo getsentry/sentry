@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import Authenticator, OrganizationMember, User, UserEmail
 from sentry.testutils import TestCase
 
@@ -78,7 +76,7 @@ class GetUsersFromTeamsTest(TestCase):
         assert list(User.objects.get_from_teams(org, [team])) == [user2]
         user3 = self.create_user("bar@example.com")
         self.create_member(user=user3, organization=org, role="admin", teams=[team])
-        assert set(list(User.objects.get_from_teams(org, [team]))) == set([user2, user3])
+        assert set(list(User.objects.get_from_teams(org, [team]))) == {user2, user3}
         assert list(User.objects.get_from_teams(org2, [team])) == []
         assert list(User.objects.get_from_teams(org2, [team2])) == []
         self.create_member(user=user, organization=org2, role="member", teams=[team2])
@@ -100,7 +98,7 @@ class GetUsersFromProjectsTest(TestCase):
         assert list(User.objects.get_from_projects(org, [project])) == [user2]
         user3 = self.create_user("bar@example.com")
         self.create_member(user=user3, organization=org, role="admin", teams=[team])
-        assert set(list(User.objects.get_from_projects(org, [project]))) == set([user2, user3])
+        assert set(list(User.objects.get_from_projects(org, [project]))) == {user2, user3}
         assert list(User.objects.get_from_projects(org2, [project])) == []
         assert list(User.objects.get_from_projects(org2, [project2])) == []
         self.create_member(user=user, organization=org2, role="member", teams=[team2])

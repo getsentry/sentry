@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
-from django.db import migrations, models
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
@@ -19,9 +16,8 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0013_auto_20191111_1829'),
+        ("sentry", "0013_auto_20191111_1829"),
     ]
 
     operations = [
@@ -29,7 +25,7 @@ class Migration(migrations.Migration):
             database_operations=[],
             state_operations=[
                 migrations.DeleteModel(
-                    name='SentryAppWebhookError',
+                    name="SentryAppWebhookError",
                 ),
             ],
         )

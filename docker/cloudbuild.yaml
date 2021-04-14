@@ -1,9 +1,10 @@
 steps:
-  - name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  - name: 'gcr.io/kaniko-project/executor:v1.5.1'
     id: builder-image
     args:
       [
         '--cache=true',
+        '--use-new-run',
         '--build-arg',
         'SOURCE_COMMIT=$COMMIT_SHA',
         '--destination=us.gcr.io/$PROJECT_ID/sentry-builder:$COMMIT_SHA',
@@ -15,14 +16,15 @@ steps:
     id: builder-run
     env:
       - 'SOURCE_COMMIT=$COMMIT_SHA'
-    timeout: 360s
-  - name: 'gcr.io/kaniko-project/executor:v0.22.0'
+    timeout: 600s
+  - name: 'gcr.io/kaniko-project/executor:v1.5.1'
     id: runtime-image
     waitFor:
       - builder-run
     args:
       [
         '--cache=true',
+        '--use-new-run',
         '--build-arg',
         'SOURCE_COMMIT=$COMMIT_SHA',
         '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
@@ -99,7 +101,7 @@ steps:
         [[ ! "$BRANCH_NAME" =~ ^releases/ ]] && exit 0
         npx -p "@zeus-ci/cli" zeus job update --build $BUILD_ID --job 1 --ref $COMMIT_SHA --build-label GCB --job-label "OSS Packages" --status passed
         npx -p "@zeus-ci/cli" zeus upload --build $BUILD_ID --job 1 --type "application/x-pywheel+zip" dist/*.whl
-timeout: 2400s
+timeout: 2640s
 options:
   # We need more memory for Webpack builds & e2e onpremise tests
   machineType: 'N1_HIGHCPU_8'

@@ -1,16 +1,8 @@
-from __future__ import absolute_import
-
-import six
-
-from six import string_types
-from sentry.utils.compat import implements_to_string
-
-
 def cmp(a, b):
     return (a > b) - (a < b)
 
 
-class Bit(object):
+class Bit:
     def __init__(self, number, is_set=True):
         self.number = number
         self.is_set = bool(is_set)
@@ -108,8 +100,7 @@ class Bit(object):
         return evaluator.prepare_node(self, query, allow_joins)
 
 
-@implements_to_string
-class BitHandler(object):
+class BitHandler:
     """
     Represents an array of bits, each as a ``Bit`` object.
     """
@@ -144,13 +135,13 @@ class BitHandler(object):
         return cmp(self._value, other)
 
     def __repr__(self):
-        return "<%s: %s>" % (
+        return "<{}: {}>".format(
             self.__class__.__name__,
-            ", ".join("%s=%s" % (k, self.get_bit(n).is_set) for n, k in enumerate(self._keys)),
+            ", ".join(f"{k}={self.get_bit(n).is_set}" for n, k in enumerate(self._keys)),
         )
 
     def __str__(self):
-        return six.text_type(self._value)
+        return str(self._value)
 
     def __int__(self):
         return self._value
@@ -243,7 +234,7 @@ class BitHandler(object):
             yield (k, getattr(self, k).is_set)
 
     def get_label(self, flag):
-        if isinstance(flag, string_types):
+        if isinstance(flag, str):
             flag = self._keys.index(flag)
         if isinstance(flag, Bit):
             flag = flag.number

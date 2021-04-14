@@ -1,7 +1,7 @@
 import React from 'react';
 
-import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
+import DiscoverFeature from 'app/components/discover/discoverFeature';
 
 type Props = React.PropsWithChildren<{
   className?: string;
@@ -14,13 +14,13 @@ type Props = React.PropsWithChildren<{
  */
 function DiscoverButton({children, ...buttonProps}: Props) {
   return (
-    <Feature features={['organizations:discover-basic']}>
+    <DiscoverFeature>
       {({hasFeature}) => (
         <Button disabled={!hasFeature} {...buttonProps}>
           {children}
         </Button>
       )}
-    </Feature>
+    </DiscoverFeature>
   );
 }
 

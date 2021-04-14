@@ -1,26 +1,25 @@
-from __future__ import absolute_import
+import logging
+from urllib.parse import quote, urlencode
+from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 from django.test import override_settings
-from six.moves.urllib.parse import quote, urlencode
-from uuid import uuid4
-import logging
 
 from sentry.models import Environment, UserReport
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedTest(TestCase):
     def setUp(self):
-        super(ErrorPageEmbedTest, self).setUp()
+        super().setUp()
         self.project = self.create_project()
         self.project.update_option("sentry:origins", ["example.com"])
         self.key = self.create_project_key(self.project)
         self.event_id = uuid4().hex
         self.path = reverse("sentry-error-page-embed")
-        self.path_with_qs = "%s?eventId=%s&dsn=%s" % (
+        self.path_with_qs = "{}?eventId={}&dsn={}".format(
             self.path,
             quote(self.event_id),
             quote(self.key.dsn_public),
@@ -49,7 +48,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp["Content-Type"] == "text/javascript"
 
     def test_missing_eventId(self):
-        path = "%s?dsn=%s" % (self.path, quote(self.key.dsn_public))
+        path = f"{self.path}?dsn={quote(self.key.dsn_public)}"
         with self.settings(SENTRY_ALLOW_ORIGIN="*"):
             resp = self.client.get(
                 path, HTTP_REFERER="http://example.com", HTTP_ACCEPT="text/html, text/javascript"
@@ -60,7 +59,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp.content == b""
 
     def test_missing_dsn(self):
-        path = "%s?eventId=%s" % (self.path, quote(self.event_id))
+        path = f"{self.path}?eventId={quote(self.event_id)}"
         with self.settings(SENTRY_ALLOW_ORIGIN="*"):
             resp = self.client.get(
                 path, HTTP_REFERER="http://example.com", HTTP_ACCEPT="text/html, text/javascript"
@@ -112,7 +111,7 @@ class ErrorPageEmbedTest(TestCase):
             )
 
         user_feedback_options_qs = urlencode(user_feedback_options)
-        path_with_qs = "%s?eventId=%s&dsn=%s&%s" % (
+        path_with_qs = "{}?eventId={}&dsn={}&{}".format(
             self.path,
             quote(self.event_id),
             quote(self.key.dsn_public),
@@ -143,8 +142,8 @@ class ErrorPageEmbedTest(TestCase):
         assert report.email == "jane@example.com"
         assert report.comments == "This is an example!"
         assert report.event_id == self.event_id
-        assert report.project == self.project
-        assert report.group is None
+        assert report.project_id == self.project.id
+        assert report.group_id is None
 
         resp = self.client.post(
             self.path_with_qs,
@@ -159,12 +158,12 @@ class ErrorPageEmbedTest(TestCase):
         assert report.email == "joe@example.com"
         assert report.comments == "haha I updated it!"
         assert report.event_id == self.event_id
-        assert report.project == self.project
-        assert report.group is None
+        assert report.project_id == self.project.id
+        assert report.group_id is None
 
     def test_submission_invalid_event_id(self):
         self.event_id = "x" * 100
-        path = "%s?eventId=%s&dsn=%s" % (
+        path = "{}?eventId={}&dsn={}".format(
             self.path,
             quote(self.event_id),
             quote(self.key.dsn_public),
@@ -186,7 +185,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.project.update_option("sentry:origins", ["example.com"])
         self.key = self.create_project_key(self.project)
         self.event_id = uuid4().hex
-        self.path = "%s?eventId=%s&dsn=%s" % (
+        self.path = "{}?eventId={}&dsn={}".format(
             reverse("sentry-error-page-embed"),
             quote(self.event_id),
             quote(self.key.dsn_public),
@@ -221,7 +220,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert UserReport.objects.get(event_id=self.event_id).environment == self.environment
+        assert UserReport.objects.get(event_id=self.event_id).environment_id == self.environment.id
 
     def test_user_report_gets_environment(self):
         self.login_as(user=self.user)
@@ -232,4 +231,4 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         )
         self.make_event(environment=self.environment.name, event_id=self.event_id)
         assert response.status_code == 200, response.content
-        assert UserReport.objects.get(event_id=self.event_id).environment == self.environment
+        assert UserReport.objects.get(event_id=self.event_id).environment_id == self.environment.id

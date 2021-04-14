@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import AuthIdentity, AuthProvider
@@ -30,12 +26,12 @@ class AuthenticationTest(AuthProviderTestCase):
         self.login_as(user)
 
         paths = (
-            u"/api/0/organizations/{}/".format(organization.slug),
-            u"/api/0/projects/{}/{}/".format(organization.slug, project.slug),
-            u"/api/0/teams/{}/{}/".format(organization.slug, team.slug),
-            u"/api/0/issues/{}/".format(group_id),
+            f"/api/0/organizations/{organization.slug}/",
+            f"/api/0/projects/{organization.slug}/{project.slug}/",
+            f"/api/0/teams/{organization.slug}/{team.slug}/",
+            f"/api/0/issues/{group_id}/",
             # this uses the internal API, which once upon a time was broken
-            u"/api/0/issues/{}/events/latest/".format(group_id),
+            f"/api/0/issues/{group_id}/events/latest/",
         )
 
         for path in paths:
@@ -51,7 +47,7 @@ class AuthenticationTest(AuthProviderTestCase):
             assert resp.status_code == 401, (resp.status_code, resp.content)
 
         # XXX(dcramer): using internal API as exposing a request object is hard
-        self.session[SSO_SESSION_KEY] = six.text_type(organization.id)
+        self.session[SSO_SESSION_KEY] = str(organization.id)
         self.save_session()
 
         # now that SSO is marked as complete, we should be able to access dash

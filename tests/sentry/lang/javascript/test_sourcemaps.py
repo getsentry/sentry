@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-from symbolic import SourceMapView, SourceMapTokenMatch
 from unittest import TestCase
+
+from symbolic import SourceMapTokenMatch, SourceMapView
 
 from sentry.utils import json
 
@@ -112,10 +109,10 @@ class GetSourceContentsTest(TestCase):
         smap_view = SourceMapView.from_json_bytes(indexed_sourcemap_example)
 
         assert smap_view.get_sourceview(0).get_source() == (
-            u" ONE.foo = function (bar) {\n" + "   return baz(bar);\n" + " };"
+            " ONE.foo = function (bar) {\n" + "   return baz(bar);\n" + " };"
         )
         assert smap_view.get_sourceview(1).get_source() == (
-            u" TWO.inc = function (n) {\n" + "   return n + 1;\n" + " };"
+            " TWO.inc = function (n) {\n" + "   return n + 1;\n" + " };"
         )
 
 

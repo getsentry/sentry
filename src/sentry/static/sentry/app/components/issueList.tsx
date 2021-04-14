@@ -22,7 +22,6 @@ type Props = WithRouterProps & {
   pagination?: boolean;
   renderEmpty?: () => React.ReactElement;
   statsPeriod?: string;
-  showActions?: boolean;
   noBorder?: boolean;
   noMargin?: boolean;
 };
@@ -130,7 +129,7 @@ class IssueList extends React.Component<Props, State> {
   }
 
   renderResults() {
-    const {noBorder, noMargin, statsPeriod, showActions, renderEmpty} = this.props;
+    const {noBorder, noMargin, statsPeriod, renderEmpty} = this.props;
     const {loading, error, issueIds, data} = this.state;
 
     if (loading) {
@@ -158,7 +157,6 @@ class IssueList extends React.Component<Props, State> {
                 id={issue.id}
                 data={issue}
                 statsPeriod={statsPeriod}
-                showActions={showActions}
               />
             ))}
           </PanelBody>

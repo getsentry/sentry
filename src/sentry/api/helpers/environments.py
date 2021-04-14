@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Environment
 
@@ -20,7 +18,7 @@ def get_environments(request, organization):
         Environment.objects.filter(organization_id=organization.id, name__in=requested_environments)
     )
 
-    if set(requested_environments) != set([e.name for e in environments]):
+    if set(requested_environments) != {e.name for e in environments}:
         raise ResourceDoesNotExist
 
     return environments

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 from sentry.integrations.jira.client import JiraCloud
@@ -11,7 +9,7 @@ from sentry.utils.compat import mock
 
 class StubJiraCloud(JiraCloud):
     def request_hook(self, *args, **kwargs):
-        r = super(StubJiraCloud, self).request_hook(*args, **kwargs)
+        r = super().request_hook(*args, **kwargs)
         r["params"]["jwt"] = "my-jwt-token"
         return r
 

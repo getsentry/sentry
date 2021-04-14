@@ -1,31 +1,28 @@
-from __future__ import absolute_import
-
 import logging
 import posixpath
-import six
+from typing import Set
 
-from sentry.lang.native.error import write_error, SymbolicationFailed
+from symbolic import ParseDebugIdError, normalize_debug_id
+
+from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.lang.native.utils import (
-    is_minidump_event,
-    is_applecrashreport_event,
-    get_sdk_from_event,
-    native_images_from_data,
-    is_native_platform,
-    is_native_event,
-    image_name,
-    signal_from_data,
     get_event_attachment,
+    get_sdk_from_event,
+    image_name,
+    is_applecrashreport_event,
+    is_minidump_event,
+    is_native_event,
+    is_native_platform,
+    native_images_from_data,
+    signal_from_data,
 )
-from sentry.models import Project, EventError
-from sentry.utils.in_app import is_known_third_party, is_optional_package
-from sentry.utils.safe import get_path, set_path, setdefault_path, trim
+from sentry.models import EventError, Project
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.compat import zip
-
-from symbolic import normalize_debug_id, ParseDebugIdError
-
+from sentry.utils.in_app import is_known_third_party, is_optional_package
+from sentry.utils.safe import get_path, set_path, setdefault_path, trim
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +124,7 @@ def _merge_image(raw_image, complete_image, sdk_info, data):
 
     # Set image data from symbolicator as symbolicator might know more
     # than the SDK, especially for minidumps
-    for k, v in six.iteritems(complete_image):
+    for k, v in complete_image.items():
         if k in IMAGE_STATUS_FIELDS:
             statuses.add(v)
         if not (v is None or (v == "unknown" and k in ("arch", "type"))):
@@ -198,11 +195,11 @@ def _merge_full_response(data, response):
     # Extract the crash reason and infos
     data_exception = get_path(data, "exception", "values", 0)
     if response.get("assertion"):
-        data_exception["value"] = "Assertion Error: %s" % (response["assertion"],)
+        data_exception["value"] = "Assertion Error: {}".format(response["assertion"])
     elif response.get("crash_details"):
         data_exception["value"] = response["crash_details"]
     elif response.get("crash_reason"):
-        data_exception["value"] = "Fatal Error: %s" % (response["crash_reason"],)
+        data_exception["value"] = "Fatal Error: {}".format(response["crash_reason"])
     else:
         # We're merging a full response, so there was no initial payload
         # submitted. Assuming that this still contains the placeholder, remove
@@ -316,9 +313,7 @@ def get_frames_for_symbolication(frames, data, modules):
             idx = None
 
             if modules_by_debug_id is None:
-                modules_by_debug_id = dict(
-                    (x.get("debug_id"), idx) for idx, x in enumerate(modules)
-                )
+                modules_by_debug_id = {x.get("debug_id"): idx for idx, x in enumerate(modules)}
             try:
                 idx = modules_by_debug_id.get(normalize_debug_id(arg))
             except ParseDebugIdError:
@@ -426,3 +421,12 @@ def get_symbolication_function(data):
 
 def should_process_with_symbolicator(data):
     return bool(get_symbolication_function(data))
+
+
+def get_required_attachment_types(data) -> Set[str]:
+    if is_minidump_event(data):
+        return {MINIDUMP_ATTACHMENT_TYPE}
+    elif is_applecrashreport_event(data):
+        return {APPLECRASHREPORT_ATTACHMENT_TYPE}
+    else:
+        return set()

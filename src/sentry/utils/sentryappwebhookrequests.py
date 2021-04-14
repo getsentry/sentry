@@ -1,14 +1,9 @@
-from __future__ import absolute_import
-
-import six
-
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils import timezone
 
 from sentry.models.sentryapp import VALID_EVENTS
 from sentry.utils import json, redis
-
 
 BUFFER_SIZE = 100
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
@@ -27,7 +22,7 @@ EXTENDED_VALID_EVENTS = VALID_EVENTS + (
 )
 
 
-class SentryAppWebhookRequestsBuffer(object):
+class SentryAppWebhookRequestsBuffer:
     """
     Create a data structure to store basic information about Sentry App webhook requests in Redis
     This should store the last 100 requests and last 100 errors (in different keys) for each event type, for each Sentry App
@@ -43,9 +38,9 @@ class SentryAppWebhookRequestsBuffer(object):
         sentry_app_id = self.sentry_app.id
 
         if error:
-            return "sentry-app-webhook-error:{{{0}}}:{1}".format(sentry_app_id, event)
+            return f"sentry-app-webhook-error:{{{sentry_app_id}}}:{event}"
         else:
-            return "sentry-app-webhook-request:{{{0}}}:{1}".format(sentry_app_id, event)
+            return f"sentry-app-webhook-request:{{{sentry_app_id}}}:{event}"
 
     def _convert_redis_request(self, redis_request, event):
         """
@@ -115,7 +110,7 @@ class SentryAppWebhookRequestsBuffer(object):
 
         time = timezone.now()
         request_data = {
-            "date": six.text_type(time),
+            "date": str(time),
             "response_code": response_code,
             "webhook_url": url,
         }

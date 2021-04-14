@@ -1,11 +1,14 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, Project} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import withTeams from 'app/utils/withTeams';
+import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 import {
   createDefaultRule,
   createRuleFromEventView,
+  createRuleFromWizardTemplate,
 } from 'app/views/settings/incidentRules/constants';
 
 import RuleForm from './ruleForm';
@@ -20,7 +23,9 @@ type Props = {
   organization: Organization;
   project: Project;
   eventView: EventView | undefined;
+  wizardTemplate?: WizardRuleTemplate;
   sessionId?: string;
+  teams: Team[];
 } & RouteComponentProps<RouteParams, {}>;
 
 /**
@@ -35,10 +40,21 @@ class IncidentRulesCreate extends React.Component<Props> {
   };
 
   render() {
-    const {project, eventView, sessionId, ...props} = this.props;
+    const {project, eventView, wizardTemplate, sessionId, teams, ...props} = this.props;
     const defaultRule = eventView
       ? createRuleFromEventView(eventView)
+      : wizardTemplate
+      ? createRuleFromWizardTemplate(wizardTemplate)
       : createDefaultRule();
+
+    const userTeamIdArr = teams.filter(({isMember}) => isMember).map(({id}) => id);
+    const userTeamIds = new Set(userTeamIdArr);
+
+    if (props.organization.features.includes('team-alerts-ownership')) {
+      const projectTeamIds = new Set(project.teams.map(({id}) => id));
+      const defaultOwnerId = userTeamIdArr.find(id => projectTeamIds.has(id)) ?? null;
+      defaultRule.owner = defaultOwnerId && `team:${defaultOwnerId}`;
+    }
 
     return (
       <RuleForm
@@ -46,10 +62,11 @@ class IncidentRulesCreate extends React.Component<Props> {
         rule={{...defaultRule, projects: [project.slug]}}
         sessionId={sessionId}
         project={project}
+        userTeamIds={userTeamIds}
         {...props}
       />
     );
   }
 }
 
-export default IncidentRulesCreate;
+export default withTeams(IncidentRulesCreate);

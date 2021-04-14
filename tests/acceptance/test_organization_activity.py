@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils import timezone
 
 from sentry.models import Activity
@@ -8,7 +6,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class OrganizationActivityTest(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationActivityTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]
@@ -16,7 +14,7 @@ class OrganizationActivityTest(AcceptanceTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
-        self.path = u"/organizations/{}/activity/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/activity/"
         self.project.update(first_event=timezone.now())
 
     def test(self):

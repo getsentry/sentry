@@ -2,6 +2,7 @@ import React from 'react';
 
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import PullRequestLink from 'app/components/pullRequestLink';
 import Version from 'app/components/version';
@@ -180,7 +181,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
         return tct('[author] created an issue on [provider] titled [title]', {
           author,
           provider: data.provider,
-          title: <Link to={data.location}>{data.title}</Link>,
+          title: <ExternalLink href={data.location}>{data.title}</ExternalLink>,
         });
       }
       case GroupActivityType.UNMERGE_SOURCE: {
@@ -241,6 +242,11 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
               {tn('See %s new event', 'See %s new events', eventCount)}
             </Link>
           ),
+        });
+      }
+      case GroupActivityType.MARK_REVIEWED: {
+        return tct('[author] marked this issue as reviewed', {
+          author,
         });
       }
       default:

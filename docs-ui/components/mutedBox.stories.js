@@ -1,54 +1,73 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import MutedBox from 'app/components/mutedBox';
 
 export default {
   title: 'Features/Issues/Muted Box',
+  component: MutedBox,
 };
 
-export const Default = withInfo('Default')(() => <MutedBox statusDetails={{}} />);
+export const Default = () => <MutedBox statusDetails={{}} />;
 
-Default.story = {
-  name: 'default',
-};
+Default.storyName = 'default';
 
-export const IgnoreUntil = withInfo('Ignore until timestamp')(() => (
+export const IgnoreUntil = () => (
   <MutedBox statusDetails={{ignoreUntil: '2017-06-21T19:45:10Z'}} />
-));
+);
 
-IgnoreUntil.story = {
-  name: 'ignoreUntil',
+IgnoreUntil.storyName = 'ignoreUntil';
+IgnoreUntil.parameters = {
+  docs: {
+    description: {
+      story: 'Ignore until timestamp',
+    },
+  },
 };
 
-export const IgnoreCount = withInfo('Ignore until "count"')(() => (
-  <MutedBox statusDetails={{ignoreCount: 100}} />
-));
+export const IgnoreCount = () => <MutedBox statusDetails={{ignoreCount: 100}} />;
 
-IgnoreCount.story = {
-  name: 'ignoreCount',
+IgnoreCount.storyName = 'ignoreCount';
+IgnoreCount.parameters = {
+  docs: {
+    description: {
+      story: 'Ignore until "count"',
+    },
+  },
 };
 
-export const IgnoreCountWIgnoreWindow = withInfo('Ignore count with window')(() => (
+export const IgnoreCountWIgnoreWindow = () => (
   <MutedBox statusDetails={{ignoreCount: 100, ignoreWindow: 1}} />
-));
+);
 
-IgnoreCountWIgnoreWindow.story = {
-  name: 'ignoreCount w/ ignoreWindow',
+IgnoreCountWIgnoreWindow.storyName = 'ignoreCount w/ ignoreWindow';
+IgnoreCountWIgnoreWindow.parameters = {
+  docs: {
+    description: {
+      story: 'Ignore count with window',
+    },
+  },
 };
 
-export const IgnoreUserCount = withInfo('Ignore user count')(() => (
-  <MutedBox statusDetails={{ignoreUserCount: 100}} />
-));
+export const IgnoreUserCount = () => <MutedBox statusDetails={{ignoreUserCount: 100}} />;
 
-IgnoreUserCount.story = {
-  name: 'ignoreUserCount',
+IgnoreUserCount.storyName = 'ignoreUserCount';
+IgnoreUserCount.parameters = {
+  docs: {
+    description: {
+      story: 'Ignore user count',
+    },
+  },
 };
 
-export const IgnoreUserCountWIgnoreUserWindow = withInfo(
-  'Ignore user count with window'
-)(() => <MutedBox statusDetails={{ignoreUserCount: 100, ignoreUserWindow: 1}} />);
+export const IgnoreUserCountWIgnoreUserWindow = () => (
+  <MutedBox statusDetails={{ignoreUserCount: 100, ignoreUserWindow: 1}} />
+);
 
-IgnoreUserCountWIgnoreUserWindow.story = {
-  name: 'ignoreUserCount w/ ignoreUserWindow',
+IgnoreUserCountWIgnoreUserWindow.storyName = 'ignoreUserCount w/ ignoreUserWindow';
+IgnoreUserCountWIgnoreUserWindow.parameters = {
+  docs: {
+    description: {
+      story: 'Ignore user count with window',
+    },
+  },
 };

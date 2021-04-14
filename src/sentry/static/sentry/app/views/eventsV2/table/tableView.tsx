@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'app/actionCreators/modal';
@@ -14,6 +15,7 @@ import Tooltip from 'app/components/tooltip';
 import {IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {
@@ -21,11 +23,12 @@ import EventView, {
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {Column, fieldAlignment} from 'app/utils/discover/fields';
+import {Column, fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
+import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
@@ -43,6 +46,7 @@ export type TableViewProps = {
   isLoading: boolean;
   error: string | null;
 
+  isFirstPage: boolean;
   eventView: EventView;
   tableData: TableData | null | undefined;
   tagKeys: null | string[];
@@ -105,7 +109,7 @@ class TableView extends React.Component<TableViewProps> {
           <PrependHeader key="header-event-id">
             <SortLink
               align="left"
-              title={t('Id')}
+              title={t('event id')}
               direction={undefined}
               canSort={false}
               generateSortLink={() => undefined}
@@ -126,8 +130,16 @@ class TableView extends React.Component<TableViewProps> {
       };
 
       return [
-        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
-          <Link to={target} data-test-id="open-stack">
+        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Group')}>
+          <Link
+            to={target}
+            data-test-id="open-group"
+            onClick={() => {
+              if (nextView.isEqualTo(eventView)) {
+                Sentry.captureException(new Error('Failed to drilldown'));
+              }
+            }}
+          >
             <StyledIcon size="sm" />
           </Link>
         </Tooltip>,
@@ -199,7 +211,7 @@ class TableView extends React.Component<TableViewProps> {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode => {
-    const {eventView, location, organization, tableData} = this.props;
+    const {isFirstPage, eventView, location, organization, tableData} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -232,11 +244,49 @@ class TableView extends React.Component<TableViewProps> {
           </StyledLink>
         </Tooltip>
       );
+    } else if (columnKey === 'trace') {
+      const dateSelection = eventView.normalizeDateSelection(location);
+      if (dataRow.trace) {
+        const target = getTraceDetailsUrl(
+          organization,
+          String(dataRow.trace),
+          dateSelection,
+          {}
+        );
+
+        cell = (
+          <Tooltip title={t('View Trace')}>
+            <StyledLink data-test-id="view-trace" to={target}>
+              {cell}
+            </StyledLink>
+          </Tooltip>
+        );
+      }
+    }
+
+    const fieldName = getAggregateAlias(columnKey);
+    const value = dataRow[fieldName];
+    if (tableData.meta[fieldName] === 'integer' && defined(value) && value > 999) {
+      return (
+        <Tooltip
+          title={value.toLocaleString()}
+          containerDisplayMode="block"
+          position="right"
+        >
+          <CellAction
+            column={column}
+            dataRow={dataRow}
+            handleCellAction={this.handleCellAction(dataRow, column)}
+          >
+            {cell}
+          </CellAction>
+        </Tooltip>
+      );
     }
 
     return (
       <React.Fragment>
-        {isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
+        {isFirstPage && isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
           <TopResultsIndicator count={count} index={rowIndex} />
         ) : null}
         <CellAction
@@ -264,7 +314,7 @@ class TableView extends React.Component<TableViewProps> {
           onApply={this.handleUpdateColumns}
         />
       ),
-      {modalCss}
+      {modalCss, backdrop: 'static'}
     );
   };
 

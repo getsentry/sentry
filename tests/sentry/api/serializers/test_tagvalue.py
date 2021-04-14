@@ -1,10 +1,6 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from datetime import datetime
 
-from sentry.api.serializers import serialize, UserTagValueSerializer
+from sentry.api.serializers import UserTagValueSerializer, serialize
 from sentry.tagstore.types import TagValue
 from sentry.testutils import TestCase
 

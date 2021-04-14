@@ -1,7 +1,7 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
+
 from django.utils import timezone
+
 from sentry.api.serializers import Serializer, register
 from sentry.models import ApiApplication
 

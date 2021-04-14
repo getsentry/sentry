@@ -1,5 +1,5 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+import {components as selectComponents} from 'react-select';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
@@ -12,50 +12,61 @@ import {Release} from 'app/types';
 
 type Props = ModalRenderProps & {
   onSelected: ({inRelease: string}) => void;
-  orgId: string;
-  projectId?: string;
+  orgSlug: string;
+  projectSlug?: string;
 };
 
 type State = {
   version: string;
 };
 
-class CustomResolutionModal extends React.Component<Props, State> {
-  static propTypes = {
-    onSelected: PropTypes.func.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string,
-  };
+function VersionOption({
+  data,
+  ...props
+}: React.ComponentProps<typeof selectComponents.Option>) {
+  const release = data.release as Release;
+  return (
+    <selectComponents.Option data={data} {...props}>
+      <strong>
+        <Version version={release.version} anchor={false} />
+      </strong>
+      <br />
+      <small>
+        {t('Created')} <TimeSince date={release.dateCreated} />
+      </small>
+    </selectComponents.Option>
+  );
+}
 
+class CustomResolutionModal extends React.Component<Props, State> {
   state = {
     version: '',
   };
 
-  onChange = (value: string) => {
-    this.setState({version: value});
+  onChange = (value: string | number | boolean) => {
+    this.setState({version: value as string}); // TODO(ts): Add select value type as generic to select controls
   };
 
   onAsyncFieldResults = (results: Release[]) =>
     results.map(release => ({
       value: release.version,
-      label: (
-        <div>
-          <strong>
-            <Version version={release.version} anchor={false} />
-          </strong>
-          <br />
-          <small>
-            {t('Created')} <TimeSince date={release.dateCreated} />
-          </small>
-        </div>
-      ),
+      label: release.version,
+      release,
     }));
 
   render() {
-    const {orgId, projectId, closeModal, onSelected, Header, Body, Footer} = this.props;
-    const url = projectId
-      ? `/projects/${orgId}/${projectId}/releases/`
-      : `/organizations/${orgId}/releases/`;
+    const {
+      orgSlug,
+      projectSlug,
+      closeModal,
+      onSelected,
+      Header,
+      Body,
+      Footer,
+    } = this.props;
+    const url = projectSlug
+      ? `/projects/${orgSlug}/${projectSlug}/releases/`
+      : `/organizations/${orgSlug}/releases/`;
 
     const onSubmit = (e: React.FormEvent) => {
       e.preventDefault();
@@ -68,7 +79,6 @@ class CustomResolutionModal extends React.Component<Props, State> {
         <Header>{t('Resolved In')}</Header>
         <Body>
           <SelectAsyncField
-            deprecatedSelectControl
             label={t('Version')}
             id="version"
             name="version"
@@ -77,6 +87,9 @@ class CustomResolutionModal extends React.Component<Props, State> {
             url={url}
             onResults={this.onAsyncFieldResults}
             onQuery={query => ({query})}
+            components={{
+              Option: VersionOption,
+            }}
           />
         </Body>
         <Footer>

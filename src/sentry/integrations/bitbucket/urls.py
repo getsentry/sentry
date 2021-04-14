@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from django.conf.urls import url
 
 from .descriptor import BitbucketDescriptorEndpoint
 from .installed import BitbucketInstalledEndpoint
+from .search import BitbucketSearchEndpoint
 from .uninstalled import BitbucketUninstalledEndpoint
 from .webhook import BitbucketWebhookEndpoint
-from .search import BitbucketSearchEndpoint
 
 urlpatterns = [
     url(r"^descriptor/$", BitbucketDescriptorEndpoint.as_view()),

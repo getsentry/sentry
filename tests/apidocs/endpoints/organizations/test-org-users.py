@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 
@@ -20,7 +16,8 @@ class OrganizationUsersDocs(APIDocsTestCase):
 
         self.login_as(user=self.user_2)
         self.url = reverse(
-            "sentry-api-0-organization-users", kwargs={"organization_slug": self.org.slug},
+            "sentry-api-0-organization-users",
+            kwargs={"organization_slug": self.org.slug},
         )
 
     def test_get(self):

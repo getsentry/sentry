@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
-from django.db import migrations, models
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
@@ -19,14 +16,13 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0009_auto_20191101_1608'),
+        ("sentry", "0009_auto_20191101_1608"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='pagerdutyservice',
-            unique_together=set([]),
+            name="pagerdutyservice",
+            unique_together=set(),
         ),
     ]

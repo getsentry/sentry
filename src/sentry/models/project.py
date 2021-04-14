@@ -1,22 +1,20 @@
-from __future__ import absolute_import, print_function
-
 import logging
 import warnings
 from collections import defaultdict
+from uuid import uuid1
 
-import six
-from bitfield import BitField
+import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models.signals import pre_delete
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 from django.utils.http import urlencode
-from uuid import uuid1
+from django.utils.translation import ugettext_lazy as _
 
+from bitfield import BitField
 from sentry import projectoptions
 from sentry.app import locks
-from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
+from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BaseManager,
@@ -26,9 +24,10 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.integrationdocs import integration_doc_exists
+from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
+from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.retries import TimedRetryPolicy
 
 # TODO(dcramer): pull in enum library
@@ -104,10 +103,10 @@ class Project(Model, PendingDeletionMixin):
     first_event = models.DateTimeField(null=True)
     flags = BitField(
         flags=(
-            (u"has_releases", u"This Project has sent release data"),
-            (u"has_issue_alerts_targeting", u"This Project has issue alerts targeting"),
-            (u"has_transactions", u"This Project has sent transactions"),
-            (u"has_alert_filters", u"This Project has filters"),
+            ("has_releases", "This Project has sent release data"),
+            ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
+            ("has_transactions", "This Project has sent transactions"),
+            ("has_alert_filters", "This Project has filters"),
         ),
         default=10,
         null=True,
@@ -125,13 +124,18 @@ class Project(Model, PendingDeletionMixin):
 
     _rename_fields_on_pending_delete = frozenset(["slug"])
 
-    def __unicode__(self):
-        return u"%s (%s)" % (self.name, self.slug)
+    def __str__(self):
+        return f"{self.name} ({self.slug})"
 
     def next_short_id(self):
         from sentry.models import Counter
 
-        return Counter.increment(self)
+        with sentry_sdk.start_span(op="project.next_short_id") as span, metrics.timer(
+            "project.next_short_id"
+        ):
+            span.set_data("project_id", self.id)
+            span.set_data("project_slug", self.slug)
+            return Counter.increment(self)
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -144,13 +148,13 @@ class Project(Model, PendingDeletionMixin):
                     reserved=RESERVED_PROJECT_SLUGS,
                     max_length=50,
                 )
-            super(Project, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
         else:
-            super(Project, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
         self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):
-        url = u"/organizations/{}/issues/".format(self.organization.slug)
+        url = f"/organizations/{self.organization.slug}/issues/"
         params = {} if params is None else params
         params["project"] = self.id
         if params:
@@ -159,9 +163,7 @@ class Project(Model, PendingDeletionMixin):
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
-            if six.text_type(self.id) == six.text_type(value) or six.text_type(
-                self.slug
-            ) == six.text_type(value):
+            if str(self.id) == str(value) or str(self.slug) == str(value):
                 return True
         return False
 
@@ -193,6 +195,7 @@ class Project(Model, PendingDeletionMixin):
 
     @property
     def member_set(self):
+        """ :returns a QuerySet of all Users that belong to this Project """
         from sentry.models import OrganizationMember
 
         return self.organization.member_set.filter(
@@ -238,89 +241,6 @@ class Project(Model, PendingDeletionMixin):
 
     def get_full_name(self):
         return self.slug
-
-    def get_member_alert_settings(self, user_option):
-        """
-        Returns a list of users who have alert notifications explicitly
-        enabled/disabled.
-        :param user_option: alert option key, typically 'mail:alert'
-        :return: A dictionary in format {<user_id>: <int_alert_value>}
-        """
-        from sentry.models import UserOption
-
-        return {
-            o.user_id: int(o.value)
-            for o in UserOption.objects.filter(project=self, key=user_option)
-        }
-
-    def get_notification_recipients(self, user_option):
-        from sentry.models import UserOption
-
-        alert_settings = self.get_member_alert_settings(user_option)
-        disabled = set(u for u, v in six.iteritems(alert_settings) if v == 0)
-
-        member_set = set(self.member_set.exclude(user__in=disabled).values_list("user", flat=True))
-
-        # determine members default settings
-        members_to_check = set(u for u in member_set if u not in alert_settings)
-        if members_to_check:
-            disabled = set(
-                (
-                    uo.user_id
-                    for uo in UserOption.objects.filter(
-                        key="subscribe_by_default", user__in=members_to_check
-                    )
-                    if uo.value == "0"
-                )
-            )
-            member_set = [x for x in member_set if x not in disabled]
-
-        return member_set
-
-    def get_mail_alert_subscribers(self):
-        user_ids = self.get_notification_recipients("mail:alert")
-        if not user_ids:
-            return []
-        from sentry.models import User
-
-        return list(User.objects.filter(id__in=user_ids))
-
-    def is_user_subscribed_to_mail_alerts(self, user):
-        from sentry.models import UserOption
-
-        is_enabled = UserOption.objects.get_value(user, "mail:alert", project=self)
-        if is_enabled is None:
-            is_enabled = UserOption.objects.get_value(user, "subscribe_by_default", "1") == "1"
-        else:
-            is_enabled = bool(is_enabled)
-        return is_enabled
-
-    def filter_to_subscribed_users(self, users):
-        """
-        Filters a list of users down to the users who are subscribed to email alerts. We
-        check both the project level settings and global default settings.
-        """
-        from sentry.models import UserOption
-
-        project_options = UserOption.objects.filter(
-            user__in=users, project=self, key="mail:alert"
-        ).values_list("user_id", "value")
-
-        user_settings = {user_id: value for user_id, value in project_options}
-        users_without_project_setting = [user for user in users if user.id not in user_settings]
-        if users_without_project_setting:
-            user_default_settings = {
-                user_id: value
-                for user_id, value in UserOption.objects.filter(
-                    user__in=users_without_project_setting,
-                    key="subscribe_by_default",
-                    project__isnull=True,
-                ).values_list("user_id", "value")
-            }
-            for user in users_without_project_setting:
-                user_settings[user.id] = int(user_default_settings.get(user.id, "1"))
-
-        return [user for user in users if bool(user_settings[user.id])]
 
     def transfer_to(self, team=None, organization=None):
         # NOTE: this will only work properly if the new team is in a different
@@ -398,7 +318,12 @@ class Project(Model, PendingDeletionMixin):
             return True
 
     def remove_team(self, team):
+        from sentry.incidents.models import AlertRule
+        from sentry.models import Rule
+
         ProjectTeam.objects.filter(project=self, team=team).delete()
+        AlertRule.objects.fetch_for_project(self).filter(owner_id=team.actor_id).update(owner=None)
+        Rule.objects.filter(owner_id=team.actor_id, project=self).update(owner=None)
 
     def get_security_token(self):
         lock = locks.get(self.get_lock_key(), duration=5)
@@ -443,14 +368,14 @@ class Project(Model, PendingDeletionMixin):
                         setting.save()
 
                 options = ProjectOption.objects.get_all_values(project=project)
-                for key, value in six.iteritems(options):
+                for key, value in options.items():
                     self.update_option(key, value)
 
         except IntegrityError as e:
             logging.exception(
                 "Error occurred during copy project settings.",
                 extra={
-                    "error": six.text_type(e),
+                    "error": str(e),
                     "project_to": self.id,
                     "project_from": project_id,
                 },
@@ -463,6 +388,14 @@ class Project(Model, PendingDeletionMixin):
         if not value or value == "other":
             return True
         return integration_doc_exists(value)
+
+    def delete(self, **kwargs):
+        from sentry.models import NotificationSetting
+
+        # There is no foreign key relationship so we have to manually cascade.
+        NotificationSetting.objects.remove_for_project(self)
+
+        return super().delete(**kwargs)
 
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)

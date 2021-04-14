@@ -1,9 +1,4 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.models import GroupStatus
-
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -13,13 +8,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index-stats"
 
     def setUp(self):
-        super(GroupListTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
 
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
-        for url, attrs in six.iteritems(parse_link_header(header)):
+        for url, attrs in parse_link_header(header).items():
             links[attrs["rel"]] = attrs
             attrs["href"] = url
         return links
@@ -29,7 +24,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             org = self.project.organization.slug
         else:
             org = args[0]
-        return super(GroupListTest, self).get_response(org, **kwargs)
+        return super().get_response(org, **kwargs)
 
     def test_simple(self):
         self.store_event(

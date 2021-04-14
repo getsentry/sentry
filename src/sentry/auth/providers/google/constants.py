@@ -1,7 +1,4 @@
-from __future__ import absolute_import, print_function
-
 from django.conf import settings
-
 
 AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth"
 

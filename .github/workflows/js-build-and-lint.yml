@@ -11,7 +11,7 @@ on:
 jobs:
   typescript-and-lint:
     name: typescript and lint
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
 
@@ -24,7 +24,7 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - name: Check for frontend file changes
-        uses: getsentry/paths-filter@v2
+        uses: getsentry/paths-filter@master
         id: changes
         with:
           list-files: shell
@@ -45,7 +45,7 @@ jobs:
         if: steps.changes.outputs.frontend == 'true'
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
@@ -77,6 +77,11 @@ jobs:
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
+      - name: stylelint (changed files only)
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend_components_modified_lintable == 'true'
+        run: |
+          yarn stylelint ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
+
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and
       # forks do not have access to said token
@@ -105,7 +110,7 @@ jobs:
           yarn storybook-build
 
   webpack:
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
 
@@ -130,7 +135,7 @@ jobs:
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from ..base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation
 
 
@@ -34,6 +32,9 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.ProjectKey,
             models.ProjectTeam,
             models.PromptsActivity,
+            # order matters, ProjectCodeOwners to be deleted before RepositoryProjectPathConfig
+            models.ProjectCodeOwners,
+            models.RepositoryProjectPathConfig,
             models.SavedSearchUserDefault,
             models.SavedSearch,
             models.ServiceHook,

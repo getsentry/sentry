@@ -1,13 +1,9 @@
-from __future__ import absolute_import, division, print_function
-
-import six
-
-
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
+from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
+from sentry.api.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
@@ -15,10 +11,9 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
-from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.models import Group
 from sentry.utils.compat import map
-from sentry.api.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 
 
 class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
@@ -58,14 +53,11 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", ["base"])
         has_inbox = features.has("organizations:inbox", organization, actor=request.user)
-        has_workflow_owners = features.has(
-            "organizations:workflow-owners", organization=organization, actor=request.user
-        )
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
 
@@ -109,7 +101,6 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
                 collapse=collapse,
                 expand=expand,
                 has_inbox=has_inbox,
-                has_workflow_owners=has_workflow_owners,
                 start=start,
                 end=end,
                 search_filters=query_kwargs["search_filters"]

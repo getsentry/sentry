@@ -1,27 +1,25 @@
-from __future__ import absolute_import
+from urllib.parse import urlparse
 
-from six.moves.urllib.parse import urlparse
-
+from django.core.urlresolvers import reverse
 from django.forms.utils import ErrorList
 from django.http import HttpResponse
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from django.core.urlresolvers import reverse
-from django.utils.decorators import method_decorator
-
-from sentry.utils import json
-from sentry.models import Organization
-from sentry.utils.http import absolute_uri
-from sentry.web.helpers import render_to_response
-
-from sentry_plugins.jira_ac.forms import JiraConfigForm
-from sentry_plugins.jira_ac.models import JiraTenant
-from sentry_plugins.jira_ac.utils import get_jira_auth_from_request, ApiError
 from jwt.exceptions import ExpiredSignatureError
+
+from sentry import options
+from sentry.models import Organization
+from sentry.utils import json
+from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import bind_organization_context, configure_scope
 from sentry.web.decorators import transaction_start
+from sentry.web.helpers import render_to_response
+from sentry_plugins.jira_ac.forms import JiraConfigForm
+from sentry_plugins.jira_ac.models import JiraTenant
+from sentry_plugins.jira_ac.utils import ApiError, get_jira_auth_from_request
 
-JIRA_KEY = "%s.jira_ac" % (urlparse(absolute_uri()).hostname,)
+JIRA_KEY = f"{urlparse(absolute_uri()).hostname}.jira_ac"
 
 
 class BaseJiraWidgetView(View):
@@ -42,7 +40,14 @@ class BaseJiraWidgetView(View):
     def get_response(self, template, context=None):
         context = context or self.get_context()
         res = render_to_response(template, context, self.request)
-        res["X-Frame-Options"] = "ALLOW-FROM %s" % self.request.GET["xdm_e"]
+
+        sources = [
+            self.request.GET.get("xdm_e"),
+            options.get("system.url-prefix"),
+        ]
+        sources_string = " ".join([s for s in sources if s])
+        res["Content-Security-Policy"] = "frame-ancestors 'self' %s" % sources_string
+
         return res
 
 
@@ -54,7 +59,7 @@ class JiraUIWidgetView(BaseJiraWidgetView):
                 # make sure this exists and is valid
                 jira_auth = self.get_jira_auth()
             except (ApiError, JiraTenant.DoesNotExist, ExpiredSignatureError) as e:
-                scope.set_tag("result", u"error.{}".format(e.__class__.__name__))
+                scope.set_tag("result", f"error.{e.__class__.__name__}")
                 return self.get_response("error.html")
 
             if request.user.is_anonymous():
@@ -84,7 +89,7 @@ class JiraUIWidgetView(BaseJiraWidgetView):
 
 class JiraConfigView(BaseJiraWidgetView):
     def get_context(self):
-        context = super(JiraConfigView, self).get_context()
+        context = super().get_context()
         context["body_class"] = "aui-page-focused aui-page-size-medium"
         return context
 
@@ -179,7 +184,7 @@ class JiraDescriptorView(View):
 class JiraInstalledCallback(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
-        return super(JiraInstalledCallback, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     @method_decorator(csrf_exempt)
     @transaction_start("JiraInstalledCallback.post")

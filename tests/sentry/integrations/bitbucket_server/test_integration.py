@@ -1,11 +1,10 @@
-from __future__ import absolute_import
-
 import responses
-
 from requests.exceptions import ReadTimeout
+
 from sentry.integrations.bitbucket_server import BitbucketServerIntegrationProvider
 from sentry.models import Identity, IdentityProvider, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
+
 from .testutils import EXAMPLE_PRIVATE_KEY
 
 

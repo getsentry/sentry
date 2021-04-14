@@ -1,0 +1,43 @@
+<script type="text/javascript">
+  try {
+    var reg = new RegExp(/\/organizations\/(.+?(?=(\/|$)))(\/|$)/, 'i');
+    var organization = window.location.pathname;
+    var slug = organization.match(reg)[1];
+
+    function promiseRequest(url) {
+      return new Promise(function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url);
+        xhr.onload = function () {
+          try {
+            this.status >= 200 && this.status < 300
+              ? resolve(JSON.parse(xhr.response))
+              : reject([this.status, this.statusText]);
+          } catch(e) {
+            reject();
+          }
+        };
+        xhr.onerror = function () {
+          reject([this.status, this.statusText]);
+        };
+        xhr.send();
+      });
+    }
+
+    function makeUrl(suffix) {
+      return '/api/0/organizations/' + slug + suffix;
+    }
+
+
+    // There are probably more, but this is at least one case where
+    // this should not be treated as a slug
+    if (slug !== 'new') {
+      var preloadPromises = { orgSlug: slug };
+      window.__sentry_preload = preloadPromises;
+
+      preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
+      preloadPromises.projects =  promiseRequest(makeUrl('/projects/?all_projects=1&collapse=latestDeploys'));
+      preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+    }
+  } catch(_) {}
+</script>

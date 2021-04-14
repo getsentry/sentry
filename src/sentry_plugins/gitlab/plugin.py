@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
-from sentry.plugins.bases.issue2 import IssuePlugin2
-from sentry.utils.http import absolute_uri
-
-from sentry_plugins.base import CorePluginMixin
-from sentry.shared_integrations.exceptions import ApiError
-from sentry_plugins.utils import get_secret_field_config
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.issue2 import IssuePlugin2
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.http import absolute_uri
+from sentry_plugins.base import CorePluginMixin
+from sentry_plugins.utils import get_secret_field_config
 
 from .client import GitLabClient
 
@@ -55,7 +52,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
         )
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(GitLabPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return (
             [
                 {
@@ -166,13 +163,13 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
         return {"title": issue["title"]}
 
     def get_issue_label(self, group, issue_id, **kwargs):
-        return u"GL-{}".format(issue_id)
+        return f"GL-{issue_id}"
 
     def get_issue_url(self, group, issue_iid, **kwargs):
         url = self.get_option("gitlab_url", group.project).rstrip("/")
         repo = self.get_option("gitlab_repo", group.project)
 
-        return u"{}/{}/issues/{}".format(url, repo, issue_iid)
+        return f"{url}/{repo}/issues/{issue_iid}"
 
     def get_configure_plugin_fields(self, request, project, **kwargs):
         gitlab_token = self.get_option("gitlab_token", project)

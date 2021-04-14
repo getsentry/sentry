@@ -1,11 +1,10 @@
-from __future__ import absolute_import
-
 from hashlib import sha1
+
 from django.db import models
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-from sentry.db.models import BaseManager, Model, FlexibleForeignKey, GzippedDictField, sane_repr
+from sentry.db.models import BaseManager, FlexibleForeignKey, GzippedDictField, Model, sane_repr
 
 
 def get_processing_issue_checksum(scope, object):

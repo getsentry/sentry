@@ -63,8 +63,7 @@ class TeamDetails extends React.Component<Props, State> {
   }
 
   setActiveTeam() {
-    const {teamId} = this.props.params;
-    const team = this.props.teams?.find((item: Team) => item.id === teamId) ?? null;
+    const team = TeamStore.getBySlug(this.props.params.teamId);
     const loading = !TeamStore.initialized;
     const error = !loading && !team;
 
@@ -172,7 +171,7 @@ class TeamDetails extends React.Component<Props, State> {
     const routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
     return (
       <div>
-        <SentryDocumentTitle title={t('Team Details')} objSlug={params.orgId} />
+        <SentryDocumentTitle title={t('Team Details')} orgSlug={params.orgId} />
         <h3>
           <IdBadge hideAvatar team={team} avatarSize={36} />
         </h3>

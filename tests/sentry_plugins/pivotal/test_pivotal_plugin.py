@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
-from exam import fixture
 from django.core.urlresolvers import reverse
+from exam import fixture
+
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
 from sentry_plugins.pivotal.plugin import PivotalPlugin
 
 

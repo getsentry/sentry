@@ -1,19 +1,17 @@
-from __future__ import absolute_import
-
 import logging
-import six
-import sentry
 
 from django import forms
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+from requests.exceptions import ConnectionError, ReadTimeout
 
+import sentry
 from sentry.exceptions import PluginError
-from sentry.plugins.bases import notify
 from sentry.http import is_valid_url, safe_urlopen
-from sentry.utils.safe import safe_execute
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases import notify
 from sentry.utils.compat import filter
+from sentry.utils.safe import safe_execute
 
 DESCRIPTION = """
 Trigger outgoing HTTP POST requests from Sentry.
@@ -96,7 +94,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
 
     def get_group_data(self, group, event, triggering_rules):
         data = {
-            "id": six.text_type(group.id),
+            "id": str(group.id),
             "project": group.project.slug,
             "project_name": group.project.name,
             "project_slug": group.project.slug,
@@ -123,4 +121,10 @@ class WebHooksPlugin(notify.NotificationPlugin):
         payload = self.get_group_data(group, event, triggering_rules)
         for url in self.get_webhook_urls(group.project):
             # TODO: Use API client with raise_error
-            safe_execute(self.send_webhook, url, payload, _with_transaction=False)
+            safe_execute(
+                self.send_webhook,
+                url,
+                payload,
+                _with_transaction=False,
+                expected_errors=(ReadTimeout, ConnectionError),
+            )

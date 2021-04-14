@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import ProjectKey, ProjectKeyStatus
 from sentry.testutils import TestCase
 
@@ -46,10 +44,10 @@ class ProjectKeyTest(TestCase):
     def test_get_dsn_org_subdomain(self):
         with self.feature("organizations:org-subdomains"):
             key = self.model(project_id=1, public_key="abc", secret_key="xyz")
-            host = "o{}.ingest.testserver".format(key.project.organization_id)
+            host = f"o{key.project.organization_id}.ingest.testserver"
 
-            assert key.dsn_private == "http://abc:xyz@{}/1".format(host)
-            assert key.dsn_public == "http://abc@{}/1".format(host)
-            assert key.csp_endpoint == "http://{}/api/1/csp-report/?sentry_key=abc".format(host)
-            assert key.minidump_endpoint == "http://{}/api/1/minidump/?sentry_key=abc".format(host)
-            assert key.unreal_endpoint == "http://{}/api/1/unreal/abc/".format(host)
+            assert key.dsn_private == f"http://abc:xyz@{host}/1"
+            assert key.dsn_public == f"http://abc@{host}/1"
+            assert key.csp_endpoint == f"http://{host}/api/1/csp-report/?sentry_key=abc"
+            assert key.minidump_endpoint == f"http://{host}/api/1/minidump/?sentry_key=abc"
+            assert key.unreal_endpoint == f"http://{host}/api/1/unreal/abc/"

@@ -1,17 +1,14 @@
-from __future__ import absolute_import
-
 import responses
 
 from sentry.coreapi import APIError
 from sentry.mediators.external_requests import SelectRequester
 from sentry.testutils import TestCase
-
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 
 class TestSelectRequester(TestCase):
     def setUp(self):
-        super(TestSelectRequester, self).setUp()
+        super().setUp()
 
         self.user = self.create_user(name="foo")
         self.org = self.create_organization(owner=self.user)
@@ -33,9 +30,7 @@ class TestSelectRequester(TestCase):
         ]
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-issues?installationId={}&projectSlug={}".format(
-                self.install.uuid, self.project.slug
-            ),
+            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
             json=options,
             status=200,
             content_type="application/json",
@@ -64,9 +59,7 @@ class TestSelectRequester(TestCase):
         invalid_format = {"value": "12345"}
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-issues?installationId={}&projectSlug={}".format(
-                self.install.uuid, self.project.slug
-            ),
+            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
             json=invalid_format,
             status=200,
             content_type="application/json",
@@ -85,9 +78,7 @@ class TestSelectRequester(TestCase):
     def test_500_response(self):
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-issues?installationId={}&projectSlug={}".format(
-                self.install.uuid, self.project.slug
-            ),
+            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
             body="Something failed",
             status=500,
         )

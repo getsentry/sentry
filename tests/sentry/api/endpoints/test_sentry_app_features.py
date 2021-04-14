@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
-from sentry.testutils import APITestCase
 from sentry.models import IntegrationFeature
 from sentry.models.integrationfeature import Feature
+from sentry.testutils import APITestCase
 
 
 class SentryAppFeaturesTest(APITestCase):

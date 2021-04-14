@@ -3,7 +3,6 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import {fetchPlugins} from 'app/actionCreators/plugins';
-import SentryTypes from 'app/sentryTypes';
 import PluginsStore from 'app/stores/pluginsStore';
 import {Organization, Plugin, Project} from 'app/types';
 import {defined} from 'app/utils';
@@ -31,10 +30,6 @@ const withPlugins = <P extends WithPluginProps>(
     withProject(
       createReactClass<Omit<P, keyof InjectedPluginProps> & WithPluginProps, {}>({
         displayName: `withPlugins(${getDisplayName(WrappedComponent)})`,
-        propTypes: {
-          organization: SentryTypes.Organization.isRequired,
-          project: SentryTypes.Project.isRequired,
-        },
         mixins: [Reflux.connect(PluginsStore, 'store') as any],
 
         componentDidMount() {

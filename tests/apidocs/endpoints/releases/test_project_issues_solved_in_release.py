@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from uuid import uuid1
 
 from django.core.urlresolvers import reverse
@@ -14,7 +12,7 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APIDocsTestCase):
     method = "get"
 
     def setUp(self):
-        super(ProjectIssuesResolvedInReleaseEndpointTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)
@@ -46,7 +44,9 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APIDocsTestCase):
         )
 
         GroupResolution.objects.create(
-            group=self.group, release=self.release, type=GroupResolution.Type.in_release,
+            group=self.group,
+            release=self.release,
+            type=GroupResolution.Type.in_release,
         )
         self.url = reverse(
             "sentry-api-0-project-release-resolved",

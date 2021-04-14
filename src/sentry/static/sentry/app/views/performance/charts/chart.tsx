@@ -1,19 +1,24 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import {withTheme} from 'emotion-theming';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import {DateString} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateOutputType} from 'app/utils/discover/fields';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 type Props = {
+  theme: Theme;
   data: Series[];
   router: ReactRouter.InjectedRouter;
   statsPeriod: string | undefined;
+  start: DateString;
+  end: DateString;
   utc: boolean;
   height?: number;
   grid?: AreaChart['props']['grid'];
@@ -52,9 +57,12 @@ function computeAxisMax(data) {
 class Chart extends React.Component<Props> {
   render() {
     const {
+      theme,
       data,
       router,
       statsPeriod,
+      start,
+      end,
       utc,
       loading,
       height,
@@ -157,7 +165,7 @@ class Chart extends React.Component<Props> {
     };
 
     if (loading) {
-      return <AreaChart series={[]} {...areaChartProps} />;
+      return <AreaChart height={height} series={[]} {...areaChartProps} />;
     }
     const series = data.map((values, i: number) => ({
       ...values,
@@ -169,6 +177,8 @@ class Chart extends React.Component<Props> {
       <ChartZoom
         router={router}
         period={statsPeriod}
+        start={start}
+        end={end}
         utc={utc}
         xAxisIndex={disableMultiAxis ? undefined : [0, 1]}
       >
@@ -185,4 +195,4 @@ class Chart extends React.Component<Props> {
   }
 }
 
-export default Chart;
+export default withTheme(Chart);

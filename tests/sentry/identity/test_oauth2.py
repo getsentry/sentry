@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import responses
 from exam import fixture
-from sentry.utils.compat.mock import Mock
 from requests.exceptions import SSLError
 
 import sentry.identity
@@ -10,6 +7,7 @@ from sentry.identity.oauth2 import OAuth2CallbackView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock
 
 
 class OAuth2CallbackViewTest(TestCase):
@@ -17,10 +15,10 @@ class OAuth2CallbackViewTest(TestCase):
         self.org = self.create_organization(owner=self.user)
         self.user = self.create_user("foo@example.com")
         sentry.identity.register(DummyProvider)
-        super(OAuth2CallbackViewTest, self).setUp()
+        super().setUp()
 
     def tearDown(self):
-        super(OAuth2CallbackViewTest, self).tearDown()
+        super().tearDown()
         sentry.identity.unregister(DummyProvider)
 
     @fixture

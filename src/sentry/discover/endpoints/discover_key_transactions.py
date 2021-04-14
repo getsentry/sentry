@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
 from sentry.api.bases import KeyTransactionBase
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.discover.models import KeyTransaction
 from sentry.discover.endpoints.serializers import KeyTransactionSerializer
+from sentry.discover.models import KeyTransaction
 
 
 class KeyTransactionPermission(OrganizationPermission):
@@ -64,8 +62,12 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                 if KeyTransaction.objects.filter(**base_filter).exists():
                     return Response(status=204)
 
-                KeyTransaction.objects.create(**base_filter)
-                return Response(status=201)
+                try:
+                    KeyTransaction.objects.create(**base_filter)
+                    return Response(status=201)
+                # Even though we tried to avoid it, this KeyTransaction was created already
+                except IntegrityError:
+                    return Response(status=204)
             return Response(serializer.errors, status=400)
 
     def delete(self, request, organization):

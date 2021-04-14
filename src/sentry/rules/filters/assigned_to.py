@@ -1,10 +1,9 @@
-from __future__ import absolute_import
-
-from django import forms
 from enum import Enum
 
-from sentry.rules.filters.base import EventFilter
+from django import forms
+
 from sentry.mail.actions import MemberTeamForm
+from sentry.rules.filters.base import EventFilter
 from sentry.utils.cache import cache
 
 
@@ -37,7 +36,7 @@ class AssignedToFilter(EventFilter):
     form_fields = {"targetType": {"type": "assignee", "choices": CHOICES}}
 
     def get_assignees(self, group):
-        cache_key = u"group:{}:assignees".format(group.id)
+        cache_key = f"group:{group.id}:assignees"
         assignee_list = cache.get(cache_key)
         if assignee_list is None:
             assignee_list = list(group.assignee_set.all())

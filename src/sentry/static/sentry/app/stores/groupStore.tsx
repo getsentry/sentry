@@ -489,8 +489,10 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
         };
       }
     });
-    this.trigger(new Set(itemIds));
+    this.trigger(new Set(this.items.map(item => item.id)));
   },
 };
 
-export default Reflux.createStore(storeConfig) as GroupStore;
+const GroupStore = Reflux.createStore(storeConfig) as GroupStore;
+
+export default GroupStore;

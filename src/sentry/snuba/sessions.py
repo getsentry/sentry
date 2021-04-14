@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
-import pytz
 from datetime import datetime, timedelta
 
-from sentry.utils.snuba import raw_query, parse_snuba_datetime, QueryOutsideRetentionError
-from sentry.utils.dates import to_timestamp, to_datetime
-from sentry.snuba.dataset import Dataset
+import pytz
 
+from sentry.snuba.dataset import Dataset
+from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.snuba import QueryOutsideRetentionError, parse_snuba_datetime, raw_query
 
 DATASET_BUCKET = 3600
 
@@ -21,7 +19,7 @@ def _get_conditions_and_filter_keys(project_releases, environments):
     conditions = [["release", "IN", list(x[1] for x in project_releases)]]
     if environments is not None:
         conditions.append(["environment", "IN", environments])
-    filter_keys = {"project_id": list(set(x[0] for x in project_releases))}
+    filter_keys = {"project_id": list({x[0] for x in project_releases})}
     return conditions, filter_keys
 
 
@@ -67,8 +65,8 @@ def get_oldest_health_data_for_releases(project_releases):
 
 def check_has_health_data(project_releases):
     conditions = [["release", "IN", list(x[1] for x in project_releases)]]
-    filter_keys = {"project_id": list(set(x[0] for x in project_releases))}
-    return set(
+    filter_keys = {"project_id": list({x[0] for x in project_releases})}
+    return {
         (x["project_id"], x["release"])
         for x in raw_query(
             dataset=Dataset.Sessions,
@@ -79,7 +77,7 @@ def check_has_health_data(project_releases):
             referrer="sessions.health-data-check",
             filter_keys=filter_keys,
         )["data"]
-    )
+    }
 
 
 def get_project_releases_by_stability(
@@ -171,17 +169,22 @@ def get_release_adoption(project_releases, environments=None, now=None):
     if environments is not None:
         total_conditions.append(["environment", "IN", environments])
 
+    # Users Adoption
     total_users = {}
+    # Session Adoption
+    total_sessions = {}
+
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", "users"],
+        selected_columns=["project_id", "users", "sessions"],
         groupby=["project_id"],
         start=start,
         conditions=total_conditions,
         filter_keys=filter_keys,
-        referrer="sessions.release-adoption-total-users",
+        referrer="sessions.release-adoption-total-users-and-sessions",
     )["data"]:
         total_users[x["project_id"]] = x["users"]
+        total_sessions[x["project_id"]] = x["sessions"]
 
     rv = {}
     for x in raw_query(
@@ -193,15 +196,27 @@ def get_release_adoption(project_releases, environments=None, now=None):
         filter_keys=filter_keys,
         referrer="sessions.release-adoption-list",
     )["data"]:
-        total = total_users.get(x["project_id"])
-        if not total:
-            adoption = None
-        else:
-            adoption = float(x["users"]) / total * 100
+        # Users Adoption
+        total_users_count = total_users.get(x["project_id"])
+
+        users_adoption = None
+        if total_users_count:
+            users_adoption = float(x["users"]) / total_users_count * 100
+
+        # Sessions Adoption
+        total_sessions_count = total_sessions.get(x["project_id"])
+
+        sessions_adoption = None
+        if total_sessions_count:
+            sessions_adoption = float(x["sessions"] / total_sessions_count * 100)
+
         rv[x["project_id"], x["release"]] = {
-            "adoption": adoption,
+            "adoption": users_adoption,
+            "sessions_adoption": sessions_adoption,
             "users_24h": x["users"],
             "sessions_24h": x["sessions"],
+            "project_users_24h": total_users_count,
+            "project_sessions_24h": total_sessions_count,
         }
 
     return rv
@@ -316,8 +331,11 @@ def get_release_health_data_overview(
     for key in rv:
         adoption_info = release_adoption.get(key) or {}
         rv[key]["adoption"] = adoption_info.get("adoption")
+        rv[key]["sessions_adoption"] = adoption_info.get("sessions_adoption")
         rv[key]["total_users_24h"] = adoption_info.get("users_24h")
+        rv[key]["total_project_users_24h"] = adoption_info.get("project_users_24h")
         rv[key]["total_sessions_24h"] = adoption_info.get("sessions_24h")
+        rv[key]["total_project_sessions_24h"] = adoption_info.get("project_sessions_24h")
 
     if health_stats_period:
         for x in raw_query(
@@ -500,3 +518,58 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             }
 
     return stats, totals
+
+
+def get_release_sessions_time_bounds(project_id, release, org_id, environments=None):
+    """
+    Get the sessions time bounds in terms of when the first session started and
+    when the last session started according to a specific (project_id, org_id, release, environments)
+    combination
+    Inputs:
+        * project_id
+        * release
+        * org_id: Organisation Id
+        * environments
+    Return:
+        Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that
+    correspond to when the first session occurred and when the last session occurred respectively
+    """
+    release_sessions_time_bounds = {
+        "sessions_lower_bound": None,
+        "sessions_upper_bound": None,
+    }
+
+    filter_keys = {"project_id": [project_id], "org_id": [org_id]}
+    conditions = [["release", "=", release]]
+    if environments is not None:
+        conditions.append(["environment", "IN", environments])
+
+    rows = raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=["first_session_started", "last_session_started"],
+        aggregations=[
+            ["min(started)", None, "first_session_started"],
+            ["max(started)", None, "last_session_started"],
+        ],
+        conditions=conditions,
+        filter_keys=filter_keys,
+        referrer="sessions.release-sessions-time-bounds",
+    )["data"]
+
+    formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+    if rows:
+        rv = rows[0]
+
+        # This check is added because if there are no sessions found, then the
+        # aggregations query return both the sessions_lower_bound and the
+        # sessions_upper_bound as `0` timestamp and we do not want that behaviour
+        # by default
+        # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
+        # is rendered as '0000-00-00 00:00:00' in clickhouse shell
+        if set(rv.values()) != {formatted_unix_start_time}:
+            release_sessions_time_bounds = {
+                "sessions_lower_bound": rv["first_session_started"],
+                "sessions_upper_bound": rv["last_session_started"],
+            }
+    return release_sessions_time_bounds

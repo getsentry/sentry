@@ -1,9 +1,9 @@
-from __future__ import absolute_import
-
 __all__ = ["override_options"]
 
-from django.test.utils import override_settings
 from contextlib import contextmanager
+
+from django.test.utils import override_settings
+
 from sentry.utils.compat.mock import patch
 
 
@@ -14,6 +14,7 @@ def override_options(options):
     Options.
     """
     from django.conf import settings
+
     from sentry.options import default_manager
 
     wrapped = default_manager.store.get

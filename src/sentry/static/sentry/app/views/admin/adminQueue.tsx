@@ -92,12 +92,11 @@ export default class AdminQueue extends AsyncView<{}, State> {
           <div className="m-b-1">
             <label>Show details for task:</label>
             <SelectField
-              deprecatedSelectControl
               name="task"
               onChange={value => this.changeTask(value as string)}
               value={activeTask}
               clearable
-              choices={[''].concat(...taskList).map(t => [t, t])}
+              choices={taskList.map(t => [t, t])}
             />
           </div>
           {activeTask ? (

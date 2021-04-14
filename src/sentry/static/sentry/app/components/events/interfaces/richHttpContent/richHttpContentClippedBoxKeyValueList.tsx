@@ -2,7 +2,7 @@ import React from 'react';
 
 import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import {Meta} from 'app/types';
 import {EntryRequest} from 'app/types/event';
 
@@ -47,7 +47,7 @@ const RichHttpContentClippedBoxKeyValueList = ({
 
   const transformedData = getTransformedData(data);
 
-  if (transformedData.length === 0) {
+  if (!transformedData.length) {
     return null;
   }
 

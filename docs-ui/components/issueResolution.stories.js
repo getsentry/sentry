@@ -1,8 +1,7 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
-import ResolutionBox from 'app/components/resolutionBox';
 import MutedBox from 'app/components/mutedBox';
+import ResolutionBox from 'app/components/resolutionBox';
 
 const actor = {
   email: 'uhoh@example.com',
@@ -26,7 +25,7 @@ export default {
   title: 'Features/Issues/ResolutionBox & MutedBox',
 };
 
-export const ResolvedStates = withInfo('Basic resolution & resolved by commit')(() => (
+export const ResolvedStates = () => (
   <div>
     <div className="section">
       <h3>Basic resolution</h3>
@@ -48,13 +47,11 @@ export const ResolvedStates = withInfo('Basic resolution & resolved by commit')(
       <ResolutionBox projectId="1" statusDetails={{inNextRelease: true, actor}} />
     </div>
   </div>
-));
+);
 
-ResolvedStates.story = {
-  name: 'resolved states',
-};
+ResolvedStates.storyName = 'resolved states';
 
-export const MutedStates = withInfo('Various mute modes')(() => (
+export const MutedStates = () => (
   <div>
     <div className="section">
       <h3>Basic mute</h3>
@@ -86,8 +83,6 @@ export const MutedStates = withInfo('Various mute modes')(() => (
       <MutedBox statusDetails={{ignoreUserCount: 10, ignoreUserWindow: 5}} />
     </div>
   </div>
-));
+);
 
-MutedStates.story = {
-  name: 'muted states',
-};
+MutedStates.storyName = 'muted states';

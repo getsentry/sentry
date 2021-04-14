@@ -1,13 +1,11 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
-from sentry.app import ratelimiter
-from sentry.utils import auth, metrics
-from sentry.utils.hashlib import md5_text
 from sentry.api.base import Endpoint
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
+from sentry.app import ratelimiter
+from sentry.utils import auth, metrics
+from sentry.utils.hashlib import md5_text
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.frontend.base import OrganizationMixin
 
@@ -25,7 +23,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
 
         # Rate limit logins
         is_limited = ratelimiter.is_limited(
-            u"auth:login:username:{}".format(
+            "auth:login:username:{}".format(
                 md5_text(login_form.clean_username(request.data.get("username"))).hexdigest()
             ),
             limit=10,

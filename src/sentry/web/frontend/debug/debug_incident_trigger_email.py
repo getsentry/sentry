@@ -1,18 +1,15 @@
-from __future__ import absolute_import, print_function
-
 from django.views.generic import View
 
-from sentry.models import Organization, Project
-from sentry.snuba.models import SnubaQuery
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
 from sentry.incidents.models import (
-    Incident,
     AlertRule,
     AlertRuleTrigger,
-    TriggerStatus,
+    Incident,
     IncidentStatus,
+    TriggerStatus,
 )
-
+from sentry.models import Organization, Project
+from sentry.snuba.models import SnubaQuery
 
 from .mail import MailPreview
 
@@ -41,7 +38,7 @@ class DebugIncidentTriggerEmailView(View):
         )
 
         return MailPreview(
-            text_template=u"sentry/emails/incidents/trigger.txt",
-            html_template=u"sentry/emails/incidents/trigger.html",
+            text_template="sentry/emails/incidents/trigger.txt",
+            html_template="sentry/emails/incidents/trigger.html",
             context=context,
         ).render(request)

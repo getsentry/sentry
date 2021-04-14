@@ -112,7 +112,7 @@ class RouteSource extends React.Component<Props, State> {
 
     const searchMap = flattenDepth<NavigationItem>(
       [
-        mapFunc(accountSettingsNavigation),
+        mapFunc(accountSettingsNavigation, context),
         mapFunc(projectSettingsNavigation, context),
         mapFunc(organizationSettingsNavigation, context),
       ],

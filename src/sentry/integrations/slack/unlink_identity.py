@@ -1,22 +1,18 @@
-from __future__ import absolute_import, print_function
-
-import six
-
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.http import Http404
 from django.views.decorators.cache import never_cache
 
 from sentry.models import Identity
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
-from sentry.shared_integrations.exceptions import ApiError
 
 from .client import SlackClient
-from .utils import logger, get_identity
+from .utils import get_identity, logger
 
 
 def build_unlinking_url(integration_id, organization_id, slack_id, channel_id, response_url):
@@ -68,7 +64,7 @@ class SlackUnlinkIdentityView(BaseView):
         try:
             client.post(params["response_url"], data=payload, json=True)
         except ApiError as e:
-            message = six.text_type(e)
+            message = str(e)
             # If the user took their time to link their slack account, we may no
             # longer be able to respond, and we're not guaranteed able to post into
             # the channel. Ignore Expired url errors.

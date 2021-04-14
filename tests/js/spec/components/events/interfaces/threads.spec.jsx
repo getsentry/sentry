@@ -96,7 +96,7 @@ describe('Threads', () => {
     expect(wrapper.find('Line').length).toBe(0);
   });
 
-  describe('Displays frame exception or a data of the active Thread if data.values.length equals 1 && data.values[0].threadId equals null', () => {
+  describe('Displays the stack trace of an exception if all threadIds of exceptionEntry.data.values do not match the threadId of the active thread and if the active thread has crashed equals true', () => {
     const threadsEntry = entries[1];
 
     it('Displays the exception stacktrace', () => {

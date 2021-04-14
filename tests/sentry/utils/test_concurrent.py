@@ -1,13 +1,11 @@
-from __future__ import absolute_import
-
+import _thread
 import sys
-
-import pytest
-from six.moves.queue import Full
-from six.moves import _thread
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
+from queue import Full
 from threading import Event
+
+import pytest
 
 from sentry.utils.compat import mock
 from sentry.utils.concurrent import (

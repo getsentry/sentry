@@ -1,35 +1,34 @@
-from __future__ import absolute_import
-
 from django.db import IntegrityError
+
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.tasks import assemble_download, merge_export_blobs
 from sentry.models import File
 from sentry.snuba.discover import InvalidSearchQuery
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import (
-    QueryOutsideRetentionError,
-    QueryIllegalTypeOfArgument,
-    SnubaError,
-    RateLimitExceeded,
-    QueryMemoryLimitExceeded,
-    QueryExecutionTimeMaximum,
-    QueryTooManySimultaneous,
     DatasetSelectionError,
     QueryConnectionFailed,
-    QuerySizeExceeded,
     QueryExecutionError,
+    QueryExecutionTimeMaximum,
+    QueryIllegalTypeOfArgument,
+    QueryMemoryLimitExceeded,
+    QueryOutsideRetentionError,
+    QuerySizeExceeded,
+    QueryTooManySimultaneous,
+    RateLimitExceeded,
     SchemaValidationError,
+    SnubaError,
     UnqualifiedQueryError,
 )
 
 
 class AssembleDownloadTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(AssembleDownloadTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
@@ -395,7 +394,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Invalid date range. Please try a more recent date range."
 
         # unicode
-        mock_query.side_effect = QueryOutsideRetentionError(u"\xfc")
+        mock_query.side_effect = QueryOutsideRetentionError("\xfc")
         with self.tasks():
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]
@@ -418,7 +417,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Invalid query. Please fix the query and try again."
 
         # unicode
-        mock_query.side_effect = InvalidSearchQuery(u"\xfc")
+        mock_query.side_effect = InvalidSearchQuery("\xfc")
         with self.tasks():
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]
@@ -441,7 +440,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Invalid query. Argument to function is wrong type."
 
         # unicode
-        mock_query.side_effect = QueryIllegalTypeOfArgument(u"\xfc")
+        mock_query.side_effect = QueryIllegalTypeOfArgument("\xfc")
         with self.tasks():
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]
@@ -454,7 +453,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Internal error. Please try again."
 
         # unicode
-        mock_query.side_effect = SnubaError(u"\xfc")
+        mock_query.side_effect = SnubaError("\xfc")
         with self.tasks():
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]
@@ -547,10 +546,36 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Failed to save the assembled file."
 
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover_sort(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={
+                "project": [self.project.id],
+                "field": ["environment"],
+                "sort": "-environment",
+                "query": "",
+            },
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+        de = ExportedData.objects.get(id=de.id)
+        # Convert raw csv to list of line-strings
+        header, raw1, raw2, raw3 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"environment"
+
+        assert raw1.startswith(b"prod")
+        assert raw2.startswith(b"prod")
+        assert raw3.startswith(b"dev")
+
+        assert emailer.called
+
 
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(AssembleDownloadLargeTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
         self.project = self.create_project()
@@ -559,7 +584,7 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
             event = data.copy()
             event.update(
                 {
-                    "transaction": "/event/{0:03d}/".format(i),
+                    "transaction": f"/event/{i:03d}/",
                     "timestamp": iso_format(before_now(minutes=1, seconds=i)),
                     "start_timestamp": iso_format(before_now(minutes=1, seconds=i + 1)),
                 }

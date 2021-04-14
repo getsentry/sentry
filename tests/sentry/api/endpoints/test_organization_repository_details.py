@@ -1,30 +1,19 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat.mock import patch
-
 from django.core.urlresolvers import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, OrganizationOption, Repository
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationRepositoryDeleteTest(APITestCase):
-    def setUp(self):
-        super(OrganizationRepositoryDeleteTest, self).setUp()
-
-        class mock_uuid(object):
-            hex = "1234567"
-
-        self.mock_uuid = mock_uuid
-
     def assert_rename_pending_delete(self, response, repo, external_id=None):
-        assert response.data["status"] == u"pending_deletion"
+        assert response.data["status"] == "pending_deletion"
         assert response.data["name"] == "example"  # name displayed matches what the user expects
 
         assert repo.status == ObjectStatus.PENDING_DELETION
-        assert repo.name == "1234567"
-        assert repo.external_id == "1234567"
+        assert repo.name == "abc123"
+        assert repo.external_id == "abc123"
         assert repo.config["pending_deletion_name"] == "example"
 
         option = OrganizationOption.objects.get(
@@ -48,7 +37,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.create(name="example", organization_id=org.id)
 
         url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        with patch("sentry.db.mixin.uuid4", new=self.mock_uuid):
+        with patch("sentry.db.mixin.uuid4", new=self.get_mock_uuid()):
             response = self.client.delete(url)
         assert response.status_code == 202, (response.status_code, response.content)
 
@@ -75,7 +64,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
 
-        with patch("sentry.db.mixin.uuid4", new=self.mock_uuid):
+        with patch("sentry.db.mixin.uuid4", new=self.get_mock_uuid()):
             response = self.client.delete(url)
 
         assert response.status_code == 202, (response.status_code, response.content)
@@ -105,7 +94,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
 
-        with patch("sentry.db.mixin.uuid4", new=self.mock_uuid):
+        with patch("sentry.db.mixin.uuid4", new=self.get_mock_uuid()):
             response = self.client.delete(url)
         assert response.status_code == 202, (response.status_code, response.content)
 
@@ -133,7 +122,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
 
-        with patch("sentry.db.mixin.uuid4", new=self.mock_uuid):
+        with patch("sentry.db.mixin.uuid4", new=self.get_mock_uuid()):
             response = self.client.delete(url)
 
         assert response.status_code == 202, (response.status_code, response.content)

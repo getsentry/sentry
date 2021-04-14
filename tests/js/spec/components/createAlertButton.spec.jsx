@@ -2,7 +2,10 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import * as navigation from 'app/actionCreators/navigation';
+import CreateAlertButton, {
+  CreateAlertFromViewButton,
+} from 'app/components/createAlertButton';
 import EventView from 'app/utils/discover/eventView';
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'app/views/eventsV2/data';
 
@@ -21,6 +24,12 @@ function generateWrappedComponent(organization, eventView) {
       onSuccess={onSuccessMock}
     />,
     TestStubs.routerContext()
+  );
+}
+
+function generateWrappedComponentButton(organization, extraProps) {
+  return mountWithTheme(
+    <CreateAlertButton organization={organization} {...extraProps} />
   );
 }
 
@@ -187,5 +196,82 @@ describe('CreateAlertFromViewButton', () => {
 
     const button = wrapper.find('button[aria-label="Create Alert"]');
     expect(button.props()['aria-disabled']).toBe(true);
+  });
+
+  it('shows a guide for members', async () => {
+    const noAccessOrg = {
+      ...organization,
+      access: [],
+    };
+
+    const wrapper = generateWrappedComponentButton(noAccessOrg, {
+      showPermissionGuide: true,
+    });
+
+    const guide = wrapper.find('GuideAnchor');
+    expect(guide.props().target).toBe('alerts_write_member');
+  });
+
+  it('shows a guide for owners/admins', async () => {
+    const adminAccessOrg = {
+      ...organization,
+      access: ['org:write'],
+    };
+
+    const wrapper = generateWrappedComponentButton(adminAccessOrg, {
+      showPermissionGuide: true,
+    });
+
+    const guide = wrapper.find('GuideAnchor');
+    expect(guide.props().target).toBe('alerts_write_owner');
+    expect(guide.props().onFinish).toBeDefined();
+  });
+
+  it('redirects to alert builder with no project', async () => {
+    jest.spyOn(navigation, 'navigateTo');
+
+    const wrapper = generateWrappedComponentButton(organization);
+    wrapper.simulate('click');
+    expect(navigation.navigateTo).toHaveBeenCalledWith(
+      `/organizations/org-slug/alerts/:projectId/new/`,
+      undefined
+    );
+  });
+
+  it('redirects to alert builder with a project', async () => {
+    const wrapper = generateWrappedComponentButton(organization, {
+      projectSlug: 'proj-slug',
+    });
+
+    expect(wrapper.find('Button').props().to).toBe(
+      `/organizations/org-slug/alerts/proj-slug/new/`
+    );
+  });
+
+  it('redirects to the alert wizard w/ feature flag with no project', async () => {
+    jest.spyOn(navigation, 'navigateTo');
+    const wizardOrg = {
+      ...organization,
+      features: ['alert-wizard'],
+    };
+
+    const wrapper = generateWrappedComponentButton(wizardOrg);
+    wrapper.simulate('click');
+    expect(navigation.navigateTo).toHaveBeenCalledWith(
+      `/organizations/org-slug/alerts/:projectId/wizard/`,
+      undefined
+    );
+  });
+
+  it('redirects to the alert wizard with a project', async () => {
+    const wizardOrg = {
+      ...organization,
+      features: ['alert-wizard'],
+    };
+
+    const wrapper = generateWrappedComponentButton(wizardOrg, {projectSlug: 'proj-slug'});
+    expect(wrapper.find('Button').props().to).toBe(
+      `/organizations/org-slug/alerts/proj-slug/wizard/`
+    );
   });
 });

@@ -1,10 +1,6 @@
-from __future__ import absolute_import, print_function
-
 import logging
-
 from uuid import uuid4
 
-import six
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -14,11 +10,12 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+import sentry.utils.json as json
 from sentry import features
-from sentry.app import locks
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
-from sentry.auth.provider import MigratingIdentityId
+from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.provider import MigratingIdentityId
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
@@ -34,13 +31,12 @@ from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.redis import clusters
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
+from sentry.utils.redis import clusters
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
-import sentry.utils.json as json
 
 from . import manager
 
@@ -59,7 +55,7 @@ ERR_NOT_AUTHED = _("You must be authenticated to link accounts.")
 ERR_INVALID_IDENTITY = _("The provider did not return a valid user identity.")
 
 
-class RedisBackedState(object):
+class RedisBackedState:
     # Expire the pipeline after 10 minutes of inactivity.
     EXPIRATION_TTL = 10 * 60
 
@@ -75,7 +71,7 @@ class RedisBackedState(object):
         return self.request.session.get("auth_key")
 
     def regenerate(self, initial_state):
-        auth_key = u"auth:pipeline:{}".format(uuid4().hex)
+        auth_key = f"auth:pipeline:{uuid4().hex}"
 
         self.request.session["auth_key"] = auth_key
         self.request.session.modified = True
@@ -446,6 +442,9 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
         op = None
 
     if not op:
+        # A blank character is needed to prevent the HTML span from collapsing
+        provider_name = auth_provider.get_provider().name if auth_provider else " "
+
         if request.user.is_authenticated():
             return respond(
                 "sentry/auth-confirm-link.html",
@@ -453,6 +452,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
                 request,
                 {
                     "identity": identity,
+                    "provider": provider_name,
                     "existing_user": request.user,
                     "identity_display_name": get_display_name(identity),
                     "identity_identifier": get_identifier(identity),
@@ -466,6 +466,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
             {
                 "existing_user": acting_user,
                 "identity": identity,
+                "provider": provider_name,
                 "login_form": login_form,
                 "identity_display_name": get_display_name(identity),
                 "identity_identifier": get_identifier(identity),
@@ -517,7 +518,7 @@ def handle_new_user(auth_provider, organization, request, identity):
     return auth_identity
 
 
-class AuthHelper(object):
+class AuthHelper:
     """
     Helper class which is passed into AuthView's.
 
@@ -653,7 +654,7 @@ class AuthHelper(object):
         try:
             identity = self.provider.build_identity(data)
         except IdentityNotValid as error:
-            return self.error(six.text_type(error) or ERR_INVALID_IDENTITY)
+            return self.error(str(error) or ERR_INVALID_IDENTITY)
 
         if self.state.flow == self.FLOW_LOGIN:
             # create identity and authenticate the user
@@ -681,9 +682,7 @@ class AuthHelper(object):
         auth_provider = self.auth_provider
         user_id = identity["id"]
 
-        lock = locks.get(
-            u"sso:auth:{}:{}".format(auth_provider.id, md5_text(user_id).hexdigest()), duration=5
-        )
+        lock = locks.get(f"sso:auth:{auth_provider.id}:{md5_text(user_id).hexdigest()}", duration=5)
         with TimedRetryPolicy(5)(lock.acquire):
             try:
                 auth_identity = AuthIdentity.objects.select_related("user").get(
@@ -844,9 +843,7 @@ class AuthHelper(object):
             sample_rate=1.0,
         )
 
-        messages.add_message(
-            self.request, messages.ERROR, u"Authentication error: {}".format(message)
-        )
+        messages.add_message(self.request, messages.ERROR, f"Authentication error: {message}")
 
         return HttpResponseRedirect(redirect_uri)
 
@@ -875,5 +872,5 @@ class AuthHelper(object):
             organization=self.organization,
             target_object=self.organization.id,
             event=AuditLogEntryEvent.ORG_EDIT,
-            data={"require_2fa": u"to False when enabling SSO"},
+            data={"require_2fa": "to False when enabling SSO"},
         )

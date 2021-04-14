@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 import logging
 
 from sentry.tasks.post_process import post_process_group
-from sentry.utils.services import Service
 from sentry.utils.cache import cache_key_for_event
-
+from sentry.utils.services import Service
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +25,8 @@ class EventStream(Service):
         "end_unmerge",
         "start_delete_tag",
         "end_delete_tag",
-        "tombstone_events",
+        "tombstone_events_unsafe",
+        "replace_group_unsafe",
         "exclude_groups",
         "requires_post_process_forwarder",
         "run_post_process_forwarder",
@@ -97,7 +95,12 @@ class EventStream(Service):
     def end_delete_tag(self, state):
         pass
 
-    def tombstone_events(self, project_id, event_ids):
+    def tombstone_events_unsafe(
+        self, project_id, event_ids, old_primary_hash=False, from_timestamp=None, to_timestamp=None
+    ):
+        pass
+
+    def replace_group_unsafe(self, project_id, event_ids, new_group_id):
         pass
 
     def exclude_groups(self, project_id, group_ids):

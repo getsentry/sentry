@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
+import {bulkDelete, bulkUpdate, mergeGroups} from 'app/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Checkbox from 'app/components/checkbox';
@@ -23,16 +24,17 @@ type Props = {
   organization: Organization;
   selection: GlobalSelection;
   groupIds: string[];
+  onDelete: () => void;
   onRealtimeChange: (realtime: boolean) => void;
   onSelectStatsPeriod: (period: string) => void;
   realtimeActive: boolean;
   statsPeriod: string;
   query: string;
   queryCount: number;
-  queryMaxCount: number;
-  pageCount: number;
+  displayCount: React.ReactElement;
   displayReprocessingActions: boolean;
   hasInbox?: boolean;
+  onMarkReviewed?: (itemIds: string[]) => void;
 };
 
 type State = {
@@ -119,11 +121,15 @@ class IssueListActions extends React.Component<Props, State> {
   };
 
   handleUpdate = (data?: any) => {
-    const {selection, api, organization, query} = this.props;
+    const {selection, api, organization, query, onMarkReviewed} = this.props;
     const orgId = organization.slug;
 
     this.actionSelectedGroups(itemIds => {
       addLoadingMessage(t('Saving changes\u2026'));
+
+      if (data?.inbox === false) {
+        onMarkReviewed?.(itemIds ?? []);
+      }
 
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
@@ -133,7 +139,8 @@ class IssueListActions extends React.Component<Props, State> {
       // * users with global views need to be explicit about what projects the query will run against
       const projectConstraints = {project: selection.projects};
 
-      api.bulkUpdate(
+      bulkUpdate(
+        api,
         {
           orgId,
           itemIds,
@@ -153,13 +160,14 @@ class IssueListActions extends React.Component<Props, State> {
   };
 
   handleDelete = () => {
-    const {selection, api, organization, query} = this.props;
+    const {selection, api, organization, query, onDelete} = this.props;
     const orgId = organization.slug;
 
     addLoadingMessage(t('Removing events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
-      api.bulkDelete(
+      bulkDelete(
+        api,
         {
           orgId,
           itemIds,
@@ -171,6 +179,7 @@ class IssueListActions extends React.Component<Props, State> {
         {
           complete: () => {
             clearIndicators();
+            onDelete();
           },
         }
       );
@@ -184,7 +193,8 @@ class IssueListActions extends React.Component<Props, State> {
     addLoadingMessage(t('Merging events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
-      api.merge(
+      mergeGroups(
+        api,
         {
           orgId,
           itemIds,
@@ -237,8 +247,6 @@ class IssueListActions extends React.Component<Props, State> {
       query,
       realtimeActive,
       statsPeriod,
-      pageCount,
-      queryMaxCount,
       selection,
       organization,
       displayReprocessingActions,
@@ -265,7 +273,7 @@ class IssueListActions extends React.Component<Props, State> {
               disabled={displayReprocessingActions}
             />
           </ActionsCheckbox>
-          {(anySelected || !hasInbox) && !displayReprocessingActions && (
+          {!displayReprocessingActions && (
             <ActionSet
               orgSlug={organization.slug}
               queryCount={queryCount}
@@ -289,9 +297,6 @@ class IssueListActions extends React.Component<Props, State> {
             anySelected={anySelected}
             selection={selection}
             statsPeriod={statsPeriod}
-            pageCount={pageCount}
-            queryCount={queryCount}
-            queryMaxCount={queryMaxCount}
             hasInbox={hasInbox}
             isReprocessingQuery={displayReprocessingActions}
           />

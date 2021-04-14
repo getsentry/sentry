@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import OrganizationAccessRequest
 
@@ -10,7 +6,7 @@ from sentry.models import OrganizationAccessRequest
 class OrganizationAccessRequestSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "member": serialize(obj.member),
             "team": serialize(obj.team),
             "requester": serialize(obj.requester),

@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
-from sentry.utils.compat.mock import patch
-
 from datadog.util.hostname import get_hostname
 
 from sentry.metrics.datadog import DatadogMetricsBackend
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class DatadogMetricsBackendTest(TestCase):

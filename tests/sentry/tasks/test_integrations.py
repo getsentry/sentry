@@ -1,12 +1,10 @@
-from __future__ import absolute_import, print_function
-
 from time import time
 
-from sentry.models import Integration, Identity, IdentityProvider
-from sentry.testutils import TestCase
-from sentry.tasks.integrations import kickoff_vsts_subscription_check
-
 import responses
+
+from sentry.models import Identity, IdentityProvider, Integration
+from sentry.tasks.integrations import kickoff_vsts_subscription_check
+from sentry.testutils import TestCase
 
 
 class VstsSubscriptionCheckTest(TestCase):

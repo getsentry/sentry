@@ -1,8 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
-
 def remove_non_stacktrace_variants(variants):
     """This is a utility function that when given multiple variants will
     mark all variants as non contributing that do not contain any stacktraces
@@ -16,7 +11,7 @@ def remove_non_stacktrace_variants(variants):
 
     # In case any of the variants has a contributing stacktrace, we want
     # to make all other variants non contributing.
-    for key, component in six.iteritems(variants):
+    for key, component in variants.items():
         stacktrace_iter = component.iter_subcomponents(
             id="stacktrace", recursive=True, only_contributing=True
         )

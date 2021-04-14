@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -7,7 +5,6 @@ from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.hashlib import md5_text
-
 
 MAX_RECENT_SEARCHES = 30
 

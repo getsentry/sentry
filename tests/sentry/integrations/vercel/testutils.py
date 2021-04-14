@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE = """
     {
         "id": "uev_ZfbZKA3Ts2aEa2Cic6t6wSZx",

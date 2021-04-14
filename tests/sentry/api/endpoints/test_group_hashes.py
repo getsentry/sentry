@@ -1,14 +1,11 @@
-from __future__ import absolute_import
-
 import copy
+from urllib.parse import urlencode
 
-from six.moves.urllib.parse import urlencode
-
+from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models import GroupHash
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.eventstream.snuba import SnubaEventStream
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class GroupHashesTest(APITestCase, SnubaTestCase):
@@ -43,7 +40,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         assert new_event.group_id == old_event.group_id
 
-        url = u"/api/0/issues/{}/hashes/".format(new_event.group_id)
+        url = f"/api/0/issues/{new_event.group_id}/hashes/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -83,7 +80,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         eventstream.end_merge(state)
 
-        url = u"/api/0/issues/{}/hashes/".format(event1.group_id)
+        url = f"/api/0/issues/{event1.group_id}/hashes/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -104,7 +101,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         url = "?".join(
             [
-                u"/api/0/issues/{}/hashes/".format(group.id),
+                f"/api/0/issues/{group.id}/hashes/",
                 urlencode({"id": [h.hash for h in hashes]}, True),
             ]
         )

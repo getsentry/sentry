@@ -1,8 +1,7 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
+
 from sentry.constants import SentryAppStatus
-from sentry.models import SentryApp, OrganizationMember
+from sentry.models import OrganizationMember, SentryApp
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.utils import json
@@ -150,7 +149,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data["name"] == "NewName"
         assert response.data["slug"] == slug
         assert response.data["scopes"] == ["event:read"]
-        assert response.data["events"] == set(["issue"])
+        assert response.data["events"] == {"issue"}
         assert response.data["uuid"] == self.unpublished_app.uuid
         assert response.data["webhookUrl"] == "https://newurl.com"
 

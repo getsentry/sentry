@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from django.test import RequestFactory
 from exam import fixture
-from sentry.utils.compat.mock import patch
 
 from sentry.middleware.stats import RequestTimingMiddleware, add_request_metric_tags
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
+from sentry.utils.compat.mock import patch
 
 
 class RequestTimingMiddlewareTest(TestCase):

@@ -1,10 +1,9 @@
-from __future__ import absolute_import
+import logging
 
 import pytest
-import logging
-from sentry.utils.compat import mock
 
 from sentry.logging.handlers import StructLogHandler
+from sentry.utils.compat import mock
 
 
 @pytest.fixture

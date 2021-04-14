@@ -1,8 +1,7 @@
-from __future__ import absolute_import
 import unittest
+from datetime import datetime
 
 import pytz
-from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.api.endpoints.project_release_details import ReleaseSerializer
@@ -215,7 +214,7 @@ class ReleaseDeleteTest(APITestCase):
 
 class ReleaseSerializerTest(unittest.TestCase):
     def setUp(self):
-        super(ReleaseSerializerTest, self).setUp()
+        super().setUp()
         self.commits = [{"id": "a" * 40}, {"id": "b" * 40}]
         self.ref = "master"
         self.url = "https://example.com"

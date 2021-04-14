@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 import logging
 import re
 
-from django.conf.urls import include, url, RegexURLResolver, RegexURLPattern
+from django.conf.urls import RegexURLPattern, RegexURLResolver, include, url
 
 from sentry.plugins.base import plugins
 

@@ -8,7 +8,12 @@ import withOrganization from 'app/utils/withOrganization';
 
 import ProjectDetail from './projectDetail';
 
-function ProjectDetailContainer(props: ProjectDetail['props']) {
+function ProjectDetailContainer(
+  props: Omit<
+    React.ComponentProps<typeof ProjectDetail>,
+    'projects' | 'loadingProjects' | 'selection'
+  >
+) {
   function renderNoAccess() {
     return (
       <PageContent>

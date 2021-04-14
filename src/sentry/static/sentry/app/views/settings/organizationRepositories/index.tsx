@@ -13,16 +13,12 @@ type Props = RouteComponentProps<{orgId: string}, {}> & AsyncView['props'];
 
 type State = AsyncView['state'] & {
   itemList: Repository[] | null;
-  repoConfig: any[] | null; // TODO
 };
 
 export default class OrganizationRepositoriesContainer extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
-    return [
-      ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
-      ['repoConfig', `/organizations/${orgId}/config/repos/`],
-    ];
+    return [['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}]];
   }
 
   // Callback used by child component to signal state change
@@ -42,16 +38,18 @@ export default class OrganizationRepositoriesContainer extends AsyncView<Props, 
   }
 
   renderBody() {
+    const {itemList, itemListPageLinks} = this.state;
+
     return (
       <React.Fragment>
         <OrganizationRepositories
           {...this.props}
-          itemList={this.state.itemList!}
+          itemList={itemList!}
           api={this.api}
           onRepositoryChange={this.onRepositoryChange}
         />
-        {this.state.itemListPageLinks && (
-          <Pagination pageLinks={this.state.itemListPageLinks} {...this.props} />
+        {itemListPageLinks && (
+          <Pagination pageLinks={itemListPageLinks} {...this.props} />
         )}
       </React.Fragment>
     );

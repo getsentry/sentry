@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from sentry.integrations.jira.extension_configuration import JiraExtensionConfigurationView
 from sentry.testutils import TestCase
 from sentry.utils import json

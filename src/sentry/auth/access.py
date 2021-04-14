@@ -1,13 +1,10 @@
-from __future__ import absolute_import
-
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
 import warnings
 
+import sentry_sdk
 from django.conf import settings
 from django.utils.functional import cached_property
-
-import sentry_sdk
 
 from sentry import roles
 from sentry.auth.superuser import is_active_superuser
@@ -19,8 +16,8 @@ from sentry.models import (
     Project,
     ProjectStatus,
     SentryApp,
-    UserPermission,
     Team,
+    UserPermission,
 )
 
 
@@ -66,7 +63,7 @@ def _sso_params(member):
     return requires_sso, sso_is_valid
 
 
-class BaseAccess(object):
+class BaseAccess:
     is_active = False
     sso_is_valid = False
     requires_sso = False

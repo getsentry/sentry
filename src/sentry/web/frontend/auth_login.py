@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -13,12 +11,12 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationStatus, OrganizationMember
+from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
 from sentry.signals import join_request_link_viewed, user_signup
-from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
-from sentry.web.frontend.base import BaseView
 from sentry.utils import auth, metrics
 from sentry.utils.sdk import capture_exception
+from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
+from sentry.web.frontend.base import BaseView
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
 
@@ -26,7 +24,7 @@ ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On 
 # Stores callbacks that are called to get additional template context data before the login page
 # is rendered. Callbacks are called in any order. If an error is encountered in a callback it is
 # ignored. This works like HookStore in Javascript.
-class AdditionalContext(object):
+class AdditionalContext:
     def __init__(self):
         self._callbacks = set()
 
@@ -173,14 +171,14 @@ class AuthLoginView(BaseView):
             )
 
             if login_attempt and ratelimiter.is_limited(
-                u"auth:login:username:{}".format(
+                "auth:login:username:{}".format(
                     md5_text(login_form.clean_username(request.POST["username"])).hexdigest()
                 ),
                 limit=10,
                 window=60,  # 10 per minute should be enough for anyone
             ):
                 login_form.errors["__all__"] = [
-                    u"You have made too many login attempts. Please try again later."
+                    "You have made too many login attempts. Please try again later."
                 ]
                 metrics.incr(
                     "login.attempt", instance="rate_limited", skip_internal=True, sample_rate=1.0
@@ -195,6 +193,19 @@ class AuthLoginView(BaseView):
 
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
+                if organization and settings.SENTRY_SINGLE_ORGANIZATION:
+                    try:
+                        om = OrganizationMember.objects.get(
+                            organization=organization, email=user.email
+                        )
+                    except OrganizationMember.DoesNotExist:
+                        pass
+                    else:
+                        # XXX(jferge): if user is in 2fa removed state,
+                        # dont redirect to org login page instead redirect to general login where
+                        # they will be prompted to check their email
+                        if om.user is None:
+                            return self.redirect(auth.get_login_url())
 
                 return self.redirect(auth.get_login_redirect(request))
             else:
@@ -212,7 +223,6 @@ class AuthLoginView(BaseView):
             "join_request_link": self.get_join_request_link(organization),
         }
         context.update(additional_context.run_callbacks(request))
-
         return self.respond_login(request, context, **kwargs)
 
     def handle_authenticated(self, request):
@@ -224,7 +234,7 @@ class AuthLoginView(BaseView):
     @never_cache
     @transaction.atomic
     def handle(self, request, *args, **kwargs):
-        return super(AuthLoginView, self).handle(request, *args, **kwargs)
+        return super().handle(request, *args, **kwargs)
 
     # XXX(dcramer): OAuth provider hooks this view
     def get(self, request, **kwargs):

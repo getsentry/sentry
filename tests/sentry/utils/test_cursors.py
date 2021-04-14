@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 import math
 
 from sentry.utils.compat.mock import Mock
-
-from sentry.utils.cursors import build_cursor, Cursor
+from sentry.utils.cursors import Cursor, build_cursor
 
 
 def build_mock(**attrs):

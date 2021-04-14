@@ -1,12 +1,10 @@
-from __future__ import absolute_import
+from contextlib import contextmanager
 
 import pytest
 
-from contextlib import contextmanager
-
-from sentry.projectoptions import defaults, default_manager
-from sentry.projectoptions.manager import WellKnownProjectOption
 from sentry.models import ProjectOption
+from sentry.projectoptions import default_manager, defaults
+from sentry.projectoptions.manager import WellKnownProjectOption
 
 
 @contextmanager

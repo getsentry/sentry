@@ -1,46 +1,42 @@
-from __future__ import absolute_import
-
 import re
-import six
+
 from django.db import IntegrityError
 from django.db.models import Q
 from django.db.models.functions import Coalesce
-from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
 from sentry import analytics
-
-from sentry.api.bases import NoProjects
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
+from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import InvalidRepository, ConflictError
-from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
+from sentry.api.exceptions import ConflictError, InvalidRepository
+from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
+    ListField,
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseWithVersionSerializer,
-    ListField,
 )
 from sentry.models import (
     Activity,
+    Project,
     Release,
     ReleaseCommitError,
     ReleaseProject,
     ReleaseStatus,
-    Project,
 )
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
-    get_changed_project_release_model_adoptions,
-    get_project_releases_by_stability,
-    get_oldest_health_data_for_releases,
     STATS_PERIODS,
+    get_changed_project_release_model_adoptions,
+    get_oldest_health_data_for_releases,
+    get_project_releases_by_stability,
 )
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
-from sentry.utils.sdk import configure_scope, bind_organization_context
-
+from sentry.utils.sdk import bind_organization_context, configure_scope
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
@@ -173,10 +169,8 @@ class OrganizationReleasesEndpoint(
             return Response([])
 
         # This should get us all the projects into postgres that have received
-        # health data in the last 24 hours.  If health data is not requested
-        # we don't upsert releases.
-        if with_health:
-            debounce_update_release_health_data(organization, filter_params["project_id"])
+        # health data in the last 24 hours.
+        debounce_update_release_health_data(organization, filter_params["project_id"])
 
         queryset = Release.objects.filter(organization=organization)
 
@@ -264,7 +258,7 @@ class OrganizationReleasesEndpoint(
                 summary_stats_period=summary_stats_period,
                 environments=filter_params.get("environment") or None,
             ),
-            **paginator_kwargs
+            **paginator_kwargs,
         )
 
     def post(self, request, organization):
@@ -401,7 +395,7 @@ class OrganizationReleasesEndpoint(
                         release.set_refs(refs, request.user, fetch=fetch_commits)
                     except InvalidRepository as e:
                         scope.set_tag("failure_reason", "InvalidRepository")
-                        return Response({"refs": [six.text_type(e)]}, status=400)
+                        return Response({"refs": [str(e)]}, status=400)
 
                 if not created and not new_projects:
                     # This is the closest status code that makes sense, and we want
@@ -445,7 +439,9 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
             Release.objects.filter(
                 organization=organization, projects__id__in=filter_params["project_id"]
             )
-            .annotate(date=Coalesce("date_released", "date_added"),)
+            .annotate(
+                date=Coalesce("date_released", "date_added"),
+            )
             .values("version", "date")
             .order_by("-date")
             .distinct()

@@ -1,10 +1,11 @@
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
 } from 'app/views/alerts/utils';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 import {
   AlertRuleThresholdType,
   Dataset,
@@ -15,6 +16,7 @@ import {
 } from 'app/views/settings/incidentRules/types';
 
 export const DEFAULT_AGGREGATE = 'count()';
+export const DEFAULT_TRANSACTION_AGGREGATE = 'p95(transaction.duration)';
 
 export const DATASET_EVENT_TYPE_FILTERS = {
   [Dataset.ERRORS]: 'event.type:error',
@@ -97,7 +99,22 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
     ...createDefaultRule(),
     ...datasetAndEventtypes,
     query: parsedQuery?.query ?? eventView.query,
-    aggregate: eventView.getYAxis(),
+    // If creating a metric alert for transactions, default to the p95 metric
+    aggregate:
+      datasetAndEventtypes.dataset === 'transactions'
+        ? 'p95(transaction.duration)'
+        : eventView.getYAxis(),
     environment: eventView.environment.length ? eventView.environment[0] : null,
+  };
+}
+
+export function createRuleFromWizardTemplate(
+  wizardTemplate: WizardRuleTemplate
+): UnsavedIncidentRule {
+  const {eventTypes, ...aggregateDataset} = wizardTemplate;
+  return {
+    ...createDefaultRule(),
+    eventTypes: [eventTypes],
+    ...aggregateDataset,
   };
 }

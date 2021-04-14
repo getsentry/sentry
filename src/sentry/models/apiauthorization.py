@@ -1,10 +1,8 @@
-from __future__ import absolute_import, print_function
-
 from django.db import models
 from django.utils import timezone
 
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.models.apiscopes import HasApiScopes
-from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 
 
 class ApiAuthorization(Model, HasApiScopes):

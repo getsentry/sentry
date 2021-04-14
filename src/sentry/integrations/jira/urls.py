@@ -1,16 +1,13 @@
-from __future__ import absolute_import, print_function
-
 from django.conf.urls import url
 
-from .ui_hook import JiraUiHookView
-from .issue_hook import JiraIssueHookView
 from .descriptor import JiraDescriptorEndpoint
+from .extension_configuration import JiraExtensionConfigurationView
 from .installed import JiraInstalledEndpoint
+from .issue_hook import JiraIssueHookView
 from .search import JiraSearchEndpoint
+from .ui_hook import JiraUiHookView
 from .uninstalled import JiraUninstalledEndpoint
 from .webhooks import JiraIssueUpdatedWebhook
-from .extension_configuration import JiraExtensionConfigurationView
-
 
 urlpatterns = [
     url(r"^ui-hook/$", JiraUiHookView.as_view()),
@@ -28,5 +25,9 @@ urlpatterns = [
         name="sentry-extensions-jira-search",
     ),
     url(r"^configure/$", JiraExtensionConfigurationView.as_view()),
-    url(r"^issue/(?P<issue_key>[^\/]+)/$", JiraIssueHookView.as_view()),
+    url(
+        r"^issue/(?P<issue_key>[^\/]+)/$",
+        JiraIssueHookView.as_view(),
+        name="sentry-extensions-jira-issue-hook",
+    ),
 ]

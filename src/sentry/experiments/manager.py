@@ -1,8 +1,4 @@
-from __future__ import absolute_import
-import six
-
-
-class ExperimentManager(object):
+class ExperimentManager:
     """
     Allows loading of experiment assignments (done in getsentry) on the frontend by
     including them in the serialized org details via the org serializer which is in sentry.
@@ -37,7 +33,7 @@ class ExperimentManager(object):
             kwargs = {"user": user}
             unit = "user"
 
-        for k, v in six.iteritems(self._experiments):
+        for k, v in self._experiments.items():
             cls = v["experiment"]
             if hasattr(cls, "unit") and cls.unit == unit:
                 assignments[k] = cls(**kwargs).get_variant(v["param"], log_exposure=False)

@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
-import re
-import six
 import logging
+import re
 
 from sentry.attachments import attachment_cache
 from sentry.stacktraces.processing import find_stacktraces_in_data
@@ -82,7 +79,7 @@ def get_sdk_from_os(data):
         return
 
     try:
-        version = six.text_type(data["version"]).split("-", 1)[0] + ".0" * 3
+        version = str(data["version"]).split("-", 1)[0] + ".0" * 3
         system_version = tuple(int(x) for x in version.split(".")[:3])
     except ValueError:
         return

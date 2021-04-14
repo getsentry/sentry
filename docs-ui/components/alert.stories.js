@@ -1,17 +1,20 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {withInfo} from '@storybook/addon-info';
 
-import space from 'app/styles/space';
 import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
-import {IconInfo, IconCheckmark, IconWarning, IconNot} from 'app/icons';
+import {IconCheckmark, IconInfo, IconNot, IconWarning} from 'app/icons';
+import space from 'app/styles/space';
 
 export default {
   title: 'Core/Alerts/Alert',
+  component: Alert,
+  parameters: {
+    controls: {hideNoControlsWarning: true},
+  },
 };
 
-export const Default = withInfo('Inline alert messages')(() => (
+export const Default = () => (
   <Grid>
     <Alert type="info">
       <ExternalLink href="#">Info message with a url</ExternalLink>
@@ -26,9 +29,16 @@ export const Default = withInfo('Inline alert messages')(() => (
       configuration or a serious backlog in tasks.
     </Alert>
   </Grid>
-));
+);
+Default.parameters = {
+  docs: {
+    description: {
+      story: 'Inline alert messages',
+    },
+  },
+};
 
-export const WithIcons = withInfo('Inline alert messages')(() => (
+export const WithIcons = () => (
   <Grid>
     <Alert type="info" icon={<IconInfo size="md" />}>
       <ExternalLink href="#">Info message with a url</ExternalLink>
@@ -47,15 +57,18 @@ export const WithIcons = withInfo('Inline alert messages')(() => (
       configuration or a serious backlog in tasks.
     </Alert>
   </Grid>
-));
+);
 
-WithIcons.story = {
-  name: 'With icons',
+WithIcons.storyName = 'With icons';
+WithIcons.parameters = {
+  docs: {
+    description: {
+      story: 'Inline alert messages',
+    },
+  },
 };
 
-export const System = withInfo(
-  'System-level alert messages that appear at the top of the viewport, or embedded in a panel'
-)(() => (
+export const System = () => (
   <Grid>
     <Alert type="info" system>
       <ExternalLink href="#">Info message with a url</ExternalLink>
@@ -74,7 +87,16 @@ export const System = withInfo(
       configuration or a serious backlog in tasks.
     </Alert>
   </Grid>
-));
+);
+
+System.parameters = {
+  docs: {
+    description: {
+      story:
+        'System-level alert messages that appear at the top of the viewport, or embedded in a panel',
+    },
+  },
+};
 
 const Grid = styled('div')`
   display: grid;

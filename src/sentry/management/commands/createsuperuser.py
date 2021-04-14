@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.contrib.auth.management.commands.createsuperuser import Command
 
 

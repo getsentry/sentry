@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
@@ -18,7 +16,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/tags/{}/values/".format(group.id, key)
+        url = f"/api/0/issues/{group.id}/tags/{key}/values/"
 
         response = self.client.get(url)
 
@@ -45,7 +43,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/tags/user/values/".format(group.id)
+        url = f"/api/0/issues/{group.id}/tags/user/values/"
 
         response = self.client.get(url)
 

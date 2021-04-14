@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework import serializers
 
 from sentry.utils.http import parse_uri_match
@@ -10,7 +8,7 @@ class OriginField(serializers.CharField):
     WHITELIST_ORIGINS = "*"
 
     def to_internal_value(self, data):
-        rv = super(OriginField, self).to_internal_value(data)
+        rv = super().to_internal_value(data)
         if not rv:
             return
         if not self.is_valid_origin(rv):
