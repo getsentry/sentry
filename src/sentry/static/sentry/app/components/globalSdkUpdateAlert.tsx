@@ -7,7 +7,7 @@ import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconUpgrade} from 'app/icons';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
   GlobalSelection,
@@ -141,24 +141,27 @@ class InnerGlobalSdkSuggestions extends React.Component<Props, State> {
           SidebarPanelActions.activatePanel(SidebarPanelKey.Broadcasts);
           recordAnalyticsClicked({organization});
         }}
-      />
+      >
+        {t('Review updates')}
+      </Button>
     );
 
     const notice = (
       <Alert type="info" icon={<IconUpgrade />} {...props}>
         <Content>
-          {tct(
-            `Looks like some SDKs configured for the selected projects are out of date.
-             [showBroadcastsPanel:View upgrade suggestions]`,
-            {showBroadcastsPanel}
+          {t(
+            `You have outdated SDKs in your projects. Update them for important fixes and features.`
           )}
-          <Button
-            priority="link"
-            title={t('Dismiss SDK update notifications for the next two weeks')}
-            onClick={this.snoozePrompt}
-          >
-            {t('Remind me later')}
-          </Button>
+          <Actions>
+            <Button
+              priority="link"
+              title={t('Dismiss for the next two weeks')}
+              onClick={this.snoozePrompt}
+            >
+              {t('Remind me later')}
+            </Button>
+            |{showBroadcastsPanel}
+          </Actions>
         </Content>
       </Alert>
     );
@@ -168,8 +171,17 @@ class InnerGlobalSdkSuggestions extends React.Component<Props, State> {
 }
 
 const Content = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    justify-content: space-between;
+  }
+`;
+
+const Actions = styled('div')`
   display: grid;
-  grid-template-columns: 1fr max-content;
+  grid-template-columns: repeat(3, max-content);
   grid-gap: ${space(1)};
 `;
 
