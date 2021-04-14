@@ -59,7 +59,7 @@ def _get_function_name(frame_data: dict, platform: Optional[str]):
 
 def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
     """ Create flat dict of values relevant to matchers """
-    return dict(
+    match_frame = dict(
         category=get_path(frame_data, "data", "category"),
         family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
         function=_get_function_name(frame_data, platform),
@@ -68,6 +68,14 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
         package=frame_data.get("package"),
         path=frame_data.get("abs_path") or frame_data.get("filename"),
     )
+
+    for key in list(match_frame.keys()):
+        value = match_frame[key]
+        if isinstance(value, str):
+            if key in ("package", "path"):
+                value = match_frame[key] = value.lower()
+
+    return match_frame
 
 
 class Match:
@@ -144,6 +152,7 @@ class FrameMatch(Match):
         except KeyError:
             raise InvalidEnhancerConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
+        self.encoded_pattern = pattern.encode("utf-8")
         self.negated = negated
 
     @property
@@ -176,10 +185,10 @@ class FrameMatch(Match):
 
 def path_like_match(pattern, value):
 
-    if glob_match(value, pattern, ignorecase=True, doublestar=True, path_normalize=True):
+    if glob_match(value, pattern, ignorecase=False, doublestar=True, path_normalize=True):
         return True
     if not value.startswith("/") and glob_match(
-        "/" + value, pattern, ignorecase=True, doublestar=True, path_normalize=True
+        "/" + value, pattern, ignorecase=False, doublestar=True, path_normalize=True
     ):
         return True
 
@@ -187,12 +196,15 @@ def path_like_match(pattern, value):
 
 
 class PathLikeMatch(FrameMatch):
+    def __init__(self, key, pattern, negated=False):
+        super().__init__(key, pattern.lower(), negated)
+
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
         value = match_frame[self.field]
         if value is None:
             return False
 
-        return cached(cache, path_like_match, self.pattern, value)
+        return cached(cache, path_like_match, self.encoded_pattern, value)
 
 
 class PackageMatch(PathLikeMatch):
@@ -230,7 +242,7 @@ class InAppMatch(FrameMatch):
 class FunctionMatch(FrameMatch):
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
 
-        return cached(cache, glob_match, match_frame["function"], self.pattern)
+        return cached(cache, glob_match, match_frame["function"], self.encoded_pattern)
 
 
 class FrameFieldMatch(FrameMatch):
@@ -239,7 +251,7 @@ class FrameFieldMatch(FrameMatch):
         if field is None:
             return False
 
-        return cached(cache, glob_match, field, self.pattern)
+        return cached(cache, glob_match, field, self.encoded_pattern)
 
 
 class ModuleMatch(FrameFieldMatch):
@@ -255,7 +267,7 @@ class CategoryMatch(FrameFieldMatch):
 class ExceptionFieldMatch(FrameMatch):
     def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         field = get_path(exception_data, *self.field_path) or "<unknown>"
-        return cached(cache, glob_match, field, self.pattern)
+        return cached(cache, glob_match, field, self.encoded_pattern)
 
 
 class ExceptionTypeMatch(ExceptionFieldMatch):
