@@ -6,23 +6,31 @@ import omit from 'lodash/omit';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
-import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import Link from 'app/components/links/link';
-import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
+import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
+import {PAGE_URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {IconChevron, IconWarning} from 'app/icons';
+import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
+import {generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
-import {TraceError, TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
+import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {getTransactionDetailsUrl} from 'app/views/performance/utils';
 
-import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';
+import {
+  ErrorDot,
+  ErrorLevel,
+  ErrorMessageContent,
+  ErrorMessageTitle,
+  ErrorTitle,
+  Row,
+  Tags,
+  TransactionDetails,
+  TransactionDetailsContainer,
+} from './styles';
 
 type Props = {
   location: Location;
@@ -30,92 +38,55 @@ type Props = {
   transaction: TraceFullDetailed;
 };
 
-class TransactionDetail extends React.Component<Props> {
-  renderSingleErrorMessage(error: TraceError) {
-    const {organization} = this.props;
+type State = {
+  errorsOpened: boolean;
+};
 
-    const eventSlug = generateEventSlug({
-      id: error.event_id,
-      project: error.project_slug,
-    });
+class TransactionDetail extends React.Component<Props, State> {
+  state: State = {
+    errorsOpened: false,
+  };
 
-    const target = {
-      pathname: eventDetailsRoute({
-        orgSlug: organization.slug,
-        eventSlug,
-      }),
-    };
-
-    return (
-      <Link to={target}>
-        <span>{t('An error event occurred in this transaction.')}</span>
-      </Link>
-    );
-  }
-
-  renderMultiErrorMessage(errors: TraceError[]) {
-    const {organization, transaction} = this.props;
-
-    const {start, end} = getTraceDateTimeRange({
-      start: transaction.start_timestamp,
-      end: transaction.timestamp,
-    });
-
-    const queryResults = new QueryResults([]);
-    const eventIds = errors.map(child => child.event_id);
-    for (let i = 0; i < eventIds.length; i++) {
-      queryResults.addOp(i === 0 ? '(' : 'OR');
-      queryResults.addQuery(`id:${eventIds[i]}`);
-      if (i === eventIds.length - 1) {
-        queryResults.addOp(')');
-      }
-    }
-
-    const eventView = EventView.fromSavedQuery({
-      id: undefined,
-      name: `Errors events associated with transaction ${transaction.event_id}`,
-      fields: ['title', 'project', 'issue', 'timestamp'],
-      orderby: '-timestamp',
-      query: stringifyQueryObject(queryResults),
-      projects: organization.features.includes('global-views')
-        ? [ALL_ACCESS_PROJECTS]
-        : [...new Set(errors.map(error => error.project_id))],
-      version: 2,
-      start,
-      end,
-    });
-
-    const target = eventView.getResultsViewUrlTarget(organization.slug);
-
-    return (
-      <div>
-        {tct('[link] occured in this transaction.', {
-          link: (
-            <Link to={target}>
-              <span>{t('%d error events', errors.length)}</span>
-            </Link>
-          ),
-        })}
-      </div>
-    );
-  }
+  toggleErrors = () => {
+    this.setState(({errorsOpened}) => ({errorsOpened: !errorsOpened}));
+  };
 
   renderTransactionErrors() {
-    const {transaction} = this.props;
+    const {organization, transaction} = this.props;
+    const {errorsOpened} = this.state;
     const {errors} = transaction;
 
     if (errors.length === 0) {
       return null;
     }
 
-    const message =
-      errors.length === 1
-        ? this.renderSingleErrorMessage(errors[0])
-        : this.renderMultiErrorMessage(errors);
-
     return (
       <Alert system type="error" icon={<IconWarning size="md" />}>
-        {message}
+        <ErrorMessageTitle>
+          {tn(
+            'An error event occurred in this transaction.',
+            '%s error events occurred in this transaction.',
+            errors.length
+          )}
+          <Toggle priority="link" onClick={this.toggleErrors}>
+            <IconChevron direction={errorsOpened ? 'up' : 'down'} />
+          </Toggle>
+        </ErrorMessageTitle>
+        {errorsOpened && (
+          <ErrorMessageContent>
+            {errors.map(error => (
+              <React.Fragment key={error.event_id}>
+                <ErrorDot level={error.level} />
+                <ErrorLevel>{error.level}</ErrorLevel>
+                <ErrorTitle>
+                  <Link to={generateIssueEventTarget(error, organization)}>
+                    {error.title}
+                  </Link>
+                </ErrorTitle>
+              </React.Fragment>
+            ))}
+          </ErrorMessageContent>
+        )}
       </Alert>
     );
   }
@@ -260,6 +231,14 @@ const StyledButton = styled(Button)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};
+`;
+
+const Toggle = styled(Button)`
+  font-weight: bold;
+  color: ${p => p.theme.subText};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 export default TransactionDetail;

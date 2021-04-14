@@ -209,22 +209,7 @@ const GroupLevel = styled('div')<{level: Level}>`
   height: 15px;
   border-radius: 0 3px 3px 0;
 
-  background-color: ${p => {
-    switch (p.level) {
-      case 'sample':
-        return p.theme.purple300;
-      case 'info':
-        return p.theme.blue300;
-      case 'warning':
-        return p.theme.yellow300;
-      case 'error':
-        return p.theme.orange400;
-      case 'fatal':
-        return p.theme.red300;
-      default:
-        return p.theme.gray300;
-    }
-  }};
+  background-color: ${p => p.theme.level[p.level] ?? p.theme.level.default};
 
   & span {
     display: block;
