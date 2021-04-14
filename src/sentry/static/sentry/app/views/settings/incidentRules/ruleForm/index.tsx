@@ -700,11 +700,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={dataset === Dataset.ERRORS}
                     />
-                    <StyledListItem>
-                      {t('Set actions for when a threshold is met')}
-                    </StyledListItem>
+                    <StyledListItem>{t('Set Thesholds and Actions')}</StyledListItem>
                     {triggerForm(hasAccess)}
-                    <StyledListItem>{t('Add a name and team')}</StyledListItem>
+                    <StyledListItem>{t('Add a Name and Team')}</StyledListItem>
                     {ruleNameOwnerForm(hasAccess)}
                   </List>
                 ) : (

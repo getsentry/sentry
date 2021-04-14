@@ -3,6 +3,7 @@ import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
 import SentryRRWeb from '@sentry/rrweb';
 import {Integrations} from '@sentry/tracing';
+import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {DISABLE_RR_WEB, SPA_DSN} from 'app/constants';
 import {Config} from 'app/types';
@@ -77,6 +78,13 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       : sentryConfig?.whitelistUrls,
     integrations: getSentryIntegrations(hasReplays, routes),
     tracesSampleRate,
+  });
+
+  // Track timeOrigin Selection by the SDK to see if it improves transaction durations
+  Sentry.addGlobalEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
+    event.tags = event.tags || {};
+    event.tags['timeOrigin.mode'] = _browserPerformanceTimeOriginMode;
+    return event;
   });
 
   if (userIdentity) {

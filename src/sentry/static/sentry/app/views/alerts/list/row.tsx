@@ -152,7 +152,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
               ? incident.alertRule.originalAlertRuleId
               : incident.alertRule.id
           }/`,
-          query: makeRuleDetailsQuery(incident),
+          query: {alert: incident.identifier},
         }
       : {
           pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,
