@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import Color from 'color';
 import {EChartOption} from 'echarts';
 import {withTheme} from 'emotion-theming';
@@ -9,9 +10,13 @@ import Tooltip from 'app/components/charts/components/tooltip';
 import xAxis from 'app/components/charts/components/xAxis';
 import barSeries from 'app/components/charts/series/barSeries';
 import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Panel from 'app/components/panels/panel';
+import Placeholder from 'app/components/placeholder';
 import ChartPalette from 'app/constants/chartPalette';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'app/types';
 import {intervalToMilliseconds, statsPeriodToDays} from 'app/utils/dates';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
@@ -93,6 +98,10 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   theme: Theme;
+
+  isLoading?: boolean;
+  isError?: boolean;
+  errors?: Record<string, Error>;
 
   title?: React.ReactNode;
   footer?: React.ReactNode;
@@ -341,8 +350,28 @@ export class UsageChart extends React.Component<Props, State> {
     });
   }
 
-  render() {
-    const {theme, title, footer} = this.props;
+  renderChart() {
+    const {theme, title, isLoading, isError, errors} = this.props;
+    if (isLoading) {
+      return (
+        <Placeholder height="200px">
+          <LoadingIndicator mini />
+        </Placeholder>
+      );
+    }
+
+    if (isError) {
+      return (
+        <Placeholder height="200px">
+          <IconWarning size={theme.fontSizeExtraLarge} />
+          <ErrorMessages>
+            {errors &&
+              Object.keys(errors).map(k => <span key={k}>{errors[k]?.message}</span>)}
+          </ErrorMessages>
+        </Placeholder>
+      );
+    }
+
     const {
       xAxisData,
       xAxisTickInterval,
@@ -352,47 +381,55 @@ export class UsageChart extends React.Component<Props, State> {
     } = this.chartMetadata;
 
     return (
+      <React.Fragment>
+        <HeaderTitleLegend>{title || t('Current Usage Period')}</HeaderTitleLegend>
+        <BaseChart
+          colors={this.chartColors}
+          grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
+          xAxis={xAxis({
+            show: true,
+            type: 'category',
+            name: 'Date',
+            boundaryGap: true,
+            data: xAxisData,
+            axisTick: {
+              interval: xAxisTickInterval,
+              alignWithLabel: true,
+            },
+            axisLabel: {
+              interval: xAxisLabelInterval,
+              formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
+            },
+            theme,
+          })}
+          yAxis={{
+            min: 0,
+            minInterval: yAxisMinInterval,
+            axisLabel: {
+              formatter: yAxisFormatter,
+              color: theme.chartLabel,
+            },
+          }}
+          series={this.chartSeries}
+          tooltip={this.chartTooltip}
+          onLegendSelectChanged={() => {}}
+          legend={Legend({
+            right: 10,
+            top: 5,
+            data: this.chartLegend,
+            theme,
+          })}
+        />
+      </React.Fragment>
+    );
+  }
+
+  render() {
+    const {footer} = this.props;
+
+    return (
       <Panel id="usage-chart">
-        <ChartContainer>
-          <HeaderTitleLegend>{title || t('Current Usage Period')}</HeaderTitleLegend>
-          <BaseChart
-            colors={this.chartColors}
-            grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
-            xAxis={xAxis({
-              show: true,
-              type: 'category',
-              name: 'Date',
-              boundaryGap: true,
-              data: xAxisData,
-              axisTick: {
-                interval: xAxisTickInterval,
-                alignWithLabel: true,
-              },
-              axisLabel: {
-                interval: xAxisLabelInterval,
-                formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
-              },
-              theme,
-            })}
-            yAxis={{
-              min: 0,
-              minInterval: yAxisMinInterval,
-              axisLabel: {
-                formatter: yAxisFormatter,
-                color: theme.chartLabel,
-              },
-            }}
-            series={this.chartSeries}
-            tooltip={this.chartTooltip}
-            onLegendSelectChanged={() => {}}
-            legend={Legend({
-              right: 10,
-              top: 5,
-              data: this.chartLegend,
-              theme,
-            })}
-          />
-        </ChartContainer>
+        <ChartContainer>{this.renderChart()}</ChartContainer>
         {footer}
       </Panel>
     );
@@ -400,3 +437,11 @@ export class UsageChart extends React.Component<Props, State> {
 }
 
 export default withTheme(UsageChart);
+
+const ErrorMessages = styled('div')`
+  display: flex;
+  flex-direction: column;
+
+  margin-top: ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
