@@ -86,6 +86,7 @@ type Props = {
 type State = {
   data: Group;
   reviewed: boolean;
+  issueAction: boolean;
 };
 
 class StreamGroup extends React.Component<Props, State> {
@@ -104,6 +105,7 @@ class StreamGroup extends React.Component<Props, State> {
         filtered: useFilteredStats ? data.filtered : null,
       },
       reviewed: false,
+      issueAction: false,
     };
   }
 
@@ -145,6 +147,7 @@ class StreamGroup extends React.Component<Props, State> {
       return;
     }
 
+    const issueAction = this.state.data.status === 'unresolved' ? false : true;
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
       // When searching is:for_review and the inbox reason is removed
@@ -153,7 +156,7 @@ class StreamGroup extends React.Component<Props, State> {
         (isForReviewQuery(query) &&
           (state.data.inbox as InboxDetails)?.reason !== undefined &&
           data.inbox === false);
-      return {data, reviewed};
+      return {data, reviewed, issueAction};
     });
   }
 
@@ -331,7 +334,7 @@ class StreamGroup extends React.Component<Props, State> {
   }
 
   render() {
-    const {data, reviewed} = this.state;
+    const {data, reviewed, issueAction} = this.state;
     const {
       index,
       query,
@@ -368,6 +371,7 @@ class StreamGroup extends React.Component<Props, State> {
     );
 
     const hasInbox = organization.features.includes('inbox');
+    const unresolved = data.status === 'unresolved' ? true : false;
 
     return (
       <Wrapper
@@ -375,6 +379,8 @@ class StreamGroup extends React.Component<Props, State> {
         onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
         reviewed={reviewed}
         hasInbox={hasInbox}
+        unresolved={unresolved}
+        issueAction={issueAction}
       >
         {canSelect && (
           <GroupCheckBoxWrapper ml={2}>
@@ -566,7 +572,12 @@ class StreamGroup extends React.Component<Props, State> {
 export default withGlobalSelection(withOrganization(StreamGroup));
 
 // Position for wrapper is relative for overlay actions
-const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
+const Wrapper = styled(PanelItem)<{
+  reviewed: boolean;
+  hasInbox: boolean;
+  unresolved: boolean;
+  issueAction: boolean;
+}>`
   position: relative;
   padding: ${p => (p.hasInbox ? `${space(1.5)} 0` : `${space(1)} 0`)};
   line-height: 1.1;
@@ -574,7 +585,8 @@ const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
   ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
 
   ${p =>
-    p.reviewed &&
+    (p.reviewed || !p.unresolved) &&
+    !p.issueAction &&
     css`
       animation: tintRow 0.2s linear forwards;
       position: relative;
