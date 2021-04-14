@@ -11,7 +11,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.tasks import activity
-from sentry.types.activity import ACTIVITY_VERB_SLUGS, ActivityType
+from sentry.types.activity import CHOICES, ActivityType
 
 
 class Activity(Model):
@@ -45,9 +45,7 @@ class Activity(Model):
     project = FlexibleForeignKey("sentry.Project")
     group = FlexibleForeignKey("sentry.Group", null=True)
     # index on (type, ident)
-    type = BoundedPositiveIntegerField(
-        choices=tuple((k.value, v) for k, v in ACTIVITY_VERB_SLUGS.items())
-    )
+    type = BoundedPositiveIntegerField(choices=CHOICES)
     ident = models.CharField(max_length=64, null=True)
     # if the user is not set, it's assumed to be the system
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
