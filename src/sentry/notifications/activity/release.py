@@ -127,9 +127,7 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_participants(self) -> Mapping[ExternalProviders, Mapping[User, int]]:
         # Collect all users with verified emails on a team in the related projects.
-        users = list(
-            User.objects.get_team_members_with_verified_email_for_projects(self.projects).distinct()
-        )
+        users = list(User.objects.get_team_members_with_verified_email_for_projects(self.projects))
 
         # Get all the involved users' settings for deploy-emails (including
         # users' organization-independent settings.)
