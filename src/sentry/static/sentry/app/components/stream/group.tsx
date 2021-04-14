@@ -41,7 +41,7 @@ import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {TimePeriodType} from 'app/views/alerts/rules/details/body';
+import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
 import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [

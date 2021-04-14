@@ -21,7 +21,7 @@ import {Group} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import StreamManager from 'app/utils/streamManager';
 import withApi from 'app/utils/withApi';
-import {TimePeriodType} from 'app/views/alerts/rules/details/body';
+import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
 
 import GroupListHeader from './groupListHeader';
 
