@@ -71,10 +71,12 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
 
     for key in list(match_frame.keys()):
         value = match_frame[key]
-        if isinstance(value, str):
+        if isinstance(value, (bytes, str)):
             if key in ("package", "path"):
                 value = match_frame[key] = value.lower()
-            match_frame[key] = value.encode("utf-8")
+
+            if isinstance(value, str):
+                match_frame[key] = value.encode("utf-8")
 
     return match_frame
 
