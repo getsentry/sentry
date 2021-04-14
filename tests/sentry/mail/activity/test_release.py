@@ -1,7 +1,6 @@
 from django.core import mail
 from django.utils import timezone
 
-from sentry.mail.activity.release import ReleaseActivityEmail
 from sentry.models import (
     Activity,
     Commit,
@@ -14,6 +13,7 @@ from sentry.models import (
     Repository,
     UserEmail,
 )
+from sentry.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingOptionValues,
@@ -132,7 +132,7 @@ class ReleaseTestCase(TestCase):
         )
 
     def test_simple(self):
-        email = ReleaseActivityEmail(
+        email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
                 user=self.user1,
@@ -179,7 +179,7 @@ class ReleaseTestCase(TestCase):
         assert sent_email_addresses == {self.user1.email, self.user3.email, self.user5.email}
 
     def test_does_not_generate_on_no_release(self):
-        email = ReleaseActivityEmail(
+        email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
                 user=self.user1,
@@ -194,7 +194,7 @@ class ReleaseTestCase(TestCase):
     def test_no_committers(self):
         release, deploy = self.another_release("b")
 
-        email = ReleaseActivityEmail(
+        email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
                 user=self.user1,
@@ -238,7 +238,7 @@ class ReleaseTestCase(TestCase):
         )
         release, deploy = self.another_release("b")
 
-        email = ReleaseActivityEmail(
+        email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
                 user=self.user1,

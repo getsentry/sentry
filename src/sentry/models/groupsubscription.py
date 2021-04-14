@@ -82,7 +82,7 @@ class GroupSubscriptionManager(BaseManager):
                 if i == 0:
                     raise e
 
-    def get_participants(self, group) -> Mapping[Any, Mapping[Any, GroupSubscriptionReason]]:
+    def get_participants(self, group) -> Mapping[Any, Mapping[Any, int]]:
         """
         Identify all users who are participating with a given issue.
         :param group: Group object

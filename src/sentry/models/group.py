@@ -7,7 +7,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import List, Set
+from typing import List, Mapping, Optional, Set
 
 from django.db import models
 from django.db.models import Q
@@ -373,7 +373,12 @@ class Group(Model):
         )
         super().save(*args, **kwargs)
 
-    def get_absolute_url(self, params=None, event_id=None, organization_slug=None):
+    def get_absolute_url(
+        self,
+        params: Optional[Mapping[str, str]] = None,
+        event_id: Optional[int] = None,
+        organization_slug: Optional[str] = None,
+    ) -> str:
         # Built manually in preference to django.core.urlresolvers.reverse,
         # because reverse has a measured performance impact.
         event_path = f"events/{event_id}/" if event_id else ""

@@ -1,5 +1,6 @@
 from collections import namedtuple
 from functools import partial
+from typing import Optional
 from urllib.parse import parse_qs, quote, urlencode, urljoin, urlparse
 
 from django.conf import settings
@@ -11,10 +12,11 @@ from sentry.utils.compat import filter, map
 ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
 
 
-def absolute_uri(url=None) -> str:
+def absolute_uri(url: Optional[str] = None) -> str:
+    prefix = options.get("system.url-prefix")
     if not url:
-        return options.get("system.url-prefix")
-    return urljoin(options.get("system.url-prefix").rstrip("/") + "/", url.lstrip("/"))
+        return prefix
+    return urljoin(prefix.rstrip("/") + "/", url.lstrip("/"))
 
 
 def origin_from_url(url):
