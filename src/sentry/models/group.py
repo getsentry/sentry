@@ -200,7 +200,7 @@ class GroupManager(BaseManager):
 
     def by_qualified_short_id_bulk(self, organization_id: int, short_ids: List[str]):
         short_ids = [parse_short_id(short_id) for short_id in short_ids]
-        if not short_ids or any(short_id for short_id in short_ids if short_id is None):
+        if not short_ids or any(short_id is None for short_id in short_ids):
             raise Group.DoesNotExist()
 
         project_short_id_lookup = defaultdict(list)
