@@ -277,7 +277,7 @@ export function LatencyChartControls(props: {location: Location}) {
 
   return (
     <Histogram location={location} zoomKeys={[ZOOM_START, ZOOM_END]}>
-      {({isZoomed, filterOptions, handleResetView, handleFilterChange, activeFilter}) => {
+      {({filterOptions, handleFilterChange, activeFilter}) => {
         return (
           <React.Fragment>
             <OptionSelector
@@ -286,16 +286,6 @@ export function LatencyChartControls(props: {location: Location}) {
               options={filterOptions}
               onChange={handleFilterChange}
             />
-            <InlineContainer>
-              <Button
-                onClick={handleResetView}
-                disabled={!isZoomed}
-                data-test-id="reset-view"
-                size="small"
-              >
-                {t('Reset View')}
-              </Button>
-            </InlineContainer>
           </React.Fragment>
         );
       }}
