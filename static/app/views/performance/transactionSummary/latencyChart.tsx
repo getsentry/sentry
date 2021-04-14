@@ -1,13 +1,12 @@
 import React from 'react';
 import {Location} from 'history';
 
-import Button from 'app/components/button';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LoadingPanel from 'app/components/charts/loadingPanel';
 import OptionSelector from 'app/components/charts/optionSelector';
-import {HeaderTitleLegend, InlineContainer} from 'app/components/charts/styles';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
