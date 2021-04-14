@@ -3,22 +3,35 @@ import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
 import {openModal} from 'app/actionCreators/modal';
-import ContextPickerModalContainer from 'app/components/contextPickerModal';
-import {ReleaseProject} from 'app/types';
+import ContextPickerModal from 'app/components/contextPickerModal';
 
-type Props = {
-  orgSlug: string;
-  version: string;
-  router: ReactRouter.InjectedRouter;
-  projects: ReleaseProject[];
+type Project = {
+  id: string;
+  slug: string;
 };
 
-const PickProjectToContinue = ({orgSlug, version, router, projects}: Props) => {
+type Props = {
+  /**
+   * Path used on the redirect router if the user did not select a project
+   */
+  noProjectRedirectPath: string;
+  /**
+   * Path used on the redirect router if the user did select a project
+   */
+  nextPath: string;
+  router: ReactRouter.InjectedRouter;
+  projects: Project[];
+};
+
+function PickProjectToContinue({
+  noProjectRedirectPath,
+  nextPath,
+  router,
+  projects,
+}: Props) {
   let navigating = false;
 
-  const path = `/organizations/${orgSlug}/releases/${encodeURIComponent(
-    version
-  )}/?project=`;
+  const path = nextPath.includes('?') ? `${nextPath}&project=` : `${nextPath}?project=`;
 
   // if the project in URL is missing, but this release belongs to only one project, redirect there
   if (projects.length === 1) {
@@ -28,7 +41,7 @@ const PickProjectToContinue = ({orgSlug, version, router, projects}: Props) => {
 
   openModal(
     modalProps => (
-      <ContextPickerModalContainer
+      <ContextPickerModal
         {...modalProps}
         needOrg={false}
         needProject
@@ -45,14 +58,14 @@ const PickProjectToContinue = ({orgSlug, version, router, projects}: Props) => {
         // we want this to be executed only if the user didn't select any project
         // (closed modal either via button, Esc, clicking outside, ...)
         if (!navigating) {
-          router.push(`/organizations/${orgSlug}/releases/`);
+          router.push(noProjectRedirectPath);
         }
       },
     }
   );
 
   return <ContextPickerBackground />;
-};
+}
 
 const ContextPickerBackground = styled('div')`
   height: 100vh;

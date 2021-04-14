@@ -67,6 +67,7 @@ type Props = {
   hasPerformance: boolean;
   defaultStatsPeriod: string;
 };
+
 type State = {
   reloading: boolean;
   errored: boolean;

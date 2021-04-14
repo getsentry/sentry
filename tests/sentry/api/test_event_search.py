@@ -1,4 +1,5 @@
 import datetime
+import re
 import unittest
 from datetime import timedelta
 
@@ -216,6 +217,125 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
             SearchFilter(
                 key=SearchKey(name="release"), operator="=", value=SearchValue(raw_value="1.2.1")
+            ),
+        ]
+
+    def test_simple_in(self):
+        assert parse_search_query("user.email:[test@test.com] test:[hello]") == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="IN",
+                value=SearchValue(raw_value=["hello"]),
+            ),
+        ]
+        assert parse_search_query(
+            "user.email:[test@test.com,test2@test.com,test3@test.com] test:[hello]"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com", "test2@test.com", "test3@test.com"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="IN",
+                value=SearchValue(raw_value=["hello"]),
+            ),
+        ]
+        assert parse_search_query(
+            "!user.email:[test@test.com, test@test2.com,     test@test3.com] test:[hello]"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="NOT IN",
+                value=SearchValue(raw_value=["test@test.com", "test@test2.com", "test@test3.com"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="IN",
+                value=SearchValue(raw_value=["hello"]),
+            ),
+        ]
+        # Make sure brackets still work in normal values
+        assert parse_search_query("test:h[e]llo]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="h[e]llo]"),
+            ),
+        ]
+        assert parse_search_query("test:[h[e]llo") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h[e]llo"),
+            ),
+        ]
+        assert parse_search_query('test:"[h]"') == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h]"),
+            ),
+        ]
+        assert parse_search_query("test:[h]*") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h]*"),
+            ),
+        ]
+        assert parse_search_query("test:[h e]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[h"),
+            ),
+            SearchFilter(
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(raw_value="e]"),
+            ),
+        ]
+        assert parse_search_query("test:[[h]]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[[h]]"),
+            ),
+        ]
+        assert parse_search_query("test:[]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="=",
+                value=SearchValue(raw_value="[]"),
+            ),
+        ]
+        assert parse_search_query('user.email:[test@test.com, "hi", 1]') == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com", "hi", "1"]),
+            )
+        ]
+        assert parse_search_query('user.email:[test@test.com, "hi", 1.0]') == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="IN",
+                value=SearchValue(raw_value=["test@test.com", "hi", "1.0"]),
+            )
+        ]
+
+        assert parse_search_query("user.email:[test@test.com]user.email:hello@hello.com") == [
+            SearchFilter(
+                key=SearchKey(name="user.email"),
+                operator="=",
+                value=SearchValue(raw_value="[test@test.com]user.email:hello@hello.com"),
             ),
         ]
 
@@ -515,6 +635,46 @@ class ParseSearchQueryTest(unittest.TestCase):
                 key=SearchKey(name="release"), operator="!=", value=SearchValue("a release")
             )
         ]
+        assert parse_search_query('release:["a release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release"]),
+            )
+        ]
+        assert parse_search_query('release:["a release","b release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release", "b release"]),
+            )
+        ]
+        assert parse_search_query('release:["a release",    "b release", "c release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release", "b release", "c release"]),
+            )
+        ]
+        assert parse_search_query('!release:["a release","b release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="NOT IN",
+                value=SearchValue(raw_value=["a release", "b release"]),
+            )
+        ]
+        assert parse_search_query('release:["a release"] hello:["123"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release"]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="hello"),
+                operator="IN",
+                value=SearchValue(raw_value=["123"]),
+            ),
+        ]
 
     def test_quoted_key(self):
         assert parse_search_query('"hi:there":value') == [
@@ -686,6 +846,22 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
+    def test_explicit_tags_in_filter(self):
+        assert parse_search_query("tags[fruit]:[apple, pear]") == [
+            SearchFilter(
+                key=SearchKey(name="tags[fruit]"),
+                operator="IN",
+                value=SearchValue(raw_value=["apple", "pear"]),
+            ),
+        ]
+        assert parse_search_query('tags[fruit]:["apple wow", "pear"]') == [
+            SearchFilter(
+                key=SearchKey(name="tags[fruit]"),
+                operator="IN",
+                value=SearchValue(raw_value=["apple wow", "pear"]),
+            ),
+        ]
+
     def test_has_tag(self):
         # unquoted key
         assert parse_search_query("has:release") == [
@@ -782,6 +958,48 @@ class ParseSearchQueryTest(unittest.TestCase):
                 operator="=",
                 value=SearchValue(raw_value=">500"),
             )
+        ]
+
+    def test_numeric_in_filter(self):
+        assert parse_search_query("project_id:[500,501,502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            )
+        ]
+        assert parse_search_query("project_id:[500, 501,     502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            )
+        ]
+        assert parse_search_query("project_id:[500,501,502] issue.id:[100]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="issue.id"),
+                operator="IN",
+                value=SearchValue(raw_value=[100]),
+            ),
+        ]
+        # Numeric format should still return a string if field isn't
+        # allowed
+        assert parse_search_query("project_id:[500,501,502] random_field:[500,501,502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="random_field"),
+                operator="IN",
+                value=SearchValue(raw_value=["500", "501", "502"]),
+            ),
         ]
 
     def test_numeric_filter_with_decimals(self):
@@ -1730,7 +1948,9 @@ class ParseBooleanSearchQueryTest(TestCase):
         project3 = self.create_project()
         with self.assertRaisesRegexp(
             InvalidSearchQuery,
-            f"Project {project3.slug} does not exist or is not an actively selected project.",
+            re.escape(
+                f"Invalid query. Project(s) {str(project3.slug)} do not exist or are not actively selected."
+            ),
         ):
             get_filter(
                 f"project:{project1.slug} OR project:{project3.slug}",
@@ -1881,6 +2101,38 @@ class GetSnubaQueryArgsTest(TestCase):
 
         assert get_filter("tags[project_id]:123").conditions == [
             [["ifNull", ["tags[project_id]", "''"]], "=", "123"]
+        ]
+
+    def test_in_syntax(self):
+        project_2 = self.create_project()
+        group = self.create_group(project=self.project, short_id=self.project.next_short_id())
+        group_2 = self.create_group(project=project_2, short_id=self.project.next_short_id())
+        assert (
+            get_filter(
+                f"project.name:[{self.project.slug}, {project_2.slug}]",
+                params={"project_id": [self.project.id, project_2.id]},
+            ).conditions
+            == [["project_id", "IN", [project_2.id, self.project.id]]]
+        )
+        assert (
+            get_filter(
+                f"issue:[{group.qualified_short_id}, {group_2.qualified_short_id}]",
+                params={"organization_id": self.project.organization_id},
+            ).conditions
+            == [["issue.id", "IN", [group.id, group_2.id]]]
+        )
+        assert (
+            get_filter(
+                f"issue:[{group.qualified_short_id}, unknown]",
+                params={"organization_id": self.project.organization_id},
+            ).conditions
+            == [[["coalesce", ["issue.id", 0]], "IN", [0, group.id]]]
+        )
+        assert get_filter("environment:[prod, dev]").conditions == [
+            [["environment", "IN", {"prod", "dev"}]]
+        ]
+        assert get_filter("random_tag:[what, hi]").conditions == [
+            [["ifNull", ["random_tag", "''"]], "IN", ["what", "hi"]]
         ]
 
     def test_no_search(self):
@@ -2185,7 +2437,7 @@ class GetSnubaQueryArgsTest(TestCase):
         exc = exc_info.value
         exc_str = f"{exc}"
         assert (
-            f"Invalid query. Project {p1.slug} does not exist or is not an actively selected project"
+            f"Invalid query. Project(s) {p1.slug} do not exist or are not actively selected."
             in exc_str
         )
 
@@ -2358,6 +2610,13 @@ class GetSnubaQueryArgsTest(TestCase):
         # When organization id isn't included, project_id should unfortunately be an object
         result = get_filter("release:latest", params={"project_id": [self.project]})
         assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+
+        release_2 = self.create_release(self.project)
+
+        result = get_filter("release:[latest]", params={"project_id": [self.project]})
+        assert result.conditions == [["release", "IN", [release_2.version]]]
+        result = get_filter("release:[latest,1]", params={"project_id": [self.project]})
+        assert result.conditions == [["release", "IN", [release_2.version, "1"]]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):

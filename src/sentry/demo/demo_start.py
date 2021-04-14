@@ -31,7 +31,10 @@ class DemoStartView(BaseView):
         logger.info("post.start", extra={"cookie_member_id": member_id})
         sentry_sdk.set_tag("member_id", member_id)
 
-        if member_id:
+        skip_buffer = request.POST.get("skip_buffer") == "1"
+        sentry_sdk.set_tag("skip_buffer", skip_buffer)
+
+        if member_id and not skip_buffer:
             try:
                 # only assign them to an active org for a member role
                 member = OrganizationMember.objects.get(
@@ -50,7 +53,7 @@ class DemoStartView(BaseView):
             from .demo_org_manager import assign_demo_org
 
             # assign the demo org and get the user
-            org, user = assign_demo_org()
+            org, user = assign_demo_org(skip_buffer=skip_buffer)
             member = OrganizationMember.objects.get(organization=org, user=user)
 
             logger.info("post.assigned_org", extra={"organization_slug": org.slug})

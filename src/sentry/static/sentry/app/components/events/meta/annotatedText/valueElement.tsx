@@ -41,7 +41,9 @@ const ValueElement = ({value, meta}: Props) => {
 
   return (
     <React.Fragment>
-      {typeof value === 'object' ? JSON.stringify(value) : value}
+      {typeof value === 'object' || typeof value === 'boolean'
+        ? JSON.stringify(value)
+        : value}
     </React.Fragment>
   );
 };

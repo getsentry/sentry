@@ -10,7 +10,7 @@
     ["browser", "Chrome 89.0.4389"],
     ["browser.name", "Chrome"],
     ["customerType", "small-plan"],
-    ["environment", "production"],
+    ["environment", "prod"],
     ["handled", "no"],
     ["level", "error"],
     ["mechanism", "onunhandledrejection"],
@@ -59,7 +59,7 @@
     }
   },
   "culprit": "call(components/App)",
-  "environment": "production",
+  "environment": "prod",
   "exception": {
     "values": [
       {

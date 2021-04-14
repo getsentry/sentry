@@ -15,9 +15,9 @@ from sentry.models import (
     NotificationSetting,
     UserOption,
 )
-from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
 

@@ -15,7 +15,6 @@ from sentry.api.fields import ActorField
 from sentry.api.issue_search import InvalidSearchQuery, convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.api.serializers.models.group import SUBSCRIPTION_REASON_MAP
 from sentry.app import ratelimiter
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
@@ -37,7 +36,6 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    GroupSubscriptionReason,
     GroupTombstone,
     Release,
     Repository,
@@ -48,6 +46,7 @@ from sentry.models import (
 )
 from sentry.models.group import STATUS_UPDATE_CHOICES, looks_like_short_id
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, add_group_to_inbox
+from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.signals import (
     advanced_search_feature_gated,
     issue_deleted,

@@ -10,7 +10,6 @@ from sentry.models import (
     Environment,
     Group,
     GroupLink,
-    GroupSubscriptionReason,
     NotificationSetting,
     ProjectTeam,
     Release,
@@ -21,6 +20,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.notifications.types import (
+    GroupSubscriptionReason,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
