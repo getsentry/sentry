@@ -1,11 +1,13 @@
 import logging
 import warnings
+from typing import Any, Sequence
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
+from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -19,6 +21,21 @@ audit_logger = logging.getLogger("sentry.audit.user")
 
 
 class UserManager(BaseManager, DjangoUserManager):
+    def get_team_members_with_verified_email_for_projects(
+        self, projects: Sequence[Any]
+    ) -> QuerySet:
+        from sentry.models import ProjectTeam, Team
+
+        return self.filter(
+            emails__is_verified=True,
+            sentry_orgmember_set__teams__in=Team.objects.filter(
+                id__in=ProjectTeam.objects.filter(project__in=projects).values_list(
+                    "team_id", flat=True
+                )
+            ),
+            is_active=True,
+        )
+
     def get_from_group(self, group):
         """ Get a queryset of all users in all teams in a given Group's project. """
         return self.filter(
