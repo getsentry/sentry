@@ -618,10 +618,11 @@ class CombinedQuerysetPaginator:
 
         def _sort_combined_querysets(item):
             sort_keys = []
-            sort_keys.append(self.get_item_key(item, is_prev))
             if len(self.model_key_map.get(type(item))) > 1:
                 for k in self.model_key_map.get(type(item))[1:]:
                     sort_keys.append(k)
+            else:
+                sort_keys.append(self.get_item_key(item, is_prev))
             sort_keys.append(type(item).__name__)
             return tuple(sort_keys)
 
