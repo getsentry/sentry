@@ -15,13 +15,13 @@ snql_referrers = {
     "sessions.release-sessions-time-bounds",
     "sessions.release-stats",
     "sessions.release-stats-details",
-    "referrer:api.performance.durationpercentilechart",
-    "referrer:api.performance.vital-detail",
-    "referrer:outcomes.timeseries",
-    "referrer:api.dashboards.worldmapwidget",
-    "referrer:api.performance.transaction-summary",
-    "referrer:tsdb-modelid:500",
-    "referrer:incidents.get_incident_aggregates",
+    "api.performance.durationpercentilechart",
+    "api.performance.vital-detail",
+    "outcomes.timeseries",
+    "api.dashboards.worldmapwidget",
+    "api.performance.transaction-summary",
+    "tsdb-modelid:500",
+    "incidents.get_incident_aggregates",
 }
 
 
