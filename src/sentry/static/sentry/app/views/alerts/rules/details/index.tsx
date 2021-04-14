@@ -17,7 +17,12 @@ import {Incident} from '../../types';
 import {fetchAlertRule, fetchIncident, fetchIncidentsForRule} from '../../utils';
 
 import DetailsBody from './body';
-import {ALERT_RULE_DETAILS_DEFAULT_PERIOD, TIME_OPTIONS, TIME_WINDOWS, TimePeriodType} from './constants';
+import {
+  ALERT_RULE_DETAILS_DEFAULT_PERIOD,
+  TIME_OPTIONS,
+  TIME_WINDOWS,
+  TimePeriodType,
+} from './constants';
 import DetailsHeader from './header';
 
 type Props = {
@@ -77,7 +82,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
         period,
         label: t('Custom time'),
         custom: true,
-      }
+      };
     }
 
     const timeOption =
@@ -96,7 +101,11 @@ class AlertRuleDetails extends React.Component<Props, State> {
   }
 
   fetchData = async () => {
-    const {api, params: {orgId, ruleId}, location} = this.props;
+    const {
+      api,
+      params: {orgId, ruleId},
+      location,
+    } = this.props;
 
     this.setState({isLoading: true, hasError: false});
 
@@ -105,7 +114,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
     if (location.query.alert) {
       await fetchIncident(api, orgId, location.query.alert)
         .then(incident => this.setState({selectedIncident: incident}))
-        .catch(() => this.setState({selectedIncident: null}))
+        .catch(() => this.setState({selectedIncident: null}));
     }
 
     const timePeriod = this.getTimePeriod();
