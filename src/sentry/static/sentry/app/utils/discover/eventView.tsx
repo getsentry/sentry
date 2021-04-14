@@ -11,6 +11,7 @@ import {EventQuery} from 'app/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {DEFAULT_PER_PAGE} from 'app/constants';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
@@ -350,13 +351,17 @@ class EventView {
     return EventView.fromSavedQuery(saved);
   }
 
-  static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
-    const fields = saved.fields.map((field, i) => {
+  static getFields(saved: NewQuery | SavedQuery) {
+    return saved.fields.map((field, i) => {
       const width =
         saved.widths && saved.widths[i] ? Number(saved.widths[i]) : COL_WIDTH_UNDEFINED;
 
       return {field, width};
     });
+  }
+
+  static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
+    const fields = EventView.getFields(saved);
     // normalize datetime selection
     const {start, end, statsPeriod} = getParams({
       start: saved.start,
@@ -386,6 +391,48 @@ class EventView {
       expired: saved.expired,
       additionalConditions: new QueryResults([]),
     });
+  }
+
+  static fromSavedQueryOrLocation(
+    saved: SavedQuery | undefined,
+    location: Location
+  ): EventView {
+    let fields = decodeFields(location);
+    const {start, end, statsPeriod} = getParams(location.query);
+    const id = decodeScalar(location.query.id);
+    const projects = decodeProjects(location);
+    const sorts = decodeSorts(location);
+    const environments = collectQueryStringByKey(location.query, 'environment');
+
+    if (saved) {
+      if (fields.length === 0) {
+        fields = EventView.getFields(saved);
+      }
+      return new EventView({
+        id: id || saved.id,
+        name: decodeScalar(location.query.name) || saved.name,
+        fields,
+        query:
+          'query' in location.query
+            ? decodeQuery(location)
+            : queryStringFromSavedQuery(saved),
+        sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
+        yAxis: decodeScalar(location.query.yAxis) || saved.yAxis,
+        display: decodeScalar(location.query.display) || saved.display,
+        interval: decodeScalar(location.query.interval),
+        createdBy: saved.createdBy,
+        expired: saved.expired,
+        additionalConditions: new QueryResults([]),
+        // Always read project and environment from location since they can
+        // be set by the GlobalSelectionHeaders.
+        project: projects,
+        environment: environments,
+        start: decodeScalar(start),
+        end: decodeScalar(end),
+        statsPeriod: decodeScalar(statsPeriod),
+      });
+    }
+    return EventView.fromLocation(location);
   }
 
   isEqualTo(other: EventView): boolean {
@@ -974,6 +1021,19 @@ class EventView {
     return {
       pathname: `/organizations/${slug}/discover/results/`,
       query: this.generateQueryStringObject(),
+    };
+  }
+
+  getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
+    const output = {id: this.id};
+    for (const field of [...Object.values(URL_PARAM), 'cursor']) {
+      if (this[field] && this[field].length) {
+        output[field] = this[field];
+      }
+    }
+    return {
+      pathname: `/organizations/${slug}/discover/results/`,
+      query: cloneDeep(output as any),
     };
   }
 

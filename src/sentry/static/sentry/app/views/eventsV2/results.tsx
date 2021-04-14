@@ -11,6 +11,7 @@ import {fetchProjectsCount} from 'app/actionCreators/projects';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
+import AsyncComponent from 'app/components/asyncComponent';
 import Confirm from 'app/components/confirm';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import SearchBar from 'app/components/events/searchBar';
@@ -24,7 +25,7 @@ import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
+import {GlobalSelection, Organization, SavedQuery} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
@@ -50,6 +51,8 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: GlobalSelection;
+  savedQuery?: SavedQuery;
+  loading: boolean;
 };
 
 type State = {
@@ -71,12 +74,21 @@ function readShowTagsState() {
 
 class Results extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const eventView = EventView.fromLocation(nextProps.location);
-    return {...prevState, eventView};
+    if (nextProps.savedQuery || !nextProps.loading) {
+      const eventView = EventView.fromSavedQueryOrLocation(
+        nextProps.savedQuery,
+        nextProps.location
+      );
+      return {...prevState, eventView};
+    }
+    return prevState;
   }
 
   state: State = {
-    eventView: EventView.fromLocation(this.props.location),
+    eventView: EventView.fromSavedQueryOrLocation(
+      this.props.savedQuery,
+      this.props.location
+    ),
     error: '',
     errorCode: 200,
     totalValues: null,
@@ -196,7 +208,8 @@ class Results extends React.Component<Props, State> {
 
   checkEventView() {
     const {eventView} = this.state;
-    if (eventView.isValid()) {
+    const {loading} = this.props;
+    if (eventView.isValid() || loading) {
       return;
     }
 
@@ -384,7 +397,7 @@ class Results extends React.Component<Props, State> {
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
-    const query = decodeScalar(location.query.query, '');
+    const query = eventView.query;
     const title = this.getDocumentTitle();
 
     return (
@@ -478,6 +491,36 @@ export const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 
+type SavedQueryState = AsyncComponent['state'] & {
+  savedQuery?: SavedQuery | null;
+};
+
+class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {organization, location} = this.props;
+    if (location.query.id) {
+      return [
+        [
+          'savedQuery',
+          `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+        ],
+      ];
+    }
+    return [];
+  }
+
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderBody(): React.ReactNode {
+    const {savedQuery, loading} = this.state;
+    return (
+      <Results {...this.props} savedQuery={savedQuery ?? undefined} loading={loading} />
+    );
+  }
+}
+
 function ResultsContainer(props: Props) {
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
@@ -491,7 +534,7 @@ function ResultsContainer(props: Props) {
     <GlobalSelectionHeader
       skipLoadLastUsed={props.organization.features.includes('global-views')}
     >
-      <Results {...props} />
+      <SavedQueryAPI {...props} />
     </GlobalSelectionHeader>
   );
 }
