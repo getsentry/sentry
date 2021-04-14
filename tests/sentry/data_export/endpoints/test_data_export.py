@@ -263,3 +263,16 @@ class DataExportTest(APITestCase):
         with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.org.slug, status_code=400, **payload)
         assert response.data == {"non_field_errors": ["Empty string after 'foo:'"]}
+
+    def test_export_resolves_empty_project(self, mock_discover_processor):
+        """
+        Ensures that a request to this endpoint returns a 201 if projects
+        is an empty list.
+        """
+        payload = self.make_payload("issue", {"project": []})
+        with self.feature("organizations:discover-query"):
+            self.get_valid_response(self.org.slug, status_code=201, **payload)
+
+        payload = self.make_payload("issue", {"project": None})
+        with self.feature("organizations:discover-query"):
+            self.get_valid_response(self.org.slug, status_code=201, **payload)
