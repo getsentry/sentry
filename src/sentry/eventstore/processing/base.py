@@ -10,7 +10,7 @@ DEFAULT_TIMEOUT = 60 * 60 * 24
 Event = Any
 
 
-class BaseEventProcessingStore:
+class EventProcessingStore:
     """
     Store for event blobs during processing
 
@@ -23,9 +23,9 @@ class BaseEventProcessingStore:
     implementations.
     """
 
-    def __init__(self, inner: KVStorage[str, Event], timeout: int = DEFAULT_TIMEOUT):
+    def __init__(self, inner: KVStorage[str, Event]):
         self.inner = inner
-        self.timeout = timedelta(seconds=timeout)
+        self.timeout = timedelta(seconds=DEFAULT_TIMEOUT)
 
     def __get_unprocessed_key(self, key: str) -> str:
         return key + ":u"
