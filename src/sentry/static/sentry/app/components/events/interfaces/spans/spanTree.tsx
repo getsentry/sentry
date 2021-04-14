@@ -2,17 +2,15 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import {MessageRow} from 'app/components/waterfallTree/messageRow';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
-import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
-import {DividerLine} from './spanBar';
 import SpanGroup from './spanGroup';
-import {SpanRowMessage} from './styles';
 import {FilterSpans} from './traceView';
 import {
   GapSpanType,
@@ -119,7 +117,7 @@ class SpanTree extends React.Component<PropType> {
       return null;
     }
 
-    return <SpanRowMessage>{messages}</SpanRowMessage>;
+    return <MessageRow>{messages}</MessageRow>;
   }
 
   generateLimitExceededMessage() {
@@ -130,11 +128,11 @@ class SpanTree extends React.Component<PropType> {
     }
 
     return (
-      <SpanRowMessage>
+      <MessageRow>
         {t(
           'The next spans are unavailable. You may have exceeded the span limit or need to address missing instrumentation.'
         )}
-      </SpanRowMessage>
+      </MessageRow>
     );
   }
 
@@ -381,36 +379,6 @@ class SpanTree extends React.Component<PropType> {
       previousSiblingEndTimestamp: undefined,
     });
   };
-
-  renderDivider(
-    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-  ) {
-    const {addDividerLineRef} = dividerHandlerChildrenProps;
-
-    return (
-      <DividerLine
-        ref={addDividerLineRef()}
-        style={{
-          position: 'relative',
-        }}
-        onMouseEnter={() => {
-          dividerHandlerChildrenProps.setHover(true);
-        }}
-        onMouseLeave={() => {
-          dividerHandlerChildrenProps.setHover(false);
-        }}
-        onMouseOver={() => {
-          dividerHandlerChildrenProps.setHover(true);
-        }}
-        onMouseDown={dividerHandlerChildrenProps.onDragStart}
-        onClick={event => {
-          // we prevent the propagation of the clicks from this component to prevent
-          // the span detail from being opened.
-          event.stopPropagation();
-        }}
-      />
-    );
-  }
 
   render() {
     const {

@@ -3,9 +3,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
-import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
-import {SpanBarTitle} from 'app/components/events/interfaces/spans/spanBar';
-import {SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
@@ -25,31 +22,10 @@ export {
 } from 'app/components/events/interfaces/spans/header';
 
 export {
-  ConnectorBar,
-  DividerLine,
-  DividerLineGhostContainer,
-  DurationPill,
-  OperationName,
-  SpanBarRectangle as TransactionBarRectangle,
-  SpanBarTitleContainer as TransactionBarTitleContainer,
-  SpanRowCell as TransactionRowCell,
-  SpanRowCellContainer as TransactionRowCellContainer,
-  SpanTreeConnector as TransactionTreeConnector,
-  SpanTreeToggler as TransactionTreeToggle,
-  SpanTreeTogglerContainer as TransactionTreeToggleContainer,
-} from 'app/components/events/interfaces/spans/spanBar';
-
-export {
   Row,
   SpanDetails as TransactionDetails,
   SpanDetailContainer as TransactionDetailsContainer,
 } from 'app/components/events/interfaces/spans/spanDetail';
-
-export {
-  SPAN_ROW_HEIGHT as TRANSACTION_ROW_HEIGHT,
-  SPAN_ROW_PADDING as TRANSACTION_ROW_PADDING,
-  SpanRowMessage as TransactionRowMessage,
-} from 'app/components/events/interfaces/spans/styles';
 
 export const SearchContainer = styled('div')`
   display: flex;
@@ -60,9 +36,14 @@ export const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
-export const TraceViewHeaderContainer = styled(SecondaryHeader)`
+export const TraceViewHeaderContainer = styled('div')`
   position: static;
   top: auto;
+  left: 0;
+  height: ${space(3)};
+  width: 100%;
+  background-color: ${p => p.theme.backgroundSecondary};
+  display: flex;
   border-top: none;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
@@ -96,15 +77,6 @@ export const StyledPanel = styled(Panel)`
 export const StyledIconChevron = styled(IconChevron)`
   width: 7px;
   margin-left: ${space(0.25)};
-`;
-
-export const TransactionRow = styled(SpanRow)<{cursor: 'pointer' | 'default'}>`
-  cursor: ${p => p.cursor};
-`;
-
-export const TransactionBarTitle = styled(SpanBarTitle)`
-  display: flex;
-  align-items: center;
 `;
 
 export const TransactionBarTitleContent = styled('span')`

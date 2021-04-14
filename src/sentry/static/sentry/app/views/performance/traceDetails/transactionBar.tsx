@@ -7,31 +7,34 @@ import * as DividerHandlerManager from 'app/components/events/interfaces/spans/d
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Tooltip from 'app/components/tooltip';
+import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
+import {Row, RowCell, RowCellContainer} from 'app/components/waterfallTree/row';
+import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
+import {
+  DividerLine,
+  DividerLineGhostContainer,
+} from 'app/components/waterfallTree/rowDivider';
+import {
+  OperationName,
+  RowTitle,
+  RowTitleContainer,
+} from 'app/components/waterfallTree/rowTitle';
+import {
+  ConnectorBar,
+  TreeConnector,
+  TreeToggle,
+  TreeToggleContainer,
+} from 'app/components/waterfallTree/treeConnector';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
 import {
-  ConnectorBar,
   DividerContainer,
-  DividerLine,
-  DividerLineGhostContainer,
-  DurationPill,
   ErrorBadge,
-  OperationName,
   StyledIconChevron,
-  TRANSACTION_ROW_HEIGHT,
-  TransactionBarRectangle,
-  TransactionBarTitle,
-  TransactionBarTitleContainer,
   TransactionBarTitleContent,
-  TransactionRow,
-  TransactionRowCell,
-  TransactionRowCellContainer,
-  TransactionTreeConnector,
-  TransactionTreeToggle,
-  TransactionTreeToggleContainer,
 } from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
@@ -134,7 +137,7 @@ class TransactionBar extends React.Component<Props, State> {
           style={{
             right: '16px',
             height: '10px',
-            bottom: isLast ? `-${TRANSACTION_ROW_HEIGHT / 2}px` : '0',
+            bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
             top: 'auto',
           }}
           key={`${eventId}-last`}
@@ -144,13 +147,9 @@ class TransactionBar extends React.Component<Props, State> {
     }
 
     return (
-      <TransactionTreeConnector
-        isLast={isLast}
-        hasToggler={hasToggle}
-        orphanBranch={isOrphan}
-      >
+      <TreeConnector isLast={isLast} hasToggler={hasToggle} orphanBranch={isOrphan}>
         {connectorBars}
-      </TransactionTreeConnector>
+      </TreeConnector>
     );
   }
 
@@ -161,18 +160,18 @@ class TransactionBar extends React.Component<Props, State> {
 
     if (children.length <= 0) {
       return (
-        <TransactionTreeToggleContainer style={{left: `${left}px`}}>
+        <TreeToggleContainer style={{left: `${left}px`}}>
           {this.renderConnector(false)}
-        </TransactionTreeToggleContainer>
+        </TreeToggleContainer>
       );
     }
 
     const isRoot = generation === 0;
 
     return (
-      <TransactionTreeToggleContainer style={{left: `${left}px`}} hasToggler>
+      <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
         {this.renderConnector(true)}
-        <TransactionTreeToggle
+        <TreeToggle
           disabled={isRoot}
           isExpanded={isExpanded}
           onClick={event => {
@@ -191,8 +190,8 @@ class TransactionBar extends React.Component<Props, State> {
               <StyledIconChevron direction={isExpanded ? 'up' : 'down'} />
             </div>
           )}
-        </TransactionTreeToggle>
-      </TransactionTreeToggleContainer>
+        </TreeToggle>
+      </TreeToggleContainer>
     );
   }
 
@@ -240,17 +239,17 @@ class TransactionBar extends React.Component<Props, State> {
     );
 
     return (
-      <TransactionBarTitleContainer ref={generateContentSpanBarRef()}>
+      <RowTitleContainer ref={generateContentSpanBarRef()}>
         {this.renderToggle()}
-        <TransactionBarTitle
+        <RowTitle
           style={{
             left: `${left}px`,
             width: '100%',
           }}
         >
           {content}
-        </TransactionBarTitle>
-      </TransactionBarTitleContainer>
+        </RowTitle>
+      </RowTitleContainer>
     );
   }
 
@@ -352,7 +351,7 @@ class TransactionBar extends React.Component<Props, State> {
     const widthPercentage = duration / delta;
 
     return (
-      <TransactionBarRectangle
+      <RowRectangle
         spanBarHatch={false}
         style={{
           backgroundColor: palette[transaction.generation % palette.length],
@@ -370,7 +369,7 @@ class TransactionBar extends React.Component<Props, State> {
         >
           {getHumanDuration(duration)}
         </DurationPill>
-      </TransactionBarRectangle>
+      </RowRectangle>
     );
   }
 
@@ -386,8 +385,8 @@ class TransactionBar extends React.Component<Props, State> {
     const {dividerPosition} = dividerHandlerChildrenProps;
 
     return (
-      <TransactionRowCellContainer showDetail={showDetail}>
-        <TransactionRowCell
+      <RowCellContainer showDetail={showDetail}>
+        <RowCell
           data-type="span-row-cell"
           style={{
             width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
@@ -397,12 +396,12 @@ class TransactionBar extends React.Component<Props, State> {
           onClick={this.toggleDisplayDetail}
         >
           {this.renderTitle(scrollbarManagerChildrenProps)}
-        </TransactionRowCell>
+        </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
           {this.renderErrorBadge()}
         </DividerContainer>
-        <TransactionRowCell
+        <RowCell
           data-type="span-row-cell"
           showStriping={index % 2 !== 0}
           style={{
@@ -413,9 +412,9 @@ class TransactionBar extends React.Component<Props, State> {
           onClick={this.toggleDisplayDetail}
         >
           {this.renderRectangle()}
-        </TransactionRowCell>
+        </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
-      </TransactionRowCellContainer>
+      </RowCellContainer>
     );
   }
 
@@ -424,7 +423,7 @@ class TransactionBar extends React.Component<Props, State> {
     const {showDetail} = this.state;
 
     return (
-      <TransactionRow
+      <Row
         visible={isVisible}
         showBorder={showDetail}
         cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
@@ -450,7 +449,7 @@ class TransactionBar extends React.Component<Props, State> {
             transaction={transaction}
           />
         )}
-      </TransactionRow>
+      </Row>
     );
   }
 }

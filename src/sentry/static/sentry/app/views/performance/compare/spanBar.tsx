@@ -5,26 +5,13 @@ import {withTheme} from 'emotion-theming';
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import {
-  ConnectorBar,
-  DividerLine,
-  DividerLineGhostContainer,
   getBackgroundColor,
-  OperationName,
-  SpanBarTitle,
-  SpanBarTitleContainer,
-  SpanRowCell,
-  SpanRowCellContainer,
-  SpanTreeConnector,
-  SpanTreeToggler,
-  SpanTreeTogglerContainer,
   StyledIconChevron,
   TOGGLE_BORDER_BOX,
 } from 'app/components/events/interfaces/spans/spanBar';
 import {
-  getHatchPattern,
   SPAN_ROW_HEIGHT,
   SPAN_ROW_PADDING,
-  SpanRow,
 } from 'app/components/events/interfaces/spans/styles';
 import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
 import {
@@ -33,12 +20,29 @@ import {
   toPercent,
   unwrapTreeDepth,
 } from 'app/components/events/interfaces/spans/utils';
+import {Row, RowCell, RowCellContainer} from 'app/components/waterfallTree/row';
+import {RowRectangle} from 'app/components/waterfallTree/rowBar';
+import {
+  DividerLine,
+  DividerLineGhostContainer,
+} from 'app/components/waterfallTree/rowDivider';
+import {
+  OperationName,
+  RowTitle,
+  RowTitleContainer,
+} from 'app/components/waterfallTree/rowTitle';
+import {
+  ConnectorBar,
+  TreeConnector,
+  TreeToggle,
+  TreeToggleContainer,
+} from 'app/components/waterfallTree/treeConnector';
+import {getHatchPattern} from 'app/components/waterfallTree/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
 import SpanDetail from './spanDetail';
-import {SpanBarRectangle} from './styles';
 import {
   DiffSpanType,
   generateCSSWidth,
@@ -137,13 +141,13 @@ class SpanBar extends React.Component<Props, State> {
     }
 
     return (
-      <SpanTreeConnector
+      <TreeConnector
         isLast={isLast}
         hasToggler={hasToggler}
         orphanBranch={isOrphanDiffSpan(span)}
       >
         {connectorBars}
-      </SpanTreeConnector>
+      </TreeConnector>
     );
   }
 
@@ -154,18 +158,18 @@ class SpanBar extends React.Component<Props, State> {
 
     if (numOfSpanChildren <= 0) {
       return (
-        <SpanTreeTogglerContainer style={{left: `${left}px`}}>
+        <TreeToggleContainer style={{left: `${left}px`}}>
           {this.renderSpanTreeConnector({hasToggler: false})}
-        </SpanTreeTogglerContainer>
+        </TreeToggleContainer>
       );
     }
 
     const chevronElement = !isRoot ? <div>{chevron}</div> : null;
 
     return (
-      <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler>
+      <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
         {this.renderSpanTreeConnector({hasToggler: true})}
-        <SpanTreeToggler
+        <TreeToggle
           disabled={!!isRoot}
           isExpanded={this.props.showSpanTree}
           onClick={event => {
@@ -180,8 +184,8 @@ class SpanBar extends React.Component<Props, State> {
         >
           <Count value={numOfSpanChildren} />
           {chevronElement}
-        </SpanTreeToggler>
-      </SpanTreeTogglerContainer>
+        </TreeToggle>
+      </TreeToggleContainer>
     );
   }
 
@@ -204,9 +208,9 @@ class SpanBar extends React.Component<Props, State> {
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2);
 
     return (
-      <SpanBarTitleContainer>
+      <RowTitleContainer>
         {this.renderSpanTreeToggler({left})}
-        <SpanBarTitle
+        <RowTitle
           style={{
             left: `${left}px`,
             width: '100%',
@@ -216,8 +220,8 @@ class SpanBar extends React.Component<Props, State> {
             {operationName}
             {description}
           </span>
-        </SpanBarTitle>
-      </SpanBarTitleContainer>
+        </RowTitle>
+      </RowTitleContainer>
     );
   }
 
@@ -423,8 +427,8 @@ class SpanBar extends React.Component<Props, State> {
       />
     ) : null;
     return (
-      <SpanRowCellContainer showDetail={this.state.showDetail}>
-        <SpanRowCell
+      <RowCellContainer showDetail={this.state.showDetail}>
+        <RowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
           style={{
@@ -435,9 +439,9 @@ class SpanBar extends React.Component<Props, State> {
           }}
         >
           {this.renderTitle()}
-        </SpanRowCell>
+        </RowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
-        <SpanRowCell
+        <RowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
           showStriping={spanNumber % 2 !== 0}
@@ -460,7 +464,7 @@ class SpanBar extends React.Component<Props, State> {
             {foregroundSpanBar}
           </SpanContainer>
           {this.renderComparisonReportLabel()}
-        </SpanRowCell>
+        </RowCell>
         {!this.state.showDetail && (
           <DividerLineGhostContainer
             style={{
@@ -483,7 +487,7 @@ class SpanBar extends React.Component<Props, State> {
             />
           </DividerLineGhostContainer>
         )}
-      </SpanRowCellContainer>
+      </RowCellContainer>
     );
   }
 
@@ -505,19 +509,19 @@ class SpanBar extends React.Component<Props, State> {
 
   render() {
     return (
-      <SpanRow visible data-test-id="span-row">
+      <Row visible data-test-id="span-row">
         <DividerHandlerManager.Consumer>
           {(
             dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
           ) => this.renderHeader(dividerHandlerChildrenProps)}
         </DividerHandlerManager.Consumer>
         {this.renderDetail()}
-      </SpanRow>
+      </Row>
     );
   }
 }
 
-const ComparisonSpanBarRectangle = styled(SpanBarRectangle)<{spanBarHatch: boolean}>`
+const ComparisonSpanBarRectangle = styled(RowRectangle)<{spanBarHatch: boolean}>`
   position: absolute;
   left: 0;
   height: 16px;
