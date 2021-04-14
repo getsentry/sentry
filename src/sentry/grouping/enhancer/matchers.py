@@ -74,6 +74,7 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
         if isinstance(value, str):
             if key in ("package", "path"):
                 value = match_frame[key] = value.lower()
+            match_frame[key] = value.encode("utf-8")
 
     return match_frame
 
@@ -184,11 +185,11 @@ class FrameMatch(Match):
 
 
 def path_like_match(pattern, value):
-
+    """ Stand-alone function for use with ``cached`` """
     if glob_match(value, pattern, ignorecase=False, doublestar=True, path_normalize=True):
         return True
-    if not value.startswith("/") and glob_match(
-        "/" + value, pattern, ignorecase=False, doublestar=True, path_normalize=True
+    if not value.startswith(b"/") and glob_match(
+        b"/" + value, pattern, ignorecase=False, doublestar=True, path_normalize=True
     ):
         return True
 
@@ -220,10 +221,10 @@ class PathMatch(PathLikeMatch):
 class FamilyMatch(FrameMatch):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._flags = set(self.pattern.split(","))
+        self._flags = set(self.encoded_pattern.split(b","))
 
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-        if "all" in self._flags:
+        if b"all" in self._flags:
             return True
 
         return match_frame["family"] in self._flags
