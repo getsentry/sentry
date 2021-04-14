@@ -488,13 +488,13 @@ if (
 
     appConfig.devServer = {
       ...appConfig.devServer,
-      publicPath: '/_assets/sentry',
+      publicPath: '/_static/dist/sentry',
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: {
         '/api/store/**': relayAddress,
         '/api/{1..9}*({0..9})/**': relayAddress,
         '/api/0/relays/outcomes/': relayAddress,
-        '!/_assets/sentry/**': backendAddress,
+        '!/_static/dist/sentry/**': backendAddress,
       },
       writeToDisk: filePath => {
         return /manifest\.json/.test(filePath);

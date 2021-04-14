@@ -65,7 +65,7 @@ class StaticMediaTest(TestCase):
             "Content-Encoding" not in response
 
             # non-existant dist file
-            response = self.client.get("/_assets/sentry/invalid.js")
+            response = self.client.get("/_static/dist/sentry/invalid.js")
             assert response.status_code == 404, response
 
             with override_settings(DEBUG=True):

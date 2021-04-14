@@ -26,7 +26,7 @@ class AssetsTest(TestCase):
             request.LANGUAGE_CODE = "fr"  # French, in locale/catalogs.json
             result = self.TEMPLATE.render(request=request)
 
-            assert '<script src="/_assets/sentry/locale/fr.f00f00.js"></script>' in result
+            assert '<script src="/_static/dist/sentry/locale/fr.f00f00.js"></script>' in result
 
     def test_supported_foreign_lang_csp_nonce(self):
         locale_manifest = {
@@ -39,7 +39,7 @@ class AssetsTest(TestCase):
             result = self.TEMPLATE.render(request=request)
 
             assert (
-                '<script src="/_assets/sentry/locale/fr.f00f00.js" nonce="r@nD0m"></script>'
+                '<script src="/_static/dist/sentry/locale/fr.f00f00.js" nonce="r@nD0m"></script>'
                 in result
             )
 

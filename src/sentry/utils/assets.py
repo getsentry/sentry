@@ -18,7 +18,7 @@ def get_manifest_url(module, key):
 
     Example:
       {% manifest_asset_url 'sentry' 'sentry.css' %}
-      =>  "/_assets/sentry/sentry.filehash123.css"
+      =>  "/_static/dist/sentry/sentry.filehash123.css"
     """
     manifest_obj = get_manifest_obj()
     manifest_value = _load_from_manifest(manifest_obj, key=key)
@@ -31,7 +31,7 @@ def get_asset_url(module, path):
     Returns a versioned asset URL (located within Sentry's static files).
 
     Example:
-      {% asset_url 'sentry' 'dist/sentry.css' %}
-      =>  "/_static/74d127b78dc7daf2c51f/sentry/dist/sentry.css"
+      {% asset_url 'sentry' 'images/sentry.png' %}
+      =>  "/_static/74d127b78dc7daf2c51f/sentry/sentry.png"
     """
     return "{}/{}/{}".format(settings.STATIC_URL.rstrip("/"), module, path.lstrip("/"))

@@ -94,7 +94,6 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "404",
         "500",
         "_static",
-        "_assets",
         "out",
         "debug",
         "remote",
