@@ -176,7 +176,7 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
             })}
           </StyledPanelBody>
         </Panel>
-        <StyledListItem>{t('Select events')}</StyledListItem>
+        <StyledListItem>{t('Select Events')}</StyledListItem>
         <FormRow>
           <SelectField
             name="environment"
