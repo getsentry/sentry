@@ -2,8 +2,7 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-// eslint-disable-next-line no-restricted-imports
-import {Box} from 'reflexbox';
+import {Box} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
