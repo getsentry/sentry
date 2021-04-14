@@ -18,7 +18,11 @@ function AlertBadge({status, hideText = false, isIssue}: Props) {
   let statusText = t('Okay');
   let Icon = IconCheckmark;
   let color: Color = 'green300';
-  if (status === IncidentStatus.CRITICAL) {
+  if (isIssue) {
+    statusText = t('Issue');
+    Icon = IconIssues;
+    color = 'gray300';
+  } else if (status === IncidentStatus.CRITICAL) {
     statusText = t('Critical');
     Icon = IconFire;
     color = 'red300';
@@ -26,10 +30,6 @@ function AlertBadge({status, hideText = false, isIssue}: Props) {
     statusText = t('Warning');
     Icon = IconWarning;
     color = 'yellow300';
-  } else if (isIssue) {
-    statusText = t('Issue');
-    Icon = IconIssues;
-    color = 'gray300';
   }
 
   return (
