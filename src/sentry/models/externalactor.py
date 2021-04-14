@@ -33,4 +33,4 @@ class ExternalActor(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_externalactor"
-        unique_together = (("organization", "provider", "external_name"),)
+        unique_together = (("organization", "provider", "external_name", "actor"),)
