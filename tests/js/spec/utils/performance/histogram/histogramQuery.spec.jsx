@@ -31,7 +31,7 @@ function renderHistogram({isLoading, error, histograms}) {
 
 describe('HistogramQuery', function () {
   let api, eventView, location;
-  beforeEach(() => {
+  beforeEach(function () {
     api = new Client();
     location = {
       pathname: '/',
