@@ -14,11 +14,12 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
+import {FILTER_OPTIONS} from 'app/utils/performance/histogram/constants';
 import {decodeScalar} from 'app/utils/queryString';
 
 import TransactionHeader, {Tab} from '../transactionSummary/header';
 
-import {FILTER_OPTIONS, ZOOM_KEYS} from './constants';
+import {ZOOM_KEYS} from './constants';
 import VitalsPanel from './vitalsPanel';
 
 type Props = {

@@ -1,7 +1,4 @@
-import {t} from 'app/locale';
-import {SelectValue} from 'app/types';
 import {WebVital} from 'app/utils/discover/fields';
-import {DataFilter} from 'app/utils/performance/histogram/types';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {VitalGroup} from 'app/utils/performance/vitals/types';
 import theme from 'app/utils/theme';
@@ -9,11 +6,6 @@ import theme from 'app/utils/theme';
 export const NUM_BUCKETS = 100;
 
 export const PERCENTILE = 0.75;
-
-export const FILTER_OPTIONS: SelectValue<DataFilter>[] = [
-  {label: t('Exclude Outliers'), value: 'exclude_outliers'},
-  {label: t('View All'), value: 'all'},
-];
 
 /**
  * This defines the grouping for histograms. Histograms that are in the same group
