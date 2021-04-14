@@ -20,7 +20,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
             "sentry-api-0-organization-release-assemble",
             args=[self.organization.slug, self.release.version],
         )
-        self.client.credentials(HTTP_AUTHORIZATION="Bearer {}".format(self.token.token))
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token.token}")
 
     def test_assemble_json_schema(self):
         response = self.client.post(self.url, data={"lol": "test"})
@@ -58,7 +58,8 @@ class OrganizationReleaseAssembleTest(APITestCase):
         FileBlobOwner.objects.get_or_create(organization=self.organization, blob=blob1)
 
         response = self.client.post(
-            self.url, data={"checksum": total_checksum, "chunks": [blob1.checksum]},
+            self.url,
+            data={"checksum": total_checksum, "chunks": [blob1.checksum]},
         )
 
         assert response.status_code == 200, response.content
@@ -87,7 +88,8 @@ class OrganizationReleaseAssembleTest(APITestCase):
         )
 
         response = self.client.post(
-            self.url, data={"checksum": total_checksum, "chunks": [blob1.checksum]},
+            self.url,
+            data={"checksum": total_checksum, "chunks": [blob1.checksum]},
         )
 
         assert response.status_code == 200, response.content
@@ -106,7 +108,8 @@ class OrganizationReleaseAssembleTest(APITestCase):
         )
 
         response = self.client.post(
-            self.url, data={"checksum": total_checksum, "chunks": [blob1.checksum]},
+            self.url,
+            data={"checksum": total_checksum, "chunks": [blob1.checksum]},
         )
 
         assert response.status_code == 200, response.content
