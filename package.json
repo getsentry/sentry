@@ -78,7 +78,7 @@
     "emotion": "10.0.27",
     "emotion-theming": "10.0.27",
     "file-loader": "^6.2.0",
-    "focus-visible": "^5.0.2",
+    "focus-visible": "^5.2.0",
     "fork-ts-checker-webpack-plugin": "^4.1.2",
     "framer-motion": "^2.9.4",
     "fuse.js": "^3.4.6",
