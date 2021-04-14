@@ -3,8 +3,8 @@ import color from 'color';
 import CHART_PALETTE from 'app/constants/chartPalette';
 
 const colors = {
-  black: '#FFFFFF',
-  white: '#1D1127',
+  white: '#FFFFFF',
+  black: '#1D1127',
 
   gray100: '#E7E1EC',
   gray200: '#C6BECF',
