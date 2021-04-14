@@ -44,7 +44,6 @@ import withOrganization from 'app/utils/withOrganization';
 import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
 import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
 
-
 const DiscoveryExclusionFields: string[] = [
   'query',
   'status',
