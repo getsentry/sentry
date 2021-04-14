@@ -28,7 +28,7 @@ type Props = {
 const EVENT_ROUND_LIMIT = 1000;
 
 function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
-  const {reason, reason_details, date_added: dateAdded} = inbox;
+  const {reason, reason_details: reasonDetails, date_added: dateAdded} = inbox;
   const relativeDateAdded = getDynamicText({
     value: dateAdded && getRelativeDate(dateAdded, 'ago', true),
     fixed: '3s ago',
@@ -40,7 +40,13 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       : `${count}`;
 
   function getTooltipDescription() {
-    const {until, count, window, user_count, user_window} = reason_details;
+    const {
+      until,
+      count,
+      window,
+      user_count: userCount,
+      user_window: userWindow,
+    } = reasonDetails;
     if (until) {
       // Was ignored until `until` has passed.
       //`until` format: "2021-01-20T03:59:03+00:00"
@@ -65,18 +71,18 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       });
     }
 
-    if (user_count) {
+    if (userCount) {
       // Was ignored until `user_count` users were affected
       // If `user_window` is defined, than `user_count` users affected in `user_window` minutes.
       // else `user_count` events occurred since it was ignored.
-      if (user_window) {
+      if (userWindow) {
         return tct('Affected [count] user(s) in [duration]', {
-          count: getCountText(user_count),
-          duration: getDuration(user_window * 60, 0, true),
+          count: getCountText(userCount),
+          duration: getDuration(userWindow * 60, 0, true),
         });
       }
       return tct('Affected [count] user(s)', {
-        count: getCountText(user_count),
+        count: getCountText(userCount),
       });
     }
 
