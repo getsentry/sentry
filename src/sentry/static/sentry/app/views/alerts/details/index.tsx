@@ -81,7 +81,7 @@ class IncidentDetails extends React.Component<Props, State> {
                 ? incident.alertRule.originalAlertRuleId
                 : incident.alertRule.id
             }/`,
-            query: makeRuleDetailsQuery(incident),
+            query: {alert: incident.identifier},
           });
         }
 
