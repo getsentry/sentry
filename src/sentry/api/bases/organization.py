@@ -163,7 +163,11 @@ class OrganizationEndpoint(Endpoint):
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 
     def get_projects(
-        self, request, organization, force_global_perms=False, project_ids=None,
+        self,
+        request,
+        organization,
+        force_global_perms=False,
+        project_ids=None,
     ):
         """
         Determines which project ids to filter the endpoint by. If a list of
@@ -186,10 +190,19 @@ class OrganizationEndpoint(Endpoint):
         """
         if project_ids is None:
             project_ids = self.get_requested_project_ids(request)
-        return self._get_projects_by_id(project_ids, request, organization, force_global_perms,)
+        return self._get_projects_by_id(
+            project_ids,
+            request,
+            organization,
+            force_global_perms,
+        )
 
     def _get_projects_by_id(
-        self, project_ids, request, organization, force_global_perms=False,
+        self,
+        project_ids,
+        request,
+        organization,
+        force_global_perms=False,
     ):
         include_all_accessible = False
         qs = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)
@@ -353,8 +366,11 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         ):
             return []
 
-        return super(OrganizationReleasesBaseEndpoint, self).get_projects(
-            request, organization, force_global_perms=has_valid_api_key, project_ids=project_ids,
+        return super().get_projects(
+            request,
+            organization,
+            force_global_perms=has_valid_api_key,
+            project_ids=project_ids,
         )
 
     def has_release_permission(self, request, organization, release):
