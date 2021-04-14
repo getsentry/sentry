@@ -86,7 +86,7 @@ type Props = {
 type State = {
   data: Group;
   reviewed: boolean;
-  issueAction: boolean;
+  actionTaken: boolean;
 };
 
 class StreamGroup extends React.Component<Props, State> {
@@ -105,7 +105,7 @@ class StreamGroup extends React.Component<Props, State> {
         filtered: useFilteredStats ? data.filtered : null,
       },
       reviewed: false,
-      issueAction: false,
+      actionTaken: false,
     };
   }
 
@@ -147,7 +147,7 @@ class StreamGroup extends React.Component<Props, State> {
       return;
     }
 
-    const issueAction = this.state.data.status === 'unresolved' ? false : true;
+    const actionTaken = this.state.data.status === 'unresolved' ? false : true;
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
       // When searching is:for_review and the inbox reason is removed
@@ -156,7 +156,7 @@ class StreamGroup extends React.Component<Props, State> {
         (isForReviewQuery(query) &&
           (state.data.inbox as InboxDetails)?.reason !== undefined &&
           data.inbox === false);
-      return {data, reviewed, issueAction};
+      return {data, reviewed, actionTaken};
     });
   }
 
@@ -334,7 +334,7 @@ class StreamGroup extends React.Component<Props, State> {
   }
 
   render() {
-    const {data, reviewed, issueAction} = this.state;
+    const {data, reviewed, actionTaken} = this.state;
     const {
       index,
       query,
@@ -380,7 +380,7 @@ class StreamGroup extends React.Component<Props, State> {
         reviewed={reviewed}
         hasInbox={hasInbox}
         unresolved={unresolved}
-        issueAction={issueAction}
+        actionTaken={actionTaken}
       >
         {canSelect && (
           <GroupCheckBoxWrapper ml={2}>
@@ -576,7 +576,7 @@ const Wrapper = styled(PanelItem)<{
   reviewed: boolean;
   hasInbox: boolean;
   unresolved: boolean;
-  issueAction: boolean;
+  actionTaken: boolean;
 }>`
   position: relative;
   padding: ${p => (p.hasInbox ? `${space(1.5)} 0` : `${space(1)} 0`)};
@@ -586,7 +586,7 @@ const Wrapper = styled(PanelItem)<{
 
   ${p =>
     (p.reviewed || !p.unresolved) &&
-    !p.issueAction &&
+    !p.actionTaken &&
     css`
       animation: tintRow 0.2s linear forwards;
       position: relative;
