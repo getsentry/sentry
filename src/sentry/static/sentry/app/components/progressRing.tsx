@@ -62,7 +62,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   ${p => p.textCss && p.textCss(p)}
 `;
 
-const AnimatedText = motion.custom(Text);
+const AnimatedText = motion(Text);
 
 AnimatedText.defaultProps = {
   initial: {opacity: 0, y: -10},
