@@ -1,17 +1,20 @@
 import React from 'react';
 import {Location} from 'history';
 
+import Button from 'app/components/button';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LoadingPanel from 'app/components/charts/loadingPanel';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
+import OptionSelector from 'app/components/charts/optionSelector';
+import {HeaderTitleLegend, InlineContainer} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
+import Histogram from 'app/utils/performance/histogram';
 import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
 import {HistogramData} from 'app/utils/performance/histogram/types';
 import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
@@ -19,6 +22,9 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
 import {filterToColour, filterToField, SpanOperationBreakdownFilter} from './filter';
+
+export const ZOOM_START = 'startDuration';
+export const ZOOM_END = 'endDuration';
 
 const NUM_BUCKETS = 50;
 const QUERY_KEYS = [
@@ -154,8 +160,8 @@ class LatencyChart extends React.Component<Props, State> {
       <BarChartZoom
         minZoomWidth={NUM_BUCKETS}
         location={location}
-        paramStart="startDuration"
-        paramEnd="endDuration"
+        paramStart={ZOOM_START}
+        paramEnd={ZOOM_END}
         xAxisIndex={[0]}
         buckets={computeBuckets(data)}
         onDataZoomCancelled={this.handleDataZoomCancelled}
@@ -204,7 +210,16 @@ class LatencyChart extends React.Component<Props, State> {
       location
     );
 
-    const min = parseInt(decodeScalar(location.query.startDuration, '0'), 10);
+    let min: number | undefined = undefined;
+    let max: number | undefined = undefined;
+
+    if (ZOOM_START in location.query) {
+      min = Math.abs(parseInt(decodeScalar(location.query[ZOOM_START], '0'), 10));
+    }
+
+    if (ZOOM_END in location.query) {
+      max = Math.abs(parseInt(decodeScalar(location.query[ZOOM_END], '0'), 10));
+    }
 
     const field = filterToField(currentFilter) ?? 'transaction.duration';
 
@@ -227,29 +242,65 @@ class LatencyChart extends React.Component<Props, State> {
             )}
           />
         </HeaderTitleLegend>
-        <HistogramQuery
-          location={location}
-          orgSlug={organization.slug}
-          eventView={eventView}
-          numBuckets={NUM_BUCKETS}
-          fields={[field]}
-          min={min}
-          dataFilter="exclude_outliers"
-        >
-          {({histograms, isLoading, error}) => {
-            if (isLoading) {
-              return this.renderLoading();
-            } else if (error) {
-              return this.renderError();
-            }
+        <Histogram location={location} zoomKeys={[ZOOM_START, ZOOM_END]}>
+          {({activeFilter}) => (
+            <HistogramQuery
+              location={location}
+              orgSlug={organization.slug}
+              eventView={eventView}
+              numBuckets={NUM_BUCKETS}
+              fields={[field]}
+              min={min}
+              max={max}
+              dataFilter={activeFilter.value}
+            >
+              {({histograms, isLoading, error}) => {
+                if (isLoading) {
+                  return this.renderLoading();
+                } else if (error) {
+                  return this.renderError();
+                }
 
-            const data = histograms?.[field] ?? [];
-            return this.renderChart(data);
-          }}
-        </HistogramQuery>
+                const data = histograms?.[field] ?? [];
+                return this.renderChart(data);
+              }}
+            </HistogramQuery>
+          )}
+        </Histogram>
       </React.Fragment>
     );
   }
+}
+
+export function LatencyChartControls(props: {location: Location}) {
+  const {location} = props;
+
+  return (
+    <Histogram location={location} zoomKeys={[ZOOM_START, ZOOM_END]}>
+      {({isZoomed, filterOptions, handleResetView, handleFilterChange, activeFilter}) => {
+        return (
+          <React.Fragment>
+            <OptionSelector
+              title={t('Filter')}
+              selected={activeFilter.value}
+              options={filterOptions}
+              onChange={handleFilterChange}
+            />
+            <InlineContainer>
+              <Button
+                onClick={handleResetView}
+                disabled={!isZoomed}
+                data-test-id="reset-view"
+                size="small"
+              >
+                {t('Reset View')}
+              </Button>
+            </InlineContainer>
+          </React.Fragment>
+        );
+      }}
+    </Histogram>
+  );
 }
 
 export default LatencyChart;
