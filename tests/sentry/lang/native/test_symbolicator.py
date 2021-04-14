@@ -265,37 +265,3 @@ class TestAliasReversion:
         reverse_aliases = symbolicator.reverse_aliases_map(builtin_sources)
         expected = {"sentry:ios-source": "sentry:ios", "sentry:tvos-source": "sentry:ios"}
         assert reverse_aliases == expected
-
-    def test_merge_candidates(self, builtin_sources):
-        event = {
-            "modules": [
-                {
-                    "candidates": [
-                        {
-                            "source": "sentry:ios-source",
-                            "location": "http://example.com/prefix/path0",
-                            "download": {"status": "notfound"},
-                        },
-                        {
-                            "source": "sentry:tvos-source",
-                            "location": "http://example.com/prefix/path1",
-                            "download": {"status": "ok"},
-                        },
-                    ]
-                }
-            ]
-        }
-        candidates = [
-            {
-                "source": "sentry:ios",
-                "location": "http://example.com/prefix/path0",
-                "download": {"status": "notfound"},
-            },
-            {
-                "source": "sentry:ios",
-                "location": "http://example.com/prefix/path1",
-                "download": {"status": "ok"},
-            },
-        ]
-        symbolicator.reverse_source_aliases(event, builtin_sources)
-        assert event["modules"][0]["candidates"] == candidates
