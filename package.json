@@ -169,7 +169,6 @@
     "jest-fetch-mock": "^3.0.3",
     "jest-junit": "^9.0.0",
     "mockdate": "3.0.2",
-    "object.fromentries": "^2.0.0",
     "prettier": "2.1.2",
     "react-refresh": "^0.8.3",
     "react-test-renderer": "16.12.0",
