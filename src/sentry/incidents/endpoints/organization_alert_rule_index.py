@@ -107,12 +107,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         rule_sort_key = [
             "label" if x == "name" else x for x in sort_key
         ]  # Rule's don't share the same field name for their title/label/name...so we account for that here.
-        if len(sort_key) == 1:
-            sort_key = sort_key[0]
-            rule_sort_key = rule_sort_key[0]
-        case_insensitive = sort_key == "name"
+        case_insensitive = sort_key == ["name"]
 
-        if sort_key == "incident_status" or "incident_status" in sort_key:
+        if "incident_status" in sort_key:
             alert_rules = alert_rules.annotate(
                 incident_status=Coalesce(
                     Subquery(
@@ -127,8 +124,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 incident_status=Value(-2, output_field=IntegerField())
             )
 
-        if sort_key == "date_triggered" or "date_triggered" in sort_key:
-            far_past_date = Value(datetime.utcfromtimestamp(0), output_field=DateTimeField())
+        if "date_triggered" in sort_key:
+            far_past_date = Value(datetime.min, output_field=DateTimeField())
             alert_rules = alert_rules.annotate(
                 date_triggered=Coalesce(
                     Subquery(

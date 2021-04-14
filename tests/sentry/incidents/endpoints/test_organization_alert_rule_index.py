@@ -443,7 +443,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.setup_project_and_rules()
         # Test Limit as 1, no cursor:
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "1", "project": self.project_ids, "sort": "name", "asc": 1}
+            request_data = {"per_page": "1", "project": self.project.id, "sort": "name", "asc": 1}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -980,7 +980,47 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 7
         # Assert critical rule is first, warnings are next (sorted by triggered date), and issue rules are last.
-        assert result[0]["id"] == str(alert_rule_critical.id)
-        assert result[2]["id"] == str(alert_rule_warning.id)
-        assert result[1]["id"] == str(another_alert_rule_warning.id)
-        assert result[6]["id"] == str(self.issue_rule.id)
+        [r["id"] for r in result] == [
+            str(alert_rule_critical.id),
+            str(another_alert_rule_warning.id),
+            str(alert_rule_warning.id),
+            str(self.yet_another_alert_rule.id),
+            str(self.other_alert_rule.id),
+            str(self.alert_rule.id),
+            str(self.issue_rule.id),
+        ]
+
+        # Test paging with the status setup:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "2",
+                "project": [self.project.id, self.project2.id],
+                "sort": ["incident_status", "date_triggered"],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 2
+        self.assert_alert_rule_serialized(alert_rule_critical, result[0], skip_dates=True)
+        self.assert_alert_rule_serialized(another_alert_rule_warning, result[1], skip_dates=True)
+        links = requests.utils.parse_header_links(
+            response.get("link").rstrip(">").replace(">,<", ",<")
+        )
+        next_cursor = links[1]["cursor"]
+        # Get next page, we should be between the two status':
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "cursor": next_cursor,
+                "per_page": "2",
+                "project": [self.project.id, self.project2.id],
+                "sort": ["incident_status", "date_triggered"],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 2
+        self.assert_alert_rule_serialized(alert_rule_warning, result[0], skip_dates=True)
