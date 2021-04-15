@@ -488,6 +488,7 @@ class CombinedQuerysetIntermediary:
     is_empty = False
 
     def __init__(self, queryset, order_by):
+        assert isinstance(order_by, list), "order_by must be a list of keys/field names"
         self.queryset = queryset
         self.order_by = order_by
         try:
