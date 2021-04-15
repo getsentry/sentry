@@ -44,7 +44,7 @@ export function getDocsPlatform(platform: string, performanceOnly: boolean): Doc
   if (platform === 'react-native') {
     return 'react-native';
   }
-  const prefix = platform.substring(platform.indexOf('-') + 1);
+  const prefix = platform.substring(0, platform.indexOf('-'));
   if (validDocPlatform(prefix)) {
     const validPerformancePrefix = performancePlatforms.includes(prefix);
     if ((performanceOnly && validPerformancePrefix) || !performanceOnly) {
