@@ -1,9 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody} from 'app/components/panels';
 import Radio from 'app/components/radio';
-import {IconChevron} from 'app/icons';
 import space from 'app/styles/space';
 
 type RadioPanelGroupProps<C extends string> = {
@@ -29,19 +27,16 @@ const RadioPanelGroup = <C extends string>({
   <Container {...props} role="radiogroup" aria-labelledby={label}>
     {(choices || []).map(([id, name, extraContent], index) => (
       <RadioPanel key={index}>
-        <PanelBody>
-          <RadioLineItem role="radio" index={index} aria-checked={value === id}>
-            <Radio
-              radioSize="small"
-              aria-label={id}
-              checked={value === id}
-              onChange={(e: React.FormEvent<HTMLInputElement>) => onChange(id, e)}
-            />
-            <div>{name}</div>
-            {extraContent}
-            <IconChevron direction="right" />
-          </RadioLineItem>
-        </PanelBody>
+        <RadioLineItem role="radio" index={index} aria-checked={value === id}>
+          <Radio
+            radioSize="small"
+            aria-label={id}
+            checked={value === id}
+            onChange={(e: React.FormEvent<HTMLInputElement>) => onChange(id, e)}
+          />
+          <div>{name}</div>
+          {extraContent}
+        </RadioLineItem>
       </RadioPanel>
     ))}
   </Container>
@@ -70,7 +65,7 @@ export const RadioLineItem = styled('label')<{
   margin: 0;
   color: ${p => p.theme.subText};
   transition: color 0.3s ease-in;
-  padding: ${space(1.5)};
+  padding: 0;
   position: relative;
 
   &:hover,
@@ -85,38 +80,9 @@ export const RadioLineItem = styled('label')<{
 
   &[aria-checked='true'] {
     color: ${p => p.theme.textColor};
-
-    svg {
-      display: block;
-      opacity: 1 !important;
-      animation: none !important;
-    }
-
-    span {
-      display: none;
-    }
-  }
-
-  &:hover {
-    svg {
-      display: block;
-      animation: svgpop 0.2s ease-in forwards;
-    }
-    span {
-      display: none;
-    }
-  }
-
-  @keyframes svgpop {
-    0% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 0.5;
-    }
   }
 `;
 
-const RadioPanel = styled(Panel)`
+const RadioPanel = styled('div')`
   margin: 0;
 `;
