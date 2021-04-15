@@ -5,7 +5,7 @@ module.exports = {
   verbose: false,
   collectCoverageFrom: [
     'tests/js/spec/**/*.{js,jsx,tsx}',
-    'src/sentry/static/sentry/app/**/*.{js,jsx,ts,tsx}',
+    'static/app/**/*.{js,jsx,ts,tsx}',
   ],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
@@ -17,10 +17,9 @@ module.exports = {
     'integration-docs-platforms':
       '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
   },
-  modulePaths: ['<rootDir>/src/sentry/static/sentry'],
-  modulePathIgnorePatterns: ['<rootDir>/src/sentry/static/sentry/dist'],
+  modulePaths: ['<rootDir>/static'],
   setupFiles: [
-    '<rootDir>/src/sentry/static/sentry/app/utils/silence-react-unsafe-warnings.ts',
+    '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     '<rootDir>/tests/js/throw-on-react-error.js',
     '<rootDir>/tests/js/setup.js',
     'jest-canvas-mock',

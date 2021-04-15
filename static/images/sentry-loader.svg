@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg"  width="90" height="90" viewBox="0 0 90 90">
+  <style>
+  .logo-spin-0,
+  .logo-spin-1 {
+    transform-origin: 50% 50%;
+    stroke-dasharray: 300;
+  }
+
+  .logo-spin-0 {
+    animation: logo-draw 4s cubic-bezier(0.99, 0, 0.53, 1) infinite,
+      logo-spin 4s cubic-bezier(0.77, -0.63, 0.12, 1.45) infinite;
+    stroke: #000;
+    stroke-dashoffset: 300;
+  }
+  .logo-spin-1 {
+    animation: logo-visible 4s cubic-bezier(0.77, -0.63, 0.12, 1.16) infinite,
+      logo-spin 4s cubic-bezier(0.81, -0.61, 0.09, 1.41) infinite;
+    opacity: 0;
+    stroke: rgba(0, 0, 0, 0.5);
+    stroke-dashoffset: 0;
+  }
+
+  @keyframes logo-visible {
+    40% {
+      opacity: 0;
+    }
+    45% {
+      opacity: 0;
+      filter: blur(0px);
+    }
+    46% {
+      opacity: 1;
+      filter: blur(0.4px);
+    }
+    65% {
+      opacity: 1;
+      filter: blur(0.7px);
+    }
+    67% {
+      opacity: 0;
+      filter: blur(0px);
+    }
+  }
+
+  @keyframes logo-spin {
+    45% {
+      transform: scale(1) rotate(0deg);
+    }
+    46% {
+      transform: scale(0.95) rotate(0deg);
+    }
+    66% {
+      transform: scale(1) rotate(360deg);
+    }
+    100% {
+      transform: scale(1) rotate(360deg);
+    }
+  }
+
+  @keyframes logo-draw {
+    0% {
+      stroke-dashoffset: 300;
+    }
+    33% {
+      stroke-dashoffset: 0;
+    }
+    64% {
+      stroke-dashoffset: 0;
+    }
+    100% {
+      stroke-dashoffset: 300;
+    }
+  }
+  </style>
+
+  <defs>
+    <path id="loading-logo" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M8.07 50.083c-1.744 2.885-3.192 5.403-4.344 7.556-1.729 3.228.522 6.041 3.335 6.041h18.86c.056-10.925-6.902-18.96-12.867-22.226 1.9-3.173 5.12-8.986 6.313-10.984 12.02 6.966 19.14 19.803 19.14 33.21 4.01.027 8.422 0 12.638 0 .01-16.823-8.633-34.304-25.512-44.004 4.289-7.375 7.02-12.354 8.532-14.733 1.512-2.378 5.214-2.395 6.656 0 1.443 2.395 28.98 50.16 30.451 52.696 1.471 2.536.034 6.041-3.751 6.041h-6.789"></path>
+  </defs>
+
+  <use x="5" y="5" href="#loading-logo" class="logo-spin-1"></use>
+  <use x="5" y="5" href="#loading-logo" class="logo-spin-0"></use>
+</svg>

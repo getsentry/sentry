@@ -76,9 +76,11 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
 const SENTRY_EXPERIMENTAL_SPA =
   !DEPLOY_PREVIEW_CONFIG && !IS_UI_DEV_ONLY ? env.SENTRY_EXPERIMENTAL_SPA : true;
 
-// this is set by setup.py sdist
-const staticPrefix = path.join(__dirname, 'src/sentry/static/sentry');
-const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(staticPrefix, 'dist');
+// this is the path to the django "sentry" app, we output the webpack build here to `dist`
+// so that `django collectstatic` and so that we can serve the post-webpack bundles
+const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
+const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryDjangoAppPath, 'dist');
+const staticPrefix = path.join(__dirname, 'static');
 
 /**
  * Locale file extraction build step
@@ -362,6 +364,7 @@ let appConfig = {
     alias: {
       app: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
+      'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
       '@emotion/styled': path.join(staticPrefix, 'app', 'styled'),
       '@original-emotion/styled': path.join(
@@ -541,7 +544,7 @@ if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
       ...(IS_UI_DEV_ONLY
         ? {devServer: `https://localhost:${SENTRY_WEBPACK_PROXY_PORT}`}
         : {}),
-      favicon: path.resolve(staticPrefix, 'images', 'favicon_dev.png'),
+      favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon_dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
       excludeChunks: ['pipeline'],

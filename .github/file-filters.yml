@@ -16,7 +16,7 @@ frontend: &frontend
   - 'yarn.lock'
   - '.eslint*'
   - 'docs-ui/**'
-  - 'src/sentry/static/sentry/**'
+  - 'static/**'
   - 'tests/js/**'
   - '.github/workflows/js-*.yml'
 
