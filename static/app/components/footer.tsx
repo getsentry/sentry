@@ -41,7 +41,7 @@ function Footer({className}: Props) {
         <FooterLink href="https://github.com/getsentry/sentry">
           {t('Contribute')}
         </FooterLink>
-        {config.isOnPremise && (
+        {config.isOnPremise && !config.demoMode && (
           <FooterLink href="/out/">{t('Migrate to SaaS')}</FooterLink>
         )}
       </Links>
