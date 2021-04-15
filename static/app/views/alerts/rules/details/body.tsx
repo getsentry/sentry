@@ -308,9 +308,7 @@ export default class DetailsBody extends React.Component<Props> {
                     </div>
                     {projects && projects.length && (
                       <div>
-                        <SidebarHeading noMargin>
-                          {t('Project')}
-                        </SidebarHeading>
+                        <SidebarHeading noMargin>{t('Project')}</SidebarHeading>
 
                         <IdBadge avatarSize={16} project={projects[0]} />
                       </div>
