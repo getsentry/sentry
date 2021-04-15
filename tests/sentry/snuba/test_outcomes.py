@@ -1,7 +1,7 @@
 import pytest
 from django.http import QueryDict
-from sentry_relay import DataCategory
 
+from sentry.constants import DataCategory
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import InvalidField, QueryDefinition
 from sentry.testutils import TestCase
