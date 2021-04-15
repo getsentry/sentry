@@ -413,6 +413,7 @@ type FieldGeneratorOpts = {
   organization: LightWeightOrganization;
   tagKeys?: string[] | null;
   measurementKeys?: string[] | null;
+  spanOperationBreakdownKeys?: string[];
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
 };
@@ -421,6 +422,7 @@ export function generateFieldOptions({
   organization,
   tagKeys,
   measurementKeys,
+  spanOperationBreakdownKeys,
   aggregations = AGGREGATIONS,
   fields = FIELDS,
 }: FieldGeneratorOpts) {
@@ -498,6 +500,18 @@ export function generateFieldOptions({
         value: {
           kind: FieldValueKind.MEASUREMENT,
           meta: {name: measurement, dataType: measurementType(measurement)},
+        },
+      };
+    });
+  }
+
+  if (Array.isArray(spanOperationBreakdownKeys)) {
+    spanOperationBreakdownKeys.forEach(breakdownField => {
+      fieldOptions[`span_op_breakdown:${breakdownField}`] = {
+        label: breakdownField,
+        value: {
+          kind: FieldValueKind.BREAKDOWN,
+          meta: {name: breakdownField, dataType: 'duration'},
         },
       };
     });

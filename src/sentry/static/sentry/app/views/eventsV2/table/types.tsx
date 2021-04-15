@@ -31,6 +31,7 @@ export type TableState = {
 export enum FieldValueKind {
   TAG = 'tag',
   MEASUREMENT = 'measurement',
+  BREAKDOWN = 'breakdown',
   FIELD = 'field',
   FUNCTION = 'function',
 }
@@ -50,6 +51,13 @@ export type FieldValueColumns =
       meta: {
         name: string;
         dataType: ColumnType;
+      };
+    }
+  | {
+      kind: FieldValueKind.BREAKDOWN;
+      meta: {
+        name: string;
+        dataType: 'duration';
       };
     }
   | {

@@ -11,6 +11,7 @@ import {TableData} from 'app/utils/discover/discoverQuery';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import Measurements from 'app/utils/measurements/measurements';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'app/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
 
@@ -162,6 +163,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
         <Measurements>
           {({measurements}) => {
             const measurementKeys = Object.values(measurements).map(({key}) => key);
+
             return (
               <TableView
                 {...this.props}
@@ -172,6 +174,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
                 tableData={tableData}
                 tagKeys={tagKeys}
                 measurementKeys={measurementKeys}
+                spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
               />
             );
           }}

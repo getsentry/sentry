@@ -51,6 +51,7 @@ export type TableViewProps = {
   tableData: TableData | null | undefined;
   tagKeys: null | string[];
   measurementKeys: null | string[];
+  spanOperationBreakdownKeys?: string[];
   title: string;
 
   onChangeShowTags: () => void;
@@ -301,7 +302,17 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   handleEditColumns = () => {
-    const {organization, eventView, tagKeys, measurementKeys} = this.props;
+    const {
+      organization,
+      eventView,
+      tagKeys,
+      measurementKeys,
+      spanOperationBreakdownKeys,
+    } = this.props;
+
+    const hasBreakdownFeature = organization.features.includes(
+      'performance-ops-breakdown'
+    );
 
     openModal(
       modalProps => (
@@ -310,6 +321,9 @@ class TableView extends React.Component<TableViewProps> {
           organization={organization}
           tagKeys={tagKeys}
           measurementKeys={measurementKeys}
+          spanOperationBreakdownKeys={
+            hasBreakdownFeature ? spanOperationBreakdownKeys : undefined
+          }
           columns={eventView.getColumns().map(col => col.column)}
           onApply={this.handleUpdateColumns}
         />
