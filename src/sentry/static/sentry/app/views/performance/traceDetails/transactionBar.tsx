@@ -388,6 +388,7 @@ class TransactionBar extends React.Component<Props, State> {
     return (
       <TransactionRowCellContainer showDetail={showDetail}>
         <TransactionRowCell
+          data-test-id="transaction-row-title"
           data-type="span-row-cell"
           style={{
             width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
@@ -403,6 +404,7 @@ class TransactionBar extends React.Component<Props, State> {
           {this.renderErrorBadge()}
         </DividerContainer>
         <TransactionRowCell
+          data-test-id="transaction-row-duration"
           data-type="span-row-cell"
           showStriping={index % 2 !== 0}
           style={{

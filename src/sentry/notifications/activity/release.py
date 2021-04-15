@@ -1,10 +1,11 @@
 from collections import defaultdict
-from itertools import chain
+from typing import Any, List, Mapping, MutableMapping, Optional, Set
 
 from django.db.models import Count
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
+    Activity,
     CommitFileChange,
     Deploy,
     Environment,
@@ -15,29 +16,32 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     Repository,
-    Team,
     User,
     UserEmail,
 )
+from sentry.notifications.helpers import (
+    get_deploy_values_by_provider,
+    transform_to_notification_settings_by_user,
+)
 from sentry.notifications.types import (
     GroupSubscriptionReason,
-    NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
-from .base import ActivityEmail
+from .base import ActivityNotification, notification_providers
 
 
-class ReleaseActivityEmail(ActivityEmail):
-    def __init__(self, activity):
+class ReleaseActivityNotification(ActivityNotification):
+    def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.organization = self.project.organization
-        self.user_id_team_lookup = None
-        self.email_list = {}
-        self.user_ids = {}
+        self.user_id_team_lookup: Optional[MutableMapping[int, List[int]]] = None
+        self.email_list: Set[str] = set()
+        self.user_ids: Set[int] = set()
 
         try:
             self.deploy = Deploy.objects.get(id=activity.data["deploy_id"])
@@ -108,78 +112,53 @@ class ReleaseActivityEmail(ActivityEmail):
                 .annotate(num_groups=Count("id"))
             )
 
-    def should_email(self):
+    def should_email(self) -> bool:
         return bool(self.release and self.deploy)
 
-    def get_participants(self):
-        # collect all users with verified emails on a team in the related projects,
-        users = list(
-            User.objects.filter(
-                emails__is_verified=True,
-                sentry_orgmember_set__teams__in=Team.objects.filter(
-                    id__in=ProjectTeam.objects.filter(project__in=self.projects).values_list(
-                        "team_id", flat=True
-                    )
-                ),
-                is_active=True,
-            ).distinct()
-        )
+    def get_reason(self, user: User, value: NotificationSettingOptionValues) -> Optional[int]:
+        # Members who opt into all deploy emails.
+        if value == NotificationSettingOptionValues.ALWAYS:
+            return GroupSubscriptionReason.deploy_setting
 
-        # get all the involved users' settings for deploy-emails (user default
-        # saved without org set)
+        # Members which have been seen in the commit log.
+        elif value == NotificationSettingOptionValues.COMMITTED_ONLY and user.id in self.user_ids:
+            return GroupSubscriptionReason.committed
+        return None
+
+    def get_participants(self) -> Mapping[ExternalProviders, Mapping[User, int]]:
+        # Collect all users with verified emails on a team in the related projects.
+        users = list(User.objects.get_team_members_with_verified_email_for_projects(self.projects))
+
+        # Get all the involved users' settings for deploy-emails (including
+        # users' organization-independent settings.)
         notification_settings = NotificationSetting.objects.get_for_users_by_parent(
             NotificationSettingTypes.DEPLOY,
             users=users,
             parent=self.organization,
         )
+        notification_settings_by_user = transform_to_notification_settings_by_user(
+            notification_settings, users
+        )
 
-        actor_mapping = {user.actor: user for user in users}
-
-        options_by_user_id = defaultdict(dict)
-        for notification_setting in notification_settings:
-            key = (
-                "default"
-                if notification_setting.scope_type == NotificationScopeType.USER.value
-                else "org"
-            )
-            user_option = actor_mapping.get(notification_setting.target)
-            if user_option:
-                options_by_user_id[user_option.id][key] = notification_setting.value
-
-        # and couple them with the the users' setting value for deploy-emails
-        # prioritize user/org specific, then user default, then product default
-        users_with_options = {}
+        # Map users to their setting value. Prioritize user/org specific, then
+        # user default, then product default.
+        users_to_reasons_by_provider: MutableMapping[
+            ExternalProviders, MutableMapping[User, int]
+        ] = defaultdict(dict)
         for user in users:
-            options = options_by_user_id.get(user.id, {})
-            users_with_options[user] = (
-                options.get("org")  # org-specific
-                or options.get("default")  # user default
-                or NotificationSettingOptionValues.COMMITTED_ONLY.value  # product default
+            notification_settings_by_scope = notification_settings_by_user.get(user, {})
+            values_by_provider = get_deploy_values_by_provider(
+                notification_settings_by_scope, notification_providers()
             )
+            for provider, value in values_by_provider.items():
+                reason_option = self.get_reason(user, value)
+                if reason_option:
+                    users_to_reasons_by_provider[provider][user] = reason_option
+        return users_to_reasons_by_provider
 
-        # filter down to members which have been seen in the commit log:
-        participants_committed = {
-            user: GroupSubscriptionReason.committed
-            for user, option in users_with_options.items()
-            if (
-                option == NotificationSettingOptionValues.COMMITTED_ONLY.value
-                and user.id in self.user_ids
-            )
-        }
-
-        # or who opt into all deploy emails:
-        participants_opted = {
-            user: GroupSubscriptionReason.deploy_setting
-            for user, option in users_with_options.items()
-            if option == NotificationSettingOptionValues.ALWAYS.value
-        }
-
-        # merge the two type of participants
-        return dict(chain(participants_committed.items(), participants_opted.items()))
-
-    def get_users_by_teams(self):
+    def get_users_by_teams(self) -> Mapping[int, List[int]]:
         if not self.user_id_team_lookup:
-            user_teams = defaultdict(list)
+            user_teams: MutableMapping[int, List[int]] = defaultdict(list)
             queryset = User.objects.filter(
                 sentry_orgmember_set__organization_id=self.organization.id
             ).values_list("id", "sentry_orgmember_set__teams")
@@ -188,7 +167,7 @@ class ReleaseActivityEmail(ActivityEmail):
             self.user_id_team_lookup = user_teams
         return self.user_id_team_lookup
 
-    def get_context(self):
+    def get_context(self) -> MutableMapping[str, Any]:
         file_count = (
             CommitFileChange.objects.filter(
                 commit__in=self.commit_list, organization_id=self.organization.id
@@ -209,7 +188,7 @@ class ReleaseActivityEmail(ActivityEmail):
             "setup_repo_link": absolute_uri(f"/organizations/{self.organization.slug}/repos/"),
         }
 
-    def get_user_context(self, user):
+    def get_user_context(self, user: User) -> MutableMapping[str, Any]:
         if user.is_superuser or self.organization.flags.allow_joinleave:
             projects = self.projects
         else:
@@ -234,14 +213,14 @@ class ReleaseActivityEmail(ActivityEmail):
             "project_count": len(projects),
         }
 
-    def get_subject(self):
+    def get_subject(self) -> str:
         return f"Deployed version {self.release.version} to {self.environment}"
 
-    def get_template(self):
+    def get_template(self) -> str:
         return "sentry/emails/activity/release.txt"
 
-    def get_html_template(self):
+    def get_html_template(self) -> str:
         return "sentry/emails/activity/release.html"
 
-    def get_category(self):
+    def get_category(self) -> str:
         return "release_activity_email"

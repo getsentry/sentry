@@ -80,7 +80,9 @@ export default function QuickTraceMeta({
     <MetaData
       headingText={t('Quick Trace')}
       beta
-      tooltipText={t('A minified version of the full trace.')}
+      tooltipText={t(
+        'A minified version of the full trace. Related frontend and backend services can be added to provide further visibility.'
+      )}
       bodyText={body}
       subtext={
         traceId === null ? (
