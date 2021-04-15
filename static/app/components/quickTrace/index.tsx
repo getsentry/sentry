@@ -176,7 +176,6 @@ export default function QuickTrace({
                     organization={organization}
                     platform={project.platform}
                     connectorSide="right"
-                    serviceType="frontend"
                   />
                   {currentNode}
                 </React.Fragment>
@@ -190,7 +189,6 @@ export default function QuickTrace({
                     organization={organization}
                     platform={project.platform}
                     connectorSide="left"
-                    serviceType="backend"
                   />
                 </React.Fragment>
               );
@@ -502,7 +500,6 @@ function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNo
 
 type MissingServiceProps = Pick<QuickTraceProps, 'anchor' | 'organization'> & {
   connectorSide: 'left' | 'right';
-  serviceType: 'frontend' | 'backend';
   platform: string;
 };
 type MissingServiceState = {
@@ -559,7 +556,7 @@ class MissingServiceNode extends React.Component<
 
   render() {
     const {hideMissing} = this.state;
-    const {anchor, connectorSide, platform, serviceType} = this.props;
+    const {anchor, connectorSide, platform} = this.props;
     if (hideMissing) {
       return null;
     }
@@ -574,12 +571,18 @@ class MissingServiceNode extends React.Component<
         {connectorSide === 'left' && <TraceConnector />}
         <DropdownLink
           caret={false}
-          title={<EventNode type="white">???</EventNode>}
+          title={
+            <StyledEventNode
+              type="white"
+              hoverText={t('No services connected')}
+              text="???"
+            />
+          }
           anchorRight={anchor === 'right'}
         >
           <DropdownItem first width="small">
             <ExternalDropdownLink href={docsHref} onClick={this.trackExternalLink}>
-              {t('Connect your %s service', serviceType)}
+              {t('Connect to a service')}
             </ExternalDropdownLink>
           </DropdownItem>
           <DropdownItem onSelect={this.dismissMissingService} width="small">
