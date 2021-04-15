@@ -5,6 +5,7 @@ import {LocationDescriptorObject} from 'history';
 
 import Alert from 'app/components/alert';
 import {DateTimeObject} from 'app/components/charts/utils';
+import ErrorBoundary from 'app/components/errorBoundary';
 import PageHeading from 'app/components/pageHeading';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconInfo} from 'app/icons';
@@ -127,22 +128,26 @@ class OrganizationStats extends React.Component<Props> {
             </p>
           </OrgText>
           <OrgLastMin>
-            <UsageStatsLastMin
-              organization={organization}
-              dataCategory={this.dataCategory}
-              dataCategoryName={this.dataCategoryName}
-            />
+            <ErrorBoundary mini>
+              <UsageStatsLastMin
+                organization={organization}
+                dataCategory={this.dataCategory}
+                dataCategoryName={this.dataCategoryName}
+              />
+            </ErrorBoundary>
           </OrgLastMin>
         </OrgTextWrapper>
 
-        <UsageStatsOrg
-          organization={organization}
-          dataCategory={this.dataCategory}
-          dataCategoryName={this.dataCategoryName}
-          dataDatetime={this.dataPeriod}
-          chartTransform={this.chartTransform}
-          handleChangeState={this.setStateOnUrl}
-        />
+        <ErrorBoundary mini>
+          <UsageStatsOrg
+            organization={organization}
+            dataCategory={this.dataCategory}
+            dataCategoryName={this.dataCategoryName}
+            dataDatetime={this.dataPeriod}
+            chartTransform={this.chartTransform}
+            handleChangeState={this.setStateOnUrl}
+          />
+        </ErrorBoundary>
 
         <PageHeader>
           <PageHeading>
@@ -156,14 +161,16 @@ class OrganizationStats extends React.Component<Props> {
           {t('You are viewing usage stats only for projects which you have read access.')}
         </Alert>
 
-        <UsageStatsProjects
-          organization={organization}
-          dataCategory={this.dataCategory}
-          dataCategoryName={this.dataCategoryName}
-          dataDatetime={this.dataPeriod}
-          tableSort={this.tableSort}
-          handleChangeState={this.setStateOnUrl}
-        />
+        <ErrorBoundary mini>
+          <UsageStatsProjects
+            organization={organization}
+            dataCategory={this.dataCategory}
+            dataCategoryName={this.dataCategoryName}
+            dataDatetime={this.dataPeriod}
+            tableSort={this.tableSort}
+            handleChangeState={this.setStateOnUrl}
+          />
+        </ErrorBoundary>
       </PageContent>
     );
   }
