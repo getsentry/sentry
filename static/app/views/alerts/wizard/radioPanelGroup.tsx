@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import Radio from 'app/components/radio';
+import {IconChevron} from 'app/icons';
 import space from 'app/styles/space';
 
 type RadioPanelGroupProps<C extends string> = {
@@ -38,6 +39,7 @@ const RadioPanelGroup = <C extends string>({
             />
             <div>{name}</div>
             {extraContent}
+            <IconChevron direction="right" />
           </RadioLineItem>
         </PanelBody>
       </RadioPanel>
@@ -69,9 +71,49 @@ export const RadioLineItem = styled('label')<{
   color: ${p => p.theme.subText};
   transition: color 0.3s ease-in;
   padding: ${space(1.5)};
+  position: relative;
+
+  &:hover,
+  &:focus {
+    color: ${p => p.theme.textColor};
+  }
+
+  svg {
+    display: none;
+    opacity: 0;
+  }
 
   &[aria-checked='true'] {
     color: ${p => p.theme.textColor};
+
+    svg {
+      display: block;
+      opacity: 1 !important;
+      animation: none !important;
+    }
+
+    span {
+      display: none;
+    }
+  }
+
+  &:hover {
+    svg {
+      display: block;
+      animation: svgpop 0.2s ease-in forwards;
+    }
+    span {
+      display: none;
+    }
+  }
+
+  @keyframes svgpop {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 0.5;
+    }
   }
 `;
 

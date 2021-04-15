@@ -1,3 +1,15 @@
+import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
+import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
+import diagramCustom from 'sentry-images/spot/alerts-wizard-custom.svg';
+import diagramErrors from 'sentry-images/spot/alerts-wizard-errors.svg';
+import diagramFailureRate from 'sentry-images/spot/alerts-wizard-failure-rate.svg';
+import diagramFID from 'sentry-images/spot/alerts-wizard-fid.svg';
+import diagramIssues from 'sentry-images/spot/alerts-wizard-issues.svg';
+import diagramLCP from 'sentry-images/spot/alerts-wizard-lcp.svg';
+import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
+import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
+import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
+
 import {t} from 'app/locale';
 import {Dataset, EventTypes} from 'app/views/settings/incidentRules/types';
 
@@ -69,7 +81,7 @@ type PanelContent = {
 export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   issues: {
     description: t(
-      'Issues are groups of errors that have a similar stacktrace. You can set an alert for new issues, issue state changes, and frequency of errors or users affected by an issue.'
+      'Issues are groups of errors that have a similar stacktrace. Set an alert for new issues, when an issue changes state, frequency of errors, or users affected by an issue.'
     ),
     examples: [
       t("When the triggering event's level is fatal."),
@@ -78,6 +90,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
         'Create a JIRA ticket when an issue changes state from resolved to unresolved and is unassigned.'
       ),
     ],
+    illustration: diagramIssues,
   },
   num_errors: {
     description: t(
@@ -87,6 +100,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t('When the signup page has more than 10k errors in 5 minutes.'),
       t('When there are more than 500k errors in 10 minutes from a specific file.'),
     ],
+    illustration: diagramErrors,
   },
   users_experiencing_errors: {
     description: t(
@@ -96,13 +110,17 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t('When 100k users experience an error in 1 hour.'),
       t('When 100 users experience a problem on the Checkout page.'),
     ],
+    illustration: diagramUsers,
   },
   throughput: {
-    description: t('Throughput is the number of transactions in a period of time.'),
+    description: t(
+      'Alert when the number of transactions reaches a threshold over a period of time.'
+    ),
     examples: [
       t('When number of transactions on a key page exceeds 100k per minute.'),
       t('When number of transactions drops below a threshold.'),
     ],
+    illustration: diagramThroughput,
   },
   trans_duration: {
     description: t(
@@ -112,6 +130,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t('When any transaction is slower than 3 seconds.'),
       t('When the 75th percentile response time is higher than 250 milliseconds.'),
     ],
+    illustration: diagramTransactionDuration,
   },
   apdex: {
     description: t(
@@ -119,20 +138,23 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ),
     examples: [t('When apdex is below 300.')],
     docsLink: 'https://docs.sentry.io/product/performance/metrics/#apdex',
+    illustration: diagramApdex,
   },
   failure_rate: {
     description: t('Failure rate is the percentage of unsuccessful transactions.'),
     examples: [t('When the failure rate for an important endpoint reaches 10%.')],
     docsLink: 'https://docs.sentry.io/product/performance/metrics/#failure-rate',
+    illustration: diagramFailureRate,
   },
   lcp: {
     description: t(
-      'Largest Contentful Paint (LCP) measures loading performance. It marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and we recommend LCP is less than 2.5 seconds.'
+      'Largest Contentful Paint (LCP) measures loading performance. It marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and we recommend an LCP of less than 2.5 seconds.'
     ),
     examples: [
       t('When the 75th percentile LCP of your homepage is longer than 2.5 seconds.'),
     ],
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
+    illustration: diagramLCP,
   },
   fid: {
     description: t(
@@ -140,6 +162,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ),
     examples: [t('When the average FID of a page is longer than 4 seconds.')],
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
+    illustration: diagramFID,
   },
   cls: {
     description: t(
@@ -147,6 +170,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ),
     examples: [t('When the CLS of a page is more than 0.5.')],
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
+    illustration: diagramCLS,
   },
   fcp: {
     description: t(
@@ -163,6 +187,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t('When the 95th percentile FP of a page is longer than 250 milliseconds.'),
       t('When the average TTFB of a page is longer than 600 millliseconds.'),
     ],
+    illustration: diagramCustom,
   },
 };
 

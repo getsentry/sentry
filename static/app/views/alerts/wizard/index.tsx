@@ -9,7 +9,6 @@ import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import PageHeading from 'app/components/pageHeading';
 import {PanelBody} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Tag from 'app/components/tag';
 import {t} from 'app/locale';
@@ -140,7 +139,7 @@ class AlertWizard extends React.Component<Props, State> {
                         </ExternalLink>
                       )}
                     </PanelDescription>
-                    <WizardBodyPlaceholder height="250px" />
+                    <img src={panelContent.illustration} />
                     <ExampleHeader>{t('Examples')}</ExampleHeader>
                     <List symbol="bullet">
                       {panelContent.examples.map((example, i) => (
@@ -161,11 +160,6 @@ class AlertWizard extends React.Component<Props, State> {
 
 const StyledPageHeader = styled(PageHeader)`
   margin-bottom: ${space(4)};
-`;
-
-const WizardBodyPlaceholder = styled(Placeholder)`
-  background-color: ${p => p.theme.border};
-  opacity: 0.6;
 `;
 
 const Styledh2 = styled('h2')`
