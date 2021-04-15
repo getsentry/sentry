@@ -24,12 +24,17 @@ import theme from 'app/utils/theme';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
-import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
+import {
+  AlertRuleStatus,
+  Incident,
+  IncidentActivityType,
+  IncidentStatus,
+} from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
 
 import {TimePeriodType} from './constants';
 
-const X_AXIS_BOUNDARY_GAP = 20;
+const X_AXIS_BOUNDARY_GAP = 16;
 const VERTICAL_PADDING = 22;
 
 type Props = WithRouterProps & {
@@ -37,6 +42,7 @@ type Props = WithRouterProps & {
   rule?: IncidentRule;
   incidents?: Incident[];
   timePeriod: TimePeriodType;
+  selectedIncident?: Incident | null;
   organization: Organization;
   projects: Project[] | AvatarProject[];
   metricText: React.ReactNode;
@@ -86,7 +92,7 @@ function createIncidentSeries(
   orgSlug: string,
   lineColor: string,
   incidentTimestamp: number,
-  identifier?: string,
+  incident: Incident,
   dataPoint?: LineChartSeries['data'][0],
   seriesName?: string
 ) {
@@ -101,16 +107,21 @@ function createIncidentSeries(
           xAxis: incidentTimestamp,
           onClick: () => {
             router.push({
-              pathname: `/organizations/${orgSlug}/alerts/${identifier}/`,
-              query: {redirect: false},
+              pathname: `/organizations/${orgSlug}/alerts/rules/details/${
+                incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+                incident.alertRule.originalAlertRuleId
+                  ? incident.alertRule.originalAlertRuleId
+                  : incident.alertRule.id
+              }/`,
+              query: {alert: incident.identifier},
             });
           },
         },
       ] as any,
       label: {
-        show: !!identifier,
+        show: incident.identifier,
         position: 'insideEndBottom',
-        formatter: identifier || '-',
+        formatter: incident.identifier,
         color: lineColor,
         fontSize: 10,
         fontFamily: 'Rubik',
@@ -126,9 +137,9 @@ function createIncidentSeries(
       const time = getFormattedDate(value, 'MMM D, YYYY LT');
       return [
         `<div class="tooltip-series"><div>`,
-        `<span class="tooltip-label">${marker} <strong>${t(
-          'Alert'
-        )} #${identifier}</strong></span>${seriesName} ${dataPoint?.value?.toLocaleString()}`,
+        `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
+          incident.identifier
+        }</strong></span>${seriesName} ${dataPoint?.value?.toLocaleString()}`,
         `</div></div>`,
         `<div class="tooltip-date">${time}</div>`,
         `<div class="tooltip-arrow"></div>`,
@@ -182,7 +193,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
-  getRuleChangeThresholdElements = data => {
+  getRuleChangeThresholdElements = (data: LineChartSeries[]): any[] => {
     const {height, width} = this.state;
     const {dateModified} = this.props.rule || {};
 
@@ -226,7 +237,6 @@ class MetricChart extends React.PureComponent<Props, State> {
         style: {
           fill: color(theme.gray100).alpha(0.42).rgb().string(),
         },
-        z: 100,
       },
     ];
   };
@@ -292,6 +302,7 @@ class MetricChart extends React.PureComponent<Props, State> {
   renderChart(
     data: LineChartSeries[],
     series: LineChartSeries[],
+    graphics: any[],
     maxThresholdValue: number,
     maxSeriesValue: number
   ) {
@@ -310,7 +321,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         yAxis={maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined}
         series={series}
         graphic={Graphic({
-          elements: this.getRuleChangeThresholdElements(data),
+          elements: [...graphics, ...this.getRuleChangeThresholdElements(data)],
         })}
         tooltip={{
           formatter: seriesParams => {
@@ -369,6 +380,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       rule,
       organization,
       timePeriod,
+      selectedIncident,
       projects,
       interval,
       metricText,
@@ -376,6 +388,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       query,
       incidents,
     } = this.props;
+    const {height, width} = this.state;
 
     if (!rule) {
       return this.renderEmpty();
@@ -416,6 +429,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           }
 
           const series: LineChartSeries[] = [...timeseriesData];
+          const graphics: any[] = [];
           // Ensure series data appears above incident lines
           series[0].z = 100;
           const dataArr = timeseriesData[0].data;
@@ -458,8 +472,17 @@ class MetricChart extends React.PureComponent<Props, State> {
                 const incidentEnd = incident.dateClosed ?? moment().valueOf();
 
                 const timeWindowMs = rule.timeWindow * 60 * 1000;
+                const incidentColor =
+                  warningTrigger &&
+                  statusChanges &&
+                  !statusChanges.find(({value}) => value === `${IncidentStatus.CRITICAL}`)
+                    ? theme.yellow300
+                    : theme.red300;
 
                 const incidentStartDate = moment(incident.dateStarted).valueOf();
+                const incidentCloseDate = incident.dateClosed
+                  ? moment(incident.dateClosed).valueOf()
+                  : lastPoint;
                 const incidentStartValue = dataArr.find(
                   point => point.name >= incidentStartDate
                 );
@@ -467,15 +490,9 @@ class MetricChart extends React.PureComponent<Props, State> {
                   createIncidentSeries(
                     router,
                     organization.slug,
-                    warningTrigger &&
-                      statusChanges &&
-                      !statusChanges.find(
-                        ({value}) => value === `${IncidentStatus.CRITICAL}`
-                      )
-                      ? theme.yellow300
-                      : theme.red300,
+                    incidentColor,
                     incidentStartDate,
-                    incident.identifier,
+                    incident,
                     incidentStartValue,
                     series[0].seriesName
                   )
@@ -527,6 +544,30 @@ class MetricChart extends React.PureComponent<Props, State> {
                     criticalDuration += statusAreaEnd - statusAreaStart;
                   }
                 });
+
+                if (selectedIncident && incident.id === selectedIncident.id) {
+                  const chartWidth = width - X_AXIS_BOUNDARY_GAP;
+                  const incidentPosition =
+                    (chartWidth * (incidentStartDate - firstPoint)) /
+                      (lastPoint - firstPoint) +
+                    X_AXIS_BOUNDARY_GAP;
+                  const incidentWidth =
+                    (chartWidth * (incidentCloseDate - incidentStartDate)) /
+                    (lastPoint - firstPoint);
+
+                  graphics.push({
+                    type: 'rect',
+                    draggable: false,
+                    position: [incidentPosition, 0],
+                    shape: {
+                      width: incidentWidth,
+                      height: height - VERTICAL_PADDING,
+                    },
+                    style: {
+                      fill: color(incidentColor).alpha(0.42).rgb().string(),
+                    },
+                  });
+                }
               });
           }
 
@@ -566,6 +607,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 {this.renderChart(
                   timeseriesData,
                   series,
+                  graphics,
                   maxThresholdValue,
                   maxSeriesValue
                 )}
