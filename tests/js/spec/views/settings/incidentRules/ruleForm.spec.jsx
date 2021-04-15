@@ -4,10 +4,20 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {metric} from 'app/utils/analytics';
 import FormModel from 'app/views/settings/components/forms/model';
 import RuleFormContainer from 'app/views/settings/incidentRules/ruleForm';
 
 jest.mock('app/actionCreators/indicator');
+jest.mock('app/utils/analytics', () => ({
+  metric: {
+    startTransaction: jest.fn(() => ({
+      setTag: jest.fn(),
+      setData: jest.fn(),
+    })),
+    endTransaction: jest.fn(),
+  },
+}));
 
 describe('Incident Rules Form', function () {
   const {organization, project, routerContext} = initializeOrg();
@@ -64,6 +74,7 @@ describe('Incident Rules Form', function () {
         url: '/projects/org-slug/project-slug/alert-rules/',
         method: 'POST',
       });
+      metric.startTransaction.mockClear();
     });
 
     /**
@@ -95,6 +106,7 @@ describe('Incident Rules Form', function () {
           }),
         })
       );
+      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
     describe('Slack async lookup', () => {
       const uuid = 'xxxx-xxxx-xxxx';
