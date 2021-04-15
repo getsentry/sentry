@@ -1,13 +1,17 @@
 from copy import deepcopy
 
-import requests
-
 import pytz
+import requests
 from exam import fixture
 from freezegun import freeze_time
+
 from sentry.api.serializers import serialize
-from sentry.incidents.models import (AlertRule, AlertRuleThresholdType, IncidentTrigger,
-                                     TriggerStatus)
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleThresholdType,
+    IncidentTrigger,
+    TriggerStatus,
+)
 from sentry.models.organizationmember import OrganizationMember
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase

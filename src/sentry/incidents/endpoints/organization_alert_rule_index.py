@@ -4,11 +4,15 @@ from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery,
 from django.db.models.functions import Coalesce
 from rest_framework import status
 from rest_framework.response import Response
+
 from sentry import features
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import (CombinedQuerysetIntermediary, CombinedQuerysetPaginator,
-                                  OffsetPaginator)
+from sentry.api.paginator import (
+    CombinedQuerysetIntermediary,
+    CombinedQuerysetPaginator,
+    OffsetPaginator,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
 from sentry.auth.superuser import is_active_superuser
