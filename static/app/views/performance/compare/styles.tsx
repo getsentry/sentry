@@ -1,14 +1,11 @@
 import styled from '@emotion/styled';
 
-import {
-  SPAN_ROW_HEIGHT,
-  SPAN_ROW_PADDING,
-} from 'app/components/events/interfaces/spans/styles';
+import {ROW_HEIGHT, ROW_PADDING} from 'app/components/waterfallTree/constants';
 
 export const SpanBarRectangle = styled('div')`
   position: relative;
-  height: ${SPAN_ROW_HEIGHT - 2 * SPAN_ROW_PADDING}px;
-  top: ${SPAN_ROW_PADDING}px;
+  height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
+  top: ${ROW_PADDING}px;
   min-width: 1px;
   user-select: none;
   transition: border-color 0.15s ease-in-out;

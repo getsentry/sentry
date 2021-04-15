@@ -7,21 +7,26 @@ import * as DividerHandlerManager from 'app/components/events/interfaces/spans/d
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Tooltip from 'app/components/tooltip';
+import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
+import {
+  ConnectorBar,
+  StyledIconChevron,
+  TreeConnector,
+  TreeToggle,
+  TreeToggleContainer,
+} from 'app/components/waterfallTree/treeConnector';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
 import {
-  ConnectorBar,
   DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
   DurationPill,
   ErrorBadge,
   OperationName,
-  StyledIconChevron,
-  TRANSACTION_ROW_HEIGHT,
   TransactionBarRectangle,
   TransactionBarTitle,
   TransactionBarTitleContainer,
@@ -29,9 +34,6 @@ import {
   TransactionRow,
   TransactionRowCell,
   TransactionRowCellContainer,
-  TransactionTreeConnector,
-  TransactionTreeToggle,
-  TransactionTreeToggleContainer,
 } from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
@@ -134,7 +136,7 @@ class TransactionBar extends React.Component<Props, State> {
           style={{
             right: '16px',
             height: '10px',
-            bottom: isLast ? `-${TRANSACTION_ROW_HEIGHT / 2}px` : '0',
+            bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
             top: 'auto',
           }}
           key={`${eventId}-last`}
@@ -144,13 +146,9 @@ class TransactionBar extends React.Component<Props, State> {
     }
 
     return (
-      <TransactionTreeConnector
-        isLast={isLast}
-        hasToggler={hasToggle}
-        orphanBranch={isOrphan}
-      >
+      <TreeConnector isLast={isLast} hasToggler={hasToggle} orphanBranch={isOrphan}>
         {connectorBars}
-      </TransactionTreeConnector>
+      </TreeConnector>
     );
   }
 
@@ -161,18 +159,18 @@ class TransactionBar extends React.Component<Props, State> {
 
     if (children.length <= 0) {
       return (
-        <TransactionTreeToggleContainer style={{left: `${left}px`}}>
+        <TreeToggleContainer style={{left: `${left}px`}}>
           {this.renderConnector(false)}
-        </TransactionTreeToggleContainer>
+        </TreeToggleContainer>
       );
     }
 
     const isRoot = generation === 0;
 
     return (
-      <TransactionTreeToggleContainer style={{left: `${left}px`}} hasToggler>
+      <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
         {this.renderConnector(true)}
-        <TransactionTreeToggle
+        <TreeToggle
           disabled={isRoot}
           isExpanded={isExpanded}
           onClick={event => {
@@ -191,8 +189,8 @@ class TransactionBar extends React.Component<Props, State> {
               <StyledIconChevron direction={isExpanded ? 'up' : 'down'} />
             </div>
           )}
-        </TransactionTreeToggle>
-      </TransactionTreeToggleContainer>
+        </TreeToggle>
+      </TreeToggleContainer>
     );
   }
 
