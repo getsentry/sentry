@@ -4,9 +4,7 @@ from rest_framework import status
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.models import RepositoryProjectPathConfig
 
-from .organization_code_mappings import (
-    NullableOrganizationIntegrationMixin,
-)
+from .organization_code_mappings import NullableOrganizationIntegrationMixin
 
 
 class OrganizationCodeMappingCodeOwnersEndpoint(
