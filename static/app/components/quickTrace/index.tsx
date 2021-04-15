@@ -12,12 +12,13 @@ import {
   TransactionDestination,
 } from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
-import {backend, frontend} from 'app/data/platformCategories';
+import {backend, frontend, mobile, serverless} from 'app/data/platformCategories';
 import {IconFire} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {getDocsPlatform} from 'app/utils/docs';
 import {getDuration} from 'app/utils/formatters';
 import localStorage from 'app/utils/localStorage';
 import {
@@ -29,8 +30,8 @@ import {parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
-const FRONTEND_PLATFORMS: string[] = [...frontend];
-const BACKEND_PLATFORMS: string[] = [...backend];
+const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
+const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
 
 import {
   DropdownItem,
@@ -555,24 +556,32 @@ class MissingServiceNode extends React.Component<
 
   render() {
     const {hideMissing} = this.state;
-    const {anchor, connectorSide} = this.props;
+    const {anchor, connectorSide, platform} = this.props;
     if (hideMissing) {
       return null;
     }
-    // TODO(wmak): Replace doc link with one that is either platform specific or platform agnostic
+
+    const docPlatform = getDocsPlatform(platform, true);
+    const docsHref =
+      docPlatform !== 'javascript'
+        ? `https://docs.sentry.io/platforms/${docPlatform}/performance#connecting-services`
+        : 'https://docs.sentry.io/platforms/javascript/performance/connect-services/';
     return (
       <React.Fragment>
         {connectorSide === 'left' && <TraceConnector />}
         <DropdownLink
           caret={false}
-          title={<EventNode type="white">???</EventNode>}
+          title={
+            <StyledEventNode
+              type="white"
+              hoverText={t('No services connected')}
+              text="???"
+            />
+          }
           anchorRight={anchor === 'right'}
         >
           <DropdownItem first width="small">
-            <ExternalDropdownLink
-              href="https://docs.sentry.io/platforms/javascript/performance/connect-services/"
-              onClick={this.trackExternalLink}
-            >
+            <ExternalDropdownLink href={docsHref} onClick={this.trackExternalLink}>
               {t('Connect to a service')}
             </ExternalDropdownLink>
           </DropdownItem>
