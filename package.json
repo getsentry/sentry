@@ -197,7 +197,8 @@
     "less-loader": "^8.0.0",
     "style-loader": "^2.0.0",
     "terser-webpack-plugin": "^5.0.0",
-    "webpack-virtual-modules": "^0.4.2"
+    "webpack-virtual-modules": "^0.4.2",
+    "**/postcss-svgo": ">=5.0.0"
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
