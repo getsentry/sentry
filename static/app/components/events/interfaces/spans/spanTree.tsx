@@ -7,10 +7,8 @@ import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
-import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
-import {DividerLine} from './spanBar';
 import SpanGroup from './spanGroup';
 import {SpanRowMessage} from './styles';
 import {FilterSpans} from './traceView';
@@ -381,36 +379,6 @@ class SpanTree extends React.Component<PropType> {
       previousSiblingEndTimestamp: undefined,
     });
   };
-
-  renderDivider(
-    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-  ) {
-    const {addDividerLineRef} = dividerHandlerChildrenProps;
-
-    return (
-      <DividerLine
-        ref={addDividerLineRef()}
-        style={{
-          position: 'relative',
-        }}
-        onMouseEnter={() => {
-          dividerHandlerChildrenProps.setHover(true);
-        }}
-        onMouseLeave={() => {
-          dividerHandlerChildrenProps.setHover(false);
-        }}
-        onMouseOver={() => {
-          dividerHandlerChildrenProps.setHover(true);
-        }}
-        onMouseDown={dividerHandlerChildrenProps.onDragStart}
-        onClick={event => {
-          // we prevent the propagation of the clicks from this component to prevent
-          // the span detail from being opened.
-          event.stopPropagation();
-        }}
-      />
-    );
-  }
 
   render() {
     const {

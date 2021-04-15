@@ -9,6 +9,10 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Tooltip from 'app/components/tooltip';
 import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
 import {
+  DividerLine,
+  DividerLineGhostContainer,
+} from 'app/components/waterfallTree/rowDivider';
+import {
   ConnectorBar,
   StyledIconChevron,
   TreeConnector,
@@ -22,8 +26,6 @@ import {Theme} from 'app/utils/theme';
 
 import {
   DividerContainer,
-  DividerLine,
-  DividerLineGhostContainer,
   DurationPill,
   ErrorBadge,
   OperationName,
