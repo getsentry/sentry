@@ -37,6 +37,8 @@ def assigned_to_filter(actors, projects, field_filter="id"):
         if isinstance(actor, list) and actor[0] == "me_or_none":
             include_none = True
             actor = actor[1]
+        if actor is None:
+            include_none = True
         types_to_actors[type(actor) if not isinstance(actor, SimpleLazyObject) else User].append(
             actor
         )
@@ -177,6 +179,8 @@ def assigned_or_suggested_filter(owners, projects, field_filter="id"):
         if isinstance(owner, list) and owner[0] == "me_or_none":
             include_none = True
             owner = owner[1]
+        if owner is None:
+            include_none = True
         types_to_owners[type(owner) if not isinstance(owner, SimpleLazyObject) else User].append(
             owner
         )
