@@ -325,6 +325,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const FormRow = styled('div')`
