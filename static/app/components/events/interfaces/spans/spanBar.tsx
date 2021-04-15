@@ -17,6 +17,15 @@ import {
   RowTitleContainer,
 } from 'app/components/waterfallTree/rowTitle';
 import {
+  DividerLine,
+  DividerLineGhostContainer,
+} from 'app/components/waterfallTree/rowDivider';
+import {
+  OperationName,
+  RowTitle,
+  RowTitleContainer,
+} from 'app/components/waterfallTree/rowTitle';
+import {
   ConnectorBar,
   StyledIconChevron,
   TreeConnector,

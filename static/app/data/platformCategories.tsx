@@ -23,7 +23,6 @@ const popular = [
   'javascript-vue',
   'android',
   'apple-ios',
-  'react-native',
   'flutter',
   'dart-flutter',
 ] as const;
@@ -40,7 +39,7 @@ export const frontend = [
   'javascript-vue',
 ] as const;
 
-const mobile = [
+export const mobile = [
   'android',
   'apple-ios',
   'cordova',
@@ -93,7 +92,7 @@ export const backend = [
   'rust',
 ] as const;
 
-const serverless = [
+export const serverless = [
   'python-awslambda',
   'python-azurefunctions',
   'python-gcpfunctions',
