@@ -5,7 +5,6 @@ import memoize from 'lodash/memoize';
 import moment from 'moment';
 
 import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -13,22 +12,26 @@ import Confirm from 'app/components/confirm';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import {IconDelete, IconSettings, IconUser} from 'app/icons';
+import TimeSince from 'app/components/timeSince';
+import {IconArrow, IconDelete, IconSettings, IconUser} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
-import {IssueAlertRule} from 'app/types/alerts';
+import {Color} from 'app/utils/theme';
+import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
 
+import AlertBadge from '../alertBadge';
+import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
 
 type Props = {
-  rule: IssueAlertRule;
+  rule: CombinedMetricIssueAlerts;
   projects: Project[];
   projectsLoaded: boolean;
   orgId: string;
   organization: Organization;
-  onDelete: (projectId: string, rule: IssueAlertRule) => void;
+  onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   // Set of team ids that the user belongs to
   userTeams: Set<string>;
 };
@@ -42,6 +45,88 @@ class RuleListRow extends React.Component<Props, State> {
   getProject = memoize((slug: string, projects: Project[]) =>
     projects.find(project => project.slug === slug)
   );
+
+  activeIncident() {
+    const {rule} = this.props;
+    return (
+      rule.latestIncident?.status !== undefined &&
+      [IncidentStatus.CRITICAL, IncidentStatus.WARNING].includes(
+        rule.latestIncident.status
+      )
+    );
+  }
+
+  renderLastIncidentDate(): React.ReactNode {
+    const {rule} = this.props;
+    if (isIssueAlert(rule)) {
+      return null;
+    }
+
+    if (!rule.latestIncident) {
+      return t('Never triggered');
+    }
+
+    if (this.activeIncident()) {
+      return (
+        <div>
+          {t('Triggered ')}
+          <TimeSince date={rule.latestIncident.dateCreated} />
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        {t('Resolved ')}
+        <TimeSince date={rule.latestIncident.dateClosed!} />
+      </div>
+    );
+  }
+
+  renderAlertRuleStatus(): React.ReactNode {
+    const {rule} = this.props;
+
+    if (isIssueAlert(rule)) {
+      return null;
+    }
+
+    const activeIncident = this.activeIncident();
+    const criticalTrigger = rule?.triggers.find(({label}) => label === 'critical');
+    const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
+    const trigger =
+      activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
+        ? criticalTrigger
+        : warningTrigger ?? criticalTrigger;
+
+    let iconColor: Color = 'green300';
+    if (activeIncident) {
+      iconColor =
+        trigger?.label === 'critical'
+          ? 'red300'
+          : trigger?.label === 'warning'
+          ? 'yellow300'
+          : 'green300';
+    }
+
+    const thresholdTypeText =
+      activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
+        ? t('Above')
+        : t('Below');
+
+    return (
+      <FlexCenter>
+        <IconArrow
+          color={iconColor}
+          direction={
+            activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
+              ? 'up'
+              : 'down'
+          }
+        />
+        <TriggerText>{`${thresholdTypeText} ${trigger?.alertThreshold}`}</TriggerText>
+      </FlexCenter>
+    );
+  }
 
   render() {
     const {
@@ -69,28 +154,51 @@ class RuleListRow extends React.Component<Props, State> {
       : null;
 
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
+    const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
+    const hasAlertList = organization.features.includes('alert-list');
+    const alertLink = <Link to={hasRedesign ? detailsLink : editLink}>{rule.name}</Link>;
 
     return (
       <ErrorBoundary>
-        <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
-        <Title>
-          <Link to={hasRedesign ? detailsLink : editLink}>{rule.name}</Link>
-        </Title>
+        {!hasAlertList ? (
+          <React.Fragment>
+            <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
+            <Title>{alertLink}</Title>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <AlertNameWrapper isIncident={isIssueAlert(rule)}>
+              <FlexCenter>
+                <AlertBadge
+                  status={rule?.latestIncident?.status}
+                  isIssue={isIssueAlert(rule)}
+                  hideText
+                />
+              </FlexCenter>
+              <AlertNameAndStatus>
+                <div>{alertLink}</div>
+                {!isIssueAlert(rule) && this.renderLastIncidentDate()}
+              </AlertNameAndStatus>
+            </AlertNameWrapper>
+            <FlexCenter>{this.renderAlertRuleStatus()}</FlexCenter>
+          </React.Fragment>
+        )}
+
         <ProjectBadge
           avatarSize={18}
           project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
         />
-        <Feature features={['organizations:team-alerts-ownership']}>
-          <TeamIcon>
+        {hasAlertOwnership && (
+          <FlexCenter>
             {teamActor ? (
               <ActorAvatar actor={teamActor} size={24} />
             ) : (
               <IconUser size="20px" color="gray400" />
             )}
-          </TeamIcon>
-        </Feature>
-        <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>
-        <div>{dateCreated}</div>
+          </FlexCenter>
+        )}
+        {!hasAlertList && <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>}
+        <FlexCenter>{dateCreated}</FlexCenter>
         <RightColumn>
           <Access access={['alerts:write']}>
             {({hasAccess}) => (
@@ -163,13 +271,26 @@ const CreatedBy = styled('div')`
   ${columnCss}
 `;
 
+const FlexCenter = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const AlertNameWrapper = styled(FlexCenter)<{isIncident?: boolean}>`
+  ${p => p.isIncident && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
+`;
+
+const AlertNameAndStatus = styled('div')`
+  margin-left: ${space(1.5)};
+`;
+
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
 `;
 
-const TeamIcon = styled('div')`
-  display: flex;
-  align-items: center;
+const TriggerText = styled('div')`
+  margin-left: ${space(1)};
+  white-space: nowrap;
 `;
 
 export default RuleListRow;

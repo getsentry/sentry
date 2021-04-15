@@ -13,7 +13,8 @@ from sentry.api.paginator import (
     CombinedQuerysetPaginator,
     OffsetPaginator,
 )
-from sentry.api.serializers import CombinedRuleSerializer, serialize
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule, Incident
@@ -102,6 +103,19 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             alert_rules = alert_rules.filter(team_filter_query)
             issue_rules = issue_rules.filter(team_filter_query)
 
+        expand = request.GET.getlist("expand", [])
+        if "latestIncident" in expand:
+            alert_rules = alert_rules.annotate(
+                incident_id=Coalesce(
+                    Subquery(
+                        Incident.objects.filter(alert_rule=OuterRef("pk"))
+                        .order_by("-date_started")
+                        .values("id")[:1]
+                    ),
+                    Value("-1"),
+                )
+            )
+
         is_asc = request.GET.get("asc", False) == "1"
         sort_key = request.GET.getlist("sort", ["date_added"])
         rule_sort_key = [
@@ -142,7 +156,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         return self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
-            on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
+            on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer(expand=expand)),
             default_per_page=25,
             intermediaries=[alert_rule_intermediary, rule_intermediary],
             desc=not is_asc,
