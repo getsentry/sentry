@@ -64,7 +64,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
         # Override params from Discover Saved Query if they aren't in the URL
         params["order"] = params.get("sort") or saved_query.get("orderby")
         params["name"] = params.get("name") or saved_query.get("name")
-        params["yAxis"] = params.get("yAxis") or saved_query.get("yAxis")
+        params["yAxis"] = params.get("yAxis") or saved_query.get("yAxis", "count()")
         params.setlist("field", params.get("field") or saved_query.get("fields"))
 
         # Only override if key doesn't exist since we want to account for
@@ -93,7 +93,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
             )
             continue
 
-        chart_data = {"seriesName": params.get("yAxis", "count()"), "stats": resp.data}
+        chart_data = {"seriesName": params.get("yAxis"), "stats": resp.data}
 
         style = display_modes.get(display_mode, display_modes["default"])
 

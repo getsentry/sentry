@@ -129,6 +129,9 @@ class UnfurlTest(TestCase):
             title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["seriesName"] == "count()"
+        assert len(chart_data["stats"]["data"]) == 288
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_short_url(self, mock_generate_chart):
