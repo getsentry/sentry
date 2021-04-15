@@ -206,7 +206,6 @@ class IssueListOverview extends React.Component<Props, State> {
               .toString(),
           },
         });
-        metric.endTransaction({name: '/organizations/:orgId/issues/'});
       }
     }
 
