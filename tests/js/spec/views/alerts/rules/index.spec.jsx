@@ -216,9 +216,7 @@ describe('OrganizationRuleList', () => {
       ...organization,
       features: ['alert-list', 'incidents'],
     };
-    const wrapper = await createWrapper({organization: ownershipOrg});
-    wrapper.update();
-    await tick();
+    await createWrapper({organization: ownershipOrg});
 
     expect(router.replace).toHaveBeenCalledWith(
       expect.objectContaining({
