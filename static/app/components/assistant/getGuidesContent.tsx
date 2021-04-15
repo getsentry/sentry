@@ -347,14 +347,12 @@ function getDemoModeGuides(): GuidesContent {
         {
           title: t('Chart'),
           target: 'release_chart',
-          description: t(
-            `Click and drag to zoom in on a specific section of the histogram.`
-          ),
+          description: t(`Click and drag to zoom in on a specific section of the chart.`),
         },
         {
           title: t('Discover'),
           target: 'release_issues_open_in_discover',
-          description: t(`Aalyze these errors by URL, geography, device, browser, etc.`),
+          description: t(`Analyze these errors by URL, geography, device, browser, etc.`),
         },
         {
           title: t('Discover'),
