@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
+import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
 import {Row, RowCell, RowCellContainer} from 'app/components/waterfallTree/row';
 import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
 import {
@@ -18,12 +19,14 @@ import {
 } from 'app/components/waterfallTree/rowTitle';
 import {
   ConnectorBar,
+  StyledIconChevron,
+  TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
 import {getDurationDisplay} from 'app/components/waterfallTree/utils';
-import {IconChevron, IconWarning} from 'app/icons';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -42,7 +45,6 @@ import {
 } from './header';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanDetail from './spanDetail';
-import {SPAN_ROW_HEIGHT, zIndex} from './styles';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
 import {
   durationlessBrowserOps,
@@ -168,32 +170,6 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
   0.99,
   1.0,
 ];
-
-const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
-const TOGGLE_BUTTON_MAX_WIDTH = 30;
-export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
-const MARGIN_LEFT = 0;
-
-type DurationDisplay = 'left' | 'right' | 'inset';
-
-export const getBackgroundColor = ({
-  showStriping,
-  showDetail,
-  theme,
-}: {
-  showStriping?: boolean;
-  showDetail?: boolean;
-  theme: any;
-}) => {
-  if (!theme) {
-    return theme.background;
-  }
-
-  if (showDetail) {
-    return theme.textColor;
-  }
-  return showStriping ? theme.backgroundSecondary : theme.background;
-};
 
 type SpanBarProps = {
   event: Readonly<EventTransaction>;
@@ -439,7 +415,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           style={{
             right: '16px',
             height: '10px',
-            bottom: isLast ? `-${SPAN_ROW_HEIGHT / 2}px` : '0',
+            bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
             top: 'auto',
           }}
           key={`${spanID}-last`}
@@ -513,7 +489,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
     const description = span?.description ?? getSpanID(span);
 
-    const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+    const left = treeDepth * (TOGGLE_BORDER_BOX / 2);
 
     return (
       <RowTitleContainer
@@ -929,7 +905,7 @@ const CursorGuide = styled('div')`
 const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
   position: absolute;
   top: 0;
-  height: ${SPAN_ROW_HEIGHT}px;
+  height: ${ROW_HEIGHT}px;
   user-select: none;
   width: 1px;
   background: repeating-linear-gradient(
@@ -938,18 +914,13 @@ const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
       ${p => (p.failedThreshold ? p.theme.red300 : 'black')} 4px 8px
     )
     80%/2px 100% no-repeat;
-  z-index: ${zIndex.dividerLine};
+  z-index: ${p => p.theme.zIndex.traceView.dividerLine};
   color: ${p => p.theme.textColor};
 `;
 
 const StyledIconWarning = styled(IconWarning)`
   margin-left: ${space(0.25)};
   margin-bottom: ${space(0.25)};
-`;
-
-export const StyledIconChevron = styled(IconChevron)`
-  width: 7px;
-  margin-left: ${space(0.25)};
 `;
 
 export default SpanBar;

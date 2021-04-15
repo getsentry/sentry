@@ -6,7 +6,7 @@ import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
-import {IconChevron, IconFire} from 'app/icons';
+import {IconFire} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -68,11 +68,6 @@ export const TraceViewContainer = styled('div')`
 
 export const StyledPanel = styled(Panel)`
   overflow: hidden;
-`;
-
-export const StyledIconChevron = styled(IconChevron)`
-  width: 7px;
-  margin-left: ${space(0.25)};
 `;
 
 export const TransactionBarTitleContent = styled('span')`

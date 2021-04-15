@@ -4,15 +4,6 @@ import {withTheme} from 'emotion-theming';
 
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
-import {
-  getBackgroundColor,
-  StyledIconChevron,
-  TOGGLE_BORDER_BOX,
-} from 'app/components/events/interfaces/spans/spanBar';
-import {
-  SPAN_ROW_HEIGHT,
-  SPAN_ROW_PADDING,
-} from 'app/components/events/interfaces/spans/styles';
 import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
 import {
   getHumanDuration,
@@ -20,6 +11,7 @@ import {
   toPercent,
   unwrapTreeDepth,
 } from 'app/components/events/interfaces/spans/utils';
+import {ROW_HEIGHT, ROW_PADDING} from 'app/components/waterfallTree/constants';
 import {Row, RowCell, RowCellContainer} from 'app/components/waterfallTree/row';
 import {RowRectangle} from 'app/components/waterfallTree/rowBar';
 import {
@@ -33,11 +25,13 @@ import {
 } from 'app/components/waterfallTree/rowTitle';
 import {
   ConnectorBar,
+  StyledIconChevron,
+  TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
-import {getHatchPattern} from 'app/components/waterfallTree/utils';
+import {getBackgroundColor, getHatchPattern} from 'app/components/waterfallTree/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
@@ -131,7 +125,7 @@ class SpanBar extends React.Component<Props, State> {
           style={{
             right: '16px',
             height: '10px',
-            bottom: isLast ? `-${SPAN_ROW_HEIGHT / 2}px` : '0',
+            bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
             top: 'auto',
           }}
           key={`${spanID}-last`}
@@ -532,8 +526,8 @@ const ComparisonLabel = styled('div')`
   position: absolute;
   user-select: none;
   right: ${space(1)};
-  line-height: ${SPAN_ROW_HEIGHT - 2 * SPAN_ROW_PADDING}px;
-  top: ${SPAN_ROW_PADDING}px;
+  line-height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
+  top: ${ROW_PADDING}px;
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 

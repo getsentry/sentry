@@ -2,8 +2,13 @@ import styled from '@emotion/styled';
 
 import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
 import {getToggleTheme} from 'app/components/waterfallTree/utils';
+import {IconChevron} from 'app/icons';
 import space from 'app/styles/space';
 import {OmitHtmlDivProps} from 'app/utils';
+
+const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
+const TOGGLE_BUTTON_MAX_WIDTH = 30;
+export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
 
 export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
@@ -80,4 +85,9 @@ export const TreeToggleContainer = styled('div')<TogglerTypes>`
   display: flex;
   justify-content: flex-end;
   align-items: center;
+`;
+
+export const StyledIconChevron = styled(IconChevron)`
+  width: 7px;
+  margin-left: ${space(0.25)};
 `;

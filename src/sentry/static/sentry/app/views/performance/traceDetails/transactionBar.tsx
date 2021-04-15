@@ -21,6 +21,8 @@ import {
 } from 'app/components/waterfallTree/rowTitle';
 import {
   ConnectorBar,
+  StyledIconChevron,
+  TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
@@ -31,20 +33,10 @@ import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
-import {
-  DividerContainer,
-  ErrorBadge,
-  StyledIconChevron,
-  TransactionBarTitleContent,
-} from './styles';
+import {DividerContainer, ErrorBadge, TransactionBarTitleContent} from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
 import {getHumanDuration, isTraceFullDetailed, toPercent} from './utils';
-
-const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
-const TOGGLE_BUTTON_MAX_WIDTH = 30;
-export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
-const MARGIN_LEFT = 0;
 
 type Props = {
   location: Location;
@@ -453,7 +445,7 @@ class TransactionBar extends React.Component<Props, State> {
 }
 
 function getOffset(generation) {
-  return generation * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+  return generation * (TOGGLE_BORDER_BOX / 2);
 }
 
 export default withTheme(TransactionBar);
