@@ -90,7 +90,7 @@ steps:
 timeout: 2640s
 artifacts:
   objects:
-    location: 'gs://sentry-sdk-assets/getsentry/sentry/$COMMIT_SHA/'
+    location: 'gs://sentryio-cloudbuild-opensource/getsentry/sentry/$COMMIT_SHA/'
     paths: ['dist/*.whl']
 options:
   # We need more memory for Webpack builds & e2e onpremise tests

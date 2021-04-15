@@ -24,6 +24,6 @@ targets:
     targetFormat: '{{{target}}}:latest'
 artifactProvider:
   name: gcs
-  bucket: sentry-sdk-assets
+  bucket: sentryio-cloudbuild-opensource
 requireNames:
   - /^sentry-.+-py3\d?-none-any.whl$/
