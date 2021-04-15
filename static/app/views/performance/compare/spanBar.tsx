@@ -5,8 +5,6 @@ import {withTheme} from 'emotion-theming';
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import {
-  DividerLine,
-  DividerLineGhostContainer,
   getBackgroundColor,
   OperationName,
   SpanBarTitle,
@@ -24,6 +22,10 @@ import {
   unwrapTreeDepth,
 } from 'app/components/events/interfaces/spans/utils';
 import {ROW_HEIGHT, ROW_PADDING} from 'app/components/waterfallTree/constants';
+import {
+  DividerLine,
+  DividerLineGhostContainer,
+} from 'app/components/waterfallTree/rowDivider';
 import {
   ConnectorBar,
   StyledIconChevron,

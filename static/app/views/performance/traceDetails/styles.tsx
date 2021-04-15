@@ -20,8 +20,6 @@ import {Theme} from 'app/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 export {
-  DividerLine,
-  DividerLineGhostContainer,
   DurationPill,
   OperationName,
   SpanBarRectangle as TransactionBarRectangle,
