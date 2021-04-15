@@ -70,7 +70,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     loading: true,
     reloading: false,
     error: false,
-    errors: [],
+    errors: {},
 
     // local component state
     isBannerHidden: isBannerHidden(),
