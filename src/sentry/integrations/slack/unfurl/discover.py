@@ -6,6 +6,7 @@ from django.http.request import QueryDict
 
 from sentry import features
 from sentry.api import client
+from sentry.api.event_search import to_list
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
 from sentry.integrations.slack.message_builder.discover import build_discover_attachment
@@ -62,15 +63,17 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
                 saved_query = response.data
 
         # Override params from Discover Saved Query if they aren't in the URL
-        params["order"] = params.get("sort") or saved_query.get("orderby")
-        params["name"] = params.get("name") or saved_query.get("name")
-        params["yAxis"] = params.get("yAxis") or saved_query.get("yAxis", "count()")
-        params.setlist("field", params.get("field") or saved_query.get("fields"))
+        params.setlist("order", params.getlist("sort") or to_list(saved_query.get("orderby")))
+        params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
+        params.setlist(
+            "yAxis", params.getlist("yAxis") or to_list(saved_query.get("yAxis", "count()"))
+        )
+        params.setlist("field", params.getlist("field") or to_list(saved_query.get("fields")))
 
         # Only override if key doesn't exist since we want to account for
         # an intermediate state where the query could have been cleared
         if "query" not in params:
-            params["query"] = saved_query.get("query")
+            params.setlist("query", params.getlist("query") or to_list(saved_query.get("query")))
 
         display_mode = str(params.get("display") or saved_query.get("display", "default"))
 
