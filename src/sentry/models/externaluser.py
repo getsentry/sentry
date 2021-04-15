@@ -14,8 +14,8 @@ class ExternalTeam(DefaultFieldsModel):
     team = FlexibleForeignKey("sentry.Team")
     provider = BoundedPositiveIntegerField(
         choices=(
-            (ExternalProviders.GITHUB, "github"),
-            (ExternalProviders.GITLAB, "gitlab"),
+            (ExternalProviders.UNUSED_GH, "github"),
+            (ExternalProviders.UNUSED_GL, "gitlab"),
         ),
     )
     # external_name => the Github/Gitlab team name. Column name is vague to be reused for more external team identities.
@@ -33,8 +33,8 @@ class ExternalUser(DefaultFieldsModel):
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     provider = BoundedPositiveIntegerField(
         choices=(
-            (ExternalProviders.GITHUB, "github"),
-            (ExternalProviders.GITLAB, "gitlab"),
+            (ExternalProviders.UNUSED_GH, "github"),
+            (ExternalProviders.UNUSED_GL, "gitlab"),
         ),
     )
     # external_name => the Github/Gitlab username. Column name is vague to be reused for more external user identities.

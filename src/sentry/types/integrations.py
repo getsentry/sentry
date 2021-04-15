@@ -3,17 +3,24 @@ from typing import Optional
 
 
 class ExternalProviders(Enum):
-    GITHUB = 0
-    GITLAB = 1
+    UNUSED_GH = 0
+    UNUSED_GL = 1
+
     EMAIL = 100
     SLACK = 110
+    MSTEAMS = 120
+    PAGERDUTY = 130
+    GITHUB = 200
+    GITLAB = 210
 
 
 EXTERNAL_PROVIDERS = {
-    ExternalProviders.GITHUB: "github",
-    ExternalProviders.GITLAB: "gitlab",
     ExternalProviders.EMAIL: "email",
     ExternalProviders.SLACK: "slack",
+    ExternalProviders.MSTEAMS: "msteams",
+    ExternalProviders.PAGERDUTY: "pagerduty",
+    ExternalProviders.GITHUB: "github",
+    ExternalProviders.GITLAB: "gitlab",
 }
 
 
