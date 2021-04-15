@@ -28,10 +28,6 @@ class IssueListContainer extends React.Component<Props> {
     const isLightWeight: boolean = isLightweightOrganization(this.props.organization);
     const startType: string = isLightWeight ? 'cold-start' : 'warm-start';
     metric.mark({name: 'page-issue-list-start', data: {start_type: startType}});
-    metric.startTransaction({
-      name: '/organizations/:orgId/issues/',
-      op: isLightWeight ? 'pageload manual-first-paint' : 'navigation manual-first-paint',
-    });
   }
 
   getTitle() {
