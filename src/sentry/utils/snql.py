@@ -18,7 +18,7 @@ snql_referrers = {
     "outcomes.timeseries",
     "tsdb-modelid:500",
     "incidents.get_incident_aggregates",
-    "tsdb-modelid:502",
+    "tsdb-modelid:501",
     "tsdb-modelid:502",
     "group.filter_by_event_id",
     "alertruleserializer.test_query",
