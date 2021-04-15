@@ -40,6 +40,15 @@ type Props = {
   renderEmptyMessage?: () => React.ReactNode;
   queryParams?: Record<string, number | string | string[] | undefined | null>;
   customStatsPeriod?: TimePeriodType;
+  onFetchSuccess?: (
+    groupListState: State,
+    onCursor: (
+      cursor: string,
+      path: string,
+      query: Record<string, any>,
+      pageDiff: number
+    ) => void
+  ) => void;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -111,11 +120,16 @@ class GroupList extends React.Component<Props, State> {
     api.request(endpoint, {
       success: (data, _, jqXHR) => {
         this._streamManager.push(data);
-        this.setState({
-          error: false,
-          loading: false,
-          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
-        });
+        this.setState(
+          {
+            error: false,
+            loading: false,
+            pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+          },
+          () => {
+            this.props.onFetchSuccess?.(this.state, this.handleCursorChange);
+          }
+        );
       },
       error: err => {
         Sentry.captureException(err);
