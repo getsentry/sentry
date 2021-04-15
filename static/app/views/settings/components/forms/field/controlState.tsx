@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {IconCheckmark, IconWarning} from 'app/icons';
 import {fadeOut, pulse} from 'app/styles/animations';
+import space from 'app/styles/space';
 import Spinner from 'app/views/settings/components/forms/spinner';
 
 type Props = {
@@ -73,4 +74,5 @@ const FieldError = styled('div')`
   color: ${p => p.theme.red300};
   animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
+
 export default ControlState;

@@ -22,7 +22,7 @@ function EditableText({value, onChange}: Props) {
 
   const isEmpty = !inputValue.trim();
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputWrapper = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -30,7 +30,7 @@ function EditableText({value, onChange}: Props) {
   const esc = useKeypress('Escape');
 
   // check to see if the user clicked outside of this component
-  useOnClickOutside(wrapperRef, () => {
+  useOnClickOutside(inputWrapper, () => {
     if (isEditing && !isEmpty) {
       onChange(inputValue);
       setIsEditing(false);
@@ -79,9 +79,9 @@ function EditableText({value, onChange}: Props) {
   }
 
   return (
-    <Wrapper ref={wrapperRef}>
+    <Wrapper>
       {isEditing ? (
-        <InputWrapper isEmpty={isEmpty}>
+        <InputWrapper ref={inputWrapper} isEmpty={isEmpty}>
           <StyledField
             error={isEmpty ? t('Text required') : undefined}
             inline={false}
