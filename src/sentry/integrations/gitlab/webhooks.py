@@ -92,7 +92,8 @@ class MergeEventWebhook(Webhook):
         # TODO(kmclb): turn this back on once tri-level repo problem has been solved
         # while we're here, make sure repo data is up to date
         # self.update_repo_data(repo, event)
-
+        author_email = None
+        author_name = None
         try:
             number = event["object_attributes"]["iid"]
             title = event["object_attributes"]["title"]
@@ -101,8 +102,6 @@ class MergeEventWebhook(Webhook):
             merge_commit_sha = event["object_attributes"]["merge_commit_sha"]
 
             last_commit = event["object_attributes"]["last_commit"]
-            author_email = None
-            author_name = None
             if last_commit:
                 author_email = last_commit["author"]["email"]
                 author_name = last_commit["author"]["name"]
@@ -112,7 +111,7 @@ class MergeEventWebhook(Webhook):
                 extra={"integration_id": integration.id, "error": str(e)},
             )
 
-        if not author_email:
+        if not author_email or len(author_email) > 75:
             raise Http404()
 
         author = CommitAuthor.objects.get_or_create(
