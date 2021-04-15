@@ -131,6 +131,7 @@ from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndp
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
 from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
+from .endpoints.organization_code_mapping_codeowners import OrganizationCodeMappingCodeOwnersEndpoint
 from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
@@ -741,6 +742,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/$",
                     OrganizationCodeMappingDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-code-mapping-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/codeowners/$",
+                    OrganizationCodeMappingCodeOwnersEndpoint.as_view(),
+                    name="sentry-api-0-organization-code-mapping-codeowners",
                 ),
                 # Discover
                 url(

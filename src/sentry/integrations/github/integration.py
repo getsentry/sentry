@@ -86,7 +86,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def get_client(self):
         return GitHubAppsClient(integration=self.model)
 
-    def get_codeowner_file(self, repo):
+    def get_codeowner_file(self, repo, ref=None):
         files = self.get_client().search_file(repo.name, "CODEOWNERS")
         for f in files["items"]:
             if f["name"] == "CODEOWNERS":

@@ -15,6 +15,8 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import CodeOwnersPanel from 'app/views/settings/project/projectOwnership/codeowners';
 import RulesPanel from 'app/views/settings/project/projectOwnership/rulesPanel';
+import AddCodeOwnerModal from 'app/views/settings/project/projectOwnership/addCodeOwnerModal';
+import {openModal} from 'app/actionCreators/modal';
 
 type Props = {
   organization: Organization;
@@ -23,6 +25,8 @@ type Props = {
 
 type State = {
   ownership: null | any;
+  codeMappings: null | any;
+  codeowners: null | any;
 } & AsyncView['state'];
 
 class ProjectOwnership extends AsyncView<Props, State> {
@@ -33,7 +37,27 @@ class ProjectOwnership extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, project} = this.props;
-    return [['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`]];
+    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
+      ['codeMappings', `/organizations/${organization.slug}/code-mappings/?projectId=${project.id}`]
+    ];
+    if (organization.features.includes('import-codeowners')){
+      endpoints.push(['codeowners', `/projects/${organization.slug}/${project.slug}/codeowners/?expand=codeMapping`])
+    }
+    return endpoints;
+  }
+
+  handleAddCodeOwner = () => {
+    const {codeMappings} = this.state;
+    openModal(modalProps => (
+      <AddCodeOwnerModal
+        {...modalProps}
+        organization={this.props.organization}
+        project={this.props.project}
+        codeMappings={codeMappings}
+        onSave={this.handleCodeownerAdded}
+      />
+    ));
   }
 
   getPlaceholder() {
@@ -63,9 +87,21 @@ tags.sku_class:enterprise #enterprise`;
     }));
   };
 
+  handleCodeownerAdded = (data: any) => {
+    const {codeowners} = this.state;
+    const newCodeowners = codeowners.concat(data)
+    this.setState({codeowners: newCodeowners})
+  };
+
+  handleCodeownerDeleted = (data: any) => {
+    const {codeowners} = this.state;
+    const newCodeowners = codeowners.filter(codeowner => codeowner.id !== data.id)
+    this.setState({codeowners: newCodeowners})
+  }
+
   renderBody() {
     const {project, organization} = this.props;
-    const {ownership} = this.state;
+    const {ownership, codeowners} = this.state;
 
     const disabled = !organization.access.includes('project:write');
 
@@ -74,15 +110,26 @@ tags.sku_class:enterprise #enterprise`;
         <SettingsPageHeader
           title={t('Issue Owners')}
           action={
-            <Button
-              to={{
-                pathname: `/organizations/${organization.slug}/issues/`,
-                query: {project: project.id},
-              }}
-              size="small"
-            >
-              {t('View Issues')}
-            </Button>
+            <React.Fragment>
+              <Button
+                to={{
+                  pathname: `/organizations/${organization.slug}/issues/`,
+                  query: {project: project.id},
+                }}
+                size="small"
+              >
+                {t('View Issues')}
+              </Button>
+              <Feature features={['import-codeowners']}>
+                <Button
+                  onClick={this.handleAddCodeOwner}
+                  size="small"
+                  priority="primary"
+                >
+                  {t('Add Codeowner File')}
+                </Button>
+              </Feature>
+            </React.Fragment>
           }
         />
         <PermissionAlert />
@@ -112,7 +159,7 @@ tags.sku_class:enterprise #enterprise`;
           ]}
         />
         <Feature features={['import-codeowners']}>
-          <CodeOwnersPanel {...this.props} />
+          <CodeOwnersPanel codeowners={codeowners} onDelete={this.handleCodeownerDeleted} {...this.props} />
         </Feature>
         <Form
           apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}
