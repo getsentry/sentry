@@ -1,9 +1,8 @@
 import React from 'react';
 
+import {clamp, rectOfContent} from 'app/components/waterfallTree/headerUtils';
 import {toPercent} from 'app/components/waterfallTree/utils';
 import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
-
-import {clamp, rectOfContent} from './utils';
 
 // divider handle is positioned at 50% width from the left-hand side
 const DEFAULT_DIVIDER_POSITION = 0.4;

@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import OpsBreakdown from 'app/components/events/opsBreakdown';
+import {rectOfContent} from 'app/components/waterfallTree/headerUtils';
 import {
   DividerSpacer,
   ScrollbarContainer,
@@ -30,7 +31,6 @@ import {
   getSpanID,
   getSpanOperation,
   pickSpanBarColour,
-  rectOfContent,
   SpanBoundsType,
   SpanGeneratedBoundsType,
 } from './utils';
