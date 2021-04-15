@@ -6,9 +6,6 @@ import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import {
   getBackgroundColor,
-  OperationName,
-  SpanBarTitle,
-  SpanBarTitleContainer,
   SpanRowCell,
   SpanRowCellContainer,
   TOGGLE_BORDER_BOX,
@@ -26,6 +23,11 @@ import {
   DividerLine,
   DividerLineGhostContainer,
 } from 'app/components/waterfallTree/rowDivider';
+import {
+  OperationName,
+  RowTitle,
+  RowTitleContainer,
+} from 'app/components/waterfallTree/rowTitle';
 import {
   ConnectorBar,
   StyledIconChevron,
@@ -204,9 +206,9 @@ class SpanBar extends React.Component<Props, State> {
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2);
 
     return (
-      <SpanBarTitleContainer>
+      <RowTitleContainer>
         {this.renderSpanTreeToggler({left})}
-        <SpanBarTitle
+        <RowTitle
           style={{
             left: `${left}px`,
             width: '100%',
@@ -216,8 +218,8 @@ class SpanBar extends React.Component<Props, State> {
             {operationName}
             {description}
           </span>
-        </SpanBarTitle>
-      </SpanBarTitleContainer>
+        </RowTitle>
+      </RowTitleContainer>
     );
   }
 
