@@ -13,6 +13,11 @@ import {
   DividerLineGhostContainer,
 } from 'app/components/waterfallTree/rowDivider';
 import {
+  OperationName,
+  RowTitle,
+  RowTitleContainer,
+} from 'app/components/waterfallTree/rowTitle';
+import {
   ConnectorBar,
   StyledIconChevron,
   TreeConnector,
@@ -28,10 +33,7 @@ import {
   DividerContainer,
   DurationPill,
   ErrorBadge,
-  OperationName,
   TransactionBarRectangle,
-  TransactionBarTitle,
-  TransactionBarTitleContainer,
   TransactionBarTitleContent,
   TransactionRow,
   TransactionRowCell,
@@ -240,17 +242,17 @@ class TransactionBar extends React.Component<Props, State> {
     );
 
     return (
-      <TransactionBarTitleContainer ref={generateContentSpanBarRef()}>
+      <RowTitleContainer ref={generateContentSpanBarRef()}>
         {this.renderToggle()}
-        <TransactionBarTitle
+        <RowTitle
           style={{
             left: `${left}px`,
             width: '100%',
           }}
         >
           {content}
-        </TransactionBarTitle>
-      </TransactionBarTitleContainer>
+        </RowTitle>
+      </RowTitleContainer>
     );
   }
 

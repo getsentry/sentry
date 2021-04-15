@@ -11,6 +11,11 @@ import {
   DividerLineGhostContainer,
 } from 'app/components/waterfallTree/rowDivider';
 import {
+  OperationName,
+  RowTitle,
+  RowTitleContainer,
+} from 'app/components/waterfallTree/rowTitle';
+import {
   ConnectorBar,
   StyledIconChevron,
   TreeConnector,
@@ -531,12 +536,12 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
     return (
-      <SpanBarTitleContainer
+      <RowTitleContainer
         data-debug-id="SpanBarTitleContainer"
         ref={generateContentSpanBarRef()}
       >
         {this.renderSpanTreeToggler({left})}
-        <SpanBarTitle
+        <RowTitle
           style={{
             left: `${left}px`,
             width: '100%',
@@ -546,8 +551,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             {operationName}
             {description}
           </span>
-        </SpanBarTitle>
-      </SpanBarTitleContainer>
+        </RowTitle>
+      </RowTitleContainer>
     );
   }
 
@@ -971,27 +976,6 @@ const CursorGuide = styled('div')`
   height: 100%;
 `;
 
-export const SpanBarTitleContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  height: ${ROW_HEIGHT}px;
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  user-select: none;
-`;
-
-export const SpanBarTitle = styled('div')`
-  position: relative;
-  height: 100%;
-  font-size: ${p => p.theme.fontSizeSmall};
-  white-space: nowrap;
-  display: flex;
-  flex: 1;
-  align-items: center;
-`;
-
 const getDurationPillAlignment = ({
   durationDisplay,
   theme,
@@ -1065,10 +1049,6 @@ const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
 const StyledIconWarning = styled(IconWarning)`
   margin-left: ${space(0.25)};
   margin-bottom: ${space(0.25)};
-`;
-
-export const OperationName = styled('span')<{spanErrors: any[]}>`
-  color: ${p => (p.spanErrors.length ? p.theme.error : 'inherit')};
 `;
 
 export default SpanBar;
