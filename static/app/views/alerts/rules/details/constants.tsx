@@ -27,6 +27,7 @@ export type TimePeriodType = {
   start: string;
   end: string;
   period: string;
-  label: React.ReactNode;
+  label: string;
+  display: React.ReactNode;
   custom?: boolean;
 };

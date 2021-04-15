@@ -24,6 +24,7 @@ import {
   TimePeriodType,
 } from './constants';
 import DetailsHeader from './header';
+import {t} from 'app/locale';
 
 type Props = {
   api: Client;
@@ -69,7 +70,8 @@ class AlertRuleDetails extends React.Component<Props, State> {
         start: location.query.start,
         end: location.query.end,
         period,
-        label: (
+        label: t('Custom time'),
+        display: (
           <React.Fragment>
             <DateTime date={moment.utc(location.query.start)} timeAndDate />
             {' — '}
@@ -86,7 +88,8 @@ class AlertRuleDetails extends React.Component<Props, State> {
         start,
         end,
         period,
-        label: (
+        label: t('Custom time'),
+        display: (
           <React.Fragment>
             <DateTime date={moment.utc(start)} timeAndDate />
             {' — '}
@@ -109,6 +112,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
       end,
       period,
       label: timeOption.label as string,
+      display: timeOption.label as string,
     };
   }
 

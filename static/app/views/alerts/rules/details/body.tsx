@@ -293,7 +293,7 @@ export default class DetailsBody extends React.Component<Props> {
                     <div>
                       <SidebarHeading noMargin>{t('Display')}</SidebarHeading>
                       <ChartControls>
-                        <DropdownControl label={timePeriod.label}>
+                        <DropdownControl label={timePeriod.display}>
                           {TIME_OPTIONS.map(({label, value}) => (
                             <DropdownItem
                               key={value}
