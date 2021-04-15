@@ -128,8 +128,8 @@ describe('UsageStats', function () {
 
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
-    expect(wrapper.find('UsageChart')).toHaveLength(0);
-    expect(wrapper.find('UsageTable')).toHaveLength(0);
+    expect(wrapper.find('UsageChart')).toHaveLength(1);
+    expect(wrapper.find('UsageTable')).toHaveLength(1);
     expect(wrapper.find('IconWarning')).toHaveLength(2);
   });
 
