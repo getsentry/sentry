@@ -25,7 +25,6 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
-import theme from 'app/utils/theme';
 import Timeline from 'app/views/alerts/rules/details/timeline';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {
@@ -36,6 +35,7 @@ import {
 } from 'app/views/settings/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
+import AlertBadge from '../../alertBadge';
 import {Incident, IncidentStatus} from '../../types';
 
 import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';
@@ -209,18 +209,6 @@ export default class DetailsBody extends React.Component<Props> {
     // get current status
     const activeIncident = incidents?.find(({dateClosed}) => !dateClosed);
     const status = activeIncident ? activeIncident.status : IncidentStatus.CLOSED;
-    let statusText = t('Okay');
-    let Icon = IconCheckmark;
-    let color: string = theme.green300;
-    if (status === IncidentStatus.CRITICAL) {
-      statusText = t('Critical');
-      Icon = IconFire;
-      color = theme.red300;
-    } else if (status === IncidentStatus.WARNING) {
-      statusText = t('Warning');
-      Icon = IconWarning;
-      color = theme.yellow300;
-    }
 
     const latestIncident = incidents?.length ? incidents[0] : null;
     // The date at which the alert was triggered or resolved
@@ -235,12 +223,7 @@ export default class DetailsBody extends React.Component<Props> {
         <div>
           <SidebarHeading noMargin>{t('Status')}</SidebarHeading>
           <ItemValue>
-            <AlertBadge color={color} icon={Icon}>
-              <AlertIconWrapper>
-                <Icon color="white" />
-              </AlertIconWrapper>
-            </AlertBadge>
-            <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>
+            <AlertBadge status={status} />
           </ItemValue>
         </div>
         <div>
@@ -440,41 +423,6 @@ const ItemValue = styled('div')`
   align-items: center;
   position: relative;
   font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const IncidentStatusValue = styled('div')<{color: string}>`
-  margin-left: 30px;
-  color: ${p => p.color};
-`;
-
-const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
-  display: flex;
-  position: absolute;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  /* icon warning needs to be treated differently to look visually centered */
-  line-height: ${p => (p.icon === IconWarning ? undefined : 1)};
-  left: 3px;
-
-  &:before {
-    content: '';
-    width: 20px;
-    height: 20px;
-    border-radius: ${p => p.theme.borderRadius};
-    background-color: ${p => p.color};
-    transform: rotate(45deg);
-  }
-`;
-
-const AlertIconWrapper = styled('div')`
-  position: absolute;
-
-  svg {
-    width: 13px;
-    position: relative;
-    top: 1px;
-  }
 `;
 
 const StatusContainer = styled('div')`

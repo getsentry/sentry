@@ -67,7 +67,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     loading: true,
     reloading: false,
     error: false,
-    errors: [],
+    errors: {},
     event: undefined,
 
     // local state
