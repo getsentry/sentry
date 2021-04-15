@@ -16,6 +16,12 @@ import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import TimeSince from 'app/components/timeSince';
+import {
+  DividerSpacer,
+  ScrollbarContainer,
+  VirtualScrollbar,
+  VirtualScrollbarGrip,
+} from 'app/components/waterfallTree/miniHeader';
 import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
@@ -28,8 +34,6 @@ import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
 import {
-  DividerSpacer,
-  ScrollbarContainer,
   SearchContainer,
   StyledPanel,
   StyledSearchBar,
@@ -38,8 +42,6 @@ import {
   TraceViewContainer,
   TraceViewHeaderContainer,
   TransactionRowMessage,
-  VirtualScrollBar,
-  VirtualScrollBarGrip,
 } from './styles';
 import TransactionGroup from './transactionGroup';
 import {TraceInfo, TreeDepth} from './types';
@@ -503,13 +505,13 @@ class TraceDetailsContent extends React.Component<Props, State> {
                       <ScrollbarManager.Consumer>
                         {({virtualScrollbarRef, onDragStart}) => {
                           return (
-                            <VirtualScrollBar
+                            <VirtualScrollbar
                               data-type="virtual-scrollbar"
                               ref={virtualScrollbarRef}
                               onMouseDown={onDragStart}
                             >
-                              <VirtualScrollBarGrip />
-                            </VirtualScrollBar>
+                              <VirtualScrollbarGrip />
+                            </VirtualScrollbar>
                           );
                         }}
                       </ScrollbarManager.Consumer>
