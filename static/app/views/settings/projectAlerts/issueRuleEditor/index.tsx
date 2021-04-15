@@ -32,6 +32,7 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'app/types/alerts';
+import {metric} from 'app/utils/analytics';
 import {getDisplayName} from 'app/utils/environment';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -198,7 +199,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           detailedError: {actions: [error ? error : t('An error occurred')]},
           loading: false,
         });
-        addErrorMessage(t('An error occurred'));
+        this.handleRuleSaveFailure(t('An error occurred'));
       }
       if (rule) {
         const ruleId = isSavedAlertRule(origRule) ? `${origRule.id}/` : '';
@@ -206,7 +207,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         this.handleRuleSuccess(isNew, rule);
       }
     } catch {
-      addErrorMessage(t('An error occurred'));
+      this.handleRuleSaveFailure(t('An error occurred'));
       this.setState({loading: false});
     }
   };
@@ -232,9 +233,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       status: 'complete',
     });
 
+    metric.endTransaction({name: 'saveAlertRule'});
+
     router.push(`/organizations/${organization.slug}/alerts/rules/`);
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
+
+  handleRuleSaveFailure(msg: React.ReactNode) {
+    addErrorMessage(msg);
+    metric.endTransaction({name: 'saveAlertRule'});
+  }
 
   handleSubmit = async () => {
     const {rule} = this.state;
@@ -251,6 +259,20 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     addLoadingMessage();
 
     try {
+      const transaction = metric.startTransaction({name: 'saveAlertRule'});
+      transaction.setTag('type', 'issue');
+      transaction.setTag('operation', isNew ? 'create' : 'edit');
+      if (rule) {
+        for (const action of rule.actions) {
+          // Grab the last part of something like 'sentry.mail.actions.NotifyEmailAction'
+          const splitActionId = action.id.split('.');
+          const actionName = splitActionId[splitActionId.length - 1];
+          if (actionName) {
+            transaction.setTag(actionName, true);
+          }
+        }
+        transaction.setData('actions', rule.actions);
+      }
       const [resp, , xhr] = await this.api.requestPromise(endpoint, {
         includeAllArgs: true,
         method: isNew ? 'POST' : 'PUT',
@@ -271,7 +293,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         detailedError: err.responseJSON || {__all__: 'Unknown error'},
         loading: false,
       });
-      addErrorMessage(t('An error occurred'));
+      this.handleRuleSaveFailure(t('An error occurred'));
     }
   };
 

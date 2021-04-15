@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import {Transaction} from '@sentry/types';
 
 import HookStore from 'app/stores/hookStore';
 import {Hooks} from 'app/types/hooks';
@@ -128,7 +129,7 @@ type RecordMetric = Hooks['metrics:event'] & {
      * Optional op code
      */
     op?: string;
-  }) => void;
+  }) => Transaction;
 
   endTransaction: (opts: {
     /**
@@ -236,6 +237,7 @@ metric.startTransaction = ({name, traceId, op}) => {
   }
   const transaction = Sentry.startTransaction({name, op, traceId});
   transactionDataStore[name] = transaction;
+  return transaction;
 };
 
 metric.endTransaction = ({name}) => {
