@@ -22,6 +22,8 @@ targets:
     source: us.gcr.io/sentryio/sentry
     target: getsentry/sentry
     targetFormat: '{{{target}}}:latest'
-
+artifactProvider:
+  name: gcs
+  bucket: sentry-sdk-assets
 requireNames:
   - /^sentry-.+-py3\d?-none-any.whl$/
