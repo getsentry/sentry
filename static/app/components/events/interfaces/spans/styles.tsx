@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -9,9 +10,6 @@ export const zIndex = {
   dividerLine: theme.zIndex.traceView.dividerLine,
   spanTreeToggler: theme.zIndex.traceView.spanTreeToggler,
 };
-
-export const SPAN_ROW_HEIGHT = 24;
-export const SPAN_ROW_PADDING = 4;
 
 type SpanRowProps = {
   visible?: boolean;
@@ -27,7 +25,7 @@ export const SpanRow = styled('div')<SpanRowAndDivProps>`
   margin-top: ${p => (p.showBorder ? '-1px' : null)}; /* to prevent offset on toggle */
   position: relative;
   overflow: hidden;
-  min-height: ${SPAN_ROW_HEIGHT}px;
+  min-height: ${ROW_HEIGHT}px;
   cursor: pointer;
   transition: background-color 0.15s ease-in-out;
 
@@ -41,7 +39,7 @@ export const SpanRow = styled('div')<SpanRowAndDivProps>`
 export const SpanRowMessage = styled(SpanRow)`
   display: block;
   cursor: auto;
-  line-height: ${SPAN_ROW_HEIGHT}px;
+  line-height: ${ROW_HEIGHT}px;
   padding-left: ${space(1)};
   padding-right: ${space(1)};
   color: ${p => p.theme.gray300};
