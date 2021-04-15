@@ -114,7 +114,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   },
   throughput: {
     description: t(
-      'Alert when the number of transactions reaches a threshold over a period of time.'
+      'Throughput is the total number of transactions in a project and you can alert when it reaches a threshold within a period of time.'
     ),
     examples: [
       t('When number of transactions on a key page exceeds 100k per minute.'),
@@ -148,7 +148,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   },
   lcp: {
     description: t(
-      'Largest Contentful Paint (LCP) measures loading performance. It marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and we recommend an LCP of less than 2.5 seconds.'
+      'Largest Contentful Paint (LCP) measures loading performance. It marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and so we recommend an LCP of less than 2.5 seconds.'
     ),
     examples: [
       t('When the 75th percentile LCP of your homepage is longer than 2.5 seconds.'),
@@ -158,7 +158,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   },
   fid: {
     description: t(
-      'First Input Delay (FID) measures interactivity as the response time when the user tries to interact with the viewport. A low FID helps ensure that a page is useful, and recommend it be less than 100 milliseconds.'
+      'First Input Delay (FID) measures interactivity as the response time when the user tries to interact with the viewport. A low FID helps ensure that a page is useful, and we recommend a FID of less than 100 milliseconds.'
     ),
     examples: [t('When the average FID of a page is longer than 4 seconds.')],
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
