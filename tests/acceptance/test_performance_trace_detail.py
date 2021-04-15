@@ -36,7 +36,7 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
         project_id,
         start_timestamp,
         duration,
-        transaction_id=None
+        transaction_id=None,
     ):
         timestamp = start_timestamp + timedelta(milliseconds=duration)
 
