@@ -747,7 +747,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(1)};
+  margin: ${space(2)} 0 ${space(1)} 0;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const ChartHeader = styled('div')`
