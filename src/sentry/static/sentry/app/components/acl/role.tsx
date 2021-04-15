@@ -2,6 +2,7 @@ import React from 'react';
 
 import ConfigStore from 'app/stores/configStore';
 import {Organization} from 'app/types';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -41,7 +42,7 @@ class Role extends React.Component<Props> {
       return false;
     }
 
-    if (user.isSuperuser) {
+    if (isActiveSuperuser()) {
       return true;
     }
 
