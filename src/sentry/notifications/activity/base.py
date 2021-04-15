@@ -28,16 +28,25 @@ from sentry.utils.linksign import generate_signed_link
 registry: MutableMapping[ExternalProviders, Callable] = {}
 
 
+def register(provider: ExternalProviders) -> Callable:
+    """
+    A wrapper that adds the wrapped function to the send_notification_registry
+    (see above) for the provider.
+    """
+
+    def wrapped(send_notification: Callable) -> Callable:
+        registry[provider] = send_notification
+        return send_notification
+
+    return wrapped
+
+
 class ActivityNotification:
     def __init__(self, activity: Activity) -> None:
         self.activity = activity
         self.project = activity.project
         self.organization = self.project.organization
         self.group = activity.group
-
-    @classmethod
-    def register(cls, provider: ExternalProviders, send_notification: Callable) -> None:
-        registry[provider] = send_notification
 
     def _get_subject_prefix(self) -> str:
         prefix = ProjectOption.objects.get_value(project=self.project, key="mail:subject_prefix")

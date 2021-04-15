@@ -1,11 +1,12 @@
 from typing import Any, Mapping
 
 from sentry.models import User
-from sentry.notifications.activity.base import ActivityNotification
+from sentry.notifications.activity.base import ActivityNotification, register
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.email import MessageBuilder
 
 
+@register(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: ActivityNotification, user: User, context: Mapping[str, Any]
 ) -> None:
@@ -21,6 +22,3 @@ def send_notification_as_email(
     )
     msg.add_users([user.id], project=notification.project)
     msg.send_async()
-
-
-ActivityNotification.register(ExternalProviders.EMAIL, send_notification_as_email)
