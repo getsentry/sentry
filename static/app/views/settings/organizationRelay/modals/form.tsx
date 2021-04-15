@@ -46,7 +46,7 @@ const Form = ({
     }
   };
 
-  // code below copied from src/sentry/static/sentry/app/views/organizationIntegrations/SplitInstallationIdModal.tsx
+  // code below copied from app/views/organizationIntegrations/SplitInstallationIdModal.tsx
   // TODO: fix the common method selectText
   const onCopy = (value: string) => async () =>
     //This hack is needed because the normal copying methods with TextCopyInput do not work correctly
