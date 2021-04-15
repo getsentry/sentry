@@ -24,7 +24,7 @@ import theme from 'app/utils/theme';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
-import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
+import {AlertRuleStatus, Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
 
 import {TimePeriodType} from './constants';
@@ -87,7 +87,7 @@ function createIncidentSeries(
   orgSlug: string,
   lineColor: string,
   incidentTimestamp: number,
-  identifier?: string,
+  incident: Incident,
   dataPoint?: LineChartSeries['data'][0],
   seriesName?: string
 ) {
@@ -102,16 +102,21 @@ function createIncidentSeries(
           xAxis: incidentTimestamp,
           onClick: () => {
             router.push({
-              pathname: `/organizations/${orgSlug}/alerts/${identifier}/`,
-              query: {redirect: false},
+              pathname: `/organizations/${orgSlug}/alerts/rules/details/${
+                incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+                incident.alertRule.originalAlertRuleId
+                  ? incident.alertRule.originalAlertRuleId
+                  : incident.alertRule.id
+              }/`,
+              query: {alert: incident.identifier},
             });
           },
         },
       ] as any,
       label: {
-        show: !!identifier,
+        show: incident.identifier,
         position: 'insideEndBottom',
-        formatter: identifier || '-',
+        formatter: incident.identifier,
         color: lineColor,
         fontSize: 10,
         fontFamily: 'Rubik',
@@ -129,7 +134,7 @@ function createIncidentSeries(
         `<div class="tooltip-series"><div>`,
         `<span class="tooltip-label">${marker} <strong>${t(
           'Alert'
-        )} #${identifier}</strong></span>${seriesName} ${dataPoint?.value?.toLocaleString()}`,
+        )} #${incident.identifier}</strong></span>${seriesName} ${dataPoint?.value?.toLocaleString()}`,
         `</div></div>`,
         `<div class="tooltip-date">${time}</div>`,
         `<div class="tooltip-arrow"></div>`,
@@ -484,7 +489,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                     organization.slug,
                     incidentColor,
                     incidentStartDate,
-                    incident.identifier,
+                    incident,
                     incidentStartValue,
                     series[0].seriesName
                   )
