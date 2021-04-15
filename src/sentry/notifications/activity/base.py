@@ -1,10 +1,13 @@
+import re
+from typing import Any, Mapping, MutableMapping, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from django.core.urlresolvers import reverse
 from django.utils.html import escape, mark_safe
+from django.utils.safestring import SafeString
 
 from sentry import options
-from sentry.models import GroupSubscription, ProjectOption, UserAvatar, UserOption
+from sentry.models import Activity, GroupSubscription, ProjectOption, User, UserAvatar, UserOption
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -15,30 +18,30 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
 
-class ActivityEmail:
-    def __init__(self, activity):
+class ActivityNotification:
+    def __init__(self, activity: Activity) -> None:
         self.activity = activity
         self.project = activity.project
         self.organization = self.project.organization
         self.group = activity.group
 
-    def _get_subject_prefix(self):
+    def _get_subject_prefix(self) -> str:
         prefix = ProjectOption.objects.get_value(project=self.project, key="mail:subject_prefix")
         if not prefix:
             prefix = options.get("mail.subject-prefix")
-        return prefix
+        return str(prefix)
 
-    def should_email(self):
+    def should_email(self) -> bool:
         return True
 
-    def get_participants(self):
+    def get_participants(self) -> Mapping[User, int]:
         # TODO(dcramer): not used yet today except by Release's
         if not self.group:
-            return []
+            return {}
 
-        participants = GroupSubscription.objects.get_participants(group=self.group)[
-            ExternalProviders.EMAIL
-        ]
+        participants: MutableMapping[User, int] = GroupSubscription.objects.get_participants(
+            group=self.group
+        )[ExternalProviders.EMAIL]
 
         if self.activity.user is not None and self.activity.user in participants:
             receive_own_activity = (
@@ -53,20 +56,20 @@ class ActivityEmail:
 
         return participants
 
-    def get_template(self):
+    def get_template(self) -> str:
         return "sentry/emails/activity/generic.txt"
 
-    def get_html_template(self):
+    def get_html_template(self) -> str:
         return "sentry/emails/activity/generic.html"
 
-    def get_project_link(self):
-        return absolute_uri(f"/{self.organization.slug}/{self.project.slug}/")
+    def get_project_link(self) -> str:
+        return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))
 
-    def get_group_link(self):
-        referrer = self.__class__.__name__
-        return self.group.get_absolute_url(params={"referrer": referrer})
+    def get_group_link(self) -> str:
+        referrer = re.sub("Notification$", "Email", self.__class__.__name__)
+        return str(self.group.get_absolute_url(params={"referrer": referrer}))
 
-    def get_base_context(self):
+    def get_base_context(self) -> MutableMapping[str, Any]:
         activity = self.activity
 
         context = {
@@ -79,7 +82,7 @@ class ActivityEmail:
             context.update(self.get_group_context())
         return context
 
-    def get_group_context(self):
+    def get_group_context(self) -> MutableMapping[str, Any]:
         group_link = self.get_group_link()
         parts = list(urlparse(group_link))
         parts[2] = parts[2].rstrip("/") + "/activity/"
@@ -92,42 +95,36 @@ class ActivityEmail:
             "referrer": self.__class__.__name__,
         }
 
-    def get_email_type(self):
+    def get_email_type(self) -> str:
         return f"notify.activity.{self.activity.get_type_display()}"
 
-    def get_subject(self):
+    def get_subject(self) -> str:
         group = self.group
 
         return f"{group.qualified_short_id} - {group.title}"
 
-    def get_subject_with_prefix(self):
+    def get_subject_with_prefix(self) -> bytes:
         return f"{self._get_subject_prefix()}{self.get_subject()}".encode("utf-8")
 
-    def get_context(self):
-        description = self.get_description()
-        try:
-            description, params, html_params = description
-        except ValueError:
-            try:
-                description, params = description
-                html_params = params
-            except ValueError:
-                params, html_params = {}, {}
+    def get_activity_name(self) -> str:
+        raise NotImplementedError
 
+    def get_context(self) -> MutableMapping[str, Any]:
+        description, params, html_params = self.get_description()
         return {
             "activity_name": self.get_activity_name(),
             "text_description": self.description_as_text(description, params),
-            "html_description": self.description_as_html(description, html_params),
+            "html_description": self.description_as_html(description, html_params or params),
         }
 
-    def get_user_context(self, user):
+    def get_user_context(self, user: User) -> MutableMapping[str, Any]:
         # use in case context of email changes depending on user
         return {}
 
-    def get_category(self):
+    def get_category(self) -> str:
         raise NotImplementedError
 
-    def get_headers(self):
+    def get_headers(self) -> Mapping[str, Any]:
         project = self.project
         group = self.group
 
@@ -147,10 +144,10 @@ class ActivityEmail:
 
         return headers
 
-    def get_description(self):
+    def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         raise NotImplementedError
 
-    def avatar_as_html(self):
+    def avatar_as_html(self) -> str:
         user = self.activity.user
         if not user:
             return '<img class="avatar" src="{}" width="20px" height="20px" />'.format(
@@ -164,11 +161,11 @@ class ActivityEmail:
         else:
             return get_email_avatar(user.get_display_name(), user.get_label(), 20, True)
 
-    def _get_sentry_avatar_url(self):
+    def _get_sentry_avatar_url(self) -> str:
         url = "/images/sentry-email-avatar.png"
-        return absolute_uri(get_asset_url("sentry", url))
+        return str(absolute_uri(get_asset_url("sentry", url)))
 
-    def _get_user_avatar_url(self, user, size=20):
+    def _get_user_avatar_url(self, user: User, size: int = 20) -> str:
         try:
             avatar = UserAvatar.objects.get(user=user)
         except UserAvatar.DoesNotExist:
@@ -177,9 +174,9 @@ class ActivityEmail:
         url = reverse("sentry-user-avatar-url", args=[avatar.ident])
         if size:
             url = f"{url}?s={int(size)}"
-        return absolute_uri(url)
+        return str(absolute_uri(url))
 
-    def description_as_text(self, description, params):
+    def description_as_text(self, description: str, params: Mapping[str, Any]) -> str:
         user = self.activity.user
         if user:
             name = user.name or user.email
@@ -193,7 +190,7 @@ class ActivityEmail:
 
         return description.format(**context)
 
-    def description_as_html(self, description, params):
+    def description_as_html(self, description: str, params: Mapping[str, Any]) -> SafeString:
         user = self.activity.user
         if user:
             name = user.get_display_name()
@@ -212,7 +209,7 @@ class ActivityEmail:
 
         return mark_safe(description.format(**context))
 
-    def send(self):
+    def send(self) -> None:
         if not self.should_email():
             return
 

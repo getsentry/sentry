@@ -38,18 +38,10 @@ import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/u
 
 import {Incident, IncidentStatus} from '../../types';
 
-import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS} from './constants';
+import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
-
-export type TimePeriodType = {
-  start: string;
-  end: string;
-  period: string;
-  label: string;
-  custom?: boolean;
-};
 
 type Props = {
   api: Client;
@@ -117,10 +109,8 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <Filters>
-        <span>
-          {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
-        </span>
-        <span>{rule?.query && <code>{rule?.query}</code>}</span>
+        <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>&nbsp;&nbsp;
+        {rule.query && <code>{rule.query}</code>}
       </Filters>
     );
   }
@@ -519,8 +509,7 @@ const RuleText = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-const Filters = styled('div')`
-  display: inline-flex;
+const Filters = styled('span')`
   width: 100%;
   overflow-wrap: break-word;
   font-size: ${p => p.theme.fontSizeMedium};

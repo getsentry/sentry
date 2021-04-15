@@ -24,7 +24,7 @@ import {
   API_INTERVAL_POINTS_LIMIT,
   API_INTERVAL_POINTS_MIN,
 } from '../rules/details/constants';
-import {Incident, IncidentStats, IncidentStatus} from '../types';
+import {AlertRuleStatus, Incident, IncidentStats, IncidentStatus} from '../types';
 import {getIncidentMetricPreset, isIssueAlert} from '../utils';
 
 import SparkLine from './sparkLine';
@@ -141,14 +141,18 @@ class AlertListRow extends AsyncComponent<Props, State> {
     const slug = incident.projects[0];
 
     const hasRedesign =
-      incident.alertRule &&
       !isIssueAlert(incident.alertRule) &&
       organization.features.includes('alert-details-redesign');
 
     const alertLink = hasRedesign
       ? {
-          pathname: `/organizations/${orgId}/alerts/rules/details/${incident.alertRule?.id}/`,
-          query: makeRuleDetailsQuery(incident),
+          pathname: `/organizations/${orgId}/alerts/rules/details/${
+            incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+            incident.alertRule.originalAlertRuleId
+              ? incident.alertRule.originalAlertRuleId
+              : incident.alertRule.id
+          }/`,
+          query: {alert: incident.identifier},
         }
       : {
           pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,

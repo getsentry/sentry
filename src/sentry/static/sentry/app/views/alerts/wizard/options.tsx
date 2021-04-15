@@ -51,8 +51,11 @@ export const AlertWizardOptions: {
       'fid',
       'cls',
       'fcp',
-      'custom',
     ],
+  },
+  {
+    categoryHeading: t('Other'),
+    options: ['custom'],
   },
 ];
 

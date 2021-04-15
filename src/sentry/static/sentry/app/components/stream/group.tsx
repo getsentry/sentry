@@ -2,8 +2,7 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-// eslint-disable-next-line no-restricted-imports
-import {Box} from 'reflexbox';
+import {Box} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -42,7 +41,7 @@ import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {TimePeriodType} from 'app/views/alerts/rules/details/body';
+import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
 import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
@@ -86,6 +85,7 @@ type Props = {
 type State = {
   data: Group;
   reviewed: boolean;
+  actionTaken: boolean;
 };
 
 class StreamGroup extends React.Component<Props, State> {
@@ -104,6 +104,7 @@ class StreamGroup extends React.Component<Props, State> {
         filtered: useFilteredStats ? data.filtered : null,
       },
       reviewed: false,
+      actionTaken: false,
     };
   }
 
@@ -145,6 +146,7 @@ class StreamGroup extends React.Component<Props, State> {
       return;
     }
 
+    const actionTaken = this.state.data.status === 'unresolved' ? false : true;
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
       // When searching is:for_review and the inbox reason is removed
@@ -153,7 +155,7 @@ class StreamGroup extends React.Component<Props, State> {
         (isForReviewQuery(query) &&
           (state.data.inbox as InboxDetails)?.reason !== undefined &&
           data.inbox === false);
-      return {data, reviewed};
+      return {data, reviewed, actionTaken};
     });
   }
 
@@ -331,7 +333,7 @@ class StreamGroup extends React.Component<Props, State> {
   }
 
   render() {
-    const {data, reviewed} = this.state;
+    const {data, reviewed, actionTaken} = this.state;
     const {
       index,
       query,
@@ -368,6 +370,7 @@ class StreamGroup extends React.Component<Props, State> {
     );
 
     const hasInbox = organization.features.includes('inbox');
+    const unresolved = data.status === 'unresolved' ? true : false;
 
     return (
       <Wrapper
@@ -375,6 +378,8 @@ class StreamGroup extends React.Component<Props, State> {
         onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
         reviewed={reviewed}
         hasInbox={hasInbox}
+        unresolved={unresolved}
+        actionTaken={actionTaken}
       >
         {canSelect && (
           <GroupCheckBoxWrapper ml={2}>
@@ -566,7 +571,12 @@ class StreamGroup extends React.Component<Props, State> {
 export default withGlobalSelection(withOrganization(StreamGroup));
 
 // Position for wrapper is relative for overlay actions
-const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
+const Wrapper = styled(PanelItem)<{
+  reviewed: boolean;
+  hasInbox: boolean;
+  unresolved: boolean;
+  actionTaken: boolean;
+}>`
   position: relative;
   padding: ${p => (p.hasInbox ? `${space(1.5)} 0` : `${space(1)} 0`)};
   line-height: 1.1;
@@ -574,7 +584,8 @@ const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
   ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
 
   ${p =>
-    p.reviewed &&
+    (p.reviewed || !p.unresolved) &&
+    !p.actionTaken &&
     css`
       animation: tintRow 0.2s linear forwards;
       position: relative;

@@ -68,13 +68,13 @@ function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Prop
 }
 
 function renderAsyncExportButton(canEdit: boolean, props: Props) {
-  const {isLoading, location} = props;
+  const {isLoading, location, eventView} = props;
   const disabled = isLoading || canEdit === false;
   return (
     <DataExport
       payload={{
         queryType: ExportQueryType.Discover,
-        queryInfo: location.query,
+        queryInfo: eventView.getEventsAPIPayload(location),
       }}
       disabled={disabled}
       icon={<IconDownload size="xs" />}

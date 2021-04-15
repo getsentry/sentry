@@ -28,7 +28,7 @@ const RadioPanelGroup = <C extends string>({
   <Container {...props} role="radiogroup" aria-labelledby={label}>
     {(choices || []).map(([id, name, extraContent], index) => (
       <RadioPanel key={index}>
-        <RadioPanelBody>
+        <PanelBody>
           <RadioLineItem role="radio" index={index} aria-checked={value === id}>
             <Radio
               radioSize="small"
@@ -39,7 +39,7 @@ const RadioPanelGroup = <C extends string>({
             <div>{name}</div>
             {extraContent}
           </RadioLineItem>
-        </RadioPanelBody>
+        </PanelBody>
       </RadioPanel>
     ))}
   </Container>
@@ -59,19 +59,22 @@ export const RadioLineItem = styled('label')<{
   index: number;
 }>`
   display: grid;
-  grid-gap: 0.25em 0.5em;
+  grid-gap: ${space(0.25)} ${space(1)};
   grid-template-columns: max-content auto max-content;
   align-items: center;
   cursor: pointer;
   outline: none;
   font-weight: normal;
   margin: 0;
+  color: ${p => p.theme.subText};
+  transition: color 0.3s ease-in;
+  padding: ${space(1.5)};
+
+  &[aria-checked='true'] {
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 const RadioPanel = styled(Panel)`
   margin: 0;
-`;
-
-const RadioPanelBody = styled(PanelBody)`
-  padding: ${space(1.5)};
 `;

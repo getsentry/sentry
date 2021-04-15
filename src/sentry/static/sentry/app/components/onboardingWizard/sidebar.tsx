@@ -157,7 +157,7 @@ const TaskSidebarPanel = styled(SidebarPanel)`
   width: 450px;
 `;
 
-const AnimatedTaskItem = motion.custom(Task);
+const AnimatedTaskItem = motion(Task);
 
 AnimatedTaskItem.defaultProps = {
   initial: 'initial',

@@ -138,6 +138,19 @@ class DataExportTest(APITestCase):
             ]
         }
 
+    def test_discover_without_query(self):
+        """
+        Ensurse that we handle export requests without a query, and return a 400 status code
+        """
+        payload = self.make_payload("discover", {"field": ["id"]}, overwrite=True)
+        with self.feature("organizations:discover-query"):
+            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {
+            "non_field_errors": [
+                "query is a required to export, please pass an empty string if you don't want to set one"
+            ]
+        }
+
     def test_export_invalid_fields(self):
         """
         Ensures that if too many fields are requested, returns a 400 status code with the
