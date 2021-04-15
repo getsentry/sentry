@@ -178,11 +178,8 @@ const StyledLayoutTitle = styled(Layout.Title)`
 
 const BorderlessHeader = styled(Layout.Header)`
   border-bottom: 0;
-
   /* Not enough buttons to change direction for mobile view */
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    flex-direction: row;
-  }
+  grid-template-columns: 1fr auto;
 `;
 
 const TabLayoutHeader = styled(Layout.Header)`
