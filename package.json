@@ -190,6 +190,7 @@
   },
   "resolutions": {
     "**/rrweb": "^0.7.33",
+    "**/is-svg": ">=4.2.2",
     "webpack": "5.27.2",
     "css-loader": "^5.0.0",
     "dotenv-webpack": "^6.0.0",
