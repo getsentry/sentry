@@ -6,9 +6,7 @@ import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
 import {
-  getHumanDuration,
   isOrphanTreeDepth,
-  toPercent,
   unwrapTreeDepth,
 } from 'app/components/events/interfaces/spans/utils';
 import {ROW_HEIGHT, ROW_PADDING} from 'app/components/waterfallTree/constants';
@@ -31,7 +29,12 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
-import {getBackgroundColor, getHatchPattern} from 'app/components/waterfallTree/utils';
+import {
+  getBackgroundColor,
+  getHatchPattern,
+  getHumanDuration,
+  toPercent,
+} from 'app/components/waterfallTree/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';

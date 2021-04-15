@@ -96,8 +96,6 @@ export const clamp = (value: number, min: number, max: number): number => {
 export const isValidSpanID = (maybeSpanID: any) =>
   isString(maybeSpanID) && maybeSpanID.length > 0;
 
-export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
-
 export type SpanBoundsType = {startTimestamp: number; endTimestamp: number};
 export type SpanGeneratedBoundsType =
   | {type: 'TRACE_TIMESTAMPS_EQUAL'; isSpanVisibleInView: boolean}
@@ -252,16 +250,6 @@ export const boundsGenerator = (bounds: {
       }
     }
   };
-};
-
-export const getHumanDuration = (duration: number): string => {
-  // note: duration is assumed to be in seconds
-
-  const durationMS = duration * 1000;
-  return `${durationMS.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}ms`;
 };
 
 const getLetterIndex = (letter: string): number => {

@@ -17,6 +17,13 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import TimeSince from 'app/components/timeSince';
 import {MessageRow} from 'app/components/waterfallTree/messageRow';
+import {
+  DividerSpacer,
+  ScrollbarContainer,
+  VirtualScrollBar,
+  VirtualScrollBarGrip,
+} from 'app/components/waterfallTree/miniHeader';
+import {toPercent} from 'app/components/waterfallTree/utils';
 import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
@@ -29,8 +36,6 @@ import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
 import {
-  DividerSpacer,
-  ScrollbarContainer,
   SearchContainer,
   StyledPanel,
   StyledSearchBar,
@@ -38,12 +43,10 @@ import {
   TraceDetailHeader,
   TraceViewContainer,
   TraceViewHeaderContainer,
-  VirtualScrollBar,
-  VirtualScrollBarGrip,
 } from './styles';
 import TransactionGroup from './transactionGroup';
 import {TraceInfo, TreeDepth} from './types';
-import {getTraceInfo, isRootTransaction, toPercent} from './utils';
+import {getTraceInfo, isRootTransaction} from './utils';
 
 type IndexedFusedTransaction = {
   transaction: TraceFullDetailed;

@@ -1,10 +1,11 @@
 import React from 'react';
 
+import {toPercent} from 'app/components/waterfallTree/utils';
 import getDisplayName from 'app/utils/getDisplayName';
 import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
-import {clamp, rectOfContent, toPercent} from './utils';
+import {clamp, rectOfContent} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;

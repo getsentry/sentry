@@ -27,7 +27,11 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
-import {getDurationDisplay} from 'app/components/waterfallTree/utils';
+import {
+  getDurationDisplay,
+  getHumanDuration,
+  toPercent,
+} from 'app/components/waterfallTree/utils';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
@@ -36,7 +40,7 @@ import {Theme} from 'app/utils/theme';
 import {DividerContainer, ErrorBadge, TransactionBarTitleContent} from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
-import {getHumanDuration, isTraceFullDetailed, toPercent} from './utils';
+import {isTraceFullDetailed} from './utils';
 
 type Props = {
   location: Location;

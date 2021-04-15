@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import DateTime from 'app/components/dateTime';
 import {rawSpanKeys, SpanType} from 'app/components/events/interfaces/spans/types';
-import {getHumanDuration} from 'app/components/events/interfaces/spans/utils';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
 import {DetailsContainer} from 'app/components/waterfallTree/details';
+import {getHumanDuration} from 'app/components/waterfallTree/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';

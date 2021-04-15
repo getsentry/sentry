@@ -126,3 +126,15 @@ export const getDurationDisplay = ({
   }
   return 'inset';
 };
+
+export const getHumanDuration = (duration: number): string => {
+  // note: duration is assumed to be in seconds
+
+  const durationMS = duration * 1000;
+  return `${durationMS.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}ms`;
+};
+
+export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;

@@ -2,6 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import OpsBreakdown from 'app/components/events/opsBreakdown';
+import {
+  DividerSpacer,
+  ScrollbarContainer,
+  VirtualScrollBar,
+  VirtualScrollBarGrip,
+} from 'app/components/waterfallTree/miniHeader';
+import {getHumanDuration, toPercent} from 'app/components/waterfallTree/utils';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -20,14 +27,12 @@ import {
 } from './types';
 import {
   boundsGenerator,
-  getHumanDuration,
   getSpanID,
   getSpanOperation,
   pickSpanBarColour,
   rectOfContent,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  toPercent,
 } from './utils';
 
 export const MINIMAP_SPAN_BAR_HEIGHT = 4;
@@ -356,7 +361,7 @@ class TraceViewHeader extends React.Component<PropType, State> {
 
           return (
             <SecondaryHeader>
-              <ScrollBarContainer
+              <ScrollbarContainer
                 ref={this.props.virtualScrollBarContainerRef}
                 style={{
                   // the width of this component is shrunk to compensate for half of the width of the divider line
@@ -376,7 +381,7 @@ class TraceViewHeader extends React.Component<PropType, State> {
                     );
                   }}
                 </ScrollbarManager.Consumer>
-              </ScrollBarContainer>
+              </ScrollbarContainer>
               <DividerSpacer />
               {hasMeasurements ? (
                 <MeasurementsPanel
@@ -858,7 +863,7 @@ const WindowSelection = styled('div')`
   opacity: 0.1;
 `;
 
-export const SecondaryHeader = styled('div')`
+const SecondaryHeader = styled('div')`
   position: absolute;
   top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
   left: 0;
@@ -867,25 +872,6 @@ export const SecondaryHeader = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
-`;
-
-export const DividerSpacer = styled('div')`
-  width: 1px;
-  background-color: ${p => p.theme.border};
-`;
-
-export const ScrollBarContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: ${SECONDARY_HEADER_HEIGHT}px;
-  left: 0;
-  bottom: 0;
-  & > div[data-type='virtual-scrollbar'].dragging > div {
-    background-color: ${p => p.theme.textColor};
-    opacity: 0.8;
-    cursor: grabbing;
-  }
 `;
 
 const OperationsBreakdown = styled('div')`
@@ -900,26 +886,6 @@ const RightSidePane = styled('div')`
   height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
   position: absolute;
   top: 0;
-`;
-
-export const VirtualScrollBar = styled('div')`
-  height: 8px;
-  width: 0;
-  padding-left: 4px;
-  padding-right: 4px;
-  position: relative;
-  top: 0;
-  left: 0;
-  cursor: grab;
-`;
-
-export const VirtualScrollBarGrip = styled('div')`
-  height: 8px;
-  width: 100%;
-  border-radius: 20px;
-  transition: background-color 150ms ease;
-  background-color: ${p => p.theme.textColor};
-  opacity: 0.5;
 `;
 
 export default TraceViewHeader;
