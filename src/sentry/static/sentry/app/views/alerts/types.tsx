@@ -1,4 +1,5 @@
 import {Repository, User} from 'app/types';
+import {IssueAlertRule} from 'app/types/alerts';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 type Data = [number, {count: number}[]][];
@@ -87,3 +88,8 @@ export enum AlertRuleStatus {
   SNAPSHOT = 4,
   DISABLED = 5,
 }
+
+export type CombinedMetricIssueAlerts = (IssueAlertRule | IncidentRule) & {
+  type: string;
+  latestIncident?: Incident | null;
+};

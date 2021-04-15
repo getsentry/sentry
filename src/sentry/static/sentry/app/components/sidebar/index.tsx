@@ -314,11 +314,14 @@ class Sidebar extends React.Component<Props, State> {
     );
 
     const alerts = hasOrganization && (
-      <Feature features={['incidents']}>
-        {({hasFeature}) => {
-          const alertsPath = hasFeature
-            ? `/organizations/${organization.slug}/alerts/`
-            : `/organizations/${organization.slug}/alerts/rules/`;
+      <Feature features={['incidents', 'alert-list']} requireAll={false}>
+        {({features}) => {
+          const hasIncidents = features.includes('incidents');
+          const hasAlertList = features.includes('alert-list');
+          const alertsPath =
+            hasIncidents && !hasAlertList
+              ? `/organizations/${organization.slug}/alerts/`
+              : `/organizations/${organization.slug}/alerts/rules/`;
           return (
             <SidebarItem
               {...sidebarItemProps}
