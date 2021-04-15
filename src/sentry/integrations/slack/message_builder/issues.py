@@ -136,6 +136,58 @@ def build_rule_url(rule: Rule, group: Group, project: Project):
     rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
     return absolute_uri(rule_url)
 
+def build_workflow_attachment(group: Group, workflow_type: Any):
+    # assignment, resolution, comments, regression
+    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
+    settings_url = absolute_uri("/settings/account/notifications/")
+    group_url = group.get_absolute_url(params={"referrer": "slack"})
+    if workflow_type == "assignment":
+        title = "Assigned" # or Unassigned
+        text = f"You were assigned <{group_url}|{group.qualified_short_id}>"
+        # Colleen O'Rourke unassigned DUMPING_GROUND-22G < handle unassigned
+        # Colleen O'Rourke assigned DUMPING_GROUND-22G to themselves
+        # Sentry assigned SENTRY-PNM to the ecosystem team
+    if workflow_type == "issue_alert":
+        title = "" # New alert from <link to project> in <env>
+    if workflow_type == "comment":
+        title = "" # New comment by <author>
+        text = "" # contents of comment
+
+    return {
+        "title": text,
+        # "title_link": title_link,
+        "text": text,
+        "mrkdwn_in": ["text"],
+        "callback_id": json.dumps({"issue": group.id}),
+        "footer_icon": logo_url,
+        "footer": f"<{settings_url}|Notification Settings>",
+        "ts": to_timestamp(ts),
+        "color": LEVEL_TO_COLOR["info"],
+    }
+
+def build_notification_attachment(activity, context):
+    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
+    settings_url = absolute_uri("/settings/account/notifications/")
+    if activity == "release": # psuedocode, use ActivityType
+    # gotta be a better way than a gigantic list of if statements
+        client = ReleaseActivityEmail()
+        # call release's get_subject, get_description
+        title = client.get_subject()
+        text = client.get_description()
+    return {
+        # "title": f"Deployed version {context["release"]["version"]} to {context["environment"]}", 
+        # "text": f"Version {context["release"]["version"]} was deployed to {context["environment"]}", 
+        "mrkdwn_in": ["text"],
+        "footer_icon": logo_url,
+        "footer": f"<{settings_url}|Notification Settings>",
+        "color": LEVEL_TO_COLOR["info"],
+    }
+
+def build_project_alerts():
+    # should this visually be any different from build_group_attachment?
+    # skip the action buttons
+    pass
+
 
 def build_group_attachment(
     group: Group,
