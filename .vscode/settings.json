@@ -1,14 +1,13 @@
 {
   "files.exclude": {
-    "**/*.pyc": true,
-    "**/*.min.js": true,
-    "**/*.js.map": true,
-    "/static/": true,
-    "node_modules": true,
-    "htmlcov": true,
-    "build": true,
-    "*.log": true,
     "*.egg-info": true,
+    "*.log": true,
+    "**/*.js.map": true,
+    "**/*.min.js": true,
+    "**/*.pyc": true,
+    "build": true,
+    "htmlcov": true,
+    "node_modules": true,
     "src/sentry/locale": true,
     "src/sentry/static/sentry/dist/": true
   },

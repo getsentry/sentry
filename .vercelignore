@@ -1,8 +1,10 @@
-*
+
+!static
 !src
 !src/sentry
 !src/sentry/static
-!src/sentry/static/**
+!src/sentry/static/images
+!src/sentry/static/images/logos/**
 !src/sentry/locale
 !src/sentry/locale/**
 !build-utils
