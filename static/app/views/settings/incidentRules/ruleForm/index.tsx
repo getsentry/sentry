@@ -22,7 +22,7 @@ import IndicatorStore from 'app/stores/indicatorStore';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import Form from 'app/views/settings/components/forms/form';
@@ -198,7 +198,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       this.resetPollingState(loadingSlackIndicator);
 
       if (status === 'failed') {
-        addErrorMessage(error);
+        this.handleRuleSaveFailure(error);
       }
       if (alertRule) {
         addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
@@ -207,7 +207,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         }
       }
     } catch {
-      addErrorMessage(t('An error occurred'));
+      this.handleRuleSaveFailure(t('An error occurred'));
       this.resetPollingState(loadingSlackIndicator);
     }
   };
@@ -443,6 +443,19 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       'loading'
     );
     try {
+      const transaction = metric.startTransaction({name: 'saveAlertRule'});
+      transaction.setTag('type', 'metric');
+      transaction.setTag('operation', !rule.id ? 'create' : 'edit');
+      for (const trigger of sanitizedTriggers) {
+        for (const action of trigger.actions) {
+          transaction.setTag(action.type, true);
+          if (action.integrationId) {
+            transaction.setTag(`integrationId:${action.integrationId}`, true);
+          }
+        }
+      }
+      transaction.setData('actions', sanitizedTriggers);
+
       this.setState({loading: true});
       const [resp, , xhr] = await addOrUpdateRule(
         this.api,
@@ -485,7 +498,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           : Object.values(err?.responseJSON)
         : [];
       const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
-      addErrorMessage(t('Unable to save alert%s', apiErrors));
+      this.handleRuleSaveFailure(t('Unable to save alert%s', apiErrors));
     }
   };
 
@@ -551,6 +564,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     } catch (_err) {
       addErrorMessage(t('Error deleting rule'));
     }
+  };
+
+  handleRuleSaveFailure = (msg: React.ReactNode) => {
+    addErrorMessage(msg);
+    metric.endTransaction({name: 'saveAlertRule'});
   };
 
   handleCancel = () => {
