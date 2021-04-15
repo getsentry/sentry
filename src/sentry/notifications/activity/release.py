@@ -32,7 +32,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
-from .base import ActivityNotification
+from .base import ActivityNotification, notification_providers
 
 
 class ReleaseActivityNotification(ActivityNotification):
@@ -147,7 +147,9 @@ class ReleaseActivityNotification(ActivityNotification):
         ] = defaultdict(dict)
         for user in users:
             notification_settings_by_scope = notification_settings_by_user.get(user, {})
-            values_by_provider = get_deploy_values_by_provider(notification_settings_by_scope)
+            values_by_provider = get_deploy_values_by_provider(
+                notification_settings_by_scope, notification_providers()
+            )
             for provider, value in values_by_provider.items():
                 reason_option = self.get_reason(user, value)
                 if reason_option:

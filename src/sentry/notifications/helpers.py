@@ -9,7 +9,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 
 
 def _get_setting_mapping_from_mapping(
@@ -98,7 +98,8 @@ def where_should_be_participating(
 def get_deploy_values_by_provider(
     notification_settings_by_scope: Mapping[
         NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]
-    ]
+    ],
+    all_providers: Iterable[ExternalProviders],
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
     Given a mapping of scopes to a mapping of default and specific notification
@@ -118,7 +119,7 @@ def get_deploy_values_by_provider(
             or organization_independent_mapping.get(provider)
             or NotificationSettingOptionValues.COMMITTED_ONLY
         )
-        for provider in EXTERNAL_PROVIDERS.keys()
+        for provider in all_providers
     }
 
 

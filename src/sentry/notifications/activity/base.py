@@ -1,5 +1,5 @@
 import re
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Set, Tuple
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Set, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from django.core.urlresolvers import reverse
@@ -26,6 +26,10 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
 registry: MutableMapping[ExternalProviders, Callable] = {}
+
+
+def notification_providers() -> Iterable[ExternalProviders]:
+    return registry.keys()
 
 
 def register(provider: ExternalProviders) -> Callable:
