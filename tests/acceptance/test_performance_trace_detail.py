@@ -36,6 +36,7 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
         project_id,
         start_timestamp,
         duration,
+        transaction_id=None
     ):
         timestamp = start_timestamp + timedelta(milliseconds=duration)
 
@@ -47,6 +48,8 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
             start_timestamp=start_timestamp,
             timestamp=timestamp,
         )
+        if transaction_id is not None:
+            data["event_id"] = transaction_id
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         return self.store_event(data, project_id=project_id)
@@ -72,9 +75,9 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
         self.login_as(self.user)
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        self.trace_id = uuid4().hex
+        self.trace_id = "fd3fc65b2bb54c349f50337143234a83"  # make this trace id static
 
-        self.frontend_transaction_id = make_span_id()
+        self.frontend_transaction_id = "b8a471d9c6914394"  # make this transaction id static
         self.frontend_span_ids = [make_span_id() for _ in range(3)]
         self.backend_transaction_ids = [make_span_id() for _ in range(3)]
 
@@ -175,6 +178,7 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.frontend_project.id,
             start_timestamp=self.day_ago,
             duration=4000,
+            transaction_id="c6434dc2a58f406384f29175f589b434",  # fix this transaction id so its static
         )
 
     @property
