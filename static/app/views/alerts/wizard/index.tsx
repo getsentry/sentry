@@ -8,7 +8,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import PageHeading from 'app/components/pageHeading';
-import {PanelBody} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Tag from 'app/components/tag';
 import {t} from 'app/locale';
@@ -102,7 +102,9 @@ class AlertWizard extends React.Component<Props, State> {
               title={t('Create Alert Rule')}
             />
             <StyledPageHeader>
-              <PageHeading>{t('What should we alert you about?')}</PageHeading>
+              <StyledPageHeading>
+                {t('What should we alert you about?')}
+              </StyledPageHeading>
             </StyledPageHeader>
             <Styledh2>{t('Errors')}</Styledh2>
             <WizardBody>
@@ -128,27 +130,29 @@ class AlertWizard extends React.Component<Props, State> {
                 ))}
               </WizardOptions>
               <WizardPanel visible={!!panelContent && !!alertOption}>
-                {panelContent && alertOption && (
-                  <WizardPanelBody>
-                    <Styledh2>{AlertWizardAlertNames[alertOption]}</Styledh2>
-                    <PanelDescription>
-                      {panelContent.description}{' '}
-                      {panelContent.docsLink && (
-                        <ExternalLink href={panelContent.docsLink}>
-                          {t('Learn more')}
-                        </ExternalLink>
-                      )}
-                    </PanelDescription>
-                    <img src={panelContent.illustration} />
-                    <ExampleHeader>{t('Examples')}</ExampleHeader>
-                    <List symbol="bullet">
-                      {panelContent.examples.map((example, i) => (
-                        <ExampleItem key={i}>{example}</ExampleItem>
-                      ))}
-                    </List>
-                  </WizardPanelBody>
-                )}
-                {this.renderCreateAlertButton()}
+                <WizardPanelBody withPadding>
+                  {panelContent && alertOption && (
+                    <div>
+                      <PanelHeader>{AlertWizardAlertNames[alertOption]}</PanelHeader>
+                      <PanelDescription>
+                        {panelContent.description}{' '}
+                        {panelContent.docsLink && (
+                          <ExternalLink href={panelContent.docsLink}>
+                            {t('Learn more')}
+                          </ExternalLink>
+                        )}
+                      </PanelDescription>
+                      <WizardImage src={panelContent.illustration} />
+                      <ExampleHeader>{t('Examples')}</ExampleHeader>
+                      <ExampleList symbol="bullet">
+                        {panelContent.examples.map((example, i) => (
+                          <ExampleItem key={i}>{example}</ExampleItem>
+                        ))}
+                      </ExampleList>
+                    </div>
+                  )}
+                  {this.renderCreateAlertButton()}
+                </WizardPanelBody>
               </WizardPanel>
             </WizardBody>
           </Feature>
@@ -157,6 +161,26 @@ class AlertWizard extends React.Component<Props, State> {
     );
   }
 }
+
+const StyledPageHeading = styled(PageHeading)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &:before {
+    content: '1';
+    width: 25px;
+    height: 25px;
+    font-weight: 500;
+    font-size: ${p => p.theme.fontSizeSmall};
+    line-height: 1.4;
+    background-color: ${p => p.theme.yellow300};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-right: ${space(1)};
+  }
+`;
 
 const StyledPageHeader = styled(PageHeader)`
   margin-bottom: ${space(4)};
@@ -168,6 +192,12 @@ const Styledh2 = styled('h2')`
   margin-bottom: ${space(1)} !important;
 `;
 
+const PanelHeader = styled('h2')`
+  font-weight: normal;
+  font-size: ${p => p.theme.headerFontSize};
+  margin-bottom: ${space(1)} !important;
+`;
+
 const WizardBody = styled('div')`
   display: flex;
 `;
@@ -175,14 +205,18 @@ const WizardBody = styled('div')`
 const WizardOptions = styled('div')`
   flex: 3;
   margin-right: ${space(3)};
-  border-right: 1px solid ${p => p.theme.innerBorder};
   padding-right: ${space(3)};
+  max-width: 400px;
 `;
 
-const WizardPanel = styled('div')<{visible?: boolean}>`
+const WizardImage = styled('img')`
+  max-height: 300px;
+`;
+
+const WizardPanel = styled(Panel)<{visible?: boolean}>`
+  max-width: 800px;
   position: sticky;
   top: 20px;
-  padding: 0;
   flex: 5;
   display: flex;
   ${p => !p.visible && 'visibility: hidden'};
@@ -203,19 +237,22 @@ const WizardPanel = styled('div')<{visible?: boolean}>`
   }
 `;
 
+const ExampleList = styled(List)`
+  margin-bottom: ${space(2)} !important;
+`;
+
 const WizardPanelBody = styled(PanelBody)`
-  margin-bottom: ${space(2)};
+  margin-bottom: 0;
   flex: 1;
   min-width: 100%;
 `;
 
-const PanelDescription = styled('div')`
-  color: ${p => p.theme.subText};
+const PanelDescription = styled('p')`
   margin-bottom: ${space(2)};
 `;
 
 const ExampleHeader = styled('div')`
-  margin: ${space(2)} 0;
+  margin: 0 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
