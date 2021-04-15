@@ -2,8 +2,7 @@ import collections
 import itertools
 from copy import deepcopy
 
-from sentry_relay import DataCategory
-
+from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import outcomes, snuba

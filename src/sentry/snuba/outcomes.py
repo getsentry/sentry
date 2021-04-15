@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.http import QueryDict
-from sentry_relay import DataCategory
 
+from sentry.constants import DataCategory
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.sessions_v2 import (
     InvalidField,
