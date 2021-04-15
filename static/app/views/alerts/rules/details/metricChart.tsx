@@ -24,7 +24,12 @@ import theme from 'app/utils/theme';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
-import {AlertRuleStatus, Incident, IncidentActivityType, IncidentStatus} from '../../types';
+import {
+  AlertRuleStatus,
+  Incident,
+  IncidentActivityType,
+  IncidentStatus,
+} from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
 
 import {TimePeriodType} from './constants';
@@ -132,9 +137,9 @@ function createIncidentSeries(
       const time = getFormattedDate(value, 'MMM D, YYYY LT');
       return [
         `<div class="tooltip-series"><div>`,
-        `<span class="tooltip-label">${marker} <strong>${t(
-          'Alert'
-        )} #${incident.identifier}</strong></span>${seriesName} ${dataPoint?.value?.toLocaleString()}`,
+        `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
+          incident.identifier
+        }</strong></span>${seriesName} ${dataPoint?.value?.toLocaleString()}`,
         `</div></div>`,
         `<div class="tooltip-date">${time}</div>`,
         `<div class="tooltip-arrow"></div>`,
@@ -316,10 +321,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         yAxis={maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined}
         series={series}
         graphic={Graphic({
-          elements: [
-            ...graphics,
-            ...this.getRuleChangeThresholdElements(data),
-          ],
+          elements: [...graphics, ...this.getRuleChangeThresholdElements(data)],
         })}
         tooltip={{
           formatter: seriesParams => {
@@ -470,16 +472,17 @@ class MetricChart extends React.PureComponent<Props, State> {
                 const incidentEnd = incident.dateClosed ?? moment().valueOf();
 
                 const timeWindowMs = rule.timeWindow * 60 * 1000;
-                const incidentColor = warningTrigger &&
-                statusChanges &&
-                !statusChanges.find(
-                  ({value}) => value === `${IncidentStatus.CRITICAL}`
-                )
-                  ? theme.yellow300
-                  : theme.red300;
+                const incidentColor =
+                  warningTrigger &&
+                  statusChanges &&
+                  !statusChanges.find(({value}) => value === `${IncidentStatus.CRITICAL}`)
+                    ? theme.yellow300
+                    : theme.red300;
 
                 const incidentStartDate = moment(incident.dateStarted).valueOf();
-                const incidentCloseDate = incident.dateClosed ? moment(incident.dateClosed).valueOf() : lastPoint;
+                const incidentCloseDate = incident.dateClosed
+                  ? moment(incident.dateClosed).valueOf()
+                  : lastPoint;
                 const incidentStartValue = dataArr.find(
                   point => point.name >= incidentStartDate
                 );
@@ -544,8 +547,13 @@ class MetricChart extends React.PureComponent<Props, State> {
 
                 if (selectedIncident && incident.id === selectedIncident.id) {
                   const chartWidth = width - X_AXIS_BOUNDARY_GAP;
-                  const incidentPosition = (chartWidth * (incidentStartDate - firstPoint) / (lastPoint - firstPoint)) + X_AXIS_BOUNDARY_GAP;
-                  const incidentWidth = chartWidth * (incidentCloseDate - incidentStartDate) / (lastPoint - firstPoint);
+                  const incidentPosition =
+                    (chartWidth * (incidentStartDate - firstPoint)) /
+                      (lastPoint - firstPoint) +
+                    X_AXIS_BOUNDARY_GAP;
+                  const incidentWidth =
+                    (chartWidth * (incidentCloseDate - incidentStartDate)) /
+                    (lastPoint - firstPoint);
 
                   graphics.push({
                     type: 'rect',
@@ -558,7 +566,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                     style: {
                       fill: color(incidentColor).alpha(0.42).rgb().string(),
                     },
-                  },)
+                  });
                 }
               });
           }
