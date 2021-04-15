@@ -15,12 +15,7 @@ import {
   SpanRowCellContainer,
   TOGGLE_BORDER_BOX,
 } from 'app/components/events/interfaces/spans/spanBar';
-import {
-  getHatchPattern,
-  SPAN_ROW_HEIGHT,
-  SPAN_ROW_PADDING,
-  SpanRow,
-} from 'app/components/events/interfaces/spans/styles';
+import {getHatchPattern, SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
 import {
   getHumanDuration,
@@ -28,6 +23,7 @@ import {
   toPercent,
   unwrapTreeDepth,
 } from 'app/components/events/interfaces/spans/utils';
+import {ROW_HEIGHT, ROW_PADDING} from 'app/components/waterfallTree/constants';
 import {
   ConnectorBar,
   StyledIconChevron,
@@ -129,7 +125,7 @@ class SpanBar extends React.Component<Props, State> {
           style={{
             right: '16px',
             height: '10px',
-            bottom: isLast ? `-${SPAN_ROW_HEIGHT / 2}px` : '0',
+            bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
             top: 'auto',
           }}
           key={`${spanID}-last`}
@@ -530,8 +526,8 @@ const ComparisonLabel = styled('div')`
   position: absolute;
   user-select: none;
   right: ${space(1)};
-  line-height: ${SPAN_ROW_HEIGHT - 2 * SPAN_ROW_PADDING}px;
-  top: ${SPAN_ROW_PADDING}px;
+  line-height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
+  top: ${ROW_PADDING}px;
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 

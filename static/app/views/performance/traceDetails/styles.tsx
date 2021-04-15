@@ -36,11 +36,7 @@ export {
   SpanDetailContainer as TransactionDetailsContainer,
 } from 'app/components/events/interfaces/spans/spanDetail';
 
-export {
-  SPAN_ROW_HEIGHT as TRANSACTION_ROW_HEIGHT,
-  SPAN_ROW_PADDING as TRANSACTION_ROW_PADDING,
-  SpanRowMessage as TransactionRowMessage,
-} from 'app/components/events/interfaces/spans/styles';
+export {SpanRowMessage as TransactionRowMessage} from 'app/components/events/interfaces/spans/styles';
 
 export const SearchContainer = styled('div')`
   display: flex;

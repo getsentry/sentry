@@ -7,6 +7,7 @@ import * as DividerHandlerManager from 'app/components/events/interfaces/spans/d
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Tooltip from 'app/components/tooltip';
+import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
 import {
   ConnectorBar,
   StyledIconChevron,
@@ -26,7 +27,6 @@ import {
   DurationPill,
   ErrorBadge,
   OperationName,
-  TRANSACTION_ROW_HEIGHT,
   TransactionBarRectangle,
   TransactionBarTitle,
   TransactionBarTitleContainer,
@@ -136,7 +136,7 @@ class TransactionBar extends React.Component<Props, State> {
           style={{
             right: '16px',
             height: '10px',
-            bottom: isLast ? `-${TRANSACTION_ROW_HEIGHT / 2}px` : '0',
+            bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
             top: 'auto',
           }}
           key={`${eventId}-last`}
