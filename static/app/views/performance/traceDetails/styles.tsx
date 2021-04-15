@@ -4,12 +4,11 @@ import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
-import {SpanBarTitle} from 'app/components/events/interfaces/spans/spanBar';
 import {SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
-import {IconChevron, IconFire} from 'app/icons';
+import {IconFire} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -20,25 +19,10 @@ import {Theme} from 'app/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 export {
-  DividerSpacer,
-  ScrollBarContainer as ScrollbarContainer,
-  VirtualScrollBar,
-  VirtualScrollBarGrip,
-} from 'app/components/events/interfaces/spans/header';
-
-export {
-  ConnectorBar,
-  DividerLine,
-  DividerLineGhostContainer,
   DurationPill,
-  OperationName,
   SpanBarRectangle as TransactionBarRectangle,
-  SpanBarTitleContainer as TransactionBarTitleContainer,
   SpanRowCell as TransactionRowCell,
   SpanRowCellContainer as TransactionRowCellContainer,
-  SpanTreeConnector as TransactionTreeConnector,
-  SpanTreeToggler as TransactionTreeToggle,
-  SpanTreeTogglerContainer as TransactionTreeToggleContainer,
 } from 'app/components/events/interfaces/spans/spanBar';
 
 export {
@@ -47,11 +31,7 @@ export {
   SpanDetailContainer as TransactionDetailsContainer,
 } from 'app/components/events/interfaces/spans/spanDetail';
 
-export {
-  SPAN_ROW_HEIGHT as TRANSACTION_ROW_HEIGHT,
-  SPAN_ROW_PADDING as TRANSACTION_ROW_PADDING,
-  SpanRowMessage as TransactionRowMessage,
-} from 'app/components/events/interfaces/spans/styles';
+export {SpanRowMessage as TransactionRowMessage} from 'app/components/events/interfaces/spans/styles';
 
 export const SearchContainer = styled('div')`
   display: flex;
@@ -95,18 +75,8 @@ export const StyledPanel = styled(Panel)`
   overflow: hidden;
 `;
 
-export const StyledIconChevron = styled(IconChevron)`
-  width: 7px;
-  margin-left: ${space(0.25)};
-`;
-
 export const TransactionRow = styled(SpanRow)<{cursor: 'pointer' | 'default'}>`
   cursor: ${p => p.cursor};
-`;
-
-export const TransactionBarTitle = styled(SpanBarTitle)`
-  display: flex;
-  align-items: center;
 `;
 
 export const TransactionBarTitleContent = styled('span')`

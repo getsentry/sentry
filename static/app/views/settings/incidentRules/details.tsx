@@ -2,6 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {Organization, Project, Team} from 'app/types';
+import {metric} from 'app/utils/analytics';
 import withTeams from 'app/utils/withTeams';
 import AsyncView from 'app/views/asyncView';
 import RuleForm from 'app/views/settings/incidentRules/ruleForm';
@@ -49,6 +50,7 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
     const {router} = this.props;
     const {orgId} = this.props.params;
 
+    metric.endTransaction({name: 'saveAlertRule'});
     router.push(`/organizations/${orgId}/alerts/rules/`);
   };
 

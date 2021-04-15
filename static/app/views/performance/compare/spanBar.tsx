@@ -5,27 +5,12 @@ import {withTheme} from 'emotion-theming';
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import {
-  ConnectorBar,
-  DividerLine,
-  DividerLineGhostContainer,
   getBackgroundColor,
-  OperationName,
-  SpanBarTitle,
-  SpanBarTitleContainer,
   SpanRowCell,
   SpanRowCellContainer,
-  SpanTreeConnector,
-  SpanTreeToggler,
-  SpanTreeTogglerContainer,
-  StyledIconChevron,
   TOGGLE_BORDER_BOX,
 } from 'app/components/events/interfaces/spans/spanBar';
-import {
-  getHatchPattern,
-  SPAN_ROW_HEIGHT,
-  SPAN_ROW_PADDING,
-  SpanRow,
-} from 'app/components/events/interfaces/spans/styles';
+import {getHatchPattern, SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
 import {
   getHumanDuration,
@@ -33,6 +18,23 @@ import {
   toPercent,
   unwrapTreeDepth,
 } from 'app/components/events/interfaces/spans/utils';
+import {ROW_HEIGHT, ROW_PADDING} from 'app/components/waterfallTree/constants';
+import {
+  DividerLine,
+  DividerLineGhostContainer,
+} from 'app/components/waterfallTree/rowDivider';
+import {
+  OperationName,
+  RowTitle,
+  RowTitleContainer,
+} from 'app/components/waterfallTree/rowTitle';
+import {
+  ConnectorBar,
+  StyledIconChevron,
+  TreeConnector,
+  TreeToggle,
+  TreeToggleContainer,
+} from 'app/components/waterfallTree/treeConnector';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
@@ -127,7 +129,7 @@ class SpanBar extends React.Component<Props, State> {
           style={{
             right: '16px',
             height: '10px',
-            bottom: isLast ? `-${SPAN_ROW_HEIGHT / 2}px` : '0',
+            bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
             top: 'auto',
           }}
           key={`${spanID}-last`}
@@ -137,13 +139,13 @@ class SpanBar extends React.Component<Props, State> {
     }
 
     return (
-      <SpanTreeConnector
+      <TreeConnector
         isLast={isLast}
         hasToggler={hasToggler}
         orphanBranch={isOrphanDiffSpan(span)}
       >
         {connectorBars}
-      </SpanTreeConnector>
+      </TreeConnector>
     );
   }
 
@@ -154,18 +156,18 @@ class SpanBar extends React.Component<Props, State> {
 
     if (numOfSpanChildren <= 0) {
       return (
-        <SpanTreeTogglerContainer style={{left: `${left}px`}}>
+        <TreeToggleContainer style={{left: `${left}px`}}>
           {this.renderSpanTreeConnector({hasToggler: false})}
-        </SpanTreeTogglerContainer>
+        </TreeToggleContainer>
       );
     }
 
     const chevronElement = !isRoot ? <div>{chevron}</div> : null;
 
     return (
-      <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler>
+      <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
         {this.renderSpanTreeConnector({hasToggler: true})}
-        <SpanTreeToggler
+        <TreeToggle
           disabled={!!isRoot}
           isExpanded={this.props.showSpanTree}
           onClick={event => {
@@ -180,8 +182,8 @@ class SpanBar extends React.Component<Props, State> {
         >
           <Count value={numOfSpanChildren} />
           {chevronElement}
-        </SpanTreeToggler>
-      </SpanTreeTogglerContainer>
+        </TreeToggle>
+      </TreeToggleContainer>
     );
   }
 
@@ -204,9 +206,9 @@ class SpanBar extends React.Component<Props, State> {
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2);
 
     return (
-      <SpanBarTitleContainer>
+      <RowTitleContainer>
         {this.renderSpanTreeToggler({left})}
-        <SpanBarTitle
+        <RowTitle
           style={{
             left: `${left}px`,
             width: '100%',
@@ -216,8 +218,8 @@ class SpanBar extends React.Component<Props, State> {
             {operationName}
             {description}
           </span>
-        </SpanBarTitle>
-      </SpanBarTitleContainer>
+        </RowTitle>
+      </RowTitleContainer>
     );
   }
 
@@ -528,8 +530,8 @@ const ComparisonLabel = styled('div')`
   position: absolute;
   user-select: none;
   right: ${space(1)};
-  line-height: ${SPAN_ROW_HEIGHT - 2 * SPAN_ROW_PADDING}px;
-  top: ${SPAN_ROW_PADDING}px;
+  line-height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
+  top: ${ROW_PADDING}px;
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 

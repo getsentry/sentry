@@ -7,11 +7,23 @@ import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
+import {metric} from 'app/utils/analytics';
 import ProjectAlerts from 'app/views/settings/projectAlerts';
 import IssueRuleEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
 
 jest.unmock('app/utils/recreateRoute');
 jest.mock('app/actionCreators/onboardingTasks');
+jest.mock('app/utils/analytics', () => ({
+  metric: {
+    startTransaction: jest.fn(() => ({
+      setTag: jest.fn(),
+      setData: jest.fn(),
+    })),
+    endTransaction: jest.fn(),
+    mark: jest.fn(),
+    measure: jest.fn(),
+  },
+}));
 
 describe('ProjectAlerts -> IssueRuleEditor', function () {
   const projectAlertRuleDetailsRoutes = [
@@ -105,6 +117,7 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
         method: 'PUT',
         body: TestStubs.ProjectAlertRule(),
       });
+      metric.startTransaction.mockClear();
     });
 
     it('gets correct rule name', async function () {
@@ -140,7 +153,7 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       );
     });
 
-    it('sends correct environment value', function () {
+    it('sends correct environment value', async function () {
       const {wrapper} = createWrapper();
       selectByValue(wrapper, 'production', {name: 'environment'});
       wrapper.find('form').simulate('submit');
@@ -151,6 +164,8 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
           data: expect.objectContaining({environment: 'production'}),
         })
       );
+      expect(metric.startTransaction).toHaveBeenCalledTimes(1);
+      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('strips environment value if "All environments" is selected', async function () {
@@ -165,6 +180,8 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
           data: expect.objectContaining({environment: '__all_environments__'}),
         })
       );
+      expect(metric.startTransaction).toHaveBeenCalledTimes(1);
+      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('updates the alert onboarding task', async function () {
@@ -172,6 +189,8 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       wrapper.find('form').simulate('submit');
 
       expect(updateOnboardingTask).toHaveBeenCalled();
+      expect(metric.startTransaction).toHaveBeenCalledTimes(1);
+      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
   });
 
