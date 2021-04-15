@@ -4,7 +4,6 @@ import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
-import {SpanBarTitle} from 'app/components/events/interfaces/spans/spanBar';
 import {SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
@@ -21,9 +20,7 @@ import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactio
 
 export {
   DurationPill,
-  OperationName,
   SpanBarRectangle as TransactionBarRectangle,
-  SpanBarTitleContainer as TransactionBarTitleContainer,
   SpanRowCell as TransactionRowCell,
   SpanRowCellContainer as TransactionRowCellContainer,
 } from 'app/components/events/interfaces/spans/spanBar';
@@ -80,11 +77,6 @@ export const StyledPanel = styled(Panel)`
 
 export const TransactionRow = styled(SpanRow)<{cursor: 'pointer' | 'default'}>`
   cursor: ${p => p.cursor};
-`;
-
-export const TransactionBarTitle = styled(SpanBarTitle)`
-  display: flex;
-  align-items: center;
 `;
 
 export const TransactionBarTitleContent = styled('span')`
