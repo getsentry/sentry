@@ -82,39 +82,6 @@ class OrganizationReleaseListTest(APITestCase):
         assert response.data[1]["version"] == release4.version
         assert response.data[2]["version"] == release1.version
 
-    def test_my_project_filter(self):
-        user = self.create_user(is_staff=False, is_superuser=False)
-        org = self.organization
-        org.flags.allow_joinleave = True
-        org.save()
-
-        team1 = self.create_team(organization=org)
-        team2 = self.create_team(organization=org)
-
-        project1 = self.create_project(teams=[team1], organization=org)
-        project2 = self.create_project(teams=[team2], organization=org)
-
-        self.create_member(teams=[team1], user=user, organization=org)
-
-        self.login_as(user=user)
-
-        release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
-        )
-        release1.add_project(project1)
-
-        release2 = Release.objects.create(
-            organization_id=org.id, version="2", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
-        )
-        release2.add_project(project2)
-
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["version"] == release1.version
-
     def test_query_filter(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
@@ -229,56 +196,6 @@ class OrganizationReleaseListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert response.data[0]["version"] == release3.version
-        assert response.data[1]["version"] == release1.version
-
-    def test_token_permissions(self):
-        sentry_app = self.create_sentry_app(
-            name="release app", organization=self.organization, scopes=("project:write",)
-        )
-        proxy_user = sentry_app.proxy_user
-        self.create_sentry_app_installation(
-            slug=sentry_app.slug, organization=self.organization, user=self.user
-        )
-        org = self.create_organization()
-
-        team1 = self.create_team(organization=self.organization)
-        team2 = self.create_team(organization=self.organization)
-
-        project1 = self.create_project(teams=[team1], organization=self.organization)
-        project2 = self.create_project(teams=[team2], organization=self.organization)
-
-        release1 = Release.objects.create(
-            organization_id=self.organization.id,
-            version="1",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
-        )
-        release1.add_project(project1)
-        release2 = Release.objects.create(
-            organization_id=self.organization.id,
-            version="2",
-            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
-        )
-        release2.add_project(project2)
-        # Different org, shouldn't show up in the results
-        Release.objects.create(
-            organization_id=org.id,
-            version="3",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
-        )
-
-        # Login as the app
-        self.login_as(user=proxy_user)
-        url = reverse(
-            "sentry-api-0-organization-releases",
-            kwargs={"organization_slug": self.organization.slug},
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        assert len(response.data) == 2
-        assert response.data[0]["version"] == release2.version
         assert response.data[1]["version"] == release1.version
 
     def test_all_projects_parameter(self):
@@ -908,60 +825,6 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(url, data={"version": "1.2.1", "projects": [project1.slug]})
 
         assert response.status_code == 201, response.content
-        assert Release.objects.filter(version="1.2.1").exists()
-
-    def test_token_permissions(self):
-        sentry_app = self.create_sentry_app(
-            name="release app", organization=self.organization, scopes=("project:write",)
-        )
-        proxy_user = sentry_app.proxy_user
-        self.create_sentry_app_installation(
-            slug=sentry_app.slug, organization=self.organization, user=self.user
-        )
-        org = self.create_organization()
-
-        team1 = self.create_team(organization=self.organization)
-        team2 = self.create_team(organization=self.organization)
-
-        project1 = self.create_project(teams=[team1], organization=self.organization)
-        project2 = self.create_project(teams=[team2], organization=self.organization)
-
-        release1 = Release.objects.create(
-            organization_id=self.organization.id,
-            version="1",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
-        )
-        release1.add_project(project1)
-        release2 = Release.objects.create(
-            organization_id=self.organization.id,
-            version="2",
-            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
-        )
-        release2.add_project(project2)
-        # Different org, shouldn't show up in the results
-        Release.objects.create(
-            organization_id=org.id,
-            version="3",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
-        )
-
-        # Login as the app
-        self.login_as(user=proxy_user)
-        url = reverse(
-            "sentry-api-0-organization-releases",
-            kwargs={"organization_slug": self.organization.slug},
-        )
-        response = self.client.post(url, data={"version": "1.2.1", "projects": [project1.slug]})
-
-        assert response.status_code == 201, response.content
-        assert Release.objects.filter(version="1.2.1").exists()
-
-        # Should have access to both projects
-        response = self.client.post(url, data={"version": "2.2.1", "projects": [project2.slug]})
-
-        assert response.status_code == 201, response.content
-        assert Release.objects.filter(version="2.2.1").exists()
 
     def test_api_key(self):
         org = self.create_organization()
@@ -1013,17 +876,11 @@ class OrganizationReleaseCreateTest(APITestCase):
         org.flags.allow_joinleave = False
         org.save()
 
-        org2 = self.create_organization()
-        project2 = self.create_project(organization=org2)
-
         repo = Repository.objects.create(
             organization_id=org.id, name="getsentry/sentry", provider="dummy"
         )
         repo2 = Repository.objects.create(
             organization_id=org.id, name="getsentry/sentry-plugins", provider="dummy"
-        )
-        Repository.objects.create(
-            organization_id=org2.id, name="notsentry/project", provider="dummy"
         )
 
         api_token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
@@ -1064,22 +921,6 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
 
         assert response.status_code == 201
-
-        # Token doesn't have access to projects not in their organization
-        response = self.client.post(
-            url,
-            data={
-                "version": "1.3.1",
-                "refs": [
-                    {"commit": "a" * 40, "repository": repo.name, "previousCommit": "c" * 40},
-                    {"commit": "b" * 40, "repository": repo2.name},
-                ],
-                "projects": [project2.slug],
-            },
-            HTTP_AUTHORIZATION=f"Bearer {api_token.token}",
-        )
-
-        assert response.status_code == 400
 
     def test_bad_repo_name(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1226,7 +1067,6 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user)
         team = self.create_team(organization=org)
-        self.create_team_membership(team, user=self.user)
         project1 = self.create_project(organization=org, teams=[team], name="foo")
         project2 = self.create_project(organization=org, teams=[team], name="bar")
 
