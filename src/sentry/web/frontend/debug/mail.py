@@ -440,8 +440,10 @@ def report(request):
             summaries.append(int(random.weibullvariate(10, 1) * random.paretovariate(0.5)))
         return summaries
 
-    def build_usage_summary():
+    def build_usage_outcomes():
         return (
+            int(random.weibullvariate(3, 1) * random.paretovariate(0.2)),
+            int(random.weibullvariate(3, 1) * random.paretovariate(0.2)),
             int(random.weibullvariate(3, 1) * random.paretovariate(0.2)),
             int(random.weibullvariate(5, 1) * random.paretovariate(0.2)),
         )
@@ -482,7 +484,7 @@ def report(request):
             series,
             aggregates,
             build_issue_summaries(),
-            build_usage_summary(),
+            build_usage_outcomes(),
             build_calendar_data(project),
         )
 
