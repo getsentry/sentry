@@ -1,12 +1,12 @@
 import 'focus-visible';
+import '../docs-ui/index.js';
+
 import React from 'react';
+import {addDecorator, addParameters} from '@storybook/react';
 import {ThemeProvider} from 'emotion-theming';
 
-import {addParameters, addDecorator} from '@storybook/react';
-
-import {lightTheme, darkTheme} from '../src/sentry/static/sentry/app/utils/theme';
-import GlobalStyles from '../src/sentry/static/sentry/app/styles/global';
-import '../docs-ui/index.js';
+import GlobalStyles from '../static/app/styles/global';
+import {darkTheme, lightTheme} from '../static/app/utils/theme';
 
 const withTheme = (Story, context) => {
   const isDark = context.globals.theme === 'dark';
