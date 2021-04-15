@@ -15,7 +15,7 @@ DATE_TRUNC_GROUPERS = {"date": "day", "hour": "hour", "minute": "minute"}
 epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
 
 
-def to_timestamp(value):
+def to_timestamp(value: datetime):
     """
     Convert a time zone aware datetime to a POSIX timestamp (with fractional
     component.)

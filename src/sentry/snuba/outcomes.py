@@ -211,32 +211,54 @@ def get_filter(
 
 class QueryDefinition:
     """
-    This is the definition of the query the user wants to execute.
-    This is constructed out of the request params, and also contains a list of
-    `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
+    This is the definition of the query the user wants to execute. This is
+    constructed out of the request params, and also contains a list of `fields`
+    and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(
-        self,
+    @classmethod
+    def from_query_dict(
+        cls,
         query: QueryDict,
         params: Mapping[Any, Any],
         allow_minute_resolution: Optional[bool] = True,
     ):
-        raw_fields = query.getlist("field", [])
-        raw_groupby = query.getlist("groupBy", [])
-        if len(raw_fields) == 0:
+        field_list = query.getlist("field", [])
+
+        if len(field_list) == 0:
             raise InvalidField('At least one "field" is required.')
+
+        groupby_list = query.getlist("groupBy", [])
+        category = query.getlist("category", [])
+        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
+        conditions, filter_keys = get_filter(query, params)
+
+        return cls(field_list, groupby_list, category, start, end, rollup, conditions, filter_keys)
+
+    def __init__(
+        self,
+        field_list: List[str],
+        groupby_list: List[str],
+        category: List[str],
+        start: datetime,
+        end: datetime,
+        rollup: int,
+        conditions: List[Condition],
+        filter_keys: Dict[str, Any],
+    ):
+        assert len(field_list) > 0
 
         self.fields = {}
         self.aggregations = []
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
-        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
         self.dataset = _outcomes_dataset(rollup)
         self.rollup = rollup
         self.start = start
         self.end = end
+        self.conditions = conditions
+        self.filter_keys = filter_keys
 
-        for key in raw_fields:
+        for key in field_list:
             if key not in COLUMN_MAP:
                 raise InvalidField(f'Invalid field: "{key}"')
             field = COLUMN_MAP[key]
@@ -244,17 +266,17 @@ class QueryDefinition:
             self.fields[key] = field
 
         self.groupby = []
-        for key in raw_groupby:
+        for key in groupby_list:
             if key not in GROUPBY_MAP:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        if len(query.getlist("category", [])) == 0 and "category" not in raw_groupby:
+        if len(category) == 0 and "category" not in groupby_list:
             raise InvalidQuery("Query must have category as groupby or filter")
 
         query_columns = set()
         for field in self.fields.values():
-            query_columns.update(field.get_snuba_columns(raw_groupby))
+            query_columns.update(field.get_snuba_columns(groupby_list))
         for groupby in self.groupby:
             query_columns.update(groupby.get_snuba_columns())
         self.query_columns = list(query_columns)
@@ -263,8 +285,6 @@ class QueryDefinition:
         for groupby in self.groupby:
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
-
-        self.conditions, self.filter_keys = get_filter(query, params)
 
 
 def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:

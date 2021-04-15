@@ -32,7 +32,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         except NoProjects:
             raise NoProjects("No projects available")
 
-        return QueryDefinition(
+        return QueryDefinition.from_query_dict(
             request.GET,
             params,
         )

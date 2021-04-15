@@ -22,8 +22,8 @@ class Outcome(IntEnum):
     def api_name(self) -> str:
         return self.name.lower()
 
-    @classmethod
-    def parse(cls, name: str) -> "Outcome":
+    @staticmethod
+    def parse(name: str) -> "Outcome":
         return Outcome[name.upper()]
 
 

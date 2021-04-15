@@ -9,7 +9,7 @@ from sentry.utils.outcomes import Outcome
 
 
 def _make_query(qs, allow_minute_resolution=True):
-    return QueryDefinition(QueryDict(qs), {}, allow_minute_resolution)
+    return QueryDefinition.from_query_dict(QueryDict(qs), {}, allow_minute_resolution)
 
 
 class OutcomesQueryDefinitionTests(TestCase):
