@@ -18,7 +18,7 @@ import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'app/types';
-import {intervalToMilliseconds, statsPeriodToDays} from 'app/utils/dates';
+import {parsePeriodToHours, statsPeriodToDays} from 'app/utils/dates';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import commonTheme, {Theme} from 'app/utils/theme';
 
@@ -238,7 +238,11 @@ export class UsageChart extends React.Component<Props, State> {
 
     // Use hours as common units
     const dataPeriod = statsPeriodToDays(undefined, usageDateStart, usageDateEnd) * 24;
-    const barPeriod = intervalToMilliseconds(usageDateInterval) / (1000 * 60 * 60) ?? 24;
+    const barPeriod = parsePeriodToHours(usageDateInterval);
+    if (dataPeriod === 0 || barPeriod === -1) {
+      throw new Error('Uable to parse data time period');
+    }
+
     const {xAxisTickInterval, xAxisLabelInterval} = getXAxisLabelInterval(
       dataPeriod,
       dataPeriod / barPeriod
