@@ -31,12 +31,12 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
-        alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, "date_added")
+        alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, ["date_added"])
         rule_intermediary = CombinedQuerysetIntermediary(
             Rule.objects.filter(
                 project=project, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
             ),
-            "date_added",
+            ["date_added"],
         )
 
         return self.paginate(
