@@ -8,6 +8,11 @@ import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
 import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
+import {
+  DetailsContainer,
+  DetailsContent,
+  DetailsTableRow,
+} from 'app/components/waterfallTree/details';
 import {PAGE_URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {IconChevron, IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
@@ -26,10 +31,7 @@ import {
   ErrorMessageContent,
   ErrorMessageTitle,
   ErrorTitle,
-  Row,
   Tags,
-  TransactionDetails,
-  TransactionDetailsContainer,
 } from './styles';
 
 type Props = {
@@ -145,12 +147,12 @@ class TransactionDetail extends React.Component<Props, State> {
     return (
       <React.Fragment>
         {measurementKeys.map(measurement => (
-          <Row
+          <DetailsTableRow
             key={measurement}
             title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
           >
             {`${Number(measurements[measurement].value.toFixed(3)).toLocaleString()}ms`}
-          </Row>
+          </DetailsTableRow>
         ))}
       </React.Fragment>
     );
@@ -164,19 +166,24 @@ class TransactionDetail extends React.Component<Props, State> {
     const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
 
     return (
-      <TransactionDetails>
+      <DetailsContent>
         <table className="table key-value">
           <tbody>
-            <Row title="Transaction ID" extra={this.renderGoToTransactionButton()}>
+            <DetailsTableRow
+              title="Transaction ID"
+              extra={this.renderGoToTransactionButton()}
+            >
               {transaction.event_id}
-            </Row>
-            <Row title="Transaction" extra={this.renderGoToSummaryButton()}>
+            </DetailsTableRow>
+            <DetailsTableRow title="Transaction" extra={this.renderGoToSummaryButton()}>
               {transaction.transaction}
-            </Row>
-            <Row title="Transaction Status">{transaction['transaction.status']}</Row>
-            <Row title="Span ID">{transaction.span_id}</Row>
-            <Row title="Project">{transaction.project_slug}</Row>
-            <Row title="Start Date">
+            </DetailsTableRow>
+            <DetailsTableRow title="Transaction Status">
+              {transaction['transaction.status']}
+            </DetailsTableRow>
+            <DetailsTableRow title="Span ID">{transaction.span_id}</DetailsTableRow>
+            <DetailsTableRow title="Project">{transaction.project_slug}</DetailsTableRow>
+            <DetailsTableRow title="Start Date">
               {getDynamicText({
                 fixed: 'Mar 19, 2021 11:06:27 AM UTC',
                 value: (
@@ -186,8 +193,8 @@ class TransactionDetail extends React.Component<Props, State> {
                   </React.Fragment>
                 ),
               })}
-            </Row>
-            <Row title="End Date">
+            </DetailsTableRow>
+            <DetailsTableRow title="End Date">
               {getDynamicText({
                 fixed: 'Mar 19, 2021 11:06:28 AM UTC',
                 value: (
@@ -197,9 +204,11 @@ class TransactionDetail extends React.Component<Props, State> {
                   </React.Fragment>
                 ),
               })}
-            </Row>
-            <Row title="Duration">{durationString}</Row>
-            <Row title="Operation">{transaction['transaction.op'] || ''}</Row>
+            </DetailsTableRow>
+            <DetailsTableRow title="Duration">{durationString}</DetailsTableRow>
+            <DetailsTableRow title="Operation">
+              {transaction['transaction.op'] || ''}
+            </DetailsTableRow>
             {this.renderMeasurements()}
             <Tags
               location={location}
@@ -208,13 +217,13 @@ class TransactionDetail extends React.Component<Props, State> {
             />
           </tbody>
         </table>
-      </TransactionDetails>
+      </DetailsContent>
     );
   }
 
   render() {
     return (
-      <TransactionDetailsContainer
+      <DetailsContainer
         onClick={event => {
           // prevent toggling the transaction detail
           event.stopPropagation();
@@ -222,7 +231,7 @@ class TransactionDetail extends React.Component<Props, State> {
       >
         {this.renderTransactionErrors()}
         {this.renderTransactionDetail()}
-      </TransactionDetailsContainer>
+      </DetailsContainer>
     );
   }
 }

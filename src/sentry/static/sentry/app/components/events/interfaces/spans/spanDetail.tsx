@@ -14,6 +14,12 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
+import {
+  DetailsContainer,
+  DetailsContent,
+  DetailsTableRow,
+  TextTableRow,
+} from 'app/components/waterfallTree/details';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -240,9 +246,9 @@ class SpanDetail extends React.Component<Props, State> {
     const results = this.state.transactionResults[0];
 
     return (
-      <Row title="Child Transaction" extra={viewChildButton}>
+      <DetailsTableRow title="Child Transaction" extra={viewChildButton}>
         {`${results.transaction} (${results['project.name']})`}
-      </Row>
+      </DetailsTableRow>
     );
   }
 
@@ -414,13 +420,13 @@ class SpanDetail extends React.Component<Props, State> {
 
     if (isGapSpan(span)) {
       return (
-        <SpanDetails>
+        <DetailsContent>
           <InlineDocs
             platform={event.sdk?.name || ''}
             orgSlug={organization.slug}
             projectSlug={event.projectSlug}
           />
-        </SpanDetails>
+        </DetailsContent>
       );
     }
 
@@ -444,20 +450,24 @@ class SpanDetail extends React.Component<Props, State> {
       <React.Fragment>
         {this.renderOrphanSpanMessage()}
         {this.renderSpanErrorMessage()}
-        <SpanDetails>
+        <DetailsContent>
           <table className="table key-value">
             <tbody>
-              <Row title="Span ID" extra={this.renderTraversalButton()}>
+              <DetailsTableRow title="Span ID" extra={this.renderTraversalButton()}>
                 {span.span_id}
-              </Row>
-              <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
+              </DetailsTableRow>
+              <DetailsTableRow title="Parent Span ID">
+                {span.parent_span_id || ''}
+              </DetailsTableRow>
               {this.renderSpanChild()}
-              <Row title="Trace ID" extra={this.renderTraceButton()}>
+              <DetailsTableRow title="Trace ID" extra={this.renderTraceButton()}>
                 {span.trace_id}
-              </Row>
-              <Row title="Description">{span?.description ?? ''}</Row>
-              <Row title="Status">{span.status || ''}</Row>
-              <Row title="Start Date">
+              </DetailsTableRow>
+              <DetailsTableRow title="Description">
+                {span?.description ?? ''}
+              </DetailsTableRow>
+              <DetailsTableRow title="Status">{span.status || ''}</DetailsTableRow>
+              <DetailsTableRow title="Start Date">
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:12 AM UTC',
                   value: (
@@ -467,8 +477,8 @@ class SpanDetail extends React.Component<Props, State> {
                     </React.Fragment>
                   ),
                 })}
-              </Row>
-              <Row title="End Date">
+              </DetailsTableRow>
+              <DetailsTableRow title="End Date">
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:13 AM UTC',
                   value: (
@@ -478,55 +488,55 @@ class SpanDetail extends React.Component<Props, State> {
                     </React.Fragment>
                   ),
                 })}
-              </Row>
-              <Row title="Duration">{durationString}</Row>
-              <Row title="Operation">{span.op || ''}</Row>
-              <Row title="Same Process as Parent">
+              </DetailsTableRow>
+              <DetailsTableRow title="Duration">{durationString}</DetailsTableRow>
+              <DetailsTableRow title="Operation">{span.op || ''}</DetailsTableRow>
+              <DetailsTableRow title="Same Process as Parent">
                 {span.same_process_as_parent !== undefined
                   ? String(span.same_process_as_parent)
                   : null}
-              </Row>
+              </DetailsTableRow>
               <Tags span={span} />
               {allZeroSizes && (
-                <TextTr>
+                <TextTableRow>
                   The following sizes were not collected for security reasons. Check if
                   the host serves the appropriate
                   <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin">
                     <span className="val-string">Timing-Allow-Origin</span>
                   </ExternalLink>
                   header. You may have to enable this collection manually.
-                </TextTr>
+                </TextTableRow>
               )}
               {map(sizeKeys, (value, key) => (
-                <Row title={key} key={key}>
+                <DetailsTableRow title={key} key={key}>
                   <React.Fragment>
                     <FileSize bytes={value} />
                     {value >= 1024 && (
                       <span>{` (${JSON.stringify(value, null, 4) || ''} B)`}</span>
                     )}
                   </React.Fragment>
-                </Row>
+                </DetailsTableRow>
               ))}
               {map(nonSizeKeys, (value, key) => (
-                <Row title={key} key={key}>
+                <DetailsTableRow title={key} key={key}>
                   {JSON.stringify(value, null, 4) || ''}
-                </Row>
+                </DetailsTableRow>
               ))}
               {unknownKeys.map(key => (
-                <Row title={key} key={key}>
+                <DetailsTableRow title={key} key={key}>
                   {JSON.stringify(span[key], null, 4) || ''}
-                </Row>
+                </DetailsTableRow>
               ))}
             </tbody>
           </table>
-        </SpanDetails>
+        </DetailsContent>
       </React.Fragment>
     );
   }
 
   render() {
     return (
-      <SpanDetailContainer
+      <DetailsContainer
         data-component="span-detail"
         onClick={event => {
           // prevent toggling the span detail
@@ -534,7 +544,7 @@ class SpanDetail extends React.Component<Props, State> {
         }}
       >
         {this.renderSpanDetails()}
-      </SpanDetailContainer>
+      </DetailsContainer>
     );
   }
 }
@@ -545,67 +555,12 @@ const StyledDiscoverButton = styled(DiscoverButton)`
   right: ${space(0.5)};
 `;
 
-export const SpanDetailContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
-  cursor: auto;
-`;
-
-export const SpanDetails = styled('div')`
-  padding: ${space(2)};
-`;
-
-const ValueTd = styled('td')`
-  position: relative;
-`;
-
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: flex;
   align-items: center;
   height: ${space(2)};
   margin: 0;
 `;
-
-const StyledText = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(2)} ${space(0)};
-`;
-
-const TextTr = ({children}) => (
-  <tr>
-    <td className="key" />
-    <ValueTd className="value">
-      <StyledText>{children}</StyledText>
-    </ValueTd>
-  </tr>
-);
-
-export const Row = ({
-  title,
-  keep,
-  children,
-  extra = null,
-}: {
-  title: string;
-  keep?: boolean;
-  children: JSX.Element | string | null;
-  extra?: React.ReactNode;
-}) => {
-  if (!keep && !children) {
-    return null;
-  }
-
-  return (
-    <tr>
-      <td className="key">{title}</td>
-      <ValueTd className="value">
-        <pre className="val">
-          <span className="val-string">{children}</span>
-        </pre>
-        {extra}
-      </ValueTd>
-    </tr>
-  );
-};
 
 export const Tags = ({span}: {span: RawSpanType}) => {
   const tags: {[tag_name: string]: string} | undefined = span?.tags;

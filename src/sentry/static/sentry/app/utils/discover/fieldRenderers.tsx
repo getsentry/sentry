@@ -5,7 +5,6 @@ import partial from 'lodash/partial';
 
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
-import {getDurationDisplay} from 'app/components/events/interfaces/spans/spanBar';
 import {
   getHumanDuration,
   pickSpanBarColour,
@@ -16,6 +15,7 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
 import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
+import {getDurationDisplay} from 'app/components/waterfallTree/utils';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';

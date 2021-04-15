@@ -22,6 +22,7 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
+import {getDurationDisplay} from 'app/components/waterfallTree/utils';
 import {IconChevron, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -174,27 +175,6 @@ export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_
 const MARGIN_LEFT = 0;
 
 type DurationDisplay = 'left' | 'right' | 'inset';
-
-export const getDurationDisplay = ({
-  width,
-  left,
-}: {
-  width: undefined | number;
-  left: undefined | number;
-}): DurationDisplay => {
-  const spaceNeeded = 0.3;
-
-  if (left === undefined || width === undefined) {
-    return 'inset';
-  }
-  if (left + width < 1 - spaceNeeded) {
-    return 'right';
-  }
-  if (left > spaceNeeded) {
-    return 'left';
-  }
-  return 'inset';
-};
 
 export const getBackgroundColor = ({
   showStriping,

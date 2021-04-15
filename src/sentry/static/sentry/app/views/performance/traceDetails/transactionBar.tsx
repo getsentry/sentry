@@ -25,6 +25,7 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
+import {getDurationDisplay} from 'app/components/waterfallTree/utils';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
@@ -38,12 +39,7 @@ import {
 } from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
-import {
-  getDurationDisplay,
-  getHumanDuration,
-  isTraceFullDetailed,
-  toPercent,
-} from './utils';
+import {getHumanDuration, isTraceFullDetailed, toPercent} from './utils';
 
 const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
 const TOGGLE_BUTTON_MAX_WIDTH = 30;

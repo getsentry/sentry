@@ -105,3 +105,24 @@ export const getToggleTheme = ({
     color: ${buttonTheme.color};
   `;
 };
+
+export const getDurationDisplay = ({
+  width,
+  left,
+}: {
+  width: undefined | number;
+  left: undefined | number;
+}): DurationDisplay => {
+  const spaceNeeded = 0.3;
+
+  if (left === undefined || width === undefined) {
+    return 'inset';
+  }
+  if (left + width < 1 - spaceNeeded) {
+    return 'right';
+  }
+  if (left > spaceNeeded) {
+    return 'left';
+  }
+  return 'inset';
+};

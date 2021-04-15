@@ -2,11 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'app/components/dateTime';
-import {SpanDetailContainer} from 'app/components/events/interfaces/spans/spanDetail';
 import {rawSpanKeys, SpanType} from 'app/components/events/interfaces/spans/types';
 import {getHumanDuration} from 'app/components/events/interfaces/spans/utils';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
+import {DetailsContainer} from 'app/components/waterfallTree/details';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -83,14 +83,14 @@ class SpanDetail extends React.Component<Props> {
 
   render() {
     return (
-      <SpanDetailContainer
+      <DetailsContainer
         onClick={event => {
           // prevent toggling the span detail
           event.stopPropagation();
         }}
       >
         {this.renderContent()}
-      </SpanDetailContainer>
+      </DetailsContainer>
     );
   }
 }

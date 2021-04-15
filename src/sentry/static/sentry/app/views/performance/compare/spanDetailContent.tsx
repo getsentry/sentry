@@ -2,8 +2,9 @@ import React from 'react';
 import map from 'lodash/map';
 
 import DateTime from 'app/components/dateTime';
-import {Row, SpanDetails, Tags} from 'app/components/events/interfaces/spans/spanDetail';
+import {Tags} from 'app/components/events/interfaces/spans/spanDetail';
 import {rawSpanKeys, SpanType} from 'app/components/events/interfaces/spans/types';
+import {DetailsContent, DetailsTableRow} from 'app/components/waterfallTree/details';
 import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 
@@ -25,14 +26,18 @@ const SpanDetailContent = (props: Props) => {
   });
 
   return (
-    <SpanDetails>
+    <DetailsContent>
       <table className="table key-value">
         <tbody>
-          <Row title={t('Span ID')}>{span.span_id}</Row>
-          <Row title={t('Parent Span ID')}>{span.parent_span_id || ''}</Row>
-          <Row title={t('Trace ID')}>{span.trace_id}</Row>
-          <Row title={t('Description')}>{span?.description ?? ''}</Row>
-          <Row title={t('Start Date')}>
+          <DetailsTableRow title={t('Span ID')}>{span.span_id}</DetailsTableRow>
+          <DetailsTableRow title={t('Parent Span ID')}>
+            {span.parent_span_id || ''}
+          </DetailsTableRow>
+          <DetailsTableRow title={t('Trace ID')}>{span.trace_id}</DetailsTableRow>
+          <DetailsTableRow title={t('Description')}>
+            {span?.description ?? ''}
+          </DetailsTableRow>
+          <DetailsTableRow title={t('Start Date')}>
             {getDynamicText({
               fixed: 'Mar 16, 2020 9:10:12 AM UTC',
               value: (
@@ -42,8 +47,8 @@ const SpanDetailContent = (props: Props) => {
                 </React.Fragment>
               ),
             })}
-          </Row>
-          <Row title={t('End Date')}>
+          </DetailsTableRow>
+          <DetailsTableRow title={t('End Date')}>
             {getDynamicText({
               fixed: 'Mar 16, 2020 9:10:13 AM UTC',
               value: (
@@ -53,26 +58,26 @@ const SpanDetailContent = (props: Props) => {
                 </React.Fragment>
               ),
             })}
-          </Row>
-          <Row title={t('Duration')}>{durationString}</Row>
-          <Row title={t('Operation')}>{span.op || ''}</Row>
-          <Row title={t('Same Process as Parent')}>
+          </DetailsTableRow>
+          <DetailsTableRow title={t('Duration')}>{durationString}</DetailsTableRow>
+          <DetailsTableRow title={t('Operation')}>{span.op || ''}</DetailsTableRow>
+          <DetailsTableRow title={t('Same Process as Parent')}>
             {String(!!span.same_process_as_parent)}
-          </Row>
+          </DetailsTableRow>
           <Tags span={span} />
           {map(span?.data ?? {}, (value, key) => (
-            <Row title={key} key={key}>
+            <DetailsTableRow title={key} key={key}>
               {JSON.stringify(value, null, 4) || ''}
-            </Row>
+            </DetailsTableRow>
           ))}
           {unknownKeys.map(key => (
-            <Row title={key} key={key}>
+            <DetailsTableRow title={key} key={key}>
               {JSON.stringify(span[key], null, 4) || ''}
-            </Row>
+            </DetailsTableRow>
           ))}
         </tbody>
       </table>
-    </SpanDetails>
+    </DetailsContent>
   );
 };
 

@@ -23,12 +23,6 @@ export {
   VirtualScrollBarGrip,
 } from 'app/components/events/interfaces/spans/header';
 
-export {
-  Row,
-  SpanDetails as TransactionDetails,
-  SpanDetailContainer as TransactionDetailsContainer,
-} from 'app/components/events/interfaces/spans/spanDetail';
-
 export const SearchContainer = styled('div')`
   display: flex;
   width: 100%;
