@@ -21,7 +21,7 @@ type AsyncComponentState = {
   loading: boolean;
   reloading: boolean;
   error: boolean;
-  errors: object;
+  errors: Record<string, JQueryXHR>;
   remainingRequests?: number;
   [key: string]: any;
 };
