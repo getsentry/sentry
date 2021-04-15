@@ -48,6 +48,7 @@ type Props = {
   rule?: IncidentRule;
   incidents?: Incident[];
   timePeriod: TimePeriodType;
+  selectedIncident?: Incident | null;
   organization: Organization;
   location: Location;
   handleTimePeriodChange: (value: string) => void;
@@ -262,6 +263,7 @@ export default class DetailsBody extends React.Component<Props> {
       location,
       organization,
       timePeriod,
+      selectedIncident,
       params: {orgId},
     } = this.props;
 
@@ -332,6 +334,7 @@ export default class DetailsBody extends React.Component<Props> {
                     rule={rule}
                     incidents={incidents}
                     timePeriod={timePeriod}
+                    selectedIncident={selectedIncident}
                     organization={organization}
                     projects={projects}
                     metricText={this.getMetricText()}

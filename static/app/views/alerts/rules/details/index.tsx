@@ -146,7 +146,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
   };
 
   render() {
-    const {rule, incidents, hasError} = this.state;
+    const {rule, incidents, hasError, selectedIncident} = this.state;
     const {params, organization} = this.props;
     const timePeriod = this.getTimePeriod();
 
@@ -163,6 +163,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
             rule={rule}
             incidents={incidents}
             timePeriod={timePeriod}
+            selectedIncident={selectedIncident}
             handleTimePeriodChange={this.handleTimePeriodChange}
           />
         </Feature>
