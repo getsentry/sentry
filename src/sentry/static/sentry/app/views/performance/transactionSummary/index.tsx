@@ -30,7 +30,12 @@ import {
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
 
 import SummaryContent from './content';
-import {filterToField, SpanOperationBreakdownFilter} from './filter';
+import {
+  decodeFilterFromLocation,
+  filterToField,
+  filterToLocationQuery,
+  SpanOperationBreakdownFilter,
+} from './filter';
 
 type Props = {
   api: Client;
@@ -53,23 +58,22 @@ type TotalValues = Record<string, number>;
 
 class TransactionSummary extends React.Component<Props, State> {
   state: State = {
-    spanOperationBreakdownFilter: SpanOperationBreakdownFilter.None,
+    spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
     eventView: generateSummaryEventView(
       this.props.location,
       getTransactionName(this.props.location),
-      this.props.organization,
-      SpanOperationBreakdownFilter.None
+      this.props.organization
     ),
   };
 
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
+      spanOperationBreakdownFilter: decodeFilterFromLocation(nextProps.location),
       eventView: generateSummaryEventView(
         nextProps.location,
         getTransactionName(nextProps.location),
-        nextProps.organization,
-        prevState.spanOperationBreakdownFilter
+        nextProps.organization
       ),
     };
   }
@@ -93,8 +97,19 @@ class TransactionSummary extends React.Component<Props, State> {
   }
 
   onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
-    this.setState({
-      spanOperationBreakdownFilter: newFilter,
+    const {location} = this.props;
+
+    const nextQuery: Location['query'] = {
+      ...location.query,
+      ...filterToLocationQuery(newFilter),
+    };
+
+    if (newFilter === SpanOperationBreakdownFilter.None) {
+      delete nextQuery.breakdown;
+    }
+    browserHistory.push({
+      pathname: location.pathname,
+      query: nextQuery,
     });
   };
 
@@ -247,8 +262,7 @@ const StyledPageContent = styled(PageContent)`
 function generateSummaryEventView(
   location: Location,
   transactionName: string | undefined,
-  organization: Organization,
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter
+  organization: Organization
 ): EventView | undefined {
   if (transactionName === undefined) {
     return undefined;
@@ -260,6 +274,8 @@ function generateSummaryEventView(
   conditions
     .setTagValues('event.type', ['transaction'])
     .setTagValues('transaction', [transactionName]);
+
+  const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
   Object.keys(conditions.tagValues).forEach(field => {
     if (isAggregateField(field)) conditions.removeTag(field);

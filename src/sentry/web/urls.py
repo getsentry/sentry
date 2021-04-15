@@ -427,6 +427,7 @@ urlpatterns += [
                     react_page_view,
                     name="sentry-organization-auth-settings",
                 ),
+                url(r"^(?P<organization_slug>[\w_-]+)/[\w_-]+/$", react_page_view),
                 url(r"^", react_page_view),
             ]
         ),

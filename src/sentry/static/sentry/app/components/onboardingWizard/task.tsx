@@ -262,13 +262,13 @@ DateCompleted.defaultProps = {
   transition,
 };
 
-const TaskUserAvatar = motion.custom(Avatar);
+const TaskUserAvatar = motion(Avatar);
 TaskUserAvatar.defaultProps = {
   variants: completedItemAnimation,
   transition,
 };
 
-const TaskBlankAvatar = styled(motion.custom(LetterAvatar))`
+const TaskBlankAvatar = styled(motion(LetterAvatar))`
   position: unset;
 `;
 

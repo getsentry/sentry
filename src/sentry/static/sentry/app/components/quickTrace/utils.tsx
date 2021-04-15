@@ -16,7 +16,7 @@ export type ErrorDestination = 'discover' | 'issue';
 
 export type TransactionDestination = 'discover' | 'performance';
 
-function generateIssueEventTarget(
+export function generateIssueEventTarget(
   event: TraceError,
   organization: OrganizationSummary
 ): LocationDescriptor {
