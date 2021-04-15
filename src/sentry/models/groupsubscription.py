@@ -17,6 +17,7 @@ from sentry.notifications.helpers import (
     where_should_be_participating,
 )
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
+from sentry.types.integrations import ExternalProviders
 
 
 class GroupSubscriptionManager(BaseManager):
@@ -82,7 +83,7 @@ class GroupSubscriptionManager(BaseManager):
                 if i == 0:
                     raise e
 
-    def get_participants(self, group) -> Mapping[Any, Mapping[Any, int]]:
+    def get_participants(self, group) -> Mapping[ExternalProviders, Mapping[Any, int]]:
         """
         Identify all users who are participating with a given issue.
         :param group: Group object

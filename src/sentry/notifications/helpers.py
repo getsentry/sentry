@@ -95,6 +95,34 @@ def where_should_be_participating(
     ]
 
 
+def get_deploy_values_by_provider(
+    notification_settings_by_scope: Mapping[
+        NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]
+    ],
+    all_providers: Iterable[ExternalProviders],
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    """
+    Given a mapping of scopes to a mapping of default and specific notification
+    settings by provider, determine the notification setting by provider for
+    DEPLOY notifications.
+    """
+    organization_specific_mapping = notification_settings_by_scope.get(
+        NotificationScopeType.ORGANIZATION, {}
+    )
+    organization_independent_mapping = notification_settings_by_scope.get(
+        NotificationScopeType.USER, {}
+    )
+
+    return {
+        provider: (
+            organization_specific_mapping.get(provider)
+            or organization_independent_mapping.get(provider)
+            or NotificationSettingOptionValues.COMMITTED_ONLY
+        )
+        for provider in all_providers
+    }
+
+
 def transform_to_notification_settings_by_user(
     notification_settings: Iterable[Any],
     users: Iterable[Any],

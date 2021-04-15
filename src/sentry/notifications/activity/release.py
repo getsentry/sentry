@@ -16,20 +16,23 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     Repository,
-    Team,
     User,
     UserEmail,
 )
+from sentry.notifications.helpers import (
+    get_deploy_values_by_provider,
+    transform_to_notification_settings_by_user,
+)
 from sentry.notifications.types import (
     GroupSubscriptionReason,
-    NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
-from .base import ActivityNotification
+from .base import ActivityNotification, notification_providers
 
 
 class ReleaseActivityNotification(ActivityNotification):
@@ -112,65 +115,46 @@ class ReleaseActivityNotification(ActivityNotification):
     def should_email(self) -> bool:
         return bool(self.release and self.deploy)
 
-    def get_participants(self) -> Mapping[User, int]:
-        # collect all users with verified emails on a team in the related projects,
-        users = list(
-            User.objects.filter(
-                emails__is_verified=True,
-                sentry_orgmember_set__teams__in=Team.objects.filter(
-                    id__in=ProjectTeam.objects.filter(project__in=self.projects).values_list(
-                        "team_id", flat=True
-                    )
-                ),
-                is_active=True,
-            ).distinct()
-        )
+    def get_reason(self, user: User, value: NotificationSettingOptionValues) -> Optional[int]:
+        # Members who opt into all deploy emails.
+        if value == NotificationSettingOptionValues.ALWAYS:
+            return GroupSubscriptionReason.deploy_setting
 
-        # get all the involved users' settings for deploy-emails (user default
-        # saved without org set)
+        # Members which have been seen in the commit log.
+        elif value == NotificationSettingOptionValues.COMMITTED_ONLY and user.id in self.user_ids:
+            return GroupSubscriptionReason.committed
+        return None
+
+    def get_participants(self) -> Mapping[ExternalProviders, Mapping[User, int]]:
+        # Collect all users with verified emails on a team in the related projects.
+        users = list(User.objects.get_team_members_with_verified_email_for_projects(self.projects))
+
+        # Get all the involved users' settings for deploy-emails (including
+        # users' organization-independent settings.)
         notification_settings = NotificationSetting.objects.get_for_users_by_parent(
             NotificationSettingTypes.DEPLOY,
             users=users,
             parent=self.organization,
         )
+        notification_settings_by_user = transform_to_notification_settings_by_user(
+            notification_settings, users
+        )
 
-        actor_mapping = {user.actor: user for user in users}
-
-        options_by_user_id: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
-        for notification_setting in notification_settings:
-            key = (
-                "default"
-                if notification_setting.scope_type == NotificationScopeType.USER.value
-                else "org"
-            )
-            user_option = actor_mapping.get(notification_setting.target)
-            if user_option:
-                options_by_user_id[user_option.id][key] = notification_setting.value
-
-        # and couple them with the the users' setting value for deploy-emails
-        # prioritize user/org specific, then user default, then product default
-        users_with_options = {}
+        # Map users to their setting value. Prioritize user/org specific, then
+        # user default, then product default.
+        users_to_reasons_by_provider: MutableMapping[
+            ExternalProviders, MutableMapping[User, int]
+        ] = defaultdict(dict)
         for user in users:
-            options = options_by_user_id.get(user.id, {})
-            users_with_options[user] = (
-                options.get("org")  # org-specific
-                or options.get("default")  # user default
-                or NotificationSettingOptionValues.COMMITTED_ONLY.value  # product default
+            notification_settings_by_scope = notification_settings_by_user.get(user, {})
+            values_by_provider = get_deploy_values_by_provider(
+                notification_settings_by_scope, notification_providers()
             )
-
-        users_to_reasons: MutableMapping[User, int] = {}
-        for user, option in users_with_options.items():
-            # members who opt into all deploy emails:
-            if option == NotificationSettingOptionValues.ALWAYS.value:
-                users_to_reasons[user] = GroupSubscriptionReason.deploy_setting
-
-            # members which have been seen in the commit log
-            elif (
-                option == NotificationSettingOptionValues.COMMITTED_ONLY.value
-                and user.id in self.user_ids
-            ):
-                users_to_reasons[user] = GroupSubscriptionReason.committed
-        return users_to_reasons
+            for provider, value in values_by_provider.items():
+                reason_option = self.get_reason(user, value)
+                if reason_option:
+                    users_to_reasons_by_provider[provider][user] = reason_option
+        return users_to_reasons_by_provider
 
     def get_users_by_teams(self) -> Mapping[int, List[int]]:
         if not self.user_id_team_lookup:
