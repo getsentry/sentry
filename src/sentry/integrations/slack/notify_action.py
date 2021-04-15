@@ -4,7 +4,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.integrations.slack.message_builder.issues import build_group_attachment, build_deploy_attachment
+from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
 from sentry.rules.actions.base import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
@@ -161,50 +161,15 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             # Integration removed, rule still active.
             return
 
-        def send_slack_message_to_user(
-            organization: Organization,
-            integration: Integration,
-            project: Project,
-            user: User,
-            activity: Activity,
-            group: Group,
-            context: Mapping[str, Any],
-        ) -> None:
-
-            attachment = [build_notification_attachment(activity, context)]
-            channel = ExternalActor.objects.get(integration=integration) # look up user's Slack ID from ExternalActor to pass as the channel
-            payload = {
-                "token": integration.metadata["access_token"],
-                "channel": channel,
-                "link_names": 1, # do we need this?
-                "attachments": json.dumps(deploy_attachment),
-            }
-            client = SlackClient()
-            try:
-                client.post("/chat.postMessage", data=payload, timeout=5)
-            except ApiError as e:
-                self.logger.info(
-                    "notification.fail.slack_post",
-                    extra={
-                        "error": str(e),
-                        "activity": activity,
-                        "user": user.id,
-                        "channel_name": channel,
-                    },
-                )
-
         def send_notification(event, futures):
             rules = [f.rule for f in futures]
-            # copy this kinda
             attachments = [build_group_attachment(event.group, event=event, tags=tags, rules=rules)]
-            # print("attachments old: ", attachments)
-            deploy_attachment = [build_deploy_attachment()]
-            # print("deploy attachment: ", deploy_attachment)
+
             payload = {
                 "token": integration.metadata["access_token"],
                 "channel": channel,
                 "link_names": 1,
-                "attachments": json.dumps(deploy_attachment), # remember to put this back
+                "attachments": json.dumps(attachments),
             }
 
             client = SlackClient()
