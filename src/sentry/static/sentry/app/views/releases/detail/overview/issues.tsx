@@ -12,7 +12,7 @@ import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import GroupList from 'app/components/issues/groupList';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {Panel} from 'app/components/panels';
+import Pagination from 'app/components/pagination';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tct} from 'app/locale';
@@ -47,6 +47,8 @@ type Props = {
 
 type State = {
   issuesType: IssuesType;
+  pageLinks?: string;
+  onCursor?: () => void;
 };
 
 class Issues extends React.Component<Props, State> {
@@ -143,6 +145,10 @@ class Issues extends React.Component<Props, State> {
     this.setState({issuesType});
   };
 
+  handleFetchSuccess = (groupListState, onCursor) => {
+    this.setState({pageLinks: groupListState.pageLinks, onCursor});
+  };
+
   renderEmptyMessage = () => {
     const {selection} = this.props;
     const {issuesType} = this.state;
@@ -174,7 +180,7 @@ class Issues extends React.Component<Props, State> {
   };
 
   render() {
-    const {issuesType} = this.state;
+    const {issuesType, pageLinks, onCursor} = this.state;
     const {orgId} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
@@ -228,6 +234,7 @@ class Issues extends React.Component<Props, State> {
                 </DiscoverButton>
               </GuideAnchor>
             </Feature>
+            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
           </OpenInButtonBar>
         </ControlsWrapper>
         <TableWrapper data-test-id="release-wrapper">
@@ -239,6 +246,8 @@ class Issues extends React.Component<Props, State> {
             canSelectGroups={false}
             withChart={false}
             renderEmptyMessage={this.renderEmptyMessage}
+            withPagination={false}
+            onFetchSuccess={this.handleFetchSuccess}
           />
         </TableWrapper>
       </React.Fragment>
@@ -272,10 +281,10 @@ const StyledDropdownItem = styled(DropdownItem)`
 
 const TableWrapper = styled('div')`
   margin-bottom: ${space(4)};
-  ${Panel} {
-    /* smaller space between table and pagination */
-    margin-bottom: -${space(1)};
-  }
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
 `;
 
 export default Issues;
