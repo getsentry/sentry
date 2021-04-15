@@ -15,6 +15,15 @@ snql_referrers = {
     "sessions.release-sessions-time-bounds",
     "sessions.release-stats",
     "sessions.release-stats-details",
+    "outcomes.timeseries",
+    "tsdb-modelid:500",
+    "incidents.get_incident_aggregates",
+    "tsdb-modelid:501",
+    "tsdb-modelid:502",
+    "group.filter_by_event_id",
+    "alertruleserializer.test_query",
+    "incidents.get_incident_event_stats",
+    "tagstore.get_tag_value_paginator_for_projects",
 }
 
 

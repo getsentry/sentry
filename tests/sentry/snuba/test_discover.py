@@ -8,7 +8,7 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
-from sentry.utils.snuba import Dataset
+from sentry.utils.snuba import Dataset, get_array_column_alias
 
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
@@ -560,7 +560,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=[
                 "p50(measurements.lcp)",
                 "p50(measurements.foo)",
-                "p50(span_op_breakdowns.foo)",
+                "p50(spans.foo)",
             ],
             query="event.type:transaction",
             params={"project_id": [self.project.id]},
@@ -570,8 +570,59 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert results["meta"] == {
             "p50_measurements_lcp": "duration",
             "p50_measurements_foo": "number",
-            "p50_span_op_breakdowns_foo": "duration",
+            "p50_spans_foo": "duration",
         }
+
+    def test_measurements(self):
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=[
+                "measurements.fp",
+                "measurements.fcp",
+                "measurements.lcp",
+                "measurements.fid",
+                "measurements.cls",
+                "measurements.does_not_exist",
+            ],
+            query="event.type:transaction",
+            params={"project_id": [self.project.id]},
+        )
+
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0]["measurements.fp"] == event_data["measurements"]["fp"]["value"]
+        assert data[0]["measurements.fcp"] == event_data["measurements"]["fcp"]["value"]
+        assert data[0]["measurements.lcp"] == event_data["measurements"]["lcp"]["value"]
+        assert data[0]["measurements.fid"] == event_data["measurements"]["fid"]["value"]
+        assert data[0]["measurements.cls"] == event_data["measurements"]["cls"]["value"]
+        assert data[0]["measurements.does_not_exist"] is None
+
+    def test_span_op_breakdowns(self):
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=[
+                "spans.http",
+                "spans.db",
+                "spans.resource",
+                "spans.browser",
+                "spans.does_not_exist",
+            ],
+            query="event.type:transaction",
+            params={"project_id": [self.project.id]},
+        )
+
+        data = results["data"]
+        assert len(data) == 1
+        span_ops = event_data["breakdowns"]["span_ops"]
+        assert data[0]["spans.http"] == span_ops["ops.http"]["value"]
+        assert data[0]["spans.db"] == span_ops["ops.db"]["value"]
+        assert data[0]["spans.resource"] == span_ops["ops.resource"]["value"]
+        assert data[0]["spans.browser"] == span_ops["ops.browser"]["value"]
+        assert data[0]["spans.does_not_exist"] is None
 
 
 class QueryTransformTest(TestCase):
@@ -1648,17 +1699,18 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_find_histogram_min_max(self, mock_query):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             # no rows returned from snuba
             mock_query.side_effect = [{"meta": [], "data": []}]
             values = discover.find_histogram_min_max(
-                [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
             assert values == (None, None), f"failing for {array_column}"
 
             # more than 2 rows returned snuba
             mock_query.side_effect = [{"meta": [], "data": [{}, {}]}]
             values = discover.find_histogram_min_max(
-                [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
             assert values == (None, None), f"failing for {array_column}"
 
@@ -1666,32 +1718,32 @@ class QueryTransformTest(TestCase):
             mock_query.side_effect = [
                 {
                     "meta": [
-                        {"name": f"min_{array_column}_foo"},
-                        {"name": f"max_{array_column}_foo"},
+                        {"name": f"min_{alias}_foo"},
+                        {"name": f"max_{alias}_foo"},
                     ],
-                    "data": [{f"min_{array_column}_foo": None, f"max_{array_column}_foo": None}],
+                    "data": [{f"min_{alias}_foo": None, f"max_{alias}_foo": None}],
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
             assert values == (None, None), f"failing for {array_column}"
 
             # use the given min/max
             values = discover.find_histogram_min_max(
-                [f"{array_column}.foo"], 1, 2, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"], 1, 2, "", {"project_id": [self.project.id]}
             )
             assert values == (1, 2), f"failing for {array_column}"
 
             # use the given min, but query for max
             mock_query.side_effect = [
                 {
-                    "meta": [{"name": f"max_{array_column}_foo"}],
-                    "data": [{f"max_{array_column}_foo": 3.45}],
+                    "meta": [{"name": f"max_{alias}_foo"}],
+                    "data": [{f"max_{alias}_foo": 3.45}],
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{array_column}.foo"], 1.23, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"], 1.23, None, "", {"project_id": [self.project.id]}
             )
             assert values == (
                 1.23,
@@ -1702,12 +1754,12 @@ class QueryTransformTest(TestCase):
             # the queried max
             mock_query.side_effect = [
                 {
-                    "meta": [{"name": f"max_{array_column}_foo"}],
-                    "data": [{f"max_{array_column}_foo": 3.45}],
+                    "meta": [{"name": f"max_{alias}_foo"}],
+                    "data": [{f"max_{alias}_foo": 3.45}],
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{array_column}.foo"], 3.5, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"], 3.5, None, "", {"project_id": [self.project.id]}
             )
             assert values == (
                 3.5,
@@ -1718,12 +1770,12 @@ class QueryTransformTest(TestCase):
             # the queried min
             mock_query.side_effect = [
                 {
-                    "meta": [{"name": f"min_{array_column}_foo"}],
-                    "data": [{f"min_{array_column}_foo": 3.45}],
+                    "meta": [{"name": f"min_{alias}_foo"}],
+                    "data": [{f"min_{alias}_foo": 3.45}],
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{array_column}.foo"], None, 3.4, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"], None, 3.4, "", {"project_id": [self.project.id]}
             )
             assert values == (
                 3.4,
@@ -1733,12 +1785,12 @@ class QueryTransformTest(TestCase):
             # use the given max, but query for min
             mock_query.side_effect = [
                 {
-                    "meta": [{"name": f"min_{array_column}_foo"}],
-                    "data": [{f"min_{array_column}_foo": 1.23}],
+                    "meta": [{"name": f"min_{alias}_foo"}],
+                    "data": [{f"min_{alias}_foo": 1.23}],
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{array_column}.foo"], None, 3.45, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"], None, 3.45, "", {"project_id": [self.project.id]}
             )
             assert values == (
                 1.23,
@@ -1749,14 +1801,14 @@ class QueryTransformTest(TestCase):
             mock_query.side_effect = [
                 {
                     "meta": [
-                        {"name": f"min_{array_column}_foo"},
-                        {"name": f"max_{array_column}_foo"},
+                        {"name": f"min_{alias}_foo"},
+                        {"name": f"max_{alias}_foo"},
                     ],
-                    "data": [{f"min_{array_column}_foo": 1.23, f"max_{array_column}_foo": 3.45}],
+                    "data": [{f"min_{alias}_foo": 1.23, f"max_{alias}_foo": 3.45}],
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{array_column}.foo"], None, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
             assert values == (
                 1.23,
@@ -1767,27 +1819,27 @@ class QueryTransformTest(TestCase):
             mock_query.side_effect = [
                 {
                     "meta": [
-                        {"name": f"min_{array_column}_foo"},
-                        {"name": f"min_{array_column}_bar"},
-                        {"name": f"min_{array_column}_baz"},
-                        {"name": f"max_{array_column}_foo"},
-                        {"name": f"max_{array_column}_bar"},
-                        {"name": f"max_{array_column}_baz"},
+                        {"name": f"min_{alias}_foo"},
+                        {"name": f"min_{alias}_bar"},
+                        {"name": f"min_{alias}_baz"},
+                        {"name": f"max_{alias}_foo"},
+                        {"name": f"max_{alias}_bar"},
+                        {"name": f"max_{alias}_baz"},
                     ],
                     "data": [
                         {
-                            f"min_{array_column}_foo": 1.23,
-                            f"min_{array_column}_bar": 1.34,
-                            f"min_{array_column}_baz": 1.45,
-                            f"max_{array_column}_foo": 3.45,
-                            f"max_{array_column}_bar": 3.56,
-                            f"max_{array_column}_baz": 3.67,
+                            f"min_{alias}_foo": 1.23,
+                            f"min_{alias}_bar": 1.34,
+                            f"min_{alias}_baz": 1.45,
+                            f"max_{alias}_foo": 3.45,
+                            f"max_{alias}_bar": 3.56,
+                            f"max_{alias}_baz": 3.67,
                         }
                     ],
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{array_column}.foo", f"{array_column}.bar", f"{array_column}.baz"],
+                [f"{alias}.foo", f"{alias}.bar", f"{alias}.baz"],
                 None,
                 None,
                 "",
@@ -1802,27 +1854,27 @@ class QueryTransformTest(TestCase):
             mock_query.side_effect = [
                 {
                     "meta": [
-                        {"name": f"min_{array_column}_foo"},
-                        {"name": f"min_{array_column}_bar"},
-                        {"name": f"min_{array_column}_baz"},
-                        {"name": f"max_{array_column}_foo"},
-                        {"name": f"max_{array_column}_bar"},
-                        {"name": f"max_{array_column}_baz"},
+                        {"name": f"min_{alias}_foo"},
+                        {"name": f"min_{alias}_bar"},
+                        {"name": f"min_{alias}_baz"},
+                        {"name": f"max_{alias}_foo"},
+                        {"name": f"max_{alias}_bar"},
+                        {"name": f"max_{alias}_baz"},
                     ],
                     "data": [
                         {
-                            f"min_{array_column}_foo": 1.23,
-                            f"min_{array_column}_bar": None,
-                            f"min_{array_column}_baz": 1.45,
-                            f"max_{array_column}_foo": 3.45,
-                            f"max_{array_column}_bar": None,
-                            f"max_{array_column}_baz": 3.67,
+                            f"min_{alias}_foo": 1.23,
+                            f"min_{alias}_bar": None,
+                            f"min_{alias}_baz": 1.45,
+                            f"max_{alias}_foo": 3.45,
+                            f"max_{alias}_bar": None,
+                            f"max_{alias}_baz": 3.67,
                         }
                     ],
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{array_column}.foo", f"{array_column}.bar", f"{array_column}.baz"],
+                [f"{alias}.foo", f"{alias}.bar", f"{alias}.baz"],
                 None,
                 None,
                 "",
@@ -1908,6 +1960,7 @@ class QueryTransformTest(TestCase):
 
     def test_normalize_histogram_results_full(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             results = {
                 "meta": {
                     f"array_join_{array_column}_key": "string",
@@ -1933,14 +1986,14 @@ class QueryTransformTest(TestCase):
                 ],
             }
             normalized_results = discover.normalize_histogram_results(
-                [f"{array_column}.foo"],
+                [f"{alias}.foo"],
                 f"array_join({array_column}_key)",
                 discover.HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
             assert normalized_results == {
-                f"{array_column}.foo": [
+                f"{alias}.foo": [
                     {"bin": 0, "count": 3},
                     {"bin": 1, "count": 2},
                     {"bin": 2, "count": 1},
@@ -1949,6 +2002,7 @@ class QueryTransformTest(TestCase):
 
     def test_normalize_histogram_results_full_multiple(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             results = {
                 "meta": {
                     f"array_join_{array_column}_key": "string",
@@ -1989,19 +2043,19 @@ class QueryTransformTest(TestCase):
                 ],
             }
             normalized_results = discover.normalize_histogram_results(
-                [f"{array_column}.bar", f"{array_column}.foo"],
+                [f"{alias}.bar", f"{alias}.foo"],
                 f"array_join({array_column}_key)",
                 discover.HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
             assert normalized_results == {
-                f"{array_column}.bar": [
+                f"{alias}.bar": [
                     {"bin": 0, "count": 1},
                     {"bin": 1, "count": 2},
                     {"bin": 2, "count": 3},
                 ],
-                f"{array_column}.foo": [
+                f"{alias}.foo": [
                     {"bin": 0, "count": 3},
                     {"bin": 1, "count": 2},
                     {"bin": 2, "count": 1},
@@ -2010,6 +2064,7 @@ class QueryTransformTest(TestCase):
 
     def test_normalize_histogram_results_partial(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             results = {
                 "meta": {
                     f"array_join_{array_column}_key": "string",
@@ -2025,14 +2080,14 @@ class QueryTransformTest(TestCase):
                 ],
             }
             normalized_results = discover.normalize_histogram_results(
-                [f"{array_column}.foo"],
+                [f"{alias}.foo"],
                 f"array_join({array_column}_key)",
                 discover.HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
             assert normalized_results == {
-                f"{array_column}.foo": [
+                f"{alias}.foo": [
                     {"bin": 0, "count": 3},
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 0},
@@ -2041,6 +2096,7 @@ class QueryTransformTest(TestCase):
 
     def test_normalize_histogram_results_partial_multiple(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             results = {
                 "meta": {
                     f"array_join_{array_column}_key": "string",
@@ -2061,19 +2117,19 @@ class QueryTransformTest(TestCase):
                 ],
             }
             normalized_results = discover.normalize_histogram_results(
-                [f"{array_column}.bar", f"{array_column}.foo"],
+                [f"{alias}.bar", f"{alias}.foo"],
                 f"array_join({array_column}_key)",
                 discover.HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
             assert normalized_results == {
-                f"{array_column}.bar": [
+                f"{alias}.bar": [
                     {"bin": 0, "count": 0},
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 3},
                 ],
-                f"{array_column}.foo": [
+                f"{alias}.foo": [
                     {"bin": 0, "count": 3},
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 0},
@@ -2082,6 +2138,7 @@ class QueryTransformTest(TestCase):
 
     def test_normalize_histogram_results_ignore_unexpected_rows(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             results = {
                 "meta": {
                     f"array_join_{array_column}_key": "string",
@@ -2114,19 +2171,19 @@ class QueryTransformTest(TestCase):
                 ],
             }
             normalized_results = discover.normalize_histogram_results(
-                [f"{array_column}.bar", f"{array_column}.foo"],
+                [f"{alias}.bar", f"{alias}.foo"],
                 f"array_join({array_column}_key)",
                 discover.HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
             assert normalized_results == {
-                f"{array_column}.bar": [
+                f"{alias}.bar": [
                     {"bin": 0, "count": 0},
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 3},
                 ],
-                f"{array_column}.foo": [
+                f"{alias}.foo": [
                     {"bin": 0, "count": 3},
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 0},
@@ -2135,6 +2192,7 @@ class QueryTransformTest(TestCase):
 
     def test_normalize_histogram_results_adjust_for_precision(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             results = {
                 "meta": {
                     f"array_join_{array_column}_key": "string",
@@ -2165,14 +2223,14 @@ class QueryTransformTest(TestCase):
                 ],
             }
             normalized_results = discover.normalize_histogram_results(
-                [f"{array_column}.foo"],
+                [f"{alias}.foo"],
                 f"array_join({array_column}_key)",
                 discover.HistogramParams(4, 25, 0, 100),
                 results,
                 array_column,
             )
             assert normalized_results == {
-                f"{array_column}.foo": [
+                f"{alias}.foo": [
                     {"bin": 0, "count": 3},
                     {"bin": 0.25, "count": 2},
                     {"bin": 0.50, "count": 1},
@@ -2183,18 +2241,19 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_query(self, mock_query):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             mock_query.side_effect = [
                 {
                     "meta": [
-                        {"name": f"min_{array_column}_foo"},
-                        {"name": f"max_{array_column}_foo"},
+                        {"name": f"min_{alias}_foo"},
+                        {"name": f"max_{alias}_foo"},
                     ],
                     "data": [
                         {
-                            f"min_{array_column}_bar": 2,
-                            f"min_{array_column}_foo": 0,
-                            f"max_{array_column}_bar": 2,
-                            f"max_{array_column}_foo": 2,
+                            f"min_{alias}_bar": 2,
+                            f"min_{alias}_foo": 0,
+                            f"max_{alias}_bar": 2,
+                            f"max_{alias}_foo": 2,
                         }
                     ],
                 },
@@ -2224,19 +2283,19 @@ class QueryTransformTest(TestCase):
                 },
             ]
             results = discover.histogram_query(
-                [f"{array_column}.bar", f"{array_column}.foo"],
+                [f"{alias}.bar", f"{alias}.foo"],
                 "",
                 {"project_id": [self.project.id]},
                 3,
                 0,
             )
             assert results == {
-                f"{array_column}.bar": [
+                f"{alias}.bar": [
                     {"bin": 0, "count": 3},
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 0},
                 ],
-                f"{array_column}.foo": [
+                f"{alias}.foo": [
                     {"bin": 0, "count": 3},
                     {"bin": 1, "count": 0},
                     {"bin": 2, "count": 1},
@@ -2245,9 +2304,10 @@ class QueryTransformTest(TestCase):
 
     def test_histogram_query_with_bad_fields(self):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             with pytest.raises(InvalidSearchQuery) as err:
                 discover.histogram_query(
-                    [f"{array_column}.bar", "transaction.duration"],
+                    [f"{alias}.bar", "transaction.duration"],
                     "",
                     {"project_id": [self.project.id]},
                     3,
@@ -2260,6 +2320,7 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_query_with_optionals(self, mock_query):
         for array_column in ARRAY_COLUMNS:
+            alias = get_array_column_alias(array_column)
             mock_query.side_effect = [
                 {
                     "meta": [
@@ -2299,7 +2360,7 @@ class QueryTransformTest(TestCase):
                 },
             ]
             results = discover.histogram_query(
-                [f"{array_column}.bar", f"{array_column}.foo"],
+                [f"{alias}.bar", f"{alias}.foo"],
                 "",
                 {"project_id": [self.project.id]},
                 3,
@@ -2308,12 +2369,12 @@ class QueryTransformTest(TestCase):
                 2,
             )
             assert results == {
-                f"{array_column}.bar": [
+                f"{alias}.bar": [
                     {"bin": 0.5, "count": 0},
                     {"bin": 1.0, "count": 2},
                     {"bin": 1.5, "count": 0},
                 ],
-                f"{array_column}.foo": [
+                f"{alias}.foo": [
                     {"bin": 0.5, "count": 3},
                     {"bin": 1.0, "count": 0},
                     {"bin": 1.5, "count": 1},
