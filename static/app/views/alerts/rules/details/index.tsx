@@ -7,6 +7,7 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import DateTime from 'app/components/dateTime';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
@@ -24,7 +25,6 @@ import {
   TimePeriodType,
 } from './constants';
 import DetailsHeader from './header';
-import {t} from 'app/locale';
 
 type Props = {
   api: Client;
