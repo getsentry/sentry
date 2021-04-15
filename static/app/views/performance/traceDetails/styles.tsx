@@ -20,13 +20,6 @@ import {Theme} from 'app/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 export {
-  DividerSpacer,
-  ScrollBarContainer as ScrollbarContainer,
-  VirtualScrollBar,
-  VirtualScrollBarGrip,
-} from 'app/components/events/interfaces/spans/header';
-
-export {
   ConnectorBar,
   DividerLine,
   DividerLineGhostContainer,
