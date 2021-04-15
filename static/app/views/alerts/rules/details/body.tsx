@@ -10,9 +10,9 @@ import Alert from 'app/components/alert';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import {SectionHeading} from 'app/components/charts/styles';
 import {getInterval} from 'app/components/charts/utils';
-import DateTime from 'app/components/dateTime';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
+import IdBadge from 'app/components/idBadge';
 import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import * as Layout from 'app/components/layouts/thirds';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -304,15 +304,17 @@ export default class DetailsBody extends React.Component<Props> {
                             </DropdownItem>
                           ))}
                         </DropdownControl>
-                        {timePeriod.custom && (
-                          <StyledTimeRange>
-                            <DateTime date={moment.utc(timePeriod.start)} timeAndDate />
-                            {' — '}
-                            <DateTime date={moment.utc(timePeriod.end)} timeAndDate />
-                          </StyledTimeRange>
-                        )}
                       </ChartControls>
                     </div>
+                    {projects && projects.length && (
+                      <div>
+                        <SidebarHeading noMargin>
+                          {t('Project')}
+                        </SidebarHeading>
+
+                        <IdBadge avatarSize={16} project={projects[0]} />
+                      </div>
+                    )}
                     <div>
                       <SidebarHeading noMargin>
                         {t('Time Interval')}
@@ -446,10 +448,6 @@ const ChartControls = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-`;
-
-const StyledTimeRange = styled('div')`
-  margin-left: ${space(2)};
 `;
 
 const ChartPanel = styled(Panel)`

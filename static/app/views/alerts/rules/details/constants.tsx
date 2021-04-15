@@ -1,3 +1,5 @@
+import React from 'react';
+
 import {t} from 'app/locale';
 import {SelectValue} from 'app/types';
 import {TimePeriod, TimeWindow} from 'app/views/settings/incidentRules/types';
@@ -25,6 +27,6 @@ export type TimePeriodType = {
   start: string;
   end: string;
   period: string;
-  label: string;
+  label: React.ReactNode;
   custom?: boolean;
 };

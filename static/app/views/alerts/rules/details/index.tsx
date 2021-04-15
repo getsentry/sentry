@@ -6,7 +6,7 @@ import moment from 'moment';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
-import {t} from 'app/locale';
+import DateTime from 'app/components/dateTime';
 import {Organization} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
@@ -69,7 +69,13 @@ class AlertRuleDetails extends React.Component<Props, State> {
         start: location.query.start,
         end: location.query.end,
         period,
-        label: t('Custom time'),
+        label: (
+          <React.Fragment>
+            <DateTime date={moment.utc(location.query.start)} timeAndDate />
+            {' — '}
+            <DateTime date={moment.utc(location.query.end)} timeAndDate />
+          </React.Fragment>
+        ),
         custom: true,
       };
     }
@@ -80,7 +86,13 @@ class AlertRuleDetails extends React.Component<Props, State> {
         start,
         end,
         period,
-        label: t('Custom time'),
+        label: (
+          <React.Fragment>
+            <DateTime date={moment.utc(start)} timeAndDate />
+            {' — '}
+            <DateTime date={moment.utc(end)} timeAndDate />
+          </React.Fragment>
+        ),
         custom: true,
       };
     }
