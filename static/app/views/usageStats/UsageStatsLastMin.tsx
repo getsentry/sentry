@@ -83,13 +83,14 @@ class UsageStatsLastMin extends AsyncComponent<Props, State> {
   }
 
   renderComponent() {
-    const {dataCategoryName} = this.props;
+    const {dataCategory, dataCategoryName} = this.props;
 
     return (
       <Wrapper>
         <Number>{this.minuteData ?? <NotAvailable />}</Number>
         <Description>
-          {tct('[dataCategoryName] accepted ', {
+          {tct('[preposition][dataCategoryName] accepted ', {
+            preposition: dataCategory === DataCategory.ATTACHMENTS ? 'of ' : '',
             dataCategoryName: dataCategoryName.toLowerCase(),
           })}
           <br />
