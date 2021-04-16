@@ -17,7 +17,7 @@ import Histogram from 'app/utils/performance/histogram';
 import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
 import {HistogramData} from 'app/utils/performance/histogram/types';
 import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
-import {decodeScalar} from 'app/utils/queryString';
+import {decodeInteger, decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
 import {filterToColour, filterToField, SpanOperationBreakdownFilter} from './filter';
@@ -213,11 +213,14 @@ class LatencyChart extends React.Component<Props, State> {
     let max: number | undefined = undefined;
 
     if (ZOOM_START in location.query) {
-      min = Math.abs(parseInt(decodeScalar(location.query[ZOOM_START], '0'), 10));
+      min = decodeInteger(location.query[ZOOM_START], 0);
     }
 
     if (ZOOM_END in location.query) {
-      max = Math.abs(parseInt(decodeScalar(location.query[ZOOM_END], '0'), 10));
+      const decodedMax = decodeInteger(location.query[ZOOM_END]);
+      if (typeof decodedMax === 'number') {
+        max = decodedMax;
+      }
     }
 
     const field = filterToField(currentFilter) ?? 'transaction.duration';
