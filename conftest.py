@@ -30,5 +30,10 @@ def pytest_configure(config):
 
 
 def pytest_unconfigure():
-    # Clean up manifest file
-    os.remove(manifest_path)
+    if not os.path.exists(manifest_path):
+        return
+
+    # Clean up manifest file if contents are empty
+    with open(manifest_path) as f:
+        if f.read() == "{}":
+            os.remove(manifest_path)
