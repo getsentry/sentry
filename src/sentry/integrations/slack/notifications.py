@@ -43,4 +43,8 @@ def send_notification_as_slack(
                     "channel_id": external_actor.external_id,
                 },
             )
-        metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
+        metrics.incr(
+            "activity.notifications.sent",
+            instance="slack.activity.notification",
+            skip_internal=False,
+        )
