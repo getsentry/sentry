@@ -287,7 +287,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, location, router, selection} = this.props;
+    const {organization} = this.props;
     const {releases, reloading} = this.state;
 
     const activeSort = this.getSort();
