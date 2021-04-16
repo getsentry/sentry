@@ -10,6 +10,7 @@ import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import Graphic from 'app/components/charts/components/graphic';
 import MarkLine from 'app/components/charts/components/markLine';
+import MarkArea from 'app/components/charts/components/markArea';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
@@ -34,7 +35,7 @@ import {getIncidentRuleMetricPreset} from '../../utils';
 
 import {TimePeriodType} from './constants';
 
-const X_AXIS_BOUNDARY_GAP = 16;
+const X_AXIS_BOUNDARY_GAP = 20;
 const VERTICAL_PADDING = 22;
 
 type Props = WithRouterProps & {
@@ -302,7 +303,7 @@ class MetricChart extends React.PureComponent<Props, State> {
   renderChart(
     data: LineChartSeries[],
     series: LineChartSeries[],
-    graphics: any[],
+    areaSeries: any[],
     maxThresholdValue: number,
     maxSeriesValue: number
   ) {
@@ -319,9 +320,9 @@ class MetricChart extends React.PureComponent<Props, State> {
           bottom: 0,
         }}
         yAxis={maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined}
-        series={series}
+        series={[...series, ...areaSeries]}
         graphic={Graphic({
-          elements: [...graphics, ...this.getRuleChangeThresholdElements(data)],
+          elements: this.getRuleChangeThresholdElements(data),
         })}
         tooltip={{
           formatter: seriesParams => {
@@ -388,8 +389,6 @@ class MetricChart extends React.PureComponent<Props, State> {
       query,
       incidents,
     } = this.props;
-    const {height, width} = this.state;
-
     if (!rule) {
       return this.renderEmpty();
     }
@@ -429,7 +428,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           }
 
           const series: LineChartSeries[] = [...timeseriesData];
-          const graphics: any[] = [];
+          const areaSeries: any[] = [];
           // Ensure series data appears above incident lines
           series[0].z = 100;
           const dataArr = timeseriesData[0].data;
@@ -546,27 +545,16 @@ class MetricChart extends React.PureComponent<Props, State> {
                 });
 
                 if (selectedIncident && incident.id === selectedIncident.id) {
-                  const chartWidth = width - X_AXIS_BOUNDARY_GAP;
-                  const incidentPosition =
-                    (chartWidth * (incidentStartDate - firstPoint)) /
-                      (lastPoint - firstPoint) +
-                    X_AXIS_BOUNDARY_GAP;
-                  const incidentWidth =
-                    (chartWidth * (incidentCloseDate - incidentStartDate)) /
-                    (lastPoint - firstPoint);
-
-                  graphics.push({
-                    type: 'rect',
-                    draggable: false,
-                    position: [incidentPosition, 0],
-                    shape: {
-                      width: incidentWidth,
-                      height: height - VERTICAL_PADDING,
-                    },
-                    style: {
-                      fill: color(incidentColor).alpha(0.42).rgb().string(),
-                    },
-                  });
+                  areaSeries.push({
+                    type: 'line',
+                    markArea: MarkArea({
+                      itemStyle: {
+                        color: color(incidentColor).alpha(0.42).rgb().string(),
+                      },
+                      data: [[{xAxis: incidentStartDate}, {xAxis: incidentCloseDate }]] as any,
+                    }),
+                    data: [],
+                  })
                 }
               });
           }
@@ -607,7 +595,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 {this.renderChart(
                   timeseriesData,
                   series,
-                  graphics,
+                  areaSeries,
                   maxThresholdValue,
                   maxSeriesValue
                 )}
