@@ -280,6 +280,7 @@ const AlertNameWrapper = styled(FlexCenter)<{isIncident?: boolean}>`
 
 const AlertNameAndStatus = styled('div')`
   margin-left: ${space(1.5)};
+  line-height: 1.4;
 `;
 
 const ProjectBadge = styled(IdBadge)`
