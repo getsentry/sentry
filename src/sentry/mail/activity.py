@@ -71,17 +71,24 @@ def get_context(
 
 @register(ExternalProviders.EMAIL)
 def send_notification_as_email(
-    notification: ActivityNotification, user: User, context: Mapping[str, Any]
+    notification: ActivityNotification,
+    users: Mapping[User, int],
+    shared_context: MutableMapping[str, Any],
 ) -> None:
-    msg = MessageBuilder(
-        subject=notification.get_subject_with_prefix(),
-        template=notification.get_template(),
-        html_template=notification.get_html_template(),
-        headers=notification.get_headers(),
-        type=notification.get_email_type(),
-        context=context,
-        reference=notification.activity,
-        reply_reference=notification.group,
-    )
-    msg.add_users([user.id], project=notification.project)
-    msg.send_async()
+    headers = get_headers(notification)
+    subject = get_subject_with_prefix(notification)
+    type = get_email_type(notification)
+
+    for user, reason in users.items():
+        msg = MessageBuilder(
+            subject=subject,
+            template=notification.get_template(),
+            html_template=notification.get_html_template(),
+            headers=headers,
+            type=type,
+            context=get_context(notification, user, reason, shared_context),
+            reference=notification.activity,
+            reply_reference=notification.group,
+        )
+        msg.add_users([user.id], project=notification.project)
+        msg.send_async()

@@ -15,7 +15,9 @@ SLACK_TIMEOUT = 5
 
 @register(ExternalProviders.SLACK)
 def send_notification_as_slack(
-    notification: ActivityNotification, user: User, context: Mapping[str, Any]
+    notification: ActivityNotification,
+    users: Mapping[User, int],
+    shared_context: Mapping[str, Any],
 ) -> None:
     external_actors = ExternalActor.objects.filter(
         provider=ExternalProviders.SLACK.value,

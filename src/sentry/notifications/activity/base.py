@@ -251,8 +251,4 @@ class ActivityNotification:
         shared_context = self.get_context()
 
         for provider, participants in participants_by_provider.items():
-            for user, reason in participants.items():
-                user_context = self.update_user_context_from_group(
-                    user, reason, shared_context, self.group
-                )
-                fire(provider, self, user, user_context)
+            registry[provider](self, participants, shared_context)
