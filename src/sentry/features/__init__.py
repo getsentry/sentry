@@ -109,7 +109,6 @@ default_manager.add("organizations:performance-vitals-overview", OrganizationFea
 default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
 default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
-default_manager.add("organizations:releases-top-charts", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA

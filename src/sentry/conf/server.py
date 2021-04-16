@@ -940,8 +940,6 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
-    # Enable the new charts on top of the Releases page
-    "organizations:releases-top-charts": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": False,
     # Enable option to send alert, workflow, and deploy notifications

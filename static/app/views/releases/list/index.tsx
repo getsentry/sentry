@@ -4,7 +4,6 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import Feature from 'app/components/acl/feature';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -33,7 +32,6 @@ import ReleaseDisplayOptions from './releaseDisplayOptions';
 import ReleaseLanding from './releaseLanding';
 import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleaseListStatusOptions from './releaseListStatusOptions';
-import ReleasesStabilityChart from './releasesStabilityChart';
 import {DisplayOption, SortOption, StatusOption} from './utils';
 
 type RouteParams = {
@@ -308,18 +306,6 @@ class ReleasesList extends AsyncView<Props, State> {
             <PageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
             </PageHeader>
-
-            <Feature features={['releases-top-charts']} organization={organization}>
-              {/* We are only displaying charts if single project is selected */}
-              {selection.projects.length === 1 &&
-                !selection.projects.includes(ALL_ACCESS_PROJECTS) && (
-                  <ReleasesStabilityChart
-                    location={location}
-                    organization={organization}
-                    router={router}
-                  />
-                )}
-            </Feature>
 
             <SortAndFilterWrapper>
               <SearchBar
