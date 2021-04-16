@@ -1,11 +1,16 @@
 import moment from 'moment';
 
-import {DataCategory} from 'app/types';
+import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {DataCategory, IntervalPeriod} from 'app/types';
+import {intervalToMilliseconds} from 'app/utils/dates';
 
 import {formatUsageWithUnits} from '../utils';
 
-export function getDateFromMoment(m: moment.Moment) {
-  return m.format('MMM D');
+export function getDateFromMoment(m: moment.Moment, interval: IntervalPeriod = '1d') {
+  // Convert to days
+  const unit = intervalToMilliseconds(interval) / (1000 * 60 * 60);
+
+  return unit > 1 ? m.startOf('h').format('MMM D') : m.startOf('h').format('MMM D HH:mm');
 }
 
 export function getDateFromUnixTimestamp(timestamp: number) {
@@ -13,14 +18,23 @@ export function getDateFromUnixTimestamp(timestamp: number) {
   return getDateFromMoment(date);
 }
 
-export function getDateRange(dateStart: string, dateEnd: string): string[] {
+export function getXAxisDates(
+  dateStart: string,
+  dateEnd: string,
+  interval: IntervalPeriod = '1d'
+): string[] {
   const range: string[] = [];
-  const start = moment(dateStart);
-  const end = moment(dateEnd);
+  const start = moment(dateStart).startOf('h');
+  const end = moment(dateEnd).startOf('h');
 
-  while (!start.isAfter(end, 'd')) {
-    range.push(getDateFromMoment(start));
-    start.add(1, 'd');
+  const {period, periodLength} = parseStatsPeriod(interval) ?? {
+    period: 1,
+    periodLength: 'd',
+  };
+
+  while (!start.isAfter(end)) {
+    range.push(getDateFromMoment(start, interval));
+    start.add(period as any, periodLength as any); // FIXME(ts): Something odd with momentjs types
   }
 
   return range;
@@ -33,4 +47,63 @@ export function getTooltipFormatter(dataCategory: DataCategory) {
   }
 
   return (val: number = 0) => val.toLocaleString();
+}
+
+const MAX_NUMBER_OF_LABELS = 10;
+
+/**
+ *
+ * @param dataPeriod - Quantity of hours covered by the data
+ * @param numBars - Quantity of data points covered by the dataPeriod
+ */
+export function getXAxisLabelInterval(dataPeriod: number, numBars: number) {
+  return dataPeriod > 7 * 24
+    ? getLabelIntervalLongPeriod(dataPeriod, numBars)
+    : getLabelIntervalShortPeriod(dataPeriod, numBars);
+}
+
+/**
+ * @param dataPeriod - Quantity of hours covered by data, expected 7+ days
+ */
+function getLabelIntervalLongPeriod(dataPeriod: number, numBars: number) {
+  const days = dataPeriod / 24;
+  if (days <= 7) {
+    throw new Error('This method should be used for periods > 7 days');
+  }
+
+  // Use 1 tick per day
+  let numTicks = days;
+  let numLabels = numTicks;
+
+  const daysBetweenLabels = [2, 4, 7, 14];
+  const daysBetweenTicks = [1, 2, 7, 7];
+
+  for (let i = 0; i < daysBetweenLabels.length && numLabels > MAX_NUMBER_OF_LABELS; i++) {
+    numLabels = numTicks / daysBetweenLabels[i];
+    numTicks = days / daysBetweenTicks[i];
+  }
+
+  return {
+    xAxisTickInterval: numBars / numTicks - 1,
+    xAxisLabelInterval: numBars / numLabels - 1,
+  };
+}
+
+/**
+ * @param dataPeriod - Quantity of hours covered by data, expected <7 days
+ */
+function getLabelIntervalShortPeriod(dataPeriod: number, numBars: number) {
+  const days = dataPeriod / 24;
+  if (days > 7) {
+    throw new Error('This method should be used for periods <= 7 days');
+  }
+
+  // Use 1 tick/label per day, since it's guaranteed to be 7 or less
+  const numTicks = days;
+  const interval = numBars / numTicks;
+
+  return {
+    xAxisTickInterval: interval - 1,
+    xAxisLabelInterval: interval - 1,
+  };
 }

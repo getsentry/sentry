@@ -163,13 +163,14 @@ export function getStartOfPeriodAgo(
  * @return {Integer}
  */
 export function intervalToMilliseconds(interval: string): number {
-  const pattern = /^(\d+)(h|m)$/;
+  const pattern = /^(\d+)(d|h|m)$/;
   const matches = pattern.exec(interval);
   if (!matches) {
     return 0;
   }
   const [, value, unit] = matches;
   const multipliers = {
+    d: 60 * 60 * 24,
     h: 60 * 60,
     m: 60,
   };
