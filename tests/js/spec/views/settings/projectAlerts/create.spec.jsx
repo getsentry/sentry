@@ -7,11 +7,24 @@ import {selectByValue} from 'sentry-test/select-new';
 
 import * as memberActionCreators from 'app/actionCreators/members';
 import ProjectsStore from 'app/stores/projectsStore';
+import {metric} from 'app/utils/analytics';
 import AlertsContainer from 'app/views/alerts';
 import AlertBuilderProjectProvider from 'app/views/alerts/builder/projectProvider';
 import ProjectAlertsCreate from 'app/views/settings/projectAlerts/create';
 
 jest.unmock('app/utils/recreateRoute');
+jest.mock('app/utils/analytics', () => ({
+  metric: {
+    startTransaction: jest.fn(() => ({
+      setTag: jest.fn(),
+      setData: jest.fn(),
+    })),
+    endTransaction: jest.fn(),
+    mark: jest.fn(),
+    measure: jest.fn(),
+  },
+  trackAnalyticsEvent: jest.fn(),
+}));
 
 describe('ProjectAlertsCreate', function () {
   const projectAlertRuleDetailsRoutes = [
@@ -90,6 +103,7 @@ describe('ProjectAlertsCreate', function () {
       url: '/organizations/org-slug/users/',
       body: [TestStubs.User()],
     });
+    metric.startTransaction.mockClear();
   });
 
   afterEach(function () {
@@ -334,6 +348,7 @@ describe('ProjectAlertsCreate', function () {
             },
           })
         );
+        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await tick();
         expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/alerts/rules/');
