@@ -17,7 +17,7 @@ def build_notification_attachment(notification):
     notification_type = notification.__class__.__name__
     footer = build_notification_footer(links, notification_type)
     return {
-        "title": notification.get_dm_title(),
+        "title": notification.get_title(),
         "text": notification.get_dm_text(),
         "mrkdwn_in": ["text"],
         "footer_icon": notification._get_sentry_avatar_url(),

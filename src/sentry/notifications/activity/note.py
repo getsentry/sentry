@@ -16,11 +16,9 @@ class NoteActivityNotification(ActivityNotification):
     def get_category(self) -> str:
         return "note_activity_email"
 
-    def get_dm_title(self) -> str:
-        author = self.get_base_context()["author"].get_display_name()
+    def get_title(self) -> str:
+        author = self.activity.user.get_display_name()
         return f"New comment by {author}"
 
     def get_dm_text(self) -> str:
-        context = self.get_base_context()
-        context.update(self.get_context())
-        return str(context["data"]["text"])
+        return str(self.activity.data["text"])

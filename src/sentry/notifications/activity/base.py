@@ -45,6 +45,10 @@ def register(provider: ExternalProviders) -> Callable:
     return wrapped
 
 
+def fire(provider: ExternalProviders, notification: Any, user: User, context: Mapping[str, Any]):
+    registry[provider](notification, user, context)
+
+
 class ActivityNotification:
     def __init__(self, activity: Activity) -> None:
         self.activity = activity
@@ -120,6 +124,7 @@ class ActivityNotification:
         context = {
             "data": activity.data,
             "author": activity.user,
+            "title": self.get_title(),
             "project": self.project,
             "project_link": self.get_project_link(),
         }
@@ -281,7 +286,7 @@ class ActivityNotification:
         user_context.update(context)
         return user_context
 
-    def get_dm_title(self) -> str:
+    def get_title(self) -> str:
         return str(self.get_context()["activity_name"])
 
     def get_dm_text(self) -> str:
@@ -305,10 +310,10 @@ class ActivityNotification:
 
         context = self.get_base_context()
         context.update(self.get_context())
-
         for provider, participants in participants_by_provider.items():
             for user, reason in participants.items():
                 user_context = self.update_user_context_from_group(
                     user, reason, context, self.group
                 )
-                registry[provider](self, user, user_context)
+                fire(provider, self, user, user_context)
+                # registry[provider](self, user, user_context)

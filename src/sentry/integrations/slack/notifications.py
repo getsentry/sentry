@@ -19,7 +19,7 @@ def send_notification_as_slack(
 ) -> None:
     external_actors = ExternalActor.objects.filter(
         provider=ExternalProviders.SLACK.value,
-        actor=user.id,
+        actor=user.actor,
         organization=notification.organization,
     ).select_related("integration")
     for external_actor in external_actors:
