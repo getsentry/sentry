@@ -248,7 +248,6 @@ class MetricChart extends React.PureComponent<Props, State> {
     warningDuration: number
   ) {
     const {rule, orgId, projects, timePeriod} = this.props;
-    const preset = this.metricPreset;
     const ctaOpts = {
       orgSlug: orgId,
       projects: projects as Project[],
@@ -257,9 +256,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       end: timePeriod.end,
     };
 
-    const {buttonText, ...props} = preset
-      ? preset.makeCtaParams(ctaOpts)
-      : makeDefaultCta(ctaOpts);
+    const {buttonText, ...props} = makeDefaultCta(ctaOpts);
 
     const resolvedPercent = (
       (100 * Math.max(totalDuration - criticalDuration - warningDuration, 0)) /
