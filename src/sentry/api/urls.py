@@ -1589,7 +1589,7 @@ urlpatterns = [
                     name="sentry-api-0-project-metrics-data",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/tags/$",
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/tags/(?P<metric_name>[^/]+)/(?P<tag_name>[^/]+)/$",
                     ProjectMetricsTagsEndpoint.as_view(),
                     name="sentry-api-0-project-metrics-tags",
                 ),

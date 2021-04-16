@@ -16,13 +16,7 @@ class ProjectMetricsEndpoint(ProjectEndpoint):
 class ProjectMetricsTagsEndpoint(ProjectEndpoint):
     """ Get all existing tag values for a metric """
 
-    def get(self, request, project):
-
-        try:
-            metric_name = request.GET["metric"]
-            tag_name = request.GET["tag"]
-        except KeyError:
-            return Response({"detail": "`metric` and `tag` are required parameters."}, status=400)
+    def get(self, request, project, metric_name, tag_name):
 
         tag_values = DATA_SOURCE.get_tag_values(project, metric_name, tag_name)
 
