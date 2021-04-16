@@ -3,6 +3,7 @@ const path = require('path'); // eslint-disable-line
 
 let testMatch;
 
+const {JEST_TESTS, CI_NODE_TOTAL, CI_NODE_INDEX} = process.env;
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
  *
@@ -10,23 +11,23 @@ let testMatch;
  * Then we split up the tests based on the total number of CI instances that will
  * be running the tests.
  */
-if (process.env.CI && process.env.JEST_TESTS) {
-  const {CI_NODE_TOTAL, CI_NODE_INDEX} = process.env;
-
+if (
+  JEST_TESTS &&
+  typeof CI_NODE_TOTAL !== 'undefined' &&
+  typeof CI_NODE_INDEX !== 'undefined'
+) {
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
   const tests = JSON.parse(process.env.JEST_TESTS).sort((a, b) => {
     return b.localeCompare(a);
   });
 
-  if (typeof CI_NODE_TOTAL !== 'undefined' && typeof CI_NODE_INDEX !== 'undefined') {
-    const length = tests.length;
-    const size = Math.floor(length / CI_NODE_TOTAL);
-    const remainder = length % CI_NODE_TOTAL;
-    const offset = Math.min(CI_NODE_INDEX, remainder) + CI_NODE_INDEX * size;
-    const chunk = size + (CI_NODE_INDEX < remainder ? 1 : 0);
+  const length = tests.length;
+  const size = Math.floor(length / CI_NODE_TOTAL);
+  const remainder = length % CI_NODE_TOTAL;
+  const offset = Math.min(CI_NODE_INDEX, remainder) + CI_NODE_INDEX * size;
+  const chunk = size + (CI_NODE_INDEX < remainder ? 1 : 0);
 
-    testMatch = tests.slice(offset, offset + chunk);
-  }
+  testMatch = tests.slice(offset, offset + chunk);
 }
 
 module.exports = {

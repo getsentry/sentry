@@ -23,7 +23,6 @@ jobs:
         instance: [0, 1]
 
     env:
-      CI_NODE_TOTAL: ${{ strategy.job-total }}
       VISUAL_HTML_ENABLE: 1
     steps:
       - uses: actions/checkout@v2
@@ -54,6 +53,7 @@ jobs:
 
       - name: jest
         env:
+          CI_NODE_TOTAL: ${{ strategy.job-total }}
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
           NODE_ENV=production yarn build-css
