@@ -122,7 +122,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       case ChartDataTransform.PERIODIC:
         return {chartTransform};
       default:
-        return {chartTransform: ChartDataTransform.CUMULATIVE};
+        return {chartTransform: ChartDataTransform.PERIODIC};
     }
   }
 
