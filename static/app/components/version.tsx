@@ -190,6 +190,6 @@ const TooltipClipboardIconWrapper = styled('span')`
 
 type PropsWithoutOrg = Omit<Props, 'organization'>;
 
-export default withOrganization(withRouter(Version)) as React.ComponentClass<
-  PropsWithoutOrg
->;
+export default withOrganization(
+  withRouter(Version)
+) as React.ComponentClass<PropsWithoutOrg>;
