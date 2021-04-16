@@ -6,7 +6,7 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -250,12 +250,11 @@ class ActionsPanel extends React.PureComponent<Props> {
 
     return (
       <Panel>
-        <PanelHeader>{t('Actions')}</PanelHeader>
         <PanelBody withPadding>
-          <FieldLabel>{t('Add an action')}</FieldLabel>
+          <FieldLabel>{t('Add an Action')}</FieldLabel>
           <FieldHelp>
             {t(
-              'We can send you an email or activate an integration when any of the thresholds above are met.'
+              'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
             )}
           </FieldHelp>
         </PanelBody>
