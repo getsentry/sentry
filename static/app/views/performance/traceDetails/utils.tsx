@@ -67,8 +67,6 @@ export function isTraceFullDetailed(transaction): transaction is TraceFullDetail
   return Boolean((transaction as TraceFullDetailed).event_id);
 }
 
-export {getDurationDisplay} from 'app/components/events/interfaces/spans/spanBar';
-
 export {getHumanDuration, toPercent} from 'app/components/events/interfaces/spans/utils';
 
 export function isRootTransaction(trace: TraceFullDetailed): boolean {
