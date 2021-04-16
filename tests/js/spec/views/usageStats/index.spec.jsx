@@ -128,8 +128,8 @@ describe('UsageStats', function () {
 
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
-    expect(wrapper.find('UsageChart')).toHaveLength(0);
-    expect(wrapper.find('UsageTable')).toHaveLength(0);
+    expect(wrapper.find('UsageChart')).toHaveLength(1);
+    expect(wrapper.find('UsageTable')).toHaveLength(1);
     expect(wrapper.find('IconWarning')).toHaveLength(2);
   });
 
@@ -251,6 +251,47 @@ describe('UsageStats', function () {
       query: expect.objectContaining({
         chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
       }),
+    });
+  });
+
+  it('removes page query parameters during outbound navigation', async () => {
+    const wrapper = mountWithTheme(
+      <UsageStats
+        organization={organization}
+        location={{
+          query: {
+            pageStart: '2021-01-01T00:00:00Z',
+            pageEnd: '2021-01-07T00:00:00Z',
+            pagePeriod: ninetyDays,
+            pageUtc: true,
+            dataCategory: DataCategory.TRANSACTIONS,
+            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            sort: '-project',
+            notAPageKey: 'hello', // Should not be removed
+          },
+        }}
+        router={router}
+      />,
+      router
+    );
+
+    await tick();
+    wrapper.update();
+
+    const outboundLinks = wrapper.instance().getNextLocations({id: 1, slug: 'project'});
+    expect(outboundLinks).toEqual({
+      performance: {
+        query: {project: 1, notAPageKey: 'hello'},
+        pathname: '/organizations/org-slug/performance/',
+      },
+      projectDetail: {
+        query: {project: 1, notAPageKey: 'hello'},
+        pathname: '/organizations/org-slug/projects/project',
+      },
+      issueList: {
+        query: {project: 1, notAPageKey: 'hello'},
+        pathname: '/organizations/org-slug/issues/',
+      },
     });
   });
 });
