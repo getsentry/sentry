@@ -174,9 +174,15 @@ class ActivityNotification:
             "html_description": self.description_as_html(description, html_params or params),
         }
 
-    def get_user_context(self, user: User) -> MutableMapping[str, Any]:
-        # use in case context of email changes depending on user
-        return {}
+    def get_user_context(
+        self, user: User, reason: Optional[int] = None
+    ) -> MutableMapping[str, Any]:
+        """ Get user-specific context. Do not call get_context() here. """
+        return {
+            "reason": GroupSubscriptionReason.descriptions.get(
+                reason, "are subscribed to this issue"
+            )
+        }
 
     def get_category(self) -> str:
         raise NotImplementedError
