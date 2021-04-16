@@ -4,13 +4,24 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
+import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
-import {EventLite, TraceError} from 'app/utils/performance/quickTrace/types';
+import {
+  EventLite,
+  QuickTraceEvent,
+  TraceError,
+} from 'app/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {getTransactionDetailsUrl} from 'app/views/performance/utils';
+
+export function isQuickTraceEvent(
+  event: QuickTraceEvent | TraceError
+): event is QuickTraceEvent {
+  return defined((event as QuickTraceEvent)['transaction.duration']);
+}
 
 export type ErrorDestination = 'discover' | 'issue';
 
