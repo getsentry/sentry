@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import ProjectsStore from 'app/stores/projectsStore';
 import {Group, GroupTombstone, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {getTitle} from 'app/utils/events';
@@ -35,11 +36,16 @@ class EventOrGroupTitle extends React.Component<Props> {
       guideAnchorName,
     } = this.props;
     const {title, subtitle} = getTitle(data as Event, organization);
+    const {id, eventID, groupID, projectID} = data as Event;
 
     const titleWithHoverStacktrace = (
       <StacktracePreview
         organization={organization}
-        issueId={data.id}
+        issueId={groupID ? groupID : id}
+        // we need eventId and projectSlug only when hovering over Event, not Group
+        // (different API call is made to get the stack trace then)
+        eventId={eventID}
+        projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
         disablePreview={!withStackTracePreview}
       >
         {title}
