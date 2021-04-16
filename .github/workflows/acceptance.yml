@@ -61,7 +61,7 @@ jobs:
 
       - name: Get CSS filename
         id: css-manifest
-        run: echo "::set-output name=sentrycss::$(jq -r '.["sentry.css"]' static/dist/manifest.json)"
+        run: echo "::set-output name=sentrycss::$(jq -r '.["sentry.css"]' src/sentry/static/sentry/dist/manifest.json)"
 
       - name: Create Images from HTML
         uses: getsentry/action-html-to-image@main
