@@ -71,12 +71,12 @@ export const TraceConnector = styled('div')`
 export const DropdownContainer = styled('span')`
   .dropdown-menu {
     padding: 0;
-    overflow: hidden;
   }
 `;
 
 export const DropdownMenuHeader = styled(MenuHeader)<{first?: boolean}>`
   background: ${p => p.theme.backgroundSecondary};
+  ${p => p.first && 'border-radius: 2px'};
   ${p => !p.first && `border-top: 1px solid ${p.theme.innerBorder};`}
   border-bottom: none;
   padding: ${space(0.5)} ${space(1)};
