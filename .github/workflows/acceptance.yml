@@ -57,7 +57,7 @@ jobs:
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
           NODE_ENV=production yarn build-css
-          JEST_TESTS=$(jest --listTests --json) yarn test-ci --forceExit
+          JEST_TESTS=$(yarn jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
