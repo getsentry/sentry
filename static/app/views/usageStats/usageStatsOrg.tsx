@@ -19,8 +19,8 @@ import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHead
 import {Panel, PanelBody} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconCalendar, IconWarning} from 'app/icons';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
@@ -43,7 +43,7 @@ type Props = {
   chartTransform?: string;
   handleChangeState: (state: {
     dataCategory?: DataCategory;
-    statsPeriod?: RelativePeriod;
+    pagePeriod?: RelativePeriod;
     chartTransform?: ChartDataTransform;
   }) => void;
 } & AsyncComponent['props'];
@@ -102,7 +102,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     switch (chartTransform) {
       case ChartDataTransform.CUMULATIVE:
-      case ChartDataTransform.DAILY:
+      case ChartDataTransform.PERIODIC:
         return {chartTransform};
       default:
         return {chartTransform: ChartDataTransform.CUMULATIVE};
@@ -370,34 +370,39 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   renderChartFooter = () => {
-    const {dataCategory, handleChangeState} = this.props;
+    const {dataCategory, dataDatetime, handleChangeState} = this.props;
     const {chartTransform} = this.chartMetadata;
+
+    const {period} = dataDatetime;
 
     return (
       <ChartControls>
         <InlineContainer>
           <SectionValue>
-            <IconCalendar />
+            <OptionSelector
+              title={t('Display')}
+              selected={period || DEFAULT_STATS_PERIOD}
+              options={Object.keys(DEFAULT_RELATIVE_PERIODS).map(k => ({
+                label: DEFAULT_RELATIVE_PERIODS[k],
+                value: k,
+              }))}
+              onChange={(val: string) =>
+                handleChangeState({pagePeriod: val as RelativePeriod})
+              }
+            />
           </SectionValue>
           <SectionValue>
-            {/*
-            TODO(org-stats): Add calendar dropdown for user to select date range
-
-            {moment(usagePeriodStart).format('ll')}
-            {' — '}
-            {moment(usagePeriodEnd).format('ll')}
-            */}
+            <OptionSelector
+              title={t('of')}
+              selected={dataCategory}
+              options={CHART_OPTIONS_DATACATEGORY}
+              onChange={(val: string) =>
+                handleChangeState({dataCategory: val as DataCategory})
+              }
+            />
           </SectionValue>
         </InlineContainer>
         <InlineContainer>
-          <OptionSelector
-            title={t('Display')}
-            selected={dataCategory}
-            options={CHART_OPTIONS_DATACATEGORY}
-            onChange={(val: string) =>
-              handleChangeState({dataCategory: val as DataCategory})
-            }
-          />
           <OptionSelector
             title={t('Type')}
             selected={chartTransform}

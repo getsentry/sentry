@@ -51,7 +51,7 @@ export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
 
 export enum ChartDataTransform {
   CUMULATIVE = 'cumulative',
-  DAILY = 'daily',
+  PERIODIC = 'periodic',
 }
 
 export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
@@ -61,8 +61,8 @@ export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
     disabled: false,
   },
   {
-    label: t('Day-to-Day'),
-    value: ChartDataTransform.DAILY,
+    label: t('Periodic'),
+    value: ChartDataTransform.PERIODIC,
     disabled: false,
   },
 ];

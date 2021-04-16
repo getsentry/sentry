@@ -1,5 +1,5 @@
 import React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import {LocationDescriptorObject} from 'history';
 
 import {DateTimeObject} from 'app/components/charts/utils';
@@ -79,7 +79,7 @@ class OrganizationStats extends React.Component<Props> {
       willUpdateRouter: true,
     }
   ): LocationDescriptorObject => {
-    const {location} = this.props;
+    const {location, router} = this.props;
     const nextLocation = {
       ...location,
       query: {
@@ -89,7 +89,7 @@ class OrganizationStats extends React.Component<Props> {
     };
 
     if (options.willUpdateRouter) {
-      browserHistory.push(nextLocation);
+      router.push(nextLocation);
     }
 
     return nextLocation;
