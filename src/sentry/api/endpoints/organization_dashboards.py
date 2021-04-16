@@ -5,7 +5,7 @@ from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.dashboard import DashboardListSerializer
+from sentry.api.serializers.models.dashboard import DashboardDetailsSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
 from sentry.models import Dashboard
 
@@ -46,15 +46,13 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         dashboards = dashboards.order_by("title")
         prebuilt = Dashboard.get_prebuilt_list(organization, query)
 
-        list_serializer = DashboardListSerializer()
+        list_serializer = DashboardDetailsSerializer()
 
         def handle_results(results):
             serialized = []
             for item in results:
                 if isinstance(item, dict):
-                    cloned = item.copy()
-                    del cloned["widgets"]
-                    serialized.append(cloned)
+                    serialized.append(item)
                 else:
                     serialized.append(serialize(item, request.user, serializer=list_serializer))
             return serialized

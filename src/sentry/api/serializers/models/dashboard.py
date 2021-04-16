@@ -1,4 +1,5 @@
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.user import UserSerializer
 from sentry.models import (
     Dashboard,
     DashboardWidget,
@@ -86,7 +87,7 @@ class DashboardDetailsSerializer(Serializer):
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": str(obj.created_by.id),
+            "createdBy": serialize(obj.created_by, serializer=UserSerializer()),
             "widgets": attrs["widgets"],
         }
         return data

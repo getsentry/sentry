@@ -1,3 +1,5 @@
+import {User} from 'app/types';
+
 export enum DisplayType {
   AREA = 'area',
   BAR = 'bar',
@@ -41,7 +43,7 @@ export type DashboardDetails = {
   widgets: Widget[];
   id: string;
   dateCreated: string;
-  createdBy: string;
+  createdBy?: User;
 };
 
 export type DashboardState = 'view' | 'edit' | 'create' | 'pending_delete';

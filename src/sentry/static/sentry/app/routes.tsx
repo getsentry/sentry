@@ -1193,6 +1193,15 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
+            <Route
+              path="manage/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/manage'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
           </Route>
 
           <Route
