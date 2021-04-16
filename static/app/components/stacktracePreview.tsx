@@ -148,12 +148,12 @@ class StacktracePreview extends React.Component<Props, State> {
   }
 
   render() {
-    const {children, organization, disablePreview, theme} = this.props;
+    const {children, disablePreview, theme} = this.props;
 
     const {loading, loadingVisible} = this.state;
     const stacktrace = this.getStacktrace();
 
-    if (!organization.features.includes('stacktrace-hover-preview') || disablePreview) {
+    if (disablePreview) {
       return children;
     }
 
