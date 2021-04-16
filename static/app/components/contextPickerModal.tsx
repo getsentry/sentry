@@ -253,6 +253,12 @@ class ContextPickerModal extends React.Component<Props> {
 
   renderProjectSelectOrMessage() {
     const {organization, projects} = this.props;
+    // only show projects the user is a part of
+    const memberProjects: Project[] = [];
+    projects.forEach(project => project.isMember && memberProjects.push(project));
+
+    const projectOptions = memberProjects.map(({slug}) => ({label: slug, value: slug}));
+
     if (!projects.length) {
       return (
         <div>
@@ -272,7 +278,7 @@ class ContextPickerModal extends React.Component<Props> {
         }}
         placeholder={t('Select a Project to continue')}
         name="project"
-        options={projects.map(({slug}) => ({label: slug, value: slug}))}
+        options={projectOptions}
         onChange={this.handleSelectProject}
         onMenuOpen={this.onProjectMenuOpen}
         components={{Option: this.customOptionProject, DropdownIndicator: null}}
