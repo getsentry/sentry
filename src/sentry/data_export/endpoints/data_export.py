@@ -50,10 +50,16 @@ class DataExportQuerySerializer(serializers.Serializer):
             if len(fields) > MAX_FIELDS:
                 detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 raise serializers.ValidationError(detail)
+            elif len(fields) == 0:
+                raise serializers.ValidationError("at least one field is required to export")
+
+            if "query" not in query_info:
+                detail = "query is a required to export, please pass an empty string if you don't want to set one"
+                raise serializers.ValidationError(detail)
 
             query_info["field"] = fields
 
-            if "project" not in query_info:
+            if not query_info.get("project"):
                 projects = self.context["get_projects"]()
                 query_info["project"] = [project.id for project in projects]
 

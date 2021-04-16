@@ -2,11 +2,15 @@ import logging
 import math
 import re
 import warnings
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from datetime import timedelta
 from enum import Enum
+from functools import reduce
+from operator import or_
+from typing import List, Mapping, Optional, Set
 
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
@@ -139,6 +143,9 @@ STATUS_QUERY_CHOICES = {
     "muted": GroupStatus.IGNORED,
     "reprocessing": GroupStatus.REPROCESSING,
 }
+QUERY_STATUS_LOOKUP = {
+    status: query for query, status in STATUS_QUERY_CHOICES.items() if query != "muted"
+}
 
 # Statuses that can be updated from the regular "update group" API
 #
@@ -188,21 +195,40 @@ def get_oldest_or_latest_event_for_environments(
 class GroupManager(BaseManager):
     use_for_related_fields = True
 
-    def by_qualified_short_id(self, organization_id, short_id):
-        short_id = parse_short_id(short_id)
-        if not short_id:
+    def by_qualified_short_id(self, organization_id: int, short_id: str):
+        return self.by_qualified_short_id_bulk(organization_id, [short_id])[0]
+
+    def by_qualified_short_id_bulk(self, organization_id: int, short_ids: List[str]):
+        short_ids = [parse_short_id(short_id) for short_id in short_ids]
+        if not short_ids or any(short_id is None for short_id in short_ids):
             raise Group.DoesNotExist()
-        return Group.objects.exclude(
-            status__in=[
-                GroupStatus.PENDING_DELETION,
-                GroupStatus.DELETION_IN_PROGRESS,
-                GroupStatus.PENDING_MERGE,
-            ]
-        ).get(
-            project__organization=organization_id,
-            project__slug=short_id.project_slug,
-            short_id=short_id.short_id,
+
+        project_short_id_lookup = defaultdict(list)
+        for short_id in short_ids:
+            project_short_id_lookup[short_id.project_slug].append(short_id.short_id)
+
+        short_id_lookup = reduce(
+            or_,
+            [
+                Q(project__slug=slug, short_id__in=short_ids)
+                for slug, short_ids in project_short_id_lookup.items()
+            ],
         )
+
+        groups: List[Group] = list(
+            Group.objects.exclude(
+                status__in=[
+                    GroupStatus.PENDING_DELETION,
+                    GroupStatus.DELETION_IN_PROGRESS,
+                    GroupStatus.PENDING_MERGE,
+                ]
+            ).filter(short_id_lookup, project__organization=organization_id)
+        )
+        group_lookup: Set[int] = {group.short_id for group in groups}
+        for short_id in short_ids:
+            if short_id.short_id not in group_lookup:
+                raise Group.DoesNotExist()
+        return groups
 
     def from_kwargs(self, project, **kwargs):
         from sentry.event_manager import EventManager, HashDiscarded
@@ -347,7 +373,12 @@ class Group(Model):
         )
         super().save(*args, **kwargs)
 
-    def get_absolute_url(self, params=None, event_id=None, organization_slug=None):
+    def get_absolute_url(
+        self,
+        params: Optional[Mapping[str, str]] = None,
+        event_id: Optional[int] = None,
+        organization_slug: Optional[str] = None,
+    ) -> str:
         # Built manually in preference to django.core.urlresolvers.reverse,
         # because reverse has a measured performance impact.
         event_path = f"events/{event_id}/" if event_id else ""

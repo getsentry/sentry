@@ -1051,3 +1051,54 @@ def prep_search(cls, request, project, extra_query_kwargs=None):
         query_kwargs["environments"] = environments
         result = search.query(**query_kwargs)
     return result, query_kwargs
+
+
+def get_first_last_release(request, group):
+    first_release = group.get_first_release()
+    if first_release is not None:
+        last_release = group.get_last_release()
+    else:
+        last_release = None
+
+    if first_release is not None and last_release is not None:
+        first_release, last_release = get_first_last_release_info(
+            request, group, [first_release, last_release]
+        )
+    elif first_release is not None:
+        first_release = get_release_info(request, group, first_release)
+    elif last_release is not None:
+        last_release = get_release_info(request, group, last_release)
+
+    return first_release, last_release
+
+
+def get_release_info(request, group, version):
+    try:
+        release = Release.objects.get(
+            projects=group.project,
+            organization_id=group.project.organization_id,
+            version=version,
+        )
+    except Release.DoesNotExist:
+        release = {"version": version}
+    return serialize(release, request.user)
+
+
+def get_first_last_release_info(request, group, versions):
+    releases = {
+        release.version: release
+        for release in Release.objects.filter(
+            projects=group.project,
+            organization_id=group.project.organization_id,
+            version__in=versions,
+        )
+    }
+    serialized_releases = serialize(
+        [releases.get(version) for version in versions],
+        request.user,
+    )
+    # Default to a dictionary if the release object wasn't found and not serialized
+    return [
+        item if item is not None else {"version": version}
+        for item, version in zip(serialized_releases, versions)
+    ]

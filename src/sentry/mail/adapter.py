@@ -24,6 +24,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.helpers import transform_to_notification_settings_by_user
 from sentry.notifications.types import (
     GroupSubscriptionReason,
@@ -512,10 +513,7 @@ class MailAdapter:
 
     def notify_about_activity(self, activity):
         metrics.incr("mail_adapter.notify_about_activity")
-        # TODO: We should move these into the `mail` module.
-        from sentry.mail.activity import emails
-
-        email_cls = emails.get(activity.type)
+        email_cls = EMAIL_CLASSES_BY_TYPE.get(activity.type)
         if not email_cls:
             logger.debug(f"No email associated with activity type `{activity.get_type_display()}`")
             return
