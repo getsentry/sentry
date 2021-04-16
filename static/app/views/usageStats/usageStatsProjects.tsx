@@ -296,7 +296,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       <UsageTable
         isLoading={loading || loadingProjects}
         isError={error || !projectStats}
-        errors={errors as Record<string, Error>}
+        errors={errors as any} // TODO(ts)
         isEmpty={tableStats.length === 0}
         headers={headers}
         dataCategory={dataCategory}
