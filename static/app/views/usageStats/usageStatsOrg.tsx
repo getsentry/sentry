@@ -327,7 +327,9 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       return (
         <Panel>
           <PanelBody>
-            <LoadingIndicator />
+            <LoaderWrapper>
+              <LoadingIndicator />
+            </LoaderWrapper>
           </PanelBody>
         </Panel>
       );
@@ -444,4 +446,17 @@ const StyledCard = styled(Card)`
 const CardContent = styled('div')`
   margin-top: ${space(1)};
   font-size: 32px;
+`;
+
+const LoaderWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* Height of chart + footer is generally constant
+     Specify height here to reduce page reflow */
+  width: 100%;
+  height: 285px;
+  margin: 0;
+  padding: 0;
 `;

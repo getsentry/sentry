@@ -19,7 +19,7 @@ type Props = {
    * The body of the table. Make sure the number of children elements are
    * multiples of the length of headers.
    */
-  children: React.ReactNode | (() => React.ReactNode);
+  children?: React.ReactNode | (() => React.ReactNode);
 
   /**
    * If this is true, then display a loading indicator
