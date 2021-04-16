@@ -281,6 +281,19 @@ class ActivityNotification:
         user_context.update(context)
         return user_context
 
+    def get_dm_title(self) -> str:
+        return str(self.get_context()["activity_name"])
+
+    def get_dm_text(self) -> str:
+        return str(self.get_context()["text_description"])
+
+    def get_dm_footer(self) -> str:
+        settings_url = absolute_uri("/settings/account/notifications/")
+        group_context = self.get_group_context()
+        activity_link = group_context["activity_link"]
+        short_id = group_context["group"].qualified_short_id
+        return f"<{activity_link}|{short_id}> via <{settings_url}|Notification Settings>"
+
     def send(self) -> None:
         if not self.should_email():
             return
