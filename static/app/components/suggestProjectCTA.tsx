@@ -118,22 +118,19 @@ class SuggestProjectCTA extends React.Component<Props, State> {
       },
       () => {
         const matchedUserAgentString = this.matchedUserAgentString;
-
-        //now record the results
-        trackAdvancedAnalyticsEvent(
-          'growth.check_show_mobile_prompt_banner',
-          {
-            matchedUserAgentString,
-            userAgentMatches: !!matchedUserAgentString,
-            hasMobileProject: this.hasMobileProject,
-            snoozedOrDismissed: isDismissed,
-            mobileEventBrowserName: mobileEventResult?.browserName || '',
-            mobileEventClientOsName: mobileEventResult?.clientOsName || '',
-            showCTA: this.showCTA,
-          },
-          this.props.organization,
-          {startSession: true}
-        );
+        if (this.showCTA) {
+          //now record the results
+          trackAdvancedAnalyticsEvent(
+            'growth.show_mobile_prompt_banner',
+            {
+              matchedUserAgentString,
+              mobileEventBrowserName: mobileEventResult?.browserName || '',
+              mobileEventClientOsName: mobileEventResult?.clientOsName || '',
+            },
+            this.props.organization,
+            {startSession: true}
+          );
+        }
       }
     );
   }
