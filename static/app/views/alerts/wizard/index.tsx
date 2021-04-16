@@ -195,7 +195,7 @@ const Styledh2 = styled('h2')`
 const PanelHeader = styled('h2')`
   font-weight: normal;
   font-size: ${p => p.theme.headerFontSize};
-  margin-bottom: ${space(1)} !important;
+  margin-bottom: ${space(0.5)} !important;
 `;
 
 const WizardBody = styled('div')`
@@ -245,6 +245,7 @@ const WizardPanelBody = styled(PanelBody)`
   margin-bottom: 0;
   flex: 1;
   min-width: 100%;
+  padding: ${space(3)};
 `;
 
 const PanelDescription = styled('p')`
