@@ -2,6 +2,8 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
+import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 
 import Alert from 'app/components/alert';
 import {DateTimeObject} from 'app/components/charts/utils';
@@ -96,7 +98,7 @@ class OrganizationStats extends React.Component<Props> {
     };
 
     // Do not leak out page-specific keys
-    PAGE_QUERY_PARAMS.forEach(k => delete nextLocation.query?.[k]);
+    nextLocation.query = omit(nextLocation.query, PAGE_QUERY_PARAMS);
 
     return {
       performance: {
@@ -133,16 +135,13 @@ class OrganizationStats extends React.Component<Props> {
     }
   ): LocationDescriptorObject => {
     const {location, router} = this.props;
-    const {dataCategory, pagePeriod, chartTransform, sort} = nextState;
+    const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
 
     const nextLocation = {
       ...location,
       query: {
         ...location?.query,
-        dataCategory,
-        pagePeriod,
-        chartTransform,
-        sort,
+        ...nextQueryParams,
       },
     };
 
