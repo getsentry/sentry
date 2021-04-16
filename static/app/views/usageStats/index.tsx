@@ -134,7 +134,7 @@ class OrganizationStats extends React.Component<Props> {
   ): LocationDescriptorObject => {
     Object.keys(nextState).forEach(k => {
       if (!PAGE_QUERY_PARAMS.includes(k)) {
-        throw new Error('UsageStats: Unaccepted key for page query params');
+        throw new Error('UsageStats: Unrecognized key for page query params');
       }
     });
 
