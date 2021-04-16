@@ -13,7 +13,7 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import TimeSince from 'app/components/timeSince';
-import {IconArrow, IconDelete, IconSettings, IconUser} from 'app/icons';
+import {IconArrow, IconDelete, IconSettings} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -192,11 +192,7 @@ class RuleListRow extends React.Component<Props, State> {
         </FlexCenter>
         {hasAlertOwnership && (
           <FlexCenter>
-            {teamActor ? (
-              <ActorAvatar actor={teamActor} size={24} />
-            ) : (
-              <IconUser size="20px" color="gray400" />
-            )}
+            {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
           </FlexCenter>
         )}
         {!hasAlertList && <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>}
