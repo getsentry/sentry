@@ -18,8 +18,12 @@ jobs:
     name: frontend tests
     runs-on: ubuntu-20.04
     timeout-minutes: 20
+    strategy:
+      matrix:
+        instance: [0, 1]
 
     env:
+      CI_NODE_TOTAL: ${{ strategy.job-total }}
       VISUAL_HTML_ENABLE: 1
     steps:
       - uses: actions/checkout@v2
@@ -49,9 +53,11 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: jest
+        env:
+          CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
           NODE_ENV=production yarn build-css
-          yarn test-ci --forceExit
+          JEST_TESTS=$(jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
