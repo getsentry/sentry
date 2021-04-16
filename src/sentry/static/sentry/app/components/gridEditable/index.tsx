@@ -248,20 +248,23 @@ class GridEditable<
 
     const prependColumns = this.props.grid.prependColumnWidths || [];
     const prepend = prependColumns.join(' ');
-    const widths = columnOrder.map(item => {
+    const widths = columnOrder.map((item, index) => {
       if (item.width === COL_WIDTH_UNDEFINED) {
         return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
       } else if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
+        if (index === columnOrder.length - 1) {
+          return `minmax(${item.width}px, auto)`;
+        }
         return `${item.width}px`;
+      }
+      if (index === columnOrder.length - 1) {
+        return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
       }
       return `${COL_WIDTH_MINIMUM}px`;
     });
 
     // The last column has no resizer and should always be a flexible column
     // to prevent underflows.
-    if (widths.length > 0) {
-      widths[widths.length - 1] = `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
-    }
 
     grid.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
   }

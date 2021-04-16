@@ -32,7 +32,7 @@ EMAILS = (
 )
 
 
-def read_txt_email_fixture(name):
+def read_txt_email_fixture(name: str) -> str:
     # "sso unlinked without password"
     # => "sso_unlinked_without_password.txt"
     filename = name.replace(" ", "_") + ".txt"
@@ -50,7 +50,7 @@ class EmailTestCase(AcceptanceTestCase):
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
-    def build_url(self, path, format="html"):
+    def build_url(self, path: str, format: str = "html") -> str:
         return "{}?{}".format(path, urlencode({"format": format, "seed": b"123"}))
 
     def test_emails(self):
