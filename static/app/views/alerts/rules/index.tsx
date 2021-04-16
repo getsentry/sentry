@@ -237,14 +237,26 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         pathname: location.pathname,
                         query: {
                           ...currentQuery,
+                          asc: sort.field === 'name' && !sort.asc ? '1' : undefined,
+                          sort: 'name',
+                        },
+                      }}
+                    >
+                      {t('Alert Rule')} {sort.field === 'name' && sortArrow}
+                    </StyledSortLink>,
+                    // eslint-disable-next-line react/jsx-key
+                    <StyledSortLink
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...currentQuery,
                           asc: isAlertRuleSort && !sort.asc ? '1' : undefined,
                           sort: ['incident_status', 'date_triggered'],
                         },
                       }}
                     >
-                      {t('Alert Rule')} {isAlertRuleSort && sortArrow}
+                      {t('Status')} {isAlertRuleSort && sortArrow}
                     </StyledSortLink>,
-                    t('Status'),
                   ]
                 : [
                     t('Type'),
