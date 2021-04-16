@@ -55,6 +55,10 @@ class DemoOrganization(DefaultFieldsModel):
         self.date_assigned = timezone.now()
         self.save()
 
+    @classmethod
+    def get_one_pending_org(cls):
+        return cls.objects.filter(status=DemoOrgStatus.PENDING).first()
+
 
 class DemoUser(DefaultFieldsModel):
     __core__ = False

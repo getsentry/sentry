@@ -2,6 +2,7 @@ from datetime import datetime
 
 import pytest
 import pytz
+from django.db import IntegrityError
 from django.test import override_settings
 
 from sentry.demo.demo_org_manager import assign_demo_org, create_demo_org
@@ -81,6 +82,57 @@ class DemoOrgManagerTest(TestCase):
         assert not ProjectKey.objects.filter(project__organization=org).exists()
 
         mock_build_up_org_buffer.assert_called_once_with()
+
+    @mock.patch.object(DemoOrganization, "get_one_pending_org")
+    @mock.patch.object(DemoUser, "create_user")
+    @mock.patch("sentry.demo.tasks.build_up_org_buffer.apply_async")
+    def test_assign_demo_org_intregity_error(
+        self, mock_build_up_org_buffer, mock_create_user, mock_get_one_pending_org
+    ):
+        email = create_fake_email("slug-two", "demo")
+        second_user = self.create_user(email=email)
+        mock_create_user.side_effect = [IntegrityError, second_user]
+
+        demo_orgs = []
+        for org_slug in ["slug-one", "slug-two"]:
+            org = self.create_organization(org_slug)
+            demo_org = DemoOrganization.objects.create(
+                organization=org, status=DemoOrgStatus.PENDING
+            )
+            demo_orgs.append(demo_org)
+            Team.objects.create(organization=org)
+            project = self.create_project(organization=org)
+            self.create_project_key(project)
+
+        # return the two orgs
+        mock_get_one_pending_org.side_effect = demo_orgs
+
+        # we should get the second org
+        (org, user) = assign_demo_org()
+
+        assert user.email == email
+        assert org.slug == "slug-two"
+
+        assert mock_create_user.call_count == 2
+        assert mock_get_one_pending_org.call_count == 2
+
+    @mock.patch.object(DemoUser, "create_user")
+    @mock.patch("sentry.demo.tasks.build_up_org_buffer.apply_async")
+    def test_assign_demo_org_intregity_error_retry_fails(
+        self, mock_build_up_org_buffer, mock_create_user
+    ):
+        mock_create_user.side_effect = IntegrityError
+
+        org = self.create_organization("some-slug")
+        DemoOrganization.objects.create(organization=org, status=DemoOrgStatus.PENDING)
+        Team.objects.create(organization=org)
+        project = self.create_project(organization=org)
+        self.create_project_key(project)
+
+        with pytest.raises(IntegrityError):
+            assign_demo_org()
+
+        assert mock_create_user.call_count == 4
 
     @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
     def test_no_org_ready(self, mock_handle_scenario):
