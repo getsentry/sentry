@@ -124,9 +124,6 @@ class SuggestProjectCTA extends React.Component<Props, State> {
             'growth.show_mobile_prompt_banner',
             {
               matchedUserAgentString,
-              userAgentMatches: !!matchedUserAgentString,
-              hasMobileProject: this.hasMobileProject,
-              snoozedOrDismissed: isDismissed,
               mobileEventBrowserName: mobileEventResult?.browserName || '',
               mobileEventClientOsName: mobileEventResult?.clientOsName || '',
             },

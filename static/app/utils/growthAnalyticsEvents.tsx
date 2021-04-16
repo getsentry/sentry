@@ -3,10 +3,7 @@ type MobilePromptBannerParams = {
 };
 
 type ShowParams = MobilePromptBannerParams & {
-  userAgentMatches: boolean;
   matchedUserAgentString: string;
-  hasMobileProject: boolean;
-  snoozedOrDismissed: boolean;
   mobileEventBrowserName: string;
   mobileEventClientOsName: string;
 };
