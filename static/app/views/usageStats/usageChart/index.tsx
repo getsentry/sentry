@@ -257,7 +257,7 @@ export class UsageChart extends React.Component<Props, State> {
         xAxisData: xAxisDates,
         xAxisTickInterval,
         xAxisLabelInterval,
-        yAxisMinInterval: 1000,
+        yAxisMinInterval: 100,
         yAxisFormatter: formatAbbreviatedNumber,
         tooltipValueFormatter: getTooltipFormatter(dataCategory),
       };
@@ -269,7 +269,7 @@ export class UsageChart extends React.Component<Props, State> {
       xAxisData: xAxisDates,
       xAxisTickInterval,
       xAxisLabelInterval,
-      yAxisMinInterval: 1 * GIGABYTE,
+      yAxisMinInterval: 0.5 * GIGABYTE,
       yAxisFormatter: (val: number) =>
         formatUsageWithUnits(val, DataCategory.ATTACHMENTS, {
           isAbbreviated: true,

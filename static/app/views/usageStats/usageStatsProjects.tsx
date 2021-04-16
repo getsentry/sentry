@@ -39,6 +39,7 @@ export enum SortBy {
   ACCEPTED = 'accepted',
   FILTERED = 'filtered',
   DROPPED = 'dropped',
+  INVALID = 'invalid',
 }
 
 class UsageStatsProjects extends AsyncComponent<Props, State> {
@@ -238,7 +239,8 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
       projectStats.groups.forEach(group => {
         const {outcome, category, project} = group.by;
-        if (category !== dataCategory) {
+        // Backend enum is singlar. Frontend enum is plural.
+        if (!dataCategory.includes(category as string)) {
           return;
         }
 
@@ -246,8 +248,14 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           stats[project] = {...baseStat};
         }
 
-        stats[project][outcome] += group.totals['sum(quantity)'];
         stats[project].total += group.totals['sum(quantity)'];
+
+        // Combine invalid outcomes with dropped
+        if (outcome !== SortBy.INVALID) {
+          stats[project][outcome] += group.totals['sum(quantity)'];
+        } else {
+          stats[project][SortBy.DROPPED] += group.totals['sum(quantity)'];
+        }
       });
 
       // For projects without stats, fill in with zero

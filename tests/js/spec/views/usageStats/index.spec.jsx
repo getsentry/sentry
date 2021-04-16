@@ -56,7 +56,7 @@ describe('UsageStats', function () {
 
     const orgChart = wrapper.find('UsageChart');
     expect(orgChart.props().dataCategory).toEqual(DataCategory.ERRORS);
-    expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[0].value);
+    expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[1].value);
 
     const projectAsync = wrapper.find('UsageStatsProjects');
     expect(projectAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
