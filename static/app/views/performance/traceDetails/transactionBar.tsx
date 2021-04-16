@@ -8,6 +8,7 @@ import * as ScrollbarManager from 'app/components/events/interfaces/spans/scroll
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Tooltip from 'app/components/tooltip';
 import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
+import {Row, RowCell, RowCellContainer} from 'app/components/waterfallTree/row';
 import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
 import {
   DividerLine,
@@ -21,6 +22,7 @@ import {
 import {
   ConnectorBar,
   StyledIconChevron,
+  TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
@@ -31,21 +33,11 @@ import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
-import {
-  DividerContainer,
-  ErrorBadge,
-  TransactionBarTitleContent,
-  TransactionRow,
-  TransactionRowCell,
-  TransactionRowCellContainer,
-} from './styles';
+import {DividerContainer, ErrorBadge, TransactionBarTitleContent} from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
 import {getHumanDuration, isTraceFullDetailed, toPercent} from './utils';
 
-const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
-const TOGGLE_BUTTON_MAX_WIDTH = 30;
-export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
 const MARGIN_LEFT = 0;
 
 type Props = {
@@ -383,8 +375,8 @@ class TransactionBar extends React.Component<Props, State> {
     const {dividerPosition} = dividerHandlerChildrenProps;
 
     return (
-      <TransactionRowCellContainer showDetail={showDetail}>
-        <TransactionRowCell
+      <RowCellContainer showDetail={showDetail}>
+        <RowCell
           data-test-id="transaction-row-title"
           data-type="span-row-cell"
           style={{
@@ -395,12 +387,12 @@ class TransactionBar extends React.Component<Props, State> {
           onClick={this.toggleDisplayDetail}
         >
           {this.renderTitle(scrollbarManagerChildrenProps)}
-        </TransactionRowCell>
+        </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
           {this.renderErrorBadge()}
         </DividerContainer>
-        <TransactionRowCell
+        <RowCell
           data-test-id="transaction-row-duration"
           data-type="span-row-cell"
           showStriping={index % 2 !== 0}
@@ -412,9 +404,9 @@ class TransactionBar extends React.Component<Props, State> {
           onClick={this.toggleDisplayDetail}
         >
           {this.renderRectangle()}
-        </TransactionRowCell>
+        </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
-      </TransactionRowCellContainer>
+      </RowCellContainer>
     );
   }
 
@@ -423,7 +415,7 @@ class TransactionBar extends React.Component<Props, State> {
     const {showDetail} = this.state;
 
     return (
-      <TransactionRow
+      <Row
         visible={isVisible}
         showBorder={showDetail}
         cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
@@ -449,7 +441,7 @@ class TransactionBar extends React.Component<Props, State> {
             transaction={transaction}
           />
         )}
-      </TransactionRow>
+      </Row>
     );
   }
 }
