@@ -169,12 +169,12 @@ class OrganizationStats extends React.Component<Props> {
           <OrgText>
             <p>
               {t(
-                'The chart below reflects events that Sentry has received across your entire organization. We collect usage metrics on 3 types of events: errors, transactions, and attachments. Sessions are not included in this chart.'
+                'The chart below reflects events that Sentry has received across your entire organization. We collect usage metrics on three types of events: errors, transactions, and attachments. Sessions are not included in this chart.'
               )}
             </p>
             <p>
               {t(
-                "Each type of event has 3 outcomes: accepted, filtered, and dropped. Accepted events were successfully processed by Sentry. Filtered events were blocked due to your project's inbound data filter rules. Dropped events were discarded due to invalid data, rate-limits, quota-limits or spike protection."
+                'Each type of event is broken down into three categories: accepted, filtered, and dropped. Accepted events were successfully processed by Sentry. Filtered events were blocked due to your project’s inbound data filter rules. Dropped events were discarded due to invalid data, rate limits, quotas, or spike protection.'
               )}
             </p>
           </OrgText>
@@ -209,7 +209,7 @@ class OrganizationStats extends React.Component<Props> {
         </PageHeader>
 
         <Alert type="info" icon={<IconInfo size="md" />}>
-          {t('You are viewing usage stats only for projects which you have read access.')}
+          {t('Only usage stats for your projects are displayed here.')}
         </Alert>
 
         <ErrorBoundary mini>
