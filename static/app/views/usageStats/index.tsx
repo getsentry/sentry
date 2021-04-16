@@ -12,12 +12,28 @@ import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {DataCategory, DataCategoryName, Organization, RelativePeriod} from 'app/types';
+import {
+  DataCategory,
+  DataCategoryName,
+  Organization,
+  Project,
+  RelativePeriod,
+} from 'app/types';
 
 import {ChartDataTransform} from './usageChart';
 import UsageStatsLastMin from './UsageStatsLastMin';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
+
+const PAGE_QUERY_PARAMS = [
+  'pageStart',
+  'pageEnd',
+  'pagePeriod',
+  'pageUtc',
+  'dataCategory',
+  'chartTransform',
+  'sort',
+];
 
 type Props = {
   organization: Organization;
@@ -69,8 +85,39 @@ class OrganizationStats extends React.Component<Props> {
     return this.props.location?.query?.sort;
   }
 
+  getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
+    const {location, organization} = this.props;
+    const nextLocation: LocationDescriptorObject = {
+      ...location,
+      query: {
+        ...location.query,
+        project: project.id,
+      },
+    };
+
+    // Do not leak out page-specific keys
+    PAGE_QUERY_PARAMS.forEach(k => delete nextLocation.query?.[k]);
+
+    return {
+      performance: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/performance/`,
+      },
+      projectDetail: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/projects/${project.slug}`,
+      },
+      issueList: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/issues/`,
+      },
+    };
+  };
+
   /**
    * TODO: Enable user to set dateStart/dateEnd
+   *
+   * See PAGE_QUERY_PARAMS for list of accepted keys on nextState
    */
   setStateOnUrl = (
     nextState: {
@@ -85,7 +132,14 @@ class OrganizationStats extends React.Component<Props> {
       willUpdateRouter: true,
     }
   ): LocationDescriptorObject => {
+    Object.keys(nextState).forEach(k => {
+      if (!PAGE_QUERY_PARAMS.includes(k)) {
+        throw new Error('UsageStats: Unaccepted key for page query params');
+      }
+    });
+
     const {location, router} = this.props;
+
     const nextLocation = {
       ...location,
       query: {
@@ -169,6 +223,7 @@ class OrganizationStats extends React.Component<Props> {
             dataDatetime={this.dataPeriod}
             tableSort={this.tableSort}
             handleChangeState={this.setStateOnUrl}
+            getNextLocations={this.getNextLocations}
           />
         </ErrorBoundary>
       </PageContent>

@@ -26,6 +26,7 @@ type Props = {
     state: {sort?: string},
     options?: {willUpdateRouter?: boolean}
   ) => LocationDescriptorObject;
+  getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
 } & AsyncComponent['props'];
 
 type State = {
@@ -182,15 +183,17 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   getTableLink(project: Project) {
-    const {dataCategory, organization} = this.props;
+    const {dataCategory, getNextLocations, organization} = this.props;
+    const {performance, projectDetail, issueList} = getNextLocations(project);
 
-    if (dataCategory === DataCategory.TRANSACTIONS) {
-      return `/organizations/${organization.slug}/performance/?project=${project.id}`;
+    if (
+      dataCategory === DataCategory.TRANSACTIONS &&
+      organization.features.includes('performance-view')
+    ) {
+      return performance;
     }
 
-    return organization.features.includes('project-detail')
-      ? `/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`
-      : `/organizations/${organization.slug}/issues/?project=${project.id}`;
+    return organization.features.includes('project-detail') ? projectDetail : issueList;
   }
 
   handleChangeSort = (nextKey: SortBy) => {
