@@ -542,14 +542,14 @@ class MetricChart extends React.PureComponent<Props, State> {
                 });
 
                 if (selectedIncident && incident.id === selectedIncident.id) {
-                  const areaColor = incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
+                  const selectedIncidentColor = incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
 
                   areaSeries.push({
                     type: 'line',
                     markArea: MarkArea({
                       silent: true,
                       itemStyle: {
-                        color: color(areaColor).alpha(0.42).rgb().string(),
+                        color: color(selectedIncidentColor).alpha(0.42).rgb().string(),
                       },
                       data: [
                         [{xAxis: incidentStartDate}, {xAxis: incidentCloseDate}],
