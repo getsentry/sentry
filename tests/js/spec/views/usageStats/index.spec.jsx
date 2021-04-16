@@ -3,6 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {DataCategory} from 'app/types';
 import UsageStats from 'app/views/usageStats';
 import {CHART_OPTIONS_DATA_TRANSFORM} from 'app/views/usageStats/usageChart';
@@ -12,6 +13,7 @@ describe('UsageStats', function () {
   const {organization, routerContext} = initializeOrg({router});
 
   const statsUrl = `/organizations/${organization.slug}/stats_v2/`;
+  const ninetyDays = Object.keys(DEFAULT_RELATIVE_PERIODS)[5];
 
   const {mockOrgStats} = getMockResponse();
   let mock;
@@ -40,6 +42,7 @@ describe('UsageStats', function () {
     expect(wrapper.find('IconWarning')).toHaveLength(0);
 
     const orgAsync = wrapper.find('UsageStatsOrganization');
+    expect(orgAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
     expect(orgAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
     expect(orgAsync.props().chartTransform).toEqual(undefined);
 
@@ -48,6 +51,7 @@ describe('UsageStats', function () {
     expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[0].value);
 
     const projectAsync = wrapper.find('UsageStatsProjects');
+    expect(projectAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
     expect(projectAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
     expect(projectAsync.props().tableSort).toEqual(undefined);
 
@@ -61,7 +65,7 @@ describe('UsageStats', function () {
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '14d',
+          statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1h',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
@@ -73,7 +77,7 @@ describe('UsageStats', function () {
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '14d',
+          statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1d',
           groupBy: ['category', 'outcome', 'project'],
           field: ['sum(quantity)'],
@@ -103,13 +107,13 @@ describe('UsageStats', function () {
     expect(wrapper.find('IconWarning')).toHaveLength(2);
   });
 
-  it('passes state from router', async function () {
+  it('passes state from router down to components', async function () {
     const wrapper = mountWithTheme(
       <UsageStats
         organization={organization}
         location={{
           query: {
-            pagePeriod: '90d',
+            pagePeriod: ninetyDays,
             dataCategory: DataCategory.TRANSACTIONS,
             chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
             sort: '-project',
@@ -123,6 +127,7 @@ describe('UsageStats', function () {
     wrapper.update();
 
     const orgAsync = wrapper.find('UsageStatsOrganization');
+    expect(orgAsync.props().dataDatetime.period).toEqual(ninetyDays);
     expect(orgAsync.props().dataCategory).toEqual(DataCategory.TRANSACTIONS);
     expect(orgAsync.props().chartTransform).toEqual(
       CHART_OPTIONS_DATA_TRANSFORM[1].value
@@ -133,6 +138,7 @@ describe('UsageStats', function () {
     expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[1].value);
 
     const projectAsync = wrapper.find('UsageStatsProjects');
+    expect(projectAsync.props().dataDatetime.period).toEqual(ninetyDays);
     expect(projectAsync.props().dataCategory).toEqual(DataCategory.TRANSACTIONS);
     expect(projectAsync.props().tableSort).toEqual('-project');
 
@@ -145,7 +151,7 @@ describe('UsageStats', function () {
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '90d',
+          statsPeriod: ninetyDays,
           interval: '1d',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
@@ -157,13 +163,57 @@ describe('UsageStats', function () {
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '90d',
+          statsPeriod: ninetyDays,
           interval: '1d',
           groupBy: ['category', 'outcome', 'project'],
           field: ['sum(quantity)'],
         },
       })
     );
+  });
+
+  it('pushes state to router', async function () {
+    const wrapper = mountWithTheme(
+      <UsageStats
+        organization={organization}
+        location={{
+          query: {
+            pagePeriod: ninetyDays,
+            dataCategory: DataCategory.TRANSACTIONS,
+            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            sort: '-project',
+          },
+        }}
+        router={router}
+      />,
+      router
+    );
+
+    await tick();
+    wrapper.update();
+
+    const optionPagePeriod = wrapper.find('OptionSelector[title="Display"]');
+    const oneDay = Object.keys(DEFAULT_RELATIVE_PERIODS)[0];
+    optionPagePeriod.props().onChange(oneDay);
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        pagePeriod: oneDay,
+      }),
+    });
+
+    const optionDataCategory = wrapper.find('OptionSelector[title="of"]');
+    optionDataCategory.props().onChange(DataCategory.ATTACHMENTS);
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({dataCategory: DataCategory.ATTACHMENTS}),
+    });
+
+    const optionChartTransform = wrapper.find('OptionSelector[title="Type"]');
+    optionChartTransform.props().onChange(CHART_OPTIONS_DATA_TRANSFORM[1].value);
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+      }),
+    });
   });
 });
 
