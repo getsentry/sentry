@@ -23,6 +23,7 @@ from sentry.notifications.helpers import (
     get_deploy_values_by_provider,
     transform_to_notification_settings_by_user,
 )
+from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingOptionValues,
@@ -32,7 +33,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
-from .base import ActivityNotification, notification_providers
+from .base import ActivityNotification
 
 
 class ReleaseActivityNotification(ActivityNotification):

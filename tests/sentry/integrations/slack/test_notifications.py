@@ -88,7 +88,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         return attachments[0]
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_assignment(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is assigned
@@ -115,7 +115,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_unassignment(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is unassigned
@@ -142,7 +142,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_resolved(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is resolved
@@ -169,7 +169,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_regression(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue regresses
@@ -196,7 +196,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_new_processing_issue(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is held back in reprocessing
@@ -251,7 +251,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_resolved_in_release(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is resolved in a release
@@ -281,7 +281,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_note(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when a comment is made on an issue
@@ -308,7 +308,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_deploy(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when a deploy happens

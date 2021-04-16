@@ -4,7 +4,8 @@ from typing import Any, Mapping
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
 from sentry.models import ExternalActor, User
-from sentry.notifications.activity.base import ActivityNotification, register
+from sentry.notifications.activity.base import ActivityNotification
+from sentry.notifications.notify import register_notification_provider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
@@ -13,7 +14,7 @@ logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
 
 
-@register(ExternalProviders.SLACK)
+@register_notification_provider(ExternalProviders.SLACK)
 def send_notification_as_slack(
     notification: ActivityNotification,
     users: Mapping[User, int],

@@ -1,8 +1,9 @@
-from typing import Any, Mapping, MutableMapping
+from typing import Any, Mapping
 
 from sentry import options
 from sentry.models import ProjectOption, User
-from sentry.notifications.activity.base import ActivityNotification, register
+from sentry.notifications.activity.base import ActivityNotification
+from sentry.notifications.notify import register_notification_provider
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email
@@ -52,7 +53,7 @@ def can_users_unsubscribe(notification: ActivityNotification) -> bool:
 
 
 def get_context(
-    notification, user: User, reason: int, shared_context: MutableMapping[str, Any]
+    notification, user: User, reason: int, shared_context: Mapping[str, Any]
 ) -> Mapping[str, Any]:
     """
     Compose the various levels of context and add email-specific fields. The
@@ -69,11 +70,11 @@ def get_context(
     return context
 
 
-@register(ExternalProviders.EMAIL)
+@register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: ActivityNotification,
     users: Mapping[User, int],
-    shared_context: MutableMapping[str, Any],
+    shared_context: Mapping[str, Any],
 ) -> None:
     headers = get_headers(notification)
     subject = get_subject_with_prefix(notification)
