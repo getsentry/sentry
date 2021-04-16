@@ -937,8 +937,6 @@ SENTRY_FEATURES = {
     "organizations:performance-tag-explorer": False,
     # Enable the new Project Detail page
     "organizations:project-detail": False,
-    # Enable links to Project Detail page from all over the app
-    "organizations:project-detail-links": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See

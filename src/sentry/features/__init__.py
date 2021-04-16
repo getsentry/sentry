@@ -108,7 +108,6 @@ default_manager.add("organizations:performance-tag-explorer", OrganizationFeatur
 default_manager.add("organizations:performance-view", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA
 default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
-default_manager.add("organizations:project-detail-links", OrganizationFeature)  # NOQA
 default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:releases-top-charts", OrganizationFeature)  # NOQA
