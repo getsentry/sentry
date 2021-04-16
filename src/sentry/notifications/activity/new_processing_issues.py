@@ -29,11 +29,12 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         ActivityNotification.__init__(self, activity)
         self.issues = summarize_issues(self.activity.data["issues"])
 
-    def get_participants(self) -> Mapping[User, int]:
-        users = NotificationSetting.objects.get_notification_recipients(self.project)[
-            ExternalProviders.EMAIL
-        ]
-        return {user: GroupSubscriptionReason.processing_issue for user in users}
+    def get_participants(self) -> Mapping[ExternalProviders, Mapping[User, int]]:
+        users_by_provider = NotificationSetting.objects.get_notification_recipients(self.project)
+        return {
+            provider: {user: GroupSubscriptionReason.processing_issue for user in users}
+            for provider, users in users_by_provider.items()
+        }
 
     def get_context(self) -> MutableMapping[str, Any]:
         return {

@@ -152,6 +152,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         expected_projects,
         user=None,
         project_ids=None,
+        include_all_accessible=False,
         active_superuser=False,
     ):
         request_args = {}
@@ -161,6 +162,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         result = self.endpoint.get_projects(
             self.build_request(user=user, active_superuser=active_superuser, **request_args),
             self.org,
+            include_all_accessible=include_all_accessible,
         )
         assert {p.id for p in expected_projects} == {p.id for p in result}
 
@@ -187,7 +189,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             user=self.member,
             project_ids=[self.project_1.id, self.project_2.id],
         )
-        self.run_test([])
+        self.run_test([], include_all_accessible=False)
 
     def test_no_ids_teams(self):
         membership = self.create_team_membership(user=self.user, team=self.team_1)
