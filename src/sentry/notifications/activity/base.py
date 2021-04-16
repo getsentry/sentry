@@ -288,11 +288,12 @@ class ActivityNotification:
         return str(self.get_context()["text_description"])
 
     def get_dm_footer(self) -> str:
-        settings_url = absolute_uri("/settings/account/notifications/")
+        referrer = re.sub("Notification$", "Slack", self.__class__.__name__)
+        settings_url = absolute_uri(f"/settings/account/notifications/?referrer={referrer}")
+        group_url = self.group.get_absolute_url(params={"referrer": referrer})
         group_context = self.get_group_context()
-        activity_link = group_context["activity_link"]
         short_id = group_context["group"].qualified_short_id
-        return f"<{activity_link}|{short_id}> via <{settings_url}|Notification Settings>"
+        return f"<{group_url}|{short_id}> via <{settings_url}|Notification Settings>"
 
     def send(self) -> None:
         if not self.should_email():
