@@ -703,7 +703,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 </Confirm>
               ) : null
             }
-            submitLabel={t('Save Rule')}
+            submitLabel={t('Create Rule')}
           >
             <Feature organization={organization} features={['alert-wizard']}>
               {({hasFeature}) =>
@@ -718,9 +718,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={dataset === Dataset.ERRORS}
                     />
-                    <StyledListItem>{t('Set Thresholds and Actions')}</StyledListItem>
+                    <StyledListItem>{t('Set thresholds and actions')}</StyledListItem>
                     {triggerForm(hasAccess)}
-                    <StyledListItem>{t('Add a Name and Team')}</StyledListItem>
+                    <StyledListItem>{t('Add a name and team')}</StyledListItem>
                     {ruleNameOwnerForm(hasAccess)}
                   </List>
                 ) : (
