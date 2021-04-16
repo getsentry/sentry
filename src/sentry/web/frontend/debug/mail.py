@@ -20,12 +20,10 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utilities import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
-from sentry.mail.activity import emails
 from sentry.models import (
     Activity,
     Group,
     GroupStatus,
-    GroupSubscriptionReason,
     Organization,
     OrganizationMember,
     Project,
@@ -33,6 +31,8 @@ from sentry.models import (
     Rule,
     Team,
 )
+from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
@@ -146,7 +146,7 @@ class MailPreview:
 class ActivityMailPreview:
     def __init__(self, request, activity):
         self.request = request
-        self.email = emails.get(activity.type)(activity)
+        self.email = EMAIL_CLASSES_BY_TYPE.get(activity.type)(activity)
 
     def get_context(self):
         context = self.email.get_base_context()
@@ -173,6 +173,9 @@ class ActivityMailPreview:
 
 
 class ActivityMailDebugView(View):
+    def get_activity(self, request, event):
+        raise NotImplementedError
+
     def get(self, request):
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")

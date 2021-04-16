@@ -30,7 +30,7 @@ def get_search_filter(search_filters, name, operator):
     """
     if not search_filters:
         return None
-    assert operator in ("<", ">", "=")
+    assert operator in ("<", ">", "=", "IN")
     comparator = max if operator.startswith(">") else min
     found_val = None
     for search_filter in search_filters:

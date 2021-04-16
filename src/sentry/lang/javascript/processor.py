@@ -16,15 +16,6 @@ from django.conf import settings
 from requests.utils import get_encoding_from_headers
 from symbolic import SourceMapView
 
-# In case SSL is unavailable (light builds) we can't import this here.
-try:
-    from OpenSSL.SSL import ZeroReturnError
-except ImportError:
-
-    class ZeroReturnError(Exception):
-        pass
-
-
 from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Organization, ReleaseFile

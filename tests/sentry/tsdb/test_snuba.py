@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 
 import pytz
-from sentry_relay import DataCategory
 
+from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB

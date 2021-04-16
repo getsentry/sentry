@@ -118,7 +118,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature("organizations:inbox"):
             self.page.visit_issue_list(
                 self.org.slug,
-                query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3Ame_or_none",
+                query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3A[me, none]",
             )
             self.page.wait_for_stream()
             self.browser.snapshot("organization issues inbox results")
@@ -130,7 +130,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
             self.page.visit_issue_list(
                 self.org.slug,
-                query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3Ame_or_none",
+                query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3A[me, none]",
             )
             self.page.wait_for_stream()
             groups = self.browser.elements('[data-test-id="event-issue-header"]')
