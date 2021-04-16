@@ -115,10 +115,8 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(
-    results, function_alias_map, translated_columns, snuba_filter, selected_columns=None
-):
-    results = transform_data(results, translated_columns, snuba_filter, selected_columns)
+def transform_results(results, function_alias_map, translated_columns, snuba_filter):
+    results = transform_data(results, translated_columns, snuba_filter)
     results["meta"] = transform_meta(results, function_alias_map)
     return results
 
@@ -138,16 +136,13 @@ def transform_meta(results, function_alias_map):
     return meta
 
 
-def transform_data(result, translated_columns, snuba_filter, selected_columns=None):
+def transform_data(result, translated_columns, snuba_filter):
     """
     Transform internal names back to the public schema ones.
 
     When getting timeseries results via rollup, this function will
     zerofill the output results.
     """
-    if selected_columns is None:
-        selected_columns = []
-
     for col in result["meta"]:
         # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
@@ -260,7 +255,6 @@ def query(
             snuba_query.fields["functions"],
             snuba_query.columns,
             snuba_filter,
-            selected_columns,
         )
 
 
