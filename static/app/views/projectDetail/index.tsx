@@ -24,7 +24,7 @@ function ProjectDetailContainer(
 
   return (
     <Feature
-      features={['project-detail']}
+      features={[]}
       organization={props.organization}
       renderDisabled={renderNoAccess}
     >

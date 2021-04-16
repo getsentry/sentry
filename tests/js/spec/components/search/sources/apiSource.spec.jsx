@@ -6,7 +6,7 @@ import {ApiSource} from 'app/components/search/sources/apiSource';
 
 describe('ApiSource', function () {
   let wrapper;
-  const org = TestStubs.Organization({features: ['project-detail']});
+  const org = TestStubs.Organization();
   let orgsMock;
   let projectsMock;
   let teamsMock;

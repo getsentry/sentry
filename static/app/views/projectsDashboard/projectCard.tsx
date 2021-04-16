@@ -60,9 +60,7 @@ class ProjectCard extends React.Component<Props> {
         : '0';
     const zeroTransactions = totalTransactions === '0';
     const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
-    const projectLink = organization.features.includes('project-detail')
-      ? `/organizations/${organization.slug}/projects/${slug}/?project=${id}`
-      : `/organizations/${organization.slug}/issues/?project=${id}`;
+    const projectLink = `/organizations/${organization.slug}/projects/${slug}/?project=${id}`;
 
     return (
       <div data-test-id={slug}>

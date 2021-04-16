@@ -106,7 +106,6 @@ default_manager.add("organizations:performance-ops-breakdown", OrganizationFeatu
 default_manager.add("organizations:performance-tag-explorer", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-view", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA
-default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
 default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
