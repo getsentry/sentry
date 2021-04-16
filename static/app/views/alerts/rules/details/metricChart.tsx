@@ -548,6 +548,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                   areaSeries.push({
                     type: 'line',
                     markArea: MarkArea({
+                      silent: true,
                       itemStyle: {
                         color: color(incidentColor).alpha(0.42).rgb().string(),
                       },
