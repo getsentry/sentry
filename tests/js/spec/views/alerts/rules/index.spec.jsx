@@ -134,19 +134,20 @@ describe('OrganizationRuleList', () => {
       expect.objectContaining({
         query: {
           sort: 'name',
-          asc: '1',
+          asc: undefined,
         },
       })
     );
 
     wrapper.setProps({
-      location: {query: {asc: '1', sort: 'name'}, search: '?asc=1&sort=name`'},
+      location: {query: {sort: 'name'}, search: '?asc=1&sort=name`'},
     });
 
     expect(wrapper.find('StyledSortLink').first().props().to).toEqual(
       expect.objectContaining({
         query: {
           sort: 'name',
+          asc: '1',
         },
       })
     );
@@ -208,5 +209,22 @@ describe('OrganizationRuleList', () => {
     row = wrapper.find('RuleListRow').at(2);
     expect(row.find('TriggerText').text()).toBe('Below 70');
     expect(wrapper.find('AlertIconWrapper').exists()).toBe(true);
+  });
+
+  it('sorts by alert rule with alert-list', async () => {
+    const ownershipOrg = {
+      ...organization,
+      features: ['alert-list', 'incidents'],
+    };
+    await createWrapper({organization: ownershipOrg});
+
+    expect(router.replace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          expand: ['latestIncident'],
+          sort: ['incident_status', 'date_triggered'],
+        }),
+      })
+    );
   });
 });

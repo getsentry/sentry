@@ -63,7 +63,7 @@ class RuleListRow extends React.Component<Props, State> {
     }
 
     if (!rule.latestIncident) {
-      return t('Never triggered');
+      return '-';
     }
 
     if (this.activeIncident()) {
@@ -123,7 +123,7 @@ class RuleListRow extends React.Component<Props, State> {
               : 'down'
           }
         />
-        <TriggerText>{`${thresholdTypeText} ${trigger?.alertThreshold}`}</TriggerText>
+        <TriggerText>{`${thresholdTypeText} ${trigger?.alertThreshold?.toLocaleString()}`}</TriggerText>
       </FlexCenter>
     );
   }
@@ -184,10 +184,12 @@ class RuleListRow extends React.Component<Props, State> {
           </React.Fragment>
         )}
 
-        <ProjectBadge
-          avatarSize={18}
-          project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
-        />
+        <FlexCenter>
+          <ProjectBadge
+            avatarSize={18}
+            project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
+          />
+        </FlexCenter>
         {hasAlertOwnership && (
           <FlexCenter>
             {teamActor ? (
