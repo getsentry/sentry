@@ -178,6 +178,7 @@ class ReleaseActivityNotification(ActivityNotification):
         )
 
         return {
+            **self.get_base_context(),
             "commit_count": len(self.commit_list),
             "author_count": len(self.email_list),
             "file_count": file_count,

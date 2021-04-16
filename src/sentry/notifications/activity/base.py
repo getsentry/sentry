@@ -119,6 +119,7 @@ class ActivityNotification:
         return str(self.group.get_absolute_url(params={"referrer": referrer}))
 
     def get_base_context(self) -> MutableMapping[str, Any]:
+        """ The most basic context shared by every notification type. """
         activity = self.activity
 
         context = {
@@ -160,8 +161,14 @@ class ActivityNotification:
         raise NotImplementedError
 
     def get_context(self) -> MutableMapping[str, Any]:
+        """
+        Context shared by every recipient of this notification. This may contain
+        expensive computation so it should only be called once. Override this
+        method if the notification does not need HTML/text descriptions.
+        """
         description, params, html_params = self.get_description()
         return {
+            **self.get_base_context(),
             "activity_name": self.get_activity_name(),
             "text_description": self.description_as_text(description, params),
             "html_description": self.description_as_html(description, html_params or params),
@@ -305,11 +312,12 @@ class ActivityNotification:
         if not participants_by_provider:
             return
 
-        context = self.get_base_context()
-        context.update(self.get_context())
+        # Only calculate shared context once.
+        shared_context = self.get_context()
+
         for provider, participants in participants_by_provider.items():
             for user, reason in participants.items():
                 user_context = self.update_user_context_from_group(
-                    user, reason, context, self.group
+                    user, reason, shared_context, self.group
                 )
                 fire(provider, self, user, user_context)
