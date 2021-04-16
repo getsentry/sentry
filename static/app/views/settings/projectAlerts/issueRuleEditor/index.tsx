@@ -20,7 +20,7 @@ import Confirm from 'app/components/confirm';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import LoadingMask from 'app/components/loadingMask';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import SelectMembers from 'app/components/selectMembers';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {IconChevron, IconWarning} from 'app/icons';
@@ -558,7 +558,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               {this.state.loading && <SemiTransparentLoadingMask />}
               <StyledListItem>{t('Add Alert Settings')}</StyledListItem>
               <Panel>
-                <PanelHeader>{t('Alert Setup')}</PanelHeader>
                 <PanelBody>
                   <SelectField
                     className={classNames({
@@ -615,7 +614,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               </Panel>
               <StyledListItem>{t('Set Conditions')}</StyledListItem>
               <Panel>
-                <PanelHeader>{t('Conditions')}</PanelHeader>
                 <PanelBody>
                   <Step>
                     <StepConnector />
@@ -821,7 +819,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               </Panel>
               <StyledListItem>{t('Set Action Interval')}</StyledListItem>
               <Panel>
-                <PanelHeader>{t('Rate Limit')}</PanelHeader>
                 <PanelBody>
                   <SelectField
                     label={t('Action Interval')}
