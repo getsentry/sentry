@@ -47,6 +47,8 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.samples import create_sample_event_basic, random_geo, random_ip, random_normal
 from sentry.utils.snuba import SnubaError
 
+release_prefix = "checkout-app"
+
 commit_message_base_messages = [
     "feat: Do something to",
     "feat: Update code in",
@@ -56,9 +58,9 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-crash_free_rate_by_release = {"3.0": 1.0, "3.1": 0.99, "3.2": 0.9}
+crash_free_rate_by_release = [1.0, 0.99, 0.9]
 # higher crash rate if we are doing a quick org
-crash_free_rate_by_release_quick = {"3.0": 1.0, "3.1": 0.95, "3.2": 0.75}
+crash_free_rate_by_release_quick = [1.0, 0.95, 0.75]
 
 logger = logging.getLogger(__name__)
 
@@ -542,7 +544,7 @@ class DataPopulation:
         org_id = org.id
         for i in range(NUM_RELEASES):
             release = Release.objects.create(
-                version=f"3.{i}",
+                version=f"{release_prefix}@3.{i}",
                 organization_id=org_id,
                 date_added=release_time,
             )
@@ -1031,10 +1033,12 @@ class DataPopulation:
             self.send_session(sid, transaction_user["id"], dsn, timestamp, version, **session_data)
 
             # determine if this session should crash or exit with success
-            rate_map = (
+            rate_by_release_num = (
                 crash_free_rate_by_release_quick if self.quick else crash_free_rate_by_release
             )
-            threshold = rate_map[version]
+            # get the release num from the last part of the version
+            release_num = int(version.split(".")[-1])
+            threshold = rate_by_release_num[release_num]
             outcome = random.random()
             if outcome > threshold:
                 # if crash, make an error for it
