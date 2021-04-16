@@ -548,9 +548,9 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         rule3 = Rule.objects.create(label="rule3", project=self.project)
 
         alert_rule_intermediary = CombinedQuerysetIntermediary(
-            AlertRule.objects.all(), "date_added"
+            AlertRule.objects.all(), ["date_added"]
         )
-        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
+        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), ["date_added"])
         paginator = CombinedQuerysetPaginator(
             intermediaries=[alert_rule_intermediary, rule_intermediary],
             desc=True,

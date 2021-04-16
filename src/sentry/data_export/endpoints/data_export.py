@@ -57,7 +57,7 @@ class DataExportQuerySerializer(serializers.Serializer):
 
             query_info["field"] = fields
 
-            if "project" not in query_info:
+            if not query_info.get("project"):
                 projects = self.context["get_projects"]()
                 query_info["project"] = [project.id for project in projects]
 
