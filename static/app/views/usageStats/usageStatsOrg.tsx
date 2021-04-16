@@ -15,17 +15,18 @@ import {
 } from 'app/components/charts/styles';
 import {DateTimeObject, getInterval} from 'app/components/charts/utils';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NotAvailable from 'app/components/notAvailable';
 import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconCalendar, IconWarning} from 'app/icons';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
 
-import {getDateFromMoment} from './usageChart/utils';
+import {FORMAT_DATETIME_HOURLY, getDateFromMoment} from './usageChart/utils';
 import {Outcome, UsageSeries, UsageStat} from './types';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
@@ -33,7 +34,7 @@ import UsageChart, {
   ChartDataTransform,
   ChartStats,
 } from './usageChart';
-import {formatUsageWithUnits} from './utils';
+import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {
   organization: Organization;
@@ -43,7 +44,7 @@ type Props = {
   chartTransform?: string;
   handleChangeState: (state: {
     dataCategory?: DataCategory;
-    statsPeriod?: RelativePeriod;
+    pagePeriod?: RelativePeriod;
     chartTransform?: ChartDataTransform;
   }) => void;
 } & AsyncComponent['props'];
@@ -74,18 +75,20 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     };
   }
 
-  get chartMetadata(): {
-    chartData: ChartStats;
-    cardData: {
-      total: string;
-      accepted: string;
-      dropped: string;
-      filtered: string;
+  get chartData(): {
+    chartStats: ChartStats;
+    cardStats: {
+      total?: string;
+      accepted?: string;
+      dropped?: string;
+      filtered?: string;
     };
     dataError?: Error;
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
     chartDateEnd: string;
+    chartDateStartDisplay: string;
+    chartDateEndDisplay: string;
     chartTransform: ChartDataTransform;
   } {
     const {orgStats} = this.state;
@@ -102,7 +105,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     switch (chartTransform) {
       case ChartDataTransform.CUMULATIVE:
-      case ChartDataTransform.DAILY:
+      case ChartDataTransform.PERIODIC:
         return {chartTransform};
       default:
         return {chartTransform: ChartDataTransform.CUMULATIVE};
@@ -113,6 +116,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
     chartDateEnd: string;
+    chartDateStartDisplay: string;
+    chartDateEndDisplay: string;
   } {
     const {dataDatetime} = this.props;
     const {period, start, end} = dataDatetime;
@@ -143,43 +148,43 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     }
 
     // chartDateStart need to +1 hour to remove empty column on left of chart
+    const dateStart = chartDateStart.add(1, 'h').startOf('h');
+    const dateEnd = chartDateEnd.startOf('h');
     return {
       chartDateInterval: interval,
-      chartDateStart: chartDateStart.add(1, 'h').startOf('h').format(),
-      chartDateEnd: chartDateEnd.startOf('h').format(),
+      chartDateStart: dateStart.format(),
+      chartDateEnd: dateEnd.format(),
+      chartDateStartDisplay: dateStart.local().format(FORMAT_DATETIME_HOURLY),
+      chartDateEndDisplay: dateEnd.local().format(FORMAT_DATETIME_HOURLY),
     };
-  }
-
-  handleSelectDataTransform(value: ChartDataTransform) {
-    this.setState({chartDataTransform: value});
   }
 
   mapSeriesToChart(
     orgStats?: UsageSeries
   ): {
-    chartData: ChartStats;
-    cardData: {
-      total: string;
-      accepted: string;
-      dropped: string;
-      filtered: string;
+    chartStats: ChartStats;
+    cardStats: {
+      total?: string;
+      accepted?: string;
+      dropped?: string;
+      filtered?: string;
     };
     dataError?: Error;
   } {
-    const cardData = {
-      total: '-',
-      accepted: '-',
-      dropped: '-',
-      filtered: '-',
+    const cardStats = {
+      total: undefined,
+      accepted: undefined,
+      dropped: undefined,
+      filtered: undefined,
     };
-    const chartData: ChartStats = {
+    const chartStats: ChartStats = {
       accepted: [],
       dropped: [],
       projected: [],
     };
 
     if (!orgStats) {
-      return {cardData, chartData};
+      return {cardStats, chartStats};
     }
 
     try {
@@ -210,7 +215,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       orgStats.groups.forEach(group => {
         const {outcome, category} = group.by;
 
-        // HACK The backend enum are singular, but the frontend enums are plural
+        // HACK: The backend enum are singular, but the frontend enums are plural
         if (!dataCategory.includes(`${category}`)) {
           return;
         }
@@ -235,23 +240,34 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
 
         // Chart Data
-        chartData.accepted.push({value: [stat.date, stat.accepted]} as any);
-        chartData.dropped.push({value: [stat.date, stat.dropped.total]} as any);
+        chartStats.accepted.push({value: [stat.date, stat.accepted]} as any);
+        chartStats.dropped.push({value: [stat.date, stat.dropped.total]} as any);
       });
 
-      const formatOptions = {
-        isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
-        useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
-      };
-
       return {
-        cardData: {
-          total: formatUsageWithUnits(count.total, dataCategory, formatOptions),
-          accepted: formatUsageWithUnits(count.accepted, dataCategory, formatOptions),
-          dropped: formatUsageWithUnits(count.dropped, dataCategory, formatOptions),
-          filtered: formatUsageWithUnits(count.filtered, dataCategory, formatOptions),
+        cardStats: {
+          total: formatUsageWithUnits(
+            count.total,
+            dataCategory,
+            getFormatUsageOptions(dataCategory)
+          ),
+          accepted: formatUsageWithUnits(
+            count.accepted,
+            dataCategory,
+            getFormatUsageOptions(dataCategory)
+          ),
+          dropped: formatUsageWithUnits(
+            count.dropped,
+            dataCategory,
+            getFormatUsageOptions(dataCategory)
+          ),
+          filtered: formatUsageWithUnits(
+            count.filtered,
+            dataCategory,
+            getFormatUsageOptions(dataCategory)
+          ),
         },
-        chartData,
+        chartStats,
       };
     } catch (err) {
       Sentry.withScope(scope => {
@@ -261,8 +277,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       });
 
       return {
-        cardData,
-        chartData,
+        cardStats,
+        chartStats,
         dataError: err,
       };
     }
@@ -270,7 +286,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
   renderCards() {
     const {dataCategory, dataCategoryName} = this.props;
-    const {total, accepted, dropped, filtered} = this.chartMetadata.cardData;
+    const {total, accepted, dropped, filtered} = this.chartData.cardStats;
 
     const cardMetadata = [
       {
@@ -311,7 +327,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
               )}
             </HeaderTitle>
             <CardContent>
-              <TextOverflow>{c.value}</TextOverflow>
+              <TextOverflow>{c.value ?? <NotAvailable />}</TextOverflow>
             </CardContent>
           </StyledCard>
         ))}
@@ -327,20 +343,24 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       return (
         <Panel>
           <PanelBody>
-            <LoadingIndicator />
+            <LoaderWrapper>
+              <LoadingIndicator />
+            </LoaderWrapper>
           </PanelBody>
         </Panel>
       );
     }
 
     const {
-      chartData,
+      chartStats,
       dataError,
       chartDateInterval,
       chartDateStart,
       chartDateEnd,
+      chartDateStartDisplay,
+      chartDateEndDisplay,
       chartTransform,
-    } = this.chartMetadata;
+    } = this.chartData;
 
     if (error || dataError || !orgStats) {
       return (
@@ -356,46 +376,55 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     return (
       <UsageChart
+        title={tct('Usage for [start] — [end]', {
+          start: chartDateStartDisplay,
+          end: chartDateEndDisplay,
+        })}
         footer={this.renderChartFooter()}
         dataCategory={dataCategory}
         dataTransform={chartTransform}
         usageDateStart={chartDateStart}
         usageDateEnd={chartDateEnd}
         usageDateInterval={chartDateInterval}
-        usageStats={chartData}
+        usageStats={chartStats}
       />
     );
   }
 
   renderChartFooter = () => {
-    const {dataCategory, handleChangeState} = this.props;
-    const {chartTransform} = this.chartMetadata;
+    const {dataCategory, dataDatetime, handleChangeState} = this.props;
+    const {chartTransform} = this.chartData;
+
+    const {period} = dataDatetime;
 
     return (
       <ChartControls>
         <InlineContainer>
           <SectionValue>
-            <IconCalendar />
+            <OptionSelector
+              title={t('Display')}
+              selected={period || DEFAULT_STATS_PERIOD}
+              options={Object.keys(DEFAULT_RELATIVE_PERIODS).map(k => ({
+                label: DEFAULT_RELATIVE_PERIODS[k],
+                value: k,
+              }))}
+              onChange={(val: string) =>
+                handleChangeState({pagePeriod: val as RelativePeriod})
+              }
+            />
           </SectionValue>
           <SectionValue>
-            {/*
-            TODO(org-stats): Add calendar dropdown for user to select date range
-
-            {moment(usagePeriodStart).format('ll')}
-            {' — '}
-            {moment(usagePeriodEnd).format('ll')}
-            */}
+            <OptionSelector
+              title={t('of')}
+              selected={dataCategory}
+              options={CHART_OPTIONS_DATACATEGORY}
+              onChange={(val: string) =>
+                handleChangeState({dataCategory: val as DataCategory})
+              }
+            />
           </SectionValue>
         </InlineContainer>
         <InlineContainer>
-          <OptionSelector
-            title={t('Display')}
-            selected={dataCategory}
-            options={CHART_OPTIONS_DATACATEGORY}
-            onChange={(val: string) =>
-              handleChangeState({dataCategory: val as DataCategory})
-            }
-          />
           <OptionSelector
             title={t('Type')}
             selected={chartTransform}
@@ -444,4 +473,17 @@ const StyledCard = styled(Card)`
 const CardContent = styled('div')`
   margin-top: ${space(1)};
   font-size: 32px;
+`;
+
+const LoaderWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* Height of chart + footer is generally constant
+     Specify height here to reduce page reflow */
+  width: 100%;
+  height: 285px;
+  margin: 0;
+  padding: 0;
 `;

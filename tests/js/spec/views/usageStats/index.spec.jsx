@@ -3,6 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {DataCategory} from 'app/types';
 import UsageStats from 'app/views/usageStats';
 import {CHART_OPTIONS_DATA_TRANSFORM} from 'app/views/usageStats/usageChart';
@@ -11,21 +12,16 @@ describe('UsageStats', function () {
   const router = TestStubs.router();
   const {organization, routerContext} = initializeOrg({router});
 
-  const orgUrl = `/organizations/${organization.slug}/stats_v2/`;
-  const projectUrl = `/organizations/${organization.slug}/stats_v2/projects/`;
-  let orgMock;
-  // let projectMock;
+  const statsUrl = `/organizations/${organization.slug}/stats_v2/`;
+  const ninetyDays = Object.keys(DEFAULT_RELATIVE_PERIODS)[5];
 
   const {mockOrgStats} = getMockResponse();
+  let mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    orgMock = MockApiClient.addMockResponse({
-      url: orgUrl,
-      body: mockOrgStats,
-    });
-    MockApiClient.addMockResponse({
-      url: projectUrl,
+    mock = MockApiClient.addMockResponse({
+      url: statsUrl,
       body: mockOrgStats,
     });
   });
@@ -42,28 +38,58 @@ describe('UsageStats', function () {
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
     expect(wrapper.find('UsageChart')).toHaveLength(1);
+    expect(wrapper.find('UsageTable')).toHaveLength(1);
     expect(wrapper.find('IconWarning')).toHaveLength(0);
 
-    /*
-    expect(wrapper.text()).toContain('UsageStatsProjects is okay');
-    expect(wrapper.text()).not.toContain('UsageStatsProjects has an error');
-    */
+    const minAsync = wrapper.find('UsageStatsLastMin');
+    expect(minAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
+    expect(minAsync.text()).toContain('6'); // Display 2nd last value in series
 
     const orgAsync = wrapper.find('UsageStatsOrganization');
+    expect(orgAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
     expect(orgAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
     expect(orgAsync.props().chartTransform).toEqual(undefined);
+    expect(orgAsync.text()).toContain('Total Errors49');
+    expect(orgAsync.text()).toContain('Accepted28');
+    expect(orgAsync.text()).toContain('Filtered7');
+    expect(orgAsync.text()).toContain('Dropped14');
 
     const orgChart = wrapper.find('UsageChart');
     expect(orgChart.props().dataCategory).toEqual(DataCategory.ERRORS);
     expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[0].value);
 
+    const projectAsync = wrapper.find('UsageStatsProjects');
+    expect(projectAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
+    expect(projectAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
+    expect(projectAsync.props().tableSort).toEqual(undefined);
+
+    const projectTable = wrapper.find('UsageTable');
+    expect(projectTable.props().dataCategory).toEqual(DataCategory.ERRORS);
+
     // API calls with defaults
-    expect(orgMock).toHaveBeenCalledTimes(1);
-    expect(orgMock).toHaveBeenLastCalledWith(
+    expect(mock).toHaveBeenCalledTimes(3);
+
+    // From UsageStatsLastMin
+    expect(mock).toHaveBeenNthCalledWith(
+      1,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '14d',
+          statsPeriod: '5m',
+          interval: '1m',
+          groupBy: ['category', 'outcome'],
+          field: ['sum(quantity)'],
+        },
+      })
+    );
+
+    // From UsageStatsOrg
+    expect(mock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/stats_v2/',
+      expect.objectContaining({
+        query: {
+          statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1h',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
@@ -71,25 +97,24 @@ describe('UsageStats', function () {
       })
     );
 
-    /*
-    expect(projectMock).toHaveBeenCalledTimes(1);
-    expect(projectMock).toHaveBeenLastCalledWith(
+    // From UsageStatsProjects
+    expect(mock).toHaveBeenNthCalledWith(
+      3,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '14d',
-          interval: '1h',
+          statsPeriod: DEFAULT_STATS_PERIOD,
+          interval: '1d',
           groupBy: ['category', 'outcome', 'project'],
           field: ['sum(quantity)'],
         },
       })
     );
-    */
   });
 
   it('renders with error on organization stats endpoint', async function () {
     MockApiClient.addMockResponse({
-      url: orgUrl,
+      url: statsUrl,
       statusCode: 500,
     });
 
@@ -104,47 +129,20 @@ describe('UsageStats', function () {
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
     expect(wrapper.find('UsageChart')).toHaveLength(0);
-    expect(wrapper.find('IconWarning')).toHaveLength(1);
-
-    /*
-    expect(wrapper.text()).toContain('UsageStatsProjects is okay');
-    expect(wrapper.text()).not.toContain('UsageStatsProjects has an error');
-    */
+    expect(wrapper.find('UsageTable')).toHaveLength(0);
+    expect(wrapper.find('IconWarning')).toHaveLength(2);
   });
 
-  it('renders with error on project stats endpoint', async function () {
-    MockApiClient.addMockResponse({
-      url: projectUrl,
-      statusCode: 500,
-    });
-
-    const wrapper = mountWithTheme(
-      <UsageStats organization={organization} />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
-    expect(wrapper.find('UsageChart')).toHaveLength(1);
-    expect(wrapper.find('IconWarning')).toHaveLength(0);
-
-    /*
-    expect(wrapper.text()).not.toContain('UsageStatsProjects is okay');
-    expect(wrapper.text()).toContain('UsageStatsProjects has an error');
-    */
-  });
-
-  it('passes state in router', async function () {
+  it('passes state from router down to components', async function () {
     const wrapper = mountWithTheme(
       <UsageStats
         organization={organization}
         location={{
           query: {
-            statsPeriod: '30d',
+            pagePeriod: ninetyDays,
             dataCategory: DataCategory.TRANSACTIONS,
             chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            sort: '-project',
           },
         }}
       />,
@@ -155,6 +153,7 @@ describe('UsageStats', function () {
     wrapper.update();
 
     const orgAsync = wrapper.find('UsageStatsOrganization');
+    expect(orgAsync.props().dataDatetime.period).toEqual(ninetyDays);
     expect(orgAsync.props().dataCategory).toEqual(DataCategory.TRANSACTIONS);
     expect(orgAsync.props().chartTransform).toEqual(
       CHART_OPTIONS_DATA_TRANSFORM[1].value
@@ -164,33 +163,95 @@ describe('UsageStats', function () {
     expect(orgChart.props().dataCategory).toEqual(DataCategory.TRANSACTIONS);
     expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[1].value);
 
-    expect(orgMock).toHaveBeenCalledTimes(1);
-    expect(orgMock).toHaveBeenLastCalledWith(
+    const projectAsync = wrapper.find('UsageStatsProjects');
+    expect(projectAsync.props().dataDatetime.period).toEqual(ninetyDays);
+    expect(projectAsync.props().dataCategory).toEqual(DataCategory.TRANSACTIONS);
+    expect(projectAsync.props().tableSort).toEqual('-project');
+
+    const projectTable = wrapper.find('UsageTable');
+    expect(projectTable.props().dataCategory).toEqual(DataCategory.TRANSACTIONS);
+
+    expect(mock).toHaveBeenCalledTimes(3);
+    expect(mock).toHaveBeenNthCalledWith(
+      1,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '14d',
-          interval: '1h',
+          statsPeriod: '5m',
+          interval: '1m',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
         },
       })
     );
-
-    /*
-    expect(projectMock).toHaveBeenCalledTimes(1);
-    expect(projectMock).toHaveBeenLastCalledWith(
+    expect(mock).toHaveBeenNthCalledWith(
+      2,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '14d',
-          interval: '1h',
+          statsPeriod: ninetyDays,
+          interval: '1d',
+          groupBy: ['category', 'outcome'],
+          field: ['sum(quantity)'],
+        },
+      })
+    );
+    expect(mock).toHaveBeenNthCalledWith(
+      3,
+      '/organizations/org-slug/stats_v2/',
+      expect.objectContaining({
+        query: {
+          statsPeriod: ninetyDays,
+          interval: '1d',
           groupBy: ['category', 'outcome', 'project'],
           field: ['sum(quantity)'],
         },
       })
     );
-    */
+  });
+
+  it('pushes state to router', async function () {
+    const wrapper = mountWithTheme(
+      <UsageStats
+        organization={organization}
+        location={{
+          query: {
+            pagePeriod: ninetyDays,
+            dataCategory: DataCategory.TRANSACTIONS,
+            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            sort: '-project',
+          },
+        }}
+        router={router}
+      />,
+      router
+    );
+
+    await tick();
+    wrapper.update();
+
+    const optionPagePeriod = wrapper.find('OptionSelector[title="Display"]');
+    const oneDay = Object.keys(DEFAULT_RELATIVE_PERIODS)[0];
+    optionPagePeriod.props().onChange(oneDay);
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        pagePeriod: oneDay,
+      }),
+    });
+
+    const optionDataCategory = wrapper.find('OptionSelector[title="of"]');
+    optionDataCategory.props().onChange(DataCategory.ATTACHMENTS);
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({dataCategory: DataCategory.ATTACHMENTS}),
+    });
+
+    const optionChartTransform = wrapper.find('OptionSelector[title="Type"]');
+    optionChartTransform.props().onChange(CHART_OPTIONS_DATA_TRANSFORM[1].value);
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+      }),
+    });
   });
 });
 
@@ -243,6 +304,30 @@ function getMockResponse() {
           },
           series: {
             'sum(quantity)': [1, 2, 3, 4, 5, 6, 7],
+          },
+        },
+        {
+          by: {
+            category: 'error',
+            outcome: 'filtered',
+          },
+          totals: {
+            'sum(quantity)': 7,
+          },
+          series: {
+            'sum(quantity)': [1, 1, 1, 1, 1, 1, 1],
+          },
+        },
+        {
+          by: {
+            category: 'error',
+            outcome: 'dropped',
+          },
+          totals: {
+            'sum(quantity)': 14,
+          },
+          series: {
+            'sum(quantity)': [2, 2, 2, 2, 2, 2, 2],
           },
         },
       ],
