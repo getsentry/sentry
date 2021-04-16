@@ -6,8 +6,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody} from 'app/components/panels';
 import {DataCategory, Organization} from 'app/types';
 
-import {ProjectUsageStats} from './types';
-
 type Props = {
   organization: Organization;
   dataCategory: DataCategory;
@@ -17,7 +15,7 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  projectStats: ProjectUsageStats;
+  projectStats: any[];
 } & AsyncComponent['state'];
 
 class UsageStatsProjects extends AsyncComponent<Props, State> {

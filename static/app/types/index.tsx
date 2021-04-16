@@ -1,8 +1,9 @@
 import u2f from 'u2f-api';
 
 import Alert from 'app/components/alert';
+import {getInterval} from 'app/components/charts/utils';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
-import {API_ACCESS_SCOPES} from 'app/constants';
+import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
 import {OrgExperiments, UserExperiments} from 'app/types/experiments';
 import {
@@ -551,6 +552,8 @@ export type DocumentIntegration = {
 };
 
 export type DateString = Date | string | null;
+export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
+export type IntervalPeriod = ReturnType<typeof getInterval>;
 
 export type GlobalSelection = {
   projects: number[];
@@ -558,7 +561,7 @@ export type GlobalSelection = {
   datetime: {
     start: DateString;
     end: DateString;
-    period: string;
+    period: RelativePeriod | string;
     utc: boolean | null;
   };
 };
