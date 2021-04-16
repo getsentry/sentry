@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import EditableText from 'app/components/editableText';
@@ -53,15 +54,26 @@ function EventInputName({api, organization, eventView, savedQuery}: Props) {
   }
 
   return (
-    <Title>
-      <EditableText
+    <StyledTitle>
+      <StyledEditableText
         name="discover2-query-name"
         value={eventView.name || NAME_DEFAULT}
         onChange={handleChange}
         errorMessage={t('Please set a name for this query')}
       />
-    </Title>
+    </StyledTitle>
   );
 }
 
 export default withApi(EventInputName);
+
+const StyledTitle = styled(Title)`
+  margin-left: -22px;
+  position: relative;
+  height: 40px;
+`;
+
+const StyledEditableText = styled(EditableText)`
+  position: absolute;
+  width: calc(100% + 10px);
+`;

@@ -170,6 +170,7 @@ const StyledIconEdit = styled(IconEdit)`
   height: 40px;
   position: absolute;
   right: 0;
+  cursor: pointer;
 `;
 
 const Wrapper = styled('div')`

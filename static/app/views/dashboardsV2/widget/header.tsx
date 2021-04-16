@@ -30,8 +30,8 @@ function Header({title, orgSlug, onChangeTitle}: Props) {
           <EditableText
             value={title}
             onChange={onChangeTitle}
-            errorMessage={t('Please set a title for this dashboard')}
-            successMessage={t('Dashboard title saved successfully')}
+            errorMessage={t('Please set a title for this dashboard widge')}
+            successMessage={t('Dashboard widge title saved successfully')}
           />
         </Layout.Title>
       </Layout.HeaderContent>

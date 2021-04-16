@@ -22,8 +22,8 @@ function DashboardTitle({dashboard, onUpdate}: Props) {
         <EditableText
           value={dashboard.title}
           onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
-          errorMessage={t('Please set a title for this widget')}
-          successMessage={t('Widget title saved successfully')}
+          errorMessage={t('Please set a title for this dashboard')}
+          successMessage={t('Dashboard title saved successfully')}
         />
       )}
     </Container>
