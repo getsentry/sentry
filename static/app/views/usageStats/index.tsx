@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import {LocationDescriptorObject} from 'history';
 
 import {DateTimeObject} from 'app/components/charts/utils';
 import PageHeading from 'app/components/pageHeading';
@@ -10,7 +11,7 @@ import {DataCategory, DataCategoryName, Organization, RelativePeriod} from 'app/
 
 import {ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
-// import UsageStatsProjects from './usageStatsProjects';
+import UsageStatsProjects from './usageStatsProjects';
 
 type Props = {
   organization: Organization;
@@ -54,27 +55,44 @@ class OrganizationStats extends React.Component<Props> {
 
   // Validation and type-casting should be handled by chart
   get chartTransform(): string | undefined {
-    const {chartTransform} = this.props.location?.query ?? {};
-    return chartTransform;
+    return this.props.location?.query?.chartTransform;
+  }
+
+  // Validation and type-casting should be handled by table
+  get tableSort(): string | undefined {
+    return this.props.location?.query?.sort;
   }
 
   /**
    * TODO: Enable user to set dateStart/dateEnd
    */
-  setStateOnUrl = (nextState: {
-    dataCategory?: DataCategory;
-    pagePeriod?: RelativePeriod;
-    chartTransform?: ChartDataTransform;
-  }) => {
+  setStateOnUrl = (
+    nextState: {
+      dataCategory?: DataCategory;
+      pagePeriod?: RelativePeriod;
+      chartTransform?: ChartDataTransform;
+      sort?: string;
+    },
+    options: {
+      willUpdateRouter?: boolean;
+    } = {
+      willUpdateRouter: true,
+    }
+  ): LocationDescriptorObject => {
     const {location} = this.props;
-
-    browserHistory.push({
+    const nextLocation = {
       ...location,
       query: {
         ...location?.query,
         ...nextState,
       },
-    });
+    };
+
+    if (options.willUpdateRouter) {
+      browserHistory.push(nextLocation);
+    }
+
+    return nextLocation;
   };
 
   render() {
@@ -106,15 +124,14 @@ class OrganizationStats extends React.Component<Props> {
           </PageHeading>
         </PageHeader>
 
-        {/*
         <UsageStatsProjects
           organization={organization}
-          dataCategory={dataCategory}
+          dataCategory={this.dataCategory}
           dataCategoryName={this.dataCategoryName}
-          dateStart={dateStart}
-          dateEnd={dateEnd}
+          dataDatetime={this.dataPeriod}
+          tableSort={this.tableSort}
+          handleChangeState={this.setStateOnUrl}
         />
-        */}
       </PageContent>
     );
   }
