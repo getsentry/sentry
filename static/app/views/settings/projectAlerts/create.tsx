@@ -2,11 +2,9 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import PageHeading from 'app/components/pageHeading';
+import * as Layout from 'app/components/layouts/thirds';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
@@ -120,48 +118,54 @@ class Create extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
-        <PageContent>
-          <BuilderBreadCrumbs
-            hasMetricAlerts={hasMetricAlerts}
-            orgSlug={organization.slug}
-            alertName={wizardAlertType && AlertWizardAlertNames[wizardAlertType]}
-            title={wizardAlertType ? t('Create Alert Rule') : title}
-            projectSlug={projectId}
-          />
-          <StyledPageHeader>
-            <PageHeading>
+
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <BuilderBreadCrumbs
+              hasMetricAlerts={hasMetricAlerts}
+              orgSlug={organization.slug}
+              alertName={wizardAlertType && AlertWizardAlertNames[wizardAlertType]}
+              title={wizardAlertType ? t('Create Alert Rule') : title}
+              projectSlug={projectId}
+            />
+
+            <Layout.Title>
               {wizardAlertType ? t('Set Alert Conditions') : title}
-            </PageHeading>
-          </StyledPageHeader>
-          {shouldShowAlertTypeChooser && (
-            <AlertTypeChooser
-              organization={organization}
-              selected={alertType}
-              onChange={this.handleChangeAlertType}
-            />
-          )}
+            </Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <AlertConditionsBody>
+          <Layout.Main fullWidth>
+            {shouldShowAlertTypeChooser && (
+              <AlertTypeChooser
+                organization={organization}
+                selected={alertType}
+                onChange={this.handleChangeAlertType}
+              />
+            )}
 
-          {(!hasMetricAlerts || alertType === 'issue') && (
-            <IssueRuleEditor {...this.props} project={project} />
-          )}
+            {(!hasMetricAlerts || alertType === 'issue') && (
+              <IssueRuleEditor {...this.props} project={project} />
+            )}
 
-          {hasMetricAlerts && alertType === 'metric' && (
-            <IncidentRulesCreate
-              {...this.props}
-              eventView={eventView}
-              wizardTemplate={wizardTemplate}
-              sessionId={this.sessionId}
-              project={project}
-            />
-          )}
-        </PageContent>
+            {hasMetricAlerts && alertType === 'metric' && (
+              <IncidentRulesCreate
+                {...this.props}
+                eventView={eventView}
+                wizardTemplate={wizardTemplate}
+                sessionId={this.sessionId}
+                project={project}
+              />
+            )}
+          </Layout.Main>
+        </AlertConditionsBody>
       </React.Fragment>
     );
   }
 }
 
-const StyledPageHeader = styled(PageHeader)`
-  margin-bottom: ${space(4)};
+const AlertConditionsBody = styled(Layout.Body)`
+  margin-bottom: -20px;
 `;
 
 export default Create;
