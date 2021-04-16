@@ -27,7 +27,12 @@ function Header({title, orgSlug, onChangeTitle}: Props) {
           ]}
         />
         <Layout.Title>
-          <EditableText value={title} onChange={onChangeTitle} />
+          <EditableText
+            value={title}
+            onChange={onChangeTitle}
+            errorMessage={t('Please set a title for this dashboard')}
+            successMessage={t('Dashboard title saved successfully')}
+          />
         </Layout.Title>
       </Layout.HeaderContent>
 

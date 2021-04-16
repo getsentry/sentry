@@ -1,9 +1,9 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import TextOverflow from 'app/components/textOverflow';
 import {IconEdit} from 'app/icons/iconEdit';
-import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
 import useKeypress from 'app/utils/useKeyPress';
@@ -14,15 +14,18 @@ import Field from 'app/views/settings/components/forms/field';
 type Props = {
   value: string;
   onChange: (value: string) => void;
+  name?: string;
+  errorMessage?: React.ReactNode;
+  successMessage?: React.ReactNode;
 };
 
-function EditableText({value, onChange}: Props) {
+function EditableText({value, onChange, name, errorMessage, successMessage}: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value);
 
   const isEmpty = !inputValue.trim();
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputWrapper = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -30,17 +33,27 @@ function EditableText({value, onChange}: Props) {
   const esc = useKeypress('Escape');
 
   // check to see if the user clicked outside of this component
-  useOnClickOutside(wrapperRef, () => {
-    if (isEditing && !isEmpty) {
+  useOnClickOutside(inputWrapper, () => {
+    if (isEditing) {
+      if (isEmpty) {
+        displayStatusMessage('error');
+        return;
+      }
       onChange(inputValue);
       setIsEditing(false);
+      displayStatusMessage('success');
     }
   });
 
   const onEnter = useCallback(() => {
-    if (enter && !isEmpty) {
+    if (enter) {
+      if (isEmpty) {
+        displayStatusMessage('error');
+        return;
+      }
       onChange(inputValue);
       setIsEditing(false);
+      displayStatusMessage('success');
     }
   }, [enter, inputValue, onChange]);
 
@@ -50,6 +63,12 @@ function EditableText({value, onChange}: Props) {
       setIsEditing(false);
     }
   }, [esc, value]);
+
+  useEffect(() => {
+    if (value !== inputValue) {
+      setInputValue(value);
+    }
+  }, [value]);
 
   // focus the cursor in the input field on edit start
   useEffect(() => {
@@ -70,6 +89,19 @@ function EditableText({value, onChange}: Props) {
     }
   }, [onEnter, onEsc, isEditing]); // watch the Enter and Escape key presses
 
+  function displayStatusMessage(status: 'error' | 'success') {
+    if (status === 'error') {
+      if (errorMessage) {
+        addErrorMessage(errorMessage);
+      }
+      return;
+    }
+
+    if (successMessage) {
+      addSuccessMessage(successMessage);
+    }
+  }
+
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     setInputValue(event.target.value);
   }
@@ -79,17 +111,16 @@ function EditableText({value, onChange}: Props) {
   }
 
   return (
-    <Wrapper ref={wrapperRef}>
+    <Wrapper>
       {isEditing ? (
-        <InputWrapper isEmpty={isEmpty}>
-          <StyledField
-            error={isEmpty ? t('Text required') : undefined}
-            inline={false}
-            flexibleControlStateSize
-            stacked
-            required
-          >
-            <StyledInput ref={inputRef} value={inputValue} onChange={handleInputChange} />
+        <InputWrapper ref={inputWrapper} isEmpty={isEmpty}>
+          <StyledField inline={false} flexibleControlStateSize stacked>
+            <StyledInput
+              name={name}
+              ref={inputRef}
+              value={inputValue}
+              onChange={handleInputChange}
+            />
           </StyledField>
           <InputLabel>{inputValue}</InputLabel>
         </InputWrapper>
