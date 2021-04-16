@@ -1,29 +1,17 @@
 import re
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Set, Tuple
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Set, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from django.urls import reverse
 from django.utils.html import escape
 from django.utils.safestring import SafeString, mark_safe
 
-from sentry import options
-from sentry.models import (
-    Activity,
-    Group,
-    GroupSubscription,
-    ProjectOption,
-    User,
-    UserAvatar,
-    UserOption,
-)
+from sentry.models import Activity, GroupSubscription, User, UserAvatar, UserOption
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
-from sentry.utils.email import group_id_to_email
 from sentry.utils.http import absolute_uri
-from sentry.utils.linksign import generate_signed_link
 
 registry: MutableMapping[ExternalProviders, Callable] = {}
 
@@ -55,12 +43,6 @@ class ActivityNotification:
         self.project = activity.project
         self.organization = self.project.organization
         self.group = activity.group
-
-    def _get_subject_prefix(self) -> str:
-        prefix = ProjectOption.objects.get_value(project=self.project, key="mail:subject_prefix")
-        if not prefix:
-            prefix = options.get("mail.subject-prefix")
-        return str(prefix)
 
     def should_email(self) -> bool:
         return True
@@ -129,7 +111,7 @@ class ActivityNotification:
             "project": self.project,
             "project_link": self.get_project_link(),
         }
-        if activity.group:
+        if self.group:
             context.update(self.get_group_context())
         return context
 
@@ -145,20 +127,6 @@ class ActivityNotification:
             "activity_link": activity_link,
             "referrer": self.__class__.__name__,
         }
-
-    def get_email_type(self) -> str:
-        return f"notify.activity.{self.activity.get_type_display()}"
-
-    def get_subject(self) -> str:
-        group = self.group
-
-        return f"{group.qualified_short_id} - {group.title}"
-
-    def get_subject_with_prefix(self) -> bytes:
-        return f"{self._get_subject_prefix()}{self.get_subject()}".encode("utf-8")
-
-    def get_activity_name(self) -> str:
-        raise NotImplementedError
 
     def get_context(self) -> MutableMapping[str, Any]:
         """
@@ -187,25 +155,13 @@ class ActivityNotification:
     def get_category(self) -> str:
         raise NotImplementedError
 
-    def get_headers(self) -> Mapping[str, Any]:
-        project = self.project
+    def get_subject(self) -> str:
         group = self.group
 
-        headers = {
-            "X-Sentry-Project": project.slug,
-            "X-SMTPAPI": json.dumps({"category": self.get_category()}),
-        }
+        return f"{group.qualified_short_id} - {group.title}"
 
-        if group:
-            headers.update(
-                {
-                    "X-Sentry-Logger": group.logger,
-                    "X-Sentry-Logger-Level": group.get_level_display(),
-                    "X-Sentry-Reply-To": group_id_to_email(group.id),
-                }
-            )
-
-        return headers
+    def get_activity_name(self) -> str:
+        raise NotImplementedError
 
     def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         raise NotImplementedError
@@ -271,33 +227,6 @@ class ActivityNotification:
         context.update(params)
 
         return mark_safe(description.format(**context))
-
-    def get_unsubscribe_link(self, user_id: int, group_id: int) -> str:
-        return generate_signed_link(
-            user_id,
-            "sentry-account-email-unsubscribe-issue",
-            kwargs={"issue_id": group_id},
-        )
-
-    def update_user_context_from_group(
-        self,
-        user: User,
-        reason: int,
-        context: MutableMapping[str, Any],
-        group: Optional[Group],
-    ) -> Mapping[str, Any]:
-        if group:
-            context.update(
-                {
-                    "reason": GroupSubscriptionReason.descriptions.get(
-                        reason, "are subscribed to this issue"
-                    ),
-                    "unsubscribe_link": self.get_unsubscribe_link(user.id, group.id),
-                }
-            )
-        user_context = self.get_user_context(user)
-        user_context.update(context)
-        return user_context
 
     def get_title(self) -> str:
         return self.get_activity_name()
