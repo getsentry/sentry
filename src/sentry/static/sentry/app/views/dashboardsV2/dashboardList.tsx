@@ -1,5 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {browserHistory} from 'react-router';
+import {Location, Query} from 'history';
 
 import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
 import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
@@ -7,6 +9,7 @@ import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
 import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 
+import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import {tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -17,8 +20,9 @@ import DashboardCard from './dashboardCard';
 
 type Props = {
   organization: Organization;
-  // location: Location;
+  location: Location;
   dashboards: DashboardDetails[] | null;
+  pageLinks: string;
 };
 
 class MiniDashboard extends React.PureComponent<Props> {
@@ -69,9 +73,28 @@ class DashboardList extends React.Component<Props> {
   }
 
   render() {
+    const {pageLinks} = this.props;
     return (
       <React.Fragment>
         <DashboardGrid>{this.renderMiniDashboards()}</DashboardGrid>
+        <PaginationRow
+          pageLinks={pageLinks}
+          onCursor={(cursor: string, path: string, query: Query, direction: number) => {
+            const offset = Number(cursor.split(':')[1]);
+
+            const newQuery: Query & {cursor?: string} = {...query, cursor};
+            const isPrevious = direction === -1;
+
+            if (offset <= 0 && isPrevious) {
+              delete newQuery.cursor;
+            }
+
+            browserHistory.push({
+              pathname: path,
+              query: newQuery,
+            });
+          }}
+        />
       </React.Fragment>
     );
   }
@@ -131,6 +154,10 @@ const BigMiniWidgetImg = styled('img')`
   width: 100%;
   height: 100%;
   grid-area: span 2 / span 2;
+`;
+
+const PaginationRow = styled(Pagination)`
+  margin-bottom: 20px;
 `;
 
 export default DashboardList;

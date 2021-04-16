@@ -115,8 +115,8 @@ const DashboardDetail = styled('div')`
 const DashboardCardBody = styled('div')`
   background: ${p => p.theme.gray100};
   padding: ${space(1.5)} ${space(2)};
-  max-height: 200px;
-  height: 100%;
+  max-height: 150px;
+  height: 150px;
   overflow: hidden;
 `;
 
