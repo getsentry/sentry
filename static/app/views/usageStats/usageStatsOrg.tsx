@@ -15,6 +15,7 @@ import {
 } from 'app/components/charts/styles';
 import {DateTimeObject, getInterval} from 'app/components/charts/utils';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NotAvailable from 'app/components/notAvailable';
 import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -77,10 +78,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   get chartData(): {
     chartStats: ChartStats;
     cardStats: {
-      total: string;
-      accepted: string;
-      dropped: string;
-      filtered: string;
+      total?: string;
+      accepted?: string;
+      dropped?: string;
+      filtered?: string;
     };
     dataError?: Error;
     chartDateInterval: IntervalPeriod;
@@ -163,18 +164,18 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   ): {
     chartStats: ChartStats;
     cardStats: {
-      total: string;
-      accepted: string;
-      dropped: string;
-      filtered: string;
+      total?: string;
+      accepted?: string;
+      dropped?: string;
+      filtered?: string;
     };
     dataError?: Error;
   } {
     const cardStats = {
-      total: '-',
-      accepted: '-',
-      dropped: '-',
-      filtered: '-',
+      total: undefined,
+      accepted: undefined,
+      dropped: undefined,
+      filtered: undefined,
     };
     const chartStats: ChartStats = {
       accepted: [],
@@ -214,7 +215,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       orgStats.groups.forEach(group => {
         const {outcome, category} = group.by;
 
-        // HACK The backend enum are singular, but the frontend enums are plural
+        // HACK: The backend enum are singular, but the frontend enums are plural
         if (!dataCategory.includes(`${category}`)) {
           return;
         }
@@ -326,7 +327,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
               )}
             </HeaderTitle>
             <CardContent>
-              <TextOverflow>{c.value}</TextOverflow>
+              <TextOverflow>{c.value ?? <NotAvailable />}</TextOverflow>
             </CardContent>
           </StyledCard>
         ))}

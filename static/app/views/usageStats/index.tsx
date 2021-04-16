@@ -1,5 +1,6 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 
 import Alert from 'app/components/alert';
@@ -9,9 +10,11 @@ import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
+import space from 'app/styles/space';
 import {DataCategory, DataCategoryName, Organization, RelativePeriod} from 'app/types';
 
 import {ChartDataTransform} from './usageChart';
+import UsageStatsLastMin from './UsageStatsLastMin';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
 
@@ -110,16 +113,27 @@ class OrganizationStats extends React.Component<Props> {
           </PageHeading>
         </PageHeader>
 
-        <p>
-          {t(
-            'The chart below reflects events that Sentry has received across your entire organization. We collect usage metrics on 3 types of events: errors, transactions, and attachments. Sessions are not included in this chart.'
-          )}
-        </p>
-        <p>
-          {t(
-            "Each type of event has 3 outcomes: accepted, filtered, and dropped. Accepted events were successfully processed by Sentry. Filtered events were blocked due to your project's inbound data filter rules. Dropped events were discarded due to invalid data, rate-limits, quota-limits or spike protection."
-          )}
-        </p>
+        <OrgTextWrapper>
+          <OrgText>
+            <p>
+              {t(
+                'The chart below reflects events that Sentry has received across your entire organization. We collect usage metrics on 3 types of events: errors, transactions, and attachments. Sessions are not included in this chart.'
+              )}
+            </p>
+            <p>
+              {t(
+                "Each type of event has 3 outcomes: accepted, filtered, and dropped. Accepted events were successfully processed by Sentry. Filtered events were blocked due to your project's inbound data filter rules. Dropped events were discarded due to invalid data, rate-limits, quota-limits or spike protection."
+              )}
+            </p>
+          </OrgText>
+          <OrgLastMin>
+            <UsageStatsLastMin
+              organization={organization}
+              dataCategory={this.dataCategory}
+              dataCategoryName={this.dataCategoryName}
+            />
+          </OrgLastMin>
+        </OrgTextWrapper>
 
         <UsageStatsOrg
           organization={organization}
@@ -156,3 +170,29 @@ class OrganizationStats extends React.Component<Props> {
 }
 
 export default OrganizationStats;
+
+const OrgTextWrapper = styled('div')`
+  display: grid;
+  grid-auto-flow: row;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-auto-flow: column;
+    grid-template-columns: 75% 25%;
+  }
+`;
+
+const OrgText = styled('div')`
+  max-width: ${p => p.theme.breakpoints[0]};
+`;
+
+const OrgLastMin = styled('div')`
+  display: flex;
+  justify-content: center;
+  padding: ${space(4)} 0;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 0 ${space(4)};
+  }
+`;
