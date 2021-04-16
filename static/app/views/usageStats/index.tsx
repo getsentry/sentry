@@ -132,19 +132,17 @@ class OrganizationStats extends React.Component<Props> {
       willUpdateRouter: true,
     }
   ): LocationDescriptorObject => {
-    Object.keys(nextState).forEach(k => {
-      if (!PAGE_QUERY_PARAMS.includes(k)) {
-        throw new Error('UsageStats: Unrecognized key for page query params');
-      }
-    });
-
     const {location, router} = this.props;
+    const {dataCategory, pagePeriod, chartTransform, sort} = nextState;
 
     const nextLocation = {
       ...location,
       query: {
         ...location?.query,
-        ...nextState,
+        dataCategory,
+        pagePeriod,
+        chartTransform,
+        sort,
       },
     };
 

@@ -184,7 +184,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   getTableLink(project: Project) {
     const {dataCategory, getNextLocations, organization} = this.props;
-    const {performance, projectDetail, issueList} = getNextLocations(project);
+    const {performance, projectDetail} = getNextLocations(project);
 
     if (
       dataCategory === DataCategory.TRANSACTIONS &&
@@ -193,7 +193,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       return performance;
     }
 
-    return organization.features.includes('project-detail') ? projectDetail : issueList;
+    return projectDetail;
   }
 
   handleChangeSort = (nextKey: SortBy) => {

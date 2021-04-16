@@ -240,7 +240,7 @@ export class UsageChart extends React.Component<Props, State> {
     const dataPeriod = statsPeriodToDays(undefined, usageDateStart, usageDateEnd) * 24;
     const barPeriod = parsePeriodToHours(usageDateInterval);
     if (dataPeriod === 0 || barPeriod === -1) {
-      throw new Error('Uable to parse data time period');
+      throw new Error('Unable to parse data time period');
     }
 
     const {xAxisTickInterval, xAxisLabelInterval} = getXAxisLabelInterval(
