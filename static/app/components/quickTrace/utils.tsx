@@ -143,11 +143,13 @@ export function generateTraceTarget(
 
   const eventView = EventView.fromSavedQuery({
     id: undefined,
-    name: `Transactions with Trace ID ${traceId}`,
-    fields: ['transaction', 'project', 'trace.span', 'transaction.duration', 'timestamp'],
+    name: `Events with Trace ID ${traceId}`,
+    fields: ['title', 'event.type', 'project', 'trace.span', 'timestamp'],
     orderby: '-timestamp',
-    query: `event.type:transaction trace:${traceId}`,
-    projects: [ALL_ACCESS_PROJECTS],
+    query: `trace:${traceId}`,
+    projects: organization.features.includes('global-views')
+      ? [ALL_ACCESS_PROJECTS]
+      : [Number(event.projectID)],
     version: 2,
     ...dateSelection,
   });
