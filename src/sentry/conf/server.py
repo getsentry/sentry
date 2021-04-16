@@ -832,8 +832,6 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
-    # Enable android mappings in processing section of settings.
-    "organizations:android-mappings": False,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
     # Enable explicit use of AND and OR in search.

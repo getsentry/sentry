@@ -1,6 +1,5 @@
 import React from 'react';
 
-import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -18,17 +17,7 @@ class ProjectProguardContainer extends React.Component<ProjectProguard['props']>
   }
 
   render() {
-    const {organization} = this.props;
-
-    return (
-      <Feature
-        features={['android-mappings']}
-        organization={organization}
-        renderDisabled={this.renderNoAccess}
-      >
-        <ProjectProguard {...this.props} />
-      </Feature>
-    );
+    return <ProjectProguard {...this.props} />;
   }
 }
 
