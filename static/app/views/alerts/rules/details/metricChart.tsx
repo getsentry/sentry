@@ -9,8 +9,8 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import Graphic from 'app/components/charts/components/graphic';
-import MarkLine from 'app/components/charts/components/markLine';
 import MarkArea from 'app/components/charts/components/markArea';
+import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
@@ -551,10 +551,12 @@ class MetricChart extends React.PureComponent<Props, State> {
                       itemStyle: {
                         color: color(incidentColor).alpha(0.42).rgb().string(),
                       },
-                      data: [[{xAxis: incidentStartDate}, {xAxis: incidentCloseDate }]] as any,
+                      data: [
+                        [{xAxis: incidentStartDate}, {xAxis: incidentCloseDate}],
+                      ] as any,
                     }),
                     data: [],
-                  })
+                  });
                 }
               });
           }
