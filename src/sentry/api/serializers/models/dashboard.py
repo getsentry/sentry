@@ -3,6 +3,7 @@ from sentry.models import (
     Dashboard,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetMetricsQuery,
     DashboardWidgetQuery,
 )
 
@@ -19,9 +20,21 @@ class DashboardWidgetSerializer(Serializer):
             )
         )
 
+        metrics_sources = serialize(
+            list(
+                DashboardWidgetMetricsQuery.objects.filter(
+                    widget_id__in=[i.id for i in item_list]
+                ).order_by("order")
+            )
+        )
+
         for widget in item_list:
             widget_data_sources = [d for d in data_sources if d["widgetId"] == str(widget.id)]
-            result[widget] = {"queries": widget_data_sources}
+            widget_metrics_sources = [d for d in metrics_sources if d["widgetId"] == str(widget.id)]
+            result[widget] = {
+                "queries": widget_data_sources,
+                "metrics_queries": widget_metrics_sources,
+            }
 
         return result
 
@@ -35,6 +48,7 @@ class DashboardWidgetSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dashboardId": str(obj.dashboard_id),
             "queries": attrs["queries"],
+            "metrics_queries": attrs["metrics_queries"],
         }
 
 
@@ -47,6 +61,19 @@ class DashboardWidgetQuerySerializer(Serializer):
             "fields": obj.fields,
             "conditions": str(obj.conditions),
             "orderby": str(obj.orderby),
+            "widgetId": str(obj.widget_id),
+        }
+
+
+@register(DashboardWidgetMetricsQuery)
+class DashboardWidgetMetricsQuerySerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {
+            "id": str(obj.id),
+            "name": obj.name,
+            "fields": obj.fields,
+            "conditions": str(obj.conditions),
+            "groupby": str(obj.groupby),
             "widgetId": str(obj.widget_id),
         }
 

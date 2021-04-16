@@ -14,6 +14,7 @@ from sentry.models import (
     Dashboard,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetMetricsQuery,
     DashboardWidgetQuery,
 )
 from sentry.utils.dates import parse_stats_period
@@ -101,6 +102,33 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         return empty_value
 
 
+class DashboardWidgetMetricsQuerySerializer(CamelSnakeSerializer):
+
+    id = serializers.CharField(required=False)
+    fields = serializers.ListField(child=serializers.CharField(), required=False)
+    name = serializers.CharField(required=False, allow_blank=True)
+    conditions = serializers.CharField(required=False, allow_blank=True)
+    groupby = serializers.CharField(required=False, allow_blank=True)
+
+    required_for_create = {"fields", "conditions"}
+
+    validate_id = validate_id
+
+    def validate(self, data):
+        # TODO: validate more
+        if not data.get("id"):
+            keys = set(data.keys())
+            if self.required_for_create - keys:
+                raise serializers.ValidationError(
+                    {
+                        "fields": "fields are required during creation.",
+                        "conditions": "conditions are required during creation.",
+                    }
+                )
+
+        return data
+
+
 class DashboardWidgetSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -110,6 +138,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     )
     interval = serializers.CharField(required=False, max_length=10)
     queries = DashboardWidgetQuerySerializer(many=True, required=False)
+    metrics_queries = DashboardWidgetMetricsQuerySerializer(many=True, required=False)
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -123,9 +152,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
 
     def validate(self, data):
         if not data.get("id"):
-            if not data.get("queries"):
+            if not (data.get("queries") or data.get("metrics_queries")):
                 raise serializers.ValidationError(
-                    {"queries": "One or more queries are required to create a widget"}
+                    "One or more queries or metrics queries are required to create a widget"
                 )
             if not data.get("title"):
                 raise serializers.ValidationError({"title": "Title is required during creation."})
@@ -222,7 +251,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             order=order,
         )
         new_queries = []
-        for i, query in enumerate(widget_data.pop("queries")):
+        for i, query in enumerate(widget_data.pop("queries", [])):
             new_queries.append(
                 DashboardWidgetQuery(
                     widget=widget,
@@ -235,6 +264,20 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             )
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
+        new_metrics_queries = []
+        for i, query in enumerate(widget_data.pop("metrics_queries", [])):
+            new_metrics_queries.append(
+                DashboardWidgetMetricsQuery(
+                    widget=widget,
+                    fields=query["fields"],
+                    conditions=query["conditions"],
+                    name=query.get("name", ""),
+                    groupby=query.get("groupby", ""),
+                    order=i,
+                )
+            )
+        DashboardWidgetMetricsQuery.objects.bulk_create(new_metrics_queries)
+
     def update_widget(self, widget, data, order):
         widget.title = data.get("title", widget.title)
         widget.display_type = data.get("display_type", widget.display_type)
@@ -243,13 +286,16 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         widget.save()
 
         if "queries" in data:
-            self.update_widget_queries(widget, data["queries"])
+            self.update_widget_queries(DashboardWidgetQuery, widget, data["queries"])
 
-    def update_widget_queries(self, widget, data):
+        if "metrics_queries" in data:
+            self.update_widget_queries(DashboardWidgetMetricsQuery, widget, data["metrics_queries"])
+
+    def update_widget_queries(self, query_class, widget, data):
         query_ids = [query["id"] for query in data if "id" in query]
-        self.remove_missing_queries(widget.id, query_ids)
+        self.remove_missing_queries(query_class, widget.id, query_ids)
 
-        existing = DashboardWidgetQuery.objects.filter(widget=widget, id__in=query_ids)
+        existing = query_class.objects.filter(widget=widget, id__in=query_ids)
         existing_map = {query.id: query for query in existing}
 
         # Get new ordering start point to avoid constraint errors
@@ -262,29 +308,44 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                 self.update_widget_query(existing_map[query_id], query_data, next_order + i)
             elif not query_id:
                 new_queries.append(
-                    DashboardWidgetQuery(
-                        widget=widget,
-                        fields=query_data["fields"],
-                        conditions=query_data["conditions"],
-                        name=query_data.get("name", ""),
-                        orderby=query_data.get("orderby", ""),
-                        order=next_order + i,
-                    )
+                    self.instance_from(query_class, widget, query_data, next_order + i)
                 )
             else:
                 raise serializers.ValidationError("You cannot use a query not owned by this widget")
-        DashboardWidgetQuery.objects.bulk_create(new_queries)
+
+        query_class.objects.bulk_create(new_queries)
 
     def update_widget_query(self, query, data, order):
         query.name = data.get("name", query.name)
         query.fields = data.get("fields", query.fields)
         query.conditions = data.get("conditions", query.conditions)
-        query.orderby = data.get("orderby", query.orderby)
+
+        if query.__class__ is DashboardWidgetMetricsQuery:
+            query.groupby = data.get("groupby", query.groupby)
+        else:
+            query.orderby = data.get("orderby", query.orderby)
+
         query.order = order
         query.save()
 
-    def remove_missing_queries(self, widget_id, keep_ids):
-        DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
+    def remove_missing_queries(self, query_class, widget_id, keep_ids):
+        query_class.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
+
+    @staticmethod
+    def instance_from(query_class, widget, query_data, order):
+        kwargs = dict(
+            widget=widget,
+            fields=query_data["fields"],
+            conditions=query_data["conditions"],
+            name=query_data.get("name", ""),
+            order=order,
+        )
+        if query_class is DashboardWidgetMetricsQuery:
+            kwargs["groupby"] = query_data.get("groupby", "")
+        else:
+            kwargs["orderby"] = query_data.get("orderby", "")
+
+        return query_class(**kwargs)
 
 
 class DashboardSerializer(DashboardDetailsSerializer):

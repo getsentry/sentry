@@ -77,7 +77,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
-
         serializer = DashboardSerializer(
             data=request.data,
             context={

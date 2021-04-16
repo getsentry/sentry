@@ -54,22 +54,32 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
-class DashboardWidgetQuery(Model):
+class DashboardWidgetQueryBase(Model):
+    """
+    Base class for a query in a dashboard widget.
+    """
+
+    widget = FlexibleForeignKey("sentry.DashboardWidget")
+    name = models.CharField(max_length=255)
+    fields = ArrayField()
+    conditions = models.TextField()
+    # Order of the widget query in the widget.
+    order = BoundedPositiveIntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        abstract = True
+
+
+class DashboardWidgetQuery(DashboardWidgetQueryBase):
     """
     A query in a dashboard widget.
     """
 
     __core__ = True
 
-    widget = FlexibleForeignKey("sentry.DashboardWidget")
-    name = models.CharField(max_length=255)
-    fields = ArrayField()
-    conditions = models.TextField()
     # Orderby condition for the query
     orderby = models.TextField(default="")
-    # Order of the widget query in the widget.
-    order = BoundedPositiveIntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
@@ -77,6 +87,24 @@ class DashboardWidgetQuery(Model):
         unique_together = (("widget", "order"),)
 
     __repr__ = sane_repr("widget", "type", "name")
+
+
+class DashboardWidgetMetricsQuery(DashboardWidgetQueryBase):
+    """
+    A metrics query in a dashboard widget.
+    """
+
+    __core__ = True
+
+    #: A list of metrics tag names to group by
+    groupby = ArrayField()
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardwidgetmetricsquery"
+        unique_together = (("widget", "order"),)
+
+    __repr__ = sane_repr("widget", "name")
 
 
 class DashboardWidget(Model):
