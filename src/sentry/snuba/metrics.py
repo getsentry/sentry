@@ -189,12 +189,13 @@ class MockDataSource:
             "staging",
         ],
         "release": [  # High cardinality
-            f"{major}.{minor}.{bugfix}"
+            f"myapp@{major}.{minor}.{bugfix}"
             for major in range(3)
             for minor in range(13)
             for bugfix in range(4)
         ],
         "session.status": [
+            "abnormal",
             "crashed",
             "errored",
             "healthy",

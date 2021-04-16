@@ -154,9 +154,9 @@ class ProjectMetricsDataTest(APITestCase):
     def test_valid_filter(self):
 
         for query in [
-            "release:2.0.0",
-            "release:2.0.0 and environment:production",
-            "release:2.0.0 and environment:production or session.status:healthy",
+            "release:myapp@2.0.0",
+            "release:myapp@2.0.0 and environment:production",
+            "release:myapp@2.0.0 and environment:production or session.status:healthy",
         ]:
 
             response = self.get_success_response(
