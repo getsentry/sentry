@@ -8,6 +8,7 @@ import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
@@ -132,6 +133,7 @@ const Subtitle = styled('h4')`
   line-height: 1.4;
   color: ${p => p.theme.gray300};
   margin: 0;
+  margin-top: ${space(2)};
 `;
 
 export default withApi(ResultsHeader);

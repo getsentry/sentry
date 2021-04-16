@@ -1,12 +1,10 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import EditableText from 'app/components/editableText';
 import {Title} from 'app/components/layouts/thirds';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
@@ -23,8 +21,8 @@ type Props = {
 const NAME_DEFAULT = t('Untitled query');
 
 /**
- * Allows user to edit the name of the query. Upon blurring from it, it will
- * save the name change immediately (but not changes in the query)
+ * Allows user to edit the name of the query.
+ * By pressing Enter or clicking outside the component, the changes will be saved, if valid.
  */
 function EventInputName({api, organization, eventView, savedQuery}: Props) {
   function handleChange(nextQueryName: string) {
@@ -55,19 +53,15 @@ function EventInputName({api, organization, eventView, savedQuery}: Props) {
   }
 
   return (
-    <StyledTitle>
+    <Title>
       <EditableText
         name="discover2-query-name"
         value={eventView.name || NAME_DEFAULT}
         onChange={handleChange}
         errorMessage={t('Please set a name for this query')}
       />
-    </StyledTitle>
+    </Title>
   );
 }
 
 export default withApi(EventInputName);
-
-const StyledTitle = styled(Title)`
-  padding-bottom: ${space(2)};
-`;
