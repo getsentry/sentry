@@ -542,7 +542,8 @@ class MetricChart extends React.PureComponent<Props, State> {
                 });
 
                 if (selectedIncident && incident.id === selectedIncident.id) {
-                  const selectedIncidentColor = incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
+                  const selectedIncidentColor =
+                    incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
 
                   areaSeries.push({
                     type: 'line',
