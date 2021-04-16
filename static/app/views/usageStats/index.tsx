@@ -2,21 +2,40 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
+import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 
 import Alert from 'app/components/alert';
 import {DateTimeObject} from 'app/components/charts/utils';
+import ErrorBoundary from 'app/components/errorBoundary';
 import PageHeading from 'app/components/pageHeading';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {DataCategory, DataCategoryName, Organization, RelativePeriod} from 'app/types';
+import {
+  DataCategory,
+  DataCategoryName,
+  Organization,
+  Project,
+  RelativePeriod,
+} from 'app/types';
 
 import {ChartDataTransform} from './usageChart';
 import UsageStatsLastMin from './UsageStatsLastMin';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
+
+const PAGE_QUERY_PARAMS = [
+  'pageStart',
+  'pageEnd',
+  'pagePeriod',
+  'pageUtc',
+  'dataCategory',
+  'chartTransform',
+  'sort',
+];
 
 type Props = {
   organization: Organization;
@@ -68,8 +87,39 @@ class OrganizationStats extends React.Component<Props> {
     return this.props.location?.query?.sort;
   }
 
+  getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
+    const {location, organization} = this.props;
+    const nextLocation: LocationDescriptorObject = {
+      ...location,
+      query: {
+        ...location.query,
+        project: project.id,
+      },
+    };
+
+    // Do not leak out page-specific keys
+    nextLocation.query = omit(nextLocation.query, PAGE_QUERY_PARAMS);
+
+    return {
+      performance: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/performance/`,
+      },
+      projectDetail: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/projects/${project.slug}`,
+      },
+      issueList: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/issues/`,
+      },
+    };
+  };
+
   /**
    * TODO: Enable user to set dateStart/dateEnd
+   *
+   * See PAGE_QUERY_PARAMS for list of accepted keys on nextState
    */
   setStateOnUrl = (
     nextState: {
@@ -85,11 +135,13 @@ class OrganizationStats extends React.Component<Props> {
     }
   ): LocationDescriptorObject => {
     const {location, router} = this.props;
+    const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
+
     const nextLocation = {
       ...location,
       query: {
         ...location?.query,
-        ...nextState,
+        ...nextQueryParams,
       },
     };
 
@@ -127,22 +179,26 @@ class OrganizationStats extends React.Component<Props> {
             </p>
           </OrgText>
           <OrgLastMin>
-            <UsageStatsLastMin
-              organization={organization}
-              dataCategory={this.dataCategory}
-              dataCategoryName={this.dataCategoryName}
-            />
+            <ErrorBoundary mini>
+              <UsageStatsLastMin
+                organization={organization}
+                dataCategory={this.dataCategory}
+                dataCategoryName={this.dataCategoryName}
+              />
+            </ErrorBoundary>
           </OrgLastMin>
         </OrgTextWrapper>
 
-        <UsageStatsOrg
-          organization={organization}
-          dataCategory={this.dataCategory}
-          dataCategoryName={this.dataCategoryName}
-          dataDatetime={this.dataPeriod}
-          chartTransform={this.chartTransform}
-          handleChangeState={this.setStateOnUrl}
-        />
+        <ErrorBoundary mini>
+          <UsageStatsOrg
+            organization={organization}
+            dataCategory={this.dataCategory}
+            dataCategoryName={this.dataCategoryName}
+            dataDatetime={this.dataPeriod}
+            chartTransform={this.chartTransform}
+            handleChangeState={this.setStateOnUrl}
+          />
+        </ErrorBoundary>
 
         <PageHeader>
           <PageHeading>
@@ -156,14 +212,17 @@ class OrganizationStats extends React.Component<Props> {
           {t('You are viewing usage stats only for projects which you have read access.')}
         </Alert>
 
-        <UsageStatsProjects
-          organization={organization}
-          dataCategory={this.dataCategory}
-          dataCategoryName={this.dataCategoryName}
-          dataDatetime={this.dataPeriod}
-          tableSort={this.tableSort}
-          handleChangeState={this.setStateOnUrl}
-        />
+        <ErrorBoundary mini>
+          <UsageStatsProjects
+            organization={organization}
+            dataCategory={this.dataCategory}
+            dataCategoryName={this.dataCategoryName}
+            dataDatetime={this.dataPeriod}
+            tableSort={this.tableSort}
+            handleChangeState={this.setStateOnUrl}
+            getNextLocations={this.getNextLocations}
+          />
+        </ErrorBoundary>
       </PageContent>
     );
   }
