@@ -45,6 +45,16 @@ export function formatUsageWithUnits(
 }
 
 /**
+ * Good default for "formatUsageWithUnits"
+ */
+export function getFormatUsageOptions(dataCategory: DataCategory): FormatOptions {
+  return {
+    isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
+    useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
+  };
+}
+
+/**
  * Instead of using this function directly, use formatReservedWithUnits or
  * formatUsageWithUnits with options.isAbbreviated to true instead.
  *
