@@ -19,8 +19,6 @@ import {Theme} from 'app/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 export {
-  DurationPill,
-  SpanBarRectangle as TransactionBarRectangle,
   SpanRowCell as TransactionRowCell,
   SpanRowCellContainer as TransactionRowCellContainer,
 } from 'app/components/events/interfaces/spans/spanBar';

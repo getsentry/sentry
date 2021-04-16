@@ -5,7 +5,8 @@ import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
-import {ROW_HEIGHT, ROW_PADDING} from 'app/components/waterfallTree/constants';
+import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
+import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
 import {
   DividerLine,
   DividerLineGhostContainer,
@@ -22,6 +23,7 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
+import {getDurationDisplay} from 'app/components/waterfallTree/utils';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -41,7 +43,7 @@ import {
 } from './header';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanDetail from './spanDetail';
-import {getHatchPattern, SpanRow, zIndex} from './styles';
+import {SpanRow, zIndex} from './styles';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
 import {
   durationlessBrowserOps,
@@ -172,29 +174,6 @@ const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
 const TOGGLE_BUTTON_MAX_WIDTH = 30;
 export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
 const MARGIN_LEFT = 0;
-
-type DurationDisplay = 'left' | 'right' | 'inset';
-
-export const getDurationDisplay = ({
-  width,
-  left,
-}: {
-  width: undefined | number;
-  left: undefined | number;
-}): DurationDisplay => {
-  const spaceNeeded = 0.3;
-
-  if (left === undefined || width === undefined) {
-    return 'inset';
-  }
-  if (left + width < 1 - spaceNeeded) {
-    return 'right';
-  }
-  if (left > spaceNeeded) {
-    return 'left';
-  }
-  return 'inset';
-};
 
 export const getBackgroundColor = ({
   showStriping,
@@ -852,7 +831,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           }}
         >
           {displaySpanBar && (
-            <SpanBarRectangle
+            <RowRectangle
               spanBarHatch={!!spanBarHatch}
               style={{
                 backgroundColor: spanBarColour,
@@ -868,7 +847,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                 {durationString}
                 {this.renderWarningText({warningText: bounds.warning})}
               </DurationPill>
-            </SpanBarRectangle>
+            </RowRectangle>
           )}
           {this.renderMeasurements()}
           {this.renderCursorGuide()}
@@ -974,60 +953,6 @@ const CursorGuide = styled('div')`
   background-color: ${p => p.theme.red300};
   transform: translateX(-50%);
   height: 100%;
-`;
-
-const getDurationPillAlignment = ({
-  durationDisplay,
-  theme,
-  spanBarHatch,
-}: {
-  durationDisplay: DurationDisplay;
-  theme: any;
-  spanBarHatch: boolean;
-}) => {
-  switch (durationDisplay) {
-    case 'left':
-      return `right: calc(100% + ${space(0.5)});`;
-    case 'right':
-      return `left: calc(100% + ${space(0.75)});`;
-    default:
-      return `
-        right: ${space(0.75)};
-        color: ${spanBarHatch === true ? theme.gray300 : theme.white};
-      `;
-  }
-};
-
-export const DurationPill = styled('div')<{
-  durationDisplay: DurationDisplay;
-  showDetail: boolean;
-  spanBarHatch: boolean;
-}>`
-  position: absolute;
-  top: 50%;
-  display: flex;
-  align-items: center;
-  transform: translateY(-50%);
-  white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => (p.showDetail === true ? p.theme.gray200 : p.theme.gray300)};
-
-  ${getDurationPillAlignment}
-
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    font-size: 10px;
-  }
-`;
-
-export const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
-  position: absolute;
-  height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
-  top: ${ROW_PADDING}px;
-  left: 0;
-  min-width: 1px;
-  user-select: none;
-  transition: border-color 0.15s ease-in-out;
-  ${p => getHatchPattern(p, '#dedae3', '#f4f2f7')}
 `;
 
 const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`

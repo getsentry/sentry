@@ -8,6 +8,7 @@ import * as ScrollbarManager from 'app/components/events/interfaces/spans/scroll
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Tooltip from 'app/components/tooltip';
 import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
+import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
 import {
   DividerLine,
   DividerLineGhostContainer,
@@ -24,6 +25,7 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
+import {getDurationDisplay} from 'app/components/waterfallTree/utils';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
@@ -31,9 +33,7 @@ import {Theme} from 'app/utils/theme';
 
 import {
   DividerContainer,
-  DurationPill,
   ErrorBadge,
-  TransactionBarRectangle,
   TransactionBarTitleContent,
   TransactionRow,
   TransactionRowCell,
@@ -41,12 +41,7 @@ import {
 } from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
-import {
-  getDurationDisplay,
-  getHumanDuration,
-  isTraceFullDetailed,
-  toPercent,
-} from './utils';
+import {getHumanDuration, isTraceFullDetailed, toPercent} from './utils';
 
 const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
 const TOGGLE_BUTTON_MAX_WIDTH = 30;
@@ -354,7 +349,7 @@ class TransactionBar extends React.Component<Props, State> {
     const widthPercentage = duration / delta;
 
     return (
-      <TransactionBarRectangle
+      <RowRectangle
         spanBarHatch={false}
         style={{
           backgroundColor: palette[transaction.generation % palette.length],
@@ -372,7 +367,7 @@ class TransactionBar extends React.Component<Props, State> {
         >
           {getHumanDuration(duration)}
         </DurationPill>
-      </TransactionBarRectangle>
+      </RowRectangle>
     );
   }
 
