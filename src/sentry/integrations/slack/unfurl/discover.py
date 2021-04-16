@@ -58,7 +58,6 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
                     str(exc),
                     exc_info=True,
                 )
-                pass
             else:
                 saved_query = response.data
 
