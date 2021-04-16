@@ -16,7 +16,6 @@ import TeamStore from 'app/stores/teamStore';
 import space from 'app/styles/space';
 import {Member, Organization, Project, Team, User} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 const getSearchKeyForUser = (user: User) =>
@@ -395,7 +394,7 @@ class SelectMembers extends React.Component<Props, State> {
           option: (provided, state: any) => ({
             ...provided,
             svg: {
-              color: state.isSelected ? theme.white : theme.gray400,
+              color: state.isSelected && state.theme.white,
             },
           }),
         }}
