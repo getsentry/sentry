@@ -89,7 +89,7 @@ class UsageStatsLastMin extends AsyncComponent<Props, State> {
       <Wrapper>
         <Number>{this.minuteData ?? <NotAvailable />}</Number>
         <Description>
-          {tct('accepted [dataCategoryName]', {
+          {tct('[dataCategoryName] accepted ', {
             dataCategoryName: dataCategoryName.toLowerCase(),
           })}
           <br />
