@@ -6,6 +6,7 @@ from django.http.request import QueryDict
 
 from sentry import features
 from sentry.api import client
+from sentry.api.event_search import to_list
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
 from sentry.integrations.slack.message_builder.discover import build_discover_attachment
@@ -41,8 +42,39 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
             continue
 
         params = link.args["query"]
-        params.setlist("order", params.get("sort"))
-        display_mode = str(link.args["query"].get("display", "default"))
+        query_id = params.get("id", None)
+
+        saved_query = {}
+        if query_id:
+            try:
+                response = client.get(
+                    auth=ApiKey(organization=org, scope_list=["org:read"]),
+                    path=f"/organizations/{org_slug}/discover/saved/{query_id}/",
+                )
+
+            except Exception as exc:
+                logger.error(
+                    "Failed to load saved query for unfurl: %s",
+                    str(exc),
+                    exc_info=True,
+                )
+            else:
+                saved_query = response.data
+
+        # Override params from Discover Saved Query if they aren't in the URL
+        params.setlist("order", params.getlist("sort") or to_list(saved_query.get("orderby")))
+        params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
+        params.setlist(
+            "yAxis", params.getlist("yAxis") or to_list(saved_query.get("yAxis", "count()"))
+        )
+        params.setlist("field", params.getlist("field") or to_list(saved_query.get("fields")))
+
+        # Only override if key doesn't exist since we want to account for
+        # an intermediate state where the query could have been cleared
+        if "query" not in params:
+            params.setlist("query", params.getlist("query") or to_list(saved_query.get("query")))
+
+        display_mode = str(params.get("display") or saved_query.get("display", "default"))
 
         if "daily" in display_mode:
             params.setlist("interval", ["1d"])
@@ -63,7 +95,7 @@ def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUr
             )
             continue
 
-        chart_data = {"seriesName": link.args["query"].get("yAxis", "count()"), "stats": resp.data}
+        chart_data = {"seriesName": params.get("yAxis"), "stats": resp.data}
 
         style = display_modes.get(display_mode, display_modes["default"])
 
