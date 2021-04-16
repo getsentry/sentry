@@ -51,13 +51,12 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Build CSS
+        run: NODE_ENV=production yarn build-css
+
       - name: jest
-        env:
-          CI_NODE_TOTAL: ${{ strategy.job-total }}
-          CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
-          NODE_ENV=production yarn build-css
-          JEST_TESTS=$(yarn jest --listTests --json) yarn test-ci --forceExit
+          CI_NODE_TOTAL=${{ strategy.job-total }} CI_NODE_INDEX=${{ matrix.instance }} JEST_TESTS=$(yarn jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
