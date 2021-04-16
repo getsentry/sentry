@@ -79,7 +79,27 @@ export function decodeList(value: string[] | string | undefined | null): string[
   return Array.isArray(value) ? value : isString(value) ? [value] : [];
 }
 
+export function decodeInteger(value: QueryValue, fallback?: number): number | undefined {
+  const unwrapped =
+    Array.isArray(value) && value.length > 0
+      ? value[0]
+      : isString(value)
+      ? value
+      : undefined;
+
+  if (unwrapped === undefined) {
+    return fallback;
+  }
+
+  const parsed = parseInt(unwrapped, 10);
+  if (isFinite(parsed)) {
+    return parsed;
+  }
+  return fallback;
+}
+
 export default {
+  decodeInteger,
   decodeList,
   decodeScalar,
   formatQueryString,
