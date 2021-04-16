@@ -216,6 +216,15 @@ class ReleaseActivityNotification(ActivityNotification):
     def get_subject(self) -> str:
         return f"Deployed version {self.release.version} to {self.environment}"
 
+    def get_title(self) -> str:
+        return self.get_subject()
+
+    def get_dm_links(self):
+        return {"settings_url": absolute_uri("/settings/account/notifications/")}
+
+    def get_dm_text(self) -> str:
+        return f"Version {self.release.version} was deployed to {self.environment}"
+
     def get_template(self) -> str:
         return "sentry/emails/activity/release.txt"
 
