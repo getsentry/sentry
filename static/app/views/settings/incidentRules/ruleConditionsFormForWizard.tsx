@@ -130,7 +130,7 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
 
     return (
       <React.Fragment>
-        <Panel>
+        <ChartPanel>
           <StyledPanelBody>
             {this.props.thresholdChart({
               footer: (
@@ -175,8 +175,8 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
               ),
             })}
           </StyledPanelBody>
-        </Panel>
-        <StyledListItem>{t('Select Events')}</StyledListItem>
+        </ChartPanel>
+        <StyledListItem>{t('Filter events')}</StyledListItem>
         <FormRow>
           <SelectField
             name="environment"
@@ -307,6 +307,10 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
     );
   }
 }
+
+const ChartPanel = styled(Panel)`
+  margin-bottom: ${space(4)};
+`;
 
 const StyledPanelBody = styled(PanelBody)`
   ol,
