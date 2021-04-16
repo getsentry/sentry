@@ -18,7 +18,10 @@ class ProjectMetricsTagsEndpoint(ProjectEndpoint):
 
     def get(self, request, project, metric_name, tag_name):
 
-        tag_values = DATA_SOURCE.get_tag_values(project, metric_name, tag_name)
+        try:
+            tag_values = DATA_SOURCE.get_tag_values(project, metric_name, tag_name)
+        except InvalidParams as exc:
+            raise (ParseError(detail=str(exc)))
 
         return Response(tag_values, status=200)
 
