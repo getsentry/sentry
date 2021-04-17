@@ -26,6 +26,7 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {Column, fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
+import {getDuration} from 'app/utils/formatters';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
@@ -400,8 +401,13 @@ class TableView extends React.Component<TableViewProps> {
 
           return;
         }
-        default:
+        default: {
+          if (column.type === 'duration' && typeof value === 'number') {
+            // values are assumed to be in milliseconds
+            value = getDuration(value / 1000, 2, true);
+          }
           updateQuery(query, action, column.name, value);
+        }
       }
       nextView.query = stringifyQueryObject(query);
 
