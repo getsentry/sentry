@@ -115,7 +115,7 @@ describe('Incident Rules Details', function () {
       .simulate('change', {target: {value: 12}});
 
     // Create a new action
-    wrapper.find('button[aria-label="Add New Action"]').simulate('click');
+    wrapper.find('button[aria-label="Add Action"]').simulate('click');
 
     // Save Trigger
     wrapper.find('button[aria-label="Create Rule"]').simulate('submit');
