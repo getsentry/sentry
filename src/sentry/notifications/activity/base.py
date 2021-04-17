@@ -3,8 +3,8 @@ from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, S
 from urllib.parse import urlparse, urlunparse
 
 from django.core.urlresolvers import reverse
-from django.utils.html import escape, mark_safe
-from django.utils.safestring import SafeString
+from django.utils.html import escape
+from django.utils.safestring import SafeString, mark_safe
 
 from sentry import options
 from sentry.models import (
