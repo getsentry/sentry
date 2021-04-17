@@ -36,8 +36,6 @@ const defaultProps = {
   round: false,
 };
 
-type DefaultProps = Readonly<typeof defaultProps>;
-
 type Props = {
   size?: number;
   /**
@@ -48,6 +46,9 @@ type Props = {
    * Default gravatar to display
    */
   default?: string;
+  /**
+   * Path to uploaded avatar (differs based on model type)
+   */
   uploadPath?: 'avatar' | 'team-avatar' | 'organization-avatar' | 'project-avatar';
   uploadId?: string | null | undefined;
   gravatarId?: string;
@@ -61,16 +62,23 @@ type Props = {
    * Additional props for the tooltip
    */
   tooltipOptions?: Omit<Tooltip['props'], 'children' | 'title'>;
-
   className?: string;
-
   forwardedRef?: React.Ref<HTMLSpanElement>;
-
   style?: React.CSSProperties;
-
   suggested?: boolean;
-} & Partial<DefaultProps> &
-  React.HTMLAttributes<HTMLSpanElement>;
+  /**
+   * Enable to display tooltips.
+   */
+  hasTooltip?: boolean;
+  /**
+   * The type of avatar being rendered.
+   */
+  type?: 'letter_avatar' | 'upload' | 'gravatar' | 'background';
+  /**
+   * Should avatar be round instead of a square
+   */
+  round?: boolean;
+} & React.HTMLAttributes<HTMLSpanElement>;
 
 type State = {
   showBackupAvatar: boolean;
