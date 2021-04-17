@@ -166,6 +166,10 @@ class Create extends React.Component<Props, State> {
 
 const AlertConditionsBody = styled(Layout.Body)`
   margin-bottom: -20px;
+
+  * {
+    max-width: 1000px;
+  }
 `;
 
 export default Create;
