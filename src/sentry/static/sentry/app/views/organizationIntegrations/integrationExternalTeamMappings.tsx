@@ -111,7 +111,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     const {organization, integration} = this.props;
     openModal(({Body, Header, closeModal}) => (
       <React.Fragment>
-        <Header closeButton>{t('Configure External User Mapping')}</Header>
+        <Header closeButton>{t('Configure External Team Mapping')}</Header>
         <Body>
           <IntegrationExternalMappingForm
             organization={organization}
