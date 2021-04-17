@@ -5,8 +5,9 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
+import ListItem from 'app/components/list/listItem';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import {PanelItem} from 'app/components/panels';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -15,8 +16,6 @@ import {uniqueId} from 'app/utils/guid';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import withOrganization from 'app/utils/withOrganization';
-import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
-import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
 import ActionTargetSelector from 'app/views/settings/incidentRules/triggers/actionsPanel/actionTargetSelector';
 import DeleteActionButton from 'app/views/settings/incidentRules/triggers/actionsPanel/deleteActionButton';
 import {
@@ -249,107 +248,100 @@ class ActionsPanel extends React.PureComponent<Props> {
       .sort((a, b) => a.dateCreated - b.dateCreated);
 
     return (
-      <Panel>
-        <PanelBody withPadding>
-          <FieldLabel>{t('Add an Action')}</FieldLabel>
-          <FieldHelp>
-            {t(
-              'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
-            )}
-          </FieldHelp>
-        </PanelBody>
-        <PanelBody>
-          {loading && <LoadingIndicator />}
-          {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
-            return (
-              <PanelItemWrapper key={action.id ?? action.unsavedId}>
-                <RuleRowContainer>
-                  <PanelItemGrid>
-                    <PanelItemSelects>
-                      <SelectControl
-                        name="select-level"
-                        aria-label={t('Select a status level')}
-                        isDisabled={disabled || loading}
-                        placeholder={t('Select Level')}
-                        onChange={this.handleChangeActionLevel.bind(
-                          this,
-                          triggerIndex,
-                          actionIdx
-                        )}
-                        value={triggerIndex}
-                        options={levels}
-                      />
-
-                      <SelectControl
-                        name="select-action"
-                        aria-label={t('Select an Action')}
-                        isDisabled={disabled || loading}
-                        placeholder={t('Select Action')}
-                        onChange={this.handleChangeActionType.bind(
-                          this,
-                          triggerIndex,
-                          actionIdx
-                        )}
-                        value={getActionUniqueKey(action)}
-                        options={items ?? []}
-                      />
-
-                      {availableAction &&
-                      availableAction.allowedTargetTypes.length > 1 ? (
-                        <SelectControl
-                          isDisabled={disabled || loading}
-                          value={action.targetType}
-                          options={availableAction?.allowedTargetTypes?.map(
-                            allowedType => ({
-                              value: allowedType,
-                              label: TargetLabel[allowedType],
-                            })
-                          )}
-                          onChange={this.handleChangeTarget.bind(
-                            this,
-                            triggerIndex,
-                            actionIdx
-                          )}
-                        />
-                      ) : null}
-                      <ActionTargetSelector
-                        action={action}
-                        availableAction={availableAction}
-                        disabled={disabled}
-                        loading={loading}
-                        onChange={this.handleChangeTargetIdentifier.bind(
-                          this,
-                          triggerIndex,
-                          actionIdx
-                        )}
-                        organization={organization}
-                        project={project}
-                      />
-                    </PanelItemSelects>
-                    <DeleteActionButton
-                      triggerIndex={triggerIndex}
-                      index={actionIdx}
-                      onClick={this.handleDeleteAction}
-                      disabled={disabled}
+      <React.Fragment>
+        <StyledListItem>{t('Perform actions when a threshold is met')}</StyledListItem>
+        <AlertParagraph>
+          {t(
+            'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
+          )}
+        </AlertParagraph>
+        {loading && <LoadingIndicator />}
+        {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
+          return (
+            <div key={action.id ?? action.unsavedId}>
+              <RuleRowContainer>
+                <PanelItemGrid>
+                  <PanelItemSelects>
+                    <SelectControl
+                      name="select-level"
+                      aria-label={t('Select a status level')}
+                      isDisabled={disabled || loading}
+                      placeholder={t('Select Level')}
+                      onChange={this.handleChangeActionLevel.bind(
+                        this,
+                        triggerIndex,
+                        actionIdx
+                      )}
+                      value={triggerIndex}
+                      options={levels}
                     />
-                  </PanelItemGrid>
-                </RuleRowContainer>
-              </PanelItemWrapper>
-            );
-          })}
-          <StyledPanelItem>
-            <Button
-              type="button"
-              disabled={disabled || loading}
-              size="small"
-              icon={<IconAdd isCircled color="gray300" />}
-              onClick={this.handleAddAction}
-            >
-              {t('Add New Action')}
-            </Button>
-          </StyledPanelItem>
-        </PanelBody>
-      </Panel>
+                    <SelectControl
+                      name="select-action"
+                      aria-label={t('Select an Action')}
+                      isDisabled={disabled || loading}
+                      placeholder={t('Select Action')}
+                      onChange={this.handleChangeActionType.bind(
+                        this,
+                        triggerIndex,
+                        actionIdx
+                      )}
+                      value={getActionUniqueKey(action)}
+                      options={items ?? []}
+                    />
+
+                    {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
+                      <SelectControl
+                        isDisabled={disabled || loading}
+                        value={action.targetType}
+                        options={availableAction?.allowedTargetTypes?.map(
+                          allowedType => ({
+                            value: allowedType,
+                            label: TargetLabel[allowedType],
+                          })
+                        )}
+                        onChange={this.handleChangeTarget.bind(
+                          this,
+                          triggerIndex,
+                          actionIdx
+                        )}
+                      />
+                    ) : null}
+                    <ActionTargetSelector
+                      action={action}
+                      availableAction={availableAction}
+                      disabled={disabled}
+                      loading={loading}
+                      onChange={this.handleChangeTargetIdentifier.bind(
+                        this,
+                        triggerIndex,
+                        actionIdx
+                      )}
+                      organization={organization}
+                      project={project}
+                    />
+                  </PanelItemSelects>
+                  <DeleteActionButton
+                    triggerIndex={triggerIndex}
+                    index={actionIdx}
+                    onClick={this.handleDeleteAction}
+                    disabled={disabled}
+                  />
+                </PanelItemGrid>
+              </RuleRowContainer>
+            </div>
+          );
+        })}
+        <ActionSection>
+          <Button
+            type="button"
+            disabled={disabled || loading}
+            icon={<IconAdd isCircled color="gray300" />}
+            onClick={this.handleAddAction}
+          >
+            {t('Add Action')}
+          </Button>
+        </ActionSection>
+      </React.Fragment>
     );
   }
 }
@@ -358,15 +350,23 @@ const ActionsPanelWithSpace = styled(ActionsPanel)`
   margin-top: ${space(4)};
 `;
 
-const PanelItemWrapper = styled(`div`)`
-  padding: ${space(0.5)} ${space(2)} ${space(1)};
+const ActionSection = styled('div')`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(3)};
+`;
+
+const AlertParagraph = styled('p')`
+  color: ${p => p.theme.subText};
+  margin-left: ${space(4)};
+  margin-bottom: ${space(1)};
+  margin-top: -25px;
 `;
 
 const PanelItemGrid = styled(PanelItem)`
   display: flex;
   align-items: center;
-  padding: ${space(1)};
   border-bottom: 0;
+  padding: ${space(1)};
 `;
 
 const PanelItemSelects = styled('div')`
@@ -382,14 +382,15 @@ const PanelItemSelects = styled('div')`
   }
 `;
 
-const StyledPanelItem = styled(PanelItem)`
-  padding: ${space(1)} ${space(2)} ${space(2)};
-`;
-
 const RuleRowContainer = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => p.theme.border} solid;
+`;
+
+const StyledListItem = styled(ListItem)`
+  margin: ${space(2)} 0 ${space(3)} 0;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 export default withOrganization(ActionsPanelWithSpace);
