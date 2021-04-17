@@ -159,7 +159,9 @@ class RuleListRow extends React.Component<Props, State> {
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
     const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const hasAlertList = organization.features.includes('alert-list');
-    const alertLink = <Link to={hasRedesign ? detailsLink : editLink}>{rule.name}</Link>;
+    const alertLink = (
+      <TitleLink to={hasRedesign ? detailsLink : editLink}>{rule.name}</TitleLink>
+    );
 
     return (
       <ErrorBoundary>
@@ -299,15 +301,21 @@ const RuleType = styled('div')`
 `;
 
 const Title = styled('div')`
-  ${overflowEllipsis}
   ${columnCss}
+`;
 
+const TitleLink = styled(Link)`
+  ${overflowEllipsis}
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     max-width: 100px;
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    max-width: 195px;
+    max-width: 120px;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    max-width: 300px;
   }
 `;
 
@@ -329,14 +337,6 @@ const AlertNameAndStatus = styled('div')`
   ${overflowEllipsis}
   margin-left: ${space(1.5)};
   line-height: 1.4;
-
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    max-width: 100px;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    max-width: 195px;
-  }
 `;
 
 const ProjectBadge = styled(IdBadge)`
@@ -348,21 +348,21 @@ const TriggerText = styled('div')`
   white-space: nowrap;
 `;
 
-const StyledDropdownLink = styled('div')`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: block;
-  }
-`;
-
 const StyledButtonBar = styled(ButtonBar)`
   display: none;
   justify-content: flex-start;
   align-items: center;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: flex;
+  }
+`;
+
+const StyledDropdownLink = styled('div')`
+  display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: block;
   }
 `;
 
