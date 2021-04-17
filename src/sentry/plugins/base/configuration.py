@@ -1,6 +1,6 @@
 from django.contrib import messages
-from django.core.urlresolvers import reverse
 from django.http import Http404, HttpResponseRedirect
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 

@@ -1,7 +1,7 @@
 import logging
 
 from celery.task import current
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from requests.exceptions import ConnectionError, RequestException, Timeout
 
 from sentry.api.serializers import AppPlatformEvent, serialize

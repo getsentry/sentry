@@ -4,10 +4,10 @@ from functools import partial, update_wrapper
 from django.contrib import messages
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as login_user
-from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.template.context_processors import csrf
+from django.urls import reverse
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect

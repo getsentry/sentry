@@ -1,9 +1,9 @@
 from django import forms
 from django.contrib import messages
-from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import F
 from django.http import HttpResponse, HttpResponseRedirect
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import features, roles
