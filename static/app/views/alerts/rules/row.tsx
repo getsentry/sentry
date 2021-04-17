@@ -202,7 +202,7 @@ class RuleListRow extends React.Component<Props, State> {
         )}
         {!hasAlertList && <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>}
         <FlexCenter>{dateCreated}</FlexCenter>
-        <FlexCenter>
+        <ActionsRow>
           <Access access={['alerts:write']}>
             {({hasAccess}) => (
               <React.Fragment>
@@ -279,7 +279,7 @@ class RuleListRow extends React.Component<Props, State> {
               </React.Fragment>
             )}
           </Access>
-        </FlexCenter>
+        </ActionsRow>
       </ErrorBoundary>
     );
   }
@@ -306,16 +306,15 @@ const Title = styled('div')`
 
 const TitleLink = styled(Link)`
   ${overflowEllipsis}
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    max-width: 100px;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    max-width: 120px;
-  }
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     max-width: 300px;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    max-width: 165px;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    max-width: 100px;
   }
 `;
 
@@ -364,6 +363,10 @@ const StyledDropdownLink = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: block;
   }
+`;
+
+const ActionsRow = styled(FlexCenter)`
+  justify-content: center;
 `;
 
 export default RuleListRow;
