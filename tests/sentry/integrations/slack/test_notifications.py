@@ -15,9 +15,12 @@ from sentry.models import (
 )
 from sentry.notifications.activity import (
     AssignedActivityNotification,
+    NewProcessingIssuesActivityNotification,
     NoteActivityNotification,
+    RegressionActivityNotification,
     ReleaseActivityNotification,
     ResolvedActivityNotification,
+    ResolvedInReleaseActivityNotification,
     UnassignedActivityNotification,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
@@ -163,6 +166,118 @@ class SlackActivityNotificationTest(ActivityTestCase):
         assert (
             attachment["footer"]
             == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=ResolvedActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=ResolvedActivitySlack|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    def test_regression(self, mock_func):
+        """
+        Test that a Slack message is sent with the expected payload when an issue regresses
+        """
+        notification = RegressionActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user=self.user,
+                type=ActivityType.SET_REGRESSION,
+                data={},
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        attachment = self.get_attachment()
+
+        assert attachment["title"] == "Regression"
+        assert attachment["text"] == f"{self.name} marked {self.short_id} as a regression"
+        assert (
+            attachment["footer"]
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=RegressionActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=RegressionActivitySlack|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    def test_new_processing_issue(self, mock_func):
+        """
+        Test that a Slack message is sent with the expected payload when an issue is held back in reprocessing
+        """
+        data = [
+            {
+                "data": {
+                    "image_arch": "arm64",
+                    "image_path": "/var/containers/Bundle/Application/FB14D416-DE4E-4224-9789-6B88E9C42601/CrashProbeiOS.app/CrashProbeiOS",
+                    "image_uuid": "a2df1794-e0c7-371c-baa4-93eac340a78a",
+                },
+                "object": "dsym:a2df1794-e0c7-371c-baa4-93eac340a78a",
+                "scope": "native",
+                "type": "native_missing_dsym",
+            },
+            {
+                "data": {
+                    "image_arch": "arm64",
+                    "image_path": "/var/containers/Bundle/Application/FB14D416-DE4E-4224-9789-6B88E9C42601/CrashProbeiOS.app/libCrashProbeiOS",
+                    "image_uuid": "12dc1b4c-a01b-463f-ae88-5cf0c31ae680",
+                },
+                "object": "dsym:12dc1b4c-a01b-463f-ae88-5cf0c31ae680",
+                "scope": "native",
+                "type": "native_bad_dsym",
+            },
+        ]
+        notification = NewProcessingIssuesActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user=self.user,
+                type=ActivityType.NEW_PROCESSING_ISSUES,
+                data={
+                    "issues": data,
+                    "reprocessing_active": True,
+                },
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        attachment = self.get_attachment()
+
+        assert attachment["title"] == f"Processing Issues on {self.project.slug}"
+        assert (
+            attachment["text"]
+            == f"Some events failed to process in your project {self.project.slug}"
+        )
+        assert (
+            attachment["footer"]
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=NewProcessingIssuesActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=NewProcessingIssuesActivitySlack|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    def test_resolved_in_release(self, mock_func):
+        """
+        Test that a Slack message is sent with the expected payload when an issue is resolved in a release
+        """
+        notification = ResolvedInReleaseActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user=self.user,
+                type=ActivityType.SET_RESOLVED_IN_RELEASE,
+                data={"version": "meow"},
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        attachment = self.get_attachment()
+        release_name = notification.activity.data["version"]
+        assert attachment["title"] == "Resolved Issue"
+        assert (
+            attachment["text"]
+            == f"{self.name} marked {self.short_id} as resolved in {release_name}"
+        )
+        assert (
+            attachment["footer"]
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=ResolvedInReleaseActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=ResolvedInReleaseActivitySlack|Notification Settings>"
         )
 
     @responses.activate
