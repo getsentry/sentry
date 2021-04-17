@@ -36,6 +36,7 @@ class IntegrationExternalMappings extends React.Component<Props, State> {
               <SentryNameColumn>{tct('Sentry [type]', {type})}</SentryNameColumn>
               <ButtonColumn>
                 <AddButton
+                  data-test-id="add-mapping-button"
                   onClick={() => onCreateOrEdit()}
                   size="xsmall"
                   icon={<IconAdd size="xs" isCircled />}
