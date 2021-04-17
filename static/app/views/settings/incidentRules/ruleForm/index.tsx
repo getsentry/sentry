@@ -708,7 +708,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             <Feature organization={organization} features={['alert-wizard']}>
               {({hasFeature}) =>
                 hasFeature ? (
-                  <List symbol="colored-numeric">
+                  <List symbol="colored-numeric" initialCounterValue={1}>
                     <RuleConditionsFormForWizard
                       api={this.api}
                       projectSlug={params.projectId}
@@ -718,7 +718,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={dataset === Dataset.ERRORS}
                     />
-                    <StyledListItem>{t('Set thresholds and actions')}</StyledListItem>
+                    <StyledListItem>
+                      {t('Set thresholds to trigger alert')}
+                    </StyledListItem>
                     {triggerForm(hasAccess)}
                     <StyledListItem>{t('Add a name and team')}</StyledListItem>
                     {ruleNameOwnerForm(hasAccess)}
