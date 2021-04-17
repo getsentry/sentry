@@ -554,9 +554,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               ) : null
             }
           >
-            <List symbol="colored-numeric">
+            <List symbol="colored-numeric" initialCounterValue={1}>
               {this.state.loading && <SemiTransparentLoadingMask />}
-              <StyledListItem>{t('Add Alert Settings')}</StyledListItem>
+              <StyledListItem>{t('Add alert settings')}</StyledListItem>
               <Panel>
                 <PanelBody>
                   <SelectField
@@ -612,8 +612,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   </StyledField>
                 </PanelBody>
               </Panel>
-              <StyledListItem>{t('Set Conditions')}</StyledListItem>
-              <Panel>
+              <StyledListItem>{t('Set conditions')}</StyledListItem>
+              <ConditionsPanel>
                 <PanelBody>
                   <Step>
                     <StepConnector />
@@ -816,8 +816,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     </StepContainer>
                   </Step>
                 </PanelBody>
-              </Panel>
-              <StyledListItem>{t('Set Action Interval')}</StyledListItem>
+              </ConditionsPanel>
+              <StyledListItem>{t('Set action interval')}</StyledListItem>
               <Panel>
                 <PanelBody>
                   <SelectField
@@ -847,6 +847,11 @@ export default withOrganization(withTeams(IssueRuleEditor));
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<Form['props']>`
   position: relative;
+`;
+
+const ConditionsPanel = styled(Panel)`
+  padding-top: ${space(0.5)};
+  padding-bottom: ${space(2)};
 `;
 
 const StyledAlert = styled(Alert)`
