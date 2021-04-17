@@ -13,7 +13,13 @@ from sentry.models import (
     Release,
     UserOption,
 )
-from sentry.notifications.activity import NoteActivityNotification, ReleaseActivityNotification
+from sentry.notifications.activity import (
+    AssignedActivityNotification,
+    NoteActivityNotification,
+    ReleaseActivityNotification,
+    ResolvedActivityNotification,
+    UnassignedActivityNotification,
+)
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -51,8 +57,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
                 "installation_type": "born_as_bot",
             },
         )
-        self.org = self.create_organization(name="foo", owner=self.user)
-        self.integration.add_organization(self.org, self.user)
+        self.integration.add_organization(self.organization, self.user)
         ExternalActor.objects.create(
             actor=self.user.actor,
             organization=self.organization,
@@ -68,6 +73,8 @@ class SlackActivityNotificationTest(ActivityTestCase):
             status=200,
             content_type="application/json",
         )
+        self.name = self.user.get_display_name()
+        self.short_id = self.group.qualified_short_id
 
     def get_attachment(self):
         data = parse_qs(responses.calls[0].request.body)
@@ -76,6 +83,87 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
         assert len(attachments) == 1
         return attachments[0]
+
+    @responses.activate
+    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    def test_assignment(self, mock_func):
+        """
+        Test that a Slack message is sent with the expected payload when an issue is assigned
+        """
+        notification = AssignedActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user=self.user,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": self.user.id},
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        attachment = self.get_attachment()
+
+        assert attachment["title"] == "Assigned"
+        assert attachment["text"] == f"{self.name} assigned {self.short_id} to {self.name}"
+        assert (
+            attachment["footer"]
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=AssignedActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=AssignedActivitySlack|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    def test_unassignment(self, mock_func):
+        """
+        Test that a Slack message is sent with the expected payload when an issue is unassigned
+        """
+        notification = UnassignedActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user=self.user,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": ""},
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        attachment = self.get_attachment()
+
+        assert attachment["title"] == "Unassigned"
+        assert attachment["text"] == f"{self.name} unassigned {self.short_id}"
+        assert (
+            attachment["footer"]
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=UnassignedActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=UnassignedActivitySlack|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    def test_resolved(self, mock_func):
+        """
+        Test that a Slack message is sent with the expected payload when an issue is resolved
+        """
+        notification = ResolvedActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user=self.user,
+                type=ActivityType.SET_RESOLVED,
+                data={"assignee": ""},
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        attachment = self.get_attachment()
+
+        assert attachment["title"] == "Resolved Issue"
+        assert attachment["text"] == f"{self.name} marked {self.short_id} as resolved"
+        assert (
+            attachment["footer"]
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=ResolvedActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=ResolvedActivitySlack|Notification Settings>"
+        )
 
     @responses.activate
     @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
@@ -95,8 +183,14 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with self.tasks():
             notification.send()
 
-        attachments = self.get_attachment()
-        assert attachments["title"] == "New comment by admin@localhost"
+        attachment = self.get_attachment()
+
+        assert attachment["title"] == f"New comment by {self.name}"
+        assert attachment["text"] == notification.activity.data["text"]
+        assert (
+            attachment["footer"]
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=NoteActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=NoteActivitySlack|Notification Settings>"
+        )
 
     @responses.activate
     @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
@@ -111,7 +205,9 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
         release.add_project(self.project)
         deploy = Deploy.objects.create(
-            release=release, organization_id=self.org.id, environment_id=self.environment.id
+            release=release,
+            organization_id=self.organization.id,
+            environment_id=self.environment.id,
         )
         notification = ReleaseActivityNotification(
             Activity(
@@ -124,7 +220,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with self.tasks():
             notification.send()
 
-        attachments = self.get_attachment()
+        attachment = self.get_attachment()
         assert (
-            attachments["title"] == f"Deployed version {release.version} to {self.environment.name}"
+            attachment["title"] == f"Deployed version {release.version} to {self.environment.name}"
+        )
+        assert (
+            attachment["text"]
+            == f"Version {release.version} was deployed to {self.environment.name}"
+        )
+        assert (
+            attachment["footer"]
+            == "<http://testserver/settings/account/notifications/?referrer=ReleaseActivitySlack|Notification Settings>"
         )
