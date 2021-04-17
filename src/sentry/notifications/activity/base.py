@@ -316,4 +316,3 @@ class ActivityNotification:
                     user, reason, context, self.group
                 )
                 fire(provider, self, user, user_context)
-                # registry[provider](self, user, user_context)

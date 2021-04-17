@@ -10,7 +10,7 @@ from sentry.types.integrations import ExternalProviders
 from tests.sentry.mail.activity import ActivityTestCase
 
 
-class NoteEmailTestCase(ActivityTestCase):
+class NoteTestCase(ActivityTestCase):
     def setUp(self):
         super().setUp()
         self.email = NoteActivityNotification(
@@ -53,57 +53,3 @@ class NoteEmailTestCase(ActivityTestCase):
 
         participants = self.email.get_participants()[ExternalProviders.EMAIL]
         assert len(participants) == 0
-
-
-class NoteSlackTestCase(ActivityTestCase):
-    def setUp(self):
-        super().setUp()
-        self.slack = NoteActivityNotification(
-            Activity(
-                project=self.project,
-                group=self.group,
-                user=self.user,
-                type=ActivityType.NOTE,
-                data={"text": "text", "mentions": []},
-            )
-        )
-
-    def test_simple(self):
-        # Defaults: SUBSCRIBE_ONLY and self_notifications:0
-        assert not self.slack.get_participants()
-
-    def test_allow_self_notifications(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
-        )
-        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
-
-        participants = self.slack.get_participants()[ExternalProviders.SLACK]
-        assert len(participants) == 1
-        assert participants == {
-            self.user: GroupSubscriptionReason.implicit,
-        }
-
-    def test_disable_self_notifications(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
-        )
-        UserOption.objects.create(user=self.user, key="self_notifications", value="0")
-
-        participants = self.slack.get_participants()[ExternalProviders.SLACK]
-        assert len(participants) == 0
-
-    def test_sending(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
-        )
-        self.slack.send()
