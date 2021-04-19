@@ -4,11 +4,6 @@ import time
 
 from sentry.utils import json
 
-dist_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "src", "sentry", "static", "sentry", "dist")
-)
-manifest_path = os.path.join(dist_path, "manifest.json")
-
 
 def pytest_configure(config):
     """
@@ -23,15 +18,6 @@ def pytest_configure(config):
     # `CI` is a default env var in GHA (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
     if os.environ.get("CI") or os.environ.get("SKIP_ACCEPTANCE_UI_BUILD"):
         return
-
-    # Create an empty webpack manifest file - otherwise tests will crash if it does not exist
-    os.makedirs(dist_path, exist_ok=True)
-
-    # Only create manifest if it doesn't exist
-    # (e.g. acceptance tests will have an actual manifest from webpack)
-    if not os.path.exists(manifest_path):
-        with open(manifest_path, "w+") as fp:
-            fp.write("{}")
 
     try:
         with open("./.webpack.meta") as f:
@@ -83,13 +69,3 @@ def pytest_configure(config):
         raise Exception(
             "Unable to run `yarn` -- make sure your development environment is setup correctly: https://docs.sentry.io/development/contribute/environment/#macos---nodejs"
         )
-
-
-def pytest_unconfigure():
-    if not os.path.exists(manifest_path):
-        return
-
-    # Clean up manifest file if contents are empty
-    with open(manifest_path) as f:
-        if f.read() == "{}":
-            os.remove(manifest_path)
