@@ -405,6 +405,10 @@ class MetricChart extends React.PureComponent<Props, State> {
       )
     );
 
+    const viableEndDate = getUtcDateString(
+      moment.utc(timePeriod.end).add(rule.timeWindow, 'minutes')
+    );
+
     return (
       <EventsRequest
         api={api}
@@ -416,7 +420,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           .map(project => Number(project.id))}
         interval={interval}
         start={viableStartDate}
-        end={timePeriod.end}
+        end={viableEndDate}
         yAxis={rule.aggregate}
         includePrevious={false}
         currentSeriesName={rule.aggregate}
