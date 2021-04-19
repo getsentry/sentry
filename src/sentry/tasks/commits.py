@@ -1,6 +1,6 @@
 import logging
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import (

@@ -3,8 +3,8 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 import pytest
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db import models
+from django.urls import reverse
 from exam import fixture
 
 from sentry.auth.authenticators import TotpInterface

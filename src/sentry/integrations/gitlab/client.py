@@ -1,6 +1,6 @@
 from urllib.parse import quote
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized

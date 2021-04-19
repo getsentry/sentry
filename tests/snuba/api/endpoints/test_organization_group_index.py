@@ -2,7 +2,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 from dateutil.parser import parse as parse_datetime
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options

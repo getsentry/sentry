@@ -1,4 +1,4 @@
-from django.core.urlresolvers import NoReverseMatch, reverse
+from django.urls import NoReverseMatch, reverse
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.testutils import APITestCase, SnubaTestCase

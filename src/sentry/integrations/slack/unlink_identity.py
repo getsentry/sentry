@@ -1,6 +1,6 @@
-from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.http import Http404
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
 from sentry.models import Identity

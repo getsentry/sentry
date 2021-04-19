@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment

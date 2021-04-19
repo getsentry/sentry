@@ -1,5 +1,5 @@
 import responses
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.token_exchange import GrantExchanger

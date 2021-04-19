@@ -1,7 +1,7 @@
 import abc
 
-from django.core.urlresolvers import reverse
 from django.template.defaultfilters import pluralize
+from django.urls import reverse
 
 from sentry.incidents.models import (
     INCIDENT_STATUS,

@@ -1,8 +1,8 @@
 import datetime
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db.models import F
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, TotpInterface

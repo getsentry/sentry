@@ -3,7 +3,7 @@ from io import BytesIO
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models import EventAttachment, File

@@ -2,8 +2,8 @@ import logging
 from urllib.parse import quote, urlencode
 from uuid import uuid4
 
-from django.core.urlresolvers import reverse
 from django.test import override_settings
+from django.urls import reverse
 
 from sentry.models import Environment, UserReport
 from sentry.testutils import TestCase

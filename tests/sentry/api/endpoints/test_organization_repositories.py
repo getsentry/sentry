@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.example import ExampleRepositoryProvider

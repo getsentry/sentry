@@ -1,5 +1,5 @@
 import responses
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.testutils import APITestCase

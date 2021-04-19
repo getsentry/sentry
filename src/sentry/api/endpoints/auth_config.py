@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry import newsletter

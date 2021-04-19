@@ -1,7 +1,7 @@
 from base64 import b64encode
 
 import pytest
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from pytz import utc
 
 from sentry.discover.models import KeyTransaction

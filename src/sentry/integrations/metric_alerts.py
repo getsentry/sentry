@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, get_incident_aggregates
 from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus, IncidentTrigger

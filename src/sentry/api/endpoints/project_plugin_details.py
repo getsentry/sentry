@@ -1,5 +1,5 @@
 from django import forms
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.response import Response
 

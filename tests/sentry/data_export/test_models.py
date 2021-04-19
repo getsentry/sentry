@@ -2,7 +2,7 @@ import tempfile
 from datetime import timedelta
 
 from django.core import mail
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.data_export.base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus

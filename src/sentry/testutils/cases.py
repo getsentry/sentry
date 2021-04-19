@@ -37,11 +37,11 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
 from exam import Exam, before, fixture

@@ -1,6 +1,6 @@
 __all__ = ("ApiClient",)
 
-from django.core.urlresolvers import resolve
+from django.urls import resolve
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from sentry.auth.superuser import Superuser

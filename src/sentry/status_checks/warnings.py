@@ -1,6 +1,6 @@
 from urllib.parse import urljoin
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from .base import Problem, StatusCheck
 

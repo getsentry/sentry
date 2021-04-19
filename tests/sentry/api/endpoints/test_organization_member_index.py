@@ -1,5 +1,5 @@
 from django.core import mail
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry import roles
 from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer

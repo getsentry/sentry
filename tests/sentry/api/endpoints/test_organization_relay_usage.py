@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import pytz
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from exam import fixture
 
 from sentry.models import RelayUsage

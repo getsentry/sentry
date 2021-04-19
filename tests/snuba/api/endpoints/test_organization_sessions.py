@@ -2,7 +2,7 @@ import datetime
 from uuid import uuid4
 
 import pytz
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase

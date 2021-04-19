@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.integrations.jira import JiraCreateTicketAction

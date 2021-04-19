@@ -1,8 +1,8 @@
 from functools import wraps
 
 from django.contrib import messages
-from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from sentry_sdk import Hub
 

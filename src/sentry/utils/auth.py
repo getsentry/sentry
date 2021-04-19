@@ -4,7 +4,7 @@ from time import time
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
-from django.core.urlresolvers import resolve, reverse
+from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
 
 from sentry.models import Authenticator, User

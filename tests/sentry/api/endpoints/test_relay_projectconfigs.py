@@ -2,7 +2,7 @@ import re
 from uuid import uuid4
 
 import pytest
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
 from sentry import quotas

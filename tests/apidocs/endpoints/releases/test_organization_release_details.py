@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
+from django.urls import reverse
 
 from tests.apidocs.util import APIDocsTestCase
 

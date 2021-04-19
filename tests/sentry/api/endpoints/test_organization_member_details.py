@@ -1,6 +1,6 @@
 from django.core import mail
-from django.core.urlresolvers import reverse
 from django.db.models import F
+from django.urls import reverse
 
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import (

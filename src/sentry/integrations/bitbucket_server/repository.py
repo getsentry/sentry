@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.models.integration import Integration
