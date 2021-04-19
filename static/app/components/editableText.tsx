@@ -39,9 +39,13 @@ function EditableText({value, onChange, name, errorMessage, successMessage}: Pro
         displayStatusMessage('error');
         return;
       }
-      onChange(inputValue);
+
+      if (inputValue !== value) {
+        onChange(inputValue);
+        displayStatusMessage('success');
+      }
+
       setIsEditing(false);
-      displayStatusMessage('success');
     }
   });
 
@@ -51,9 +55,13 @@ function EditableText({value, onChange, name, errorMessage, successMessage}: Pro
         displayStatusMessage('error');
         return;
       }
-      onChange(inputValue);
+
+      if (inputValue !== value) {
+        onChange(inputValue);
+        displayStatusMessage('success');
+      }
+
       setIsEditing(false);
-      displayStatusMessage('success');
     }
   }, [enter, inputValue, onChange]);
 
