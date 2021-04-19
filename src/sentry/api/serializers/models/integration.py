@@ -11,6 +11,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.integrations import get_provider_string
 
 logger = logging.getLogger(__name__)
 
@@ -211,7 +212,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 @register(ExternalTeam)
 class ExternalTeamSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        provider = ExternalTeam.get_provider_string(obj.provider)
+        provider = get_provider_string(obj.provider)
         return {
             "id": str(obj.id),
             "teamId": str(obj.team_id),
@@ -223,7 +224,7 @@ class ExternalTeamSerializer(Serializer):
 @register(ExternalUser)
 class ExternalUserSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        provider = ExternalUser.get_provider_string(obj.provider)
+        provider = get_provider_string(obj.provider)
         return {
             "id": str(obj.id),
             "memberId": str(obj.organizationmember_id),

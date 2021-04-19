@@ -10,7 +10,7 @@ from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.snuba import discover
-from sentry.utils.validators import is_event_id, INVALID_EVENT_DETAILS
+from sentry.utils.validators import INVALID_EVENT_DETAILS, is_event_id
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
@@ -22,6 +22,8 @@ ERROR_COLUMNS = [
     "trace.span",
     "transaction",
     "issue",
+    "title",
+    "tags[level]",
 ]
 
 
@@ -67,6 +69,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "span": event["trace.span"],
             "project_id": event["project.id"],
             "project_slug": event["project"],
+            "title": event["title"],
+            "level": event["tags[level]"],
         }
 
     def construct_span_map(self, events, key):
@@ -446,7 +450,10 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         )
                     # We need to connect back to an existing orphan trace
                     if has_orphans and child["span_id"] in results_map:
-                        previous_event["children"].extend(results_map.pop(child["span_id"]))
+                        orphan_subtraces = results_map.pop(child["span_id"])
+                        for orphan_subtrace in orphan_subtraces:
+                            orphan_subtrace["parent_event_id"] = previous_event["event_id"]
+                        previous_event["children"].extend(orphan_subtraces)
                     if child["span_id"] not in parent_map:
                         continue
                     # Avoid potential span loops by popping, so we don't traverse the same nodes twice

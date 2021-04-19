@@ -8,6 +8,7 @@ from sentry.incidents.models import (
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
     AlertRuleTrigger,
+    Incident,
 )
 from sentry.models import ACTOR_TYPES, Rule, actor_type_to_class, actor_type_to_string
 from sentry.snuba.models import SnubaQueryEventType
@@ -17,6 +18,9 @@ from sentry.utils.db import attach_foreignkey
 
 @register(AlertRule)
 class AlertRuleSerializer(Serializer):
+    def __init__(self, expand=None):
+        self.expand = expand or []
+
     def get_attrs(self, item_list, user, **kwargs):
         alert_rules = {item.id: item for item in item_list}
         attach_foreignkey(item_list, AlertRule.snuba_query, related=("environment",))
@@ -68,6 +72,16 @@ class AlertRuleSerializer(Serializer):
                 type = actor_type_to_string(alert_rule.owner.type)
                 result[alert_rule]["owner"] = f"{type}:{resolved_actors[type][alert_rule.owner_id]}"
 
+        if "original_alert_rule" in self.expand:
+            snapshot_activities = AlertRuleActivity.objects.filter(
+                alert_rule__in=item_list,
+                type=AlertRuleActivityType.SNAPSHOT.value,
+            )
+            for activity in snapshot_activities:
+                result[alert_rules[activity.alert_rule_id]][
+                    "originalAlertRuleId"
+                ] = activity.previous_alert_rule_id
+
         return result
 
     def serialize(self, obj, attrs, user):
@@ -94,6 +108,7 @@ class AlertRuleSerializer(Serializer):
             "projects": sorted(attrs.get("projects", [])),
             "includeAllProjects": obj.include_all_projects,
             "owner": attrs.get("owner", None),
+            "originalAlertRuleId": attrs.get("originalAlertRuleId", None),
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
@@ -130,15 +145,27 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
 
 
 class CombinedRuleSerializer(Serializer):
+    def __init__(self, expand=None):
+        self.expand = expand or []
+
     def get_attrs(self, item_list, user, **kwargs):
         results = super().get_attrs(item_list, user)
 
-        alert_rules = serialize([x for x in item_list if isinstance(x, AlertRule)], user=user)
+        alert_rules = [x for x in item_list if isinstance(x, AlertRule)]
+        incident_map = {}
+        if "latestIncident" in self.expand:
+            for incident in Incident.objects.filter(id__in=[x.incident_id for x in alert_rules]):
+                incident_map[incident.id] = serialize(incident, user=user)
+
+        serialized_alert_rules = serialize(alert_rules, user=user)
         rules = serialize([x for x in item_list if isinstance(x, Rule)], user=user)
 
         for item in item_list:
             if isinstance(item, AlertRule):
-                results[item] = alert_rules.pop(0)
+                alert_rule = serialized_alert_rules.pop(0)
+                if "latestIncident" in self.expand:
+                    alert_rule["latestIncident"] = incident_map.get(item.incident_id)
+                results[item] = alert_rule
             elif isinstance(item, Rule):
                 results[item] = rules.pop(0)
 

@@ -15,7 +15,6 @@ from sentry.models import (
     Commit,
     Group,
     GroupSubscription,
-    GroupSubscriptionReason,
     Integration,
     NotificationSetting,
     Project,
@@ -25,9 +24,10 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.models.integration import ExternalProviders
+from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.helpers import transform_to_notification_settings_by_user
 from sentry.notifications.types import (
+    GroupSubscriptionReason,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -35,6 +35,7 @@ from sentry.notifications.types import (
 from sentry.plugins.base import plugins
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
@@ -156,9 +157,9 @@ class MailAdapter:
         Return a collection of USERS that are eligible to receive
         notifications for the provided project.
         """
-        return NotificationSetting.objects.get_notification_recipients(
-            ExternalProviders.EMAIL, project
-        )[ExternalProviders.EMAIL]
+        return NotificationSetting.objects.get_notification_recipients(project)[
+            ExternalProviders.EMAIL
+        ]
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)
@@ -512,10 +513,7 @@ class MailAdapter:
 
     def notify_about_activity(self, activity):
         metrics.incr("mail_adapter.notify_about_activity")
-        # TODO: We should move these into the `mail` module.
-        from sentry.mail.activity import emails
-
-        email_cls = emails.get(activity.type)
+        email_cls = EMAIL_CLASSES_BY_TYPE.get(activity.type)
         if not email_cls:
             logger.debug(f"No email associated with activity type `{activity.get_type_display()}`")
             return

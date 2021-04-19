@@ -20,6 +20,7 @@ from sentry.models import (
     Integration,
 )
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
+from sentry.models.groupowner import GroupOwner
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -228,6 +229,18 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             **kwargs,
         )
 
+    def run_test_query_in_syntax(
+        self, query, expected_groups, expected_negative_groups=None, environments=None
+    ):
+        results = self.make_query(search_filter_query=query, environments=environments)
+        sort_key = lambda result: result.id
+        print("results", results.results)
+        assert sorted(results, key=sort_key) == sorted(expected_groups, key=sort_key)
+
+        if expected_negative_groups is not None:
+            results = self.make_query(search_filter_query=f"!{query}")
+            assert sorted(results, key=sort_key) == sorted(expected_negative_groups, key=sort_key)
+
     def test_query(self):
         results = self.make_query(search_filter_query="foo")
         assert set(results) == {self.group1}
@@ -345,6 +358,25 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(search_filter_query="is:resolved")
         assert set(results) == {self.group2}
 
+        event_3 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "event_id": "c" * 32,
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+            },
+            project_id=self.project.id,
+        )
+        group_3 = event_3.group
+        group_3.status = GroupStatus.MUTED
+        group_3.save()
+
+        self.run_test_query_in_syntax(
+            "status:[unresolved, resolved]", [self.group1, self.group2], [group_3]
+        )
+        self.run_test_query_in_syntax(
+            "status:[resolved, muted]", [self.group2, group_3], [self.group1]
+        )
+
     def test_status_with_environment(self):
         results = self.make_query(
             environments=[self.environments["production"]], search_filter_query="is:unresolved"
@@ -420,6 +452,16 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
     def test_bookmarked_by(self):
         results = self.make_query(search_filter_query="bookmarks:%s" % self.user.username)
         assert set(results) == {self.group2}
+
+    def test_bookmarked_by_in_syntax(self):
+        self.run_test_query_in_syntax(
+            f"bookmarks:[{self.user.username}]", [self.group2], [self.group1]
+        )
+        user_2 = self.create_user()
+        GroupBookmark.objects.create(user=user_2, group=self.group1, project=self.group2.project)
+        self.run_test_query_in_syntax(
+            f"bookmarks:[{self.user.username}, {user_2.username}]", [self.group2, self.group1], []
+        )
 
     def test_bookmarked_by_with_environment(self):
         results = self.make_query(
@@ -927,6 +969,196 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(search_filter_query="assigned:%s" % owner.username)
         assert set(results) == set()
 
+    def test_assigned_to_in_syntax(self):
+        group_3 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "event_id": "c" * 32,
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+            },
+            project_id=self.project.id,
+        ).group
+        group_3.status = GroupStatus.MUTED
+        group_3.save()
+        other_user = self.create_user()
+        self.run_test_query_in_syntax(
+            f"assigned:[{self.user.username}, {other_user.username}]",
+            [self.group2],
+            [self.group1, group_3],
+        )
+
+        GroupAssignee.objects.create(project=self.project, group=group_3, user=other_user)
+        self.run_test_query_in_syntax(
+            f"assigned:[{self.user.username}, {other_user.username}]",
+            [self.group2, group_3],
+            [self.group1],
+        )
+
+        self.run_test_query_in_syntax(
+            f"assigned:[#{self.team.slug}, {other_user.username}]",
+            [group_3],
+            [self.group1, self.group2],
+        )
+
+        ga_2 = GroupAssignee.objects.get(
+            user=self.user, group=self.group2, project=self.group2.project
+        )
+        ga_2.update(team=self.team, user=None)
+        self.run_test_query_in_syntax(
+            f"assigned:[{self.user.username}, {other_user.username}]",
+            [self.group2, group_3],
+            [self.group1],
+        )
+        self.run_test_query_in_syntax(
+            f"assigned:[#{self.team.slug}, {other_user.username}]",
+            [self.group2, group_3],
+            [self.group1],
+        )
+
+        self.run_test_query_in_syntax(
+            f"assigned:[me, none, {other_user.username}]",
+            [self.group1, self.group2, group_3],
+            [],
+        )
+
+    def test_assigned_or_suggested_in_syntax(self):
+        Group.objects.all().delete()
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=180)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        group1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=185)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        group2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=190)),
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project.id,
+        ).group
+
+        assigned_group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=195)),
+                "fingerprint": ["group-4"],
+            },
+            project_id=self.project.id,
+        ).group
+
+        assigned_to_other_group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=195)),
+                "fingerprint": ["group-5"],
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.run_test_query_in_syntax(
+            "assigned_or_suggested:[me]",
+            [],
+            [group, group1, group2, assigned_group, assigned_to_other_group],
+        )
+
+        GroupOwner.objects.create(
+            group=assigned_to_other_group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+        GroupOwner.objects.create(
+            group=group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+        self.run_test_query_in_syntax(
+            "assigned_or_suggested:[me]",
+            [group, assigned_to_other_group],
+            [group1, group2, assigned_group],
+        )
+
+        # Because assigned_to_other_event is assigned to self.other_user, it should not show up in assigned_or_suggested search for anyone but self.other_user. (aka. they are now the only owner)
+        other_user = self.create_user("other@user.com", is_superuser=False)
+        GroupAssignee.objects.create(
+            group=assigned_to_other_group,
+            project=self.project,
+            user=other_user,
+        )
+        self.run_test_query_in_syntax(
+            "assigned_or_suggested:[me]",
+            [group],
+            [group1, group2, assigned_group, assigned_to_other_group],
+        )
+
+        self.run_test_query_in_syntax(
+            f"assigned_or_suggested:[{other_user.email}]",
+            [assigned_to_other_group],
+            [group, group1, group2, assigned_group],
+        )
+
+        GroupAssignee.objects.create(group=assigned_group, project=self.project, user=self.user)
+        self.run_test_query_in_syntax(
+            f"assigned_or_suggested:[{self.user.email}]",
+            [assigned_group, group],
+        )
+
+        GroupOwner.objects.create(
+            group=group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=self.team.id,
+            user_id=None,
+        )
+        self.run_test_query_in_syntax(
+            f"assigned_or_suggested:[#{self.team.slug}]",
+            [group],
+        )
+
+        self.run_test_query_in_syntax(
+            "assigned_or_suggested:[me, none]",
+            [group, group1, group2, assigned_group],
+            [assigned_to_other_group],
+        )
+
+        not_me = self.create_user(email="notme@sentry.io")
+        GroupOwner.objects.create(
+            group=group2,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=None,
+            user_id=not_me.id,
+        )
+        self.run_test_query_in_syntax(
+            "assigned_or_suggested:[me, none]",
+            [group, group1, assigned_group],
+            [assigned_to_other_group, group2],
+        )
+        GroupOwner.objects.filter(group=group, user=self.user).delete()
+        self.run_test_query_in_syntax(
+            f"assigned_or_suggested:[me, none, #{self.team.slug}]",
+            [group, group1, assigned_group],
+            [assigned_to_other_group, group2],
+        )
+        self.run_test_query_in_syntax(
+            f"assigned_or_suggested:[me, none, #{self.team.slug}, {not_me.email}]",
+            [group, group1, assigned_group, group2],
+            [assigned_to_other_group],
+        )
+
     def test_assigned_to_with_environment(self):
         results = self.make_query(
             environments=[self.environments["staging"]],
@@ -945,6 +1177,18 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             [self.group1.project], search_filter_query="subscribed:%s" % self.user.username
         )
         assert set(results) == {self.group1}
+
+    def test_subscribed_by_in_syntax(self):
+        self.run_test_query_in_syntax(
+            f"subscribed:[{self.user.username}]", [self.group1], [self.group2]
+        )
+        user_2 = self.create_user()
+        GroupSubscription.objects.create(
+            user=user_2, group=self.group2, project=self.project, is_active=True
+        )
+        self.run_test_query_in_syntax(
+            f"subscribed:[{self.user.username}, {user_2.username}]", [self.group1, self.group2], []
+        )
 
     def test_subscribed_by_with_environment(self):
         results = self.make_query(
@@ -1200,10 +1444,62 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(search_filter_query="first_release:%s" % release_1.version)
         assert set(results) == {group}
 
+    def test_first_release_in_syntax(self):
+        # expect no groups within the results since there are no releases
+        self.run_test_query_in_syntax("first_release:[fake, fake2]", [])
+
+        # expect no groups even though there is a release; since no group
+        # is attached to a release
+        release_1 = self.create_release(self.project)
+        release_2 = self.create_release(self.project)
+
+        self.run_test_query_in_syntax(
+            f"first_release:[{release_1.version}, {release_2.version}]", []
+        )
+
+        # Create a new event so that we get a group in this release
+        group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group9001"],
+                "event_id": "a" * 32,
+                "message": "hello",
+                "environment": "production",
+                "tags": {"server": "example.com"},
+                "release": release_1.version,
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.run_test_query_in_syntax(
+            f"first_release:[{release_1.version}, {release_2.version}]",
+            [group],
+            [self.group1, self.group2],
+        )
+
+        # Create a new event so that we get a group in this release
+        group_2 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group9002"],
+                "event_id": "a" * 32,
+                "message": "hello",
+                "environment": "production",
+                "tags": {"server": "example.com"},
+                "release": release_2.version,
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.run_test_query_in_syntax(
+            f"first_release:[{release_1.version}, {release_2.version}]",
+            [group, group_2],
+        )
+
     def test_first_release_environments(self):
         results = self.make_query(
             environments=[self.environments["production"]],
-            search_filter_query="first_release:%s" % "fake",
+            search_filter_query="first_release:fake",
         )
         assert set(results) == set()
 
@@ -1214,7 +1510,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
         results = self.make_query(
             environments=[self.environments["production"]],
-            search_filter_query="first_release:%s" % release.version,
+            search_filter_query=f"first_release:{release.version}",
         )
         assert set(results) == set()
 
@@ -1223,9 +1519,54 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
         results = self.make_query(
             environments=[self.environments["production"]],
-            search_filter_query="first_release:%s" % release.version,
+            search_filter_query=f"first_release:{release.version}",
         )
         assert set(results) == {self.group1}
+
+    def test_first_release_environments_in_syntax(self):
+        self.run_test_query_in_syntax(
+            "first_release:[fake, fake2]",
+            [],
+            [self.group1, self.group2],
+            environments=[self.environments["production"]],
+        )
+
+        release = self.create_release(self.project)
+        group_1_env = GroupEnvironment.objects.get(
+            group_id=self.group1.id, environment_id=self.environments["production"].id
+        )
+        group_1_env.update(first_release=release)
+
+        self.run_test_query_in_syntax(
+            f"first_release:[{release.version}, fake2]",
+            [self.group1],
+            [self.group2],
+            environments=[self.environments["production"]],
+        )
+
+        group_2_env = GroupEnvironment.objects.get(
+            group_id=self.group2.id, environment_id=self.environments["staging"].id
+        )
+        group_2_env.update(first_release=release)
+        self.run_test_query_in_syntax(
+            f"first_release:[{release.version}, fake2]",
+            [self.group1, self.group2],
+            [],
+            environments=[self.environments["production"], self.environments["staging"]],
+        )
+
+        # Make sure we don't get duplicate groups
+        GroupEnvironment.objects.create(
+            group_id=self.group1.id,
+            environment_id=self.environments["staging"].id,
+            first_release=release,
+        )
+        self.run_test_query_in_syntax(
+            f"first_release:[{release.version}, fake2]",
+            [self.group1, self.group2],
+            [],
+            environments=[self.environments["production"], self.environments["staging"]],
+        )
 
     def test_query_enclosed_in_quotes(self):
         results = self.make_query(search_filter_query='"foo"')
@@ -1497,6 +1838,10 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
         with pytest.raises(InvalidSearchQuery):
             self.make_query([self.project], sort_by="inbox", search_filter_query="!is:for_review")
+
+    def test_in_syntax_is_invalid(self):
+        with pytest.raises(InvalidSearchQuery, match='"in" syntax invalid for "is" search'):
+            self.make_query(search_filter_query="is:[unresolved, resolved]")
 
     def test_first_release_any_or_no_environments(self):
         # test scenarios for tickets:

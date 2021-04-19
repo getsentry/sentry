@@ -23,9 +23,9 @@ from sentry.models import (
     ProjectTeam,
     Rule,
 )
-from sentry.models.integration import ExternalProviders
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock, zip
 
 

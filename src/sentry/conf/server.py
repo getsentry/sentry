@@ -1957,7 +1957,7 @@ SENTRY_RELAY_WHITELIST_PK = [
 
 # When open registration is not permitted then only relays in the
 # list of explicitly allowed relays can register.
-SENTRY_RELAY_OPEN_REGISTRATION = False
+SENTRY_RELAY_OPEN_REGISTRATION = True
 
 # GeoIP
 # Used for looking up IP addresses.
@@ -2158,9 +2158,6 @@ SENTRY_EXTRA_WORKERS = None
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
-
-# if set to true, create demo organizations on-demand instead of using a buffer
-DEMO_NO_ORG_BUFFER = False
 
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None

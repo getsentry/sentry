@@ -65,7 +65,6 @@ _DELETE_KEYWORDS = os.environ.get("SENTRY_TEST_GROUPING_DELETE_KEYWORDS", "").lo
 class CategorizationInput:
     def __init__(self, filename):
         self.filename = filename
-        self.ran_categorization = False
 
     @cached_property
     def data(self):
@@ -117,7 +116,7 @@ _current_input = local()
 
 
 @pytest.mark.parametrize("input", INPUTS, ids=lambda x: x.filename[:-5].replace("-", "_"))
-def test_categorization(input, insta_snapshot):
+def test_categorization(input: CategorizationInput, insta_snapshot, cleanup_unused_data):
     # XXX: In-process re-runs using pytest-watch or whatever will behave
     # wrongly because input.data is reused between tests, we do this for perf.
     data = input.data
@@ -127,7 +126,8 @@ def test_categorization(input, insta_snapshot):
     finally:
         del _current_input.val
 
-    input.ran_categorization = True
+    cleanup_unused_data[input.filename] = True
+
     insta_snapshot(get_stacktrace_render(data))
 
 
@@ -151,12 +151,14 @@ def cleanup_unused_data():
         return old_apply(self, frames, match_frames, idx, rule=rule)
 
     VarAction.apply_modifications_to_frame = new_apply
-    yield
+
+    ran_tests = {}
+    yield ran_tests
 
     # pytest guarantees us this line is run in case of errors, no try-finally necessary
     VarAction.apply_modifications_to_frame = old_apply
 
-    if not all(input.ran_categorization for input in INPUTS):
+    if not all(ran_tests.get(input.filename) for input in INPUTS):
         # need to run entire test_categorization for this test to run
         return
 

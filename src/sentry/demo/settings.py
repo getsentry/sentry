@@ -20,7 +20,7 @@ CELERYBEAT_SCHEDULE["demo_delete_users_orgs"] = {
 }
 CELERYBEAT_SCHEDULE["demo_delete_initializing_orgs"] = {
     "task": "sentry.demo.tasks.delete_initializing_orgs",
-    "schedule": timedelta(hours=1),
+    "schedule": timedelta(minutes=10),
     "options": {"expires": 3600, "queue": "cleanup"},
 }
 MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + ("sentry.demo.middleware.DemoMiddleware",)
@@ -41,7 +41,7 @@ DEMO_DATA_GEN_PARAMS = {
     "DURATION_ALPHA": 1.1,  # Alpha value in the gamma distribution
     "DURATION_BETA": 1.1,  # Beta value in the gamma distribution
     "MIN_FRONTEND_DURATION": 400,  # absolute minimum duration of a FE transaction in ms
-    "MAX_INITIALIZATION_TIME": 60,  # number of minutes to give an organization to initialize
+    "MAX_INITIALIZATION_TIME": 30,  # number of minutes to give an organization to initialize
     "DISABLE_SESSIONS": False,  # disables generating sessions
 }
 

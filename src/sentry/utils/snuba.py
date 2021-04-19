@@ -51,13 +51,17 @@ MAX_HASHES = 5000
 # in a single query to lessen the load on snuba
 MAX_FIELDS = 20
 
+SAFE_FUNCTIONS = frozenset(["NOT IN"])
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 # Match any text surrounded by quotes, can't use `.*` here since it
 # doesn't include new lines,
 QUOTED_LITERAL_RE = re.compile(r"^'[\s\S]*'$")
 
 MEASUREMENTS_KEY_RE = re.compile(r"^measurements\.([a-zA-Z0-9-_.]+)$")
-SPAN_OP_BREAKDOWNS_KEY_RE = re.compile(r"^span_op_breakdowns\.([a-zA-Z0-9-_.]+)$")
+# Matches span op breakdown field
+SPAN_OP_BREAKDOWNS_FIELD_RE = re.compile(r"^spans\.([a-zA-Z0-9-_.]+)$")
+# Matches span op breakdown snuba key
+SPAN_OP_BREAKDOWNS_KEY_RE = re.compile(r"^ops\.([a-zA-Z0-9-_.]+)$")
 
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
@@ -384,7 +388,9 @@ def get_function_index(column_expr, depth=0):
             # The assumption here is that a list that follows a string means
             # the string is a function name
             if isinstance(column_expr[i], str) and isinstance(column_expr[i + 1], (tuple, list)):
-                assert SAFE_FUNCTION_RE.match(column_expr[i])
+                assert column_expr[i] in SAFE_FUNCTIONS or SAFE_FUNCTION_RE.match(
+                    column_expr[i]
+                ), column_expr[i]
                 index = i
                 break
             else:
@@ -1091,12 +1097,9 @@ def resolve_condition(cond, column_resolver):
                                        current dataset.
     """
     index = get_function_index(cond)
-    if index is not None:
-        # IN conditions are detected as a function but aren't really.
-        if cond[index] == "IN":
-            cond[0] = column_resolver(cond[0])
-            return cond
-        elif cond[index] in FUNCTION_TO_OPERATOR:
+    # IN/NOT IN conditions are detected as a function but aren't really.
+    if index is not None and cond[index] not in ("IN", "NOT IN"):
+        if cond[index] in FUNCTION_TO_OPERATOR:
             func_args = cond[index + 1]
             for i, arg in enumerate(func_args):
                 if i == 0:
@@ -1573,7 +1576,7 @@ def is_duration_measurement(key):
 
 
 def is_span_op_breakdown(key):
-    return isinstance(key, str) and SPAN_OP_BREAKDOWNS_KEY_RE.match(key)
+    return isinstance(key, str) and SPAN_OP_BREAKDOWNS_FIELD_RE.match(key)
 
 
 def get_measurement_name(measurement):
@@ -1582,5 +1585,23 @@ def get_measurement_name(measurement):
 
 
 def get_span_op_breakdown_name(breakdown):
-    match = SPAN_OP_BREAKDOWNS_KEY_RE.match(breakdown)
-    return match.group(1).lower() if match else None
+    match = SPAN_OP_BREAKDOWNS_FIELD_RE.match(breakdown)
+    return f"ops.{match.group(1).lower()}" if match else None
+
+
+def get_array_column_alias(array_column):
+    # array column prefix may be aliased differently to the user (i.e. the product)
+    if array_column == "span_op_breakdowns":
+        return "spans"
+    return array_column
+
+
+def get_span_op_breakdown_key_name(breakdown_key):
+    match = SPAN_OP_BREAKDOWNS_KEY_RE.match(breakdown_key)
+    return match.group(1).lower() if match else breakdown_key
+
+
+def get_array_column_field(array_column, internal_key):
+    if array_column == "span_op_breakdowns":
+        return get_span_op_breakdown_key_name(internal_key)
+    return internal_key
