@@ -1,7 +1,6 @@
 import re
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.enhancer import Enhancer
 from sentry.grouping.strategies.base import call_with_variants, strategy
 from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
@@ -442,8 +441,7 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    enhancer = Enhancer(context.config.enhancements)
-    main_variant, inverted_hierarchy = enhancer.assemble_stacktrace_component(
+    main_variant, inverted_hierarchy = context.config.enhancements.assemble_stacktrace_component(
         values,
         frames_for_filtering,
         meta["event"].platform,
