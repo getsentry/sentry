@@ -84,7 +84,7 @@ export type ObjectStatus =
 
 export type Avatar = {
   avatarUuid: string | null;
-  avatarType: 'letter_avatar' | 'upload' | 'gravatar';
+  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background';
 };
 
 export type Actor = {
@@ -397,7 +397,7 @@ export type AvatarUser = {
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   options?: {
-    avatarType: string;
+    avatarType: Avatar['avatarType'];
   };
   lastSeen?: string;
 };
@@ -436,7 +436,7 @@ export type User = Omit<AvatarUser, 'options'> & {
     stacktraceOrder: number;
     language: string;
     clock24Hours: boolean;
-    avatarType: string;
+    avatarType: Avatar['avatarType'];
   };
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
