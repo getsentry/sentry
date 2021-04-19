@@ -39,8 +39,6 @@ family:native                                   max-frames=3
     )
     enhancement.version = version
 
-    enhancement.version = version
-
     dumped = enhancement.dumps()
     insta_snapshot(dump_obj(enhancement))
     assert Enhancements.loads(dumped).dumps() == dumped
