@@ -1,6 +1,6 @@
 import jwt
 import responses
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from exam import fixture
 from requests.exceptions import ConnectionError
 

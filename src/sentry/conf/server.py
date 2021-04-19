@@ -397,7 +397,7 @@ CSRF_COOKIE_NAME = "sc"
 
 # Auth configuration
 
-from django.core.urlresolvers import reverse_lazy
+from django.urls import reverse_lazy
 
 LOGIN_REDIRECT_URL = reverse_lazy("sentry-login-redirect")
 LOGIN_URL = reverse_lazy("sentry-login")

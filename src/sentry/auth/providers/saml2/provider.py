@@ -3,8 +3,8 @@ from urllib.parse import urlparse
 
 from django.contrib import messages
 from django.contrib.auth import logout
-from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseServerError
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
