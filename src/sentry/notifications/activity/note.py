@@ -5,7 +5,9 @@ from .base import ActivityNotification
 
 class NoteActivityNotification(ActivityNotification):
     def get_context(self) -> MutableMapping[str, Any]:
-        return {}
+        return {
+            "text_description": str(self.activity.data["text"]),
+        }
 
     def get_template(self) -> str:
         return "sentry/emails/activity/note.txt"
@@ -19,6 +21,3 @@ class NoteActivityNotification(ActivityNotification):
     def get_title(self) -> str:
         author = self.activity.user.get_display_name()
         return f"New comment by {author}"
-
-    def get_dm_text(self) -> str:
-        return str(self.activity.data["text"])

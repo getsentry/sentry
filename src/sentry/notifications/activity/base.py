@@ -287,10 +287,7 @@ class ActivityNotification:
         return user_context
 
     def get_title(self) -> str:
-        return str(self.get_context()["activity_name"])
-
-    def get_dm_text(self) -> str:
-        return str(self.get_context()["text_description"])
+        return self.get_activity_name()
 
     def get_dm_links(self):
         links = {}

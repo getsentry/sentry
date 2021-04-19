@@ -22,15 +22,18 @@ def send_notification_as_slack(
         actor=user.actor,
         organization=notification.organization,
     ).select_related("integration")
+    client = SlackClient()
     for external_actor in external_actors:
-        attachment = [build_notification_attachment(notification)]
+        attachment = [build_notification_attachment(notification, context)]
+        integration = external_actor.integration
+        if integration:
+            token = integration.metadata["access_token"]
         payload = {
-            "token": external_actor.integration.metadata["access_token"],
+            "token": token,
             "channel": external_actor.external_id,
             "link_names": 1,
             "attachments": json.dumps(attachment),
         }
-        client = SlackClient()
         try:
             client.post("/chat.postMessage", data=payload, timeout=5)
         except ApiError as e:
