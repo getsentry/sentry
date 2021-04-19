@@ -64,7 +64,6 @@ def _get_project_enhancements_config(project, secondary=False):
     from sentry.utils.hashlib import md5_text
 
     cache_prefix = "grouping-enhancements:" if not secondary else "secondary-grouping-enhancements:"
-    cache_prefix += f"{enhancements.version}:"
     cache_key = cache_prefix + md5_text(f"{enhancements_base}|{enhancements}").hexdigest()
     rv = cache.get(cache_key)
     if rv is not None:

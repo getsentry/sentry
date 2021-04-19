@@ -98,9 +98,7 @@ class StacktraceState:
 
 class Enhancements:
 
-    # NOTE: You must bump the ``version`` any time attributes are added to
-    # this class, s.t. no enhancements lacking these attributes are loaded
-    # from cache.
+    """ The data class containing the enhancer config """
 
     def __init__(self, rules, version=None, bases=None, id=None):
         self.id = id
@@ -112,8 +110,92 @@ class Enhancements:
             bases = []
         self.bases = bases
 
-        self._modifier_rules = [rule for rule in self.iter_rules() if rule.is_modifier]
-        self._updater_rules = [rule for rule in self.iter_rules() if rule.is_updater]
+    def as_dict(self, with_rules=False):
+        rv = {
+            "id": self.id,
+            "bases": self.bases,
+            "latest": projectoptions.lookup_well_known_key(
+                "sentry:grouping_enhancements_base"
+            ).get_default(epoch=projectoptions.LATEST_EPOCH)
+            == self.id,
+        }
+        if with_rules:
+            rv["rules"] = [x.as_dict() for x in self.rules]
+        return rv
+
+    def _to_config_structure(self):
+        return [
+            self.version,
+            self.bases,
+            [x._to_config_structure(self.version) for x in self.rules],
+        ]
+
+    def dumps(self):
+        return (
+            base64.urlsafe_b64encode(zlib.compress(msgpack.dumps(self._to_config_structure())))
+            .decode("ascii")
+            .strip("=")
+        )
+
+    def iter_rules(self):
+        for base in self.bases:
+            base = ENHANCEMENT_BASES.get(base)
+            if base:
+                yield from base.iter_rules()
+        yield from self.rules
+
+    @classmethod
+    def _from_config_structure(cls, data):
+        version, bases, rules = data
+        if version not in VERSIONS:
+            raise ValueError("Unknown version")
+        return cls(
+            rules=[Rule._from_config_structure(x, version=version) for x in rules],
+            version=version,
+            bases=bases,
+        )
+
+    @classmethod
+    def loads(cls, data):
+        if isinstance(data, str):
+            data = data.encode("ascii", "ignore")
+        padded = data + b"=" * (4 - (len(data) % 4))
+        try:
+            return cls._from_config_structure(
+                msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)), raw=False)
+            )
+        except (LookupError, AttributeError, TypeError, ValueError) as e:
+            raise ValueError("invalid stack trace rule config: %s" % e)
+
+    @classmethod
+    def from_config_string(self, s, bases=None, id=None):
+        try:
+            tree = enhancements_grammar.parse(s)
+        except ParseError as e:
+            context = e.text[e.pos : e.pos + 33]
+            if len(context) == 33:
+                context = context[:-1] + "..."
+            raise InvalidEnhancerConfig(
+                f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
+            )
+        return EnhancmentsVisitor(bases, id).visit(tree)
+
+
+class Enhancer:
+
+    """The agent executing the enhancer config
+
+    Contrary to ``Enhancements``, this class is not serialized, so you can
+    add helper attributes to its ``__dict__`` without worrying about
+    compatibility.
+
+    """
+
+    def __init__(self, enhancements: Enhancements):
+        self._enhancements = enhancements
+
+        self._modifier_rules = [rule for rule in enhancements.iter_rules() if rule.is_modifier]
+        self._updater_rules = [rule for rule in enhancements.iter_rules() if rule.is_updater]
 
     def apply_modifications_to_frame(self, frames, platform, exception_data):
         """This applies the frame modifications to the frames itself.  This
@@ -200,76 +282,6 @@ class Enhancements:
         )
 
         return component, inverted_hierarchy
-
-    def as_dict(self, with_rules=False):
-        rv = {
-            "id": self.id,
-            "bases": self.bases,
-            "latest": projectoptions.lookup_well_known_key(
-                "sentry:grouping_enhancements_base"
-            ).get_default(epoch=projectoptions.LATEST_EPOCH)
-            == self.id,
-        }
-        if with_rules:
-            rv["rules"] = [x.as_dict() for x in self.rules]
-        return rv
-
-    def _to_config_structure(self):
-        return [
-            self.version,
-            self.bases,
-            [x._to_config_structure(self.version) for x in self.rules],
-        ]
-
-    def dumps(self):
-        return (
-            base64.urlsafe_b64encode(zlib.compress(msgpack.dumps(self._to_config_structure())))
-            .decode("ascii")
-            .strip("=")
-        )
-
-    def iter_rules(self):
-        for base in self.bases:
-            base = ENHANCEMENT_BASES.get(base)
-            if base:
-                yield from base.iter_rules()
-        yield from self.rules
-
-    @classmethod
-    def _from_config_structure(cls, data):
-        version, bases, rules = data
-        if version not in VERSIONS:
-            raise ValueError("Unknown version")
-        return cls(
-            rules=[Rule._from_config_structure(x, version=version) for x in rules],
-            version=version,
-            bases=bases,
-        )
-
-    @classmethod
-    def loads(cls, data):
-        if isinstance(data, str):
-            data = data.encode("ascii", "ignore")
-        padded = data + b"=" * (4 - (len(data) % 4))
-        try:
-            return cls._from_config_structure(
-                msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)), raw=False)
-            )
-        except (LookupError, AttributeError, TypeError, ValueError) as e:
-            raise ValueError("invalid stack trace rule config: %s" % e)
-
-    @classmethod
-    def from_config_string(self, s, bases=None, id=None):
-        try:
-            tree = enhancements_grammar.parse(s)
-        except ParseError as e:
-            context = e.text[e.pos : e.pos + 33]
-            if len(context) == 33:
-                context = context[:-1] + "..."
-            raise InvalidEnhancerConfig(
-                f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
-            )
-        return EnhancmentsVisitor(bases, id).visit(tree)
 
 
 class Rule:

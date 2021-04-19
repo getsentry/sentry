@@ -237,6 +237,8 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
     This also trims functions if necessary.
     """
 
+    from sentry.grouping.enhancer import Enhancer
+
     stacktraces = []
     stacktrace_exceptions = []
 
@@ -278,10 +280,9 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
+        enhancer = Enhancer(grouping_config.enhancements)
         for frames, exception_data in zip(stacktraces, stacktrace_exceptions):
-            grouping_config.enhancements.apply_modifications_to_frame(
-                frames, platform, exception_data
-            )
+            enhancer.apply_modifications_to_frame(frames, platform, exception_data)
 
     # normalize in-app
     for stacktrace in stacktraces:
