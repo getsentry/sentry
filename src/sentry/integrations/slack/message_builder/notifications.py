@@ -9,6 +9,8 @@ def build_notification_footer(links, notification_type):
     settings_url = urljoin(links["settings_url"], "?referrer=" + referrer)
 
     if notification_type == "ReleaseActivityNotification":
+        # groups are not associated with a deploy notification
+        # so in this one case, the footer is different
         return f"<{settings_url}|Notification Settings>"
 
     group_url = urljoin(links["group_url"], "?referrer=" + referrer)
