@@ -310,6 +310,7 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
 
 const ChartPanel = styled(Panel)`
   margin-bottom: ${space(4)};
+  min-height: 335px;
 `;
 
 const StyledPanelBody = styled(PanelBody)`
