@@ -51,6 +51,7 @@ const getFieldOptionConfig = ({
   if (organization.features.includes('alert-wizard')) {
     const alertType = getAlertTypeFromAggregateDataset({dataset, aggregate});
     config = WizardMetricFieldConfigs[alertType];
+    // Hide selectors if they only show one option
     hidePrimarySelector = config.aggregations.length === 1;
     hideParameterSelector =
       (config.measurementKeys?.length ? 1 : 0) + config.fields.length === 1;
