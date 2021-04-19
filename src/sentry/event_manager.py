@@ -359,7 +359,8 @@ class EventManager:
                 job["event"].data.data, project
             )
 
-        _calculate_event_grouping(project, job["event"], grouping_config)
+        with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"):
+            _calculate_event_grouping(project, job["event"], grouping_config)
 
         flat_hashes = job["event"].data["hashes"] + secondary_flat_hashes
         hierarchical_hashes = job["event"].data.get("hierarchical_hashes") or []
@@ -1614,7 +1615,10 @@ def _calculate_event_grouping(project, event, grouping_config):
     """
 
     with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
-        normalize_stacktraces_for_grouping(event.data.data, load_grouping_config(grouping_config))
+        with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
+            normalize_stacktraces_for_grouping(
+                event.data.data, load_grouping_config(grouping_config)
+            )
 
     with metrics.timer("event_manager.apply_server_fingerprinting"):
         # The active grouping config was put into the event in the
