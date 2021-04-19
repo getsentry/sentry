@@ -6,12 +6,13 @@ from django.template.base import token_kwargs
 from django.utils.safestring import mark_safe
 
 from sentry import options
-from sentry.utils.assets import get_asset_url
+from sentry.utils.assets import get_asset_url, get_manifest_url
 from sentry.utils.http import absolute_uri
 
 register = template.Library()
 
 register.simple_tag(get_asset_url, name="asset_url")
+register.simple_tag(get_manifest_url, name="manifest_asset_url")
 
 
 @register.simple_tag
@@ -20,8 +21,8 @@ def absolute_asset_url(module, path):
     Returns a versioned absolute asset URL (located within Sentry's static files).
 
     Example:
-      {% absolute_asset_url 'sentry' 'dist/sentry.css' %}
-      =>  "http://sentry.example.com/_static/74d127b78dc7daf2c51f/sentry/dist/sentry.css"
+      {% absolute_asset_url 'sentry' 'images/email/foo.png' %}
+      =>  "http://sentry.example.com/_static/74d127b78dc7daf2c51f/sentry/images/email/foo.png"
     """
     return absolute_uri(get_asset_url(module, path))
 
@@ -61,7 +62,7 @@ def locale_js_include(context):
     if hasattr(request, "csp_nonce"):
         nonce = f' nonce="{request.csp_nonce}"'
 
-    href = get_asset_url("sentry", "dist/locale/" + lang_code + ".js")
+    href = get_manifest_url("sentry", "locale/" + lang_code + ".js")
     return mark_safe(f'<script src="{href}"{crossorigin()}{nonce}></script>')
 
 

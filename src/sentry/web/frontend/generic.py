@@ -33,6 +33,23 @@ def resolve(path):
     return os.path.split(absolute_path)
 
 
+def static_media_with_manifest(request, **kwargs):
+    """
+    Serve static files that are generated with webpack.
+
+    Only these assets should have a long TTL as its filename has a hash based on file contents
+    """
+    path = kwargs.get("path", "")
+
+    kwargs["path"] = f"dist/{path}"
+    response = static_media(request, **kwargs)
+
+    if not settings.DEBUG:
+        response["Cache-Control"] = FOREVER_CACHE
+
+    return response
+
+
 def static_media(request, **kwargs):
     """
     Serve static files below a given point in the directory structure.

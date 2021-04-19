@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
+const {WebpackManifestPlugin} = require('webpack-manifest-plugin');
 const webpack = require('webpack');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
@@ -289,7 +290,7 @@ let appConfig = {
             options: {
               // This needs to be `false` because of platformicons package
               esModule: false,
-              name: '[folder]/[name].[hash:6].[ext]',
+              name: '[folder]/[name].[contenthash:6].[ext]',
             },
           },
         ],
@@ -306,6 +307,8 @@ let appConfig = {
   plugins: [
     new CleanWebpackPlugin(),
 
+    new WebpackManifestPlugin({}),
+
     /**
      * jQuery must be provided in the global scope specifically and only for
      * bootstrap, as it will not import jQuery itself.
@@ -321,7 +324,9 @@ let appConfig = {
     /**
      * Extract CSS into separate files.
      */
-    new MiniCssExtractPlugin(),
+    new MiniCssExtractPlugin({
+      filename: '[name].[contenthash:6].css',
+    }),
 
     /**
      * Defines environment specific flags.
@@ -401,12 +406,15 @@ let appConfig = {
   },
   output: {
     path: distPath,
-    filename: '[name].js',
+    publicPath: '',
+    filename: '[name].[contenthash].js',
+    chunkFilename: '[name].[contenthash].js',
     sourceMapFilename: '[name].js.map',
   },
   optimization: {
     chunkIds: 'named',
     moduleIds: 'named',
+    runtimeChunk: {name: 'runtime'},
     splitChunks: {
       // Only affect async chunks, otherwise webpack could potentially split our initial chunks
       // Which means the app will not load because we'd need these additional chunks to be loaded in our
@@ -480,19 +488,17 @@ if (
 
     appConfig.devServer = {
       ...appConfig.devServer,
-      publicPath: '/_webpack',
+      publicPath: '/_static/dist/sentry',
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: {
         '/api/store/**': relayAddress,
         '/api/{1..9}*({0..9})/**': relayAddress,
         '/api/0/relays/outcomes/': relayAddress,
-        '!/_webpack': backendAddress,
+        '!/_static/dist/sentry/**': backendAddress,
       },
-      before: app =>
-        app.use((req, _res, next) => {
-          req.url = req.url.replace(/^\/_static\/[^\/]+\/sentry\/dist/, '/_webpack');
-          next();
-        }),
+      writeToDisk: filePath => {
+        return /manifest\.json/.test(filePath);
+      },
     };
   }
 }

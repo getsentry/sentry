@@ -188,7 +188,7 @@ bootstrap() {
 
 clean() {
     echo "--> Cleaning static cache"
-    rm -rf dist/* static/dist/*
+    rm -rf dist/* src/sentry/static/sentry/dist/*
     echo "--> Cleaning integration docs cache"
     rm -rf src/sentry/integration-docs
     echo "--> Cleaning pyc files"
