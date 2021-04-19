@@ -210,14 +210,6 @@ class ActivityNotification:
     def get_title(self) -> str:
         return self.get_activity_name()
 
-    def get_dm_links(self):
-        links = {}
-        links["settings_url"] = absolute_uri("/settings/account/notifications/")
-        links["group_url"] = self.group.get_absolute_url()
-        group_context = self.get_group_context()
-        links["short_id"] = group_context["group"].qualified_short_id
-        return links
-
     def send(self) -> None:
         if not self.should_email():
             return
