@@ -232,17 +232,6 @@ def trim_native_function_name(function, normalize_lambdas=True):
     return _windecl_hash.sub("\\1", function)
 
 
-def get_function_name_for_frame_parts(raw_function, function, frame_platform, platform):
-    """ Cachable version of `get_function_name_for_frame """
-    # if there is a raw function, prioritize the function unchanged
-    if raw_function:
-        return function
-
-    # otherwise trim the function on demand
-    if function:
-        return trim_function_name(function, frame_platform or platform)
-
-
 def get_function_name_for_frame(frame, platform=None):
     """Given a frame object or dictionary this returns the actual function
     name trimmed.
@@ -250,12 +239,14 @@ def get_function_name_for_frame(frame, platform=None):
     if hasattr(frame, "get_raw_data"):
         frame = frame.get_raw_data()
 
-    return get_function_name_for_frame_parts(
-        raw_function=frame.get("raw_function"),
-        function=frame.get("function"),
-        frame_platform=frame.get("platform"),
-        platform=platform,
-    )
+    # if there is a raw function, prioritize the function unchanged
+    if frame.get("raw_function"):
+        return frame.get("function")
+
+    # otherwise trim the function on demand
+    rv = frame.get("function")
+    if rv:
+        return trim_function_name(rv, frame.get("platform") or platform)
 
 
 def set_in_app(frame, value):
