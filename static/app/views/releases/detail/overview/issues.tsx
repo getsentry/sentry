@@ -237,7 +237,7 @@ class Issues extends React.Component<Props, State> {
             <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
           </OpenInButtonBar>
         </ControlsWrapper>
-        <TableWrapper data-test-id="release-wrapper">
+        <div data-test-id="release-wrapper">
           <GroupList
             orgId={orgId}
             endpointPath={path}
@@ -249,7 +249,7 @@ class Issues extends React.Component<Props, State> {
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
           />
-        </TableWrapper>
+        </div>
       </React.Fragment>
     );
   }
@@ -277,10 +277,6 @@ const StyledDropdownButton = styled(DropdownButton)`
 
 const StyledDropdownItem = styled(DropdownItem)`
   white-space: nowrap;
-`;
-
-const TableWrapper = styled('div')`
-  margin-bottom: ${space(4)};
 `;
 
 const StyledPagination = styled(Pagination)`
