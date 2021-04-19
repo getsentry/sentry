@@ -256,6 +256,9 @@ def configure_sdk():
             ):
                 metrics.incr("internal.captured.events.envelopes.issues")
 
+            if transaction:
+                metrics.incr("internal.captured.events.transactions")
+
             # Assume only transactions get sent via envelopes
             if options.get("transaction-events.force-disable-internal-project"):
                 return
