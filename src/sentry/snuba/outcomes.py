@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
@@ -16,6 +17,8 @@ from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_query
 
 from .dataset import Dataset
+
+logger = logging.getLogger(__name__)
 
 """
 The new Outcomes API defines a "metrics"-like interface which is can be used in
@@ -279,6 +282,7 @@ def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
         conditions=query.conditions,
         selected_columns=query.query_columns,
         referrer="outcomes.totals",
+        limit=10000,
     )
     result_timeseries = raw_query(
         dataset=query.dataset,
@@ -291,6 +295,7 @@ def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
         end=query.end,
         rollup=query.rollup,
         referrer="outcomes.timeseries",
+        limit=10000,
     )
 
     result_totals = _format_rows(result["data"], query)
