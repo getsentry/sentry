@@ -7,6 +7,7 @@
 # Snuba
 /src/sentry/eventstream/        @getsentry/owners-snuba
 /src/sentry/utils/snuba.py      @getsentry/owners-snuba
+/src/sentry/utils/snql.py       @getsentry/owners-snuba
 /src/sentry/tsdb/snuba.py       @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py  @getsentry/owners-snuba
 /src/sentry/search/snuba/       @getsentry/owners-snuba
@@ -55,19 +56,19 @@ babel.config.*      @getsentry/owners-js-build
 build-utils/        @getsentry/owners-js-build
 
 # Releases UI
-/src/sentry/static/sentry/app/views/releases/                   @getsentry/owners-releases-ui
+/static/app/views/releases/                   @getsentry/owners-releases-ui
 /tests/js/spec/views/releases/                                  @getsentry/owners-releases-ui
 
 # Owners by product feature
 
 ### Issue/Metric Alerts ###
-/src/sentry/static/sentry/app/views/settings/projectAlerts/     @getsentry/workflow
+/static/app/views/settings/projectAlerts/     @getsentry/workflow
 /tests/js/spec/views/settings/projectAlerts/                    @getsentry/workflow
 
-/src/sentry/static/sentry/app/views/settings/incidentRules/     @getsentry/workflow
+/static/app/views/settings/incidentRules/     @getsentry/workflow
 /tests/js/spec/views/settings/incidentRules/                    @getsentry/workflow
 
-/src/sentry/static/sentry/app/views/alerts/                     @getsentry/workflow
+/static/app/views/alerts/                     @getsentry/workflow
 /tests/js/spec/views/alerts/                                    @getsentry/workflow
 
 /src/sentry/templates/sentry/emails/incidents/                  @getsentry/workflow
@@ -125,22 +126,22 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/data_export/                                        @getsentry/visibility
 /tests/sentry/data_export/                                      @getsentry/visibility
 
-/src/sentry/static/sentry/app/views/eventsV2/                   @getsentry/visibility
+/static/app/views/eventsV2/                   @getsentry/visibility
 /tests/js/spec/views/eventsV2/                                  @getsentry/visibility
-/src/sentry/static/sentry/app/views/discover/                   @getsentry/visibility
+/static/app/views/discover/                   @getsentry/visibility
 /tests/js/spec/views/discover/                                  @getsentry/visibility
-/src/sentry/static/sentry/app/views/performance/                @getsentry/visibility
+/static/app/views/performance/                @getsentry/visibility
 /tests/js/spec/views/performance/                               @getsentry/visibility
-/src/sentry/static/sentry/app/utils/discover/                   @getsentry/visibility
+/static/app/utils/discover/                   @getsentry/visibility
 /tests/js/spec/utils/discover/                                  @getsentry/visibility
-/src/sentry/static/sentry/app/utils/performance/                @getsentry/visibility
+/static/app/utils/performance/                @getsentry/visibility
 /tests/js/spec/utils/performance/                               @getsentry/visibility
-/src/sentry/static/sentry/app/views/dashboards/                 @getsentry/visibility
+/static/app/views/dashboards/                 @getsentry/visibility
 /tests/js/spec/views/dashboards/                                @getsentry/visibility
-/src/sentry/static/sentry/app/views/dashboardsV2/               @getsentry/visibility
+/static/app/views/dashboardsV2/               @getsentry/visibility
 /tests/js/spec/views/dashboardsV2/                              @getsentry/visibility
-/src/sentry/static/sentry/app/components/events/interfaces/spans/               @getsentry/visibility
-/src/sentry/static/sentry/app/components/quickTrace/						@getsentry/visibility
+/static/app/components/events/interfaces/spans/               @getsentry/visibility
+/static/app/components/quickTrace/						@getsentry/visibility
 ### Endof Perfomance/Discover ###
 
 
@@ -156,7 +157,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/api/endpoints/sentry_internal_app_token_details.py          @getsentry/ecosystem
 /src/sentry/api/endpoints/sentry_internal_app_tokens.py                 @getsentry/ecosystem
 
-/src/sentry/static/sentry/app/views/organizationIntegrations  @getsentry/ecosystem
+/static/app/views/organizationIntegrations  @getsentry/ecosystem
 
 /src/sentry/integrations/                     @getsentry/ecosystem
 /src/sentry/identity/                         @getsentry/ecosystem

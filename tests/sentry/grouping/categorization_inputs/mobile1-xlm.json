@@ -1,0 +1,109 @@
+{
+  "event_id": "41a5cf9991db4a7bb527f9f7c648f819",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "Dialog.java",
+              "filename": "Dialog.java",
+              "function": "show",
+              "module": "android.app.Dialog"
+            },
+            {
+              "abs_path": "WindowManagerImpl.java",
+              "filename": "WindowManagerImpl.java",
+              "function": "addView",
+              "module": "android.view.WindowManagerImpl"
+            },
+            {
+              "abs_path": "WindowManagerGlobal.java",
+              "filename": "WindowManagerGlobal.java",
+              "function": "addView",
+              "module": "android.view.WindowManagerGlobal"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "setView",
+              "module": "android.view.ViewRootImpl"
+            },
+            {
+              "abs_path": "IWindowSession.java",
+              "filename": "IWindowSession.java",
+              "function": "addToDisplay",
+              "module": "android.view.IWindowSession$Stub$Proxy"
+            },
+            {
+              "abs_path": "InputChannel.java",
+              "filename": "InputChannel.java",
+              "function": "readFromParcel",
+              "module": "android.view.InputChannel"
+            },
+            {
+              "abs_path": "InputChannel.java",
+              "filename": "InputChannel.java",
+              "function": "nativeReadFromParcel",
+              "module": "android.view.InputChannel"
+            }
+          ]
+        },
+        "type": "RuntimeException",
+        "value": "Could not read input channel file descriptors from parcel."
+      }
+    ]
+  },
+  "platform": "java"
+}

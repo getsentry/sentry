@@ -41,13 +41,13 @@ class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
 
         integration = self.provider.build_integration(
             {
-                "vsts": {"accountId": "123", "accountName": "test"},
+                "vsts": {"accountId": self.vsts_account_id, "accountName": "test"},
                 "instance": "https://test.visualstudio.com/",
                 "identity": {"data": {"access_token": "123", "expires_in": 3000}},
             }
         )
 
-        assert integration["external_id"] == "123"
+        assert integration["external_id"] == self.vsts_account_id
         assert integration["name"] == "test"
 
     def test_builds_integration_with_vsts_key(self):

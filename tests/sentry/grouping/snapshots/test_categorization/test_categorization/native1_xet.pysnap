@@ -1,0 +1,67 @@
+---
+created: '2021-03-29T20:00:26.255898Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  std::__1::function<T>::operator() category=indirection
+        abccore.framework/Versions/A/abccore  std::__1::__function::__value_func<T>::operator() category=indirection
+    Mezzanine.framework/Versions/A/Mezzanine  std::__1::__function::__func<T>::operator() category=indirection
+    Mezzanine.framework/Versions/A/Mezzanine  std::__1::__function::__alloc_func<T>::operator() category=indirection
+    Mezzanine.framework/Versions/A/Mezzanine  std::__1::__invoke_void_return_wrapper<T>::__call<T> category=internals
+    Mezzanine.framework/Versions/A/Mezzanine  std::__1::__invoke<T> category=internals
+    Mezzanine.framework/Versions/A/Mezzanine  MZ::`anonymous namespace'::lambda::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                    /usr/lib/libobjc.A.dylib  _objc_msgSend_uncached category=internals
+                    /usr/lib/libobjc.A.dylib  lookUpImpOrForward category=internals
+                    /usr/lib/libobjc.A.dylib  initializeAndMaybeRelock category=internals
+                    /usr/lib/libobjc.A.dylib  initializeNonMetaClass category=internals
+                    /usr/lib/libobjc.A.dylib  CALLING_SOME_+initialize_METHOD category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+               /usr/lib/system/libdyld.dylib  dlopen category=load
+               /usr/lib/system/libdyld.dylib  dlopen_internal category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+           /usr/lib/system/libsystem_c.dylib  __abort category=internals
+      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=internals

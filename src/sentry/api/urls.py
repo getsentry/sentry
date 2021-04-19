@@ -89,6 +89,7 @@ from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
+from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
 from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from .endpoints.group_integrations import GroupIntegrationsEndpoint
@@ -273,6 +274,11 @@ from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
+from .endpoints.project_metrics import (
+    ProjectMetricsDataEndpoint,
+    ProjectMetricsEndpoint,
+    ProjectMetricsTagsEndpoint,
+)
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
@@ -423,6 +429,7 @@ GROUP_URLS = [
         name="integration-details",
     ),
     url(r"^(?P<issue_id>[^\/]+)/current-release/$", GroupCurrentReleaseEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/first-last-release/$", GroupFirstLastReleaseEndpoint.as_view()),
     # Load plugin group urls
     url(r"^(?P<issue_id>[^\/]+)/plugins?/", include("sentry.plugins.base.group_api_urls")),
 ]
@@ -1570,6 +1577,21 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/members/$",
                     ProjectMemberIndexEndpoint.as_view(),
                     name="sentry-api-0-project-member-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/$",
+                    ProjectMetricsEndpoint.as_view(),
+                    name="sentry-api-0-project-metrics-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/data/$",
+                    ProjectMetricsDataEndpoint.as_view(),
+                    name="sentry-api-0-project-metrics-data",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/tags/(?P<metric_name>[^/]+)/(?P<tag_name>[^/]+)/$",
+                    ProjectMetricsTagsEndpoint.as_view(),
+                    name="sentry-api-0-project-metrics-tags",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/$",
