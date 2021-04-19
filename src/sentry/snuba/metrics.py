@@ -113,7 +113,7 @@ class QueryDefinition:
 
 class MockDataSource:
 
-    _tags = {
+    _base_tags = {
         "environment": [
             "production",
             "staging",
@@ -131,29 +131,28 @@ class MockDataSource:
             "healthy",
         ],
     }
-    _tag_names = sorted(_tags.keys())
 
     _metrics = {
         "session": {
             # "type": "counter",
             "operations": ["sum"],
-            "tags": _tag_names,
+            "tags": dict(_base_tags, rating=["good", "bad"]),
         },
         "user": {
             # "type": "set",
             "operations": ["count_unique"],
-            "tags": _tag_names,
+            "tags": dict(_base_tags, membership=["gold", "platinum"]),
         },
         "session.duration": {
             # "type": "distribution",
             "operations": ["avg", "p50", "p75", "p90", "p95", "p99", "max"],
-            "tags": _tag_names,
+            "tags": _base_tags,
             "unit": "seconds",
         },
         "parallel_users": {
             # "type": "gauge",
             "operations": ["avg", "count", "max", "min", "sum"],
-            "tags": _tag_names,
+            "tags": _base_tags,
             "unit": "seconds",
         },
     }
@@ -174,20 +173,36 @@ class MockDataSource:
     }
 
     def get_metrics(self, project: Project) -> List[dict]:
+        """ Get metrics metadata, without tags """
+        return [
+            dict(
+                name=name,
+                **{key: value for key, value in metric.items() if key != "tags"},
+            )
+            for name, metric in self._metrics.items()
+        ]
 
-        return [dict(name=name, **metric) for name, metric in self._metrics.items()]
+    def get_single_metric(self, project: Project, metric_name: str) -> List[dict]:
+        """ Get metadata for a single metric, without tag values """
+        try:
+            metric = self._metrics[metric_name]
+        except KeyError:
+            raise InvalidParams()
+
+        return dict(
+            name=metric_name,
+            **{
+                # Only return metric names
+                key: (sorted(value.keys()) if key == "tags" else value)
+                for key, value in metric.items()
+            },
+        )
 
     def _verify_query(self, query: QueryDefinition):
         if not query.query:
             return
 
-        filter_ = parse_query(query.query)
-        for conditions in filter_["or"]:
-            for tag_name, tag_value in conditions["and"]:
-                if tag_name not in self._tags:
-                    raise InvalidParams(f"Unknown tag '{tag_name}'")
-                if tag_value not in self._tags[tag_name]:
-                    raise InvalidParams(f"Unknown tag value '{tag_value}' for tag '{tag_name}'")
+        parse_query(query.query)
 
     def _generate_series(self, fields: dict, intervals: List[datetime]) -> dict:
 
@@ -222,11 +237,12 @@ class MockDataSource:
 
         self._verify_query(query)
 
-        for tag_name in query.groupby:
-            if tag_name not in self._tags:
-                raise InvalidParams(f"Unknown tag '{tag_name}'")
         tags = [
-            [(tag_name, tag_value) for tag_value in self._tags[tag_name]]
+            {
+                (tag_name, tag_value)
+                for metric in self._metrics.values()
+                for tag_value in metric["tags"].get(tag_name, [])
+            }
             for tag_name in query.groupby
         ]
 
@@ -246,15 +262,44 @@ class MockDataSource:
             else [dict(by={}, **self._generate_series(query.fields, intervals))],
         }
 
-    def get_tag_values(self, project: Project, metric_name: str, tag_name: str) -> Dict[str, str]:
-        # Return same tag names for every metric for now:
-        if metric_name not in self._metrics:
-            raise InvalidParams(f"Unknown metric '{metric_name}'")
+    @classmethod
+    def _get_metric_names(cls, metric_names):
+        if metric_names is None:
+            metric_names = sorted(cls._metrics.keys())
+        else:
+            unknown_metric_names = set(metric_names) - cls._metrics.keys()
+            if unknown_metric_names:
+                raise InvalidParams(f"Unknown metrics '{', '.join(unknown_metric_names)}'")
 
-        try:
-            return self._tags[tag_name]
-        except KeyError:
-            raise InvalidParams(f"Unknown tag '{tag_name}' for metric '{metric_name}'")
+        return metric_names
+
+    def get_tag_names(self, project: Project, metric_names=None):
+        """Get all available tag names for this project
+
+        If ``metric_names`` is provided, the list of available tag names will
+        be filtered by these names.
+        """
+        metric_names = self._get_metric_names(metric_names)
+
+        return sorted(
+            tag_name
+            for metric_name in metric_names
+            for tag_name in self._metrics[metric_name]["tags"]
+        )
+
+    def get_tag_values(self, project: Project, tag_name: str, metric_names=None) -> Dict[str, str]:
+
+        metric_names = self._get_metric_names(metric_names)
+
+        return sorted(
+            {
+                tag_value
+                for metric_name in metric_names
+                for name, tag_values in self._metrics[metric_name]["tags"].items()
+                if name == tag_name
+                for tag_value in tag_values
+            }
+        )
 
 
 DATA_SOURCE = MockDataSource()
