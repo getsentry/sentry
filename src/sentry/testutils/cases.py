@@ -113,7 +113,6 @@ class BaseTestCase(Fixtures, Exam):
         manifest_path = f"{dist_path}/manifest.json"
 
         with open(manifest_path, "w") as manifest_fp:
-            manifest_fp.truncate(0)
             json.dump(manifest_data, manifest_fp)
 
         files = []
@@ -131,7 +130,6 @@ class BaseTestCase(Fixtures, Exam):
             with open(manifest_path, "w") as manifest_fp:
                 # Instead of unlinking, preserve an empty manifest file so that other tests that
                 # may or may not load static assets, do not fail
-                manifest_fp.truncate(0)
                 manifest_fp.write("{}")
 
             # Remove any files created from the test manifest
