@@ -96,7 +96,8 @@ test-python:
 test-python-ci:
 	make build-platform-assets
 	@echo "--> Running CI Python tests"
-	pytest tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	pytest tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" --collect-only || exit 1
+	pytest tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" --capture no || exit 1
 	@echo ""
 
 test-snuba:

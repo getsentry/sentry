@@ -46,6 +46,7 @@ else like actual grouping happens elsewhere like test_variants.py.
 
 import json  # NOQA
 import os
+import traceback
 import uuid
 from threading import local
 
@@ -133,6 +134,8 @@ def test_categorization(input: CategorizationInput, insta_snapshot, cleanup_unus
 
 @pytest.fixture(scope="module", autouse=True)
 def cleanup_unused_data():
+    print("GROUPING CLEANUP")
+    traceback.print_stack()
     from sentry.grouping.enhancer import VarAction
 
     old_apply = VarAction.apply_modifications_to_frame
@@ -154,6 +157,8 @@ def cleanup_unused_data():
 
     ran_tests = {}
     yield ran_tests
+
+    print("GROUPING TEARDOWN")
 
     # pytest guarantees us this line is run in case of errors, no try-finally necessary
     VarAction.apply_modifications_to_frame = old_apply
