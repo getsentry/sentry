@@ -148,7 +148,7 @@ class ActivityNotification:
         user = self.activity.user
         if not user:
             return '<img class="avatar" src="{}" width="20px" height="20px" />'.format(
-                escape(self._get_sentry_avatar_url())
+                escape(self.get_sentry_avatar_url())
             )
         avatar_type = user.get_avatar_type()
         if avatar_type == "upload":
@@ -158,7 +158,8 @@ class ActivityNotification:
         else:
             return get_email_avatar(user.get_display_name(), user.get_label(), 20, True)
 
-    def _get_sentry_avatar_url(self) -> str:
+    @staticmethod
+    def get_sentry_avatar_url() -> str:
         url = "/images/sentry-email-avatar.png"
         return str(absolute_uri(get_asset_url("sentry", url)))
 

@@ -26,7 +26,7 @@ def build_notification_attachment(notification, context):
         "title": notification.get_title(),
         "text": context["text_description"],
         "mrkdwn_in": ["text"],
-        "footer_icon": notification._get_sentry_avatar_url(),
+        "footer_icon": notification.get_sentry_avatar_url(),
         "footer": footer,
         "color": LEVEL_TO_COLOR["info"],
     }
