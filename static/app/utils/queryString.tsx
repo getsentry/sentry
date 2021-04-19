@@ -80,12 +80,7 @@ export function decodeList(value: string[] | string | undefined | null): string[
 }
 
 export function decodeInteger(value: QueryValue, fallback?: number): number | undefined {
-  const unwrapped =
-    Array.isArray(value) && value.length > 0
-      ? value[0]
-      : isString(value)
-      ? value
-      : undefined;
+  const unwrapped = decodeScalar(value);
 
   if (unwrapped === undefined) {
     return fallback;
