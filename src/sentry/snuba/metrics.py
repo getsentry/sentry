@@ -1,20 +1,14 @@
 import itertools
-import math
 import random
 import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple
 
-import pytz
-
 from sentry.models import Project
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     InvalidField,
     InvalidParams,
-    get_date_range_from_params,
-    parse_stats_period,
-    to_datetime,
-    to_timestamp,
+    get_constrained_date_range,
 )
 
 FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
@@ -32,6 +26,9 @@ OPERATIONS = (
     "p99",
     "sum",
 )
+
+#: Max number of data points per time series:
+MAX_POINTS = 10000
 
 
 def parse_field(field: str) -> Tuple[str, str]:
@@ -77,75 +74,6 @@ def parse_query(query_string: str) -> dict:
     }
 
 
-MAX_POINTS = 1000
-ONE_DAY = timedelta(days=1).total_seconds()
-ONE_HOUR = timedelta(hours=1).total_seconds()
-ONE_MINUTE = timedelta(minutes=1).total_seconds()
-
-
-def get_constrained_date_range(
-    params, allow_minute_resolution=False
-) -> Tuple[datetime, datetime, int]:
-    interval = parse_stats_period(params.get("interval", "1h"))
-    interval = int(3600 if interval is None else interval.total_seconds())
-
-    smallest_interval = ONE_MINUTE if allow_minute_resolution else ONE_HOUR
-    if interval % smallest_interval != 0 or interval < smallest_interval:
-        interval_str = "one minute" if allow_minute_resolution else "one hour"
-        raise InvalidParams(
-            f"The interval has to be a multiple of the minimum interval of {interval_str}."
-        )
-
-    if interval > ONE_DAY:
-        raise InvalidParams("The interval has to be less than one day.")
-
-    if ONE_DAY % interval != 0:
-        raise InvalidParams("The interval should divide one day without a remainder.")
-
-    # using_minute_resolution = interval % ONE_HOUR != 0
-
-    start, end = get_date_range_from_params(params)
-    now = datetime.now(tz=pytz.utc)
-
-    # if `end` is explicitly given, we add a second to it, so it is treated as
-    # inclusive. the rounding logic down below will take care of the rest.
-    if params.get("end"):
-        end += timedelta(seconds=1)
-
-    date_range = end - start
-    # round the range up to a multiple of the interval.
-    # the minimum is 1h so the "totals" will not go out of sync, as they will
-    # use the materialized storage due to no grouping on the `started` column.
-    # NOTE: we can remove the difference between `interval` / `rounding_interval`
-    # as soon as snuba can provide us with grouped totals in the same query
-    # as the timeseries (using `WITH ROLLUP` in clickhouse)
-    rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
-    date_range = timedelta(
-        seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
-    )
-
-    # TODO: restrictions
-
-    end_ts = int(rounding_interval * math.ceil(to_timestamp(end) / rounding_interval))
-    end = to_datetime(end_ts)
-    # when expanding the rounding interval, we would adjust the end time too far
-    # to the future, in which case the start time would not actually contain our
-    # desired date range. adjust for this by extend the time by another interval.
-    # for example, when "45m" means the range from 08:49:00-09:34:00, our rounding
-    # has to go from 08:00:00 to 10:00:00.
-    if rounding_interval > interval and (end - date_range) > start:
-        date_range += timedelta(seconds=rounding_interval)
-    start = end - date_range
-
-    # snuba <-> sentry has a 5 minute cache for *exact* queries, which these
-    # are because of the way we do our rounding. For that reason we round the end
-    # of "realtime" queries to one minute into the future to get a one-minute cache instead.
-    if end > now:
-        end = to_datetime(ONE_MINUTE * (math.floor(to_timestamp(now) / ONE_MINUTE) + 1))
-
-    return start, end, interval
-
-
 class QueryDefinition:
     """
     This is the definition of the query the user wants to execute.
@@ -167,7 +95,9 @@ class QueryDefinition:
 
         self.fields = {key: parse_field(key) for key in raw_fields}
 
-        start, end, rollup = get_constrained_date_range(query_params, allow_minute_resolution)
+        start, end, rollup = get_constrained_date_range(
+            query_params, allow_minute_resolution, max_points=MAX_POINTS
+        )
         self.rollup = rollup
         self.start = start
         self.end = end
