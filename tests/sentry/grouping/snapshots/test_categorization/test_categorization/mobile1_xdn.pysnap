@@ -1,0 +1,34 @@
+---
+created: '2021-03-29T22:02:39.314275Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+                     /system/bin/app_process  ??? category=internals
+                         /system/lib/libc.so  __libc_init category=internals
+                     /system/bin/app_process  ??? category=internals
+           /system/lib/libandroid_runtime.so  android::AndroidRuntime::start category=indirection
+           /system/lib/libandroid_runtime.so  ??? category=internals
+                       /system/lib/libdvm.so  ??? category=internals
+                       /system/lib/libdvm.so  dvmCallMethodV category=internals
+                       /system/lib/libdvm.so  dvmInterpret category=internals
+                       /system/lib/libdvm.so  dvmMterpStd category=internals
+                       /system/lib/libdvm.so  ??? category=internals
+                       /system/lib/libdvm.so  ??? category=internals
+                       /system/lib/libdvm.so  dvmInvokeMethod category=internals
+                       /system/lib/libdvm.so  dvmInterpret category=internals
+                       /system/lib/libdvm.so  dvmMterpStd category=internals
+                       /system/lib/libdvm.so  ??? category=internals
+                       /system/lib/libdvm.so  dvmCallJNIMethod category=internals
+                       /system/lib/libdvm.so  dvmPlatformInvoke category=internals
+                      /system/lib/libskia.so  SkCanvas::drawRectCoords category=gl
+                      /system/lib/libskia.so  SkCanvas::drawRect category=internals
+                      /system/lib/libskia.so  SkDraw::drawRect category=internals
+                      /system/lib/libskia.so  SkScan::FillRect category=internals
+                      /system/lib/libskia.so  SkScan::FillRect category=internals
+                      /system/lib/libskia.so  SkScan::FillIRect category=internals
+                      /system/lib/libskia.so  ??? category=internals
+                      /system/lib/libskia.so  SkARGB32_Blitter::blitRect category=internals
+                      /system/lib/libskia.so  Color32_arm_neon category=internals

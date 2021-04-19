@@ -1,86 +1,260 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
-import moment from 'moment';
+import styled from '@emotion/styled';
+import {LocationDescriptorObject} from 'history';
+import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 
+import Alert from 'app/components/alert';
+import {DateTimeObject} from 'app/components/charts/utils';
+import ErrorBoundary from 'app/components/errorBoundary';
 import PageHeading from 'app/components/pageHeading';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
-import {DataCategory, DataCategoryName, Organization} from 'app/types';
+import space from 'app/styles/space';
+import {
+  DataCategory,
+  DataCategoryName,
+  Organization,
+  Project,
+  RelativePeriod,
+} from 'app/types';
 
-import {OrganizationUsageStats, ProjectUsageStats} from './types';
+import {ChartDataTransform} from './usageChart';
+import UsageStatsLastMin from './UsageStatsLastMin';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
 
+const PAGE_QUERY_PARAMS = [
+  'pageStart',
+  'pageEnd',
+  'pagePeriod',
+  'pageUtc',
+  'dataCategory',
+  'chartTransform',
+  'sort',
+];
+
 type Props = {
   organization: Organization;
-  orgStatsLoading: boolean;
-  projectStatsLoading: boolean;
-  orgStats?: OrganizationUsageStats;
-  orgStatsError?: Error;
-  projectStats?: ProjectUsageStats[];
-  projectStatsError?: Error;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-type State = {
-  dataCategory: DataCategory;
-  dateStart: moment.Moment;
-  dateEnd: moment.Moment;
-};
+class OrganizationStats extends React.Component<Props> {
+  get dataCategory(): DataCategory {
+    const dataCategory = this.props.location?.query?.dataCategory;
 
-class OrganizationStats extends React.Component<Props, State> {
-  state: State = {
-    dataCategory: DataCategory.ERRORS,
-    dateStart: moment().subtract(14, 'days'),
-    dateEnd: moment(),
-  };
+    switch (dataCategory) {
+      case DataCategory.ERRORS:
+      case DataCategory.TRANSACTIONS:
+      case DataCategory.ATTACHMENTS:
+        return dataCategory as DataCategory;
+      default:
+        return DataCategory.ERRORS;
+    }
+  }
 
-  setDataCategory = (dataCategory: DataCategory) => {
-    this.setState({dataCategory});
-  };
-
-  setDateRange = (dateStart: moment.Moment, dateEnd: moment.Moment) => {
-    this.setState({dateStart, dateEnd});
-  };
-
-  get dataCategoryName() {
-    const {dataCategory} = this.state;
+  get dataCategoryName(): string {
+    const dataCategory = this.dataCategory;
     return DataCategoryName[dataCategory] ?? t('Unknown Data Category');
   }
 
+  get dataPeriod(): DateTimeObject {
+    const {pagePeriod, pageStart, pageEnd} = this.props.location?.query ?? {};
+    if (!pagePeriod && !pageStart && !pageEnd) {
+      return {period: DEFAULT_STATS_PERIOD};
+    }
+
+    // Absolute date range is more specific than period
+    if (pageStart && pageEnd) {
+      return {start: pageStart, end: pageEnd};
+    }
+
+    const keys = Object.keys(DEFAULT_RELATIVE_PERIODS);
+    return pagePeriod && keys.includes(pagePeriod)
+      ? {period: pagePeriod}
+      : {period: DEFAULT_STATS_PERIOD};
+  }
+
+  // Validation and type-casting should be handled by chart
+  get chartTransform(): string | undefined {
+    return this.props.location?.query?.chartTransform;
+  }
+
+  // Validation and type-casting should be handled by table
+  get tableSort(): string | undefined {
+    return this.props.location?.query?.sort;
+  }
+
+  getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
+    const {location, organization} = this.props;
+    const nextLocation: LocationDescriptorObject = {
+      ...location,
+      query: {
+        ...location.query,
+        project: project.id,
+      },
+    };
+
+    // Do not leak out page-specific keys
+    nextLocation.query = omit(nextLocation.query, PAGE_QUERY_PARAMS);
+
+    return {
+      performance: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/performance/`,
+      },
+      projectDetail: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/projects/${project.slug}`,
+      },
+      issueList: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/issues/`,
+      },
+    };
+  };
+
+  /**
+   * TODO: Enable user to set dateStart/dateEnd
+   *
+   * See PAGE_QUERY_PARAMS for list of accepted keys on nextState
+   */
+  setStateOnUrl = (
+    nextState: {
+      dataCategory?: DataCategory;
+      pagePeriod?: RelativePeriod;
+      chartTransform?: ChartDataTransform;
+      sort?: string;
+    },
+    options: {
+      willUpdateRouter?: boolean;
+    } = {
+      willUpdateRouter: true,
+    }
+  ): LocationDescriptorObject => {
+    const {location, router} = this.props;
+    const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
+
+    const nextLocation = {
+      ...location,
+      query: {
+        ...location?.query,
+        ...nextQueryParams,
+      },
+    };
+
+    if (options.willUpdateRouter) {
+      router.push(nextLocation);
+    }
+
+    return nextLocation;
+  };
+
   render() {
     const {organization} = this.props;
-    const {dataCategory, dateStart, dateEnd} = this.state;
 
     return (
-      <PageContent>
-        <PageHeader>
-          <PageHeading>
-            {tct('Organization Usage Stats for [dataCategory]', {
-              dataCategory: this.dataCategoryName,
-            })}
-          </PageHeading>
-        </PageHeader>
+      <SentryDocumentTitle title="Usage Stats">
+        <PageContent>
+          <PageHeader>
+            <PageHeading>
+              {tct('Organization Usage Stats for [dataCategory]', {
+                dataCategory: this.dataCategoryName,
+              })}
+            </PageHeading>
+          </PageHeader>
 
-        <UsageStatsOrg
-          organization={organization}
-          dataCategory={dataCategory}
-          dataCategoryName={this.dataCategoryName}
-          dateStart={dateStart}
-          dateEnd={dateEnd}
-          onChangeDataCategory={this.setDataCategory}
-          onChangeDateRange={this.setDateRange}
-        />
+          <OrgTextWrapper>
+            <OrgText>
+              <p>
+                {t(
+                  'The chart below reflects events that Sentry has received across your entire organization. We collect usage metrics on three types of events: errors, transactions, and attachments. Sessions are not included in this chart.'
+                )}
+              </p>
+              <p>
+                {t(
+                  'Each type of event is broken down into three categories: accepted, filtered, and dropped. Accepted events were successfully processed by Sentry. Filtered events were blocked due to your project’s inbound data filter rules. Dropped events were discarded due to invalid data, rate limits, quotas, or spike protection.'
+                )}
+              </p>
+            </OrgText>
+            <OrgLastMin>
+              <ErrorBoundary mini>
+                <UsageStatsLastMin
+                  organization={organization}
+                  dataCategory={this.dataCategory}
+                  dataCategoryName={this.dataCategoryName}
+                />
+              </ErrorBoundary>
+            </OrgLastMin>
+          </OrgTextWrapper>
 
-        <UsageStatsProjects
-          organization={organization}
-          dataCategory={dataCategory}
-          dataCategoryName={this.dataCategoryName}
-          dateStart={dateStart}
-          dateEnd={dateEnd}
-        />
-      </PageContent>
+          <ErrorBoundary mini>
+            <UsageStatsOrg
+              organization={organization}
+              dataCategory={this.dataCategory}
+              dataCategoryName={this.dataCategoryName}
+              dataDatetime={this.dataPeriod}
+              chartTransform={this.chartTransform}
+              handleChangeState={this.setStateOnUrl}
+            />
+          </ErrorBoundary>
+
+          <PageHeader>
+            <PageHeading>
+              {tct('Project Usage Stats for [dataCategory]', {
+                dataCategory: this.dataCategoryName,
+              })}
+            </PageHeading>
+          </PageHeader>
+
+          <Alert type="info" icon={<IconInfo size="md" />}>
+            {t('Only usage stats for your projects are displayed here.')}
+          </Alert>
+
+          <ErrorBoundary mini>
+            <UsageStatsProjects
+              organization={organization}
+              dataCategory={this.dataCategory}
+              dataCategoryName={this.dataCategoryName}
+              dataDatetime={this.dataPeriod}
+              tableSort={this.tableSort}
+              handleChangeState={this.setStateOnUrl}
+              getNextLocations={this.getNextLocations}
+            />
+          </ErrorBoundary>
+        </PageContent>
+      </SentryDocumentTitle>
     );
   }
 }
 
 export default OrganizationStats;
+
+const OrgTextWrapper = styled('div')`
+  display: grid;
+  grid-auto-flow: row;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-auto-flow: column;
+    grid-template-columns: 75% 25%;
+  }
+`;
+
+const OrgText = styled('div')`
+  max-width: ${p => p.theme.breakpoints[0]};
+`;
+
+const OrgLastMin = styled('div')`
+  display: flex;
+  justify-content: center;
+  padding: ${space(4)} 0;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 0 ${space(4)};
+  }
+`;

@@ -28,6 +28,8 @@ type Props = {
   api: Client;
   theme: Theme;
   disablePreview?: boolean;
+  eventId?: string;
+  projectSlug?: string;
 };
 
 type State = {
@@ -45,7 +47,9 @@ class StacktracePreview extends React.Component<Props, State> {
   loaderTimeout: number | null = null;
 
   fetchData = async () => {
-    if (this.state.event) {
+    const {organization, api, issueId, eventId, projectSlug} = this.props;
+
+    if (this.state.event || (!issueId && !(eventId && projectSlug))) {
       return;
     }
 
@@ -53,9 +57,12 @@ class StacktracePreview extends React.Component<Props, State> {
       this.setState({loadingVisible: true});
     }, HOVERCARD_DELAY);
 
-    const {api, issueId} = this.props;
     try {
-      const event = await api.requestPromise(`/issues/${issueId}/events/latest/`);
+      const event = await api.requestPromise(
+        eventId && projectSlug
+          ? `/projects/${organization.slug}/${projectSlug}/events/${eventId}/`
+          : `/issues/${issueId}/events/latest/`
+      );
       clearTimeout(this.loaderTimeout);
       this.setState({event, loading: false, loadingVisible: false});
     } catch {
@@ -148,12 +155,12 @@ class StacktracePreview extends React.Component<Props, State> {
   }
 
   render() {
-    const {children, organization, disablePreview, theme} = this.props;
+    const {children, disablePreview, theme} = this.props;
 
     const {loading, loadingVisible} = this.state;
     const stacktrace = this.getStacktrace();
 
-    if (!organization.features.includes('stacktrace-hover-preview') || disablePreview) {
+    if (disablePreview) {
       return children;
     }
 

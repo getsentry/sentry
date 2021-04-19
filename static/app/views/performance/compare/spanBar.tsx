@@ -10,7 +10,7 @@ import {
   SpanRowCellContainer,
   TOGGLE_BORDER_BOX,
 } from 'app/components/events/interfaces/spans/spanBar';
-import {getHatchPattern, SpanRow} from 'app/components/events/interfaces/spans/styles';
+import {SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
 import {
   getHumanDuration,
@@ -35,6 +35,7 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
+import {getHatchPattern} from 'app/components/waterfallTree/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';

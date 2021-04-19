@@ -159,6 +159,7 @@ class FormModel {
   /**
    * Set field properties
    */
+  @action
   setFieldDescriptor(id: string, props) {
     //TODO(TS): add type to props
     this.fieldDescriptor.set(id, props);
@@ -187,6 +188,7 @@ class FormModel {
   /**
    * Remove a field from the descriptor map and errors.
    */
+  @action
   removeField(id: string) {
     this.fieldDescriptor.delete(id);
     this.errors.delete(id);

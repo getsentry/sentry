@@ -1,0 +1,212 @@
+{
+  "event_id": "54b9a4cbf39f4f86b4610b8f205fc3ae",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "handled": false,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "filename": "once.hpp",
+              "function": "boost::call_once"
+            },
+            {
+              "function": "LdrpCallInitRoutine",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "DllMain",
+              "package": "C:\\WINDOWS\\SYSTEM32\\mscms.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function1<T>::operator()"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::detail::function::void_function_obj_invoker1<T>::invoke"
+            },
+            {
+              "filename": "bind.hpp",
+              "function": "boost::_bi::bind_t<T>::operator()"
+            },
+            {
+              "filename": "bind.hpp",
+              "function": "boost::_bi::list3<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "function_base.hpp",
+              "function": "boost::detail::function::functor_manager<T>::manage"
+            },
+            {
+              "filename": "function_base.hpp",
+              "function": "boost::detail::function::functor_manager<T>::manager"
+            },
+            {
+              "filename": "function_base.hpp",
+              "function": "boost::detail::function::functor_manager<T>::manager"
+            },
+            {
+              "function": "boost::_bi::list3<T>::list3<T>"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function<T>::{ctor}"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function1<T>::{ctor}"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function1<T>::assign_to_own"
+            },
+            {
+              "filename": "function_base.hpp",
+              "function": "boost::detail::function::functor_manager<T>::manage"
+            },
+            {
+              "filename": "function_base.hpp",
+              "function": "boost::detail::function::functor_manager<T>::manager"
+            },
+            {
+              "filename": "function_base.hpp",
+              "function": "boost::detail::function::functor_manager<T>::manager"
+            },
+            {
+              "function": "boost::_bi::list8<T>::list8<T>"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function<T>::{ctor}"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function6<T>::{ctor}"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function6<T>::assign_to_own"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "RtlpAllocateHeapInternal",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function3<T>::operator()"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::detail::function::function_obj_invoker3<T>::invoke"
+            },
+            {
+              "filename": "bind.hpp",
+              "function": "boost::_bi::bind_t<T>::operator()"
+            },
+            {
+              "filename": "bind.hpp",
+              "function": "boost::_bi::list7<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "RtlpFreeHeapInternal",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "RtlFreeHeap",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_READ",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+      }
+    ]
+  },
+  "platform": "native"
+}

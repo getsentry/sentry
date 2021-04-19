@@ -380,7 +380,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
         const result = this.renderTransaction(child, {
           continuingDepths:
             !isLastChild && hasChildren
-              ? [...continuingDepths, {depth: generation, isOrphanDepth: false}]
+              ? [...continuingDepths, {depth: generation, isOrphanDepth: isOrphan}]
               : continuingDepths,
           isOrphan,
           isLast: isLastChild,

@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import Color from 'color';
 import {EChartOption} from 'echarts';
 import {withTheme} from 'emotion-theming';
@@ -9,16 +10,21 @@ import Tooltip from 'app/components/charts/components/tooltip';
 import xAxis from 'app/components/charts/components/xAxis';
 import barSeries from 'app/components/charts/series/barSeries';
 import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Panel from 'app/components/panels/panel';
+import Placeholder from 'app/components/placeholder';
 import ChartPalette from 'app/constants/chartPalette';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import {DataCategory, DataCategoryName, SelectValue} from 'app/types';
+import space from 'app/styles/space';
+import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'app/types';
+import {parsePeriodToHours, statsPeriodToDays} from 'app/utils/dates';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import commonTheme, {Theme} from 'app/utils/theme';
 
 import {formatUsageWithUnits, GIGABYTE} from '../utils';
 
-import {getDateRange, getTooltipFormatter} from './utils';
+import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
 
 const COLOR_ERRORS = ChartPalette[4][3];
 const COLOR_ERRORS_DROPPED = Color(COLOR_ERRORS).lighten(0.25).string();
@@ -50,7 +56,7 @@ export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
 
 export enum ChartDataTransform {
   CUMULATIVE = 'cumulative',
-  DAILY = 'daily',
+  PERIODIC = 'periodic',
 }
 
 export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
@@ -60,8 +66,8 @@ export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
     disabled: false,
   },
   {
-    label: t('Day-to-Day'),
-    value: ChartDataTransform.DAILY,
+    label: t('Periodic'),
+    value: ChartDataTransform.PERIODIC,
     disabled: false,
   },
 ];
@@ -73,6 +79,11 @@ export enum SeriesTypes {
 }
 
 type DefaultProps = {
+  /**
+   * Intervals between the x-axis values
+   */
+  usageDateInterval: IntervalPeriod;
+
   /**
    * Modify the usageStats using the transformation method selected.
    * 1. This must be a pure function!
@@ -87,6 +98,10 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   theme: Theme;
+
+  isLoading?: boolean;
+  isError?: boolean;
+  errors?: Record<string, Error>;
 
   title?: React.ReactNode;
   footer?: React.ReactNode;
@@ -121,6 +136,7 @@ export type ChartStats = {
 
 export class UsageChart extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
+    usageDateInterval: '1d',
     handleDataTransformation: (stats, transform) => {
       const chartData: ChartStats = {
         accepted: [],
@@ -152,8 +168,8 @@ export class UsageChart extends React.Component<Props, State> {
   };
 
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const {usageDateStart, usageDateEnd} = nextProps;
-    const xAxisDates = getDateRange(usageDateStart, usageDateEnd);
+    const {usageDateStart, usageDateEnd, usageDateInterval} = nextProps;
+    const xAxisDates = getXAxisDates(usageDateStart, usageDateEnd, usageDateInterval);
 
     return {
       ...prevState,
@@ -175,8 +191,19 @@ export class UsageChart extends React.Component<Props, State> {
     return [COLOR_TRANSACTIONS, COLOR_TRANSACTIONS_DROPPED, COLOR_PROJECTED];
   }
 
-  get chartMetadata() {
+  get chartMetadata(): {
+    chartLabel: React.ReactNode;
+    chartData: ChartStats;
+    xAxisData: string[];
+    xAxisTickInterval: number;
+    xAxisLabelInterval: number;
+    yAxisMinInterval: number;
+    yAxisFormatter: (val: number) => string;
+    tooltipValueFormatter: (val?: number) => string;
+  } {
+    const {usageDateStart, usageDateEnd} = this.props;
     const {
+      usageDateInterval,
       usageStats,
       dataCategory,
       dataTransform,
@@ -209,6 +236,18 @@ export class UsageChart extends React.Component<Props, State> {
       });
     });
 
+    // Use hours as common units
+    const dataPeriod = statsPeriodToDays(undefined, usageDateStart, usageDateEnd) * 24;
+    const barPeriod = parsePeriodToHours(usageDateInterval);
+    if (dataPeriod === 0 || barPeriod === -1) {
+      throw new Error('Unable to parse data time period');
+    }
+
+    const {xAxisTickInterval, xAxisLabelInterval} = getXAxisLabelInterval(
+      dataPeriod,
+      dataPeriod / barPeriod
+    );
+
     const {label, value} = selectDataCategory;
 
     if (value === DataCategory.ERRORS || value === DataCategory.TRANSACTIONS) {
@@ -216,7 +255,9 @@ export class UsageChart extends React.Component<Props, State> {
         chartLabel: label,
         chartData,
         xAxisData: xAxisDates,
-        yAxisMinInterval: 1000,
+        xAxisTickInterval,
+        xAxisLabelInterval,
+        yAxisMinInterval: 100,
         yAxisFormatter: formatAbbreviatedNumber,
         tooltipValueFormatter: getTooltipFormatter(dataCategory),
       };
@@ -226,7 +267,9 @@ export class UsageChart extends React.Component<Props, State> {
       chartLabel: label,
       chartData,
       xAxisData: xAxisDates,
-      yAxisMinInterval: 1 * GIGABYTE,
+      xAxisTickInterval,
+      xAxisLabelInterval,
+      yAxisMinInterval: 0.5 * GIGABYTE,
       yAxisFormatter: (val: number) =>
         formatUsageWithUnits(val, DataCategory.ATTACHMENTS, {
           isAbbreviated: true,
@@ -311,52 +354,86 @@ export class UsageChart extends React.Component<Props, State> {
     });
   }
 
+  renderChart() {
+    const {theme, title, isLoading, isError, errors} = this.props;
+    if (isLoading) {
+      return (
+        <Placeholder height="200px">
+          <LoadingIndicator mini />
+        </Placeholder>
+      );
+    }
+
+    if (isError) {
+      return (
+        <Placeholder height="200px">
+          <IconWarning size={theme.fontSizeExtraLarge} />
+          <ErrorMessages>
+            {errors &&
+              Object.keys(errors).map(k => <span key={k}>{errors[k]?.message}</span>)}
+          </ErrorMessages>
+        </Placeholder>
+      );
+    }
+
+    const {
+      xAxisData,
+      xAxisTickInterval,
+      xAxisLabelInterval,
+      yAxisMinInterval,
+      yAxisFormatter,
+    } = this.chartMetadata;
+
+    return (
+      <React.Fragment>
+        <HeaderTitleLegend>{title || t('Current Usage Period')}</HeaderTitleLegend>
+        <BaseChart
+          colors={this.chartColors}
+          grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
+          xAxis={xAxis({
+            show: true,
+            type: 'category',
+            name: 'Date',
+            boundaryGap: true,
+            data: xAxisData,
+            axisTick: {
+              interval: xAxisTickInterval,
+              alignWithLabel: true,
+            },
+            axisLabel: {
+              interval: xAxisLabelInterval,
+              formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
+            },
+            theme,
+          })}
+          yAxis={{
+            min: 0,
+            minInterval: yAxisMinInterval,
+            axisLabel: {
+              formatter: yAxisFormatter,
+              color: theme.chartLabel,
+            },
+          }}
+          series={this.chartSeries}
+          tooltip={this.chartTooltip}
+          onLegendSelectChanged={() => {}}
+          legend={Legend({
+            right: 10,
+            top: 5,
+            data: this.chartLegend,
+            theme,
+          })}
+        />
+      </React.Fragment>
+    );
+  }
+
   render() {
-    const {theme, title, footer} = this.props;
-    const {xAxisData, yAxisMinInterval, yAxisFormatter} = this.chartMetadata;
+    const {footer} = this.props;
 
     return (
       <Panel id="usage-chart">
-        <ChartContainer>
-          <HeaderTitleLegend>{title || t('Current Usage Period')}</HeaderTitleLegend>
-          <BaseChart
-            colors={this.chartColors}
-            grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
-            xAxis={xAxis({
-              show: true,
-              type: 'category',
-              name: 'Date',
-              boundaryGap: true,
-              data: xAxisData,
-              truncate: 6,
-              axisTick: {
-                interval: 6,
-                alignWithLabel: true,
-              },
-              axisLabel: {
-                interval: 6,
-              },
-              theme,
-            })}
-            yAxis={{
-              min: 0,
-              minInterval: yAxisMinInterval,
-              axisLabel: {
-                formatter: yAxisFormatter,
-                color: theme.chartLabel,
-              },
-            }}
-            series={this.chartSeries}
-            tooltip={this.chartTooltip}
-            onLegendSelectChanged={() => {}}
-            legend={Legend({
-              right: 10,
-              top: 5,
-              data: this.chartLegend,
-              theme,
-            })}
-          />
-        </ChartContainer>
+        <ChartContainer>{this.renderChart()}</ChartContainer>
         {footer}
       </Panel>
     );
@@ -364,3 +441,11 @@ export class UsageChart extends React.Component<Props, State> {
 }
 
 export default withTheme(UsageChart);
+
+const ErrorMessages = styled('div')`
+  display: flex;
+  flex-direction: column;
+
+  margin-top: ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
