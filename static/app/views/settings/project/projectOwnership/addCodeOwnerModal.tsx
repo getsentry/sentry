@@ -9,7 +9,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody} from 'app/components/panels';
 import {IconCheckmark, IconNot} from 'app/icons';
 import {t} from 'app/locale';
-import {CodeOwners, Organization, Project} from 'app/types';
+import {CodeOwners, Organization, Project, RepositoryProjectPathConfig} from 'app/types';
 import withApi from 'app/utils/withApi';
 import Form from 'app/views/settings/components/forms/form';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -27,7 +27,7 @@ type State = {
   codeMappingId: number | null;
   isLoading: boolean;
   error: boolean;
-  errorJSON: Object | null;
+  errorJSON: {raw?: string} | null;
 };
 
 type CodeOwnerFile = {
@@ -37,7 +37,7 @@ type CodeOwnerFile = {
 };
 
 class AddCodeOwnerModal extends React.Component<Props, State> {
-  state = {
+  state: State = {
     codeownerFile: null,
     codeMappingId: null,
     isLoading: false,
@@ -55,7 +55,7 @@ class AddCodeOwnerModal extends React.Component<Props, State> {
       isLoading: true,
     });
     try {
-      const data = await this.props.api.requestPromise(
+      const data: CodeOwnerFile = await this.props.api.requestPromise(
         `/organizations/${organization.slug}/code-mappings/${codeMappingId}/codeowners/`,
         {
           method: 'GET',
@@ -70,21 +70,23 @@ class AddCodeOwnerModal extends React.Component<Props, State> {
   addFile = async () => {
     const {organization, project, codeMappings} = this.props;
     const {codeownerFile, codeMappingId} = this.state;
-    try {
-      const data = await this.props.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/codeowners/`,
-        {
-          method: 'POST',
-          data: {
-            codeMappingId,
-            raw: codeownerFile.raw,
-          },
-        }
-      );
-      const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
-      this.handleAddedFile({...data, codeMapping});
-    } catch (_err) {
-      this.setState({error: true, errorJSON: _err.responseJSON, isLoading: false});
+    if (codeownerFile) {
+      try {
+        const data = await this.props.api.requestPromise(
+          `/projects/${organization.slug}/${project.slug}/codeowners/`,
+          {
+            method: 'POST',
+            data: {
+              codeMappingId,
+              raw: codeownerFile.raw,
+            },
+          }
+        );
+        const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
+        this.handleAddedFile({...data, codeMapping});
+      } catch (_err) {
+        this.setState({error: true, errorJSON: _err.responseJSON, isLoading: false});
+      }
     }
   };
 
@@ -111,7 +113,7 @@ class AddCodeOwnerModal extends React.Component<Props, State> {
     const {errorJSON} = this.state;
     return (
       <Alert type="error" icon={<IconNot size="md" />}>
-        <p>{errorJSON.raw[0]}</p>
+        <p>{errorJSON?.raw?.[0]}</p>
       </Alert>
     );
   }
@@ -164,7 +166,10 @@ class AddCodeOwnerModal extends React.Component<Props, State> {
               <StyledSelectField
                 name="codeMappingId"
                 label={t('Apply an existing code mapping')}
-                choices={codeMappings.map(cm => [cm.id, cm.repoName])}
+                choices={codeMappings.map((cm: RepositoryProjectPathConfig) => [
+                  cm.id,
+                  cm.repoName,
+                ])}
                 onChange={this.fetchFile}
                 required
                 inline={false}
