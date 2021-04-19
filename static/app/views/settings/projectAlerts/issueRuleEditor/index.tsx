@@ -576,7 +576,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   <Feature features={['organizations:team-alerts-ownership']}>
                     <StyledField
                       label={t('Team')}
-                      help={t('The team that owns this alert.')}
+                      help={t('The team that can edit this alert.')}
                       disabled={!hasAccess || !canEdit}
                     >
                       <SelectMembers

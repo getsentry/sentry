@@ -34,7 +34,7 @@ class RuleNameOwnerForm extends React.PureComponent<Props> {
             <FormField
               name="owner"
               label={t('Team')}
-              help={t('The team that owns this alert')}
+              help={t('The team that can edit this alert.')}
             >
               {({model}) => {
                 const owner = model.getValue('owner');
