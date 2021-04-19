@@ -15,7 +15,10 @@ import {
   FIELDS,
   generateFieldAsString,
 } from 'app/utils/discover/fields';
-import {WizardMetricFieldConfigs} from 'app/views/alerts/wizard/options';
+import {
+  hideParameterSelectorSet,
+  hidePrimarySelectorSet,
+} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import {QueryField} from 'app/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'app/views/eventsV2/table/types';
@@ -23,7 +26,12 @@ import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import FormField from 'app/views/settings/components/forms/formField';
 import FormModel from 'app/views/settings/components/forms/model';
 
-import {errorFieldConfig, OptionConfig, transactionFieldConfig} from './constants';
+import {
+  errorFieldConfig,
+  OptionConfig,
+  transactionFieldConfig,
+  wizardAlertFieldConfig,
+} from './constants';
 import {PRESET_AGGREGATES} from './presets';
 import {Dataset} from './types';
 
@@ -50,11 +58,9 @@ const getFieldOptionConfig = ({
   let hideParameterSelector = false;
   if (organization.features.includes('alert-wizard')) {
     const alertType = getAlertTypeFromAggregateDataset({dataset, aggregate});
-    config = WizardMetricFieldConfigs[alertType];
-    // Hide selectors if they only show one option
-    hidePrimarySelector = config.aggregations.length === 1;
-    hideParameterSelector =
-      (config.measurementKeys?.length ? 1 : 0) + config.fields.length === 1;
+    config = wizardAlertFieldConfig;
+    hidePrimarySelector = hidePrimarySelectorSet.has(alertType);
+    hideParameterSelector = hideParameterSelectorSet.has(alertType);
   } else {
     config = dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
   }
