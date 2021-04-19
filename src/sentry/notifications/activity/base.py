@@ -1,5 +1,5 @@
 import re
-from typing import Any, Mapping, MutableMapping, Tuple
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Set, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from django.core.urlresolvers import reverse
@@ -7,15 +7,42 @@ from django.utils.html import escape, mark_safe
 from django.utils.safestring import SafeString
 
 from sentry import options
-from sentry.models import Activity, GroupSubscription, ProjectOption, User, UserAvatar, UserOption
+from sentry.models import (
+    Activity,
+    Group,
+    GroupSubscription,
+    ProjectOption,
+    User,
+    UserAvatar,
+    UserOption,
+)
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
-from sentry.utils.email import MessageBuilder, group_id_to_email
+from sentry.utils.email import group_id_to_email
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
+
+registry: MutableMapping[ExternalProviders, Callable] = {}
+
+
+def notification_providers() -> Iterable[ExternalProviders]:
+    return registry.keys()
+
+
+def register(provider: ExternalProviders) -> Callable:
+    """
+    A wrapper that adds the wrapped function to the send_notification_registry
+    (see above) for the provider.
+    """
+
+    def wrapped(send_notification: Callable) -> Callable:
+        registry[provider] = send_notification
+        return send_notification
+
+    return wrapped
 
 
 class ActivityNotification:
@@ -34,27 +61,45 @@ class ActivityNotification:
     def should_email(self) -> bool:
         return True
 
-    def get_participants(self) -> Mapping[User, int]:
+    def get_providers_from_which_to_remove_user(
+        self,
+        user: User,
+        participants_by_provider: Mapping[ExternalProviders, Mapping[User, int]],
+    ) -> Set[ExternalProviders]:
+        """
+        Given a mapping of provider to mappings of users to why they should receive
+        notifications for an activity, return the set of providers where the user
+        has opted out of receiving notifications.
+        """
+
+        providers = {
+            provider
+            for provider, participants in participants_by_provider.items()
+            if user in participants
+        }
+        if (
+            providers
+            and UserOption.objects.get_value(user, key="self_notifications", default="0") == "0"
+        ):
+            return providers
+        return set()
+
+    def get_participants(self) -> Mapping[ExternalProviders, Mapping[User, int]]:
         # TODO(dcramer): not used yet today except by Release's
         if not self.group:
             return {}
 
-        participants: MutableMapping[User, int] = GroupSubscription.objects.get_participants(
-            group=self.group
-        )[ExternalProviders.EMAIL]
-
-        if self.activity.user is not None and self.activity.user in participants:
-            receive_own_activity = (
-                UserOption.objects.get_value(
-                    user=self.activity.user, key="self_notifications", default="0"
-                )
-                == "1"
+        participants_by_provider = GroupSubscription.objects.get_participants(self.group)
+        user_option = self.activity.user
+        if user_option:
+            # Optionally remove the actor that created the activity from the recipients list.
+            providers = self.get_providers_from_which_to_remove_user(
+                user_option, participants_by_provider
             )
+            for provider in providers:
+                del participants_by_provider[provider][user_option]
 
-            if not receive_own_activity:
-                del participants[self.activity.user]
-
-        return participants
+        return participants_by_provider
 
     def get_template(self) -> str:
         return "sentry/emails/activity/generic.txt"
@@ -209,55 +254,47 @@ class ActivityNotification:
 
         return mark_safe(description.format(**context))
 
+    def get_unsubscribe_link(self, user_id: int, group_id: int) -> str:
+        return generate_signed_link(
+            user_id,
+            "sentry-account-email-unsubscribe-issue",
+            kwargs={"issue_id": group_id},
+        )
+
+    def update_user_context_from_group(
+        self,
+        user: User,
+        reason: int,
+        context: MutableMapping[str, Any],
+        group: Optional[Group],
+    ) -> Mapping[str, Any]:
+        if group:
+            context.update(
+                {
+                    "reason": GroupSubscriptionReason.descriptions.get(
+                        reason, "are subscribed to this issue"
+                    ),
+                    "unsubscribe_link": self.get_unsubscribe_link(user.id, group.id),
+                }
+            )
+        user_context = self.get_user_context(user)
+        user_context.update(context)
+        return user_context
+
     def send(self) -> None:
         if not self.should_email():
             return
 
-        participants = self.get_participants()
-        if not participants:
+        participants_by_provider = self.get_participants()
+        if not participants_by_provider:
             return
-
-        activity = self.activity
-        project = self.project
-        group = self.group
 
         context = self.get_base_context()
         context.update(self.get_context())
 
-        template = self.get_template()
-        html_template = self.get_html_template()
-        email_type = self.get_email_type()
-        headers = self.get_headers()
-
-        for user, reason in participants.items():
-            if group:
-                context.update(
-                    {
-                        "reason": GroupSubscriptionReason.descriptions.get(
-                            reason, "are subscribed to this issue"
-                        ),
-                        "unsubscribe_link": generate_signed_link(
-                            user.id,
-                            "sentry-account-email-unsubscribe-issue",
-                            kwargs={"issue_id": group.id},
-                        ),
-                    }
+        for provider, participants in participants_by_provider.items():
+            for user, reason in participants.items():
+                user_context = self.update_user_context_from_group(
+                    user, reason, context, self.group
                 )
-            user_context = self.get_user_context(user)
-            if user_context:
-                user_context.update(context)
-            else:
-                user_context = context
-
-            msg = MessageBuilder(
-                subject=self.get_subject_with_prefix(),
-                template=template,
-                html_template=html_template,
-                headers=headers,
-                type=email_type,
-                context=user_context,
-                reference=activity,
-                reply_reference=group,
-            )
-            msg.add_users([user.id], project=project)
-            msg.send_async()
+                registry[provider](self, user, user_context)

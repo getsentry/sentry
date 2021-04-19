@@ -1,0 +1,112 @@
+{
+  "event_id": "9f64306f4540474db8ee40c967b2cc70",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "0x000000001b2d5acc"
+          },
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 0,
+              "exception": 10,
+              "name": "EXC_CRASH",
+              "subcode": 0
+            },
+            "signal": {
+              "code": 0,
+              "name": "SIGABRT",
+              "number": 6
+            }
+          },
+          "synthetic": null,
+          "type": "signal"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKit"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunInMode",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoSources0",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "WebKit::WebProcessProxy::didClose",
+              "package": "WebKit"
+            },
+            {
+              "function": "WebKit::WebPageProxy::processDidCrash",
+              "package": "WebKit"
+            },
+            {
+              "function": "WebKit::WebPageProxy::resetStateAfterProcessExited",
+              "package": "WebKit"
+            },
+            {
+              "function": "WebKit::WebPageProxy::resetState",
+              "package": "WebKit"
+            },
+            {
+              "function": "WebKit::invalidateCallbackMap<T>",
+              "package": "WebKit"
+            },
+            {
+              "function": "WebKit::GenericCallback<T>::invalidate",
+              "package": "WebKit"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "abort",
+              "package": "libsystem_c.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            }
+          ]
+        },
+        "type": "SIGABRT",
+        "value": "DRHT"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

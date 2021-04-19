@@ -318,9 +318,14 @@ class EventManager:
 
         is_reprocessed = is_reprocessed_event(job["data"])
 
-        _pull_out_data(jobs, projects)
-        _get_or_create_release_many(jobs, projects)
-        _get_event_user_many(jobs, projects)
+        with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
+            _pull_out_data(jobs, projects)
+
+        with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
+            _get_or_create_release_many(jobs, projects)
+
+        with sentry_sdk.start_span(op="event_manager.save.get_event_user_many"):
+            _get_event_user_many(jobs, projects)
 
         job["project_key"] = None
         if job["key_id"] is not None:
@@ -354,7 +359,8 @@ class EventManager:
                 job["event"].data.data, project
             )
 
-        _calculate_event_grouping(project, job["event"], grouping_config)
+        with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"):
+            _calculate_event_grouping(project, job["event"], grouping_config)
 
         flat_hashes = job["event"].data["hashes"] + secondary_flat_hashes
         hierarchical_hashes = job["event"].data.get("hierarchical_hashes") or []
@@ -386,7 +392,8 @@ class EventManager:
         # incremented for sure. Also wait for grouping to remove attachments
         # based on the group counter.
         with metrics.timer("event_manager.get_attachments"):
-            attachments = get_attachments(cache_key, job)
+            with sentry_sdk.start_span(op="event_manager.save.get_attachments"):
+                attachments = get_attachments(cache_key, job)
 
         save_aggregate_fn = (
             _save_aggregate2
@@ -396,13 +403,14 @@ class EventManager:
         )
 
         try:
-            job["group"], job["is_new"], job["is_regression"] = save_aggregate_fn(
-                event=job["event"],
-                flat_hashes=flat_hashes,
-                hierarchical_hashes=hierarchical_hashes,
-                release=job["release"],
-                **kwargs,
-            )
+            with sentry_sdk.start_span(op="event_manager.save.save_aggregate_fn"):
+                job["group"], job["is_new"], job["is_regression"] = save_aggregate_fn(
+                    event=job["event"],
+                    flat_hashes=flat_hashes,
+                    hierarchical_hashes=hierarchical_hashes,
+                    release=job["release"],
+                    **kwargs,
+                )
         except HashDiscarded:
             discard_event(job, attachments)
             raise
@@ -1607,7 +1615,10 @@ def _calculate_event_grouping(project, event, grouping_config):
     """
 
     with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
-        normalize_stacktraces_for_grouping(event.data.data, load_grouping_config(grouping_config))
+        with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
+            normalize_stacktraces_for_grouping(
+                event.data.data, load_grouping_config(grouping_config)
+            )
 
     with metrics.timer("event_manager.apply_server_fingerprinting"):
         # The active grouping config was put into the event in the

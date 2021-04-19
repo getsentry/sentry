@@ -1,0 +1,41 @@
+---
+created: '2021-04-08T09:39:06.667073Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"]],[["function","CFRunLoopRunSpecific"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","CFRunLoopRunSpecific"]],[["function","__CFRunLoopRun"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"]],[["function","code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__CFRunLoopDoSource0"]],[["function","__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__CFRunLoopDoSources0"]],[["function","__CFRunLoopDoSource0"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__CFRunLoopRun"]],[["function","__CFRunLoopDoSources0"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","abort"]],[["function","__pthread_kill"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","code"]],[["function","-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","code"]],[["function","glTexSubImage2D"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","glTexSubImage2D"]],[["function","glTexSubImage2D_Exec"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","glTexSubImage2D_Exec"]],[["function","gleTextureImagePut"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","gleTextureImagePut"]],[["function","gpusSubmitDataBuffers"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","gpusGenerateCrashLog"]],[["function","gpusGenerateCrashLog.cold.1"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","gpusGenerateCrashLog.cold.1"]],[["function","abort"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","gpusSubmitDataBuffers"]],[["function","gpusGenerateCrashLog"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","start"]],[["function","code"]]]
+similarity:2020-07-23:value:character-5-shingle: " / <h"
+similarity:2020-07-23:value:character-5-shingle: " <hex"
+similarity:2020-07-23:value:character-5-shingle: " Erro"
+similarity:2020-07-23:value:character-5-shingle: "/ <he"
+similarity:2020-07-23:value:character-5-shingle: ": <he"
+similarity:2020-07-23:value:character-5-shingle: "<hex>"
+similarity:2020-07-23:value:character-5-shingle: "> / <"
+similarity:2020-07-23:value:character-5-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: "Fatal"
+similarity:2020-07-23:value:character-5-shingle: "al Er"
+similarity:2020-07-23:value:character-5-shingle: "atal "
+similarity:2020-07-23:value:character-5-shingle: "ex> /"
+similarity:2020-07-23:value:character-5-shingle: "hex> "
+similarity:2020-07-23:value:character-5-shingle: "l Err"
+similarity:2020-07-23:value:character-5-shingle: "or: <"
+similarity:2020-07-23:value:character-5-shingle: "r: <h"
+similarity:2020-07-23:value:character-5-shingle: "ror: "
+similarity:2020-07-23:value:character-5-shingle: "rror:"
+similarity:2020-07-23:value:character-5-shingle: "tal E"
+similarity:2020-07-23:value:character-5-shingle: "x> / "

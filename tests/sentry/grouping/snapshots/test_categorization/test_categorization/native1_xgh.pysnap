@@ -1,0 +1,66 @@
+---
+created: '2021-03-29T19:24:19.086079Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+  /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=internals
+  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=internals
+  /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/Foundation.fram  ??? category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+      Frontend.framework/Versions/A/Frontend  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+      Frontend.framework/Versions/A/Frontend  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/QuartzCore.fram  CA::Transaction::commit category=system
+  /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_if_needed category=internals
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/OpenGL.framewor  CGLTexImageIOSurface2D category=gl
+  /System/Library/Frameworks/OpenGL.framewor  CGLDescribeRenderer category=internals
+  /System/Library/Frameworks/OpenGL.framewor  gliSetInteger category=internals
+                                              stripped_application_code
+  /System/Library/Extensions/AppleIntelHD400  ??? category=internals
+  /System/Library/Extensions/AppleIntelHD400  ??? category=driver
+                                              stripped_application_code
+  /System/Library/Extensions/AppleIntelHD400  ??? category=driver
+                                              stripped_application_code
+                                              stripped_application_code
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+           /usr/lib/system/libsystem_c.dylib  __abort category=internals
+      /usr/lib/system/libsystem_kernel.dylib  ??? category=internals

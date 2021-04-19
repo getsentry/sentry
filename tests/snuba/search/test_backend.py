@@ -1016,7 +1016,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
 
         self.run_test_query_in_syntax(
-            f"assigned:[me_or_none, {other_user.username}]",
+            f"assigned:[me, none, {other_user.username}]",
             [self.group1, self.group2, group_3],
             [],
         )
@@ -1128,7 +1128,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
 
         self.run_test_query_in_syntax(
-            "assigned_or_suggested:[me_or_none]",
+            "assigned_or_suggested:[me, none]",
             [group, group1, group2, assigned_group],
             [assigned_to_other_group],
         )
@@ -1143,18 +1143,18 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             user_id=not_me.id,
         )
         self.run_test_query_in_syntax(
-            "assigned_or_suggested:[me_or_none]",
+            "assigned_or_suggested:[me, none]",
             [group, group1, assigned_group],
             [assigned_to_other_group, group2],
         )
         GroupOwner.objects.filter(group=group, user=self.user).delete()
         self.run_test_query_in_syntax(
-            f"assigned_or_suggested:[me_or_none, #{self.team.slug}]",
+            f"assigned_or_suggested:[me, none, #{self.team.slug}]",
             [group, group1, assigned_group],
             [assigned_to_other_group, group2],
         )
         self.run_test_query_in_syntax(
-            f"assigned_or_suggested:[me_or_none, #{self.team.slug}, {not_me.email}]",
+            f"assigned_or_suggested:[me, none, #{self.team.slug}, {not_me.email}]",
             [group, group1, assigned_group, group2],
             [assigned_to_other_group],
         )

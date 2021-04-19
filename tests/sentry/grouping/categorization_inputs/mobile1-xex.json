@@ -1,0 +1,104 @@
+{
+  "event_id": "eb75c6d6159e4f728b81df8a35f2d74f",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "0x000000010ba24568"
+          },
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 195183976,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS",
+              "subcode": 8
+            },
+            "signal": {
+              "code": 0,
+              "code_name": "BUS_NOOP",
+              "name": "SIGBUS",
+              "number": 10
+            }
+          },
+          "synthetic": null,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_wqthread",
+              "package": "libsystem_pthread.dylib"
+            },
+            {
+              "function": "_dispatch_workloop_worker_thread",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_lane_invoke$VARIANT$mp",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_lane_serial_drain$VARIANT$mp",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_call_block_and_release",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "_AudioConverterNewInternal",
+              "package": "AudioToolboxCore"
+            },
+            {
+              "function": "PCMConverterFactory::BuildConverterChain",
+              "package": "AudioToolboxCore"
+            },
+            {
+              "function": "PCMConverterFactory::AddSRC",
+              "package": "AudioToolboxCore"
+            },
+            {
+              "function": "SampleRateConverter::ReplaceResampler",
+              "package": "AudioToolboxCore"
+            },
+            {
+              "function": "Resampler2::Resampler2",
+              "package": "AudioToolboxCore"
+            },
+            {
+              "function": "SincKernelFactory::ReferenceSincKernel",
+              "package": "libAudioToolboxUtility.dylib"
+            },
+            {
+              "function": "SincKernel::CalculateFilterCoefficients",
+              "package": "libAudioToolboxUtility.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS",
+        "value": "Exception 1, Code 195183976, Subcode 8 >\nAttempted to dereference garbage pointer 0x10ba24568."
+      }
+    ]
+  },
+  "platform": "cocoa"
+}
