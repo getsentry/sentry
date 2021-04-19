@@ -82,7 +82,7 @@ def query_trace_data(trace_id, params):
             orderby=snuba_filter.orderby,
             limit=MAX_TRACE_SIZE,
         )
-        for dataset, snuba_filter in [transaction_query.filter, error_query.filter]
+        for snuba_filter in [transaction_query.filter, error_query.filter]
     ]
     results = bulk_raw_query(
         snuba_params,
