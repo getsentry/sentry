@@ -161,7 +161,7 @@ export default withApi(IssueDiff);
 export {IssueDiff};
 
 const StyledIssueDiff = styled('div', {
-  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
 })<Pick<State, 'loading'>>`
   background-color: ${p => p.theme.backgroundSecondary};
   overflow: auto;
