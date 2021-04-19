@@ -1173,7 +1173,7 @@ class EventView {
 
   getQueryWithAdditionalConditions() {
     const {query} = this;
-    if (!this.additionalConditions) {
+    if (this.additionalConditions.isEmpty()) {
       return query;
     }
     const conditions = tokenizeSearch(query);
