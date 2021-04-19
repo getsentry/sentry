@@ -8,6 +8,7 @@ import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
 import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
 import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
+import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
@@ -29,16 +30,18 @@ class MiniDashboard extends React.PureComponent<Props> {
   static miniWidget(widget: Widget): React.ReactNode {
     switch (widget.displayType) {
       case 'bar':
-        return <BigMiniWidgetImg src={WidgetBar} />;
+        return <MiniWidgetWrapper src={WidgetBar} />;
       case 'area':
-        return <BigMiniWidgetImg src={WidgetArea} />;
+        return <MiniWidgetWrapper src={WidgetArea} />;
       case 'big_number':
-        return <MiniWidgetImg src={WidgetBigNumber} />;
+        return <BigNumberWidgetWrapper src={WidgetBigNumber} />;
       case 'table':
-        return <BigMiniWidgetImg src={WidgetTable} />;
+        return <MiniWidgetWrapper src={WidgetTable} />;
+      case 'world_map':
+        return <MiniWidgetWrapper src={WidgetWorldMap} />;
       case 'line':
       default:
-        return <BigMiniWidgetImg src={WidgetLine} />;
+        return <MiniWidgetWrapper src={WidgetLine} />;
     }
   }
 }
@@ -133,7 +136,7 @@ const WidgetGrid = styled('div')`
   }
 `;
 
-const MiniWidgetImg = styled('img')`
+const BigNumberWidgetWrapper = styled('img')`
   width: 100%;
   height: 100%;
   /* 2 cols */
@@ -150,7 +153,7 @@ const MiniWidgetImg = styled('img')`
   }
 `;
 
-const BigMiniWidgetImg = styled('img')`
+const MiniWidgetWrapper = styled('img')`
   width: 100%;
   height: 100%;
   grid-area: span 2 / span 2;

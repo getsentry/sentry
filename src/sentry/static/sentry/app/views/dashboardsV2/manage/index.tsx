@@ -13,7 +13,7 @@ import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import DashboardList from './dashboardList';
-import {DashboardDetails} from './types';
+import {DashboardDetails} from '../types';
 import space from 'app/styles/space';
 import styled from '@emotion/styled';
 import SearchBar from 'app/components/searchBar';

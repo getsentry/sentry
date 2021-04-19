@@ -32,7 +32,7 @@ export type DashboardListItem = {
   id: string;
   title: string;
   dateCreated: string;
-  createdBy: string;
+  createdBy?: User;
 };
 
 /**

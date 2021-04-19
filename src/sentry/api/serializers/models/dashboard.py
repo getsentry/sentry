@@ -58,7 +58,7 @@ class DashboardListSerializer(Serializer):
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": str(obj.created_by.id),
+            "createdBy": serialize(obj.created_by, serializer=UserSerializer()),
         }
         return data
 
