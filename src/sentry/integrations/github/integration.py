@@ -87,13 +87,17 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         return GitHubAppsClient(integration=self.model)
 
     def get_codeowner_file(self, repo, ref=None):
-        files = self.get_client().search_file(repo.name, "CODEOWNERS")
-        for f in files["items"]:
-            if f["name"] == "CODEOWNERS":
-                filepath = f["path"]
-                html_url = f["html_url"]
-                contents = self.get_client().get_file(repo.name, filepath)
-                return {"filepath": filepath, "html_url": html_url, "raw": contents}
+        try:
+            files = self.get_client().search_file(repo.name, "CODEOWNERS")
+            for f in files["items"]:
+                if f["name"] == "CODEOWNERS":
+                    filepath = f["path"]
+                    html_url = f["html_url"]
+                    contents = self.get_client().get_file(repo.name, filepath)
+                    return {"filepath": filepath, "html_url": html_url, "raw": contents}
+        except ApiError:
+            return None
+
         return None
 
     def get_repositories(self, query=None):

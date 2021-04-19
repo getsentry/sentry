@@ -31,7 +31,7 @@ class OrganizationCodeMappingCodeOwnersEndpoint(
 
     def get(self, request, config_id, organization, config):
         if not config.organization_integration:
-            self.respond(
+            return self.respond(
                 {"error": "No associated integration."}, status=status.HTTP_400_BAD_REQUEST
             )
 
