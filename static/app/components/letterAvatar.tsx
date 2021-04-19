@@ -41,7 +41,9 @@ function getColor(identifier: string | undefined): Color {
 }
 
 function getInitials(displayName: string | undefined) {
-  const names = (typeof displayName === 'string' ? displayName : '?').trim().split(' ');
+  const names = ((typeof displayName === 'string' && displayName) || '?')
+    .trim()
+    .split(' ');
   // Use Array.from as slicing and substring() work on ucs2 segments which
   // results in only getting half of any 4+ byte character.
   let initials = Array.from(names[0])[0];
