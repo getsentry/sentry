@@ -65,7 +65,7 @@ def cached(cache, function, *args, **kwargs):
     This is similar to ``functools.cache``, but uses a custom cache instead
     of a global one. The cache can be shared between multiple functions.
     """
-    key = (id(function), args, tuple(kwargs.items()))
+    key = (function, args, tuple(sorted(kwargs.items())))
 
     if key in cache:
         hits, rv = cache[key]
