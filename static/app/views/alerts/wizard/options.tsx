@@ -141,7 +141,9 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     illustration: diagramApdex,
   },
   failure_rate: {
-    description: t('Failure rate is the percentage of unsuccessful transactions.'),
+    description: t(
+      'Failure rate is the percentage of unsuccessful transactions. Sentry treats transactions with a status other than “ok,” “canceled,” and “unknown” as failures.'
+    ),
     examples: [t('When the failure rate for an important endpoint reaches 10%.')],
     docsLink: 'https://docs.sentry.io/product/performance/metrics/#failure-rate',
     illustration: diagramFailureRate,
