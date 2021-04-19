@@ -254,8 +254,7 @@ class ContextPickerModal extends React.Component<Props> {
   renderProjectSelectOrMessage() {
     const {organization, projects} = this.props;
     // only show projects the user is a part of
-    const memberProjects: Project[] = [];
-    projects.forEach(project => project.isMember && memberProjects.push(project));
+    const memberProjects = projects.filter(project => project.isMember);
 
     const projectOptions = memberProjects.map(({slug}) => ({label: slug, value: slug}));
 
