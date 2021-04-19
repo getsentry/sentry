@@ -18,12 +18,6 @@ def pytest_configure(config):
     assets will trigger another `py.test` run.
     """
 
-    # Do not build in CI because tests are run w/ `make test-acceptance` which builds assets
-    # Can also skip with the env var `SKIP_ACCEPTANCE_UI_BUILD`
-    # `CI` is a default env var in GHA (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
-    if os.environ.get("CI") or os.environ.get("SKIP_ACCEPTANCE_UI_BUILD"):
-        return
-
     # Create an empty webpack manifest file - otherwise tests will crash if it does not exist
     os.makedirs(dist_path, exist_ok=True)
 
@@ -32,6 +26,12 @@ def pytest_configure(config):
     if not os.path.exists(manifest_path):
         with open(manifest_path, "w+") as fp:
             fp.write("{}")
+
+    # Do not build in CI because tests are run w/ `make test-acceptance` which builds assets
+    # Can also skip with the env var `SKIP_ACCEPTANCE_UI_BUILD`
+    # `CI` is a default env var in GHA (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
+    if os.environ.get("CI") or os.environ.get("SKIP_ACCEPTANCE_UI_BUILD"):
+        return
 
     try:
         with open("./.webpack.meta") as f:
