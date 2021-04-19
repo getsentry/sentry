@@ -77,22 +77,24 @@ install_pyenv() {
     local pyenv_version
     pyenv_version=$(pyenv -v | awk '{print $2}')
     python_version=$(xargs -n1 <.python-version)
+    # NOTE: Older pyenv does not have access to the latest Python we require
+    if [[ "$pyenv_version" < 1.2.26 ]]; then
+      echo >&2 "!!! Your pyenv is old and does not know how to find the Python we require. "
+      echo >&2 "Run \`brew update && brew upgrade pyenv\` (this is slow) and try again."
+      exit 1
+    fi
 
+    # We need to patch the source code on Big Sur before building Python
+    # We can remove this once we upgrade to newer versions of Python
     if query_big_sur; then
-      local flag
-      # NOTE: pyenv 1.2.22 or greater does not require using LDFLAGS
-      # https://github.com/pyenv/pyenv/pull/1711
-      if [[ "$pyenv_version" < 1.2.22 ]]; then
-        flag="-L$(xcrun --show-sdk-path)/usr/lib ${LDFLAGS}"
-      fi
       # cat is used since pyenv would finish to soon when the Python version is already installed
       curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat |
-        LDFLAGS="$flag" pyenv install --skip-existing --patch "$python_version"
+        pyenv install --skip-existing --patch "$python_version"
     else
       pyenv install --skip-existing "$python_version"
     fi
   else
-    echo "!!! pyenv not found, try running bootstrap script again or run \`brew bundle\` in the sentry repo"
+    echo >&2 "!!! pyenv not found, try running bootstrap script again or run \`brew bundle\` in the sentry repo"
     exit 1
   fi
 }
