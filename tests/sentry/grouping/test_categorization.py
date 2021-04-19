@@ -44,18 +44,17 @@ else like actual grouping happens elsewhere like test_variants.py.
    leaked PII to the public and all of this will have been for nothing.
 """
 
+import json  # NOQA
 import os
 import uuid
-
-import pytest
-import json  # NOQA
 from threading import local
 
+import pytest
 from django.utils.functional import cached_property
 
-from sentry.utils.safe import get_path
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.utils.safe import get_path
 
 _fixture_path = os.path.join(os.path.dirname(__file__), "categorization_inputs")
 
@@ -66,7 +65,6 @@ _DELETE_KEYWORDS = os.environ.get("SENTRY_TEST_GROUPING_DELETE_KEYWORDS", "").lo
 class CategorizationInput:
     def __init__(self, filename):
         self.filename = filename
-        self.ran_categorization = False
 
     @cached_property
     def data(self):
@@ -118,7 +116,7 @@ _current_input = local()
 
 
 @pytest.mark.parametrize("input", INPUTS, ids=lambda x: x.filename[:-5].replace("-", "_"))
-def test_categorization(input, insta_snapshot):
+def test_categorization(input: CategorizationInput, insta_snapshot, cleanup_unused_data):
     # XXX: In-process re-runs using pytest-watch or whatever will behave
     # wrongly because input.data is reused between tests, we do this for perf.
     data = input.data
@@ -128,7 +126,8 @@ def test_categorization(input, insta_snapshot):
     finally:
         del _current_input.val
 
-    input.ran_categorization = True
+    cleanup_unused_data[input.filename] = True
+
     insta_snapshot(get_stacktrace_render(data))
 
 
@@ -152,12 +151,14 @@ def cleanup_unused_data():
         return old_apply(self, frames, idx, rule=rule)
 
     VarAction.apply_modifications_to_frame = new_apply
-    yield
+
+    ran_tests = {}
+    yield ran_tests
 
     # pytest guarantees us this line is run in case of errors, no try-finally necessary
     VarAction.apply_modifications_to_frame = old_apply
 
-    if not all(input.ran_categorization for input in INPUTS):
+    if not all(ran_tests.get(input.filename) for input in INPUTS):
         # need to run entire test_categorization for this test to run
         return
 
