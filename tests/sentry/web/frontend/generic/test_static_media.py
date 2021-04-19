@@ -16,7 +16,7 @@ class StaticMediaTest(TestCase):
         assert response["Cache-Control"] == NEVER_CACHE
         assert response["Vary"] == "Accept-Encoding"
         assert response["Access-Control-Allow-Origin"] == "*"
-        "Content-Encoding" not in response
+        assert "Content-Encoding" not in response
 
     @override_settings(DEBUG=False)
     def test_versioned(self):
@@ -26,7 +26,7 @@ class StaticMediaTest(TestCase):
         assert response["Cache-Control"] == FOREVER_CACHE
         assert response["Vary"] == "Accept-Encoding"
         assert response["Access-Control-Allow-Origin"] == "*"
-        "Content-Encoding" not in response
+        assert "Content-Encoding" not in response
 
         url = "/_static/a43db3b08ddd4918972f80739f15344b/sentry/js/ads.js"
         response = self.client.get(url)
@@ -34,7 +34,7 @@ class StaticMediaTest(TestCase):
         assert response["Cache-Control"] == FOREVER_CACHE
         assert response["Vary"] == "Accept-Encoding"
         assert response["Access-Control-Allow-Origin"] == "*"
-        "Content-Encoding" not in response
+        assert "Content-Encoding" not in response
 
         with override_settings(DEBUG=True):
             response = self.client.get(url)
@@ -62,7 +62,7 @@ class StaticMediaTest(TestCase):
             assert response["Cache-Control"] == FOREVER_CACHE
             assert response["Vary"] == "Accept-Encoding"
             assert response["Access-Control-Allow-Origin"] == "*"
-            "Content-Encoding" not in response
+            assert "Content-Encoding" not in response
 
             # non-existant dist file
             response = self.client.get("/_static/dist/sentry/invalid.js")
