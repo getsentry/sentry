@@ -50,6 +50,12 @@ class SlackActivityNotificationTest(ActivityTestCase):
             NotificationSettingOptionValues.ALWAYS,
             user=self.user,
         )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
         self.integration = Integration.objects.create(
             provider="slack",
