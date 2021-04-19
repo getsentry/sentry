@@ -17,7 +17,7 @@ import Histogram from 'app/utils/performance/histogram';
 import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
 import {HistogramData} from 'app/utils/performance/histogram/types';
 import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
-import {decodeInteger, decodeScalar} from 'app/utils/queryString';
+import {decodeInteger} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
 import {filterToColour, filterToField, SpanOperationBreakdownFilter} from './filter';
