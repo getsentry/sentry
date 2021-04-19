@@ -67,6 +67,11 @@ type Props = {
    */
   inFieldLabels?: boolean;
   /**
+   * Whether or not to add labels in line with the input fields
+   */
+  inLineLabels?: boolean;
+  height?: number;
+  /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
   shouldRenderTag?: boolean;
@@ -318,6 +323,8 @@ class QueryField extends React.Component<Props> {
       inFieldLabels,
       filterAggregateParameters,
       hideParameterSelector,
+      inLineLabels,
+      height,
     } = this.props;
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
@@ -328,8 +335,19 @@ class QueryField extends React.Component<Props> {
           ? descriptor.options.filter(filterAggregateParameters)
           : descriptor.options;
 
-        return (
+        const styles = {
+          control(provided: CSSProperties) {
+            const custom = {
+              minHeight: `${height}px`,
+              height: `${height}px`,
+            };
+            return {...provided, ...(height !== undefined ? custom : {})};
+          },
+        };
+
+        const parameterSelector = (
           <SelectControl
+            styles={styles}
             key="select"
             name="parameter"
             placeholder={t('Select value')}
@@ -341,6 +359,15 @@ class QueryField extends React.Component<Props> {
             disabled={disabled}
           />
         );
+
+        return inLineLabels ? (
+          <InputLabelContainer>
+            <FieldLabel>{t('Parameter')}</FieldLabel>
+            {parameterSelector}
+          </InputLabelContainer>
+        ) : (
+          parameterSelector
+        );
       }
       if (descriptor.kind === 'value') {
         const handler =
@@ -351,10 +378,12 @@ class QueryField extends React.Component<Props> {
           value: descriptor.value,
           onUpdate: handler,
           disabled,
+          height,
         };
+        let input: JSX.Element;
         switch (descriptor.dataType) {
           case 'number':
-            return (
+            input = (
               <BufferedInput
                 name="refinement"
                 key="parameter:number"
@@ -364,8 +393,9 @@ class QueryField extends React.Component<Props> {
                 {...inputProps}
               />
             );
+            break;
           case 'integer':
-            return (
+            input = (
               <BufferedInput
                 name="refinement"
                 key="parameter:integer"
@@ -375,8 +405,9 @@ class QueryField extends React.Component<Props> {
                 {...inputProps}
               />
             );
+            break;
           default:
-            return (
+            input = (
               <BufferedInput
                 name="refinement"
                 key="parameter:text"
@@ -385,6 +416,14 @@ class QueryField extends React.Component<Props> {
               />
             );
         }
+        return inLineLabels ? (
+          <InputLabelContainer>
+            <FieldLabel>{t('Value')}</FieldLabel>
+            {input}
+          </InputLabelContainer>
+        ) : (
+          input
+        );
       }
       throw new Error(`Unknown parameter type encountered for ${this.props.fieldValue}`);
     });
@@ -395,7 +434,7 @@ class QueryField extends React.Component<Props> {
     const requiredInputs = (gridColumns ?? inputs.length + 1) - inputs.length - 1;
     if (gridColumns !== undefined && requiredInputs > 0) {
       for (let i = 0; i < requiredInputs; i++) {
-        inputs.push(<BlankSpace key={i} />);
+        inputs.push(<BlankSpace key={i} height={height} />);
       }
     }
 
@@ -444,6 +483,8 @@ class QueryField extends React.Component<Props> {
       disabled,
       hidePrimarySelector,
       gridColumns,
+      inLineLabels,
+      height,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -465,6 +506,13 @@ class QueryField extends React.Component<Props> {
     }
 
     const styles = {
+      control(provided: CSSProperties) {
+        const custom = {
+          minHeight: `${height}px`,
+          height: `${height}px`,
+        };
+        return {...provided, ...(height !== undefined ? custom : {})};
+      },
       singleValue(provided: CSSProperties) {
         const custom = {
           display: 'flex',
@@ -487,31 +535,41 @@ class QueryField extends React.Component<Props> {
 
     const parameters = this.renderParameterInputs(parameterDescriptions);
 
+    const primarySelector = (
+      <SelectControl
+        {...selectProps}
+        styles={!inFieldLabels ? styles : undefined}
+        components={{
+          Option: ({label, data, ...props}: OptionProps<OptionType>) => (
+            <components.Option label={label} data={data} {...props}>
+              <span data-test-id="label">{label}</span>
+              {this.renderTag(data.value.kind)}
+            </components.Option>
+          ),
+          SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
+            <components.SingleValue data={data} {...props}>
+              <span data-test-id="label">{data.label}</span>
+              {this.renderTag(data.value.kind)}
+            </components.SingleValue>
+          ),
+        }}
+      />
+    );
+
     return (
       <Container
         className={className}
         gridColumns={gridColumns ? gridColumns : parameters.length + 1}
       >
-        {!hidePrimarySelector && (
-          <SelectControl
-            {...selectProps}
-            styles={!inFieldLabels ? styles : undefined}
-            components={{
-              Option: ({label, data, ...props}: OptionProps<OptionType>) => (
-                <components.Option label={label} data={data} {...props}>
-                  <span data-test-id="label">{label}</span>
-                  {this.renderTag(data.value.kind)}
-                </components.Option>
-              ),
-              SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
-                <components.SingleValue data={data} {...props}>
-                  <span data-test-id="label">{data.label}</span>
-                  {this.renderTag(data.value.kind)}
-                </components.SingleValue>
-              ),
-            }}
-          />
-        )}
+        {!hidePrimarySelector &&
+          (inLineLabels ? (
+            <InputLabelContainer>
+              <FieldLabel>{t('Function')}</FieldLabel>
+              {primarySelector}
+            </InputLabelContainer>
+          ) : (
+            primarySelector
+          ))}
         {parameters}
       </Container>
     );
@@ -538,9 +596,25 @@ const Container = styled('div')<{gridColumns: number}>`
   flex-grow: 1;
 `;
 
+const InputLabelContainer = styled('div')`
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-column-gap: ${space(1)};
+  align-items: center;
+  margin-right: ${space(1)};
+`;
+
+const FieldLabel = styled('h4')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.3;
+  margin: ${space(1)} 0;
+`;
+
 type InputProps = React.HTMLProps<HTMLInputElement> & {
   onUpdate: (value: string) => void;
   value: string;
+  height?: number;
 };
 type InputState = {value: string};
 
@@ -601,15 +675,15 @@ class BufferedInput extends React.Component<InputProps, InputState> {
 }
 
 // Set a min-width to allow shrinkage in grid.
-const StyledInput = styled(Input)`
-  /* Match the height of the select boxes */
-  height: 41px;
+const StyledInput = styled(Input)<{height?: number}>`
+  /* Use custom height or match the height of the select boxes */
+  height: ${p => (p.height ? `${p.height}px` : '41px')};
   min-width: 50px;
 `;
 
-const BlankSpace = styled('div')`
-  /* Match the height of the select boxes */
-  height: 41px;
+const BlankSpace = styled('div')<{height?: number}>`
+  /* Use custom height or match the height of the select boxes */
+  height: ${p => (p.height ? `${p.height}px` : '41px')};
   min-width: 50px;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};

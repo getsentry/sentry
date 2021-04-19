@@ -42,6 +42,8 @@ type Props = Omit<FormField['props'], 'children'> & {
    */
   columnWidth?: number;
   inFieldLabels?: boolean;
+  inLineLabels?: boolean;
+  height?: number;
 };
 
 const getFieldOptionConfig = ({
@@ -126,7 +128,14 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
   );
 };
 
-const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props) => (
+const MetricField = ({
+  organization,
+  columnWidth,
+  inFieldLabels,
+  inLineLabels,
+  height,
+  ...props
+}: Props) => (
   <FormField help={help} {...props}>
     {({onChange, value, model, disabled}) => {
       const dataset = model.getValue('dataset');
@@ -160,7 +169,7 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
 
       return (
         <React.Fragment>
-          {!inFieldLabels && (
+          {!inFieldLabels && !inLineLabels && (
             <AggregateHeader>
               <div>{t('Function')}</div>
               {numParameters > 0 && <div>{t('Parameter')}</div>}
@@ -175,10 +184,12 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
             columnWidth={columnWidth}
             gridColumns={parameterColumns + 1}
             inFieldLabels={inFieldLabels}
+            inLineLabels={inLineLabels}
             shouldRenderTag={false}
             disabled={disabled}
             hideParameterSelector={hideParameterSelector}
             hidePrimarySelector={hidePrimarySelector}
+            height={height}
           />
         </React.Fragment>
       );

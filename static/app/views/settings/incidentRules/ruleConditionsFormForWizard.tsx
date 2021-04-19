@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
+import {SectionHeading} from 'app/components/charts/styles';
 import SearchBar from 'app/components/events/searchBar';
 import SelectControl from 'app/components/forms/selectControl';
 import ListItem from 'app/components/list/listItem';
@@ -145,8 +146,9 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
                     }}
                     inline={false}
                     flexibleControlStateSize
-                    columnWidth={200}
-                    inFieldLabels
+                    columnWidth={225}
+                    inLineLabels
+                    height={32}
                     required
                   />
                   <FormRowText>{t('Time Interval')}</FormRowText>
@@ -161,6 +163,13 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
                         ...formElemBaseStyle,
                         flex: 1,
                         minWidth: 130,
+                      }}
+                      styles={{
+                        control: provided => ({
+                          ...provided,
+                          minHeight: '32px',
+                          height: '32px',
+                        }),
                       }}
                       choices={Object.entries(TIME_WINDOW_MAP)}
                       required
@@ -336,7 +345,7 @@ const StyledListItem = styled(ListItem)`
 const FormRow = styled('div')`
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: center;
   flex-wrap: wrap;
   margin-bottom: ${space(2)};
 `;
@@ -345,10 +354,8 @@ const ChartFooter = styled(FormRow)`
   margin: 0;
 `;
 
-const FormRowText = styled('div')`
-  padding: ${space(0.5)};
-  /* Match the height of the select controls */
-  line-height: 36px;
+const FormRowText = styled(SectionHeading)`
+  margin: ${space(1)};
 `;
 
 export default RuleConditionsFormForWizard;
