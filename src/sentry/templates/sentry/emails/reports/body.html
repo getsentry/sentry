@@ -394,6 +394,7 @@
           <th style="width: 2em; padding-right: 0.5em"></th>
           <th>Project</th>
           <th style="width: 7em;" class="numeric">Errors</th>
+          <th style="width: 7em;" class="numeric">Transactions</th>
           <th style="width: 7em;" class="numeric col-filtered">Filtered</th>
           <th style="width: 7em;" class="numeric col-rate-limited">Rate Limited</th>
         </tr>
@@ -407,7 +408,8 @@
           <td>
               {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
           </td>
-          <td class="numeric">{{ key.data.events|small_count:1 }}</td>
+          <td class="numeric">{{ key.data.accepted_errors|small_count:1 }}</td>
+          <td class="numeric">{{ key.data.accepted_transactions|small_count:1 }}</td>
           <td class="numeric col-filtered">{{ key.data.filtered|small_count:1 }}</td>
           <td class="numeric col-rate-limited">{{ key.data.rate_limited|small_count:1 }}</td>
         </tr>
@@ -423,7 +425,8 @@
               <td>
                   {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
               </td>
-              <td class="numeric">{{ key.data.events|small_count:1 }}</td>
+              <td class="numeric">{{ key.data.accepted_errors|small_count:1 }}</td>
+              <td class="numeric">{{ key.data.accepted_transactions|small_count:1 }}</td>
               <td class="numeric col-filtered">{{ key.data.filtered|small_count:1 }}</td>
               <td class="numeric col-rate-limited">{{ key.data.rate_limited|small_count:1 }}</td>
             </tr>
