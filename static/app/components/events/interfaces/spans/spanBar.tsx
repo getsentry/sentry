@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
 import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
+import {Row, RowCell, RowCellContainer} from 'app/components/waterfallTree/row';
 import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
 import {
   DividerLine,
@@ -19,6 +20,7 @@ import {
 import {
   ConnectorBar,
   StyledIconChevron,
+  TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
@@ -29,7 +31,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
-import {defined, OmitHtmlDivProps} from 'app/utils';
+import {defined} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
@@ -43,7 +45,6 @@ import {
 } from './header';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanDetail from './spanDetail';
-import {SpanRow, zIndex} from './styles';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
 import {
   durationlessBrowserOps,
@@ -170,29 +171,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
   1.0,
 ];
 
-const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
-const TOGGLE_BUTTON_MAX_WIDTH = 30;
-export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
 const MARGIN_LEFT = 0;
-
-export const getBackgroundColor = ({
-  showStriping,
-  showDetail,
-  theme,
-}: {
-  showStriping?: boolean;
-  showDetail?: boolean;
-  theme: any;
-}) => {
-  if (!theme) {
-    return theme.background;
-  }
-
-  if (showDetail) {
-    return theme.textColor;
-  }
-  return showStriping ? theme.backgroundSecondary : theme.background;
-};
 
 type SpanBarProps = {
   event: Readonly<EventTransaction>;
@@ -804,8 +783,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const durationDisplay = getDurationDisplay(bounds);
 
     return (
-      <SpanRowCellContainer showDetail={this.state.showDetail}>
-        <SpanRowCell
+      <RowCellContainer showDetail={this.state.showDetail}>
+        <RowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
           style={{
@@ -817,9 +796,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           }}
         >
           {this.renderTitle(scrollbarManagerChildrenProps)}
-        </SpanRowCell>
+        </RowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
-        <SpanRowCell
+        <RowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
           showStriping={spanNumber % 2 !== 0}
@@ -851,7 +830,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           )}
           {this.renderMeasurements()}
           {this.renderCursorGuide()}
-        </SpanRowCell>
+        </RowCell>
         {!this.state.showDetail && (
           <DividerLineGhostContainer
             style={{
@@ -874,7 +853,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             />
           </DividerLineGhostContainer>
         )}
-      </SpanRowCellContainer>
+      </RowCellContainer>
     );
   }
 
@@ -886,7 +865,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
     return (
-      <SpanRow
+      <Row
         ref={this.spanRowDOMRef}
         visible={isSpanVisible}
         showBorder={this.state.showDetail}
@@ -911,40 +890,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <QuickTraceContext.Consumer>
           {quickTrace => this.renderDetail({isVisible: isSpanVisible, quickTrace})}
         </QuickTraceContext.Consumer>
-      </SpanRow>
+      </Row>
     );
   }
 }
-
-type SpanRowCellProps = OmitHtmlDivProps<{
-  showStriping?: boolean;
-  showDetail?: boolean;
-}>;
-
-export const SpanRowCell = styled('div')<SpanRowCellProps>`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  background-color: ${p => getBackgroundColor(p)};
-  transition: background-color 125ms ease-in-out;
-  color: ${p => (p.showDetail ? p.theme.background : 'inherit')};
-`;
-
-export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
-  display: flex;
-  position: relative;
-  height: ${ROW_HEIGHT}px;
-
-  /* for virtual scrollbar */
-  overflow: hidden;
-
-  user-select: none;
-
-  &:hover > div[data-type='span-row-cell'] {
-    background-color: ${p =>
-      p.showDetail ? p.theme.textColor : p.theme.backgroundSecondary};
-  }
-`;
 
 const CursorGuide = styled('div')`
   position: absolute;
@@ -967,7 +916,7 @@ const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
       ${p => (p.failedThreshold ? p.theme.red300 : 'black')} 4px 8px
     )
     80%/2px 100% no-repeat;
-  z-index: ${zIndex.dividerLine};
+  z-index: ${p => p.theme.zIndex.traceView.dividerLine};
   color: ${p => p.theme.textColor};
 `;
 

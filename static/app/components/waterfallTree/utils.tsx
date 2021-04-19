@@ -1,5 +1,26 @@
 import {DurationDisplay} from 'app/components/waterfallTree/types';
 import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
+
+export const getBackgroundColor = ({
+  showStriping,
+  showDetail,
+  theme,
+}: {
+  showStriping?: boolean;
+  showDetail?: boolean;
+  theme: Theme;
+}) => {
+  if (showDetail) {
+    return theme.textColor;
+  }
+
+  if (showStriping) {
+    return theme.backgroundSecondary;
+  }
+
+  return theme.background;
+};
 
 type HatchProps = {
   spanBarHatch: boolean;
@@ -42,7 +63,7 @@ export const getDurationPillAlignment = ({
   spanBarHatch,
 }: {
   durationDisplay: DurationDisplay;
-  theme: any;
+  theme: Theme;
   spanBarHatch: boolean;
 }) => {
   switch (durationDisplay) {
@@ -64,7 +85,7 @@ export const getToggleTheme = ({
   disabled,
 }: {
   isExpanded: boolean;
-  theme: any;
+  theme: Theme;
   disabled: boolean;
 }) => {
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
