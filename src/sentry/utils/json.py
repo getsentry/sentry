@@ -12,7 +12,7 @@ from typing import Any
 
 from django.utils.encoding import force_text
 from django.utils.functional import Promise
-from django.utils.html import mark_safe
+from django.utils.safestring import mark_safe
 from django.utils.timezone import is_aware
 from simplejson import JSONDecodeError, JSONEncoder, _default_decoder  # NOQA
 
