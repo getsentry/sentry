@@ -64,15 +64,11 @@ jobs:
           name: jest-html
           path: .artifacts/visual-snapshots/jest
 
-      - name: Get CSS filename
-        id: css-manifest
-        run: echo "::set-output name=sentrycss::$(jq -r '.["sentry.css"]' src/sentry/static/sentry/dist/manifest.json)"
-
       - name: Create Images from HTML
         uses: getsentry/action-html-to-image@main
         with:
           base-path: .artifacts/visual-snapshots/jest
-          css-path: src/sentry/static/sentry/dist/${{ steps.css-manifest.outputs.sentrycss }}
+          css-path: src/sentry/static/sentry/dist/sentry.css
 
       - name: Save snapshots
         if: always()
