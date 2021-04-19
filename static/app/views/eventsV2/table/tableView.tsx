@@ -402,11 +402,7 @@ class TableView extends React.Component<TableViewProps> {
           return;
         }
         default: {
-          if (column.type === 'duration' && typeof value === 'number') {
-            // values are assumed to be in milliseconds
-            value = getDuration(value / 1000, 2, true);
-          }
-          updateQuery(query, action, column.name, value);
+          updateQuery(query, action, column, value);
         }
       }
       nextView.query = stringifyQueryObject(query);
