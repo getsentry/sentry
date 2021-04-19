@@ -44,17 +44,18 @@ else like actual grouping happens elsewhere like test_variants.py.
    leaked PII to the public and all of this will have been for nothing.
 """
 
-import json  # NOQA
 import os
 import uuid
-from threading import local
 
 import pytest
+import json  # NOQA
+from threading import local
+
 from django.utils.functional import cached_property
 
+from sentry.utils.safe import get_path
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
-from sentry.utils.safe import get_path
 
 _fixture_path = os.path.join(os.path.dirname(__file__), "categorization_inputs")
 
@@ -131,7 +132,7 @@ def test_categorization(input, insta_snapshot):
     insta_snapshot(get_stacktrace_render(data))
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="module", autouse=True)
 def cleanup_unused_data():
     from sentry.grouping.enhancer import VarAction
 
