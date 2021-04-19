@@ -30,7 +30,7 @@ export const DATASOURCE_EVENT_TYPE_FILTERS = {
   [Datasource.TRANSACTION]: 'event.type:transaction',
 } as const;
 
-type OptionConfig = {
+export type OptionConfig = {
   aggregations: AggregationKey[];
   fields: LooseFieldKey[];
   measurementKeys?: string[];

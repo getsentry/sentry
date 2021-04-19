@@ -15,13 +15,15 @@ import {
   FIELDS,
   generateFieldAsString,
 } from 'app/utils/discover/fields';
+import {WizardMetricFieldConfigs} from 'app/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import {QueryField} from 'app/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'app/views/eventsV2/table/types';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import FormField from 'app/views/settings/components/forms/formField';
 import FormModel from 'app/views/settings/components/forms/model';
 
-import {errorFieldConfig, transactionFieldConfig} from './constants';
+import {errorFieldConfig, OptionConfig, transactionFieldConfig} from './constants';
 import {PRESET_AGGREGATES} from './presets';
 import {Dataset} from './types';
 
@@ -34,9 +36,27 @@ type Props = Omit<FormField['props'], 'children'> & {
   inFieldLabels?: boolean;
 };
 
-const getFieldOptionConfig = (dataset: Dataset) => {
-  const config = dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
-
+const getFieldOptionConfig = ({
+  dataset,
+  aggregate,
+  organization,
+}: {
+  dataset: Dataset;
+  aggregate: string;
+  organization: Organization;
+}) => {
+  let config: OptionConfig;
+  let hidePrimarySelector = false;
+  let hideParameterSelector = false;
+  if (organization.features.includes('alert-wizard')) {
+    const alertType = getAlertTypeFromAggregateDataset({dataset, aggregate});
+    config = WizardMetricFieldConfigs[alertType];
+    hidePrimarySelector = config.aggregations.length === 1;
+    hideParameterSelector =
+      (config.measurementKeys?.length ? 1 : 0) + config.fields.length === 1;
+  } else {
+    config = dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
+  }
   const aggregations = Object.fromEntries<Aggregation>(
     config.aggregations.map(key => {
       // TODO(scttcper): Temporary hack for default value while we handle the translation of user
@@ -64,7 +84,11 @@ const getFieldOptionConfig = (dataset: Dataset) => {
 
   const {measurementKeys} = config;
 
-  return {aggregations, fields, measurementKeys};
+  return {
+    fieldOptionsConfig: {aggregations, fields, measurementKeys},
+    hidePrimarySelector,
+    hideParameterSelector,
+  };
 };
 
 const help = ({name, model}: {name: string; model: FormModel}) => {
@@ -99,8 +123,17 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
   <FormField help={help} {...props}>
     {({onChange, value, model, disabled}) => {
       const dataset = model.getValue('dataset');
+      const aggregate = model.getValue('aggregate');
 
-      const fieldOptionsConfig = getFieldOptionConfig(dataset);
+      const {
+        fieldOptionsConfig,
+        hidePrimarySelector,
+        hideParameterSelector,
+      } = getFieldOptionConfig({
+        dataset: dataset as Dataset,
+        aggregate,
+        organization,
+      });
       const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
       const fieldValue = explodeFieldString(value ?? '');
 
@@ -114,6 +147,9 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
         selectedField?.kind === FieldValueKind.FUNCTION
           ? selectedField.meta.parameters.length
           : 0;
+
+      const parameterColumns =
+        numParameters - (hideParameterSelector ? 1 : 0) - (hidePrimarySelector ? 1 : 0);
 
       return (
         <React.Fragment>
@@ -130,10 +166,12 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
             fieldValue={fieldValue}
             onChange={v => onChange(generateFieldAsString(v), {})}
             columnWidth={columnWidth}
-            gridColumns={numParameters}
+            gridColumns={parameterColumns + 1}
             inFieldLabels={inFieldLabels}
             shouldRenderTag={false}
             disabled={disabled}
+            hideParameterSelector={hideParameterSelector}
+            hidePrimarySelector={hidePrimarySelector}
           />
         </React.Fragment>
       );
@@ -145,7 +183,7 @@ const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: 
   ${p =>
     p.columnWidth &&
     css`
-      width: ${(p.gridColumns + 1) * p.columnWidth}px;
+      width: ${p.gridColumns * p.columnWidth}px;
     `}
 `;
 

@@ -1,4 +1,9 @@
 import {t} from 'app/locale';
+import {AggregationKey} from 'app/utils/discover/fields';
+import {
+  OptionConfig,
+  transactionFieldConfig,
+} from 'app/views/settings/incidentRules/constants';
 import {Dataset, EventTypes} from 'app/views/settings/incidentRules/types';
 
 export type AlertType =
@@ -231,4 +236,65 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
+};
+
+const commonAggregations: AggregationKey[] = [
+  'avg',
+  'percentile',
+  'p50',
+  'p75',
+  'p95',
+  'p99',
+  'p100',
+];
+
+export const WizardMetricFieldConfigs: Record<
+  Exclude<AlertType, 'issues'>,
+  OptionConfig
+> = {
+  num_errors: {
+    aggregations: ['count'],
+    fields: [],
+  },
+  users_experiencing_errors: {
+    aggregations: ['count_unique'],
+    fields: ['user'],
+  },
+  throughput: {
+    aggregations: ['count'],
+    fields: [],
+  },
+  trans_duration: {
+    aggregations: commonAggregations,
+    fields: ['transaction.duration'],
+  },
+  apdex: {
+    aggregations: ['apdex'],
+    fields: [],
+  },
+  failure_rate: {
+    aggregations: ['failure_rate'],
+    fields: [],
+  },
+  lcp: {
+    aggregations: commonAggregations,
+    fields: [],
+    measurementKeys: ['measurements.lcp'],
+  },
+  fid: {
+    aggregations: commonAggregations,
+    fields: [],
+    measurementKeys: ['measurements.fid'],
+  },
+  cls: {
+    aggregations: commonAggregations,
+    fields: [],
+    measurementKeys: ['measurements.cls'],
+  },
+  fcp: {
+    aggregations: commonAggregations,
+    fields: [],
+    measurementKeys: ['measurements.fcp'],
+  },
+  custom: transactionFieldConfig,
 };
