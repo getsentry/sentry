@@ -2973,7 +2973,7 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
 
         result = discover.get_performance_facets("", params)
 
-        assert len(result) == 11
+        assert len(result) == 10
         for r in result:
             if r.key == "color" and r.value == "red":
                 assert r.frequency == 0.5
