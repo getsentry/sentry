@@ -25,7 +25,11 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
-import {getDurationDisplay} from 'app/components/waterfallTree/utils';
+import {
+  getDurationDisplay,
+  getHumanDuration,
+  toPercent,
+} from 'app/components/waterfallTree/utils';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -48,7 +52,6 @@ import SpanDetail from './spanDetail';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
 import {
   durationlessBrowserOps,
-  getHumanDuration,
   getMeasurementBounds,
   getMeasurements,
   getSpanID,
@@ -59,7 +62,6 @@ import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
   SpanViewBoundsType,
-  toPercent,
   unwrapTreeDepth,
 } from './utils';
 

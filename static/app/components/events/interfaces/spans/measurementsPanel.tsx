@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
+import {toPercent} from 'app/components/waterfallTree/utils';
 import {EventTransaction} from 'app/types/event';
 import {defined} from 'app/utils';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
@@ -11,7 +12,6 @@ import {
   getMeasurements,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  toPercent,
 } from './utils';
 
 type Props = {
