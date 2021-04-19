@@ -98,9 +98,10 @@ class StacktraceState:
 
 class Enhancements:
 
-    # NOTE: You must bump the ``version`` any time attributes are added to
-    # this class, s.t. no enhancements lacking these attributes are loaded
+    # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
+    # to this class, s.t. no enhancements lacking these attributes are loaded
     # from cache.
+    # See ``_get_project_enhancements_config`` in src/sentry/grouping/api.py.
 
     def __init__(self, rules, version=None, bases=None, id=None):
         self.id = id
