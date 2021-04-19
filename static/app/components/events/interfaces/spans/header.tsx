@@ -8,6 +8,11 @@ import {
   VirtualScrollbar,
   VirtualScrollbarGrip,
 } from 'app/components/waterfallTree/miniHeader';
+import {
+  getHumanDuration,
+  rectOfContent,
+  toPercent,
+} from 'app/components/waterfallTree/utils';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -26,14 +31,11 @@ import {
 } from './types';
 import {
   boundsGenerator,
-  getHumanDuration,
   getSpanID,
   getSpanOperation,
   pickSpanBarColour,
-  rectOfContent,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  toPercent,
 } from './utils';
 
 export const MINIMAP_SPAN_BAR_HEIGHT = 4;
