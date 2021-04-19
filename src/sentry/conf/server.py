@@ -909,6 +909,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-basic": False,
     # Enable custom editable dashboards (dashboards 2)
     "organizations:dashboards-edit": False,
+    # Enable dashboards manager.
+    "organizations:dashboards-manage": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
