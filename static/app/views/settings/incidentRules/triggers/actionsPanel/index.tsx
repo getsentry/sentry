@@ -249,7 +249,7 @@ class ActionsPanel extends React.PureComponent<Props> {
 
     return (
       <React.Fragment>
-        <StyledListItem>{t('Perform actions when a threshold is met')}</StyledListItem>
+        <StyledListItem>{t('Perform actions')}</StyledListItem>
         <AlertParagraph>
           {t(
             'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
