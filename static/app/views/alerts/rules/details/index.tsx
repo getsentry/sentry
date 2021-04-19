@@ -12,18 +12,13 @@ import {Organization} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
 import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
+import {IncidentRule, TimePeriod, TimeWindow} from 'app/views/settings/incidentRules/types';
 
 import {Incident} from '../../types';
 import {fetchAlertRule, fetchIncident, fetchIncidentsForRule} from '../../utils';
 
 import DetailsBody from './body';
-import {
-  ALERT_RULE_DETAILS_DEFAULT_PERIOD,
-  TIME_OPTIONS,
-  TIME_WINDOWS,
-  TimePeriodType,
-} from './constants';
+import {TIME_OPTIONS, TIME_WINDOWS, TimePeriodType} from './constants';
 import DetailsHeader from './header';
 
 type Props = {
@@ -62,8 +57,10 @@ class AlertRuleDetails extends React.Component<Props, State> {
 
   getTimePeriod(): TimePeriodType {
     const {location} = this.props;
+    const {rule} = this.state;
 
-    const period = location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD;
+    const defaultPeriod = rule?.timeWindow && rule?.timeWindow > TimeWindow.ONE_HOUR ? TimePeriod.SEVEN_DAYS : TimePeriod.ONE_DAY;
+    const period = location.query.period ?? defaultPeriod;
 
     if (location.query.start && location.query.end) {
       return {
