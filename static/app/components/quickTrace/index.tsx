@@ -6,9 +6,9 @@ import DropdownLink from 'app/components/dropdownLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {
   ErrorDestination,
-  generateMultiTransactionsTarget,
   generateSingleErrorTarget,
   generateSingleTransactionTarget,
+  generateTraceTarget,
   isQuickTraceEvent,
   TransactionDestination,
 } from 'app/components/quickTrace/utils';
@@ -96,6 +96,7 @@ export default function QuickTrace({
         location={location}
         organization={organization}
         events={[root]}
+        currentEvent={event}
         text={t('Root')}
         anchor={anchor}
         nodeKey="root"
@@ -113,13 +114,8 @@ export default function QuickTrace({
         location={location}
         organization={organization}
         events={ancestors}
+        currentEvent={event}
         text={tn('%s Ancestor', '%s Ancestors', ancestors.length)}
-        extrasTarget={generateMultiTransactionsTarget(
-          event,
-          ancestors,
-          organization,
-          'Ancestor'
-        )}
         anchor={anchor}
         nodeKey="ancestors"
         errorDest={errorDest}
@@ -136,6 +132,7 @@ export default function QuickTrace({
         location={location}
         organization={organization}
         events={[parent]}
+        currentEvent={event}
         text={t('Parent')}
         anchor={anchor}
         nodeKey="parent"
@@ -213,13 +210,8 @@ export default function QuickTrace({
         location={location}
         organization={organization}
         events={children}
+        currentEvent={event}
         text={tn('%s Child', '%s Children', children.length)}
-        extrasTarget={generateMultiTransactionsTarget(
-          event,
-          children,
-          organization,
-          'Children'
-        )}
         anchor={anchor}
         nodeKey="children"
         errorDest={errorDest}
@@ -236,13 +228,8 @@ export default function QuickTrace({
         location={location}
         organization={organization}
         events={descendants}
+        currentEvent={event}
         text={tn('%s Descendant', '%s Descendants', descendants.length)}
-        extrasTarget={generateMultiTransactionsTarget(
-          event,
-          descendants,
-          organization,
-          'Descendant'
-        )}
         anchor={anchor}
         nodeKey="descendants"
         errorDest={errorDest}
@@ -283,8 +270,7 @@ type EventNodeSelectorProps = {
   organization: OrganizationSummary;
   events: QuickTraceEvent[];
   text: React.ReactNode;
-  currentEvent?: Event;
-  extrasTarget?: LocationDescriptor;
+  currentEvent: Event;
   numEvents?: number;
   anchor: 'left' | 'right';
   nodeKey: keyof typeof TOOLTIP_PREFIX;
@@ -298,29 +284,16 @@ function EventNodeSelector({
   events = [],
   text,
   currentEvent,
-  extrasTarget,
   nodeKey,
   anchor,
   errorDest,
   transactionDest,
   numEvents = 5,
 }: EventNodeSelectorProps) {
-  const errors: TraceError[] = [];
-  events.forEach(e => {
-    e?.errors?.forEach(error => {
-      if (!currentEvent || currentEvent.id !== error.event_id) {
-        errors.push({
-          ...error,
-          transaction: e.transaction,
-        });
-      }
-    });
-  });
-  // Filter out the current event so its not in the dropdown
-  events = currentEvent ? events.filter(e => e.event_id !== currentEvent.id) : events;
+  let errors: TraceError[] = events.flatMap(event => event.errors ?? []);
 
   let type: keyof Theme['tag'] = nodeKey === 'current' ? 'black' : 'white';
-  if (errors.length > 0 || (currentEvent && currentEvent?.type !== 'transaction')) {
+  if (errors.length > 0) {
     type = nodeKey === 'current' ? 'error' : 'warning';
     text = (
       <ErrorNodeContent>
@@ -329,6 +302,10 @@ function EventNodeSelector({
       </ErrorNodeContent>
     );
   }
+
+  // make sure to exclude the current event from the dropdown
+  events = events.filter(event => event.event_id !== currentEvent.id);
+  errors = errors.filter(error => error.event_id !== currentEvent.id);
 
   if (events.length + errors.length === 0) {
     return <EventNode type={type}>{text}</EventNode>;
@@ -429,13 +406,18 @@ function EventNodeSelector({
               />
             );
           })}
-          {events.length > numEvents && hoverText && extrasTarget && (
+          {(errors.length > numEvents || events.length > numEvents) && (
             <DropdownItem
               onSelect={() =>
-                handleDropdownItem(extrasTarget, nodeKey, organization, true)
+                handleDropdownItem(
+                  generateTraceTarget(currentEvent, organization),
+                  nodeKey,
+                  organization,
+                  true
+                )
               }
             >
-              {hoverText}
+              {t('View all events')}
             </DropdownItem>
           )}
         </DropdownLink>

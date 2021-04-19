@@ -26,7 +26,6 @@ export type TraceError = {
   issue_id: number;
   event_id: string;
   span: string;
-  transaction: string;
   project_id: number;
   project_slug: string;
   title: string;
