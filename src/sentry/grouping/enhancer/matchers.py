@@ -83,7 +83,6 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
 
 class Match:
     description = None
-    keys = tuple()
 
     def matches_frame(self, frames, idx, platform, exception_data, cache):
         raise NotImplementedError()
@@ -151,11 +150,10 @@ class FrameMatch(Match):
         super().__init__()
         try:
             self.key = MATCHERS[key]
-            self.keys = (self.key,)
         except KeyError:
             raise InvalidEnhancerConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
-        self.encoded_pattern = pattern.encode("utf-8")
+        self._encoded_pattern = pattern.encode("utf-8")
         self.negated = negated
 
     @property
@@ -207,7 +205,7 @@ class PathLikeMatch(FrameMatch):
         if value is None:
             return False
 
-        return cached(cache, path_like_match, self.encoded_pattern, value)
+        return cached(cache, path_like_match, self._encoded_pattern, value)
 
 
 class PackageMatch(PathLikeMatch):
@@ -223,7 +221,7 @@ class PathMatch(PathLikeMatch):
 class FamilyMatch(FrameMatch):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._flags = set(self.encoded_pattern.split(b","))
+        self._flags = set(self._encoded_pattern.split(b","))
 
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
         if b"all" in self._flags:
@@ -245,7 +243,7 @@ class InAppMatch(FrameMatch):
 class FunctionMatch(FrameMatch):
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
 
-        return cached(cache, glob_match, match_frame["function"], self.encoded_pattern)
+        return cached(cache, glob_match, match_frame["function"], self._encoded_pattern)
 
 
 class FrameFieldMatch(FrameMatch):
@@ -254,7 +252,7 @@ class FrameFieldMatch(FrameMatch):
         if field is None:
             return False
 
-        return cached(cache, glob_match, field, self.encoded_pattern)
+        return cached(cache, glob_match, field, self._encoded_pattern)
 
 
 class ModuleMatch(FrameFieldMatch):
@@ -270,7 +268,7 @@ class CategoryMatch(FrameFieldMatch):
 class ExceptionFieldMatch(FrameMatch):
     def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         field = get_path(exception_data, *self.field_path) or "<unknown>"
-        return cached(cache, glob_match, field, self.encoded_pattern)
+        return cached(cache, glob_match, field, self._encoded_pattern)
 
 
 class ExceptionTypeMatch(ExceptionFieldMatch):

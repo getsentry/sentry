@@ -37,6 +37,16 @@ class Action:
     def modify_stacktrace_state(self, state, rule):
         pass
 
+    @property
+    def is_modifier(self):
+        """ Does this action modify the frame? """
+        return self._is_modifier
+
+    @property
+    def is_updater(self):
+        """ Does this action update grouping components? """
+        return self._is_updater
+
     @classmethod
     def _from_config_structure(cls, val, version):
         if isinstance(val, list):
@@ -48,8 +58,8 @@ class Action:
 class FlagAction(Action):
     def __init__(self, key, flag, range):
         self.key = key
-        self.is_updater = key in {"group", "app", "prefix", "sentinel"}
-        self.is_modifier = key == "app"
+        self._is_updater = key in {"group", "app", "prefix", "sentinel"}
+        self._is_modifier = key == "app"
         self.flag = flag
         self.range = range
 
@@ -138,8 +148,8 @@ class VarAction(Action):
 
     def __init__(self, var, value):
         self.var = var
-        self.is_modifier = self.var == "category"
-        self.is_updater = self.var not in VarAction._FRAME_VARIABLES
+        self._is_modifier = self.var == "category"
+        self._is_updater = self.var not in VarAction._FRAME_VARIABLES
 
         try:
             self.value = VarAction._VALUE_PARSERS[var](value)
@@ -148,7 +158,7 @@ class VarAction(Action):
         except KeyError:
             raise InvalidEnhancerConfig(f"Unknown variable '{var}'")
 
-        self.encoded_value = (
+        self._encoded_value = (
             self.value.encode("utf-8") if isinstance(self.value, str) else self.value
         )
 
@@ -166,4 +176,4 @@ class VarAction(Action):
         if self.var == "category":
             frame = frames[idx]
             set_path(frame, "data", "category", value=self.value)
-            match_frames[idx]["category"] = self.encoded_value
+            match_frames[idx]["category"] = self._encoded_value

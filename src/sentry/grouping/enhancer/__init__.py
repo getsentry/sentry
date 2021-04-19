@@ -285,8 +285,8 @@ class Rule:
                 self._other_matchers.append(matcher)
 
         self.actions = actions
-        self.is_updater = any(action.is_updater for action in actions)
-        self.is_modifier = any(action.is_modifier for action in actions)
+        self._is_updater = any(action.is_updater for action in actions)
+        self._is_modifier = any(action.is_modifier for action in actions)
 
     @property
     def matcher_description(self):
@@ -295,13 +295,23 @@ class Rule:
             rv = f"{rv} {action}"
         return rv
 
+    @property
+    def is_modifier(self):
+        """ Does this rule modify the frame? """
+        return self._is_modifier
+
+    @property
+    def is_updater(self):
+        """ Does this rule update grouping components? """
+        return self._is_updater
+
     def as_dict(self):
         matchers = {}
         for matcher in self.matchers:
             matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
-    def get_matching_frame_actions(self, frames, platform, exception_data, cache):
+    def get_matching_frame_actions(self, frames, platform, exception_data=None, cache=None):
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
