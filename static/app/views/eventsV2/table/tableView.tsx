@@ -26,7 +26,6 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {Column, fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
-import {getDuration} from 'app/utils/formatters';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
