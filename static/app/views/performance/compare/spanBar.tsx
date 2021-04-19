@@ -4,13 +4,6 @@ import {withTheme} from 'emotion-theming';
 
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
-import {
-  getBackgroundColor,
-  SpanRowCell,
-  SpanRowCellContainer,
-  TOGGLE_BORDER_BOX,
-} from 'app/components/events/interfaces/spans/spanBar';
-import {SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
 import {
   getHumanDuration,
@@ -19,6 +12,7 @@ import {
   unwrapTreeDepth,
 } from 'app/components/events/interfaces/spans/utils';
 import {ROW_HEIGHT, ROW_PADDING} from 'app/components/waterfallTree/constants';
+import {Row, RowCell, RowCellContainer} from 'app/components/waterfallTree/row';
 import {
   DividerLine,
   DividerLineGhostContainer,
@@ -31,11 +25,12 @@ import {
 import {
   ConnectorBar,
   StyledIconChevron,
+  TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
-import {getHatchPattern} from 'app/components/waterfallTree/utils';
+import {getBackgroundColor, getHatchPattern} from 'app/components/waterfallTree/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
@@ -426,8 +421,8 @@ class SpanBar extends React.Component<Props, State> {
       />
     ) : null;
     return (
-      <SpanRowCellContainer showDetail={this.state.showDetail}>
-        <SpanRowCell
+      <RowCellContainer showDetail={this.state.showDetail}>
+        <RowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
           style={{
@@ -438,9 +433,9 @@ class SpanBar extends React.Component<Props, State> {
           }}
         >
           {this.renderTitle()}
-        </SpanRowCell>
+        </RowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
-        <SpanRowCell
+        <RowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
           showStriping={spanNumber % 2 !== 0}
@@ -463,7 +458,7 @@ class SpanBar extends React.Component<Props, State> {
             {foregroundSpanBar}
           </SpanContainer>
           {this.renderComparisonReportLabel()}
-        </SpanRowCell>
+        </RowCell>
         {!this.state.showDetail && (
           <DividerLineGhostContainer
             style={{
@@ -486,7 +481,7 @@ class SpanBar extends React.Component<Props, State> {
             />
           </DividerLineGhostContainer>
         )}
-      </SpanRowCellContainer>
+      </RowCellContainer>
     );
   }
 
@@ -508,14 +503,14 @@ class SpanBar extends React.Component<Props, State> {
 
   render() {
     return (
-      <SpanRow visible data-test-id="span-row">
+      <Row visible data-test-id="span-row">
         <DividerHandlerManager.Consumer>
           {(
             dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
           ) => this.renderHeader(dividerHandlerChildrenProps)}
         </DividerHandlerManager.Consumer>
         {this.renderDetail()}
-      </SpanRow>
+      </Row>
     );
   }
 }

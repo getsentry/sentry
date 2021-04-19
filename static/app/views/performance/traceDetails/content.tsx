@@ -16,6 +16,7 @@ import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import TimeSince from 'app/components/timeSince';
+import {MessageRow} from 'app/components/waterfallTree/messageRow';
 import {
   DividerSpacer,
   ScrollbarContainer,
@@ -41,7 +42,6 @@ import {
   TraceDetailHeader,
   TraceViewContainer,
   TraceViewHeaderContainer,
-  TransactionRowMessage,
 } from './styles';
 import TransactionGroup from './transactionGroup';
 import {TraceInfo, TreeDepth} from './types';
@@ -312,7 +312,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       return null;
     }
 
-    return <TransactionRowMessage>{messages}</TransactionRowMessage>;
+    return <MessageRow>{messages}</MessageRow>;
   }
 
   renderLimitExceededMessage(traceInfo: TraceInfo) {
@@ -327,7 +327,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
     const target = traceEventView.getResultsViewUrlTarget(organization.slug);
 
     return (
-      <TransactionRowMessage>
+      <MessageRow>
         {tct(
           'Limited to a view of [count] transactions. To view the full list, [discover].',
           {
@@ -343,7 +343,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             ),
           }
         )}
-      </TransactionRowMessage>
+      </MessageRow>
     );
   }
 

@@ -18,7 +18,6 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
 import MeasurementsPanel from './measurementsPanel';
 import * as ScrollbarManager from './scrollbarManager';
-import {zIndex} from './styles';
 import {
   ParsedTraceType,
   RawSpanType,
@@ -757,7 +756,7 @@ const HeaderContainer = styled('div')`
   position: sticky;
   left: 0;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
-  z-index: ${zIndex.minimapContainer};
+  z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
   height: ${MINIMAP_CONTAINER_HEIGHT}px;
