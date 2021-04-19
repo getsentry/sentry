@@ -24,6 +24,7 @@ targets:
     targetFormat: '{{{target}}}:latest'
 artifactProvider:
   name: gcs
-  bucket: sentryio-cloudbuild-opensource
+  config:
+    bucket: sentryio-cloudbuild-opensource
 requireNames:
   - /^sentry-.+-py3\d?-none-any.whl$/
