@@ -91,11 +91,6 @@ export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
       params = mapValuesFn(params) as any;
     }
 
-    if (hasAnalyticsDebug() && organization_id === undefined) {
-      // eslint-disable-next-line no-console
-      console.warn(`Organization absent from event ${eventKey}`);
-    }
-
     //could put this into a debug method or for the main trackAnalyticsEvent event
     if (hasAnalyticsDebug()) {
       // eslint-disable-next-line no-console
