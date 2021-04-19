@@ -6,7 +6,6 @@
     "{{ default }}"
   ],
   "_grouping": {
-    "enhancement_base": "common:2019-03-23",
     "enhancements": "family:native max-frames=1"
   },
   "exception": {

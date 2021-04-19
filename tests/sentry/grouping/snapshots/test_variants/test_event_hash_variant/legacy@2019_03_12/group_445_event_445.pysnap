@@ -1,0 +1,296 @@
+---
+created: '2021-04-02T09:10:50.487541Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlUserThreadStart"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "BaseThreadInitThunk"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "WinMain.cpp"
+            function*
+              "wWinMain"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::{ctor}"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::assign"
+          frame (ignored due to recursion)
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::assign"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::_Reallocate_for"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "functional"
+            function*
+              "std::_Func_class<T>::operator()"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "DispatchMessageWorker"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "UserCallWinProcCheckWow"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "purevirt.cpp"
+            function*
+              "_purecall"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "raise"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "crashpad_client_win.cc"
+            function*
+              "crashpad::`anonymous namespace'::HandleAbortSignal"
+        type*
+          "0x40000015 / 0x00000001"
+        value (stacktrace and type take precedence)
+          "Fatal Error: 0x40000015 / 0x00000001"
+--------------------------------------------------------------------------
+system:
+  hash: "3e9f9ffdb23279c991df2017c6ca1cff"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlUserThreadStart"
+          frame
+            function (function name is not used if module or filename are available)
+              "BaseThreadInitThunk"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame*
+            filename*
+              "WinMain.cpp"
+            function*
+              "wWinMain"
+          frame*
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::{ctor}"
+          frame*
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::assign"
+          frame (ignored due to recursion)
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::assign"
+          frame*
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::_Reallocate_for"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename*
+              "functional"
+            function*
+              "std::_Func_class<T>::operator()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame
+            function (function name is not used if module or filename are available)
+              "DispatchMessageWorker"
+          frame
+            function (function name is not used if module or filename are available)
+              "UserCallWinProcCheckWow"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename*
+              "purevirt.cpp"
+            function*
+              "_purecall"
+          frame
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame
+            function (function name is not used if module or filename are available)
+              "raise"
+          frame*
+            filename*
+              "crashpad_client_win.cc"
+            function*
+              "crashpad::`anonymous namespace'::HandleAbortSignal"
+        type*
+          "0x40000015 / 0x00000001"
+        value (stacktrace and type take precedence)
+          "Fatal Error: 0x40000015 / 0x00000001"

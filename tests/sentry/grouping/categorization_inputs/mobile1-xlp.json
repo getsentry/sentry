@@ -1,0 +1,214 @@
+{
+  "event_id": "10e91957fd7f4dd2aae9850bc434630e",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "run",
+              "module": "android.os.AsyncTask$SerialExecutor$1"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "run",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "call",
+              "module": "android.os.AsyncTask$2"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "NotificationManager.java",
+              "filename": "NotificationManager.java",
+              "function": "notify",
+              "module": "android.app.NotificationManager"
+            },
+            {
+              "abs_path": "NotificationManager.java",
+              "filename": "NotificationManager.java",
+              "function": "notify",
+              "module": "android.app.NotificationManager"
+            },
+            {
+              "abs_path": "NotificationManager.java",
+              "filename": "NotificationManager.java",
+              "function": "notifyAsUser",
+              "module": "android.app.NotificationManager"
+            }
+          ]
+        },
+        "type": "DeadSystemException"
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "run",
+              "module": "android.os.AsyncTask$SerialExecutor$1"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "run",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "call",
+              "module": "android.os.AsyncTask$2"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "NotificationManager.java",
+              "filename": "NotificationManager.java",
+              "function": "notify",
+              "module": "android.app.NotificationManager"
+            },
+            {
+              "abs_path": "NotificationManager.java",
+              "filename": "NotificationManager.java",
+              "function": "notify",
+              "module": "android.app.NotificationManager"
+            },
+            {
+              "abs_path": "NotificationManager.java",
+              "filename": "NotificationManager.java",
+              "function": "notifyAsUser",
+              "module": "android.app.NotificationManager"
+            }
+          ]
+        },
+        "type": "RuntimeException",
+        "value": "android.os.DeadSystemException"
+      },
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "run",
+              "module": "android.os.AsyncTask$SerialExecutor$1"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "run",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "setException",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "finishCompletion",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "done",
+              "module": "android.os.AsyncTask$3"
+            }
+          ]
+        },
+        "type": "RuntimeException",
+        "value": "An error occurred while executing doInBackground()"
+      }
+    ]
+  },
+  "platform": "java"
+}

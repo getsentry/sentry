@@ -1,0 +1,30 @@
+---
+created: '2021-03-29T20:31:54.092673Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x40000015 / 0x00000001:Fatal Error: 0x40000015 / 0x00000001 (thread_id:_, crashed:_)
+  C:\Program Files\Company\Example App 2020\  std::_Func_impl_no_alloc<T>::_Delete_this category=internals
+  C:\Program Files\Company\Example App 2020\  std::_Deallocate category=free
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  C:\Program Files\Company\Example App 2020\  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+        C:\WINDOWS\SYSTEM32\VCRUNTIME140.dll  _purecall category=indirection
+            C:\WINDOWS\System32\ucrtbase.dll  abort category=internals
+            C:\WINDOWS\System32\ucrtbase.dll  raise category=throw
+                                              stripped_application_code

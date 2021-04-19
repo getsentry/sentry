@@ -1,0 +1,73 @@
+{
+  "event_id": "1b17906503f24f535c0adb68e511c1c6",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "oatexec",
+              "package": "/system/framework/arm/boot.oat"
+            },
+            {
+              "function": "JVM_NativeLoad",
+              "package": "/system/lib/libopenjdkjvm.so"
+            },
+            {
+              "function": "art::JavaVMExt::LoadNativeLibrary",
+              "package": "/system/lib/libart.so"
+            },
+            {
+              "function": "android::OpenNativeLibrary",
+              "package": "/system/lib/libnativeloader.so"
+            },
+            {
+              "package": "/system/bin/linker"
+            },
+            {
+              "package": "/system/bin/linker"
+            },
+            {
+              "package": "/system/bin/linker"
+            },
+            {
+              "package": "/system/bin/linker"
+            },
+            {
+              "package": "/system/bin/linker"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "std::__ndk1::basic_regex<T>::__parse_ecma_exp<T>"
+            },
+            {
+              "function": "std::__ndk1::basic_regex<T>::__parse_term<T>"
+            },
+            {
+              "function": "stripped_application_code"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

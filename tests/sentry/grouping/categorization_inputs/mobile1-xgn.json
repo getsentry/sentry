@@ -1,0 +1,103 @@
+{
+  "event_id": "ef61b795fe9b484b8650642dbd7e8038",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {},
+        "type": "RemoteException",
+        "value": "Remote stack trace:\n\tat com.android.server.AlarmManagerService.setImpl(AlarmManagerService.java:1879)\n\tat com.android.server.AlarmManagerService$3.set(AlarmManagerService.java:2306)\n\tat android.app.IAlarmManager$Stub.onTransact(IAlarmManager.java:178)\n\tat android.os.Binder.execTransactInternal(Binder.java:1021)\n\tat android.os.Binder.execTransact(Binder.java:994)\n"
+      },
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "function": "run",
+              "module": "androidx.work.impl.utils.ForceStopRunnable"
+            },
+            {
+              "abs_path": "ForceStopRunnable.java",
+              "filename": "ForceStopRunnable.java",
+              "function": "\u0871\u0862",
+              "module": "androidx.work.impl.utils.ForceStopRunnable"
+            },
+            {
+              "function": "a",
+              "module": "androidx.work.impl.utils.ForceStopRunnable"
+            },
+            {
+              "abs_path": "ForceStopRunnable.java",
+              "filename": "ForceStopRunnable.java",
+              "function": "\u086e\u0862",
+              "module": "androidx.work.impl.utils.ForceStopRunnable"
+            },
+            {
+              "abs_path": "AlarmManager.java",
+              "filename": "AlarmManager.java",
+              "function": "setExact",
+              "module": "android.app.AlarmManager"
+            },
+            {
+              "abs_path": "AlarmManager.java",
+              "filename": "AlarmManager.java",
+              "function": "setImpl",
+              "module": "android.app.AlarmManager"
+            },
+            {
+              "abs_path": "IAlarmManager.java",
+              "filename": "IAlarmManager.java",
+              "function": "set",
+              "module": "android.app.IAlarmManager$Stub$Proxy"
+            },
+            {
+              "abs_path": "Parcel.java",
+              "filename": "Parcel.java",
+              "function": "readException",
+              "module": "android.os.Parcel"
+            },
+            {
+              "abs_path": "Parcel.java",
+              "filename": "Parcel.java",
+              "function": "readException",
+              "module": "android.os.Parcel"
+            },
+            {
+              "abs_path": "Parcel.java",
+              "filename": "Parcel.java",
+              "function": "createException",
+              "module": "android.os.Parcel"
+            }
+          ]
+        },
+        "type": "IllegalStateException"
+      }
+    ]
+  },
+  "platform": "java"
+}

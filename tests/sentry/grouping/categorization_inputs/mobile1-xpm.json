@@ -1,0 +1,71 @@
+{
+  "event_id": "82a01d8396134f08acdb63e6e89ecde3",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "package": "/apex/com.android.runtime/lib/bionic/libc.so"
+            },
+            {
+              "package": "/apex/com.android.runtime/lib/bionic/libc.so"
+            },
+            {
+              "function": "std::__ndk1::__thread_proxy<T>"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "std::__ndk1::__function::__func<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "eglSwapBuffersWithDamageKHR",
+              "package": "/system/lib/libEGL.so"
+            },
+            {
+              "package": "/system/lib/libEGL.so"
+            },
+            {
+              "function": "android::HwApsConfigUtils::getInstance",
+              "package": "/system/lib/libhwaps.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

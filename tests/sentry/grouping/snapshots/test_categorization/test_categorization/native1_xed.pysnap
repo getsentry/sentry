@@ -1,0 +1,96 @@
+---
+created: '2021-03-26T18:19:11.494325Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_INSTRUCTION / EXC_I386_INVOP:Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP (thread_id:_, crashed:_)
+           /usr/lib/system/libdispatch.dylib  _dispatch_root_queues_init_once category=internals
+     /usr/lib/system/libsystem_pthread.dylib  start_wqthread category=threadbase
+     /usr/lib/system/libsystem_pthread.dylib  _pthread_wqthread category=threadbase
+           /usr/lib/system/libdispatch.dylib  _dispatch_worker_thread2 category=threadbase
+           /usr/lib/system/libdispatch.dylib  _dispatch_root_queue_drain category=internals
+           /usr/lib/system/libdispatch.dylib  _dispatch_queue_override_invoke category=internals
+           /usr/lib/system/libdispatch.dylib  _dispatch_client_callout category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/Carbon.framewor  TISCreateInputSourceList category=system
+  /System/Library/Frameworks/Carbon.framewor  TSMGetInputSourceCountWithFilteredAdditions category=internals
+  /System/Library/Frameworks/Carbon.framewor  islGetInputSourceListWithAdditions category=internals
+           /usr/lib/system/libdispatch.dylib  dispatch_assert_queue category=internals
+           /usr/lib/system/libdispatch.dylib  _dispatch_assert_queue_fail category=internals

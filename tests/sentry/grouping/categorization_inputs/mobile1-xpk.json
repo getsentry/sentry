@@ -1,0 +1,43 @@
+{
+  "event_id": "31f2a8a94d6e456bc02713038ec7b490",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "package": "/system/framework/arm/boot.oat"
+            },
+            {
+              "package": "/system/lib/libandroid_runtime.so"
+            },
+            {
+              "package": "/system/lib/libandroid_runtime.so"
+            },
+            {
+              "function": "android::FontCollection::baseFontFaked",
+              "package": "/system/lib/libminikin.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

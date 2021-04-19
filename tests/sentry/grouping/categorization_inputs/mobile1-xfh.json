@@ -1,0 +1,285 @@
+{
+  "event_id": "e015d566077946e4ae58c4e0b62e60cc",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "RuntimeInit.java",
+              "filename": "RuntimeInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleMessage",
+              "module": "android.app.ActivityThread$H"
+            },
+            {
+              "abs_path": "TransactionExecutor.java",
+              "filename": "TransactionExecutor.java",
+              "function": "execute",
+              "module": "android.app.servertransaction.TransactionExecutor"
+            },
+            {
+              "abs_path": "TransactionExecutor.java",
+              "filename": "TransactionExecutor.java",
+              "function": "executeCallbacks",
+              "module": "android.app.servertransaction.TransactionExecutor"
+            },
+            {
+              "abs_path": "LaunchActivityItem.java",
+              "filename": "LaunchActivityItem.java",
+              "function": "execute",
+              "module": "android.app.servertransaction.LaunchActivityItem"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleLaunchActivity",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "performLaunchActivity",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Instrumentation.java",
+              "filename": "Instrumentation.java",
+              "function": "callActivityOnCreate",
+              "module": "android.app.Instrumentation"
+            },
+            {
+              "abs_path": "Activity.java",
+              "filename": "Activity.java",
+              "function": "performCreate",
+              "module": "android.app.Activity"
+            },
+            {
+              "abs_path": "Activity.java",
+              "filename": "Activity.java",
+              "function": "performCreate",
+              "module": "android.app.Activity"
+            },
+            {
+              "function": "onCreate",
+              "module": "cn.gundam.sdk.shell.activity.ProxyActivity"
+            },
+            {
+              "function": "\u1acb\u1add",
+              "module": "cn.gundam.sdk.shell.activity.ProxyActivity"
+            },
+            {
+              "function": "a",
+              "module": "cn.gundam.sdk.shell.activity.a"
+            },
+            {
+              "function": "\u0871\u086a",
+              "module": "cn.gundam.sdk.shell.activity.a"
+            },
+            {
+              "function": "a",
+              "module": "cn.gundam.sdk.shell.activity.a"
+            },
+            {
+              "function": "\u0871\u086a",
+              "module": "cn.gundam.sdk.shell.activity.a"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "a",
+              "module": "cn.gundam.sdk.shell.d.g"
+            },
+            {
+              "function": "\u1adc\u086a",
+              "module": "cn.gundam.sdk.shell.d.g"
+            },
+            {
+              "function": "a",
+              "module": "cn.gundam.sdk.shell.d.g"
+            },
+            {
+              "function": "\u1adc\u086a",
+              "module": "cn.gundam.sdk.shell.d.g"
+            }
+          ]
+        },
+        "type": "NullPointerException",
+        "value": "Attempt to invoke virtual method 'android.content.SharedPreferences android.content.Context.getSharedPreferences(java.lang.String, int)' on a null object reference"
+      },
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "RuntimeInit.java",
+              "filename": "RuntimeInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleMessage",
+              "module": "android.app.ActivityThread$H"
+            },
+            {
+              "abs_path": "TransactionExecutor.java",
+              "filename": "TransactionExecutor.java",
+              "function": "execute",
+              "module": "android.app.servertransaction.TransactionExecutor"
+            },
+            {
+              "abs_path": "TransactionExecutor.java",
+              "filename": "TransactionExecutor.java",
+              "function": "executeCallbacks",
+              "module": "android.app.servertransaction.TransactionExecutor"
+            },
+            {
+              "abs_path": "LaunchActivityItem.java",
+              "filename": "LaunchActivityItem.java",
+              "function": "execute",
+              "module": "android.app.servertransaction.LaunchActivityItem"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleLaunchActivity",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "performLaunchActivity",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Instrumentation.java",
+              "filename": "Instrumentation.java",
+              "function": "callActivityOnCreate",
+              "module": "android.app.Instrumentation"
+            },
+            {
+              "abs_path": "Activity.java",
+              "filename": "Activity.java",
+              "function": "performCreate",
+              "module": "android.app.Activity"
+            },
+            {
+              "abs_path": "Activity.java",
+              "filename": "Activity.java",
+              "function": "performCreate",
+              "module": "android.app.Activity"
+            },
+            {
+              "function": "onCreate",
+              "module": "cn.gundam.sdk.shell.activity.ProxyActivity"
+            },
+            {
+              "function": "\u1acb\u1add",
+              "module": "cn.gundam.sdk.shell.activity.ProxyActivity"
+            },
+            {
+              "function": "a",
+              "module": "cn.gundam.sdk.shell.activity.a"
+            },
+            {
+              "function": "\u0871\u086a",
+              "module": "cn.gundam.sdk.shell.activity.a"
+            },
+            {
+              "function": "a",
+              "module": "cn.gundam.sdk.shell.activity.a"
+            },
+            {
+              "function": "\u0871\u086a",
+              "module": "cn.gundam.sdk.shell.activity.a"
+            },
+            {
+              "function": "stripped_application_code"
+            }
+          ]
+        },
+        "type": "ExceptionInInitializerError"
+      }
+    ]
+  },
+  "platform": "java"
+}

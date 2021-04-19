@@ -1,0 +1,124 @@
+{
+  "event_id": "3c42d50e440c41aeb9a32b0d081a2f56",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 0,
+              "exception": 10,
+              "name": "EXC_CRASH",
+              "subcode": 0
+            },
+            "signal": {
+              "code": 0,
+              "name": "SIGABRT",
+              "number": 6
+            }
+          },
+          "synthetic": null,
+          "type": "nsexception"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoSources0",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoSource0",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "-[UIKeyboardTaskQueue continueExecutionOnMainThread]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIKeyboardTaskEntry execute:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "__55-[UIKeyboardImpl handleKeyboardInput:executionContext:]_block_invoke_2",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIKeyboardImpl performKeyboardOutput:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIKeyboardImpl _performKeyboardOutput:shouldCheckDelegate:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIKeyboardImpl insertText:updateInputSource:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "-[__NSCFString replaceCharactersInRange:withString:]",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "mutateError",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "_CFThrowFormattedException",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "objc_exception_throw",
+              "package": "libobjc.A.dylib"
+            },
+            {
+              "function": "__exceptionPreprocess",
+              "package": "CoreFoundation"
+            }
+          ]
+        },
+        "type": "NSInvalidArgumentException",
+        "value": "-[__NSCFString replaceCharactersInRange:withString:]: Range or index out of bounds"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

@@ -1,0 +1,26 @@
+---
+created: '2021-03-29T20:24:21.956978Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS / KERN_INVALID_ADDRESS:Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS (thread_id:_, crashed:_)
+  boost_threads.framework/Versions/A/boost_t  boost::thread::start_thread_noexcept category=std
+     /usr/lib/system/libsystem_pthread.dylib  thread_start category=threadbase
+     /usr/lib/system/libsystem_pthread.dylib  _pthread_start category=threadbase
+     /usr/lib/system/libsystem_pthread.dylib  _pthread_body category=threadbase
+  boost_threads.framework/Versions/A/boost_t  boost::`anonymous namespace'::thread_proxy category=threadbase
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  std::__1::priority_queue<T>::empty category=internals
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  std::__1::queue<T>::push category=internals
+        abccore.framework/Versions/A/abccore  std::__1::deque<T>::push_back category=internals
+        abccore.framework/Versions/A/abccore  std::__1::allocator_traits<T>::construct<T> category=malloc
+        abccore.framework/Versions/A/abccore  std::__1::allocator_traits<T>::__construct<T> category=internals
+        abccore.framework/Versions/A/abccore  std::__1::allocator<T>::construct<T> category=internals

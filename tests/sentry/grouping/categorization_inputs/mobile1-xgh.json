@@ -1,0 +1,265 @@
+{
+  "event_id": "a5d72505783448ba8a02dc2292d56110",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "MessageQueue.java",
+              "filename": "MessageQueue.java",
+              "function": "next",
+              "module": "android.os.MessageQueue"
+            },
+            {
+              "abs_path": "MessageQueue.java",
+              "filename": "MessageQueue.java",
+              "function": "nativePollOnce",
+              "module": "android.os.MessageQueue"
+            },
+            {
+              "abs_path": "InputEventReceiver.java",
+              "filename": "InputEventReceiver.java",
+              "function": "dispatchInputEvent",
+              "module": "android.view.InputEventReceiver"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "onInputEvent",
+              "module": "android.view.ViewRootImpl$WindowInputEventReceiver"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "enqueueInputEvent",
+              "module": "android.view.ViewRootImpl"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "doProcessInputEvents",
+              "module": "android.view.ViewRootImpl"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "deliverInputEvent",
+              "module": "android.view.ViewRootImpl"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "deliver",
+              "module": "android.view.ViewRootImpl$InputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "apply",
+              "module": "android.view.ViewRootImpl$InputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "forward",
+              "module": "android.view.ViewRootImpl$InputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "onDeliverToNext",
+              "module": "android.view.ViewRootImpl$InputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "deliver",
+              "module": "android.view.ViewRootImpl$InputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "apply",
+              "module": "android.view.ViewRootImpl$AsyncInputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "apply",
+              "module": "android.view.ViewRootImpl$InputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "forward",
+              "module": "android.view.ViewRootImpl$AsyncInputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "forward",
+              "module": "android.view.ViewRootImpl$InputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "onDeliverToNext",
+              "module": "android.view.ViewRootImpl$InputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "deliver",
+              "module": "android.view.ViewRootImpl$InputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "onProcess",
+              "module": "android.view.ViewRootImpl$ViewPostImeInputStage"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "processPointerEvent",
+              "module": "android.view.ViewRootImpl$ViewPostImeInputStage"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "dispatchPointerEvent",
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "PhoneWindow.java",
+              "filename": "PhoneWindow.java",
+              "function": "dispatchTouchEvent",
+              "module": "com.android.internal.policy.PhoneWindow$DecorView"
+            },
+            {
+              "abs_path": "Activity.java",
+              "filename": "Activity.java",
+              "function": "dispatchTouchEvent",
+              "module": "android.app.Activity"
+            },
+            {
+              "abs_path": "PhoneWindow.java",
+              "filename": "PhoneWindow.java",
+              "function": "superDispatchTouchEvent",
+              "module": "com.android.internal.policy.PhoneWindow"
+            },
+            {
+              "abs_path": "PhoneWindow.java",
+              "filename": "PhoneWindow.java",
+              "function": "superDispatchTouchEvent",
+              "module": "com.android.internal.policy.PhoneWindow$DecorView"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "dispatchTouchEvent",
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "dispatchTransformedTouchEvent",
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "dispatchTouchEvent",
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "dispatchTransformedTouchEvent",
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "dispatchTouchEvent",
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "dispatchTransformedTouchEvent",
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "dispatchTouchEvent",
+              "module": "android.view.View"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "MotionEvent.java",
+              "filename": "MotionEvent.java",
+              "function": "getPointerId",
+              "module": "android.view.MotionEvent"
+            },
+            {
+              "abs_path": "MotionEvent.java",
+              "filename": "MotionEvent.java",
+              "function": "nativeGetPointerId",
+              "module": "android.view.MotionEvent"
+            }
+          ]
+        },
+        "type": "IllegalArgumentException",
+        "value": "pointerIndex out of range"
+      }
+    ]
+  },
+  "platform": "java"
+}

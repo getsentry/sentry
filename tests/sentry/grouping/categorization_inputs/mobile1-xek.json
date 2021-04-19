@@ -1,0 +1,101 @@
+{
+  "event_id": "43d050983f9c4f0e93355498d102040d",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "0x00000006148167d0"
+          },
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 344025040,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS",
+              "subcode": 8
+            },
+            "signal": {
+              "code": 0,
+              "code_name": "BUS_NOOP",
+              "name": "SIGBUS",
+              "number": 10
+            }
+          },
+          "synthetic": null,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_wqthread",
+              "package": "libsystem_pthread.dylib"
+            },
+            {
+              "function": "_dispatch_worker_thread2",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_root_queue_drain",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_async_redirect_invoke",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_continuation_pop$VARIANT$armv81",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_call_block_and_release",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "_dispatch_sync_invoke_and_complete",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "objc_msgSend",
+              "package": "libobjc.A.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS",
+        "value": "receivedInvites >\nAttempted to dereference garbage pointer 0x6148167d0."
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

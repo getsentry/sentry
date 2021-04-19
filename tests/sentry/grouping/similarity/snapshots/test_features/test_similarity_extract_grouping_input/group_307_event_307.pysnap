@@ -1,0 +1,48 @@
+---
+created: '2021-04-08T09:39:06.450955Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_pthread_start"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["function","__dynamic_cast"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["function","thread_start"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","thread_start"]],[["function","_pthread_start"]]]
+similarity:2020-07-23:value:character-5-shingle: " / EX"
+similarity:2020-07-23:value:character-5-shingle: " EXC_"
+similarity:2020-07-23:value:character-5-shingle: " Erro"
+similarity:2020-07-23:value:character-5-shingle: "/ EXC"
+similarity:2020-07-23:value:character-5-shingle: "386_G"
+similarity:2020-07-23:value:character-5-shingle: "6_GPF"
+similarity:2020-07-23:value:character-5-shingle: "86_GP"
+similarity:2020-07-23:value:character-5-shingle: ": EXC"
+similarity:2020-07-23:value:character-5-shingle: "ACCES"
+similarity:2020-07-23:value:character-5-shingle: "AD_AC"
+similarity:2020-07-23:value:character-5-shingle: "BAD_A"
+similarity:2020-07-23:value:character-5-shingle: "CCESS"
+similarity:2020-07-23:value:character-5-shingle: "CESS "
+similarity:2020-07-23:value:character-5-shingle: "C_BAD"
+similarity:2020-07-23:value:character-5-shingle: "C_I38"
+similarity:2020-07-23:value:character-5-shingle: "D_ACC"
+similarity:2020-07-23:value:character-5-shingle: "ESS /"
+similarity:2020-07-23:value:character-5-shingle: "EXC_B"
+similarity:2020-07-23:value:character-5-shingle: "EXC_I"
+similarity:2020-07-23:value:character-5-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: "Fatal"
+similarity:2020-07-23:value:character-5-shingle: "GPFLT"
+similarity:2020-07-23:value:character-5-shingle: "I386_"
+similarity:2020-07-23:value:character-5-shingle: "S / E"
+similarity:2020-07-23:value:character-5-shingle: "SS / "
+similarity:2020-07-23:value:character-5-shingle: "XC_BA"
+similarity:2020-07-23:value:character-5-shingle: "XC_I3"
+similarity:2020-07-23:value:character-5-shingle: "_ACCE"
+similarity:2020-07-23:value:character-5-shingle: "_BAD_"
+similarity:2020-07-23:value:character-5-shingle: "_GPFL"
+similarity:2020-07-23:value:character-5-shingle: "_I386"
+similarity:2020-07-23:value:character-5-shingle: "al Er"
+similarity:2020-07-23:value:character-5-shingle: "atal "
+similarity:2020-07-23:value:character-5-shingle: "l Err"
+similarity:2020-07-23:value:character-5-shingle: "or: E"
+similarity:2020-07-23:value:character-5-shingle: "r: EX"
+similarity:2020-07-23:value:character-5-shingle: "ror: "
+similarity:2020-07-23:value:character-5-shingle: "rror:"
+similarity:2020-07-23:value:character-5-shingle: "tal E"

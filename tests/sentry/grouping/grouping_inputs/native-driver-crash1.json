@@ -1,0 +1,108 @@
+{
+  "platform": "native",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "handled": false,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "symbolicated"
+              },
+              "function": "CUseCountedObject<T>::UCDestroy",
+              "in_app": false,
+              "instruction_addr": "0x7ff85c819e4a",
+              "package": "C:\\WINDOWS\\SYSTEM32\\d3d11.dll",
+              "raw_function": "CUseCountedObject<class NOutermost::CDeviceChild>::UCDestroy(void)",
+              "symbol": "?UCDestroy@?$CUseCountedObject@VCDeviceChild@NOutermost@@@@UEAAXXZ",
+              "trust": "cfi"
+            },
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "symbolicated"
+              },
+              "function": "destructor'",
+              "in_app": false,
+              "instruction_addr": "0x7ff85c7fb75f",
+              "package": "C:\\WINDOWS\\SYSTEM32\\d3d11.dll",
+              "raw_function": "CUseCountedObject<class NOutermost::CDeviceChild>::`vector deleting destructor'(unsigned int)",
+              "symbol": "??_E?$CUseCountedObject@VCDeviceChild@NOutermost@@@@UEAAPEAXI@Z",
+              "trust": "cfi"
+            },
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "symbolicated"
+              },
+              "function": "CD3D11LayeredChild<T>::LUCBeginLayerDestruction",
+              "in_app": false,
+              "instruction_addr": "0x7ff85c81a609",
+              "package": "C:\\WINDOWS\\SYSTEM32\\d3d11.dll",
+              "raw_function": "CD3D11LayeredChild<struct ID3D11DeviceChild,class NDXGI::CDevice,64>::LUCBeginLayerDestruction(void)",
+              "symbol": "?LUCBeginLayerDestruction@?$CD3D11LayeredChild@UID3D11DeviceChild@@VCDevice@NDXGI@@$0EA@@@QEAAXXZ",
+              "trust": "cfi"
+            },
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "symbolicated"
+              },
+              "function": "CContext::LUCBeginLayerDestruction",
+              "in_app": false,
+              "instruction_addr": "0x7ff85c8206e0",
+              "package": "C:\\WINDOWS\\SYSTEM32\\d3d11.dll",
+              "raw_function": "CContext::LUCBeginLayerDestruction(void)",
+              "symbol": "?LUCBeginLayerDestruction@CContext@@QEAAXXZ",
+              "trust": "cfi"
+            },
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "symbolicated"
+              },
+              "function": "NDXGI::CDevice::DestroyDriverInstance",
+              "in_app": false,
+              "instruction_addr": "0x7ff85c81599b",
+              "package": "C:\\WINDOWS\\SYSTEM32\\d3d11.dll",
+              "raw_function": "NDXGI::CDevice::DestroyDriverInstance(void)",
+              "symbol": "?DestroyDriverInstance@CDevice@NDXGI@@UEAAXXZ",
+              "trust": "cfi"
+            },
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "symbolicated"
+              },
+              "function": "OpenAdapter10",
+              "in_app": false,
+              "instruction_addr": "0x7fffad39337e",
+              "package": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\nvblsi.inf_amd64_7a7cb5adf40ab78c\\nvwgf2umx.dll",
+              "symbol": "OpenAdapter10",
+              "trust": "cfi"
+            },
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "missing_symbol"
+              },
+              "in_app": false,
+              "instruction_addr": "0x7fffac48ce26",
+              "package": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\nvblsi.inf_amd64_7a7cb5adf40ab78c\\nvwgf2umx.dll",
+              "trust": "context"
+            }
+          ]
+        },
+        "thread_id": 28100,
+        "type": "EXCEPTION_ACCESS_VIOLATION_READ",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+      }
+    ]
+  }
+}

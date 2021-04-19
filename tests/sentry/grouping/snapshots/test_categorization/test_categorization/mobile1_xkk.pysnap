@@ -1,0 +1,41 @@
+---
+created: '2021-03-29T22:02:38.438648Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+IllegalArgumentException:Missing android.support.FILE_PROVIDER_PATHS meta-data (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=system
+                          android.os.Handler  dispatchMessage category=internals
+                android.app.ActivityThread$H  handleMessage category=std
+                  android.app.ActivityThread  access$1600 category=internals
+                  android.app.ActivityThread  handleBindApplication category=internals
+                  android.app.ActivityThread  installContentProviders category=internals
+                  android.app.ActivityThread  installProvider category=internals
+          androidx.core.content.FileProvider  attachInfo category=internals
+          androidx.core.content.FileProvider  ࡰ᫚ category=internals
+          androidx.core.content.FileProvider  a category=internals
+          androidx.core.content.FileProvider  ᫚᫚ category=internals
+          androidx.core.content.FileProvider  b category=internals
+          androidx.core.content.FileProvider  ᫚᫚ category=internals
+
+
+RuntimeException:Unable to get provider com.helpshift.support.providers.HelpshiftFileProvider: java.lang.IllegalArgumentException: Missing android.support.FILE_PROVIDER_PATHS meta-data (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=system
+                          android.os.Handler  dispatchMessage category=internals
+                android.app.ActivityThread$H  handleMessage category=std
+                  android.app.ActivityThread  access$1600 category=internals
+                  android.app.ActivityThread  handleBindApplication category=internals
+                  android.app.ActivityThread  installContentProviders category=internals
+                  android.app.ActivityThread  installProvider category=internals

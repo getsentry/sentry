@@ -1,0 +1,180 @@
+{
+  "event_id": "00f4ef3c2de342d0aa3be1662891a61f",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRun",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoBlocks",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()",
+              "package": "Example App 2020.app/Contents/abcaudiofilterscan.app/Contents/Frameworks/abccore.framework/Versions/A/abccore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()",
+              "package": "Example App 2020.app/Contents/abcaudiofilterscan.app/Contents/Frameworks/abccore.framework/Versions/A/abccore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFBundleGetFunctionPointerForName",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "_CFBundleLoadExecutableAndReturnError",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "_CFBundleDlfcnLoadBundle",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "dlopen",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "memcmp",
+              "package": "/usr/lib/dyld"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS / 0x00000032",
+        "value": "Fatal Error: EXC_BAD_ACCESS / 0x00000032"
+      }
+    ]
+  },
+  "platform": "native"
+}

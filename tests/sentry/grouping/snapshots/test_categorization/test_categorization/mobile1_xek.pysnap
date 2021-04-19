@@ -1,0 +1,26 @@
+---
+created: '2021-03-29T22:02:41.487184Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS:receivedInvites >
+Attempted to dereference garbage pointer 0x6148167d0. (thread_id:_, crashed:_)
+                     libsystem_pthread.dylib  _pthread_wqthread category=threadbase
+                           libdispatch.dylib  _dispatch_worker_thread2 category=threadbase
+                           libdispatch.dylib  _dispatch_root_queue_drain category=internals
+                           libdispatch.dylib  _dispatch_async_redirect_invoke category=internals
+                           libdispatch.dylib  _dispatch_continuation_pop$VARIANT$armv81 category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                           libdispatch.dylib  _dispatch_call_block_and_release category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                           libdispatch.dylib  _dispatch_sync_invoke_and_complete category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                             libobjc.A.dylib  objc_msgSend category=system

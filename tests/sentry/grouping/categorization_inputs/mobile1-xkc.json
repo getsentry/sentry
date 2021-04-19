@@ -1,0 +1,186 @@
+{
+  "event_id": "763baeb9c07d4c20b2df35abe6601c2c",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "run",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "call",
+              "module": "android.os.AsyncTask$2"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "executeOnExecutor",
+              "module": "android.os.AsyncTask"
+            },
+            {
+              "abs_path": "Executors.java",
+              "filename": "Executors.java",
+              "function": "execute",
+              "module": "java.util.concurrent.Executors$DelegatedExecutorService"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "execute",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "addWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "start",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "nativeCreate",
+              "module": "java.lang.Thread"
+            }
+          ]
+        },
+        "type": "OutOfMemoryError",
+        "value": "Could not allocate JNI Env"
+      },
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "run",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "setException",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "finishCompletion",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "done",
+              "module": "android.os.AsyncTask$3"
+            }
+          ]
+        },
+        "type": "RuntimeException",
+        "value": "An error occurred while executing doInBackground()"
+      }
+    ]
+  },
+  "platform": "java"
+}

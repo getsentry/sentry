@@ -1,0 +1,778 @@
+{
+  "event_id": "96b9ad150a164f5586e081482907fd3a",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "handleCallback",
+              "module": "android.os.Handler"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "AbsoluteLayout.java",
+              "filename": "AbsoluteLayout.java",
+              "function": "<init>",
+              "module": "android.widget.AbsoluteLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "<init>",
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "<init>",
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "<init>",
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "setOverScrollMode",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "ensureProviderCreated",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "getFactory",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebViewFactory.java",
+              "filename": "WebViewFactory.java",
+              "function": "getProvider",
+              "module": "android.webkit.WebViewFactory"
+            },
+            {
+              "abs_path": "Constructor.java",
+              "filename": "Constructor.java",
+              "function": "newInstance",
+              "module": "java.lang.reflect.Constructor"
+            },
+            {
+              "abs_path": "Constructor.java",
+              "filename": "Constructor.java",
+              "function": "newInstance0",
+              "module": "java.lang.reflect.Constructor"
+            },
+            {
+              "abs_path": "WebViewChromiumFactoryProvider.java",
+              "filename": "WebViewChromiumFactoryProvider.java",
+              "function": "<init>",
+              "module": "com.android.webview.chromium.WebViewChromiumFactoryProvider"
+            },
+            {
+              "abs_path": "WebViewChromiumFactoryProvider.java",
+              "filename": "WebViewChromiumFactoryProvider.java",
+              "function": "I",
+              "module": "com.android.webview.chromium.WebViewChromiumFactoryProvider"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "System.java",
+              "filename": "System.java",
+              "function": "loadLibrary",
+              "module": "java.lang.System"
+            },
+            {
+              "abs_path": "Runtime.java",
+              "filename": "Runtime.java",
+              "function": "loadLibrary0",
+              "module": "java.lang.Runtime"
+            }
+          ]
+        },
+        "type": "UnsatisfiedLinkError",
+        "value": "dlopen failed: \"/system/app/Chrome/Chrome.apk!/lib/armeabi-v7a/libmonochrome.so\" is 32-bit instead of 64-bit"
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "handleCallback",
+              "module": "android.os.Handler"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "AbsoluteLayout.java",
+              "filename": "AbsoluteLayout.java",
+              "function": "<init>",
+              "module": "android.widget.AbsoluteLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "<init>",
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "<init>",
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "<init>",
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "setOverScrollMode",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "ensureProviderCreated",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "getFactory",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebViewFactory.java",
+              "filename": "WebViewFactory.java",
+              "function": "getProvider",
+              "module": "android.webkit.WebViewFactory"
+            },
+            {
+              "abs_path": "Constructor.java",
+              "filename": "Constructor.java",
+              "function": "newInstance",
+              "module": "java.lang.reflect.Constructor"
+            },
+            {
+              "abs_path": "Constructor.java",
+              "filename": "Constructor.java",
+              "function": "newInstance0",
+              "module": "java.lang.reflect.Constructor"
+            },
+            {
+              "abs_path": "WebViewChromiumFactoryProvider.java",
+              "filename": "WebViewChromiumFactoryProvider.java",
+              "function": "<init>",
+              "module": "com.android.webview.chromium.WebViewChromiumFactoryProvider"
+            },
+            {
+              "abs_path": "WebViewChromiumFactoryProvider.java",
+              "filename": "WebViewChromiumFactoryProvider.java",
+              "function": "I",
+              "module": "com.android.webview.chromium.WebViewChromiumFactoryProvider"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            }
+          ]
+        },
+        "type": "ProcessInitException"
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "handleCallback",
+              "module": "android.os.Handler"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "AbsoluteLayout.java",
+              "filename": "AbsoluteLayout.java",
+              "function": "<init>",
+              "module": "android.widget.AbsoluteLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "<init>",
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "<init>",
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "<init>",
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "setOverScrollMode",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "ensureProviderCreated",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "getFactory",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebViewFactory.java",
+              "filename": "WebViewFactory.java",
+              "function": "getProvider",
+              "module": "android.webkit.WebViewFactory"
+            },
+            {
+              "abs_path": "Constructor.java",
+              "filename": "Constructor.java",
+              "function": "newInstance",
+              "module": "java.lang.reflect.Constructor"
+            },
+            {
+              "abs_path": "Constructor.java",
+              "filename": "Constructor.java",
+              "function": "newInstance0",
+              "module": "java.lang.reflect.Constructor"
+            },
+            {
+              "abs_path": "WebViewChromiumFactoryProvider.java",
+              "filename": "WebViewChromiumFactoryProvider.java",
+              "function": "<init>",
+              "module": "com.android.webview.chromium.WebViewChromiumFactoryProvider"
+            },
+            {
+              "abs_path": "WebViewChromiumFactoryProvider.java",
+              "filename": "WebViewChromiumFactoryProvider.java",
+              "function": "I",
+              "module": "com.android.webview.chromium.WebViewChromiumFactoryProvider"
+            }
+          ]
+        },
+        "type": "RuntimeException",
+        "value": "Cannot load WebView"
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "handleCallback",
+              "module": "android.os.Handler"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "AbsoluteLayout.java",
+              "filename": "AbsoluteLayout.java",
+              "function": "<init>",
+              "module": "android.widget.AbsoluteLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "<init>",
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "<init>",
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "<init>",
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "setOverScrollMode",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "ensureProviderCreated",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "getFactory",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebViewFactory.java",
+              "filename": "WebViewFactory.java",
+              "function": "getProvider",
+              "module": "android.webkit.WebViewFactory"
+            },
+            {
+              "abs_path": "Constructor.java",
+              "filename": "Constructor.java",
+              "function": "newInstance",
+              "module": "java.lang.reflect.Constructor"
+            },
+            {
+              "abs_path": "Constructor.java",
+              "filename": "Constructor.java",
+              "function": "newInstance0",
+              "module": "java.lang.reflect.Constructor"
+            }
+          ]
+        },
+        "type": "InvocationTargetException"
+      },
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "handleCallback",
+              "module": "android.os.Handler"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "<init>",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "AbsoluteLayout.java",
+              "filename": "AbsoluteLayout.java",
+              "function": "<init>",
+              "module": "android.widget.AbsoluteLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "<init>",
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "<init>",
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "<init>",
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "setOverScrollMode",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "ensureProviderCreated",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebView.java",
+              "filename": "WebView.java",
+              "function": "getFactory",
+              "module": "android.webkit.WebView"
+            },
+            {
+              "abs_path": "WebViewFactory.java",
+              "filename": "WebViewFactory.java",
+              "function": "getProvider",
+              "module": "android.webkit.WebViewFactory"
+            }
+          ]
+        },
+        "type": "AndroidRuntimeException",
+        "value": "java.lang.reflect.InvocationTargetException"
+      }
+    ]
+  },
+  "platform": "java"
+}

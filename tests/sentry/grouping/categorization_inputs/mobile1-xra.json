@@ -1,0 +1,74 @@
+{
+  "event_id": "555c8a7db153466f810c52fc0ba23438",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "dlopen",
+              "package": "/system/lib/libdl.so"
+            },
+            {
+              "package": "/system/bin/linker"
+            },
+            {
+              "package": "/system/bin/linker"
+            },
+            {
+              "package": "/system/bin/linker"
+            },
+            {
+              "package": "/system/bin/linker"
+            },
+            {
+              "package": "/system/bin/linker"
+            },
+            {
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "function": "getenv",
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "package": "/system/lib/libc.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

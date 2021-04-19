@@ -1,0 +1,36 @@
+---
+created: '2021-03-26T18:27:53.110876Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS / KERN_INVALID_ADDRESS:Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS (thread_id:_, crashed:_)
+           /usr/lib/system/libdispatch.dylib  _dispatch_root_queues_init_once category=internals
+     /usr/lib/system/libsystem_pthread.dylib  start_wqthread category=threadbase
+     /usr/lib/system/libsystem_pthread.dylib  _pthread_wqthread category=threadbase
+           /usr/lib/system/libdispatch.dylib  _dispatch_worker_thread2 category=threadbase
+           /usr/lib/system/libdispatch.dylib  _dispatch_root_queue_drain category=internals
+           /usr/lib/system/libdispatch.dylib  _dispatch_client_callout category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+  ../../../../../artifacts/boost_source_libr  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  ../../../../../artifacts/boost_source_libr  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              _INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T> category=internals

@@ -1,0 +1,43 @@
+---
+created: '2021-03-29T22:02:38.699543Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+IllegalArgumentException:_ (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.RuntimeInit$Method  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=system
+                          android.os.Handler  dispatchMessage category=internals
+                android.app.ActivityThread$H  handleMessage category=std
+                  android.app.ActivityThread  -wrap18 category=internals
+                  android.app.ActivityThread  handleRelaunchActivity category=internals
+                  android.app.ActivityThread  handleLaunchActivity category=internals
+                  android.app.ActivityThread  handleResumeActivity category=internals
+                  android.app.ActivityThread  performResumeActivity category=internals
+                        android.app.Activity  performResume category=internals
+                 android.app.Instrumentation  callActivityOnResume category=internals
+      androidx.fragment.app.FragmentActivity  onResume category=internals
+                        android.app.Activity  onResume category=internals
+                        android.app.Activity  isTopOfTask category=internals
+     android.app.IActivityManager$Stub$Proxy  isTopOfTask category=internals
+                           android.os.Parcel  readException category=internals
+                           android.os.Parcel  readException category=internals
+
+
+RuntimeException:_ (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.RuntimeInit$Method  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=system
+                          android.os.Handler  dispatchMessage category=internals
+                android.app.ActivityThread$H  handleMessage category=std
+                  android.app.ActivityThread  -wrap18 category=internals
+                  android.app.ActivityThread  handleRelaunchActivity category=internals
+                  android.app.ActivityThread  handleLaunchActivity category=internals
+                  android.app.ActivityThread  handleResumeActivity category=internals
+                  android.app.ActivityThread  performResumeActivity category=internals

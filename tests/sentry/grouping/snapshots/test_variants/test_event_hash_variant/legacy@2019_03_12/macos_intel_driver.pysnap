@@ -1,0 +1,368 @@
+---
+created: '2021-04-02T09:10:51.735084Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "-[NSApplication run]"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "_DPSNextEvent"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "_BlockUntilNextEventMatchingListInModeWithFilter"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "ReceiveNextEventCommon"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RunCurrentEventLoopInMode"
+          frame (frame considered in-app because no frame is in-app)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "__NSThreadPerformPerform"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "-[NSView displayIfNeeded]"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "CGLTexImageIOSurface2D"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "CGLDescribeRenderer"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gliSetInteger"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gldFlushObject"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "intelSubmitCommands"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "IntelCommandBuffer::getNew"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusSubmitDataBuffers"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusKillClientExt"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame (frame considered in-app because no frame is in-app)
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_sigtramp"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "NSRunAlertPanel"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "_NSTryRunModal"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "CA::Transaction::commit"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "CA::Context::commit_transaction"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "CA::Layer::display_if_needed"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "CGLTexImageIOSurface2D"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "CGLDescribeRenderer"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gliSetInteger"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gldFlushObject"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "intelSubmitCommands"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "IntelCommandBuffer::getNew"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusSubmitDataBuffers"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusKillClientExt"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__pthread_kill"
+        type*
+          "0x00000000 / 0x00000000"
+        value*
+          "Fatal Error: 0x00000000 / 0x00000000"
+--------------------------------------------------------------------------
+system:
+  hash: "a3ce3ffb7077f57549483112e3dcf68c"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start"
+          frame
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[NSApplication run]"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
+          frame
+            function (function name is not used if module or filename are available)
+              "_DPSNextEvent"
+          frame
+            function (function name is not used if module or filename are available)
+              "_BlockUntilNextEventMatchingListInModeWithFilter"
+          frame
+            function (function name is not used if module or filename are available)
+              "ReceiveNextEventCommon"
+          frame
+            function (function name is not used if module or filename are available)
+              "RunCurrentEventLoopInMode"
+          frame
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame
+            function (function name is not used if module or filename are available)
+              "__NSThreadPerformPerform"
+          frame
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[NSView displayIfNeeded]"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame
+            function (function name is not used if module or filename are available)
+              "CGLTexImageIOSurface2D"
+          frame
+            function (function name is not used if module or filename are available)
+              "CGLDescribeRenderer"
+          frame
+            function (function name is not used if module or filename are available)
+              "gliSetInteger"
+          frame
+            function (function name is not used if module or filename are available)
+              "gldFlushObject"
+          frame
+            function (function name is not used if module or filename are available)
+              "intelSubmitCommands"
+          frame
+            function (function name is not used if module or filename are available)
+              "IntelCommandBuffer::getNew"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusSubmitDataBuffers"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusKillClientExt"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_sigtramp"
+          frame
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame
+            function (function name is not used if module or filename are available)
+              "NSRunAlertPanel"
+          frame
+            function (function name is not used if module or filename are available)
+              "_NSTryRunModal"
+          frame
+            function (function name is not used if module or filename are available)
+              "CA::Transaction::commit"
+          frame
+            function (function name is not used if module or filename are available)
+              "CA::Context::commit_transaction"
+          frame
+            function (function name is not used if module or filename are available)
+              "CA::Layer::display_if_needed"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame
+            function (function name is not used if module or filename are available)
+              "CGLTexImageIOSurface2D"
+          frame
+            function (function name is not used if module or filename are available)
+              "CGLDescribeRenderer"
+          frame
+            function (function name is not used if module or filename are available)
+              "gliSetInteger"
+          frame
+            function (function name is not used if module or filename are available)
+              "gldFlushObject"
+          frame
+            function (function name is not used if module or filename are available)
+              "intelSubmitCommands"
+          frame
+            function (function name is not used if module or filename are available)
+              "IntelCommandBuffer::getNew"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusSubmitDataBuffers"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusKillClientExt"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__pthread_kill"
+        type*
+          "0x00000000 / 0x00000000"
+        value*
+          "Fatal Error: 0x00000000 / 0x00000000"

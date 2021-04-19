@@ -1,0 +1,26 @@
+---
+created: '2021-03-29T16:04:54.815994Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/AppKit.framewor  -[NSApplication run] category=system
+  /System/Library/Frameworks/AppKit.framewor  -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  _DPSNextEvent category=internals
+  /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=internals
+  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=internals
+  /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=internals
+  /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopServiceMachPort category=internals
+      /usr/lib/system/libsystem_kernel.dylib  mach_msg_trap category=internals

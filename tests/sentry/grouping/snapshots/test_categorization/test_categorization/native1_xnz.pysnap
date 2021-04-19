@@ -1,0 +1,54 @@
+---
+created: '2021-03-29T20:00:34.302737Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS / 0x00000032:Fatal Error: EXC_BAD_ACCESS / 0x00000032 (thread_id:_, crashed:_)
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/CoreFoundation.  CFRunLoopRun category=system
+  /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoBlocks category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__ category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  Example App 2020.app/Contents/abcaudiofilt  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+  Example App 2020.app/Contents/abcaudiofilt  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/CoreFoundation.  CFBundleGetFunctionPointerForName category=indirection
+  /System/Library/Frameworks/CoreFoundation.  _CFBundleLoadExecutableAndReturnError category=internals
+  /System/Library/Frameworks/CoreFoundation.  _CFBundleDlfcnLoadBundle category=internals
+               /usr/lib/system/libdyld.dylib  dlopen category=load
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                               /usr/lib/dyld  memcmp category=system

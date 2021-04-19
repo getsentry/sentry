@@ -1,0 +1,312 @@
+---
+created: '2021-04-02T09:10:51.147544Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "CFRunLoopRunSpecific"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopRun"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopDoSources0"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopDoSource0"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "glTexSubImage2D"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "glTexSubImage2D_Exec"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gleTextureImagePut"
+          frame (frame considered in-app because no frame is in-app)
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusSubmitDataBuffers"
+          frame (frame considered in-app because no frame is in-app)
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__pthread_kill"
+        type*
+          "0x00000000 / 0x00000000"
+        value*
+          "Fatal Error: 0x00000000 / 0x00000000"
+--------------------------------------------------------------------------
+system:
+  hash: "a3ce3ffb7077f57549483112e3dcf68c"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start"
+          frame
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
+          frame
+            function (function name is not used if module or filename are available)
+              "CFRunLoopRunSpecific"
+          frame
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopRun"
+          frame
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopDoSources0"
+          frame
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopDoSource0"
+          frame
+            function (function name is not used if module or filename are available)
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
+          frame
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "<stripped application code>"
+          frame
+            function (function name is not used if module or filename are available)
+              "glTexSubImage2D"
+          frame
+            function (function name is not used if module or filename are available)
+              "glTexSubImage2D_Exec"
+          frame
+            function (function name is not used if module or filename are available)
+              "gleTextureImagePut"
+          frame
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusSubmitDataBuffers"
+          frame
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__pthread_kill"
+        type*
+          "0x00000000 / 0x00000000"
+        value*
+          "Fatal Error: 0x00000000 / 0x00000000"

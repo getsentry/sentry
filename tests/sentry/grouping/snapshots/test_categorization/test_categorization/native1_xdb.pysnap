@@ -1,0 +1,25 @@
+---
+created: '2021-03-26T18:36:03.034322Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXCEPTION_ACCESS_VIOLATION_READ:Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ (thread_id:_, crashed:_)
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
+            C:\WINDOWS\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
+                                              stripped_application_code
+            C:\WINDOWS\System32\ucrtbase.dll  exit category=shutdown
+            C:\WINDOWS\System32\ucrtbase.dll  exit category=shutdown
+            C:\WINDOWS\System32\KERNEL32.DLL  FatalExit category=indirection
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlExitUserProcess category=shutdown
+               C:\WINDOWS\SYSTEM32\ntdll.dll  LdrShutdownProcess category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  LdrpCallInitRoutine category=internals
+  C:\Windows\System32\WindowManagementAPI.dl  _local_stdio_scanf_options category=internals
+  C:\Windows\System32\WindowManagementAPI.dl  _local_stdio_scanf_options category=internals
+            C:\WINDOWS\System32\ucrtbase.dll  __crt_state_management::wrapped_invoke<T> category=internals
+            C:\WINDOWS\System32\ucrtbase.dll  execute_onexit_table category=handler
+            C:\WINDOWS\System32\ucrtbase.dll  execute_onexit_table category=handler
+            C:\WINDOWS\System32\ucrtbase.dll  execute_onexit_table category=handler
+  C:\Windows\System32\WindowManagementAPI.dl  wil::AsyncEventSourceT<T>::~AsyncEventSourceT<T> category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpWakeByAddress category=internals
