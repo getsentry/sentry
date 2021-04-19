@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location, Query} from 'history';
 
 import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
@@ -10,6 +10,7 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import {t, tct} from 'app/locale';
@@ -18,7 +19,6 @@ import {Organization} from 'app/types';
 import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
 
 import DashboardCard from './dashboardCard';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 type Props = {
   organization: Organization;
@@ -26,7 +26,6 @@ type Props = {
   dashboards: DashboardDetails[] | null;
   pageLinks: string;
 };
-
 
 class DashboardList extends React.Component<Props> {
   static miniWidget(widget: Widget): string {
@@ -67,11 +66,19 @@ class DashboardList extends React.Component<Props> {
           createdBy={dashboard.createdBy}
           renderWidgets={() => (
             <WidgetGrid>
-            {dashboard.widgets.map((widget, index) => {
-              return widget.displayType === 'big_number' ?
-                <BigNumberWidgetWrapper key={`${index}-${widget.id}`} src={DashboardList.miniWidget(widget)} />
-                : <MiniWidgetWrapper key={`${index}-${widget.id}`} src={DashboardList.miniWidget(widget)} />
-            })}
+              {dashboard.widgets.map((widget, i) => {
+                return widget.displayType === 'big_number' ? (
+                  <BigNumberWidgetWrapper
+                    key={`${i}-${widget.id}`}
+                    src={DashboardList.miniWidget(widget)}
+                  />
+                ) : (
+                  <MiniWidgetWrapper
+                    key={`${i}-${widget.id}`}
+                    src={DashboardList.miniWidget(widget)}
+                  />
+                );
+              })}
             </WidgetGrid>
           )}
         />
@@ -88,7 +95,7 @@ class DashboardList extends React.Component<Props> {
         </EmptyStateWarning>
       );
     }
-    return <DashboardGrid>{this.renderMiniDashboards()}</DashboardGrid>
+    return <DashboardGrid>{this.renderMiniDashboards()}</DashboardGrid>;
   }
 
   render() {

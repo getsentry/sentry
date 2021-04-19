@@ -1,25 +1,26 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
+import pick from 'lodash/pick';
 
+import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import PageHeading from 'app/components/pageHeading';
+import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
-import DashboardList from './dashboardList';
 import {DashboardDetails} from '../types';
-import space from 'app/styles/space';
-import styled from '@emotion/styled';
-import SearchBar from 'app/components/searchBar';
-import pick from 'lodash/pick';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
+
+import DashboardList from './dashboardList';
 
 type Props = {
   organization: Organization;
@@ -74,7 +75,7 @@ class ManageDashboards extends AsyncComponent<Props, State> {
           onSearch={this.handleSearch}
         />
       </StyledActions>
-    )
+    );
   }
 
   renderNoAccess() {
@@ -88,14 +89,25 @@ class ManageDashboards extends AsyncComponent<Props, State> {
   renderBody() {
     const {dashboards, dashboardsPageLinks} = this.state;
     const {organization, location} = this.props;
-    return <DashboardList dashboards={dashboards} organization={organization} pageLinks={dashboardsPageLinks} location={location} />;
+    return (
+      <DashboardList
+        dashboards={dashboards}
+        organization={organization}
+        pageLinks={dashboardsPageLinks}
+        location={location}
+      />
+    );
   }
 
   render() {
     const {organization} = this.props;
 
     return (
-      <Feature organization={organization} features={['dashboards-manage']} renderDisabled={this.renderNoAccess}>
+      <Feature
+        organization={organization}
+        features={['dashboards-manage']}
+        renderDisabled={this.renderNoAccess}
+      >
         <SentryDocumentTitle title={t('Manage Dashboards')} orgSlug={organization.slug}>
           <LightWeightNoProjectMessage organization={organization}>
             <PageContent>
@@ -122,7 +134,6 @@ class ManageDashboards extends AsyncComponent<Props, State> {
     );
   }
 }
-
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
