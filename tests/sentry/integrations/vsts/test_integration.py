@@ -1,25 +1,27 @@
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 import responses
-from sentry.utils.compat.mock import patch, Mock
 
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
-from sentry.testutils.helpers import with_feature
 from sentry.models import (
     Integration,
     IntegrationExternalProject,
     OrganizationIntegration,
-    Repository,
     Project,
+    Repository,
 )
 from sentry.plugins.base import plugins
-from urllib.parse import urlparse, parse_qs
+from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.testutils.helpers import with_feature
+from sentry.utils.compat.mock import Mock, patch
 from tests.sentry.plugins.testutils import (
+    VstsPlugin,
     register_mock_plugins,
     unregister_mock_plugins,
-    VstsPlugin,
 )
-from .testutils import VstsIntegrationTestCase, CREATE_SUBSCRIPTION
+
+from .testutils import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
@@ -192,7 +194,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_fix_subscription(self, mock_get_scopes):
-        external_id = "1234567890"
+        external_id = self.vsts_account_id
         Integration.objects.create(metadata={}, provider="vsts", external_id=external_id)
         data = VstsIntegrationProvider().build_integration(
             {

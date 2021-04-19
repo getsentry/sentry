@@ -1,9 +1,9 @@
-from sentry.api.serializers import serialize, SimpleEventSerializer
+from sentry.api.serializers import SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import SharedEventSerializer
 from sentry.models import EventError
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
-from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class EventSerializerTest(TestCase):
@@ -203,6 +203,8 @@ class EventSerializerTest(TestCase):
         assert "fingerprints" not in result
         assert "measurements" in result
         assert result["measurements"] == event_data["measurements"]
+        assert "breakdowns" in result
+        assert result["breakdowns"] == event_data["breakdowns"]
 
     def test_transaction_event_empty_spans(self):
         event_data = load_data("transaction")

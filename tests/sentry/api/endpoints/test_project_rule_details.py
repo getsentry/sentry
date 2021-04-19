@@ -1,5 +1,4 @@
 import responses
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
@@ -525,6 +524,7 @@ class UpdateProjectRuleTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
+    @responses.activate
     def test_slack_channel_id_saved(self):
         self.login_as(user=self.user)
 
@@ -550,6 +550,15 @@ class UpdateProjectRuleTest(APITestCase):
                 "project_slug": project.slug,
                 "rule_id": rule.id,
             },
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channel": {"name": "team-team-team", "id": "CSVK0921"}}
+            ),
         )
         response = self.client.put(
             url,

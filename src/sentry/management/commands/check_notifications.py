@@ -1,17 +1,23 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from sentry.mail import mail_adapter
-from sentry.models import Project, Organization, User
+from sentry.models import Organization, Project
 from sentry.utils.email import get_email_addresses
 
 
-def handle_project(project, stream):
+def handle_project(project: Project, stream) -> None:
+    """
+    For every user that should receive ISSUE_ALERT notifications for a given
+    project, write a map of usernames to email addresses to the given stream
+    one entry per line.
+    """
     stream.write("# Project: %s\n" % project)
 
-    user_ids = mail_adapter.get_sendable_users(project)
-    users = User.objects.in_bulk(user_ids)
-    for user_id, email in get_email_addresses(user_ids, project).items():
-        stream.write(f"{users[user_id].username}: {email}\n")
+    users = mail_adapter.get_sendable_user_objects(project)
+    users_map = {user.id: user for user in users}
+    emails = get_email_addresses(users_map.keys(), project)
+    for user_id, email in emails.items():
+        stream.write(f"{users_map[user_id].username}: {email}\n")
 
 
 class Command(BaseCommand):

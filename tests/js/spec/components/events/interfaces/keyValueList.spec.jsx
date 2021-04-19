@@ -2,14 +2,14 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 describe('KeyValueList', function () {
   describe('render', function () {
     it('should render a definition list of key/value pairs', function () {
       const data = [
-        ['a', 'x'],
-        ['b', 'y'],
+        {key: 'a', value: 'x', subject: 'a'},
+        {key: 'b', value: 'y', subject: 'b'},
       ];
       const wrapper = mountWithTheme(<KeyValueList data={data} />);
 
@@ -22,8 +22,8 @@ describe('KeyValueList', function () {
 
     it('should sort sort key/value pairs', function () {
       const data = [
-        ['b', 'y'],
-        ['a', 'x'],
+        {key: 'b', value: 'y', subject: 'b'},
+        {key: 'a', value: 'x', subject: 'a'},
       ];
       const wrapper = mountWithTheme(<KeyValueList data={data} />);
 
@@ -36,22 +36,22 @@ describe('KeyValueList', function () {
 
     it('should use a single space for values that are an empty string', function () {
       const data = [
-        ['b', 'y'],
-        ['a', ''], // empty string
+        {key: 'b', value: 'y', subject: 'b'},
+        {key: 'a', value: '', subject: 'a'}, // empty string
       ];
       const wrapper = mountWithTheme(<KeyValueList data={data} />);
 
       expect(wrapper.find('td.key').at(0).text()).toEqual('a');
       expect(wrapper.find('td.key').at(1).text()).toEqual('b');
 
-      expect(wrapper.find('td.val').at(0).text()).toEqual(' ');
+      expect(wrapper.find('td.val').at(0).text()).toEqual('');
       expect(wrapper.find('td.val').at(1).text()).toEqual('y');
     });
 
     it('can sort key/value pairs with non-string values', function () {
       const data = [
-        ['b', {foo: 'bar'}],
-        ['a', [3, 2, 1]],
+        {key: 'b', value: {foo: 'bar'}, subject: 'b'},
+        {key: 'a', value: [3, 2, 1], subject: 'a'},
       ];
       const wrapper = mountWithTheme(<KeyValueList isContextData data={data} />);
 
@@ -61,7 +61,7 @@ describe('KeyValueList', function () {
     });
 
     it('should coerce non-strings into strings', function () {
-      const data = [['a', false]];
+      const data = [{key: 'a', value: false, subject: 'a'}];
       const wrapper = mountWithTheme(<KeyValueList data={data} />);
 
       expect(wrapper.find('td.key').at(0).text()).toEqual('a');
@@ -69,7 +69,7 @@ describe('KeyValueList', function () {
     });
 
     it("shouldn't blow up on null", function () {
-      const data = [['a', null]];
+      const data = [{key: 'a', value: null, subject: 'a'}];
       const wrapper = mountWithTheme(<KeyValueList data={data} />);
 
       expect(wrapper.find('td.key').at(0).text()).toEqual('a');

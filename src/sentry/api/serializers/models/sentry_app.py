@@ -1,4 +1,4 @@
-from sentry.api.serializers import serialize, Serializer, register
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus

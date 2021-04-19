@@ -1,10 +1,11 @@
-import uuid
 import time
+import uuid
+
 import pytest
 
 from sentry.event_manager import _save_aggregate
 from sentry.eventstore.models import Event
-from sentry.models import GroupHash, Group
+from sentry.models import Group, GroupHash
 
 
 @pytest.fixture

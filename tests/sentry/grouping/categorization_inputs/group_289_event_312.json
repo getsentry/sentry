@@ -1,0 +1,115 @@
+{
+  "event_id": "765323c4983142c7addfc2edc29c5138",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "filename": "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp",
+              "function": "boost::thread::start_thread_noexcept"
+            },
+            {
+              "function": "thread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "_pthread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "filename": "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp",
+              "function": "boost::`anonymous namespace'::thread_proxy"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "glDeleteTextures_Exec",
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
+            },
+            {
+              "function": "gleUnbindDeleteHashNamesAndObjects",
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
+            },
+            {
+              "function": "gleUnbindTextureObject",
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
+            },
+            {
+              "function": "gldUpdateDispatch",
+              "package": "/System/Library/Extensions/GeForceGLDriver.bundle/Contents/MacOS/GeForceGLDriver"
+            },
+            {
+              "function": "gldUpdateDispatch",
+              "package": "/System/Library/Extensions/GeForceGLDriver.bundle/Contents/MacOS/GeForceGLDriver"
+            },
+            {
+              "function": "gpusSubmitDataBuffers",
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "function": "gldCreateDevice",
+              "package": "/System/Library/Extensions/GeForceGLDriver.bundle/Contents/MacOS/GeForceGLDriver"
+            },
+            {
+              "function": "gpusGenerateCrashLog",
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "function": "gpusGenerateCrashLog.cold.1",
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "function": "abort",
+              "package": "/usr/lib/system/libsystem_c.dylib"
+            },
+            {
+              "function": "__abort",
+              "package": "/usr/lib/system/libsystem_c.dylib"
+            },
+            {
+              "function": "__pthread_kill",
+              "package": "/usr/lib/system/libsystem_kernel.dylib"
+            }
+          ]
+        },
+        "type": "0x00000000 / 0x00000000",
+        "value": "Fatal Error: 0x00000000 / 0x00000000"
+      }
+    ]
+  },
+  "platform": "native"
+}

@@ -1,28 +1,29 @@
 from urllib.parse import urlparse
-from django.utils.translation import ugettext_lazy as _
+
 from django import forms
+from django.utils.translation import ugettext_lazy as _
 
 from sentry import http
-from sentry.web.helpers import render_to_response
-from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github_enterprise import get_user_info
+from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
-    IntegrationMetadata,
-    IntegrationInstallation,
     FeatureDescription,
     IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
 )
-from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError
-from sentry.integrations.repositories import RepositoryMixin
-from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.utils.http import absolute_uri
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
+from sentry.integrations.repositories import RepositoryMixin
+from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.http import absolute_uri
+from sentry.web.helpers import render_to_response
 
-from .repository import GitHubEnterpriseRepositoryProvider
 from .client import GitHubEnterpriseAppsClient
+from .repository import GitHubEnterpriseRepositoryProvider
 
 DESCRIPTION = """
 Connect your Sentry organization into your on-premise GitHub Enterprise
@@ -254,7 +255,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     name = "GitHub Enterprise"
     metadata = metadata
     integration_cls = GitHubEnterpriseIntegration
-    has_stacktrace_linking = False
+    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
 
     def _make_identity_pipeline_view(self):
         """

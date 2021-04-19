@@ -1,12 +1,12 @@
 from sentry.models import (
     Activity,
+    ExternalIssue,
     GroupLink,
     GroupSubscription,
-    GroupSubscriptionReason,
-    ExternalIssue,
     Integration,
     OrganizationIntegration,
 )
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils import APITestCase
 
 

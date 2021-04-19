@@ -1,0 +1,59 @@
+{
+  "event_id": "6cf435b4d5d943e78274e6773a833727",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "thread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "_pthread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "_pthread_body",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "_pthread_testcancel",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS",
+        "value": "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+      }
+    ]
+  },
+  "platform": "native"
+}

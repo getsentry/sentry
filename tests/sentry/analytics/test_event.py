@@ -1,10 +1,11 @@
 from datetime import datetime
-from sentry.utils.compat.mock import patch
+
 import pytest
 import pytz
 
 from sentry.analytics import Attribute, Event, Map
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class ExampleEvent(Event):
@@ -24,10 +25,7 @@ class DummyType:
 class EventTest(TestCase):
     @patch("sentry.analytics.event.uuid1")
     def test_simple(self, mock_uuid1):
-        class uuid:
-            bytes = b"\x00\x01\x02"
-
-        mock_uuid1.return_value = uuid
+        mock_uuid1.return_value = self.get_mock_uuid()
 
         result = ExampleEvent(
             id="1",

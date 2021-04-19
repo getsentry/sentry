@@ -1,11 +1,18 @@
 import pytest
 
+from sentry.api.endpoints.project_details import (
+    DynamicSamplingConditionSerializer,
+    DynamicSamplingSerializer,
+)
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
     DeletedProject,
     EnvironmentProject,
+    NotificationSetting,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
     OrganizationMember,
     OrganizationOption,
     Project,
@@ -15,14 +22,10 @@ from sentry.models import (
     ProjectStatus,
     ProjectTeam,
     Rule,
-    UserOption,
-)
-from sentry.api.endpoints.project_details import (
-    DynamicSamplingSerializer,
-    DynamicSamplingConditionSerializer,
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock, zip
 
 
@@ -373,10 +376,22 @@ class ProjectUpdateTest(APITestCase):
 
     def test_subscription(self):
         self.get_valid_response(self.org_slug, self.proj_slug, isSubscribed="true")
-        assert UserOption.objects.get(user=self.user, project=self.project).value == 1
+        value0 = NotificationSetting.objects.get_settings(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.ISSUE_ALERTS,
+            user=self.user,
+            project=self.project,
+        )
+        assert value0 == NotificationSettingOptionValues.ALWAYS
 
         self.get_valid_response(self.org_slug, self.proj_slug, isSubscribed="false")
-        assert UserOption.objects.get(user=self.user, project=self.project).value == 0
+        value1 = NotificationSetting.objects.get_settings(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.ISSUE_ALERTS,
+            user=self.user,
+            project=self.project,
+        )
+        assert value1 == NotificationSettingOptionValues.NEVER
 
     def test_security_token(self):
         resp = self.get_valid_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")
@@ -785,16 +800,13 @@ class CopyProjectSettingsTest(APITestCase):
     def test_additional_params_in_payload(self):
         # Right now these are overwritten with the copied project's settings
         project = self.create_project()
-        self.get_valid_response(
-            project.organization.slug,
-            project.slug,
-            **{
-                "copy_from_project": self.other_project.id,
-                "sentry:resolve_age": 2,
-                "sentry:scrub_data": True,
-                "sentry:scrub_defaults": True,
-            },
-        )
+        data = {
+            "copy_from_project": self.other_project.id,
+            "sentry:resolve_age": 2,
+            "sentry:scrub_data": True,
+            "sentry:scrub_defaults": True,
+        }
+        self.get_valid_response(project.organization.slug, project.slug, **data)
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
@@ -901,11 +913,8 @@ class ProjectDeleteTest(APITestCase):
     @mock.patch("sentry.api.endpoints.project_details.uuid4")
     @mock.patch("sentry.api.endpoints.project_details.delete_project")
     def test_simple(self, mock_delete_project, mock_uuid4_project, mock_uuid4_mixin):
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4_mixin.return_value = uuid
-        mock_uuid4_project.return_value = uuid
+        mock_uuid4_mixin.return_value = self.get_mock_uuid()
+        mock_uuid4_project.return_value = self.get_mock_uuid()
         project = self.create_project()
 
         self.login_as(user=self.user)

@@ -1,31 +1,33 @@
-import responses
 import time
+from urllib.parse import parse_qs
 
+import responses
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time
-from urllib.parse import parse_qs
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
-    generate_incident_trigger_email_context,
     MsTeamsActionHandler,
     PagerDutyActionHandler,
     SentryAppActionHandler,
     SlackActionHandler,
+    generate_incident_trigger_email_context,
 )
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import (
+    INCIDENT_STATUS,
     AlertRuleTriggerAction,
     IncidentStatus,
     IncidentStatusMethod,
     TriggerStatus,
-    INCIDENT_STATUS,
 )
-from sentry.models import Integration, PagerDutyService, UserOption
+from sentry.models import Integration, NotificationSetting, PagerDutyService
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -44,8 +46,12 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         assert handler.get_targets() == [(self.user.id, self.user.email)]
 
     def test_user_alerts_disabled(self):
-        UserOption.objects.set_value(
-            user=self.user, key="mail:alert", value=0, project=self.project
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+            project=self.project,
         )
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
@@ -68,11 +74,20 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         }
 
     def test_team_alert_disabled(self):
-        UserOption.objects.set_value(
-            user=self.user, key="mail:alert", value=0, project=self.project
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+            project=self.project,
         )
         disabled_user = self.create_user()
-        UserOption.objects.set_value(user=disabled_user, key="subscribe_by_default", value="0")
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=disabled_user,
+        )
 
         new_user = self.create_user()
         self.create_team_membership(team=self.team, user=new_user)
@@ -189,7 +204,7 @@ class EmailActionHandlerTest(FireTest, TestCase):
 class SlackActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.slack.utils import build_incident_attachment
+        from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         integration = Integration.objects.create(
@@ -245,7 +260,7 @@ class SlackActionHandlerTest(FireTest, TestCase):
 class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.slack.utils import build_incident_attachment
+        from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 
         token = "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         integration = Integration.objects.create(

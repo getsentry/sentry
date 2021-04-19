@@ -1,7 +1,7 @@
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch, call
+from sentry.utils.compat.mock import call, patch
 
 
 class SentryAppComponentsTest(APITestCase):

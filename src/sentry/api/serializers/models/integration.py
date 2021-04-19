@@ -1,17 +1,17 @@
 import logging
 from collections import defaultdict
 
-from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import (
     ExternalIssue,
+    ExternalTeam,
+    ExternalUser,
     GroupLink,
     Integration,
     OrganizationIntegration,
-    ExternalTeam,
-    ExternalUser,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.integrations import get_provider_string
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,7 @@ class IntegrationProviderSerializer(Serializer):
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None
 
-        output = {
+        return {
             "key": obj.key,
             "slug": obj.key,
             "name": obj.name,
@@ -143,17 +143,6 @@ class IntegrationProviderSerializer(Serializer):
                 **obj.setup_dialog_config,
             ),
         }
-
-        # until we GA the stack trace linking feature to everyone it's easier to
-        # control whether we show the feature this way
-        if obj.has_stacktrace_linking:
-            feature_flag_name = "organizations:integrations-stacktrace-link"
-            has_stacktrace_linking = features.has(feature_flag_name, organization, actor=user)
-            if has_stacktrace_linking:
-                # only putting the field in if it's true to minimize test changes
-                output["hasStacktraceLinking"] = True
-
-        return output
 
 
 class IntegrationIssueConfigSerializer(IntegrationSerializer):
@@ -223,7 +212,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 @register(ExternalTeam)
 class ExternalTeamSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        provider = ExternalTeam.get_provider_string(obj.provider)
+        provider = get_provider_string(obj.provider)
         return {
             "id": str(obj.id),
             "teamId": str(obj.team_id),
@@ -235,7 +224,7 @@ class ExternalTeamSerializer(Serializer):
 @register(ExternalUser)
 class ExternalUserSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        provider = ExternalUser.get_provider_string(obj.provider)
+        provider = get_provider_string(obj.provider)
         return {
             "id": str(obj.id),
             "memberId": str(obj.organizationmember_id),

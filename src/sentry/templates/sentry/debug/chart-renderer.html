@@ -1,0 +1,29 @@
+{% load sentry_helpers %}
+{% load sentry_assets %}
+<html>
+  <head>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 2rem;
+      }
+      .charts {
+        margin: 2rem;
+        display: grid;
+        grid-gap: 1rem;
+      }
+
+      .charts img {
+        border: 1px solid #eee;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Chart Renderer Debug</h2>
+    <div class="charts">
+      {% for chart_url in charts %}
+        <img src="{{ chart_url }}" />
+      {% endfor %}
+    </div>
+  </body>
+</html>

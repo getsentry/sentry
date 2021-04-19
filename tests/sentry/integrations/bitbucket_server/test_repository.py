@@ -1,23 +1,25 @@
 import datetime
-import responses
-import pytest
 
+import pytest
+import responses
 from django.utils import timezone
 from exam import fixture
-from sentry.models import Integration, Repository, IdentityProvider, Identity, IdentityStatus
-from sentry.testutils import APITestCase
+
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
+from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.testutils import APITestCase
+
 from .testutils import (
-    EXAMPLE_PRIVATE_KEY,
-    COMPARE_COMMITS_EXAMPLE,
-    REPO,
     COMMIT_CHANGELIST_EXAMPLE,
-    COMPARE_COMMITS_WITH_PAGES_1_2_EXAMPLE,
-    COMPARE_COMMITS_WITH_PAGES_2_2_EXAMPLE,
     COMMIT_CHANGELIST_WITH_PAGES_FIRST_COMMIT_EXAMPLE,
     COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_1_2,
     COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_2_2,
+    COMPARE_COMMITS_EXAMPLE,
+    COMPARE_COMMITS_WITH_PAGES_1_2_EXAMPLE,
+    COMPARE_COMMITS_WITH_PAGES_2_2_EXAMPLE,
+    EXAMPLE_PRIVATE_KEY,
+    REPO,
 )
 
 
@@ -129,13 +131,13 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
         responses.add(
             responses.GET,
-            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?merges=exclude&limit=100&start=0",
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?limit=1000&start=0",
             json=COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_1_2,
         )
 
         responses.add(
             responses.GET,
-            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?merges=exclude&limit=100&start=1",
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?limit=1000&start=1",
             json=COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_2_2,
         )
 

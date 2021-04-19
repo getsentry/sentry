@@ -1,7 +1,7 @@
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.eventstore.base import Filter
+from sentry.eventstore.snuba.backend import SnubaEventStorage
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
@@ -67,15 +67,18 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
     def test_get_events(self):
         events = self.eventstore.get_events(
-            filter=Filter(project_ids=[self.project1.id, self.project2.id])
+            filter=Filter(
+                project_ids=[self.project1.id, self.project2.id],
+                conditions=[
+                    ["type", "!=", "transaction"]
+                ],  # TODO: Remove once errors storage rolled out
+            )
         )
-        assert len(events) == 5
+        assert len(events) == 3
         # Default sort is timestamp desc, event_id desc
-        assert events[0].event_id == "e" * 32
-        assert events[1].event_id == "d" * 32
-        assert events[2].event_id == "c" * 32
-        assert events[3].event_id == "b" * 32
-        assert events[4].event_id == "a" * 32
+        assert events[0].event_id == "c" * 32
+        assert events[1].event_id == "b" * 32
+        assert events[2].event_id == "a" * 32
 
         # No events found
         project = self.create_project()

@@ -1,13 +1,13 @@
 import re
-from collections import namedtuple, defaultdict
+from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
 
 from django.utils.functional import cached_property
-from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
-from parsimonious.nodes import Node, RegexNode
+from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.nodes import Node, RegexNode
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
@@ -15,29 +15,29 @@ from sentry.discover.models import KeyTransaction
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.search.utils import (
-    parse_duration,
-    parse_percentage,
+    InvalidQuery,
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
+    parse_duration,
     parse_numeric_value,
+    parse_percentage,
     parse_release,
-    InvalidQuery,
 )
 from sentry.snuba.dataset import Dataset
+from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
     FUNCTION_TO_OPERATOR,
-    get_json_type,
-    is_measurement,
-    is_duration_measurement,
     OPERATOR_TO_FUNCTION,
     SNUBA_AND,
     SNUBA_OR,
+    get_json_type,
+    is_duration_measurement,
+    is_measurement,
+    is_span_op_breakdown,
 )
-from sentry.utils.compat import filter, map, zip
-
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 NEGATION_MAP = {
@@ -46,7 +46,10 @@ NEGATION_MAP = {
     "<=": ">",
     ">": "<=",
     ">=": "<",
+    "IN": "NOT IN",
 }
+equality_operators = frozenset(["=", "IN"])
+inequality_operators = frozenset(["!=", "NOT IN"])
 
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
 
@@ -121,17 +124,16 @@ search               = (boolean_operator / paren_term / search_term)*
 boolean_operator     = spaces (or_operator / and_operator) spaces
 paren_term           = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter
+key_val_term         = spaces (time_filter / rel_time_filter / specific_time_filter
                        / duration_filter / boolean_filter / numeric_filter
                        / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
-                       / has_filter / is_filter / quoted_basic_filter / basic_filter)
+                       / has_filter / is_filter / text_filter)
                        spaces
 raw_search           = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
 # standard key:val filter
-basic_filter         = negation? search_key sep search_value
-quoted_basic_filter  = negation? search_key sep quoted_value
+text_filter          = negation? text_key sep ((open_bracket text_value (comma space* text_value)* closed_bracket) / search_value)
 # filter for dates
 time_filter          = search_key sep? operator (date_format / alt_date_format)
 # filter for relative dates
@@ -141,7 +143,7 @@ duration_filter      = search_key sep operator? duration_format
 # exact time filter for dates
 specific_time_filter = search_key sep (date_format / alt_date_format)
 # Numeric comparison filter
-numeric_filter       = search_key sep operator? numeric_value
+numeric_filter       = search_key sep ((operator? numeric_value) / (open_bracket numeric_value (comma space* numeric_value)* closed_bracket))
 # Boolean comparison filter
 boolean_filter       = negation? search_key sep boolean_value
 # Aggregate numeric filter
@@ -152,19 +154,22 @@ aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_forma
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
-tag_filter           = negation? "tags[" search_key "]" sep search_value
 
 aggregate_key        = key open_paren function_arg* closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
-numeric_value        = ~r"([-]?[0-9\.]+)([k|m|b])?(?=\s|\)|$)"
+in_value             = ~r"[^(),\s]*[^\],\s)]"
+numeric_value        = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
 boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 function_arg         = space? key? comma? space?
 # only allow colons in quoted keys
 quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
+explicit_tag_key     = "tags[" search_key "]"
+text_key             = explicit_tag_key / search_key
+text_value           = quoted_value / in_value
 
 date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|\)|$)"
 alt_date_format      = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+\d{2}:\d{2})?)?(?=\s|\)|$)"
@@ -180,6 +185,8 @@ and_operator         = ~r"AND(?![^\s])"i
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
 open_paren           = "("
 closed_paren         = ")"
+open_bracket         = "["
+closed_bracket       = ~r"\](?=\s|$)"
 sep                  = ":"
 space                = " "
 negation             = "!"
@@ -259,19 +266,32 @@ class SearchFilter(namedtuple("SearchFilter", "key operator value")):
             and self.value.raw_value != ""
             or self.operator == "="
             and self.value.raw_value == ""
+            or self.operator == "NOT IN"
+            and self.value.raw_value
         )
+
+    @cached_property
+    def is_in_filter(self):
+        return self.operator in ("IN", "NOT IN")
 
 
 class SearchKey(namedtuple("SearchKey", "name")):
     @cached_property
     def is_tag(self):
         return TAG_KEY_RE.match(self.name) or (
-            self.name not in SEARCH_MAP and not self.is_measurement
+            self.name not in SEARCH_MAP
+            and self.name not in FIELD_ALIASES
+            and not self.is_measurement
+            and not self.is_span_op_breakdown
         )
 
     @cached_property
     def is_measurement(self):
         return is_measurement(self.name) and self.name not in SEARCH_MAP
+
+    @cached_property
+    def is_span_op_breakdown(self):
+        return is_span_op_breakdown(self.name) and self.name not in SEARCH_MAP
 
 
 class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
@@ -315,6 +335,7 @@ class SearchVisitor(NodeVisitor):
         "p95",
         "p99",
         "failure_rate",
+        "count_miserable",
         "user_misery",
     }
     date_keys = {
@@ -324,6 +345,8 @@ class SearchVisitor(NodeVisitor):
         "last_seen",
         "time",
         "timestamp",
+        "timestamp.to_hour",
+        "timestamp.to_day",
         "transaction.start_time",
         "transaction.end_time",
     }
@@ -378,7 +401,9 @@ class SearchVisitor(NodeVisitor):
         return key in self.numeric_keys or is_measurement(key)
 
     def is_duration_key(self, key):
-        return key in self.duration_keys or is_duration_measurement(key)
+        return (
+            key in self.duration_keys or is_duration_measurement(key) or is_span_op_breakdown(key)
+        )
 
     def is_percentage_key(self, key):
         return key in self.percentage_keys
@@ -422,7 +447,19 @@ class SearchVisitor(NodeVisitor):
 
         # Numeric and boolean filters overlap on 1 and 0 values.
         if self.is_numeric_key(search_key.name):
-            return self.visit_numeric_filter(node, (search_key, sep, "=", search_value))
+            return self.visit_numeric_filter(
+                node,
+                (
+                    search_key,
+                    sep,
+                    (
+                        (
+                            "=",
+                            search_value,
+                        ),
+                    ),
+                ),
+            )
 
         if search_key.name in self.boolean_keys:
             if search_value.text.lower() in ("true", "1"):
@@ -438,24 +475,55 @@ class SearchVisitor(NodeVisitor):
                 search_key, "=" if not is_negated else "!=", search_value
             )
 
+    def process_list(self, first, remaining):
+        return [
+            first,
+            *[item[2] for item in remaining],
+        ]
+
     def visit_numeric_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
-        operator = operator[0] if not isinstance(operator, Node) else "="
+        (search_key, _, (value,)) = children
+        operator = value[0]
+        if isinstance(operator, Node):
+            if isinstance(operator.expr, Optional):
+                operator = "="
+            else:
+                operator = operator.text
+        else:
+            operator = operator[0]
+
+        if operator == "[":
+            operator = "IN"
+            search_value = self.process_list(value[1], value[2])
+        else:
+            search_value = value[1]
 
         if self.is_numeric_key(search_key.name):
             try:
-                search_value = SearchValue(parse_numeric_value(*search_value.match.groups()))
+                search_value = SearchValue(
+                    [parse_numeric_value(*val.match.groups()) for val in search_value]
+                    if operator == "IN"
+                    else parse_numeric_value(*search_value.match.groups())
+                )
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
         else:
+            if operator != "IN":
+                search_value = search_value.text
+            else:
+                search_value = [v.text for v in search_value]
             search_value = SearchValue(
-                operator + search_value.text if operator != "=" else search_value.text
+                operator + search_value if operator not in ("=", "IN") else search_value
             )
-            return self._handle_basic_filter(search_key, "=", search_value)
+            operator = "=" if operator not in ("=", "IN") else operator
+            return self._handle_basic_filter(search_key, operator, search_value)
 
     def handle_negation(self, negation, operator):
-        operator = operator[0] if not isinstance(operator, Node) else "="
+        if isinstance(operator, Node):
+            operator = "="
+        elif not isinstance(operator, str):
+            operator = operator[0]
         if self.is_negated(negation):
             return NEGATION_MAP.get(operator, "!=")
         return operator
@@ -552,7 +620,7 @@ class SearchVisitor(NodeVisitor):
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
         elif self.is_numeric_key(search_key.name):
-            return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
+            return self.visit_numeric_filter(node, (search_key, sep, ((operator, search_value),)))
         else:
             search_value = operator + search_value.text if operator != "=" else search_value.text
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
@@ -617,17 +685,21 @@ class SearchVisitor(NodeVisitor):
 
         return node.text == "!"
 
-    def visit_quoted_basic_filter(self, node, children):
-        (negation, search_key, _, search_value) = children
-        operator = "!=" if self.is_negated(negation) else "="
-        search_value = SearchValue(search_value)
-        return self._handle_basic_filter(search_key, operator, search_value)
+    def visit_text_filter(self, node, children):
+        (negation, search_key, _, (search_value,)) = children
+        operator = "="
+        if isinstance(search_value, list):
+            operator = "IN"
+            search_value = SearchValue(
+                self.process_list(search_value[1], [(_, _, val) for _, _, val in search_value[2]])
+            )
+        else:
+            # XXX: We check whether the text in the node itself is actually empty, so
+            # we can tell the difference between an empty quoted string and no string
+            if not search_value.raw_value and not node.children[3].text:
+                raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
 
-    def visit_basic_filter(self, node, children):
-        (negation, search_key, _, search_value) = children
-        operator = "!=" if self.is_negated(negation) else "="
-        if not search_value.raw_value:
-            raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
+        operator = self.handle_negation(negation, operator)
 
         return self._handle_basic_filter(search_key, operator, search_value)
 
@@ -635,11 +707,17 @@ class SearchVisitor(NodeVisitor):
         # If a date or numeric key gets down to the basic filter, then it means
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for date field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid date: {search_value.raw_value}. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {datetime.now().isoformat()[:-4]})."
+            )
         if search_key.name in self.boolean_keys:
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for boolean field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid boolean: {search_value.raw_value}. Expected true, 1, false, or 0."
+            )
         if self.is_numeric_key(search_key.name):
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for numeric field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid number: {search_value.raw_value}. Expected number then optional k, m, or b suffix (e.g. 500k)."
+            )
 
         return SearchFilter(search_key, operator, search_value)
 
@@ -655,11 +733,6 @@ class SearchVisitor(NodeVisitor):
 
         operator = "=" if self.is_negated(negation) else "!="
         return SearchFilter(search_key, operator, SearchValue(""))
-
-    def visit_tag_filter(self, node, children):
-        (negation, _, search_key, _, sep, search_value) = children
-        operator = "!=" if self.is_negated(negation) else "="
-        return SearchFilter(SearchKey(f"tags[{search_key.name}]"), operator, search_value)
 
     def visit_is_filter(self, node, children):
         raise InvalidSearchQuery('"is:" queries are only supported in issue search.')
@@ -732,11 +805,23 @@ class SearchVisitor(NodeVisitor):
     def visit_key(self, node, children):
         return node.text
 
+    def visit_in_value(self, node, children):
+        return node.text.replace('\\"', '"')
+
     def visit_quoted_value(self, node, children):
         return node.match.groups()[0].replace('\\"', '"')
 
     def visit_quoted_key(self, node, children):
         return node.match.groups()[0]
+
+    def visit_explicit_tag_key(self, node, children):
+        return SearchKey(f"tags[{children[1].name}]")
+
+    def visit_text_key(self, node, children):
+        return children[0]
+
+    def visit_text_value(self, node, children):
+        return children[0]
 
     def generic_visit(self, node, children):
         return children or node
@@ -780,6 +865,15 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     return condition
 
 
+def translate_transaction_status(val):
+    if val not in SPAN_STATUS_NAME_TO_CODE:
+        raise InvalidSearchQuery(
+            f"Invalid value {val} for transaction.status condition. Accepted "
+            f"values are {', '.join(SPAN_STATUS_NAME_TO_CODE.keys())}"
+        )
+    return SPAN_STATUS_NAME_TO_CODE[val]
+
+
 def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
@@ -804,10 +898,10 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
             env_conditions.append(["environment", operator, None])
         if len(values) == 1:
-            operator = "=" if search_filter.operator == "=" else "!="
+            operator = "=" if search_filter.operator in equality_operators else "!="
             env_conditions.append(["environment", operator, values.pop()])
         elif values:
-            operator = "IN" if search_filter.operator == "=" else "NOT IN"
+            operator = "IN" if search_filter.operator in equality_operators else "NOT IN"
             env_conditions.append(["environment", operator, values])
         return env_conditions
     elif name == "message":
@@ -824,47 +918,67 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
             # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
             # so we should flip the operator here
-            operator = "=" if search_filter.operator == "!=" else "!="
+            operator = "!=" if search_filter.operator in equality_operators else "="
+            if search_filter.is_in_filter:
+                # XXX: This `toString` usage is unnecessary, but we need it in place to
+                # trick the legacy Snuba language into not treating `message` as a
+                # function. Once we switch over to snql it can be removed.
+                return [
+                    [
+                        "multiSearchFirstPositionCaseInsensitive",
+                        [["toString", ["message"]], ["array", [f"'{v}'" for v in value]]],
+                    ],
+                    operator,
+                    0,
+                ]
+
             # make message search case insensitive
             return [["positionCaseInsensitive", ["message", f"'{value}'"]], operator, 0]
-    elif (
-        name.startswith("stack.") or name.startswith("error.")
-    ) and search_filter.value.is_wildcard():
+    elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():
         # Escape and convert meta characters for LIKE expressions.
         raw_value = search_filter.value.raw_value
         like_value = raw_value.replace("%", "\\%").replace("_", "\\_").replace("*", "%")
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
+    elif name in ARRAY_FIELDS and search_filter.is_in_filter:
+        operator = "=" if search_filter.operator == "IN" else "!="
+        # XXX: This `arrayConcat` usage is unnecessary, but we need it in place to
+        # trick the legacy Snuba language into not treating `name` as a
+        # function. Once we switch over to snql it can be removed.
+        return [
+            ["hasAny", [["arrayConcat", [name]], ["array", [f"'{v}'" for v in value]]]],
+            operator,
+            1,
+        ]
     elif name == "transaction.status":
         # Handle "has" queries
         if search_filter.value.raw_value == "":
             return [["isNull", [name]], search_filter.operator, 1]
 
-        internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
-        if internal_value is None:
-            raise InvalidSearchQuery(
-                "Invalid value for transaction.status condition. Accepted values are {}".format(
-                    ", ".join(SPAN_STATUS_NAME_TO_CODE.keys())
-                )
-            )
+        if search_filter.is_in_filter:
+            internal_value = [
+                translate_transaction_status(val) for val in search_filter.value.raw_value
+            ]
+        else:
+            internal_value = translate_transaction_status(search_filter.value.raw_value)
+
         return [name, search_filter.operator, internal_value]
     elif name == "issue.id":
         # Handle "has" queries
-        if search_filter.value.raw_value == "":
-            if search_filter.operator == "=":
-                # The state of having no issues is represented differently on transactions vs
-                # other events. On the transactions table, it is represented by 0 whereas it is
-                # represented by NULL everywhere else. This means we have to check for both 0
-                # or NULL.
-                return [
-                    [["isNull", [name]], search_filter.operator, 1],
-                    [name, search_filter.operator, 0],
-                ]
+        if (
+            search_filter.value.raw_value == ""
+            or search_filter.is_in_filter
+            and [v for v in value if not v]
+        ):
+            # The state of having no issues is represented differently on transactions vs
+            # other events. On the transactions table, it is represented by 0 whereas it is
+            # represented by NULL everywhere else. We use coalesce here so we can treat this
+            # consistently
+            name = ["coalesce", [name, 0]]
+            if search_filter.is_in_filter:
+                value = [v if v else 0 for v in value]
             else:
-                # Based the reasoning above, we should be checking that it is not 0 and not NULL.
-                # However, because NULL != 0 evaluates to NULL in Clickhouse, we can simplify it
-                # to check just not 0.
-                return [name, search_filter.operator, 0]
+                value = 0
 
         # Skip isNull check on group_id value as we want to
         # allow snuba's prewhere optimizer to find this condition.
@@ -926,11 +1040,20 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
         return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
     else:
-        value = (
-            int(to_timestamp(value)) * 1000
-            if isinstance(value, datetime) and name != "timestamp"
-            else value
-        )
+        # timestamp{,.to_{hour,day}} need a datetime string
+        # last_seen needs an integer
+        if isinstance(value, datetime) and name not in {
+            "timestamp",
+            "timestamp.to_hour",
+            "timestamp.to_day",
+        }:
+            value = int(to_timestamp(value)) * 1000
+
+        # most field aliases are handled above but timestamp.to_{hour,day} are
+        # handled here
+        if name in FIELD_ALIASES:
+            name = FIELD_ALIASES[name].get_expression(params)
+
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
@@ -946,7 +1069,12 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
                 return [["isNull", [name]], search_filter.operator, 1]
 
         is_null_condition = None
-        if search_filter.operator == "!=" and not search_filter.key.is_tag:
+        # TODO(wmak): Skip this for all non-nullable keys not just event.type
+        if (
+            search_filter.operator in ("!=", "NOT IN")
+            and not search_filter.key.is_tag
+            and name != "event.type"
+        ):
             # Handle null columns on inequality comparisons. Any comparison
             # between a value and a null will result to null, so we need to
             # explicitly check for whether the condition is null, and OR it
@@ -977,7 +1105,7 @@ def to_list(value):
 
 
 def format_search_filter(term, params):
-    project_to_filter = None  # Used to avoid doing multiple conditions on project ID
+    projects_to_filter = []  # Used to avoid doing multiple conditions on project ID
     conditions = []
     group_ids = None
     name = term.key.name
@@ -985,55 +1113,77 @@ def format_search_filter(term, params):
     if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
         if term.operator == "=" and value == "":
             raise InvalidSearchQuery("Invalid query for 'has' search: 'project' cannot be empty.")
-        project = None
-        try:
-            project = Project.objects.get(id__in=params.get("project_id", []), slug=value)
-        except Exception as e:
-            if not isinstance(e, Project.DoesNotExist) or term.operator != "!=":
-                raise InvalidSearchQuery(
-                    f"Invalid query. Project {value} does not exist or is not an actively selected project."
-                )
-        else:
+        slugs = to_list(value)
+        projects = {
+            p.slug: p.id
+            for p in Project.objects.filter(id__in=params.get("project_id", []), slug__in=slugs)
+        }
+        missing = [slug for slug in slugs if slug not in projects]
+        if missing and term.operator in equality_operators:
+            raise InvalidSearchQuery(
+                f"Invalid query. Project(s) {', '.join(missing)} do not exist or are not actively selected."
+            )
+        project_ids = list(sorted(projects.values()))
+        if project_ids:
             # Create a new search filter with the correct values
-            term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
+            term = SearchFilter(
+                SearchKey("project_id"),
+                term.operator,
+                SearchValue(project_ids if term.is_in_filter else project_ids[0]),
+            )
             converted_filter = convert_search_filter_to_snuba_query(term)
             if converted_filter:
-                if term.operator == "=":
-                    project_to_filter = project.id
-
+                if term.operator in equality_operators:
+                    projects_to_filter = project_ids
                 conditions.append(converted_filter)
     elif name == ISSUE_ID_ALIAS and value != "":
         # A blank term value means that this is a has filter
         group_ids = to_list(value)
     elif name == ISSUE_ALIAS:
         operator = term.operator
-        if value == "unknown":
-            # `unknown` is a special value for when there is no issue associated with the event
-            operator = "=" if term.operator == "=" else "!="
-            value = ""
-        elif value != "" and params and "organization_id" in params:
+        value = to_list(value)
+        # `unknown` is a special value for when there is no issue associated with the event
+        group_short_ids = [v for v in value if v and v != "unknown"]
+        filter_values = ["" for v in value if not v or v == "unknown"]
+
+        if group_short_ids and params and "organization_id" in params:
             try:
-                group = Group.objects.by_qualified_short_id(params["organization_id"], value)
+                groups = Group.objects.by_qualified_short_id_bulk(
+                    params["organization_id"],
+                    group_short_ids,
+                )
             except Exception:
-                raise InvalidSearchQuery(f"Invalid value '{value}' for 'issue:' filter")
+                raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                value = group.id
-        term = SearchFilter(SearchKey("issue.id"), operator, SearchValue(value))
+                filter_values.extend([g.id for g in groups])
+
+        term = SearchFilter(
+            SearchKey("issue.id"),
+            operator,
+            SearchValue(filter_values if term.is_in_filter else filter_values[0]),
+        )
         converted_filter = convert_search_filter_to_snuba_query(term)
         conditions.append(converted_filter)
-    elif name == RELEASE_ALIAS and params and value == "latest":
+    elif (
+        name == RELEASE_ALIAS
+        and params
+        and (value == "latest" or term.is_in_filter and any(v == "latest" for v in value))
+    ):
+        value = [
+            parse_release(
+                v,
+                params["project_id"],
+                params.get("environment_objects"),
+                params.get("organization_id"),
+            )
+            for v in to_list(value)
+        ]
+
         converted_filter = convert_search_filter_to_snuba_query(
             SearchFilter(
                 term.key,
                 term.operator,
-                SearchValue(
-                    parse_release(
-                        value,
-                        params["project_id"],
-                        params.get("environment_objects"),
-                        params.get("organization_id"),
-                    )
-                ),
+                SearchValue(value if term.is_in_filter else value[0]),
             )
         )
         if converted_filter:
@@ -1043,7 +1193,7 @@ def format_search_filter(term, params):
         if converted_filter:
             conditions.append(converted_filter)
 
-    return conditions, project_to_filter, group_ids
+    return conditions, projects_to_filter, group_ids
 
 
 def convert_condition_to_function(cond):
@@ -1103,8 +1253,7 @@ def convert_snuba_condition_to_function(term, params=None):
     group_ids = []
     projects_to_filter = []
     if isinstance(term, SearchFilter):
-        conditions, project_to_filter, group_ids = format_search_filter(term, params)
-        projects_to_filter = [project_to_filter] if project_to_filter else []
+        conditions, projects_to_filter, group_ids = format_search_filter(term, params)
         group_ids = group_ids if group_ids else []
         if conditions:
             conditions_to_and = []
@@ -1272,13 +1421,14 @@ def get_filter(query=None, params=None):
         if group_ids is not None:
             kwargs["group_ids"].extend(list(set(group_ids)))
     else:
+        projects_to_filter = set()
         for term in parsed_terms:
             if isinstance(term, SearchFilter):
-                conditions, found_project_to_filter, group_ids = format_search_filter(term, params)
+                conditions, found_projects_to_filter, group_ids = format_search_filter(term, params)
                 if len(conditions) > 0:
                     kwargs["conditions"].extend(conditions)
-                if found_project_to_filter:
-                    projects_to_filter = [found_project_to_filter]
+                if found_projects_to_filter:
+                    projects_to_filter.update(found_projects_to_filter)
                 if group_ids is not None:
                     kwargs["group_ids"].extend(group_ids)
             elif isinstance(term, AggregateFilter):
@@ -1286,6 +1436,7 @@ def get_filter(query=None, params=None):
                 kwargs["condition_aggregates"].append(term.key.name)
                 if converted_filter:
                     kwargs["having"].append(converted_filter)
+        projects_to_filter = list(projects_to_filter)
 
     # Keys included as url params take precedent if same key is included in search
     # They are also considered safe and to have had access rules applied unlike conditions
@@ -1390,9 +1541,9 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     ]
 
 
-# When adding aliases to this list please also update
-# static/app/utils/discover/fields.tsx so that
-# the UI builder stays in sync.
+# When updating this list, also check if the following need to be updated:
+# - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
+# - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
 FIELD_ALIASES = {
     field.name: field
     for field in [
@@ -1446,7 +1597,11 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
                 if result_type is not None:
                     return result_type
 
-    if "duration" in field_alias or is_duration_measurement(field_alias):
+    if (
+        "duration" in field_alias
+        or is_duration_measurement(field_alias)
+        or is_span_op_breakdown(field_alias)
+    ):
         return "duration"
     if is_measurement(field_alias):
         return "number"
@@ -1548,7 +1703,7 @@ class FieldColumn(CountColumn):
     """ Allow any field column, of any type """
 
     def get_type(self, value):
-        if is_duration_measurement(value):
+        if is_duration_measurement(value) or is_span_op_breakdown(value):
             return "duration"
         elif value == "transaction.duration":
             return "duration"
@@ -1617,10 +1772,13 @@ class Column(FunctionArg):
 
     def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
+        if self.allowed_columns is not None:
+            if value in self.allowed_columns or snuba_column in self.allowed_columns:
+                return snuba_column
+            else:
+                raise InvalidFunctionArgument(f"{value} is not an allowed column")
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
-        elif self.allowed_columns is not None and snuba_column not in self.allowed_columns:
-            raise InvalidFunctionArgument(f"{value} is not an allowed column")
         return snuba_column
 
 
@@ -1641,6 +1799,8 @@ class NumericColumn(FunctionArg):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
             return value
+        if not snuba_column and is_span_op_breakdown(value):
+            return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
         elif snuba_column not in ["time", "timestamp", "duration"]:
@@ -1652,7 +1812,7 @@ class NumericColumn(FunctionArg):
 
     def get_type(self, value):
         snuba_column = self._normalize(value)
-        if is_duration_measurement(snuba_column):
+        if is_duration_measurement(snuba_column) or is_span_op_breakdown(snuba_column):
             return "duration"
         elif snuba_column == "duration":
             return "duration"
@@ -1662,16 +1822,18 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
-    def __init__(self, name, allow_measurements_value=False):
+    def __init__(self, name, allow_array_value=False):
         super().__init__(name)
-        self.allow_measurements_value = allow_measurements_value
+        self.allow_array_value = allow_array_value
 
     def normalize(self, value, params):
-        # `measurement_value` is actually an array of Float64s. But when used
-        # in this context, we always want to expand it using `arrayJoin`. The
-        # resulting column will be a numeric column of type Float64.
-        if self.allow_measurements_value and value == "measurements_value":
-            return ["arrayJoin", ["measurements_value"]]
+        # `measurement_value` and `span_op_breakdowns_value` are actually an
+        # array of Float64s. But when used in this context, we always want to
+        # expand it using `arrayJoin`. The resulting column will be a numeric
+        # column of type Float64.
+        if self.allow_array_value:
+            if value in {"measurements_value", "span_op_breakdowns_value"}:
+                return ["arrayJoin", [value]]
 
         super().normalize(value, params)
         return value
@@ -1681,6 +1843,8 @@ class DurationColumn(FunctionArg):
     def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_duration_measurement(value):
+            return value
+        if not snuba_column and is_span_op_breakdown(value):
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
@@ -1697,7 +1861,7 @@ class DurationColumnNoLookup(DurationColumn):
 
 class StringArrayColumn(FunctionArg):
     def normalize(self, value, params):
-        if value in ["tags.key", "tags.value", "measurements_key"]:
+        if value in ["tags.key", "tags.value", "measurements_key", "span_op_breakdowns_key"]:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
 
@@ -1952,9 +2116,9 @@ def reflective_result_type(index=0):
     return result_type_fn
 
 
-# When adding functions to this list please also update
-# static/sentry/app/utils/discover/fields.tsx so that
-# the UI builder stays in sync.
+# When updating this list, also check if the following need to be updated:
+# - convert_search_filter_to_snuba_query
+# - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
 FUNCTIONS = {
     function.name: function
     for function in [
@@ -2036,10 +2200,34 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
+            "count_miserable",
+            required_args=[CountColumn("column"), NumberRange("satisfaction", 0, None)],
+            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+            aggregate=[
+                "uniqIf",
+                [ArgValue("column"), ["greater", ["transaction.duration", ArgValue("tolerated")]]],
+                None,
+            ],
+            default_result_type="number",
+        ),
+        Function(
             "user_misery",
             required_args=[NumberRange("satisfaction", 0, None)],
-            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-            transform="uniqIf(user, greater(duration, {tolerated:g}))",
+            # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
+            # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
+            # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
+            # with the user misery being adjusted for each fast/slow unique transaction. See:
+            # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
+            # for an intuitive explanation of the Beta Distribution Function.
+            optional_args=[
+                with_default(5.8875, NumberRange("alpha", 0, None)),
+                with_default(111.8625, NumberRange("beta", 0, None)),
+            ],
+            calculated_args=[
+                {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
+                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+            ],
+            transform="ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
             default_result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),
@@ -2081,7 +2269,7 @@ FUNCTIONS = {
         Function(
             "histogram",
             required_args=[
-                NumericColumnNoLookup("column", allow_measurements_value=True),
+                NumericColumnNoLookup("column", allow_array_value=True),
                 # the bucket_size and start_offset should already be adjusted
                 # using the multiplier before it is passed here
                 NumberRange("bucket_size", 0, None),
@@ -2340,6 +2528,29 @@ FUNCTIONS = {
                 None,
             ],
             default_result_type="number",
+        ),
+        # Currently only used by trace meta so we can count event types which is why this only accepts strings
+        Function(
+            "count_if",
+            required_args=[
+                ColumnNoLookup("column", allowed_columns=["event.type", "http.status_code"]),
+                ConditionArg("condition"),
+                StringArg("value"),
+            ],
+            aggregate=[
+                "countIf",
+                [
+                    [
+                        ArgValue("condition"),
+                        [
+                            ArgValue("column"),
+                            ArgValue("value"),
+                        ],
+                    ]
+                ],
+                None,
+            ],
+            default_result_type="integer",
         ),
         Function(
             "compare_numeric_aggregate",

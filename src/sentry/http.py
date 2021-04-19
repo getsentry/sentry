@@ -1,24 +1,24 @@
-from io import BytesIO
-import warnings
-import time
 import logging
-
-from sentry import options
-from django.core.exceptions import SuspiciousOperation
+import time
+import warnings
 from collections import namedtuple
-from django.conf import settings
-from requests.exceptions import RequestException, Timeout, ReadTimeout
+from io import BytesIO
 from urllib.parse import urlparse
 
-from sentry.models import EventError
+from django.conf import settings
+from django.core.exceptions import SuspiciousOperation
+from requests.exceptions import ReadTimeout, RequestException, Timeout
+
+from sentry import options
 from sentry.exceptions import RestrictedIPAddress
+from sentry.models import EventError
+from sentry.net.http import SafeSession
+
+# Importing for backwards compatible API
+from sentry.net.socket import is_safe_hostname, is_valid_url, safe_socket_connect  # NOQA
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.strings import truncatechars
-
-# Importing for backwards compatible API
-from sentry.net.socket import safe_socket_connect, is_valid_url, is_safe_hostname  # NOQA
-from sentry.net.http import SafeSession
 
 logger = logging.getLogger(__name__)
 
@@ -30,17 +30,6 @@ MAX_URL_LENGTH = 150
 
 # UrlResult.body **must** be bytes
 UrlResult = namedtuple("UrlResult", ["url", "headers", "body", "status", "encoding"])
-
-# In case SSL is unavailable (light builds) we can't import this here.
-try:
-    from OpenSSL.SSL import ZeroReturnError, Error as OpenSSLError
-except ImportError:
-
-    class ZeroReturnError(Exception):
-        pass
-
-    class OpenSSLError(Exception):
-        pass
 
 
 class BadSource(Exception):
@@ -132,6 +121,22 @@ def expose_url(url):
     return url
 
 
+def get_domain_key(url):
+    domain = urlparse(url).netloc
+    return f"source:blacklist:v2:{md5_text(domain).hexdigest()}"
+
+
+def lock_domain(url, error=None):
+    error = dict(error or {})
+    if error.get("type") is None:
+        error["type"] = EventError.UNKNOWN_ERROR
+    if error.get("url") is None:
+        error["url"] = expose_url(url)
+    domain_key = get_domain_key(url)
+    cache.set(domain_key, error, 300)
+    logger.warning("source.disabled", extra=error)
+
+
 def fetch_file(
     url,
     domain_lock_enabled=True,
@@ -147,8 +152,7 @@ def fetch_file(
     """
     # lock down domains that are problematic
     if domain_lock_enabled:
-        domain = urlparse(url).netloc
-        domain_key = f"source:blacklist:v2:{md5_text(domain).hexdigest()}"
+        domain_key = get_domain_key(url)
         domain_result = cache.get(domain_key)
         if domain_result:
             domain_result["url"] = url
@@ -200,36 +204,32 @@ def fetch_file(
             except Exception as exc:
                 logger.debug("Unable to fetch %r", url, exc_info=True)
                 if isinstance(exc, RestrictedIPAddress):
-                    error = {"type": EventError.RESTRICTED_IP, "url": expose_url(url)}
+                    error = {"type": EventError.RESTRICTED_IP}
                 elif isinstance(exc, SuspiciousOperation):
-                    error = {"type": EventError.SECURITY_VIOLATION, "url": expose_url(url)}
+                    error = {"type": EventError.SECURITY_VIOLATION}
                 elif isinstance(exc, (Timeout, ReadTimeout)):
                     error = {
                         "type": EventError.FETCH_TIMEOUT,
-                        "url": expose_url(url),
                         "timeout": settings.SENTRY_SOURCE_FETCH_TIMEOUT,
                     }
                 elif isinstance(exc, OverflowError):
                     error = {
                         "type": EventError.FETCH_TOO_LARGE,
-                        "url": expose_url(url),
                         # We want size in megabytes to format nicely
                         "max_size": float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
                     }
-                elif isinstance(exc, (RequestException, ZeroReturnError, OpenSSLError)):
+                elif isinstance(exc, RequestException):
                     error = {
                         "type": EventError.FETCH_GENERIC_ERROR,
-                        "value": str(type(exc)),
-                        "url": expose_url(url),
+                        "value": f"{type(exc)}",
                     }
                 else:
-                    logger.exception(str(exc))
-                    error = {"type": EventError.UNKNOWN_ERROR, "url": expose_url(url)}
+                    logger.exception(f"{exc}")
+                    error = {"type": EventError.UNKNOWN_ERROR}
 
                 # TODO(dcramer): we want to be less aggressive on disabling domains
                 if domain_lock_enabled:
-                    cache.set(domain_key, error or "", 300)
-                    logger.warning("source.disabled", extra=error)
+                    lock_domain(url, error)
                 raise CannotFetch(error)
 
             headers = {k.lower(): v for k, v in response.headers.items()}

@@ -1,74 +1,17 @@
 from django.core import mail
-from django.utils import timezone
 
-from sentry.models import (
-    Activity,
-    Commit,
-    CommitAuthor,
-    Deploy,
-    Environment,
+from sentry.models import Activity, Environment, NotificationSetting, Repository
+from sentry.notifications.activity.release import ReleaseActivityNotification
+from sentry.notifications.types import (
     GroupSubscriptionReason,
-    Release,
-    ReleaseCommit,
-    Repository,
-    UserEmail,
-    UserOption,
-    UserOptionValue,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
 )
-from sentry.mail.activity.release import ReleaseActivityEmail
-from sentry.testutils import TestCase
+from sentry.types.integrations import ExternalProviders
+from tests.sentry.mail.activity import ActivityTestCase
 
 
-class ReleaseTestCase(TestCase):
-    def another_user(self, email_string, team=None, alt_email_string=None):
-        user = self.create_user(email_string)
-        if alt_email_string:
-            UserEmail.objects.create(email=alt_email_string, user=user)
-
-            assert UserEmail.objects.filter(user=user, email=alt_email_string).update(
-                is_verified=True
-            )
-
-        assert UserEmail.objects.filter(user=user, email=user.email).update(is_verified=True)
-
-        self.create_member(user=user, organization=self.org, teams=[team] if team else None)
-
-        return user
-
-    def another_commit(self, order, name, user, repository, alt_email_string=None):
-        commit = Commit.objects.create(
-            key=name * 40,
-            repository_id=repository.id,
-            organization_id=self.org.id,
-            author=CommitAuthor.objects.create(
-                organization_id=self.org.id,
-                name=user.name,
-                email=alt_email_string or user.email,
-            ),
-        )
-        ReleaseCommit.objects.create(
-            organization_id=self.org.id,
-            release=self.release,
-            commit=commit,
-            order=order,
-        )
-
-        return commit
-
-    def another_release(self, name):
-        release = Release.objects.create(
-            version=name * 40,
-            organization_id=self.project.organization_id,
-            date_released=timezone.now(),
-        )
-        release.add_project(self.project)
-        release.add_project(self.project2)
-        deploy = Deploy.objects.create(
-            release=release, organization_id=self.org.id, environment_id=self.environment.id
-        )
-
-        return release, deploy
-
+class ReleaseTestCase(ActivityTestCase):
     def setUp(self):
         super().setUp()
 
@@ -103,30 +46,32 @@ class ReleaseTestCase(TestCase):
         self.commit3 = self.another_commit(2, "c", self.user4, repository)
         self.commit4 = self.another_commit(3, "e", self.user5, repository, user5_alt_email)
 
-        UserOption.objects.set_value(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
             user=self.user3,
             organization=self.org,
-            key="deploy-emails",
-            value=UserOptionValue.all_deploys,
         )
 
-        UserOption.objects.set_value(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.NEVER,
             user=self.user4,
             organization=self.org,
-            key="deploy-emails",
-            value=UserOptionValue.no_deploys,
         )
 
         # added to make sure org default above takes precedent
-        UserOption.objects.set_value(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
             user=self.user4,
-            organization=None,
-            key="deploy-emails",
-            value=UserOptionValue.all_deploys,
         )
 
     def test_simple(self):
-        email = ReleaseActivityEmail(
+        email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
                 user=self.user1,
@@ -141,9 +86,9 @@ class ReleaseTestCase(TestCase):
         # for that org -- also tests to make sure org overrides default preference
         # user5 committed with another email address and is still included.
 
-        assert len(email.get_participants()) == 3
-
-        assert email.get_participants() == {
+        participants = email.get_participants()[ExternalProviders.EMAIL]
+        assert len(participants) == 3
+        assert participants == {
             self.user1: GroupSubscriptionReason.committed,
             self.user3: GroupSubscriptionReason.deploy_setting,
             self.user5: GroupSubscriptionReason.committed,
@@ -173,7 +118,7 @@ class ReleaseTestCase(TestCase):
         assert sent_email_addresses == {self.user1.email, self.user3.email, self.user5.email}
 
     def test_does_not_generate_on_no_release(self):
-        email = ReleaseActivityEmail(
+        email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
                 user=self.user1,
@@ -188,7 +133,7 @@ class ReleaseTestCase(TestCase):
     def test_no_committers(self):
         release, deploy = self.another_release("b")
 
-        email = ReleaseActivityEmail(
+        email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
                 user=self.user1,
@@ -198,9 +143,9 @@ class ReleaseTestCase(TestCase):
         )
 
         # only user3 is included because they opted into all deploy emails
-        assert len(email.get_participants()) == 1
-
-        assert email.get_participants() == {self.user3: GroupSubscriptionReason.deploy_setting}
+        participants = email.get_participants()[ExternalProviders.EMAIL]
+        assert len(participants) == 1
+        assert participants == {self.user3: GroupSubscriptionReason.deploy_setting}
 
         context = email.get_context()
         assert context["environment"] == "production"
@@ -224,12 +169,15 @@ class ReleaseTestCase(TestCase):
         user6 = self.create_user()
         self.create_member(user=user6, organization=self.org, teams=[self.team])
 
-        UserOption.objects.set_value(
-            user=user6, organization=None, key="deploy-emails", value=UserOptionValue.all_deploys
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
+            user=user6,
         )
         release, deploy = self.another_release("b")
 
-        email = ReleaseActivityEmail(
+        email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
                 user=self.user1,
@@ -240,9 +188,9 @@ class ReleaseTestCase(TestCase):
 
         # user3 and user 6 are included because they oped into all deploy emails
         # (one on an org level, one as their default)
-        assert len(email.get_participants()) == 2
-
-        assert email.get_participants() == {
+        participants = email.get_participants()[ExternalProviders.EMAIL]
+        assert len(participants) == 2
+        assert participants == {
             user6: GroupSubscriptionReason.deploy_setting,
             self.user3: GroupSubscriptionReason.deploy_setting,
         }

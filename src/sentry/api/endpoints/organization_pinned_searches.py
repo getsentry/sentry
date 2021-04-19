@@ -1,12 +1,11 @@
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
-from django.db.models import Q
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinnedSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models import SavedSearch
+from sentry.models import SavedSearch, SortOptions
 from sentry.models.search_common import SearchType
-
 
 PINNED_SEARCH_NAME = "My Pinned Search"
 
@@ -14,6 +13,9 @@ PINNED_SEARCH_NAME = "My Pinned Search"
 class OrganizationSearchSerializer(serializers.Serializer):
     type = serializers.IntegerField(required=True)
     query = serializers.CharField(required=True)
+    sort = serializers.ChoiceField(
+        choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
+    )
 
     def validate_type(self, value):
         try:
@@ -36,7 +38,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
                 name=PINNED_SEARCH_NAME,
                 owner=request.user,
                 type=result["type"],
-                values={"query": result["query"]},
+                values={"query": result["query"], "sort": result["sort"]},
             )
             pinned_search = SavedSearch.objects.get(
                 organization=organization, owner=request.user, type=result["type"]
@@ -48,6 +50,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
                     Q(organization=organization, owner__isnull=True) | Q(is_global=True),
                     type=result["type"],
                     query=result["query"],
+                    sort=result["sort"],
                 )[:1].get()
             except SavedSearch.DoesNotExist:
                 pass

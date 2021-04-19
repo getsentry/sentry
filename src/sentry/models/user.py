@@ -1,15 +1,18 @@
 import logging
 import warnings
+from typing import Any, Sequence
 
-from bitfield import BitField
+from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
-from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.core.urlresolvers import reverse
-from django.dispatch import receiver
 from django.db import IntegrityError, models, transaction
+from django.db.models.query import QuerySet
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from bitfield import BitField
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
 from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
@@ -17,9 +20,31 @@ from sentry.utils.http import absolute_uri
 audit_logger = logging.getLogger("sentry.audit.user")
 
 
-class UserManager(BaseManager, UserManager):
+class UserManager(BaseManager, DjangoUserManager):
+    def get_team_members_with_verified_email_for_projects(
+        self, projects: Sequence[Any]
+    ) -> QuerySet:
+        from sentry.models import ProjectTeam, Team
+
+        return self.filter(
+            emails__is_verified=True,
+            sentry_orgmember_set__teams__in=Team.objects.filter(
+                id__in=ProjectTeam.objects.filter(project__in=projects).values_list(
+                    "team_id", flat=True
+                )
+            ),
+            is_active=True,
+        ).distinct()
+
+    def get_from_group(self, group):
+        """ Get a queryset of all users in all teams in a given Group's project. """
+        return self.filter(
+            sentry_orgmember_set__teams__in=group.project.teams.all(),
+            is_active=True,
+        )
+
     def get_from_teams(self, organization_id, teams):
-        return User.objects.filter(
+        return self.filter(
             sentry_orgmember_set__organization_id=organization_id,
             sentry_orgmember_set__organizationmemberteam__team__in=teams,
             sentry_orgmember_set__organizationmemberteam__is_active=True,
@@ -30,7 +55,7 @@ class UserManager(BaseManager, UserManager):
         """
         Returns users associated with a project based on their teams.
         """
-        return User.objects.filter(
+        return self.filter(
             sentry_orgmember_set__organization_id=organization_id,
             sentry_orgmember_set__organizationmemberteam__team__projectteam__project__in=projects,
             sentry_orgmember_set__organizationmemberteam__is_active=True,
@@ -216,8 +241,8 @@ class User(BaseModel, AbstractBaseUser):
         from sentry.models import (
             Activity,
             AuditLogEntry,
-            AuthIdentity,
             Authenticator,
+            AuthIdentity,
             GroupAssignee,
             GroupBookmark,
             GroupSeen,
@@ -318,6 +343,18 @@ class User(BaseModel, AbstractBaseUser):
         return Organization.objects.filter(
             status=OrganizationStatus.VISIBLE,
             id__in=OrganizationMember.objects.filter(user=self).values("organization"),
+        )
+
+    def get_projects(self):
+        from sentry.models import OrganizationMemberTeam, Project, ProjectStatus, ProjectTeam
+
+        return Project.objects.filter(
+            status=ProjectStatus.VISIBLE,
+            id__in=ProjectTeam.objects.filter(
+                team_id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=self
+                ).values_list("team_id", flat=True)
+            ).values_list("project_id", flat=True),
         )
 
     def get_orgs_require_2fa(self):

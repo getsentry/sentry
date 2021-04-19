@@ -1,11 +1,16 @@
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.http import JsonResponse
+from django.http import HttpResponseRedirect, JsonResponse
 
 from sentry.models import OrganizationMember
 from sentry.utils import auth
 
 prompt_route = reverse("sentry-api-0-prompts-activity")
+org_creation_route = reverse("sentry-api-0-organizations")
+login_route = reverse("sentry-login")
+
+# redirect to the welcome page for Sentry
+login_redirect_route = "https://sentry.io/welcome/"
 
 
 class DemoMiddleware:
@@ -13,13 +18,39 @@ class DemoMiddleware:
         if not settings.DEMO_MODE:
             raise Exception("Demo mode misconfigured")
 
+        path = request.path
+        method = request.method
+
         # always return dismissed if we are in demo mode
-        if request.path == prompt_route:
+        if path == prompt_route:
             return JsonResponse({"data": {"dismissed_ts": 1}}, status=200)
 
-        # only handling org views
+        # disable org creation
+        if path == org_creation_route and method == "POST":
+            return JsonResponse(
+                {"detail": "Organization creation disabled in demo mode"}, status=400
+            )
+
+        # at this point, don't care about any API routes
+        if path.startswith("/api/"):
+            return
+
+        # backdoor to allow logins
+        disable_login = request.GET.get("allow_login") != "1"
+        # don't want people to see the login page in demo mode
+        if path == login_route and disable_login and method == "GET":
+            return HttpResponseRedirect(login_redirect_route)
+
+        # org routes only below
         if "organization_slug" not in view_kwargs:
             return
+
+        # don't want people to see the login page in demo mode
+        org_login_path = reverse(
+            "sentry-auth-organization", args=[view_kwargs["organization_slug"]]
+        )
+        if path == org_login_path and disable_login and method == "GET":
+            return HttpResponseRedirect(login_redirect_route)
 
         # automatically log in logged out users when they land
         # on organization pages
@@ -34,11 +65,10 @@ class DemoMiddleware:
                 return
 
         # find a member in the target org
-        try:
-            member = OrganizationMember.objects.filter(
-                organization__slug=org_slug, role="member"
-            ).first()
-            auth.login(request, member.user)
-        except OrganizationMember.DoesNotExist:
-            # TODO: render landing pagee
-            pass
+        member = OrganizationMember.objects.filter(
+            organization__slug=org_slug, role="member"
+        ).first()
+        # if no member, can't login
+        if not member or not member.user:
+            return
+        auth.login(request, member.user)

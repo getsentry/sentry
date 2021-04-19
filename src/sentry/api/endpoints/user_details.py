@@ -1,8 +1,7 @@
+import logging
 from datetime import datetime
 
 import pytz
-import logging
-
 from django.conf import settings
 from django.contrib.auth import logout
 from django.utils.translation import ugettext_lazy as _

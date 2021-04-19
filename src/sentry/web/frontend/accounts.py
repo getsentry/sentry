@@ -2,23 +2,26 @@ import logging
 from functools import partial, update_wrapper
 
 from django.contrib import messages
-from django.contrib.auth import login as login_user, authenticate
+from django.contrib.auth import authenticate
+from django.contrib.auth import login as login_user
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.http import HttpResponseRedirect, Http404, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.template.context_processors import csrf
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from sentry.models import UserEmail, LostPasswordHash, Project, UserOption, Authenticator
+from sentry.models import Authenticator, LostPasswordHash, NotificationSetting, Project, UserEmail
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.security import capture_security_activity
 from sentry.signals import email_verified
-from sentry.web.decorators import login_required, signed_auth_required, set_referrer_policy
-from sentry.web.forms.accounts import RecoverPasswordForm, ChangePasswordRecoverForm
-from sentry.web.helpers import render_to_response
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import auth
+from sentry.web.decorators import login_required, set_referrer_policy, signed_auth_required
+from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm
+from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")
 
@@ -235,8 +238,12 @@ def email_unsubscribe_project(request, project_id):
 
     if request.method == "POST":
         if "cancel" not in request.POST:
-            UserOption.objects.set_value(
-                user=request.user, key="mail:alert", value=0, project=project
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=request.user,
+                project=project,
             )
         return HttpResponseRedirect(auth.get_login_url())
 

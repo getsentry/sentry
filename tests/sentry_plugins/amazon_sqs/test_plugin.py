@@ -1,10 +1,9 @@
 from botocore.client import ClientError
 from exam import fixture
-from sentry.utils.compat.mock import patch
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
+from sentry.utils.compat.mock import patch
 from sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
 
 
@@ -98,10 +97,8 @@ class AmazonSQSPluginTest(PluginTestCase):
     @patch("uuid.uuid4")
     @patch("boto3.client")
     def test_pass_message_group_id(self, mock_client, mock_uuid):
-        class uuid:
-            hex = "some-uuid"
+        mock_uuid.return_value = self.get_mock_uuid()
 
-        mock_uuid.return_value = uuid
         self.plugin.set_option("message_group_id", "my_group", self.project)
         event = self.run_test()
 
@@ -109,7 +106,7 @@ class AmazonSQSPluginTest(PluginTestCase):
             QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
             MessageBody=json.dumps(self.plugin.get_event_payload(event)),
             MessageGroupId="my_group",
-            MessageDeduplicationId="some-uuid",
+            MessageDeduplicationId="abc123",
         )
 
     @patch("boto3.client")

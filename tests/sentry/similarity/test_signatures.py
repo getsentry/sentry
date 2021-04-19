@@ -2,8 +2,7 @@ from collections import Counter
 from unittest import TestCase
 
 from sentry.similarity.signatures import MinHashSignatureBuilder
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
+from sentry.utils.compat import map, zip
 
 
 class MinHashSignatureBuilderTestCase(TestCase):

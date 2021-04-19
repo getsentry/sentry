@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from sentry.utils.compat import mock
 import pytz
 from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 
 
 class BaseIncidentDetailsTest:
@@ -61,7 +61,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
         assert resp.data["dateDetected"] == expected["dateDetected"]
         assert resp.data["dateCreated"] == expected["dateCreated"]
         assert resp.data["projects"] == expected["projects"]
-        assert resp.data["seenBy"] == seen_by
+        assert [item["id"] for item in resp.data["seenBy"]] == [item["id"] for item in seen_by]
 
 
 class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase):

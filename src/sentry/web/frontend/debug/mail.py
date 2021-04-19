@@ -3,14 +3,14 @@ import logging
 import time
 import traceback
 import uuid
-
 from datetime import datetime, timedelta
+from random import Random
+
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
-from random import Random
 
 from sentry import eventstore
 from sentry.app import tsdb
@@ -18,12 +18,12 @@ from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
 from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utilities import get_digest_metadata
+from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
 from sentry.models import (
     Activity,
     Group,
     GroupStatus,
-    GroupSubscriptionReason,
     Organization,
     OrganizationMember,
     Project,
@@ -31,8 +31,8 @@ from sentry.models import (
     Rule,
     Team,
 )
-from sentry.event_manager import EventManager, get_event_type
-from sentry.mail.activity import emails
+from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
@@ -40,7 +40,6 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.samples import load_data
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
-
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +93,7 @@ def make_group_generator(random, project):
 
         group = Group(
             id=id,
+            short_id=id,
             project=project,
             culprit=culprit,
             level=level,
@@ -146,7 +146,7 @@ class MailPreview:
 class ActivityMailPreview:
     def __init__(self, request, activity):
         self.request = request
-        self.email = emails.get(activity.type)(activity)
+        self.email = EMAIL_CLASSES_BY_TYPE.get(activity.type)(activity)
 
     def get_context(self):
         context = self.email.get_base_context()
@@ -173,6 +173,9 @@ class ActivityMailPreview:
 
 
 class ActivityMailDebugView(View):
+    def get_activity(self, request, event):
+        raise NotImplementedError
+
     def get(self, request):
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")

@@ -29,7 +29,7 @@ const generateFields = () => ({
 describe('EventsV2 > Results', function () {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
-  let eventResultsMock;
+  let eventResultsMock, mockSaved;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -120,6 +120,28 @@ describe('EventsV2 > Results', function () {
           topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
         },
       ],
+    });
+    mockSaved = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/saved/1/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '1',
+        name: 'new',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
+        widths: ['-1', '-1', '-1', '-1', '-1'],
+        range: '24h',
+        orderby: '-user.display',
+      },
     });
   });
 
@@ -460,5 +482,117 @@ describe('EventsV2 > Results', function () {
     const results = wrapper.find('Results');
 
     expect(results.state('needConfirmation')).toEqual(false);
+  });
+
+  it('retrieves saved query', async function () {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+      slug: 'org-slug',
+    });
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {id: '1', statsPeriod: '24h'}},
+      },
+    });
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    const savedQuery = wrapper.find('SavedQueryAPI').state('savedQuery');
+
+    expect(savedQuery.name).toEqual('new');
+    expect(savedQuery.id).toEqual('1');
+    expect(savedQuery.fields).toEqual([
+      'title',
+      'event.type',
+      'project',
+      'user.display',
+      'timestamp',
+    ]);
+    expect(savedQuery.projects).toEqual([]);
+    expect(savedQuery.range).toEqual('24h');
+    expect(mockSaved).toHaveBeenCalled();
+  });
+
+  it('creates event view from saved query', async function () {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+      slug: 'org-slug',
+    });
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {id: '1', statsPeriod: '24h'}},
+      },
+    });
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    const eventView = wrapper.find('Results').state('eventView');
+
+    expect(eventView.name).toEqual('new');
+    expect(eventView.id).toEqual('1');
+    expect(eventView.fields.length).toEqual(5);
+    expect(eventView.project).toEqual([]);
+    expect(eventView.statsPeriod).toEqual('24h');
+    expect(eventView.sorts).toEqual([{field: 'user.display', kind: 'desc'}]);
+  });
+
+  it('overrides saved query params with location query params', async function () {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+      slug: 'org-slug',
+    });
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {
+          query: {
+            id: '1',
+            statsPeriod: '7d',
+            project: [2],
+            environment: ['production'],
+          },
+        },
+      },
+    });
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    const eventView = wrapper.find('Results').state('eventView');
+
+    expect(eventView.name).toEqual('new');
+    expect(eventView.id).toEqual('1');
+    expect(eventView.fields.length).toEqual(5);
+    expect(eventView.project).toEqual([2]);
+    expect(eventView.statsPeriod).toEqual('7d');
+    expect(eventView.environment).toEqual(['production']);
   });
 });

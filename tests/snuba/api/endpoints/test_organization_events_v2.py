@@ -1,17 +1,18 @@
+from base64 import b64encode
+
+import pytest
+from django.core.urlresolvers import reverse
 from pytz import utc
 
-from django.core.urlresolvers import reverse
-
 from sentry.discover.models import KeyTransaction
-
+from sentry.models import ApiKey
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-
 from sentry.utils import json
+from sentry.utils.compat import mock, zip
 from sentry.utils.samples import load_data
-from sentry.utils.compat import zip, mock
-from sentry.utils.snuba import RateLimitExceeded, QueryIllegalTypeOfArgument, QueryExecutionError
+from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
@@ -37,6 +38,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_api_key_request(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        # Project ID cannot be inffered when using an org API key, so that must
+        # be passed in the parameters
+        api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+        query = {"field": ["project.name", "environment"], "project": [project.id]}
+
+        url = reverse(
+            "sentry-api-0-organization-eventsv2",
+            kwargs={"organization_slug": self.organization.slug},
+        )
+        response = self.client.get(
+            url,
+            query,
+            format="json",
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode("utf-8")),
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["project.name"] == project.slug
 
     def test_performance_view_feature(self):
         self.store_event(
@@ -239,8 +267,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "Invalid query. Project %s does not exist or is not an actively selected project."
-            % project.slug
+            == f"Invalid query. Project(s) {project.slug} do not exist or are not actively selected."
         )
 
     def test_project_in_query_does_not_exist(self):
@@ -256,7 +283,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "Invalid query. Project morty does not exist or is not an actively selected project."
+            == "Invalid query. Project(s) morty do not exist or are not actively selected."
         )
 
     def test_not_project_in_query_but_in_header(self):
@@ -410,13 +437,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == event.group.qualified_short_id
 
-        # should only show 1 event of type transaction since they dont have issues
-        query = {"field": ["project", "issue"], "query": "!has:issue", "statsPeriod": "14d"}
-        response = self.do_request(query, features=features)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["issue"] == "unknown"
-
         # should only show 1 event of type default
         query = {
             "field": ["project", "issue"],
@@ -459,6 +479,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == "unknown"
 
+    @pytest.mark.skip("Cannot look up group_id of transaction events")
     def test_unknown_issue(self):
         project = self.create_project()
         event = self.store_event(
@@ -847,6 +868,35 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["failure_rate"] == 0.75
 
+    def test_count_miserable_alias_field(self):
+        project = self.create_project()
+
+        events = [
+            ("one", 300),
+            ("one", 300),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{idx}"
+            data["user"] = {"email": f"{event[0]}@example.com"}
+            self.store_event(data, project_id=project.id)
+        query = {"field": ["count_miserable(user, 300)"], "query": "event.type:transaction"}
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["count_miserable_user_300"] == 2
+
     def test_user_misery_alias_field(self):
         project = self.create_project()
 
@@ -865,7 +915,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/user_misery/horribilis/{idx}"
+            data["transaction"] = f"/user_misery/{idx}"
             data["user"] = {"email": f"{event[0]}@example.com"}
             self.store_event(data, project_id=project.id)
         query = {"field": ["user_misery(300)"], "query": "event.type:transaction"}
@@ -874,7 +924,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
-        assert data[0]["user_misery_300"] == 2
+        assert abs(data[0]["user_misery_300"] - 0.0653) < 0.0001
 
     def test_aggregation(self):
         project = self.create_project()
@@ -1772,6 +1822,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         # because we're ordering by `user.display`, we expect the results in sorted order
         assert result == ["catherine", "cathy@example.com"]
 
+    @pytest.mark.skip(
+        """
+         For some reason ClickHouse errors when there are two of the same string literals
+         (in this case the empty string "") in a query and one is in the prewhere clause.
+         Does not affect production or ClickHouse versions > 20.4.
+         """
+    )
     def test_has_message(self):
         project = self.create_project()
         event = self.store_event(
@@ -1916,6 +1973,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "p100()",
                 "percentile(transaction.duration, 0.99)",
                 "apdex(300)",
+                "count_miserable(user, 300)",
                 "user_misery(300)",
                 "failure_rate()",
             ],
@@ -1933,6 +1991,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["apdex_300"] == "number"
         assert meta["failure_rate"] == "percentage"
         assert meta["user_misery_300"] == "number"
+        assert meta["count_miserable_user_300"] == "number"
 
         data = response.data["data"]
         assert len(data) == 1
@@ -1943,7 +2002,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["p100"] == 5000
         assert data[0]["percentile_transaction_duration_0_99"] == 5000
         assert data[0]["apdex_300"] == 0.0
-        assert data[0]["user_misery_300"] == 1
+        assert data[0]["count_miserable_user_300"] == 1
+        assert data[0]["user_misery_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
 
         query = {
@@ -1985,6 +2045,30 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["stddev_transaction_duration"] == 0.0
         assert data[0]["var_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
+
+    def test_null_user_misery_returns_zero(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=2),
+            start_timestamp=before_now(minutes=2, seconds=5),
+        )
+        data["user"] = None
+        data["transaction"] = "/no_users/1"
+        self.store_event(data, project_id=project.id)
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+
+        query = {
+            "field": ["user_misery(300)"],
+            "query": "event.type:transaction",
+        }
+
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["user_misery_300"] == "number"
+        data = response.data["data"]
+        assert data[0]["user_misery_300"] == 0
 
     def test_all_aggregates_in_query(self):
         project = self.create_project()
@@ -2028,7 +2112,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["percentile_transaction_duration_0_99"] == 5000
 
         query = {
-            "field": ["event.type", "apdex(300)", "user_misery(300)", "failure_rate()"],
+            "field": [
+                "event.type",
+                "apdex(300)",
+                "count_miserable(user, 300)",
+                "user_misery(300)",
+                "failure_rate()",
+            ],
             "query": "event.type:transaction apdex(300):>-1.0 failure_rate():>0.25",
         }
         response = self.do_request(query, features=features)
@@ -2036,7 +2126,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["apdex_300"] == 0.0
-        assert data[0]["user_misery_300"] == 1
+        assert data[0]["count_miserable_user_300"] == 1
+        assert data[0]["user_misery_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
 
         query = {
@@ -2349,6 +2440,160 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["issue.id"] == event.group_id
         assert data[0]["count_id"] == 2
 
+    def run_test_in_query(self, query, expected_events, expected_negative_events=None):
+        params = {
+            "field": ["id"],
+            "query": query,
+            "orderby": "id",
+        }
+        response = self.do_request(
+            params, {"organizations:discover-basic": True, "organizations:global-views": True}
+        )
+        assert response.status_code == 200, response.content
+        assert [row["id"] for row in response.data["data"]] == [e.event_id for e in expected_events]
+
+        if expected_negative_events is not None:
+            params["query"] = f"!{query}"
+            response = self.do_request(
+                params,
+                {"organizations:discover-basic": True, "organizations:global-views": True},
+            )
+            assert response.status_code == 200, response.content
+            assert [row["id"] for row in response.data["data"]] == [
+                e.event_id for e in expected_negative_events
+            ]
+
+    def test_in_query_events(self):
+        project_1 = self.create_project()
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_1"],
+                "message": "group1",
+                "user": {"email": "hello@example.com"},
+                "environment": "prod",
+                "tags": {"random": "123"},
+                "release": "1.0",
+            },
+            project_id=project_1.id,
+        )
+        project_2 = self.create_project()
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "message": "group2",
+                "user": {"email": "bar@example.com"},
+                "environment": "staging",
+                "tags": {"random": "456"},
+                "stacktrace": {"frames": [{"filename": "src/app/group2.py"}]},
+                "release": "1.2",
+            },
+            project_id=project_2.id,
+        )
+        project_3 = self.create_project()
+        event_3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_3"],
+                "message": "group3",
+                "user": {"email": "foo@example.com"},
+                "environment": "canary",
+                "tags": {"random": "789"},
+            },
+            project_id=project_3.id,
+        )
+
+        self.run_test_in_query("environment:[prod, staging]", [event_1, event_2], [event_3])
+        self.run_test_in_query("environment:[staging]", [event_2], [event_1, event_3])
+        self.run_test_in_query(
+            "user.email:[foo@example.com, hello@example.com]", [event_1, event_3], [event_2]
+        )
+        self.run_test_in_query("user.email:[foo@example.com]", [event_3], [event_1, event_2])
+        self.run_test_in_query(
+            "user.display:[foo@example.com, hello@example.com]", [event_1, event_3], [event_2]
+        )
+        self.run_test_in_query("message:[group2, group1]", [event_1, event_2], [event_3])
+
+        self.run_test_in_query(
+            f"issue.id:[{event_1.group_id},{event_2.group_id}]", [event_1, event_2]
+        )
+        self.run_test_in_query(
+            f"issue:[{event_1.group.qualified_short_id},{event_2.group.qualified_short_id}]",
+            [event_1, event_2],
+        )
+        self.run_test_in_query(
+            f"issue:[{event_1.group.qualified_short_id},{event_2.group.qualified_short_id}, unknown]",
+            [event_1, event_2],
+        )
+        self.run_test_in_query(f"project_id:[{project_3.id},{project_2.id}]", [event_2, event_3])
+        self.run_test_in_query(
+            f"project.name:[{project_3.slug},{project_2.slug}]", [event_2, event_3]
+        )
+        self.run_test_in_query("random:[789,456]", [event_2, event_3], [event_1])
+        self.run_test_in_query("tags[random]:[789,456]", [event_2, event_3], [event_1])
+        self.run_test_in_query("release:[1.0,1.2]", [event_1, event_2], [event_3])
+
+    def test_in_query_events_stack(self):
+        project_1 = self.create_project()
+        test_js = self.store_event(
+            load_data(
+                "javascript",
+                timestamp=before_now(minutes=1),
+                start_timestamp=before_now(minutes=1, seconds=5),
+            ),
+            project_id=project_1.id,
+        )
+        test_java = self.store_event(
+            load_data(
+                "java",
+                timestamp=before_now(minutes=1),
+                start_timestamp=before_now(minutes=1, seconds=5),
+            ),
+            project_id=project_1.id,
+        )
+        self.run_test_in_query(
+            "stack.filename:[../../sentry/scripts/views.js]", [test_js], [test_java]
+        )
+
+    def test_in_query_transactions(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        data["event_id"] = "a" * 32
+        data["contexts"]["trace"]["status"] = "ok"
+        transaction_1 = self.store_event(data, project_id=project.id)
+
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        data["event_id"] = "b" * 32
+        data["contexts"]["trace"]["status"] = "aborted"
+        transaction_2 = self.store_event(data, project_id=project.id)
+
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        data["event_id"] = "c" * 32
+        data["contexts"]["trace"]["status"] = "already_exists"
+        transaction_3 = self.store_event(data, project_id=project.id)
+
+        self.run_test_in_query(
+            "transaction.status:[aborted, already_exists]",
+            [transaction_2, transaction_3],
+            [transaction_1],
+        )
+
     def test_messed_up_function_values(self):
         # TODO (evanh): It would be nice if this surfaced an error to the user.
         # The problem: The && causes the parser to treat that term not as a bad
@@ -2377,6 +2622,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "apdex(300)",
                 "count_unique(user)",
                 "user_misery(300)",
+                "count_miserable(user, 300)",
             ],
             "query": "failure_rate():>0.003&& users:>10 event.type:transaction",
             "sort": "-failure_rate",
@@ -2523,6 +2769,50 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {"field": ["id", "timestamp"], "statsPeriod": "90d", "query": ""}
         self.do_request(query)
         assert len(mock_quantize.mock_calls) == 2
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_valid_referrer(self, mock):
+        mock.return_value = {}
+        project = self.create_project()
+        data = load_data("transaction", timestamp=before_now(hours=1))
+        self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["user"],
+            "referrer": "api.performance.transaction-summary",
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], "api.performance.transaction-summary")
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_invalid_referrer(self, mock):
+        mock.return_value = {}
+        project = self.create_project()
+        data = load_data("transaction", timestamp=before_now(hours=1))
+        self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["user"],
+            "referrer": "api.performance.invalid",
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], "api.organization-events-v2")
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_empty_referrer(self, mock):
+        mock.return_value = {}
+        project = self.create_project()
+        data = load_data("transaction", timestamp=before_now(hours=1))
+        self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["user"],
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], "api.organization-events-v2")
 
     def test_limit_number_of_fields(self):
         self.create_project()

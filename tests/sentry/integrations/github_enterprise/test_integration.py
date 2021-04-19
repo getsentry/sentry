@@ -1,6 +1,6 @@
-import responses
-from sentry.utils.compat.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
+
+import responses
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
 from sentry.models import (
@@ -11,6 +11,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.utils.compat.mock import patch
 
 
 class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
@@ -166,9 +167,10 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
 
+        querystring = urlencode({"q": "org:Test Organization ex"})
         responses.add(
             responses.GET,
-            self.base_url + "/search/repositories?q=org:test%20ex",
+            f"{self.base_url}/search/repositories?{querystring}",
             json={
                 "items": [
                     {"name": "example", "full_name": "test/example"},

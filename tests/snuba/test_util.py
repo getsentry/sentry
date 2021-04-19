@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from sentry.models import GroupHash
-from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils import snuba
 
 
@@ -10,7 +10,7 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
         snuba.raw_query(
             start=datetime.now(),
             end=datetime.now(),
-            filter_keys={"project_id": {1}, "logger": {"asdf"}},
+            filter_keys={"project_id": {1}, "culprit": {"asdf"}},
             aggregations=[["count()", "", "count"]],
         )
 

@@ -5,8 +5,8 @@ from django.utils.translation import ugettext as _
 
 from sentry.app import env
 from sentry.interfaces.base import Interface
-from sentry.utils.json import prune_empty_keys
 from sentry.models import UserOption
+from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
 
 
@@ -152,6 +152,7 @@ class Frame(Interface):
             "symbol_addr",
             "trust",
             "vars",
+            "snapshot",
         ):
             data.setdefault(key, None)
         return cls(**data)

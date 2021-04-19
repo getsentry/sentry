@@ -1,16 +1,17 @@
 from django.http import HttpResponse
+
 from sentry.integrations import (
-    IntegrationInstallation,
+    FeatureDescription,
     IntegrationFeatures,
+    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
-    FeatureDescription,
 )
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.mediators.plugins import Migrator
 from sentry.models import User
 from sentry.pipeline import PipelineView
+from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class ExampleSetupView(PipelineView):
@@ -158,9 +159,14 @@ class ExampleIntegrationProvider(IntegrationProvider):
     metadata = metadata
 
     integration_cls = ExampleIntegration
-    has_stacktrace_linking = True
 
-    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.STACKTRACE_LINK,
+        ]
+    )
 
     def get_pipeline_views(self):
         return [ExampleSetupView()]

@@ -1,10 +1,10 @@
-import time
-import signal
 import os
+import signal
+import time
+
 import click
 
 from sentry.utils.compat import map
-
 
 # Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
 RAW_SOCKET_HACK_PATH = os.path.expanduser(
@@ -159,8 +159,11 @@ def attach(ctx, project, fast, service):
 @click.option("--project", default="sentry")
 @click.option("--exclude", multiple=True, help="Service to ignore and not run. Repeatable option.")
 @click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
+@click.option(
+    "--skip-only-if", is_flag=True, default=False, help="Skip 'only_if' checks for services"
+)
 @click.pass_context
-def up(ctx, services, project, exclude, fast):
+def up(ctx, services, project, exclude, fast, skip_only_if):
     """
     Run/update all devservices in the background.
 
@@ -173,7 +176,7 @@ def up(ctx, services, project, exclude, fast):
 
     configure()
 
-    containers = _prepare_containers(project, silent=True)
+    containers = _prepare_containers(project, skip_only_if=skip_only_if, silent=True)
     selected_services = set()
 
     if services:
@@ -216,8 +219,9 @@ def up(ctx, services, project, exclude, fast):
         )
 
 
-def _prepare_containers(project, silent=False):
+def _prepare_containers(project, skip_only_if=False, silent=False):
     from django.conf import settings
+
     from sentry import options as sentry_options
 
     containers = {}
@@ -225,7 +229,7 @@ def _prepare_containers(project, silent=False):
     for name, options in settings.SENTRY_DEVSERVICES.items():
         options = options.copy()
         test_fn = options.pop("only_if", None)
-        if test_fn and not test_fn(settings, sentry_options):
+        if not skip_only_if and test_fn and not test_fn(settings, sentry_options):
             if not silent:
                 click.secho(f"! Skipping {name} due to only_if condition", err=True, fg="cyan")
             continue
@@ -251,6 +255,7 @@ def _start_service(
     client, low_level_client, name, containers, project, fast=False, always_start=False
 ):
     from django.conf import settings
+
     from docker.errors import NotFound
 
     options = containers[name]
@@ -391,7 +396,6 @@ def rm(ctx, project, services):
     an explicit list of services to remove.
     """
     from docker.errors import NotFound
-
     from sentry.runner import configure
 
     configure()

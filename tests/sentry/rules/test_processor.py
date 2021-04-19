@@ -1,13 +1,14 @@
 from datetime import timedelta
+
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, Rule, GroupStatus
 from sentry.mail.actions import ActionTargetType
+from sentry.models import GroupRuleStatus, GroupStatus, Rule
+from sentry.rules import init_registry
+from sentry.rules.filters.base import EventFilter
+from sentry.rules.processor import RuleProcessor
 from sentry.testutils import TestCase
 from sentry.utils.compat.mock import patch
-from sentry.rules import init_registry
-from sentry.rules.processor import RuleProcessor
-from sentry.rules.filters.base import EventFilter
 
 EMAIL_ACTION_DATA = {
     "id": "sentry.mail.actions.NotifyEmailAction",
@@ -206,6 +207,43 @@ class RuleProcessorTestFilters(TestCase):
             is_regression=True,
             is_new_group_environment=True,
             has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 1
+        callback, futures = results[0]
+        assert len(futures) == 1
+        assert futures[0].rule == self.rule
+        assert futures[0].kwargs == {}
+
+    def test_latest_release(self):
+        # setup an alert rule with 1 conditions and no filters that passes
+        self.create_release(project=self.project, version="2021-02.newRelease")
+
+        self.event = self.store_event(
+            data={"release": "2021-02.newRelease"}, project_id=self.project.id
+        )
+
+        Rule.objects.filter(project=self.event.project).delete()
+        self.rule = Rule.objects.create(
+            project=self.event.project,
+            data={
+                "actions": [EMAIL_ACTION_DATA],
+                "filter_match": "any",
+                "conditions": [
+                    {
+                        "id": "sentry.rules.filters.latest_release.LatestReleaseFilter",
+                        "name": "The event is from the latest release",
+                    },
+                ],
+            },
+        )
+
+        rp = RuleProcessor(
+            self.event,
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            has_reappeared=False,
         )
         results = list(rp.apply())
         assert len(results) == 1

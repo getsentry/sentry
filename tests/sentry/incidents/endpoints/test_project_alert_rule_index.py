@@ -1,17 +1,16 @@
-import requests
 import pytz
-
+import requests
 from exam import fixture
 from freezegun import freeze_time
-from sentry.utils.compat.mock import patch
 
-from sentry.utils import json
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.models import Integration
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils import APITestCase
 from sentry.snuba.models import QueryDatasets
+from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
+from sentry.utils.compat.mock import patch
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
@@ -146,10 +145,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -229,10 +225,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
     )
     @patch("sentry.integrations.slack.tasks.uuid4")
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
 
         from sentry.integrations.slack.utils import get_channel_id_with_timeout
 

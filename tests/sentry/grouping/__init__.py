@@ -1,18 +1,15 @@
-from django.utils.functional import cached_property
-
 import os
 
 import pytest
+from django.utils.functional import cached_property
 
 from sentry import eventstore
-from sentry.utils import json
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.event_manager import EventManager, materialize_metadata
+from sentry.grouping.api import apply_server_fingerprinting, load_grouping_config
 from sentry.grouping.enhancer import Enhancements
-from sentry.grouping.api import load_grouping_config
 from sentry.grouping.fingerprinting import FingerprintingRules
-from sentry.grouping.api import apply_server_fingerprinting
-
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.utils import json
 
 _grouping_fixture_path = os.path.join(os.path.dirname(__file__), "grouping_inputs")
 
@@ -30,10 +27,9 @@ class GroupingInput:
         grouping_input = dict(self.data)
         # Customize grouping config from the _grouping config
         grouping_info = grouping_input.pop("_grouping", None) or {}
-        enhancement_base = grouping_info.get("enhancement_base")
         enhancements = grouping_info.get("enhancements")
-        if enhancement_base or enhancements:
-            enhancement_bases = [enhancement_base] if enhancement_base else []
+        if enhancements:
+            enhancement_bases = Enhancements.loads(grouping_config["enhancements"]).bases
             e = Enhancements.from_config_string(enhancements or "", bases=enhancement_bases)
             grouping_config["enhancements"] = e.dumps()
 

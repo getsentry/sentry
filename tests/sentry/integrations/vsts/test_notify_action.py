@@ -1,17 +1,16 @@
-import responses
 from collections import namedtuple
-
 from time import time
 
-from sentry.utils import json
-from sentry.testutils.cases import RuleTestCase
-from sentry.integrations.vsts.notify_action import AzureDevopsCreateTicketAction
-from sentry.integrations.vsts.integration import VstsIntegration
+import responses
 
+from sentry.integrations.vsts.integration import VstsIntegration
+from sentry.integrations.vsts.notify_action import AzureDevopsCreateTicketAction
 from sentry.models import ExternalIssue, GroupLink, Identity, IdentityProvider, Integration, Rule
+from sentry.testutils.cases import RuleTestCase
+from sentry.utils import json
 
 from .test_issues import VstsIssueBase
-from .testutils import WORK_ITEM_RESPONSE, GET_PROJECTS_RESPONSE
+from .testutils import GET_PROJECTS_RESPONSE, WORK_ITEM_RESPONSE
 
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
@@ -54,7 +53,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         azuredevops_rule.rule = Rule.objects.create(project=self.project, label="test rule")
         responses.add(
             responses.PATCH,
-            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task?api-version=3.0",
+            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )

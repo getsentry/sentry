@@ -1,6 +1,7 @@
 from django.views.generic import View
 
-from sentry.models import GroupSubscriptionReason, Organization, Project
+from sentry.models import Organization, Project
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview
@@ -10,7 +11,7 @@ class DebugNewProcessingIssuesEmailView(View):
     reprocessing_active = True
 
     def get(self, request):
-        from sentry.mail.activity.new_processing_issues import summarize_issues
+        from sentry.notifications.activity.new_processing_issues import summarize_issues
 
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")

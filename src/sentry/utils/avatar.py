@@ -2,21 +2,23 @@
 Note: Also see letterAvatar.jsx. Anything changed in this file (how colors are
       selected, the svg, etc) will also need to be changed there.
 """
-
+from typing import MutableMapping, Optional, Union
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.encoding import force_text
 from django.utils.html import escape
-from urllib.parse import urlencode
 
-from sentry.utils.hashlib import md5_text
 from sentry.http import safe_urlopen
 from sentry.utils.compat import map
+from sentry.utils.hashlib import md5_text
 
 
-def get_gravatar_url(email, size=None, default="mm"):
+def get_gravatar_url(
+    email: Optional[str], size: Optional[int] = None, default: Optional[Union[int, str]] = "mm"
+) -> str:
     if email is None:
         email = ""
     gravatar_url = "{}/avatar/{}".format(
@@ -24,7 +26,7 @@ def get_gravatar_url(email, size=None, default="mm"):
         md5_text(email.lower()).hexdigest(),
     )
 
-    properties = {}
+    properties: MutableMapping[str, Union[int, str]] = {}
     if size:
         properties["s"] = str(size)
     if default:
@@ -53,17 +55,22 @@ LETTER_AVATAR_COLORS = [
 COLOR_COUNT = len(LETTER_AVATAR_COLORS)
 
 
-def hash_user_identifier(identifier):
+def hash_user_identifier(identifier: str) -> int:
     identifier = force_text(identifier, errors="replace")
     return sum(map(ord, identifier))
 
 
-def get_letter_avatar_color(identifier):
+def get_letter_avatar_color(identifier: str) -> str:
     hashed_id = hash_user_identifier(identifier)
     return LETTER_AVATAR_COLORS[hashed_id % COLOR_COUNT]
 
 
-def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
+def get_letter_avatar(
+    display_name: Optional[str],
+    identifier: str,
+    size: Optional[int] = None,
+    use_svg: Optional[bool] = True,
+) -> str:
     display_name = (display_name or "").strip() or "?"
     names = display_name.split(" ")
     initials = "{}{}".format(names[0][0], names[-1][0] if len(names) > 1 else "")
@@ -96,7 +103,12 @@ def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
         )
 
 
-def get_email_avatar(display_name, identifier, size=None, try_gravatar=True):
+def get_email_avatar(
+    display_name: Optional[str],
+    identifier: str,
+    size: Optional[int] = None,
+    try_gravatar: Optional[bool] = True,
+) -> str:
     if try_gravatar:
         try:
             validate_email(identifier)

@@ -1,16 +1,16 @@
 import logging
 
 from django.db import IntegrityError
-
 from rest_framework import serializers, status
-from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ExternalUser, EXTERNAL_PROVIDERS, OrganizationMember
+from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.models import ExternalUser, OrganizationMember
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders, get_provider_enum
 
 logger = logging.getLogger(__name__)
 
@@ -24,19 +24,21 @@ class ExternalUserSerializer(CamelSnakeModelSerializer):
         model = ExternalUser
         fields = ["member_id", "external_name", "provider"]
 
-    def validate_provider(self, provider):
-        if provider not in EXTERNAL_PROVIDERS.values():
-            raise serializers.ValidationError(
-                f'The provider "{provider}" is not supported. We currently accept Github and Gitlab user identities.'
-            )
-        return ExternalUser.get_provider_enum(provider)
+    def validate_provider(self, provider: str) -> int:
+        provider_option = get_provider_enum(provider)
+        if provider_option in [ExternalProviders.GITHUB, ExternalProviders.GITLAB]:
+            return provider_option.value
+
+        raise serializers.ValidationError(
+            f'The provider "{provider}" is not supported. We currently accept GitHub and GitLab user identities.'
+        )
 
     def validate_member_id(self, member_id):
         try:
             return OrganizationMember.objects.get(
                 id=member_id, organization=self.context["organization"]
             )
-        except OrganizationMember.DoesNotExists:
+        except OrganizationMember.DoesNotExist:
             raise serializers.ValidationError("This member does not exist.")
 
     def create(self, validated_data):

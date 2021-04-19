@@ -1,12 +1,13 @@
 from contextlib import contextmanager
+
 from django.http import HttpRequest
 from rest_framework.response import Response
-from sentry.utils.compat.mock import patch
 
 from sentry import features
 from sentry.features import OrganizationFeature
-from sentry.testutils import TestCase
 from sentry.features.helpers import requires_feature
+from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class TestFeatureHelpers(TestCase):

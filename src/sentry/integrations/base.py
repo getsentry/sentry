@@ -8,27 +8,25 @@ __all__ = [
 
 import logging
 import sys
-
 from collections import namedtuple
 from enum import Enum
 
 from sentry.exceptions import InvalidIdentity
+from sentry.models import AuditLogEntryEvent, Identity, OrganizationIntegration
 from sentry.pipeline import PipelineProvider
-
+from sentry.shared_integrations.constants import (
+    ERR_INTERNAL,
+    ERR_UNAUTHORIZED,
+    ERR_UNSUPPORTED_RESPONSE_TYPE,
+)
 from sentry.shared_integrations.exceptions import (
-    ApiHostError,
     ApiError,
+    ApiHostError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
     UnsupportedResponseType,
 )
-from sentry.shared_integrations.constants import (
-    ERR_UNAUTHORIZED,
-    ERR_INTERNAL,
-    ERR_UNSUPPORTED_RESPONSE_TYPE,
-)
-from sentry.models import AuditLogEntryEvent, Identity, OrganizationIntegration
 from sentry.utils.audit import create_audit_entry
 
 FeatureDescription = namedtuple(
@@ -96,6 +94,7 @@ class IntegrationFeatures(Enum):
     MOBILE = "mobile"
     SERVERLESS = "serverless"
     TICKET_RULES = "ticket-rules"
+    STACKTRACE_LINK = "stacktrace-link"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -161,10 +160,6 @@ class IntegrationProvider(PipelineProvider):
 
     # if this is hidden without the feature flag
     requires_feature_flag = False
-
-    # whether this integration can be used for stacktrace linking
-    # will eventually be replaced with a feature flag
-    has_stacktrace_linking = False
 
     @classmethod
     def get_installation(cls, model, organization_id, **kwargs):

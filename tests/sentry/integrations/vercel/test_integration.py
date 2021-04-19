@@ -1,9 +1,8 @@
-import responses
+from urllib.parse import parse_qs
 
+import responses
 from rest_framework.serializers import ValidationError
 
-
-from urllib.parse import parse_qs
 from sentry.integrations.vercel import VercelIntegrationProvider
 from sentry.models import (
     Integration,
@@ -11,8 +10,8 @@ from sentry.models import (
     Project,
     ProjectKey,
     ProjectKeyStatus,
-    SentryAppInstallationForProvider,
     SentryAppInstallation,
+    SentryAppInstallationForProvider,
 )
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
@@ -24,11 +23,6 @@ class VercelIntegrationTest(IntegrationTestCase):
     provider = VercelIntegrationProvider
 
     def assert_setup_flow(self, is_team=False, multi_config_org=None, no_name=False):
-        class MockUuid4:
-            hex = "1234567"
-
-        self.mock_uuid4 = MockUuid4
-
         responses.reset()
         access_json = {
             "user_id": "my_user_id",
@@ -37,11 +31,11 @@ class VercelIntegrationTest(IntegrationTestCase):
         }
 
         if is_team:
-            team_query = "?teamId=my_team_id"
+            team_query = "teamId=my_team_id"
             access_json["team_id"] = "my_team_id"
             responses.add(
                 responses.GET,
-                "https://api.vercel.com/v1/teams/my_team_id%s" % team_query,
+                f"https://api.vercel.com/v1/teams/my_team_id?{team_query}",
                 json={"name": "My Team Name", "slug": "my_team_slug"},
             )
         else:
@@ -59,13 +53,13 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            "https://api.vercel.com/v4/projects/%s" % team_query,
+            f"https://api.vercel.com/v4/projects/?limit=20&{team_query}",
             json={"projects": [], "pagination": {"count": 0}},
         )
 
         responses.add(
             responses.POST,
-            "https://api.vercel.com/v1/integrations/webhooks%s" % team_query,
+            f"https://api.vercel.com/v1/integrations/webhooks?{team_query}",
             json={"id": "webhook-id"},
         )
 
@@ -180,7 +174,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
 
-        uuid = self.mock_uuid4.hex
+        uuid = self.get_mock_uuid().hex
         org = self.organization
         project_id = self.project.id
         enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
@@ -237,7 +231,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         data = {
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
-        with patch("sentry.integrations.vercel.integration.uuid4", new=self.mock_uuid4):
+        with patch("sentry.integrations.vercel.integration.uuid4", new=self.get_mock_uuid()):
             installation.update_organization_config(data)
         org_integration = OrganizationIntegration.objects.get(
             organization_id=org.id, integration_id=integration.id
@@ -363,7 +357,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             organization_id=org.id, integration_id=integration.id
         )
         assert org_integration.config == {}
-        with patch("sentry.integrations.vercel.integration.uuid4", new=self.mock_uuid4):
+        with patch("sentry.integrations.vercel.integration.uuid4", new=self.get_mock_uuid()):
             installation.update_organization_config(data)
         org_integration = OrganizationIntegration.objects.get(
             organization_id=org.id, integration_id=integration.id

@@ -1,16 +1,16 @@
 import logging
 
 from django.db import IntegrityError
-
 from rest_framework import serializers, status
-from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ExternalTeam, EXTERNAL_PROVIDERS
+from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.models import ExternalTeam
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders, get_provider_enum
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +24,14 @@ class ExternalTeamSerializer(CamelSnakeModelSerializer):
         model = ExternalTeam
         fields = ["team_id", "external_name", "provider"]
 
-    def validate_provider(self, provider):
-        if provider not in EXTERNAL_PROVIDERS.values():
-            raise serializers.ValidationError(
-                f'The provider "{provider}" is not supported. We currently accept GitHub and GitLab team identities.'
-            )
-        return ExternalTeam.get_provider_enum(provider)
+    def validate_provider(self, provider: str) -> int:
+        provider_option = get_provider_enum(provider)
+        if provider_option in [ExternalProviders.GITHUB, ExternalProviders.GITLAB]:
+            return provider_option.value
+
+        raise serializers.ValidationError(
+            f'The provider "{provider}" is not supported. We currently accept GitHub and GitLab team identities.'
+        )
 
     def create(self, validated_data):
         return ExternalTeam.objects.get_or_create(**validated_data)

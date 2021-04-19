@@ -4,7 +4,18 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GlobalModal from 'app/components/globalModal';
+import {metric} from 'app/utils/analytics';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
+
+jest.mock('app/utils/analytics', () => ({
+  metric: {
+    startTransaction: jest.fn(() => ({
+      setTag: jest.fn(),
+      setData: jest.fn(),
+    })),
+    endTransaction: jest.fn(),
+  },
+}));
 
 describe('Incident Rules Details', function () {
   beforeAll(function () {
@@ -109,6 +120,7 @@ describe('Incident Rules Details', function () {
     // Save Trigger
     wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
 
+    expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -126,13 +138,13 @@ describe('Incident Rules Details', function () {
           triggers: [
             expect.objectContaining({
               actions: [
-                {
+                expect.objectContaining({
                   integrationId: null,
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',
                   options: null,
-                },
+                }),
               ],
               alertRuleId: '4',
               alertThreshold: 70,
@@ -187,13 +199,13 @@ describe('Incident Rules Details', function () {
           triggers: [
             expect.objectContaining({
               actions: [
-                {
+                expect.objectContaining({
                   integrationId: null,
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',
                   options: null,
-                },
+                }),
               ],
               alertRuleId: '4',
               alertThreshold: 70,

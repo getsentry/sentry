@@ -1,24 +1,22 @@
-import sys
-import jsonschema
-import logging
-import time
 import base64
-
-from django.conf import settings
-from django.core.urlresolvers import reverse
-
-from requests.exceptions import RequestException
+import logging
+import sys
+import time
 from urllib.parse import urljoin
 
+import jsonschema
 import sentry_sdk
+from django.conf import settings
+from django.core.urlresolvers import reverse
+from requests.exceptions import RequestException
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
-from sentry.utils import json, metrics
+from sentry.models import Organization
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
-from sentry.models import Organization
+from sentry.utils import json, metrics
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
@@ -173,7 +171,7 @@ class Symbolicator:
                 metrics.timing(
                     "events.symbolicator.response.completed.size", len(json.dumps(json_response))
                 )
-                return redact_internal_sources(json_response)
+                return json_response
 
     def process_minidump(self, minidump):
         return self._process(lambda: self.sess.upload_minidump(minidump), "process_minidump")
@@ -191,74 +189,6 @@ class Symbolicator:
             ),
             "symbolicate_stacktraces",
         )
-
-
-def redact_internal_sources(response):
-    """Redacts information about internal sources from a response.
-
-    Symbolicator responses can contain a section about DIF object file candidates where were
-    attempted to be downloaded from the sources.  This includes a full URI of where the
-    download was attempted from.  For internal sources we want to redact this in order to
-    not leak any internal details.
-
-    Note that this modifies the argument passed in, thus redacting in-place.  It still
-    returns the modified response.
-    """
-    for module in response.get("modules", []):
-        redact_internal_sources_from_module(module)
-    return response
-
-
-def redact_internal_sources_from_module(module):
-    """Redacts information about internal sources from a single module.
-
-    This in-place redacts candidates from only a single module of the symbolicator response.
-
-    The strategy here is for each internal source to replace the location with the DebugID.
-    Furthermore if there are any "notfound" entries collapse them into a single entry and
-    only show this entry if there are no entries with another status.
-    """
-    sources_notfound = set()
-    sources_other = set()
-    new_candidates = []
-
-    for candidate in module.get("candidates", []):
-        source_id = candidate["source"]
-        if is_internal_source_id(source_id):
-
-            # Only keep location for sentry:project.
-            if source_id != "sentry:project":
-                candidate.pop("location", None)
-
-            # Collapse nofound statuses, collect info on sources which both have a notfound
-            # as well as other statusses.  This allows us to later filter the notfound ones.
-            try:
-                status = candidate.get("download", {})["status"]
-            except KeyError:
-                pass
-            else:
-                if status == "notfound":
-                    candidate.pop("location", None)  # This location is bogus, remove it.
-                    if source_id in sources_notfound:
-                        continue
-                    else:
-                        sources_notfound.add(source_id)
-                else:
-                    sources_other.add(source_id)
-        new_candidates.append(candidate)
-
-    def should_keep(candidate):
-        """Returns `False` if the candidate should be kept in the list of candidates.
-
-        This removes the candidates with a status of ``notfound`` *if* they also have
-        another status.
-        """
-        source_id = candidate["source"]
-        status = candidate.get("download", {}).get("status")
-        return status != "notfound" or source_id not in sources_other
-
-    if "candidates" in module:
-        module["candidates"] = [c for c in new_candidates if should_keep(c)]
 
 
 class TaskIdNotFound(Exception):
@@ -440,6 +370,18 @@ class SymbolicatorSession:
         self.timeout = timeout
         self.session = None
 
+        # Build some maps for use in ._process_response()
+        self.reverse_source_aliases = reverse_aliases_map(settings.SENTRY_BUILTIN_SOURCES)
+        self.source_names = {source["id"]: source.get("name", "unknown") for source in self.sources}
+
+        # Add a name for the special "sentry:project" source.
+        self.source_names[INTERNAL_SOURCE_NAME] = "Sentry"
+
+        # Add names for aliased sources.
+        for source in settings.SENTRY_BUILTIN_SOURCES.values():
+            if source.get("type") == "alias":
+                self.source_names[source["id"]] = source.get("name", "unknown")
+
     def __enter__(self):
         self.open()
         return self
@@ -461,14 +403,25 @@ class SymbolicatorSession:
             raise RuntimeError("Session not opened")
 
     def _process_response(self, json):
-        source_names = {source["id"]: source.get("name") for source in self.sources}
-        source_names[INTERNAL_SOURCE_NAME] = "Sentry"
+        """Post-processes the JSON repsonse.
 
+        This modifies the candidates list from Symbolicator responses to undo aliased
+        sources, hide information about unknown sources and add names to sources rather then
+        just have their IDs.
+        """
         for module in json.get("modules") or ():
             for candidate in module.get("candidates") or ():
-                if candidate.get("source"):
-                    candidate["source_name"] = source_names.get(candidate["source"])
+                # Reverse internal source aliases from the response.
+                source_id = candidate["source"]
+                original_source_id = self.reverse_source_aliases.get(source_id)
+                if original_source_id is not None:
+                    candidate["source"] = original_source_id
+                    source_id = original_source_id
 
+                # Add a "source_name" field to save the UI a lookup.
+                candidate["source_name"] = self.source_names.get(source_id, "unknown")
+
+        redact_internal_sources(json)
         return json
 
     def _request(self, method, path, **kwargs):
@@ -583,3 +536,93 @@ class SymbolicatorSession:
 
     def healthcheck(self):
         return self._request("get", "healthcheck")
+
+
+def reverse_aliases_map(builtin_sources):
+    """Returns a map of source IDs to their original un-aliased source ID.
+
+    :param builtin_sources: The value of `settings.SENTRY_BUILTIN_SOURCES`.
+    """
+    reverse_aliases = dict()
+    for key, source in builtin_sources.items():
+        if source.get("type") != "alias":
+            continue
+        try:
+            self_id = source["id"]
+        except KeyError:
+            continue
+        for aliased_source in source.get("sources", []):
+            try:
+                aliased_source = builtin_sources[aliased_source]
+                aliased_id = aliased_source["id"]
+            except KeyError:
+                continue
+            reverse_aliases[aliased_id] = self_id
+    return reverse_aliases
+
+
+def redact_internal_sources(response):
+    """Redacts information about internal sources from a response.
+
+    Symbolicator responses can contain a section about DIF object file candidates where were
+    attempted to be downloaded from the sources.  This includes a full URI of where the
+    download was attempted from.  For internal sources we want to redact this in order to
+    not leak any internal details.
+
+    Note that this modifies the argument passed in, thus redacting in-place.  It still
+    returns the modified response.
+    """
+    for module in response.get("modules", []):
+        redact_internal_sources_from_module(module)
+
+
+def redact_internal_sources_from_module(module):
+    """Redacts information about internal sources from a single module.
+
+    This in-place redacts candidates from only a single module of the symbolicator response.
+
+    The strategy here is for each internal source to replace the location with the DebugID.
+    Furthermore if there are any "notfound" entries collapse them into a single entry and
+    only show this entry if there are no entries with another status.
+    """
+    sources_notfound = set()
+    sources_other = set()
+    new_candidates = []
+
+    for candidate in module.get("candidates", []):
+        source_id = candidate["source"]
+        if is_internal_source_id(source_id):
+
+            # Only keep location for sentry:project.
+            if source_id != "sentry:project":
+                candidate.pop("location", None)
+
+            # Collapse nofound statuses, collect info on sources which both have a notfound
+            # as well as other statusses.  This allows us to later filter the notfound ones.
+            try:
+                status = candidate.get("download", {})["status"]
+            except KeyError:
+                pass
+            else:
+                if status == "notfound":
+                    candidate.pop("location", None)  # This location is bogus, remove it.
+                    if source_id in sources_notfound:
+                        continue
+                    else:
+                        sources_notfound.add(source_id)
+                else:
+                    sources_other.add(source_id)
+        new_candidates.append(candidate)
+
+    def should_keep(candidate):
+        """Returns `False` if the candidate should be kept in the list of candidates.
+
+        This removes the candidates with a status of ``notfound`` *if* they also have
+        another status.
+        """
+        source_id = candidate["source"]
+        status = candidate.get("download", {}).get("status")
+        return status != "notfound" or source_id not in sources_other
+
+    if "candidates" in module:
+        module["candidates"] = [c for c in new_candidates if should_keep(c)]

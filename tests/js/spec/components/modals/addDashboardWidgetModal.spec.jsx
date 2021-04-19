@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {selectByLabel} from 'sentry-test/select-new';
+import {getOptionByLabel, selectByLabel} from 'sentry-test/select-new';
 
 import AddDashboardWidgetModal from 'app/components/modals/addDashboardWidgetModal';
 import TagStore from 'app/stores/tagStore';
@@ -67,6 +67,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-geo/',
+      body: {data: [], meta: {}},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -417,5 +421,186 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+  });
+
+  it('should filter non-legal y-axis choices for timeseries widget charts', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    selectByLabel(wrapper, 'any(\u2026)', {
+      name: 'field',
+      at: 0,
+      control: true,
+    });
+
+    // Expect user.display to not be an available parameter option for any()
+    // for line (timeseries) widget charts
+    const option = getOptionByLabel(wrapper, 'user.display', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+    expect(option.exists()).toEqual(false);
+
+    // Be able to choose a numeric-like option for any()
+    selectByLabel(wrapper, 'measurements.lcp', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+
+    await clickSubmit(wrapper);
+
+    expect(widget.displayType).toEqual('line');
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['any(measurements.lcp)']);
+  });
+
+  it('should not filter y-axis choices for big number widget charts', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    // Select Big number display
+    selectByLabel(wrapper, 'Big Number', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('big_number');
+
+    selectByLabel(wrapper, 'count_unique(\u2026)', {
+      name: 'field',
+      at: 0,
+      control: true,
+    });
+
+    // Be able to choose a non numeric-like option for count_unique()
+    selectByLabel(wrapper, 'user.display', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+
+    await clickSubmit(wrapper);
+
+    expect(widget.displayType).toEqual('big_number');
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count_unique(user.display)']);
+  });
+
+  it('should filter y-axis choices for world map widget charts', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    // Select World Map display
+    selectByLabel(wrapper, 'World Map', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('world_map');
+
+    // Choose any()
+    selectByLabel(wrapper, 'any(\u2026)', {
+      name: 'field',
+      at: 0,
+      control: true,
+    });
+
+    // user.display should be filtered out for any()
+    const option = getOptionByLabel(wrapper, 'user.display', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+    expect(option.exists()).toEqual(false);
+
+    selectByLabel(wrapper, 'measurements.lcp', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+
+    // Choose count_unique()
+    selectByLabel(wrapper, 'count_unique(\u2026)', {
+      name: 'field',
+      at: 0,
+      control: true,
+    });
+
+    // user.display not should be filtered out for count_unique()
+    selectByLabel(wrapper, 'user.display', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+
+    // Be able to choose a numeric-like option
+    selectByLabel(wrapper, 'measurements.lcp', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+
+    await clickSubmit(wrapper);
+
+    expect(widget.displayType).toEqual('world_map');
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count_unique(measurements.lcp)']);
+  });
+
+  it('should filter y-axis choices by output type when switching from big number to line chart', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    // Select Big Number display
+    selectByLabel(wrapper, 'Big Number', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('big_number');
+
+    // Choose any()
+    selectByLabel(wrapper, 'any(\u2026)', {
+      name: 'field',
+      at: 0,
+      control: true,
+    });
+
+    selectByLabel(wrapper, 'id', {
+      name: 'parameter',
+      at: 0,
+      control: true,
+    });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('line');
+
+    // Expect event.type field to be converted to count()
+    const fieldColumn = wrapper.find('input[name="field"]');
+    expect(fieldColumn.length).toEqual(1);
+    expect(fieldColumn.props().value).toMatchObject({
+      kind: 'function',
+      meta: {
+        name: 'count',
+        parameters: [],
+      },
+    });
+
+    await clickSubmit(wrapper);
+
+    expect(widget.displayType).toEqual('line');
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count()']);
   });
 });

@@ -7,10 +7,9 @@ import urllib3
 
 from sentry import quotas
 from sentry.eventstream.base import EventStream
-from sentry.utils import snuba, json
+from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
-
 
 logger = logging.getLogger(__name__)
 
@@ -212,7 +211,9 @@ class SnubaProtocolEventStream(EventStream):
         state["datetime"] = datetime.now(tz=pytz.utc)
         self._send(state["project_id"], "end_delete_tag", extra_data=(state,), asynchronous=False)
 
-    def tombstone_events_unsafe(self, project_id, event_ids, old_primary_hash=False):
+    def tombstone_events_unsafe(
+        self, project_id, event_ids, old_primary_hash=False, from_timestamp=None, to_timestamp=None
+    ):
         """
         Tell Snuba to eventually delete these events.
 
@@ -239,6 +240,8 @@ class SnubaProtocolEventStream(EventStream):
             "project_id": project_id,
             "event_ids": event_ids,
             "old_primary_hash": old_primary_hash,
+            "from_timestamp": from_timestamp,
+            "to_timestamp": to_timestamp,
         }
         self._send(project_id, "tombstone_events", extra_data=(state,), asynchronous=False)
 

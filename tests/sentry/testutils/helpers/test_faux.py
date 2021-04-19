@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from sentry.utils.compat.mock import patch
 from sentry.testutils.helpers.faux import faux
+from sentry.utils.compat.mock import patch
 
 
 def fakefunc(*args, **kwargs):

@@ -1,19 +1,20 @@
 from collections import Iterable
+
 from django.db import IntegrityError, transaction
 from rest_framework.serializers import ValidationError
 
 from sentry import analytics
+from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.models import (
-    AuditLogEntryEvent,
     ApiApplication,
+    AuditLogEntryEvent,
     IntegrationFeature,
     SentryApp,
     SentryAppComponent,
     User,
 )
-from sentry.constants import SentryAppStatus
-from sentry.models.sentryapp import generate_slug, default_uuid
+from sentry.models.sentryapp import default_uuid, generate_slug
 
 
 class Creator(Mediator):

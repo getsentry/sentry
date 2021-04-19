@@ -1,17 +1,15 @@
 import logging
+from collections import OrderedDict, namedtuple
 from datetime import datetime
-from django.utils import timezone
-
-from collections import namedtuple, OrderedDict
 
 import sentry_sdk
+from django.utils import timezone
 
 from sentry.models import Project, Release
+from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, safe_execute
-from sentry.stacktraces.functions import set_in_app, trim_function_name
-
 
 logger = logging.getLogger(__name__)
 
@@ -240,11 +238,15 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
     """
 
     stacktraces = []
+    stacktrace_exceptions = []
 
     for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
         frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
         if frames:
             stacktraces.append(frames)
+            stacktrace_exceptions.append(
+                stacktrace_info.container if stacktrace_info.is_exception else None
+            )
 
     if not stacktraces:
         return
@@ -276,8 +278,10 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
-        for frames in stacktraces:
-            grouping_config.enhancements.apply_modifications_to_frame(frames, platform)
+        for frames, exception_data in zip(stacktraces, stacktrace_exceptions):
+            grouping_config.enhancements.apply_modifications_to_frame(
+                frames, platform, exception_data
+            )
 
     # normalize in-app
     for stacktrace in stacktraces:

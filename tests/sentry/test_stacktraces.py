@@ -3,8 +3,8 @@ import pytest
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.stacktraces.processing import (
     find_stacktraces_in_data,
-    normalize_stacktraces_for_grouping,
     get_crash_frame_from_event_data,
+    normalize_stacktraces_for_grouping,
 )
 from sentry.testutils import TestCase
 
@@ -316,6 +316,19 @@ class NormalizeInApptest(TestCase):
         )
 
     def test_ios_function_name_in_app_detection(self):
+        self.ios_function_name_in_app_detection(
+            function="sentrycrash__hook_dispatch_async", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="sentrycrash__hook_dispatch_after_f", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="sentrycrash__async_backtrace_capture", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="__sentrycrash__hook_dispatch_async_block_invoke", isInApp=False
+        )
+
         self.ios_function_name_in_app_detection(function="kscm_f", isInApp=False)
         self.ios_function_name_in_app_detection(function="kscm_", isInApp=False)
         self.ios_function_name_in_app_detection(function=" kscm_", isInApp=False)

@@ -1,16 +1,15 @@
 from datetime import timedelta
-from uuid import uuid4
-
 from urllib.parse import quote
+from uuid import uuid4
 
 from django.conf import settings
 from django.utils import timezone
 from exam import fixture
-from sentry.utils.compat.mock import patch, Mock
 
 from sentry.models import (
     Activity,
     ApiToken,
+    ExternalIssue,
     Group,
     GroupAssignee,
     GroupBookmark,
@@ -23,17 +22,17 @@ from sentry.models import (
     GroupStatus,
     GroupSubscription,
     GroupTombstone,
-    ExternalIssue,
     Integration,
-    Release,
     OrganizationIntegration,
+    Release,
     UserOption,
 )
-from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
+from sentry.utils.compat.mock import Mock, patch
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
@@ -69,7 +68,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(f"{self.path}?sort_by=date&query=timesSeen:>1t", format="json")
         assert response.status_code == 400
-        assert "could not" in response.data["detail"]
+        assert "Error parsing search query" in response.data["detail"]
 
     def test_simple_pagination(self):
         event1 = self.store_event(
@@ -1139,10 +1138,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
         group1 = self.create_group(checksum="a" * 32, times_seen=1)
         group2 = self.create_group(checksum="b" * 32, times_seen=50)
         group3 = self.create_group(checksum="c" * 32, times_seen=2)

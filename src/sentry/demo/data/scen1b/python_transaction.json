@@ -1,0 +1,165 @@
+{
+    "event_id": "2e75afe87658407cb6f11c65ed3d65fa",
+    "project": 5641789,
+    "release": "52f7c8a62a97cecf029f6a68adb411c1714c4836",
+    "dist": null,
+    "platform": "python",
+    "message": "",
+    "datetime": "2021-03-15T19:37:14.460185+00:00",
+    "tags": [
+      ["browser", "Safari 12.1.1"],
+      ["browser.name", "Safari"],
+      ["client_os", "Mac OS X 10.13.6"],
+      ["client_os.name", "Mac OS X"],
+      ["device", "Mac"],
+      ["device.family", "Mac"],
+      ["environment", "prod"],
+      ["http.status_code", "500"],
+      ["level", "info"],
+      ["runtime", "CPython 2.7.18"],
+      ["runtime.name", "CPython"],
+      ["release", "52f7c8a62a97cecf029f6a68adb411c1714c4836"],
+      ["user", "email:zllm@yahoo.com"],
+      ["server_name", "localhost"],
+      ["transaction", "checkout"],
+      ["url", "https://app.example.com/checkout"]
+    ],
+    "_meta": {
+      "request": {"headers": {"13": {"1": {"": {"rem": [["!config", "x", 0, 11]]}}}}}
+    },
+    "_metrics": {"bytes.ingested.event": 3434, "bytes.stored.event": 4534},
+    "contexts": {
+      "browser": {"name": "Safari", "version": "12.1.1", "type": "browser"},
+      "client_os": {"name": "Mac OS X", "version": "10.13.6", "type": "os"},
+      "device": {"family": "Mac", "model": "Mac", "brand": "Apple", "type": "device"},
+      "runtime": {
+        "name": "CPython",
+        "version": "2.7.18",
+        "build": "2.7.18 (default, Apr 20 2020, 19:34:11) \n[GCC 8.3.0]",
+        "type": "runtime"
+      },
+      "trace": {
+        "trace_id": "eaf14e4485864075aec039797501aca2",
+        "span_id": "9f629125fa90064c",
+        "parent_span_id": "923dcc257d229405",
+        "op": "http.server",
+        "status": "ok",
+        "type": "trace"
+      }
+    },
+    "culprit": "checkout",
+    "environment": "prod",
+    "extra": {
+      "inventory": {"hammer": 1, "nails": 1, "wrench": 0},
+      "sys.argv": ["/usr/local/bin/flask", "run", "--host=0.0.0.0", "-p", "8080"]
+    },
+    "grouping_config": {
+      "enhancements": "eJybzDhxY3J-bm5-npWRgaGlroGxrpHxBABcTQcY",
+      "id": "newstyle:2019-10-29"
+    },
+    "key_id": "1512188",
+    "level": "info",
+    "location": "checkout",
+    "logger": "",
+    "metadata": {"location": "checkout", "title": "checkout"},
+    "received": 1615837034.494997,
+    "request": {
+      "url": "https://app.example.com/checkout",
+      "method": "POST",
+      "headers": [
+        ["Accept", "*/*"],
+        ["Accept-Encoding", "br, gzip, deflate"],
+        ["Accept-Language", "en-us"],
+        ["Content-Length", "526"],
+        ["Content-Type", "application/json"],
+        ["Email", "zllm@yahoo.com"],
+        ["Forwarded", "for=\"66.85.48.76\";proto=https"],
+        ["Host", "aj-flask-m3uuizd7iq-uc.a.run.app"],
+        ["Origin", "https://app.example.com"],
+        ["Referer", "https://app.example.com/toolstore"],
+        ["Sentry-Trace", "eaf14e4485864075aec039797501aca2-923dcc257d229405-1"],
+        [
+          "User-Agent",
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 Safari/605.1.15"
+        ],
+        ["X-Cloud-Trace-Context", "8ae7c9108753b53d5e22f0f3d51efc42/12016370555220220073"],
+        ["X-Forwarded-For", ""],
+        ["X-Forwarded-Proto", "https"]
+      ],
+      "env": {"SERVER_NAME": "0.0.0.0", "SERVER_PORT": "8080"},
+      "inferred_content_type": "application/json"
+    },
+    "sdk": {
+      "name": "sentry.python",
+      "version": "0.19.2",
+      "integrations": [
+        "argv",
+        "atexit",
+        "dedupe",
+        "excepthook",
+        "flask",
+        "logging",
+        "modules",
+        "sqlalchemy",
+        "stdlib",
+        "threading"
+      ],
+      "packages": [{"name": "pypi:sentry-sdk", "version": "0.19.2"}]
+    },
+    "spans": [
+      {
+        "timestamp": 1615837032.413307,
+        "start_timestamp": 1615837032.40376,
+        "op": "db function: get inventory",
+        "span_id": "958d7b57cb3fc89b",
+        "parent_span_id": "9f629125fa90064c",
+        "trace_id": "eaf14e4485864075aec039797501aca2",
+        "same_process_as_parent": true
+      },
+      {
+        "timestamp": 1615837032.403948,
+        "start_timestamp": 1615837032.403814,
+        "op": "connect to db",
+        "span_id": "95245228f8f39673",
+        "parent_span_id": "958d7b57cb3fc89b",
+        "trace_id": "eaf14e4485864075aec039797501aca2",
+        "same_process_as_parent": true
+      },
+      {
+        "timestamp": 1615837032.410861,
+        "start_timestamp": 1615837032.40399,
+        "op": "run query",
+        "span_id": "a567b19a48a61708",
+        "parent_span_id": "958d7b57cb3fc89b",
+        "trace_id": "eaf14e4485864075aec039797501aca2",
+        "same_process_as_parent": true
+      },
+      {
+        "timestamp": 1615837032.410461,
+        "start_timestamp": 1615837032.404122,
+        "description": "SELECT * FROM inventory",
+        "op": "db",
+        "span_id": "b9ef6d1b42cb7ce5",
+        "parent_span_id": "a567b19a48a61708",
+        "trace_id": "eaf14e4485864075aec039797501aca2",
+        "same_process_as_parent": true
+      },
+      {
+        "timestamp": 1615837034.449384,
+        "start_timestamp": 1615837032.413422,
+        "op": "process order",
+        "span_id": "9186b2cdef32d090",
+        "parent_span_id": "9f629125fa90064c",
+        "trace_id": "eaf14e4485864075aec039797501aca2",
+        "tags": {"status": "ok"},
+        "same_process_as_parent": true
+      }
+    ],
+    "start_timestamp": 1615837032.402719,
+    "timestamp": 1615837034.460185,
+    "title": "checkout",
+    "transaction": "checkout",
+    "type": "transaction",
+    "user": {"email": "zllm@yahoo.com"},
+    "version": "7"
+  }

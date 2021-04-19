@@ -1,18 +1,17 @@
 import operator
-
-from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
-from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
-from sentry.utils import metrics
-from sentry.utils.hashlib import hash_values
-from sentry.utils.safe import get_path
-
-from django.db.models import Q
-from django.core.cache import cache
-
 from collections import defaultdict
 from functools import reduce
+
+from django.core.cache import cache
+from django.db.models import Q
+
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
+from sentry.models import Commit, CommitFileChange, Group, Release, ReleaseCommit
+from sentry.utils import metrics
 from sentry.utils.compat import zip
+from sentry.utils.hashlib import hash_values
+from sentry.utils.safe import get_path
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
 

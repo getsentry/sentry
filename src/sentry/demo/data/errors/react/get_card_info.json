@@ -1,0 +1,237 @@
+{
+  "event_id": "b947ed4cc5dc4754a7a154e5e85b52ed",
+  "project": 5369914,
+  "release": "64acc471df87d53f53a5347aa1cfc3a678e7ed93",
+  "dist": null,
+  "platform": "javascript",
+  "message": "",
+  "datetime": "2021-04-05T03:05:30.000000Z",
+  "tags": [
+    ["browser", "Chrome 81.0.4044"],
+    ["browser.name", "Chrome"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["environment", "prod"],
+    ["handled", "yes"],
+    ["level", "error"],
+    ["mechanism", "generic"],
+    ["os", "Windows 10"],
+    ["os.name", "Windows"],
+    ["release", "64acc471df87d53f53a5347aa1cfc3a678e7ed93"],
+    ["user", "id:8630"],
+    ["transaction", "/checkout/"],
+    ["url", "https://app.example.com/shop/checkout/"]
+  ],
+  "_metrics": {"bytes.ingested.event": 4745, "bytes.stored.event": 5768},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1617593267.0,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "a.product-thumbnail-item"
+      },
+      {
+        "timestamp": 1617593271.0,
+        "type": "default",
+        "category": "navigation",
+        "level": "info",
+        "data": {"from": "/shop/", "to": "/shop/products/plant-mood-planter/"}
+      },
+      {
+        "timestamp": 1617593272.0,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "button.add-to-cart"
+      },
+      {
+        "timestamp": 1617593273.0,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {"method": "POST", "status_code": 200, "url": "/api/0/cart/"}
+      },
+      {
+        "timestamp": 1617593274.0,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "a#view-cart"
+      },
+      {
+        "timestamp": 1617593275.0,
+        "type": "default",
+        "category": "navigation",
+        "level": "info",
+        "data": {"from": "/shop/products/plant-mood-planter/", "to": "/shop/checkout/"}
+      },
+      {
+        "timestamp": 1617593277.0,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "input#zipcode"
+      },
+      {
+        "timestamp": 1617593280.0,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "button#calculate-shipping"
+      },
+      {
+        "timestamp": 1617593280.0,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "POST",
+          "status_code": 200,
+          "url": "/api/0/cart/update-shipping/"
+        }
+      },
+      {
+        "timestamp": 1617593281.0,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "input#card-name"
+      },
+      {
+        "timestamp": 1617593284.0,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "input#card-number"
+      },
+      {
+        "timestamp": 1617593287.0,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "input#card-cvv"
+      },
+      {
+        "timestamp": 1617593291.0,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "input#submit"
+      }
+    ]
+  },
+  "contexts": {
+    "browser": {"name": "Chrome", "version": "81.0.4044", "type": "browser"},
+    "device": {"family": "Mac", "model": "Mac", "brand": "Apple", "type": "device"},
+    "os": {"name": "Windows", "version": "10", "type": "os"}
+  },
+  "culprit": "/shop/checkout/",
+  "environment": "prod",
+  "exception": {
+    "values": [
+      {
+        "type": "ReferenceError",
+        "value": "getCardInfo is not defined",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "onFormSubmit",
+              "module": "components/Form",
+              "filename": "./components/Form.js",
+              "abs_path": "webpack:///./components/Form.js",
+              "lineno": 126,
+              "colno": 9,
+              "pre_context": [
+                "  handleClick() {",
+                "    let { cart, userInfo } = this.form;",
+                "",
+                "    this.props.saveUpdatedCart(cart);",
+                "    this.setState({loading: false});"
+              ],
+              "context_line": "    this.onSubmit();",
+              "post_context": [
+                "    this.props.handlePostSubmit();",
+                "    this.props.sendAnalyticsEvent(userInfo);",
+                "    this.finalizePurchase().then() => {",
+                "      this.markAsComplete();",
+                "    });",
+                "  }"
+              ],
+              "in_app": true,
+              "data": {"sourcemap": ""}
+            },
+            {
+              "function": "onSubmit",
+              "module": "components/Form",
+              "filename": "./components/Form.js",
+              "abs_path": "webpack:///./components/Form.js",
+              "lineno": 13,
+              "colno": 4,
+              "pre_context": [
+                "  onSubmit() {",
+                "    let { cart } = this.form;",
+                "",
+                "    cart = {",
+                "      ...cart,"
+              ],
+              "context_line": "      creditCard: getCardInfo()",
+              "post_context": [
+                "    };",
+                "",
+                "    App.confirmPurchase({ cart }).then(({ invoice }) => {",
+                "      this.onPurchaseComplete({ invoice });",
+                "    });",
+                "  }"
+              ],
+              "in_app": true,
+              "data": {"sourcemap": ""}
+            }
+          ]
+        },
+        "mechanism": {"type": "generic", "handled": true}
+      }
+    ]
+  },
+  "extra": {
+    "errorInfo": {
+      "cartItems": [
+        {"id": "plant-moood-planter", "qty": 1},
+        {"id": "botanavoice", "qty": 1}
+      ]
+    }
+  },
+  "fingerprint": ["{{ default }}"],
+  "grouping_config": {
+    "enhancements": "eJybzDhxY3J-bm5-npWRgaGlroGxrpHxBABcTQcY",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": ["70ed1037680b885db43e16cec269b8fb"],
+  "key_id": "1285859",
+  "level": "error",
+  "location": "./components/Form.js",
+  "logger": "",
+  "metadata": {
+    "filename": "./components/Form.js",
+    "function": "onSubmit",
+    "type": "ReferenceError",
+    "value": "getCardInfo is not defined"
+  },
+  "received": 1617593315.956576,
+  "request": {
+    "url": "https://app.example.com/shop/checkout/",
+    "headers": [
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36"
+      ]
+    ]
+  },
+  "sdk": {"name": "@sentry", "version": "node/5.0.0"},
+  "timestamp": 1617591930.0,
+  "title": "ReferenceError: getCardInfo is not defined",
+  "transaction": "/checkout/",
+  "type": "error",
+  "version": "7"
+}

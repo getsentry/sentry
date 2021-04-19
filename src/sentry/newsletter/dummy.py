@@ -1,4 +1,5 @@
 from collections import defaultdict
+
 from django.utils import timezone
 
 from .base import Newsletter
