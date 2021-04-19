@@ -29,7 +29,7 @@ import {
 import DurationChart from './durationChart';
 import DurationPercentileChart from './durationPercentileChart';
 import {SpanOperationBreakdownFilter} from './filter';
-import LatencyChart from './latencyChart';
+import LatencyChart, {LatencyChartControls} from './latencyChart';
 import TrendChart from './trendChart';
 import VitalsChart from './vitalsChart';
 
@@ -239,6 +239,9 @@ class TransactionSummaryCharts extends React.Component<Props> {
                 options={TREND_PARAMETERS_OPTIONS}
                 onChange={this.handleTrendColumnChange}
               />
+            )}
+            {display === DisplayModes.LATENCY && (
+              <LatencyChartControls location={location} />
             )}
             <OptionSelector
               title={t('Display')}

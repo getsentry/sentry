@@ -16,6 +16,7 @@ import {GlobalSelection, Organization, Project} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {Column, isAggregateField, WebVital} from 'app/utils/discover/fields';
+import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
@@ -36,6 +37,7 @@ import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from './filter';
+import {ZOOM_END, ZOOM_START} from './latencyChart';
 
 type Props = {
   api: Client;
@@ -100,7 +102,7 @@ class TransactionSummary extends React.Component<Props, State> {
     const {location} = this.props;
 
     const nextQuery: Location['query'] = {
-      ...location.query,
+      ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
       ...filterToLocationQuery(newFilter),
     };
 
@@ -280,19 +282,6 @@ function generateSummaryEventView(
   Object.keys(conditions.tagValues).forEach(field => {
     if (isAggregateField(field)) conditions.removeTag(field);
   });
-
-  // Handle duration filters from the latency chart
-  if (location.query.startDuration || location.query.endDuration) {
-    conditions.setTagValues(
-      'transaction.duration',
-      [
-        decodeScalar(location.query.startDuration),
-        decodeScalar(location.query.endDuration),
-      ]
-        .filter(item => item)
-        .map((item, index) => (index === 0 ? `>${item}` : `<${item}`))
-    );
-  }
 
   let durationField = 'transaction.duration';
 
