@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 from django.template import engines
 
@@ -60,3 +62,25 @@ def test_absolute_uri(input, output):
         .strip()
     )
     assert result == output
+
+
+def test_date_handle_date_and_datetime():
+    result = (
+        engines["django"]
+        .from_string(
+            """
+{% load sentry_helpers %}
+{{ date_obj|date:"Y-m-d" }}
+{{ datetime_obj|date:"Y-m-d" }}
+            """
+        )
+        .render(
+            context={
+                "date_obj": datetime.date(2021, 4, 16),
+                "datetime_obj": datetime.datetime(2021, 4, 17, 12, 13, 14),
+            }
+        )
+        .strip()
+    )
+
+    assert result == "\n".join(["2021-04-16", "2021-04-17"])
