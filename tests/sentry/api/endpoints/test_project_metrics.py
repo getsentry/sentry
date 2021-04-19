@@ -2,6 +2,9 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import ApiToken
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
+
+FEATURE_FLAG = "organizations:metrics"
 
 
 class ProjectMetricsPermissionTest(APITestCase):
@@ -9,6 +12,7 @@ class ProjectMetricsPermissionTest(APITestCase):
         url = reverse(endpoint, args=(self.project.organization.slug, self.project.slug) + args)
         return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
 
+    @with_feature(FEATURE_FLAG)
     def test_permissions(self):
 
         endpoints = (
@@ -38,6 +42,7 @@ class ProjectMetricsTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    @with_feature(FEATURE_FLAG)
     def test_response(self):
         response = self.get_valid_response(self.project.organization.slug, self.project.slug)
 
@@ -63,6 +68,7 @@ class ProjectMetricsTagsTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    @with_feature(FEATURE_FLAG)
     def test_unknown_metric(self):
         response = self.get_response(
             self.project.organization.slug, self.project.slug, "foo", "bar"
@@ -70,6 +76,7 @@ class ProjectMetricsTagsTest(APITestCase):
 
         assert response.status_code == 400
 
+    @with_feature(FEATURE_FLAG)
     def test_unknown_tag(self):
         response = self.get_response(
             self.project.organization.slug, self.project.slug, "user", "bar"
@@ -77,6 +84,7 @@ class ProjectMetricsTagsTest(APITestCase):
 
         assert response.status_code == 400
 
+    @with_feature(FEATURE_FLAG)
     def test_existing_tag(self):
         response = self.get_valid_response(
             self.project.organization.slug, self.project.slug, "user", "environment"
@@ -97,6 +105,7 @@ class ProjectMetricsDataTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    @with_feature(FEATURE_FLAG)
     def test_missing_field(self):
         response = self.get_response(
             self.project.organization.slug,
@@ -105,6 +114,7 @@ class ProjectMetricsDataTest(APITestCase):
 
         assert response.status_code == 400
 
+    @with_feature(FEATURE_FLAG)
     def test_invalid_field(self):
 
         for field in ["", "(*&%", "foo(session", "foo(session)", "sum(bar)"]:
@@ -114,6 +124,7 @@ class ProjectMetricsDataTest(APITestCase):
 
             assert response.status_code == 400
 
+    @with_feature(FEATURE_FLAG)
     def test_valid_operation(self):
         response = self.get_response(
             self.project.organization.slug, self.project.slug, field="sum(session)"
@@ -125,6 +136,7 @@ class ProjectMetricsDataTest(APITestCase):
         groups = response.data["groups"]
         assert len(groups) == 1 and groups[0]["by"] == {}
 
+    @with_feature(FEATURE_FLAG)
     def test_unknown_tag(self):
         response = self.get_response(
             self.project.organization.slug,
@@ -135,6 +147,7 @@ class ProjectMetricsDataTest(APITestCase):
 
         assert response.status_code == 400
 
+    @with_feature(FEATURE_FLAG)
     def test_known_tag(self):
         response = self.get_response(
             self.project.organization.slug,
@@ -145,6 +158,7 @@ class ProjectMetricsDataTest(APITestCase):
 
         assert response.status_code == 200
 
+    @with_feature(FEATURE_FLAG)
     def test_two_tags(self):
         response = self.get_response(
             self.project.organization.slug,
@@ -160,6 +174,7 @@ class ProjectMetricsDataTest(APITestCase):
             group["by"].keys() == {"environment", "session.status"} for group in groups
         )
 
+    @with_feature(FEATURE_FLAG)
     def test_invalid_filter(self):
 
         for query in [
@@ -180,6 +195,7 @@ class ProjectMetricsDataTest(APITestCase):
 
             assert response.status_code == 400
 
+    @with_feature(FEATURE_FLAG)
     def test_valid_filter(self):
 
         for query in [
