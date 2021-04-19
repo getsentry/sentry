@@ -1,0 +1,44 @@
+---
+created: '2021-03-26T18:36:03.763398Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXCEPTION_ACCESS_VIOLATION_WRITE:Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE (thread_id:_, crashed:_)
+          C:\Windows\System32\KERNELBASE.dll  TerminateProcessOnMemoryExhaustion category=system
+               C:\Windows\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
+            C:\Windows\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
+                                              stripped_application_code
+            C:\Windows\System32\ucrtbase.dll  exit category=shutdown
+            C:\Windows\System32\ucrtbase.dll  __crt_state_management::enter_os_call category=internals
+            C:\Windows\System32\ucrtbase.dll  strset category=indirection
+            C:\Windows\System32\KERNEL32.DLL  ExitProcessImplementation category=shutdown
+               C:\Windows\SYSTEM32\ntdll.dll  RtlExitUserProcess category=shutdown
+               C:\Windows\SYSTEM32\ntdll.dll  RtlUnlockProcessHeapOnProcessTerminate category=system
+               C:\Windows\SYSTEM32\ntdll.dll  LdrShutdownProcess category=internals
+                                              stripped_application_code
+               C:\Windows\SYSTEM32\ntdll.dll  LdrShutdownProcess category=indirection
+                                              stripped_application_code
+               C:\Windows\SYSTEM32\ntdll.dll  RtlpFlsDataCleanup category=system
+               C:\Windows\SYSTEM32\ntdll.dll  LdrpCallInitRoutine category=internals
+                                              stripped_application_code
+               C:\Windows\SYSTEM32\ntdll.dll  RtlActivateActivationContextUnsafeFast category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+               C:\Windows\System32\MSCTF.dll  CInputProcessorProfiles::Release category=system
+               C:\Windows\System32\MSCTF.dll  CInputProcessorProfiles::~CInputProcessorProfiles category=internals
+               C:\Windows\System32\MSCTF.dll  CTextInputClientOwnerAdapter::Release category=internals
+               C:\Windows\System32\MSCTF.dll  wil::details::in1diag3::Log_Hr category=internals
+               C:\Windows\System32\MSCTF.dll  wil::details::ReportFailure_Hr category=internals
+               C:\Windows\System32\MSCTF.dll  wil::details::ReportFailure category=internals
+               C:\Windows\System32\MSCTF.dll  wil::details::LogFailure category=internals
+               C:\Windows\System32\MSCTF.dll  wil::details::GetContextAndNotifyFailure category=internals
+               C:\Windows\System32\MSCTF.dll  wil::details::ThreadFailureCallbackHolder::GetContextAndNotifyFailure category=internals
+               C:\Windows\System32\MSCTF.dll  CtfTraceLoggingTelemetry::FallbackTelemetryCallback category=internals
+               C:\Windows\System32\MSCTF.dll  wil::details::static_lazy<T>::get category=internals
+               C:\Windows\System32\MSCTF.dll  atexit category=internals
+               C:\Windows\System32\MSCTF.dll  onexit category=internals
+              C:\Windows\System32\msvcrt.dll  _dllonexit category=internals

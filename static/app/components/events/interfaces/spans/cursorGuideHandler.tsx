@@ -1,8 +1,9 @@
 import React from 'react';
 
+import {clamp, rectOfContent} from 'app/components/waterfallTree/utils';
+
 import {DragManagerChildrenProps} from './dragManager';
 import {ParsedTraceType} from './types';
-import {clamp, rectOfContent} from './utils';
 
 export type CursorGuideManagerChildrenProps = {
   showCursorGuide: boolean;

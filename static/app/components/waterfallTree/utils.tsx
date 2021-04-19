@@ -1,5 +1,26 @@
 import {DurationDisplay} from 'app/components/waterfallTree/types';
 import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
+
+export const getBackgroundColor = ({
+  showStriping,
+  showDetail,
+  theme,
+}: {
+  showStriping?: boolean;
+  showDetail?: boolean;
+  theme: Theme;
+}) => {
+  if (showDetail) {
+    return theme.textColor;
+  }
+
+  if (showStriping) {
+    return theme.backgroundSecondary;
+  }
+
+  return theme.background;
+};
 
 type HatchProps = {
   spanBarHatch: boolean;
@@ -42,7 +63,7 @@ export const getDurationPillAlignment = ({
   spanBarHatch,
 }: {
   durationDisplay: DurationDisplay;
-  theme: any;
+  theme: Theme;
   spanBarHatch: boolean;
 }) => {
   switch (durationDisplay) {
@@ -64,7 +85,7 @@ export const getToggleTheme = ({
   disabled,
 }: {
   isExpanded: boolean;
-  theme: any;
+  theme: Theme;
   disabled: boolean;
 }) => {
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
@@ -104,4 +125,63 @@ export const getDurationDisplay = ({
     return 'left';
   }
   return 'inset';
+};
+
+export const getHumanDuration = (duration: number): string => {
+  // note: duration is assumed to be in seconds
+  const durationMS = duration * 1000;
+  return `${durationMS.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}ms`;
+};
+
+export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
+
+type Rect = {
+  // x and y are left/top coords respectively
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+// get position of element relative to top/left of document
+const getOffsetOfElement = (element: Element) => {
+  // left and top are relative to viewport
+  const {left, top} = element.getBoundingClientRect();
+
+  // get values that the document is currently scrolled by
+  const scrollLeft = window.pageXOffset;
+  const scrollTop = window.pageYOffset;
+
+  return {x: left + scrollLeft, y: top + scrollTop};
+};
+
+export const rectOfContent = (element: Element): Rect => {
+  const {x, y} = getOffsetOfElement(element);
+
+  // offsets for the border and any scrollbars (clientLeft and clientTop),
+  // and if the element was scrolled (scrollLeft and scrollTop)
+  //
+  // NOTE: clientLeft and clientTop does not account for any margins nor padding
+  const contentOffsetLeft = element.clientLeft - element.scrollLeft;
+  const contentOffsetTop = element.clientTop - element.scrollTop;
+
+  return {
+    x: x + contentOffsetLeft,
+    y: y + contentOffsetTop,
+    width: element.scrollWidth,
+    height: element.scrollHeight,
+  };
+};
+
+export const clamp = (value: number, min: number, max: number): number => {
+  if (value < min) {
+    return min;
+  }
+  if (value > max) {
+    return max;
+  }
+  return value;
 };

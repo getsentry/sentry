@@ -2,21 +2,41 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
+import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 
 import Alert from 'app/components/alert';
 import {DateTimeObject} from 'app/components/charts/utils';
+import ErrorBoundary from 'app/components/errorBoundary';
 import PageHeading from 'app/components/pageHeading';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {DataCategory, DataCategoryName, Organization, RelativePeriod} from 'app/types';
+import {
+  DataCategory,
+  DataCategoryName,
+  Organization,
+  Project,
+  RelativePeriod,
+} from 'app/types';
 
 import {ChartDataTransform} from './usageChart';
 import UsageStatsLastMin from './UsageStatsLastMin';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
+
+const PAGE_QUERY_PARAMS = [
+  'pageStart',
+  'pageEnd',
+  'pagePeriod',
+  'pageUtc',
+  'dataCategory',
+  'chartTransform',
+  'sort',
+];
 
 type Props = {
   organization: Organization;
@@ -68,8 +88,39 @@ class OrganizationStats extends React.Component<Props> {
     return this.props.location?.query?.sort;
   }
 
+  getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
+    const {location, organization} = this.props;
+    const nextLocation: LocationDescriptorObject = {
+      ...location,
+      query: {
+        ...location.query,
+        project: project.id,
+      },
+    };
+
+    // Do not leak out page-specific keys
+    nextLocation.query = omit(nextLocation.query, PAGE_QUERY_PARAMS);
+
+    return {
+      performance: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/performance/`,
+      },
+      projectDetail: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/projects/${project.slug}`,
+      },
+      issueList: {
+        ...nextLocation,
+        pathname: `/organizations/${organization.slug}/issues/`,
+      },
+    };
+  };
+
   /**
    * TODO: Enable user to set dateStart/dateEnd
+   *
+   * See PAGE_QUERY_PARAMS for list of accepted keys on nextState
    */
   setStateOnUrl = (
     nextState: {
@@ -85,11 +136,13 @@ class OrganizationStats extends React.Component<Props> {
     }
   ): LocationDescriptorObject => {
     const {location, router} = this.props;
+    const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
+
     const nextLocation = {
       ...location,
       query: {
         ...location?.query,
-        ...nextState,
+        ...nextQueryParams,
       },
     };
 
@@ -104,67 +157,76 @@ class OrganizationStats extends React.Component<Props> {
     const {organization} = this.props;
 
     return (
-      <PageContent>
-        <PageHeader>
-          <PageHeading>
-            {tct('Organization Usage Stats for [dataCategory]', {
-              dataCategory: this.dataCategoryName,
-            })}
-          </PageHeading>
-        </PageHeader>
+      <SentryDocumentTitle title="Usage Stats">
+        <PageContent>
+          <PageHeader>
+            <PageHeading>
+              {tct('Organization Usage Stats for [dataCategory]', {
+                dataCategory: this.dataCategoryName,
+              })}
+            </PageHeading>
+          </PageHeader>
 
-        <OrgTextWrapper>
-          <OrgText>
-            <p>
-              {t(
-                'The chart below reflects events that Sentry has received across your entire organization. We collect usage metrics on 3 types of events: errors, transactions, and attachments. Sessions are not included in this chart.'
-              )}
-            </p>
-            <p>
-              {t(
-                "Each type of event has 3 outcomes: accepted, filtered, and dropped. Accepted events were successfully processed by Sentry. Filtered events were blocked due to your project's inbound data filter rules. Dropped events were discarded due to invalid data, rate-limits, quota-limits or spike protection."
-              )}
-            </p>
-          </OrgText>
-          <OrgLastMin>
-            <UsageStatsLastMin
+          <OrgTextWrapper>
+            <OrgText>
+              <p>
+                {t(
+                  'The chart below reflects events that Sentry has received across your entire organization. We collect usage metrics on three types of events: errors, transactions, and attachments. Sessions are not included in this chart.'
+                )}
+              </p>
+              <p>
+                {t(
+                  'Each type of event is broken down into three categories: accepted, filtered, and dropped. Accepted events were successfully processed by Sentry. Filtered events were blocked due to your project’s inbound data filter rules. Dropped events were discarded due to invalid data, rate limits, quotas, or spike protection.'
+                )}
+              </p>
+            </OrgText>
+            <OrgLastMin>
+              <ErrorBoundary mini>
+                <UsageStatsLastMin
+                  organization={organization}
+                  dataCategory={this.dataCategory}
+                  dataCategoryName={this.dataCategoryName}
+                />
+              </ErrorBoundary>
+            </OrgLastMin>
+          </OrgTextWrapper>
+
+          <ErrorBoundary mini>
+            <UsageStatsOrg
               organization={organization}
               dataCategory={this.dataCategory}
               dataCategoryName={this.dataCategoryName}
+              dataDatetime={this.dataPeriod}
+              chartTransform={this.chartTransform}
+              handleChangeState={this.setStateOnUrl}
             />
-          </OrgLastMin>
-        </OrgTextWrapper>
+          </ErrorBoundary>
 
-        <UsageStatsOrg
-          organization={organization}
-          dataCategory={this.dataCategory}
-          dataCategoryName={this.dataCategoryName}
-          dataDatetime={this.dataPeriod}
-          chartTransform={this.chartTransform}
-          handleChangeState={this.setStateOnUrl}
-        />
+          <PageHeader>
+            <PageHeading>
+              {tct('Project Usage Stats for [dataCategory]', {
+                dataCategory: this.dataCategoryName,
+              })}
+            </PageHeading>
+          </PageHeader>
 
-        <PageHeader>
-          <PageHeading>
-            {tct('Project Usage Stats for [dataCategory]', {
-              dataCategory: this.dataCategoryName,
-            })}
-          </PageHeading>
-        </PageHeader>
+          <Alert type="info" icon={<IconInfo size="md" />}>
+            {t('Only usage stats for your projects are displayed here.')}
+          </Alert>
 
-        <Alert type="info" icon={<IconInfo size="md" />}>
-          {t('You are viewing usage stats only for projects which you have read access.')}
-        </Alert>
-
-        <UsageStatsProjects
-          organization={organization}
-          dataCategory={this.dataCategory}
-          dataCategoryName={this.dataCategoryName}
-          dataDatetime={this.dataPeriod}
-          tableSort={this.tableSort}
-          handleChangeState={this.setStateOnUrl}
-        />
-      </PageContent>
+          <ErrorBoundary mini>
+            <UsageStatsProjects
+              organization={organization}
+              dataCategory={this.dataCategory}
+              dataCategoryName={this.dataCategoryName}
+              dataDatetime={this.dataPeriod}
+              tableSort={this.tableSort}
+              handleChangeState={this.setStateOnUrl}
+              getNextLocations={this.getNextLocations}
+            />
+          </ErrorBoundary>
+        </PageContent>
+      </SentryDocumentTitle>
     );
   }
 }

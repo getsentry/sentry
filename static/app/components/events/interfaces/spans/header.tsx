@@ -8,6 +8,11 @@ import {
   VirtualScrollbar,
   VirtualScrollbarGrip,
 } from 'app/components/waterfallTree/miniHeader';
+import {
+  getHumanDuration,
+  rectOfContent,
+  toPercent,
+} from 'app/components/waterfallTree/utils';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -18,7 +23,6 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
 import MeasurementsPanel from './measurementsPanel';
 import * as ScrollbarManager from './scrollbarManager';
-import {zIndex} from './styles';
 import {
   ParsedTraceType,
   RawSpanType,
@@ -27,14 +31,11 @@ import {
 } from './types';
 import {
   boundsGenerator,
-  getHumanDuration,
   getSpanID,
   getSpanOperation,
   pickSpanBarColour,
-  rectOfContent,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  toPercent,
 } from './utils';
 
 export const MINIMAP_SPAN_BAR_HEIGHT = 4;
@@ -757,7 +758,7 @@ const HeaderContainer = styled('div')`
   position: sticky;
   left: 0;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
-  z-index: ${zIndex.minimapContainer};
+  z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
   height: ${MINIMAP_CONTAINER_HEIGHT}px;

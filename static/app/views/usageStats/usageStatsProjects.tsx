@@ -3,12 +3,9 @@ import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import ErrorPanel from 'app/components/charts/errorPanel';
 import {DateTimeObject} from 'app/components/charts/utils';
 import SortLink, {Alignments, Directions} from 'app/components/gridEditable/sortLink';
-import {Panel, PanelBody} from 'app/components/panels';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {DataCategory, Organization, Project} from 'app/types';
 import withProjects from 'app/utils/withProjects';
@@ -19,6 +16,8 @@ import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
 type Props = {
   organization: Organization;
   projects: Project[];
+  loadingProjects: boolean;
+
   dataCategory: DataCategory;
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
@@ -27,6 +26,7 @@ type Props = {
     state: {sort?: string},
     options?: {willUpdateRouter?: boolean}
   ) => LocationDescriptorObject;
+  getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
 } & AsyncComponent['props'];
 
 type State = {
@@ -39,9 +39,23 @@ export enum SortBy {
   ACCEPTED = 'accepted',
   FILTERED = 'filtered',
   DROPPED = 'dropped',
+  INVALID = 'invalid',
 }
 
 class UsageStatsProjects extends AsyncComponent<Props, State> {
+  componentDidUpdate(prevProps: Props) {
+    const {dataDatetime: prevDateTime} = prevProps;
+    const {dataDatetime: currDateTime} = this.props;
+
+    if (
+      prevDateTime.start !== currDateTime.start ||
+      prevDateTime.end !== currDateTime.end ||
+      prevDateTime.period !== currDateTime.period
+    ) {
+      this.reloadData();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [['projectStats', this.endpointPath, {query: this.endpointQuery}]];
   }
@@ -170,15 +184,17 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   getTableLink(project: Project) {
-    const {dataCategory, organization} = this.props;
+    const {dataCategory, getNextLocations, organization} = this.props;
+    const {performance, projectDetail} = getNextLocations(project);
 
-    if (dataCategory === DataCategory.TRANSACTIONS) {
-      return `/organizations/${organization.slug}/performance/?project=${project.id}`;
+    if (
+      dataCategory === DataCategory.TRANSACTIONS &&
+      organization.features.includes('performance-view')
+    ) {
+      return performance;
     }
 
-    return organization.features.includes('project-detail')
-      ? `/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`
-      : `/organizations/${organization.slug}/issues/?project=${project.id}`;
+    return projectDetail;
   }
 
   handleChangeSort = (nextKey: SortBy) => {
@@ -223,7 +239,8 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
       projectStats.groups.forEach(group => {
         const {outcome, category, project} = group.by;
-        if (category !== dataCategory) {
+        // Backend enum is singlar. Frontend enum is plural.
+        if (!dataCategory.includes(category as string)) {
           return;
         }
 
@@ -231,8 +248,14 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           stats[project] = {...baseStat};
         }
 
-        stats[project][outcome] += group.totals['sum(quantity)'];
         stats[project].total += group.totals['sum(quantity)'];
+
+        // Combine invalid outcomes with dropped
+        if (outcome !== SortBy.INVALID) {
+          stats[project][outcome] += group.totals['sum(quantity)'];
+        } else {
+          stats[project][SortBy.DROPPED] += group.totals['sum(quantity)'];
+        }
       });
 
       // For projects without stats, fill in with zero
@@ -273,35 +296,15 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   renderComponent() {
-    const {error, loading, projectStats} = this.state;
-    const {dataCategory} = this.props;
+    const {error, errors, loading, projectStats} = this.state;
+    const {dataCategory, loadingProjects} = this.props;
     const {headers, tableStats} = this.tableData;
-
-    if (loading) {
-      return (
-        <UsageTable
-          isLoading
-          headers={headers}
-          dataCategory={dataCategory}
-          usageStats={[]}
-        />
-      );
-    }
-
-    if (error || !projectStats) {
-      return (
-        <Panel>
-          <PanelBody>
-            <ErrorPanel height="256px">
-              <IconWarning color="gray300" size="lg" />
-            </ErrorPanel>
-          </PanelBody>
-        </Panel>
-      );
-    }
 
     return (
       <UsageTable
+        isLoading={loading || loadingProjects}
+        isError={error || !projectStats}
+        errors={errors as any} // TODO(ts)
         isEmpty={tableStats.length === 0}
         headers={headers}
         dataCategory={dataCategory}

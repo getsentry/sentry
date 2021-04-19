@@ -636,7 +636,8 @@ class SmartSearchBar extends React.Component<Props, State> {
         Sentry.captureException(err);
         return [];
       }
-      if (tag.key === 'release' && !values.includes('latest')) {
+
+      if (tag.key === 'release:' && !values.includes('latest')) {
         values.unshift('latest');
       }
 

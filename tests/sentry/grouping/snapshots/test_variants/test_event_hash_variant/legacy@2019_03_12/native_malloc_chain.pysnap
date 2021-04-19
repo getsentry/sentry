@@ -1,0 +1,82 @@
+---
+created: '2021-04-02T09:10:51.071132Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "application_frame"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "malloc_zone_malloc"
+            function (function name is not used if module or filename are available)
+              "malloc_zone_malloc"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "nanov2_malloc"
+            function (function name is not used if module or filename are available)
+              "nanov2_malloc"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "nanov2_allocate"
+            function (function name is not used if module or filename are available)
+              "nanov2_allocate"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "nanov2_allocate_from_block"
+            function (function name is not used if module or filename are available)
+              "nanov2_allocate_from_block"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "nanov2_allocate_from_block.cold.1"
+            function (function name is not used if module or filename are available)
+              "nanov2_allocate_from_block.cold.1"
+        type*
+          "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+        value*
+          "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+--------------------------------------------------------------------------
+system:
+  hash: "a433bc7901e2b36f1f85a756f6457620"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame
+            function (function name is not used if module or filename are available)
+              "application_frame"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "malloc_zone_malloc"
+            function (function name is not used if module or filename are available)
+              "malloc_zone_malloc"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "nanov2_malloc"
+            function (function name is not used if module or filename are available)
+              "nanov2_malloc"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "nanov2_allocate"
+            function (function name is not used if module or filename are available)
+              "nanov2_allocate"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "nanov2_allocate_from_block"
+            function (function name is not used if module or filename are available)
+              "nanov2_allocate_from_block"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "nanov2_allocate_from_block.cold.1"
+            function (function name is not used if module or filename are available)
+              "nanov2_allocate_from_block.cold.1"
+        type*
+          "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+        value*
+          "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"

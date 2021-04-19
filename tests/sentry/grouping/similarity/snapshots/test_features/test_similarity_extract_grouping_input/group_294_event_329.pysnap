@@ -1,0 +1,49 @@
+---
+created: '2021-04-08T09:39:09.113663Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","__tree"],["function","std::__1::__tree<T>::destroy"]],[["filename","memory"],["function","std::__1::allocator_traits<T>::destroy<T>"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","__tree"],["function","std::__1::__tree<T>::~__tree"]],[["filename","__tree"],["function","std::__1::__tree<T>::destroy"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","function_template.hpp"],["function","boost::function0<T>::operator()"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mac"],["function","std::__1::map<T>::~map"]],[["filename","map"],["function","std::__1::map<T>::~map"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mac"],["function","std::__1::pair<T>::~pair"]],[["filename","utility"],["function","std::__1::pair<T>::~pair"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","map"],["function","std::__1::map<T>::~map"]],[["filename","__tree"],["function","std::__1::__tree<T>::~__tree"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","memory"],["function","std::__1::allocator_traits<T>::__destroy<T>"]],[["filename","mac"],["function","std::__1::pair<T>::~pair"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","memory"],["function","std::__1::allocator_traits<T>::destroy<T>"]],[["filename","memory"],["function","std::__1::allocator_traits<T>::__destroy<T>"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","utility"],["function","std::__1::pair<T>::~pair"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__abort"]],[["function","__pthread_kill"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_dispatch_client_callout"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_dispatch_root_queue_drain"]],[["function","_dispatch_client_callout"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_dispatch_root_queues_init_once"]],[["function","start_wqthread"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_dispatch_worker_thread2"]],[["function","_dispatch_root_queue_drain"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_pthread_wqthread"]],[["function","_dispatch_worker_thread2"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","abort"]],[["function","__abort"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","abort_message"]],[["function","abort"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","demangling_terminate_handler"]],[["function","abort_message"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","start_wqthread"]],[["function","_pthread_wqthread"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::__terminate"]],[["function","demangling_terminate_handler"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::terminate"]],[["function","std::__terminate"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["filename","function_template.hpp"],["function","boost::function0<T>::operator()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["filename","mac"],["function","std::__1::map<T>::~map"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["function","std::terminate"]]]
+similarity:2020-07-23:value:character-5-shingle: " / <h"
+similarity:2020-07-23:value:character-5-shingle: " <hex"
+similarity:2020-07-23:value:character-5-shingle: " Erro"
+similarity:2020-07-23:value:character-5-shingle: "/ <he"
+similarity:2020-07-23:value:character-5-shingle: ": <he"
+similarity:2020-07-23:value:character-5-shingle: "<hex>"
+similarity:2020-07-23:value:character-5-shingle: "> / <"
+similarity:2020-07-23:value:character-5-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: "Fatal"
+similarity:2020-07-23:value:character-5-shingle: "al Er"
+similarity:2020-07-23:value:character-5-shingle: "atal "
+similarity:2020-07-23:value:character-5-shingle: "ex> /"
+similarity:2020-07-23:value:character-5-shingle: "hex> "
+similarity:2020-07-23:value:character-5-shingle: "l Err"
+similarity:2020-07-23:value:character-5-shingle: "or: <"
+similarity:2020-07-23:value:character-5-shingle: "r: <h"
+similarity:2020-07-23:value:character-5-shingle: "ror: "
+similarity:2020-07-23:value:character-5-shingle: "rror:"
+similarity:2020-07-23:value:character-5-shingle: "tal E"
+similarity:2020-07-23:value:character-5-shingle: "x> / "
