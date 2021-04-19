@@ -198,6 +198,7 @@ const WizardImage = styled('img')`
 `;
 
 const WizardPanel = styled(Panel)<{visible?: boolean}>`
+  margin-top: -50px;
   max-width: 700px;
   position: sticky;
   top: 20px;
