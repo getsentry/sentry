@@ -1,4 +1,33 @@
+from django.core.urlresolvers import reverse
+
+from sentry.models import ApiToken
 from sentry.testutils import APITestCase
+
+
+class ProjectMetricsPermissionTest(APITestCase):
+    def send_get_request(self, token, endpoint, *args):
+        url = reverse(endpoint, args=(self.project.organization.slug, self.project.slug) + args)
+        return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
+
+    def test_permissions(self):
+
+        endpoints = (
+            ("sentry-api-0-project-metrics-index",),
+            ("sentry-api-0-project-metrics-tags", "foo", "bar"),
+            ("sentry-api-0-project-metrics-data",),
+        )
+
+        token = ApiToken.objects.create(user=self.user, scope_list=[])
+
+        for endpoint in endpoints:
+            response = self.send_get_request(token, *endpoint)
+            assert response.status_code == 403
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+
+        for endpoint in endpoints:
+            response = self.send_get_request(token, *endpoint)
+            assert response.status_code in (200, 400)
 
 
 class ProjectMetricsTest(APITestCase):
