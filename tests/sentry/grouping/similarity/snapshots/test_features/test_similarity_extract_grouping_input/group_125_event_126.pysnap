@@ -1,0 +1,54 @@
+---
+created: '2021-04-08T09:39:04.798225Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","__functional_base"],["function","std::__1::__invoke_void_return_wrapper<T>::__call<T>"]],[["filename","type_traits"],["function","std::__1::__invoke<T>"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","functional"],["function","std::__1::__function::__alloc_func<T>::operator()"]],[["filename","__functional_base"],["function","std::__1::__invoke_void_return_wrapper<T>::__call<T>"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","functional"],["function","std::__1::__function::__func<T>::operator()"]],[["filename","functional"],["function","std::__1::__function::__alloc_func<T>::operator()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","functional"],["function","std::__1::__function::__value_func<T>::operator()"]],[["filename","functional"],["function","std::__1::__function::__func<T>::operator()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","functional"],["function","std::__1::function<T>::operator()"]],[["filename","functional"],["function","std::__1::__function::__value_func<T>::operator()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","initialize.cpp"],["function","MZ::`anonymous namespace'::lambda::operator()"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","type_traits"],["function","std::__1::__invoke<T>"]],[["filename","initialize.cpp"],["function","MZ::`anonymous namespace'::lambda::operator()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","CFBundleGetFunctionPointerForName"]],[["function","_CFBundleLoadExecutableAndReturnError"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","ImageLoader::link"]],[["function","ImageLoader::recursiveRebase"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","ImageLoader::recursiveRebase"]],[["function","ImageLoaderMachOCompressed::rebase"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_CFBundleDlfcnLoadBundle"]],[["function","dlopen"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_CFBundleLoadExecutableAndReturnError"]],[["function","_CFBundleDlfcnLoadBundle"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","dlopen"]],[["function","dlopen_internal"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","dlopen_internal"]],[["function","dyld::link"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","dyld::link"]],[["function","ImageLoader::link"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","start"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["filename","functional"],["function","std::__1::function<T>::operator()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["function","CFBundleGetFunctionPointerForName"]]]
+similarity:2020-07-23:value:character-5-shingle: " / <h"
+similarity:2020-07-23:value:character-5-shingle: " <hex"
+similarity:2020-07-23:value:character-5-shingle: " EXC_"
+similarity:2020-07-23:value:character-5-shingle: " Erro"
+similarity:2020-07-23:value:character-5-shingle: "/ <he"
+similarity:2020-07-23:value:character-5-shingle: ": EXC"
+similarity:2020-07-23:value:character-5-shingle: "<hex>"
+similarity:2020-07-23:value:character-5-shingle: "ACCES"
+similarity:2020-07-23:value:character-5-shingle: "AD_AC"
+similarity:2020-07-23:value:character-5-shingle: "BAD_A"
+similarity:2020-07-23:value:character-5-shingle: "CCESS"
+similarity:2020-07-23:value:character-5-shingle: "CESS "
+similarity:2020-07-23:value:character-5-shingle: "C_BAD"
+similarity:2020-07-23:value:character-5-shingle: "D_ACC"
+similarity:2020-07-23:value:character-5-shingle: "ESS /"
+similarity:2020-07-23:value:character-5-shingle: "EXC_B"
+similarity:2020-07-23:value:character-5-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: "Fatal"
+similarity:2020-07-23:value:character-5-shingle: "S / <"
+similarity:2020-07-23:value:character-5-shingle: "SS / "
+similarity:2020-07-23:value:character-5-shingle: "XC_BA"
+similarity:2020-07-23:value:character-5-shingle: "_ACCE"
+similarity:2020-07-23:value:character-5-shingle: "_BAD_"
+similarity:2020-07-23:value:character-5-shingle: "al Er"
+similarity:2020-07-23:value:character-5-shingle: "atal "
+similarity:2020-07-23:value:character-5-shingle: "l Err"
+similarity:2020-07-23:value:character-5-shingle: "or: E"
+similarity:2020-07-23:value:character-5-shingle: "r: EX"
+similarity:2020-07-23:value:character-5-shingle: "ror: "
+similarity:2020-07-23:value:character-5-shingle: "rror:"
+similarity:2020-07-23:value:character-5-shingle: "tal E"

@@ -1,0 +1,21 @@
+---
+created: '2021-03-26T18:36:02.935376Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXCEPTION_ACCESS_VIOLATION_READ:Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ (thread_id:_, crashed:_)
+               C:\Windows\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
+            C:\Windows\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
+                                              stripped_application_code
+            C:\Windows\System32\ucrtbase.dll  exit category=shutdown
+            C:\Windows\System32\ucrtbase.dll  exit category=shutdown
+            C:\Windows\System32\KERNEL32.DLL  FatalExit category=indirection
+               C:\Windows\SYSTEM32\ntdll.dll  RtlExitUserProcess category=shutdown
+               C:\Windows\SYSTEM32\ntdll.dll  LdrShutdownProcess category=system
+               C:\Windows\SYSTEM32\ntdll.dll  RtlDeactivateActivationContextUnsafeFast category=internals
+                                              stripped_application_code
+            C:\Windows\SYSTEM32\MSVCR100.dll  free category=free
+               C:\Windows\SYSTEM32\ntdll.dll  RtlFreeHeap category=free
+               C:\Windows\SYSTEM32\ntdll.dll  RtlpFreeHeapInternal category=internals

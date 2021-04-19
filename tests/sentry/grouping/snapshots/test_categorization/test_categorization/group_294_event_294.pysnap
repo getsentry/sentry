@@ -1,0 +1,47 @@
+---
+created: '2021-03-29T20:18:46.852622Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+           /usr/lib/system/libdispatch.dylib  ??? category=internals
+     /usr/lib/system/libsystem_pthread.dylib  start_wqthread category=threadbase
+     /usr/lib/system/libsystem_pthread.dylib  _pthread_wqthread category=threadbase
+           /usr/lib/system/libdispatch.dylib  ??? category=internals
+           /usr/lib/system/libdispatch.dylib  ??? category=internals
+           /usr/lib/system/libdispatch.dylib  ??? category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+  ../../../../../artifacts/boost_source_libr  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+  ../../../../../artifacts/boost_source_libr  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                         mac  std::__1::map<T>::~map category=internals
+                                         map  std::__1::map<T>::~map category=internals
+                                      __tree  std::__1::__tree<T>::~__tree category=internals
+                                      __tree  std::__1::__tree<T>::~__tree category=internals
+                                      __tree  std::__1::__tree<T>::destroy category=internals
+                                      memory  std::__1::allocator_traits<T>::destroy<T> category=malloc
+                                      memory  std::__1::allocator_traits<T>::__destroy<T> category=internals
+                                         mac  std::__1::pair<T>::~pair category=internals
+                                     utility  std::__1::pair<T>::~pair category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                     /usr/lib/libc++.1.dylib  std::__1::thread::~thread category=internals
+                    /usr/lib/libc++abi.dylib  std::terminate category=throw
+                    /usr/lib/libc++abi.dylib  std::__terminate category=internals
+                    /usr/lib/libc++abi.dylib  default_terminate_handler category=internals
+                    /usr/lib/libc++abi.dylib  abort_message category=internals
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+           /usr/lib/system/libsystem_c.dylib  __abort category=internals
+      /usr/lib/system/libsystem_kernel.dylib  ??? category=internals
