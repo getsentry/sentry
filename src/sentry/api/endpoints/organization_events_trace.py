@@ -47,7 +47,7 @@ def query_trace_data(trace_id, params):
         ],
         # We want to guarantee at least getting the root, and hopefully events near it with timestamp
         # id is just for consistent results
-        orderby=["-root", "-timestamp", "id"],
+        orderby=["-root", "timestamp", "id"],
         params=params,
         query=f"event.type:transaction trace:{trace_id}",
     )
