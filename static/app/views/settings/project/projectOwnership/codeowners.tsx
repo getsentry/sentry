@@ -1,14 +1,14 @@
 import React from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
 import {Client} from 'app/api';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import {CodeOwners, Organization, Project} from 'app/types';
-import RulesPanel from 'app/views/settings/project/projectOwnership/rulesPanel';
 import withApi from 'app/utils/withApi';
+import RulesPanel from 'app/views/settings/project/projectOwnership/rulesPanel';
 
 type Props = {
   api: Client;
@@ -21,7 +21,6 @@ type Props = {
 type State = {};
 
 class CodeOwnersPanel extends React.Component<Props, State> {
-
   state = {};
 
   handleDelete = async (codeowner: CodeOwners) => {
