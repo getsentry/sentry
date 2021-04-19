@@ -1,3 +1,4 @@
+from sentry.models import Dashboard, DashboardWidget, DashboardWidgetDisplayTypes
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -6,6 +7,7 @@ FEATURE_NAMES = [
     "organizations:discover-query",
     "organizations:dashboards-basic",
     "organizations:dashboards-edit",
+    "organizations:dashboards-manage",
 ]
 
 
@@ -66,3 +68,45 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             button = self.browser.element('[data-test-id="widget-edit"]')
             button.click()
             self.browser.snapshot("dashboards - edit widget")
+
+
+class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
+    def setUp(self):
+        super().setUp()
+        self.team = self.create_team(organization=self.organization, name="Mariachi Band")
+        self.project = self.create_project(
+            organization=self.organization, teams=[self.team], name="Bengal"
+        )
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.dashboard = Dashboard.objects.create(
+            title="Dashboard 1", created_by=self.user, organization=self.organization
+        )
+        self.widget_1 = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Widget 1",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            interval="1d",
+        )
+        self.widget_2 = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=1,
+            title="Widget 2",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            interval="1d",
+        )
+        self.login_as(self.user)
+
+        self.default_path = f"/organizations/{self.organization.slug}/dashboards/manage/"
+
+    def wait_until_loaded(self):
+        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+
+    def test_dashboard_manager(self):
+        with self.feature(FEATURE_NAMES):
+            self.browser.get(self.default_path)
+            self.wait_until_loaded()
+            self.browser.snapshot("dashboards - manage overview")

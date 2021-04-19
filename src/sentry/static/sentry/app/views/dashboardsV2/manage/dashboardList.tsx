@@ -12,12 +12,13 @@ import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
 
 import DashboardCard from './dashboardCard';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 type Props = {
   organization: Organization;
@@ -26,27 +27,26 @@ type Props = {
   pageLinks: string;
 };
 
-class MiniDashboard extends React.PureComponent<Props> {
-  static miniWidget(widget: Widget): React.ReactNode {
-    switch (widget.displayType) {
-      case 'bar':
-        return <MiniWidgetWrapper src={WidgetBar} />;
-      case 'area':
-        return <MiniWidgetWrapper src={WidgetArea} />;
-      case 'big_number':
-        return <BigNumberWidgetWrapper src={WidgetBigNumber} />;
-      case 'table':
-        return <MiniWidgetWrapper src={WidgetTable} />;
-      case 'world_map':
-        return <MiniWidgetWrapper src={WidgetWorldMap} />;
-      case 'line':
-      default:
-        return <MiniWidgetWrapper src={WidgetLine} />;
-    }
-  }
-}
 
 class DashboardList extends React.Component<Props> {
+  static miniWidget(widget: Widget): string {
+    switch (widget.displayType) {
+      case 'bar':
+        return WidgetBar;
+      case 'area':
+        return WidgetArea;
+      case 'big_number':
+        return WidgetBigNumber;
+      case 'table':
+        return WidgetTable;
+      case 'world_map':
+        return WidgetWorldMap;
+      case 'line':
+      default:
+        return WidgetLine;
+    }
+  }
+
   renderMiniDashboards() {
     const {organization, dashboards} = this.props;
     return dashboards?.map((dashboard, index) => {
@@ -67,7 +67,11 @@ class DashboardList extends React.Component<Props> {
           createdBy={dashboard.createdBy}
           renderWidgets={() => (
             <WidgetGrid>
-              {dashboard.widgets.map(w => MiniDashboard.miniWidget(w))}
+            {dashboard.widgets.map((widget, index) => {
+              return widget.displayType === 'big_number' ?
+                <BigNumberWidgetWrapper key={`${index}-${widget.id}`} src={DashboardList.miniWidget(widget)} />
+                : <MiniWidgetWrapper key={`${index}-${widget.id}`} src={DashboardList.miniWidget(widget)} />
+            })}
             </WidgetGrid>
           )}
         />
@@ -75,11 +79,23 @@ class DashboardList extends React.Component<Props> {
     });
   }
 
+  renderDashboardGrid() {
+    const {dashboards} = this.props;
+    if (dashboards?.length === 0) {
+      return (
+        <EmptyStateWarning>
+          <p>{t('Sorry, no Dashboards match your filters.')}</p>
+        </EmptyStateWarning>
+      );
+    }
+    return <DashboardGrid>{this.renderMiniDashboards()}</DashboardGrid>
+  }
+
   render() {
     const {pageLinks} = this.props;
     return (
       <React.Fragment>
-        <DashboardGrid>{this.renderMiniDashboards()}</DashboardGrid>
+        {this.renderDashboardGrid()}
         <PaginationRow
           pageLinks={pageLinks}
           onCursor={(cursor: string, path: string, query: Query, direction: number) => {

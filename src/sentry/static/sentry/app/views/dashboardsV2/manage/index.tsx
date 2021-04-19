@@ -13,17 +13,13 @@ import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import DashboardList from './dashboardList';
-import {DashboardDetails, DashboardState} from '../types';
+import {DashboardDetails} from '../types';
 import space from 'app/styles/space';
 import styled from '@emotion/styled';
 import SearchBar from 'app/components/searchBar';
 import pick from 'lodash/pick';
-import Button from 'app/components/button';
-import { IconAdd } from 'app/icons/iconAdd';
-import { DashboardEditFeature } from '../controls';
-import { cloneDashboard } from '../utils';
-import { trackAnalyticsEvent } from 'app/utils/analytics';
-import { EMPTY_DASHBOARD } from '../data';
+import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
 
 type Props = {
   organization: Organization;
@@ -68,8 +64,6 @@ class ManageDashboards extends AsyncComponent<Props, State> {
     return typeof query === 'string' ? query : undefined;
   }
 
-  onCreate = () => {};
-
   renderActions() {
     return (
       <StyledActions>
@@ -83,6 +77,14 @@ class ManageDashboards extends AsyncComponent<Props, State> {
     )
   }
 
+  renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
+
   renderBody() {
     const {dashboards, dashboardsPageLinks} = this.state;
     const {organization, location} = this.props;
@@ -93,44 +95,30 @@ class ManageDashboards extends AsyncComponent<Props, State> {
     const {organization} = this.props;
 
     return (
-      <SentryDocumentTitle title={t('Manage Dashboards')} orgSlug={organization.slug}>
-        <LightWeightNoProjectMessage organization={organization}>
-          <PageContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: 'Dashboards',
-                  to: `/organizations/${organization.slug}/dashboards/`,
-                },
-                {
-                  label: 'Manage Dashboards',
-                },
-              ]}
-            />
-            <PageHeader>
-              <PageHeading>Manage Dashboards</PageHeading>
-              <DashboardEditFeature>
-                {hasFeature => (
-                  <Button
-                    data-test-id="dashboard-create"
-                    onClick={e => {
-                      e.preventDefault();
-                      this.onCreate();
-                    }}
-                    priority="primary"
-                    icon={<IconAdd size="xs" isCircled />}
-                    disabled={!hasFeature}
-                  >
-                    {t('Create Dashboard')}
-                  </Button>
-                )}
-              </DashboardEditFeature>
-            </PageHeader>
-            {this.renderActions()}
-            {this.renderComponent()}
-          </PageContent>
-        </LightWeightNoProjectMessage>
-      </SentryDocumentTitle>
+      <Feature organization={organization} features={['dashboards-manage']} renderDisabled={this.renderNoAccess}>
+        <SentryDocumentTitle title={t('Manage Dashboards')} orgSlug={organization.slug}>
+          <LightWeightNoProjectMessage organization={organization}>
+            <PageContent>
+              <Breadcrumbs
+                crumbs={[
+                  {
+                    label: 'Dashboards',
+                    to: `/organizations/${organization.slug}/dashboards/`,
+                  },
+                  {
+                    label: 'Manage Dashboards',
+                  },
+                ]}
+              />
+              <PageHeader>
+                <PageHeading>Manage Dashboards</PageHeading>
+              </PageHeader>
+              {this.renderActions()}
+              {this.renderComponent()}
+            </PageContent>
+          </LightWeightNoProjectMessage>
+        </SentryDocumentTitle>
+      </Feature>
     );
   }
 }
