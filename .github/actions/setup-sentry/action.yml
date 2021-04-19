@@ -48,7 +48,7 @@ runs:
         echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
 
         ### pytest-sentry configuration ###
-        # echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
+        echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
         echo "PYTEST_ADDOPTS=--reruns 5" >> $GITHUB_ENV
         # this handles pytest test sharding
         if [ "$MATRIX_INSTANCE" ]; then
