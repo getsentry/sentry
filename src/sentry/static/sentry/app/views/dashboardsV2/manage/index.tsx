@@ -13,11 +13,17 @@ import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import DashboardList from './dashboardList';
-import {DashboardDetails} from '../types';
+import {DashboardDetails, DashboardState} from '../types';
 import space from 'app/styles/space';
 import styled from '@emotion/styled';
 import SearchBar from 'app/components/searchBar';
 import pick from 'lodash/pick';
+import Button from 'app/components/button';
+import { IconAdd } from 'app/icons/iconAdd';
+import { DashboardEditFeature } from '../controls';
+import { cloneDashboard } from '../utils';
+import { trackAnalyticsEvent } from 'app/utils/analytics';
+import { EMPTY_DASHBOARD } from '../data';
 
 type Props = {
   organization: Organization;
@@ -51,7 +57,7 @@ class ManageDashboards extends AsyncComponent<Props, State> {
     const {location, router} = this.props;
 
     router.push({
-      ...location,
+      pathname: location.pathname,
       query: {...location.query, cursor: undefined, query},
     });
   };
@@ -62,6 +68,7 @@ class ManageDashboards extends AsyncComponent<Props, State> {
     return typeof query === 'string' ? query : undefined;
   }
 
+  onCreate = () => {};
 
   renderActions() {
     return (
@@ -102,6 +109,22 @@ class ManageDashboards extends AsyncComponent<Props, State> {
             />
             <PageHeader>
               <PageHeading>Manage Dashboards</PageHeading>
+              <DashboardEditFeature>
+                {hasFeature => (
+                  <Button
+                    data-test-id="dashboard-create"
+                    onClick={e => {
+                      e.preventDefault();
+                      this.onCreate();
+                    }}
+                    priority="primary"
+                    icon={<IconAdd size="xs" isCircled />}
+                    disabled={!hasFeature}
+                  >
+                    {t('Create Dashboard')}
+                  </Button>
+                )}
+              </DashboardEditFeature>
             </PageHeader>
             {this.renderActions()}
             {this.renderComponent()}
