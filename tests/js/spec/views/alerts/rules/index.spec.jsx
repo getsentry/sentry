@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import AlertRulesList from 'app/views/alerts/rules';
+import {IncidentStatus} from 'app/views/alerts/types';
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();
@@ -37,6 +38,18 @@ describe('OrganizationRuleList', () => {
           projects: ['earth'],
           createdBy: {name: 'Samwise', id: 1, email: ''},
         }),
+        TestStubs.IncidentRule({
+          id: '345',
+          projects: ['earth'],
+          latestIncident: TestStubs.Incident({
+            status: IncidentStatus.CRITICAL,
+          }),
+        }),
+        TestStubs.IncidentRule({
+          id: '678',
+          projects: ['earth'],
+          latestIncident: null,
+        }),
       ],
     });
 
@@ -56,9 +69,10 @@ describe('OrganizationRuleList', () => {
   it('displays list', async () => {
     const wrapper = await createWrapper();
 
-    expect(wrapper.find('RuleType').text()).toBe('Issue');
-    expect(wrapper.find('Title').text()).toBe('First Issue Alert');
-    expect(wrapper.find('CreatedBy').text()).toBe('Samwise');
+    const row = wrapper.find('RuleListRow').at(0);
+    expect(row.find('RuleType').at(0).text()).toBe('Issue');
+    expect(row.find('Title').text()).toBe('First Issue Alert');
+    expect(row.find('CreatedBy').text()).toBe('Samwise');
 
     // GlobalSelectionHeader loads projects + the Projects render-prop
     // component to load projects for all rows.
@@ -70,7 +84,7 @@ describe('OrganizationRuleList', () => {
         query: expect.objectContaining({query: 'slug:earth'}),
       })
     );
-    expect(wrapper.find('IdBadge').prop('project')).toMatchObject({
+    expect(wrapper.find('IdBadge').at(0).prop('project')).toMatchObject({
       slug: 'earth',
     });
   });
@@ -120,19 +134,20 @@ describe('OrganizationRuleList', () => {
       expect.objectContaining({
         query: {
           sort: 'name',
-          asc: '1',
+          asc: undefined,
         },
       })
     );
 
     wrapper.setProps({
-      location: {query: {asc: '1', sort: 'name'}, search: '?asc=1&sort=name`'},
+      location: {query: {sort: 'name'}, search: '?asc=1&sort=name`'},
     });
 
     expect(wrapper.find('StyledSortLink').first().props().to).toEqual(
       expect.objectContaining({
         query: {
           sort: 'name',
+          asc: '1',
         },
       })
     );
@@ -176,6 +191,39 @@ describe('OrganizationRuleList', () => {
         query: {
           name: testQuery,
         },
+      })
+    );
+  });
+
+  it('displays alert status', async () => {
+    const ownershipOrg = {
+      ...organization,
+      features: ['alert-list', 'incidents'],
+    };
+    const wrapper = await createWrapper({organization: ownershipOrg});
+    let row = wrapper.find('RuleListRow').at(1);
+    expect(row.find('AlertNameAndStatus').text()).toContain('My Incident Rule');
+    expect(row.find('AlertNameAndStatus').text()).toContain('Triggered');
+    expect(row.find('TriggerText').text()).toBe('Above 70');
+
+    row = wrapper.find('RuleListRow').at(2);
+    expect(row.find('TriggerText').text()).toBe('Below 70');
+    expect(wrapper.find('AlertIconWrapper').exists()).toBe(true);
+  });
+
+  it('sorts by alert rule with alert-list', async () => {
+    const ownershipOrg = {
+      ...organization,
+      features: ['alert-list', 'incidents'],
+    };
+    await createWrapper({organization: ownershipOrg});
+
+    expect(router.replace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          expand: ['latestIncident'],
+          sort: ['incident_status', 'date_triggered'],
+        }),
       })
     );
   });

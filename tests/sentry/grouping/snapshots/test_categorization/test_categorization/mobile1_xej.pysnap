@@ -1,0 +1,36 @@
+---
+created: '2021-03-29T22:02:41.193254Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS:treebranch_cny2021 >
+Attempted to dereference garbage pointer 0x24. (thread_id:_, crashed:_)
+                                              stripped_application_code
+                                       UIKit  UIApplicationMain category=threadbase
+                                              stripped_application_code
+                              CoreFoundation  CFRunLoopRunInMode category=system
+                              CoreFoundation  CFRunLoopRunSpecific category=internals
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRunLoopDoSource1 category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__ category=internals
+                              CoreFoundation  __CFMachPortPerform category=internals
+                                       IOKit  IODispatchCalloutFromCFMessage category=internals
+                         IOMobileFramebuffer  IOMobileFramebufferVsyncNotifyFunc category=internals
+                                  QuartzCore  CA::Display::DisplayLink::dispatch_items category=internals
+                                  QuartzCore  CA::Display::DisplayLinkItem::dispatch category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code

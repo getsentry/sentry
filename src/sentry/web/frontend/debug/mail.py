@@ -6,8 +6,8 @@ import uuid
 from datetime import datetime, timedelta
 from random import Random
 
-from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View

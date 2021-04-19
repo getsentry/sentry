@@ -56,7 +56,6 @@ default_manager.add("organizations:alert-details-redesign", OrganizationFeature)
 default_manager.add("organizations:alert-filters", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-wizard", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-list", OrganizationFeature)  # NOQA
-default_manager.add("organizations:android-mappings", OrganizationFeature)  # NOQA
 default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:chart-unfurls", OrganizationFeature)  # NOQA
@@ -108,11 +107,8 @@ default_manager.add("organizations:performance-ops-breakdown", OrganizationFeatu
 default_manager.add("organizations:performance-tag-explorer", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-view", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA
-default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
-default_manager.add("organizations:project-detail-links", OrganizationFeature)  # NOQA
 default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
-default_manager.add("organizations:releases-top-charts", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
@@ -122,7 +118,6 @@ default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-migration", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
-default_manager.add("organizations:stacktrace-hover-preview", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:team-alerts-ownership", OrganizationFeature)  # NOQA
 default_manager.add("organizations:trace-view-quick", OrganizationFeature)  # NOQA

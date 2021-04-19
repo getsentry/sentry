@@ -3,7 +3,7 @@ from typing import Tuple
 
 import sentry_sdk
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.template.defaultfilters import slugify
 
@@ -94,7 +94,7 @@ def create_demo_org(quick=False) -> Organization:
         return org
 
 
-def assign_demo_org(skip_buffer=False) -> Tuple[Organization, User]:
+def assign_demo_org(skip_buffer=False, retries_left=3) -> Tuple[Organization, User]:
     with sentry_sdk.configure_scope() as scope:
         try:
             parent_span_id = scope.span.span_id
@@ -116,7 +116,7 @@ def assign_demo_org(skip_buffer=False) -> Tuple[Organization, User]:
         if skip_buffer:
             org = create_demo_org(quick=True)
         else:
-            demo_org = DemoOrganization.objects.filter(status=DemoOrgStatus.PENDING).first()
+            demo_org = DemoOrganization.get_one_pending_org()
             # if no org in buffer, make a quick one with fewer events
             if not demo_org:
                 org = create_demo_org(quick=True)
@@ -129,11 +129,19 @@ def assign_demo_org(skip_buffer=False) -> Tuple[Organization, User]:
         # wrap the assignment of the demo org in a transaction
         with transaction.atomic():
             email = create_fake_email(org.slug, "demo")
-            user = DemoUser.create_user(
-                email=email,
-                username=email,
-                is_managed=True,
-            )
+            try:
+                user = DemoUser.create_user(
+                    email=email,
+                    username=email,
+                    is_managed=True,
+                )
+            except IntegrityError:
+                # There is a race condition where two people might try to reserve the same organization
+                # at the same time. If that happens, we get IntegrityError creating the user.
+                # If that happens, try the same thing (which will give us a new org) but only up to 3 times
+                if retries_left == 0:
+                    raise
+                return assign_demo_org(skip_buffer=skip_buffer, retries_left=retries_left - 1)
 
             # TODO: May need logic in case team no longer exists
             team = Team.objects.get(organization=org)
