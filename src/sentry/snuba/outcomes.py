@@ -279,6 +279,7 @@ def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
         conditions=query.conditions,
         selected_columns=query.query_columns,
         referrer="outcomes.totals",
+        limit=10000,
     )
     result_timeseries = raw_query(
         dataset=query.dataset,
@@ -291,6 +292,7 @@ def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
         end=query.end,
         rollup=query.rollup,
         referrer="outcomes.timeseries",
+        limit=10000,
     )
 
     result_totals = _format_rows(result["data"], query)
