@@ -42,11 +42,7 @@ const ProjectBadge = ({
     />
   );
 
-  if (
-    !disableLink &&
-    organization?.features.includes('project-detail') &&
-    organization?.features.includes('project-detail-links')
-  ) {
+  if (!disableLink && organization?.slug) {
     return (
       <StyledLink
         to={`/organizations/${organization.slug}/projects/${slug}/${
