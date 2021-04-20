@@ -165,7 +165,7 @@ class AlertWizard extends React.Component<Props, State> {
 }
 
 const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
+  margin-bottom: -${space(3)};
 `;
 
 const StyledListItem = styled(ListItem)`
