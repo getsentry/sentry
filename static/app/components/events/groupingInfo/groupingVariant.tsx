@@ -181,7 +181,7 @@ class GroupVariant extends React.Component<Props, State> {
     const {variant} = this.props;
     const isContributing = variant.hash !== null;
 
-    let title;
+    let title: string;
     if (isContributing) {
       title = t('Contributing variant');
     } else {
@@ -271,7 +271,7 @@ const ContributionIcon = styled(({isContributing, ...p}) =>
   isContributing ? (
     <IconCheckmark size="sm" isCircled color="green300" {...p} />
   ) : (
-    <IconClose size="sm" isCircled color="red" {...p} />
+    <IconClose size="sm" isCircled color="red300" {...p} />
   )
 )`
   margin-right: ${space(1)};
