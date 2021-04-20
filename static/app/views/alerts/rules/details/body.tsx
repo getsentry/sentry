@@ -158,48 +158,58 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <SidebarHeading>{t('Metric')}</SidebarHeading>
-        <RuleText>{this.getMetricText()}</RuleText>
+        <SidebarGroup>
+          <SidebarHeading>{t('Metric')}</SidebarHeading>
+          <RuleText>{this.getMetricText()}</RuleText>
+        </SidebarGroup>
 
-        <SidebarHeading>{t('Environment')}</SidebarHeading>
-        <RuleText>{rule.environment ?? 'All'}</RuleText>
+        <SidebarGroup>
+          <SidebarHeading>{t('Environment')}</SidebarHeading>
+          <RuleText>{rule.environment ?? 'All'}</RuleText>
+        </SidebarGroup>
 
-        <SidebarHeading>{t('Filters')}</SidebarHeading>
-        {this.getFilter()}
+        <SidebarGroup>
+          <SidebarHeading>{t('Filters')}</SidebarHeading>
+          {this.getFilter()}
+        </SidebarGroup>
 
-        <SidebarHeading>{t('Conditions')}</SidebarHeading>
-        {criticalTrigger && this.renderTrigger(criticalTrigger)}
-        {warningTrigger && this.renderTrigger(warningTrigger)}
+        <SidebarGroup>
+          <SidebarHeading>{t('Conditions')}</SidebarHeading>
+          {criticalTrigger && this.renderTrigger(criticalTrigger)}
+          {warningTrigger && this.renderTrigger(warningTrigger)}
+        </SidebarGroup>
 
-        <SidebarHeading>{t('Other Details')}</SidebarHeading>
-        <KeyValueTable>
-          <Feature features={['organizations:team-alerts-ownership']}>
-            <KeyValueTableRow
-              keyName={t('Team')}
-              value={
-                teamActor ? (
-                  <ActorAvatar actor={teamActor} size={24} />
-                ) : (
-                  <IconUser size="20px" color="gray400" />
-                )
-              }
-            />
-          </Feature>
+        <SidebarGroup>
+          <SidebarHeading>{t('Other Details')}</SidebarHeading>
+          <KeyValueTable>
+            <Feature features={['organizations:team-alerts-ownership']}>
+              <KeyValueTableRow
+                keyName={t('Team')}
+                value={
+                  teamActor ? (
+                    <ActorAvatar actor={teamActor} size={24} />
+                  ) : (
+                    <IconUser size="20px" color="gray400" />
+                  )
+                }
+              />
+            </Feature>
 
-          {rule.createdBy && (
-            <KeyValueTableRow
-              keyName={t('Created By')}
-              value={<CreatedBy>{rule.createdBy.name ?? '-'}</CreatedBy>}
-            />
-          )}
+            {rule.createdBy && (
+              <KeyValueTableRow
+                keyName={t('Created By')}
+                value={<CreatedBy>{rule.createdBy.name ?? '-'}</CreatedBy>}
+              />
+            )}
 
-          {rule.dateModified && (
-            <KeyValueTableRow
-              keyName={t('Last Modified')}
-              value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
-            />
-          )}
-        </KeyValueTable>
+            {rule.dateModified && (
+              <KeyValueTableRow
+                keyName={t('Last Modified')}
+                value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
+              />
+            )}
+          </KeyValueTable>
+        </SidebarGroup>
       </React.Fragment>
     );
   }
@@ -287,7 +297,7 @@ export default class DetailsBody extends React.Component<Props> {
                   )}
                 </StyledAlert>
               </StyledLayoutBody>
-              <Layout.Body>
+              <StyledLayoutBodyWrapper>
                 <Layout.Main>
                   <HeaderContainer>
                     <div>
@@ -376,7 +386,7 @@ export default class DetailsBody extends React.Component<Props> {
                   <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
                   {this.renderRuleDetails()}
                 </Layout.Side>
-              </Layout.Body>
+              </StyledLayoutBodyWrapper>
             </React.Fragment>
           ) : (
             <Placeholder height="200px" />
@@ -386,6 +396,10 @@ export default class DetailsBody extends React.Component<Props> {
     );
   }
 }
+
+const SidebarGroup = styled('div')`
+  margin-bottom: ${space(3)};
+`;
 
 const DetailWrapper = styled('div')`
   display: flex;
@@ -407,6 +421,10 @@ const StyledLayoutBody = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: auto;
   }
+`;
+
+const StyledLayoutBodyWrapper = styled(Layout.Body)`
+  margin-bottom: -${space(3)};
 `;
 
 const StyledAlert = styled(Alert)`
