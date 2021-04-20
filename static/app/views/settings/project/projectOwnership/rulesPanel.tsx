@@ -1,7 +1,7 @@
 import React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 import moment from 'moment';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';

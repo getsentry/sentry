@@ -75,7 +75,8 @@ const RadioGroup = <C extends string>({
   </Container>
 );
 
-const shouldForwardProp = p => !['disabled', 'animate'].includes(p) && isPropValid(p);
+const shouldForwardProp = (p: PropertyKey) =>
+  typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);
 
 export const RadioLineItem = styled('label', {shouldForwardProp})<{
   disabled?: boolean;

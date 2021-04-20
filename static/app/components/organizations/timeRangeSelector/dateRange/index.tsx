@@ -1,8 +1,8 @@
 import React from 'react';
 import type {OnChangeProps, RangeWithKey} from 'react-date-range';
 import * as ReactRouter from 'react-router';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 import moment from 'moment';
 
 import Checkbox from 'app/components/checkbox';
