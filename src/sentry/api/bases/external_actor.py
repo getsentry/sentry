@@ -58,7 +58,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
             return self.instance
         except IntegrityError:
             raise serializers.ValidationError(
-                "There already exists an external user association with this external_name and provider."
+                "There already exists an external association with this external_name and provider."
             )
 
 
