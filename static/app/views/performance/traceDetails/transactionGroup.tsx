@@ -18,6 +18,7 @@ type Props = {
   index: number;
   isVisible: boolean;
   renderedChildren: React.ReactNode[];
+  barColour?: string;
 };
 
 type State = {
@@ -45,6 +46,7 @@ class TransactionGroup extends React.Component<Props, State> {
       index,
       isVisible,
       renderedChildren,
+      barColour,
     } = this.props;
     const {isExpanded} = this.state;
 
@@ -62,6 +64,7 @@ class TransactionGroup extends React.Component<Props, State> {
           isExpanded={isExpanded}
           toggleExpandedState={this.toggleExpandedState}
           isVisible={isVisible}
+          barColour={barColour}
         />
         {isExpanded && renderedChildren}
       </React.Fragment>

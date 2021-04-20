@@ -21,6 +21,7 @@ type IncomingTopValue = {
   aggregate: number;
   count: number;
   comparison: number;
+  sumdelta: number;
   isOther?: boolean;
 };
 
@@ -35,6 +36,7 @@ export type TableDataRow = IncomingDataRow & {
   frequency: number;
   comparison: number;
   otherValues: TopValue[];
+  totalTimeLost: number;
 };
 
 export type TagHint = {
@@ -54,7 +56,6 @@ type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
 };
 
 type QueryProps = DiscoverQueryProps & {
-  tagOrder: string;
   aggregateColumn: string;
   children: (props: ChildrenProps) => React.ReactNode;
 };
@@ -66,11 +67,10 @@ type FacetQuery = LocationQuery &
   };
 
 export function getRequestFunction(_props: QueryProps) {
-  const {tagOrder, aggregateColumn} = _props;
+  const {aggregateColumn} = _props;
   function getTagExplorerRequestPayload(props: DiscoverQueryProps) {
     const {eventView} = props;
     const apiPayload: FacetQuery = eventView.getEventsAPIPayload(props.location);
-    apiPayload.order = tagOrder;
     apiPayload.aggregateColumn = aggregateColumn;
     return apiPayload;
   }
@@ -78,10 +78,7 @@ export function getRequestFunction(_props: QueryProps) {
 }
 
 function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
-  return (
-    prevProps.tagOrder !== nextProps.tagOrder ||
-    prevProps.aggregateColumn !== nextProps.aggregateColumn
-  );
+  return prevProps.aggregateColumn !== nextProps.aggregateColumn;
 }
 
 function afterFetch(data: IncomingTableData) {
@@ -92,18 +89,7 @@ function afterFetch(data: IncomingTableData) {
     row.aggregate = firstItem.aggregate;
     row.frequency = firstItem.count;
     row.comparison = firstItem.comparison;
-    row.otherValues = row.topValues.slice(0);
-    const otherEventValue = row.topValues.reduce((acc, curr) => acc - curr.count, 1);
-    if (otherEventValue > 0.01) {
-      row.otherValues.push({
-        name: 'other',
-        value: 'other',
-        isOther: true,
-        aggregate: 0,
-        count: otherEventValue,
-        comparison: 0,
-      });
-    }
+    row.totalTimeLost = firstItem.sumdelta;
     return row;
   });
 }

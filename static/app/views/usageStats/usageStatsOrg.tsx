@@ -6,18 +6,12 @@ import moment from 'moment';
 import AsyncComponent from 'app/components/asyncComponent';
 import Card from 'app/components/card';
 import OptionSelector from 'app/components/charts/optionSelector';
-import {
-  ChartControls,
-  HeaderTitle,
-  InlineContainer,
-  SectionValue,
-} from 'app/components/charts/styles';
+import {ChartControls, HeaderTitle, InlineContainer} from 'app/components/charts/styles';
 import {DateTimeObject, getInterval} from 'app/components/charts/utils';
 import NotAvailable from 'app/components/notAvailable';
-import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
@@ -31,7 +25,6 @@ import {
 import {Outcome, UsageSeries, UsageStat} from './types';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
-  CHART_OPTIONS_DATACATEGORY,
   ChartDataTransform,
   ChartStats,
 } from './usageChart';
@@ -133,74 +126,45 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     chartDateStartDisplay: string;
     chartDateEndDisplay: string;
   } {
-    const {dataDatetime} = this.props;
-    const {period, start, end} = dataDatetime;
+    const {orgStats} = this.state;
 
-    const interval = getInterval(dataDatetime);
-    const intervalMinutes = parsePeriodToHours(interval) * 60;
-    if (intervalMinutes < 1) {
-      throw new Error('UsageStatsOrg: Unable to parse interval for specified period');
-    }
-
-    const FORMAT_DATETIME =
-      intervalMinutes >= 24 * 60 ? FORMAT_DATETIME_DAILY : FORMAT_DATETIME_HOURLY;
-
-    if (start && end) {
-      const dateStart = moment(start);
-      const dateEnd = moment(end);
+    // Use fillers as loading/error states will not display datetime at all
+    if (!orgStats || !orgStats.intervals || orgStats.intervals.length < 2) {
+      const now = moment();
 
       return {
-        chartDateInterval: interval,
-        chartDateStart: dateStart.format(),
-        chartDateEnd: dateEnd.format(),
-        chartDateStartDisplay: dateStart.local().format(FORMAT_DATETIME),
-        chartDateEndDisplay: dateEnd.local().format(FORMAT_DATETIME),
+        chartDateInterval: '1d',
+        chartDateStart: now.format(),
+        chartDateEnd: now.format(),
+        chartDateStartDisplay: now.local().format(FORMAT_DATETIME_DAILY),
+        chartDateEndDisplay: now.local().format(FORMAT_DATETIME_DAILY),
       };
     }
 
-    // Default to 14d period at 1hr interval
-    let chartDateStart = moment().subtract(14, 'd');
-    const chartDateEnd = moment();
+    const {intervals} = orgStats;
 
-    if (period) {
-      try {
-        const statsPeriod = parseStatsPeriod(period);
-        if (!statsPeriod) {
-          throw new Error('UsageStatsOrg: Format for data period is not recognized');
-        }
+    const startTime = moment(intervals[0]);
+    const endTime = moment(intervals[intervals.length - 1]);
+    const intervalMinutes = moment(endTime).diff(startTime, 'm') / (intervals.length - 1);
 
-        if (intervalMinutes >= 24 * 60) {
-          chartDateEnd.startOf('d');
-        } else if (intervalMinutes >= 60) {
-          chartDateEnd.startOf('h');
-        } else if (intervalMinutes >= 1) {
-          chartDateEnd.startOf('m');
-        }
+    // If interval is a day or more, use UTC to format date. Otherwise, the date
+    // may shift ahead/behind when converting to the user's local time.
+    const isPerDay = intervalMinutes >= 24 * 60;
+    const FORMAT_DATETIME = isPerDay ? FORMAT_DATETIME_DAILY : FORMAT_DATETIME_HOURLY;
 
-        chartDateStart = moment(chartDateEnd).subtract(
-          statsPeriod.period as any, // TODO(ts): Oddity with momentjs types
-          statsPeriod.periodLength as any
-        );
-      } catch (err) {
-        // do nothing
-      }
-    }
-
-    // The API response includes the current time period (which is ongoing)
-    // E.g. Getting 24h at 1h interval gets you 24 blocks, but because it
-    // includes the current hour, we need to +1 hour on dateStart to remove
-    // empty column on left of chart
-    const xAxisStart = moment(chartDateStart).add(intervalMinutes, 'm');
-    const xAxisEnd = moment(chartDateEnd);
-    const displayStart = moment(chartDateStart);
-    const displayEnd = moment(chartDateEnd).add(intervalMinutes, 'm');
+    const xAxisStart = moment(startTime);
+    const xAxisEnd = moment(endTime);
+    const displayStart = isPerDay ? moment(startTime).utc() : moment(startTime).local();
+    const displayEnd = isPerDay
+      ? moment(endTime).utc()
+      : moment(endTime).local().add(intervalMinutes, 'm');
 
     return {
-      chartDateInterval: interval,
+      chartDateInterval: `${intervalMinutes}m` as IntervalPeriod,
       chartDateStart: xAxisStart.format(),
       chartDateEnd: xAxisEnd.format(),
-      chartDateStartDisplay: displayStart.local().format(FORMAT_DATETIME),
-      chartDateEndDisplay: displayEnd.local().format(FORMAT_DATETIME),
+      chartDateStartDisplay: displayStart.format(FORMAT_DATETIME),
+      chartDateEndDisplay: displayEnd.format(FORMAT_DATETIME),
     };
   }
 
@@ -340,6 +304,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       },
       {
         title: t('Accepted'),
+        description: tct(
+          'Accepted [dataCategory] were successfully processed by Sentry.',
+          {dataCategory}
+        ),
         value: accepted,
       },
       {
@@ -350,11 +318,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         ),
         value: filtered,
       },
-      // TODO(org-stats): Need a better description for dropped data
       {
         title: t('Dropped'),
         description: tct(
-          'Dropped [dataCategory] were discarded due to rate-limits, quota limits, or spike protection',
+          'Dropped [dataCategory] were discarded due to invalid data, rate-limits, quota limits, or spike protection',
           {dataCategory}
         ),
         value: dropped,
@@ -390,8 +357,6 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       chartDateInterval,
       chartDateStart,
       chartDateEnd,
-      chartDateStartDisplay,
-      chartDateEndDisplay,
       chartTransform,
     } = this.chartData;
 
@@ -403,10 +368,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         isLoading={loading}
         isError={hasError}
         errors={chartErrors}
-        title={tct('Usage for [start] — [end]', {
-          start: chartDateStartDisplay,
-          end: chartDateEndDisplay,
-        })}
+        title=" " // Force the title to be blank
         footer={this.renderChartFooter()}
         dataCategory={dataCategory}
         dataTransform={chartTransform}
@@ -419,46 +381,16 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   renderChartFooter = () => {
-    const {dataCategory, dataDatetime, handleChangeState} = this.props;
-    const {chartTransform} = this.chartData;
-
-    const {period} = dataDatetime;
-
-    // Remove options for relative periods shorter than 1 week
-    const relativePeriods = Object.keys(DEFAULT_RELATIVE_PERIODS).reduce((acc, key) => {
-      const periodDays = parsePeriodToHours(key) / 24;
-      if (periodDays >= 7) {
-        acc[key] = DEFAULT_RELATIVE_PERIODS[key];
-      }
-      return acc;
-    }, {});
+    const {handleChangeState} = this.props;
+    const {chartTransform, chartDateStartDisplay, chartDateEndDisplay} = this.chartData;
 
     return (
       <ChartControls>
         <InlineContainer>
-          <SectionValue>
-            <OptionSelector
-              title={t('Display')}
-              selected={period || DEFAULT_STATS_PERIOD}
-              options={Object.keys(relativePeriods).map(k => ({
-                label: DEFAULT_RELATIVE_PERIODS[k],
-                value: k,
-              }))}
-              onChange={(val: string) =>
-                handleChangeState({pagePeriod: val as RelativePeriod})
-              }
-            />
-          </SectionValue>
-          <SectionValue>
-            <OptionSelector
-              title={t('of')}
-              selected={dataCategory}
-              options={CHART_OPTIONS_DATACATEGORY}
-              onChange={(val: string) =>
-                handleChangeState({dataCategory: val as DataCategory})
-              }
-            />
-          </SectionValue>
+          {tct('Usage for [start] — [end]', {
+            start: chartDateStartDisplay,
+            end: chartDateEndDisplay,
+          })}
         </InlineContainer>
         <InlineContainer>
           <OptionSelector

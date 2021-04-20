@@ -36,7 +36,7 @@
     "@types/jest": "^26.0.22",
     "@types/jquery": "^2.0.53",
     "@types/js-cookie": "^2.2.2",
-    "@types/lodash": "^4.14.134",
+    "@types/lodash": "^4.14.168",
     "@types/marked": "^0.7.2",
     "@types/moment-timezone": "^0.5.12",
     "@types/papaparse": "^4.5.11",
