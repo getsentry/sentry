@@ -1,21 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconSentryFull} from 'app/icons';
 import {t} from 'app/locale';
-import OrganizationStore from 'app/stores/organizationStore';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 
-type Props = {organization?: Organization};
-
-function DemoHeader({organization}: Props) {
+export default function DemoHeader() {
   return (
     <Wrapper>
       <LogoSvg />
@@ -25,7 +19,7 @@ function DemoHeader({organization}: Props) {
         </StyledExternalLink>
         <GetStarted
           onClick={() =>
-            trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {}, organization)
+            trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {}, null)
           }
           href="https://sentry.io/signup/"
         >
@@ -35,18 +29,6 @@ function DemoHeader({organization}: Props) {
     </Wrapper>
   );
 }
-
-//can't use withOrganization here since we aren't within the OrganizationContext
-export default createReactClass<Omit<Props, 'organization'>>({
-  displayName: 'DemoHeader',
-  mixins: [Reflux.connect(OrganizationStore, 'organization') as any],
-  render() {
-    const organization = this.state.organization?.organization as
-      | Organization
-      | undefined;
-    return <DemoHeader organization={organization} />;
-  },
-});
 
 //Note many of the colors don't come from the theme as they come from the marketing site
 const Wrapper = styled('div')`

@@ -66,6 +66,9 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
       silent: true,
       lineStyle: {color: lineColor, type: 'dashed', width: 1},
       data: [{yAxis: threshold} as any],
+      label: {
+        show: false,
+      },
     }),
     data: [],
   };
@@ -312,7 +315,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         forwardedRef={this.handleRef}
         grid={{
           left: 0,
-          right: 0,
+          right: space(2),
           top: space(2),
           bottom: 0,
         }}
@@ -402,6 +405,10 @@ class MetricChart extends React.PureComponent<Props, State> {
       )
     );
 
+    const viableEndDate = getUtcDateString(
+      moment.utc(timePeriod.end).add(rule.timeWindow, 'minutes')
+    );
+
     return (
       <EventsRequest
         api={api}
@@ -413,7 +420,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           .map(project => Number(project.id))}
         interval={interval}
         start={viableStartDate}
-        end={timePeriod.end}
+        end={viableEndDate}
         yAxis={rule.aggregate}
         includePrevious={false}
         currentSeriesName={rule.aggregate}

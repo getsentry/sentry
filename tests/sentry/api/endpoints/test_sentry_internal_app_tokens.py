@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import ApiToken
 from sentry.models.sentryapp import MASKED_VALUE

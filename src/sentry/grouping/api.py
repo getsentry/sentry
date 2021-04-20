@@ -1,7 +1,7 @@
 import re
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
+from sentry.grouping.enhancer import LATEST_VERSION, Enhancements, InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
@@ -64,6 +64,7 @@ def _get_project_enhancements_config(project, secondary=False):
     from sentry.utils.hashlib import md5_text
 
     cache_prefix = "grouping-enhancements:" if not secondary else "secondary-grouping-enhancements:"
+    cache_prefix += f"{LATEST_VERSION}:"
     cache_key = cache_prefix + md5_text(f"{enhancements_base}|{enhancements}").hexdigest()
     rv = cache.get(cache_key)
     if rv is not None:
@@ -81,7 +82,6 @@ def get_default_enhancements(config_id=None):
     base = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
-
     return Enhancements(rules=[], bases=[base]).dumps()
 
 

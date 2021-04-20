@@ -172,7 +172,7 @@ def main():
         "max_content_width": 100,
     }
     # This variable is *only* set as part of direnv/.envrc, thus, we cannot affect production
-    if os.environ.get("SENTRY_DEVENV_DSN"):
+    if os.environ.get("SENTRY_DEVSERVICES_DSN"):
         # We do this here because `configure_structlog` executes later
         logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
         logger = logging.getLogger(__name__)
@@ -184,8 +184,8 @@ def main():
         try:
             func(**kwargs)
         except Exception as e:
-            # This reports to the project sentry-dev-env
-            with sentry_sdk.init(dsn=os.environ["SENTRY_DEVENV_DSN"]):
+            # This reports errors sentry-devservices
+            with sentry_sdk.init(dsn=os.environ["SENTRY_DEVSERVICES_DSN"]):
                 if os.environ.get("USER"):
                     sentry_sdk.set_user({"username": os.environ.get("USER")})
                 sentry_sdk.capture_exception(e)

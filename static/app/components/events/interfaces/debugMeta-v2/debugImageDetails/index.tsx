@@ -82,9 +82,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
         `/projects/${organization.slug}/${projectId}/files/dsyms/?debug_id=${debug_id}`,
         {
           query: {
-            file_formats: !!organization.features?.includes('android-mappings')
-              ? ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle']
-              : undefined,
+            file_formats: ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle'],
           },
         },
       ]);

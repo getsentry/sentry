@@ -4,8 +4,8 @@ import {Location} from 'history';
 
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
-import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import Radio from 'app/components/radio';
+import {pickBarColour} from 'app/components/waterfallTree/utils';
 import {IconFilter} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -111,7 +111,7 @@ class Filter extends React.Component<Props> {
                       onChangeFilter(filterOption);
                     }}
                   >
-                    <OperationDot backgroundColor={pickSpanBarColour(operationName)} />
+                    <OperationDot backgroundColor={pickBarColour(operationName)} />
                     <OperationName>{operationName}</OperationName>
                     <Radio radioSize="small" checked={filterOption === currentFilter} />
                   </ListItem>
@@ -248,9 +248,9 @@ export function filterToSearchConditions(option: SpanOperationBreakdownFilter) {
 export function filterToColour(option: SpanOperationBreakdownFilter) {
   switch (option) {
     case SpanOperationBreakdownFilter.None:
-      return pickSpanBarColour('');
+      return pickBarColour('');
     default: {
-      return pickSpanBarColour(option);
+      return pickBarColour(option);
     }
   }
 }

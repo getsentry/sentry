@@ -37,6 +37,8 @@ class ListLink extends React.Component<Props> {
   isActive = () => {
     const {isActive, to, query, index} = this.props;
 
+    // TODO(ts) Removing context here results in a TypeError because `to` is not compatible
+    // with LocationDescriptor.
     return (isActive || this.context.router.isActive)({pathname: to, query}, index);
   };
 

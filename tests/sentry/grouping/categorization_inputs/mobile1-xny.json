@@ -1,0 +1,55 @@
+{
+  "event_id": "f9b4f83b1a144890bf8112996880b465",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "Daemons.java",
+              "filename": "Daemons.java",
+              "function": "run",
+              "module": "java.lang.Daemons$FinalizerDaemon"
+            },
+            {
+              "abs_path": "Daemons.java",
+              "filename": "Daemons.java",
+              "function": "doFinalize",
+              "module": "java.lang.Daemons$FinalizerDaemon"
+            },
+            {
+              "abs_path": "Binder.java",
+              "filename": "Binder.java",
+              "function": "finalize",
+              "module": "android.os.Binder"
+            },
+            {
+              "abs_path": "Binder.java",
+              "filename": "Binder.java",
+              "function": "destroy",
+              "module": "android.os.Binder"
+            }
+          ]
+        },
+        "type": "TimeoutException",
+        "value": "android.app.LoadedApk$ServiceDispatcher$InnerConnection.finalize() timed out after 10 seconds"
+      }
+    ]
+  },
+  "platform": "java"
+}

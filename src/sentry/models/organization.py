@@ -3,8 +3,8 @@ from datetime import timedelta
 from enum import IntEnum
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
 

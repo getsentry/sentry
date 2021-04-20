@@ -1,6 +1,6 @@
 import re
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.constants import SentryAppStatus
 from sentry.mediators import sentry_apps

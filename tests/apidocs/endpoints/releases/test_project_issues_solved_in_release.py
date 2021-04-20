@@ -1,7 +1,7 @@
 from uuid import uuid1
 
-from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
+from django.urls import reverse
 
 from sentry.models import Commit, GroupLink, GroupResolution, ReleaseCommit, Repository
 from tests.apidocs.util import APIDocsTestCase

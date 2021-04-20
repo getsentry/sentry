@@ -16,12 +16,14 @@ import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import TimeSince from 'app/components/timeSince';
+import {MessageRow} from 'app/components/waterfallTree/messageRow';
 import {
   DividerSpacer,
   ScrollbarContainer,
   VirtualScrollbar,
   VirtualScrollbarGrip,
 } from 'app/components/waterfallTree/miniHeader';
+import {pickBarColour, toPercent} from 'app/components/waterfallTree/utils';
 import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
@@ -41,11 +43,10 @@ import {
   TraceDetailHeader,
   TraceViewContainer,
   TraceViewHeaderContainer,
-  TransactionRowMessage,
 } from './styles';
 import TransactionGroup from './transactionGroup';
 import {TraceInfo, TreeDepth} from './types';
-import {getTraceInfo, isRootTransaction, toPercent} from './utils';
+import {getTraceInfo, isRootTransaction} from './utils';
 
 type IndexedFusedTransaction = {
   transaction: TraceFullDetailed;
@@ -312,7 +313,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       return null;
     }
 
-    return <TransactionRowMessage>{messages}</TransactionRowMessage>;
+    return <MessageRow>{messages}</MessageRow>;
   }
 
   renderLimitExceededMessage(traceInfo: TraceInfo) {
@@ -327,7 +328,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
     const target = traceEventView.getResultsViewUrlTarget(organization.slug);
 
     return (
-      <TransactionRowMessage>
+      <MessageRow>
         {tct(
           'Limited to a view of [count] transactions. To view the full list, [discover].',
           {
@@ -343,7 +344,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             ),
           }
         )}
-      </TransactionRowMessage>
+      </MessageRow>
     );
   }
 
@@ -425,6 +426,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             index={index}
             isVisible={isVisible}
             renderedChildren={accumulated.renderedChildren}
+            barColour={pickBarColour(transaction['transaction.op'])}
           />
         </React.Fragment>
       ),
@@ -538,6 +540,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                       index={0}
                       isVisible
                       renderedChildren={transactionGroups}
+                      barColour={pickBarColour('')}
                     />
                     {this.renderInfoMessage({
                       isVisible: true,

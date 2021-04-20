@@ -636,7 +636,8 @@ class SmartSearchBar extends React.Component<Props, State> {
         Sentry.captureException(err);
         return [];
       }
-      if (tag.key === 'release' && !values.includes('latest')) {
+
+      if (tag.key === 'release:' && !values.includes('latest')) {
         values.unshift('latest');
       }
 
@@ -812,7 +813,8 @@ class SmartSearchBar extends React.Component<Props, State> {
 
         const tagKeys = this.getTagKeys('');
         const recentSearches = await this.getRecentSearches();
-        this.updateAutoCompleteState(tagKeys, recentSearches, '', 'tag-key');
+
+        this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', 'tag-key');
         return;
       }
 
@@ -840,7 +842,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       this.setState({searchTerm: matchValue});
       this.updateAutoCompleteState(
         autoCompleteItems,
-        recentSearches,
+        recentSearches ?? [],
         matchValue,
         'tag-key'
       );
@@ -900,7 +902,12 @@ class SmartSearchBar extends React.Component<Props, State> {
       this.getRecentSearches(),
     ]);
 
-    this.updateAutoCompleteState(tagValues, recentSearches, tag.key, 'tag-value');
+    this.updateAutoCompleteState(
+      tagValues ?? [],
+      recentSearches ?? [],
+      tag.key,
+      'tag-value'
+    );
     return;
   };
 

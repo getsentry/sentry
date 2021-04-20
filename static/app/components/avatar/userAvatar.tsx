@@ -15,13 +15,11 @@ const defaultProps = {
   gravatar: false,
 };
 
-type DefaultProps = typeof defaultProps;
-
 type Props = {
   user?: Actor | AvatarUser;
   renderTooltip?: RenderTooltipFunc;
-} & Partial<DefaultProps> &
-  Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
+  gravatar?: boolean;
+} & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
 function isActor(maybe: AvatarUser | Actor): maybe is Actor {
   return typeof (maybe as AvatarUser).email === 'undefined';
