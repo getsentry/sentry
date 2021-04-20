@@ -71,7 +71,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
 
     const action = (
-      <Access organization={organization} access={['org:integrations']}>
+      <Access organization={organization} access={['org:write']}>
         {({hasAccess}) => (
           <Button
             priority="primary"
@@ -117,7 +117,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
 
     const action = (
-      <Access organization={organization} access={['org:integrations']}>
+      <Access organization={organization} access={['org:write']}>
         {({hasAccess}) => (
           <Button
             priority="primary"
