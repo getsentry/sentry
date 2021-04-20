@@ -742,6 +742,8 @@ export function aggregateFunctionOutputType(
     return FIELDS[firstArg];
   } else if (firstArg && isMeasurement(firstArg)) {
     return measurementType(firstArg);
+  } else if (firstArg && isSpanOperationBreakdownField(firstArg)) {
+    return 'duration';
   }
 
   return null;

@@ -10,6 +10,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'app/utils/discover/fields';
+import {getDuration} from 'app/utils/formatters';
 import {QueryResults} from 'app/utils/tokenizeSearch';
 
 import {TableColumn} from './types';
@@ -27,9 +28,16 @@ export enum Actions {
 export function updateQuery(
   results: QueryResults,
   action: Actions,
-  key: string,
+  column: TableColumn<keyof TableDataRow>,
   value: React.ReactText | string[]
 ) {
+  const key = column.name;
+
+  if (column.type === 'duration' && typeof value === 'number') {
+    // values are assumed to be in milliseconds
+    value = getDuration(value / 1000, 2, true);
+  }
+
   // De-duplicate array values
   if (Array.isArray(value)) {
     value = [...new Set(value)];

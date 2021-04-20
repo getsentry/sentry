@@ -109,7 +109,7 @@ class Table extends React.Component<Props, State> {
       // remove any event.type queries since it is implied to apply to only transactions
       searchConditions.removeTag('event.type');
 
-      updateQuery(searchConditions, action, column.name, value);
+      updateQuery(searchConditions, action, column, value);
 
       ReactRouter.browserHistory.push({
         pathname: location.pathname,
