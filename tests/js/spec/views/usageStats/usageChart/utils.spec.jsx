@@ -10,7 +10,7 @@ describe('getDateFromMoment', () => {
     expect(getDateFromMoment(TS_START, '7d')).toBe('Jul 9');
   });
 
-  // Emsure datetime is shifted to localtime
+  // Ensure datetime is shifted to localtime
   it('shows the date amd time if interval is less than a day', () => {
     expect(getDateFromMoment(TS_START, '6h')).toBe('Jul 8 8:00 PM - 2:00 AM');
     expect(getDateFromMoment(TS_START, '1h')).toBe('Jul 8 8:00 PM - 9:00 PM');
@@ -25,7 +25,7 @@ describe('getXAxisDates', () => {
     expect(dates).toEqual(['Jul 9', 'Jul 10']);
   });
 
-  // Emsure datetime is shifted to localtime
+  // Ensure datetime is shifted to localtime
   it('calculates 4h intervals', () => {
     const dates = getXAxisDates(TS_START, TS_END, '4h');
     expect(dates).toEqual([
@@ -39,7 +39,7 @@ describe('getXAxisDates', () => {
     ]);
   });
 
-  // Emsure datetime is shifted to localtime
+  // Ensure datetime is shifted to localtime
   it('calculates 1h intervals', () => {
     const dates = getXAxisDates(TS_START, TS_END, '1h');
     expect(dates).toEqual([
