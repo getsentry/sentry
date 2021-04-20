@@ -167,6 +167,13 @@ export class UsageChart extends React.Component<Props, State> {
     xAxisDates: [],
   };
 
+  /**
+   * UsageChart needs to generate the X-Axis dates as props.usageStats may
+   * not pass the complete range of X-Axis data points
+   *
+   * E.g. usageStats.accepted covers day 1-15 of a month, usageStats.projected
+   * either covers day 16-30 or may not be available at all.
+   */
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const {usageDateStart, usageDateEnd, usageDateInterval} = nextProps;
     const xAxisDates = getXAxisDates(usageDateStart, usageDateEnd, usageDateInterval);
@@ -240,7 +247,7 @@ export class UsageChart extends React.Component<Props, State> {
     const dataPeriod = statsPeriodToDays(undefined, usageDateStart, usageDateEnd) * 24;
     const barPeriod = parsePeriodToHours(usageDateInterval);
     if (dataPeriod === 0 || barPeriod === -1) {
-      throw new Error('Unable to parse data time period');
+      throw new Error('UsageChart: Unable to parse data time period');
     }
 
     const {xAxisTickInterval, xAxisLabelInterval} = getXAxisLabelInterval(
