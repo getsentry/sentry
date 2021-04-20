@@ -3,6 +3,7 @@ import round from 'lodash/round';
 import {tn} from 'app/locale';
 import {Release, ReleaseStatus} from 'app/types';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import {DisplayOption} from '../list/utils';
 
@@ -54,6 +55,7 @@ export const getReleaseNewIssuesUrl = (
       start: undefined,
       end: undefined,
       query: stringifyQueryObject(new QueryResults([`firstRelease:${version}`])),
+      sort: IssueSortOptions.FREQ,
     },
   };
 };
@@ -70,6 +72,7 @@ export const getReleaseUnhandledIssuesUrl = (
       query: stringifyQueryObject(
         new QueryResults([`release:${version}`, 'error.unhandled:true'])
       ),
+      sort: IssueSortOptions.FREQ,
     },
   };
 };

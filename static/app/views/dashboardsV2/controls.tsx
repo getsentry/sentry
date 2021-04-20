@@ -60,7 +60,7 @@ class Controls extends React.Component<Props> {
 
     if (['edit', 'pending_delete'].includes(dashboardState)) {
       return (
-        <ButtonBar gap={1} key="edit-controls">
+        <StyledButtonBar gap={1} key="edit-controls">
           {cancelButton}
           <Confirm
             priority="danger"
@@ -81,13 +81,13 @@ class Controls extends React.Component<Props> {
           >
             {t('Save and Finish')}
           </Button>
-        </ButtonBar>
+        </StyledButtonBar>
       );
     }
 
     if (dashboardState === 'create') {
       return (
-        <ButtonBar gap={1} key="create-controls">
+        <StyledButtonBar gap={1} key="create-controls">
           {cancelButton}
           <Button
             data-test-id="dashboard-commit"
@@ -99,7 +99,7 @@ class Controls extends React.Component<Props> {
           >
             {t('Save and Finish')}
           </Button>
-        </ButtonBar>
+        </StyledButtonBar>
       );
     }
 
@@ -121,7 +121,7 @@ class Controls extends React.Component<Props> {
     }
 
     return (
-      <StyledButtonBar gap={1} key="controls">
+      <OverviewControls gap={1} key="controls">
         <DashboardSelect>
           <SelectControl
             key="select"
@@ -170,7 +170,7 @@ class Controls extends React.Component<Props> {
             </Button>
           )}
         </DashboardEditFeature>
-      </StyledButtonBar>
+      </OverviewControls>
     );
   }
 }
@@ -215,7 +215,9 @@ const DashboardSelect = styled('div')`
 
 const StyledButtonBar = styled(ButtonBar)`
   flex-shrink: 0;
+`;
 
+const OverviewControls = styled(StyledButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};
