@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict, defaultdict, deque
-from typing import Any, Deque, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Deque, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import sentry_sdk
 from django.http import Http404, HttpRequest, HttpResponse
@@ -77,8 +77,11 @@ class TraceEvent:
         return result
 
 
-# Can't do Callable[[Any], bool] for the function cause anything on an Any -> Any
-def find_event(items: Sequence[Any], function: Any, default: Any = None) -> Any:
+def find_event(
+    items: Sequence[Mapping[str, str]],
+    function: Callable[[Mapping[str, str]], bool],
+    default: Optional[Mapping[str, str]] = None,
+) -> Optional[Mapping[str, str]]:
     return next(filter(function, items), default)
 
 
@@ -164,10 +167,11 @@ def query_trace_data(trace_id: str, params: Mapping[str, str]) -> Sequence[Seque
 
 # TODO(wmak): remove ignore once the base is typed
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
-    def has_feature(self, organization: Organization, request: HttpRequest) -> Any:
-        return features.has(
-            "organizations:trace-view-quick", organization, actor=request.user
-        ) or features.has("organizations:trace-view-summary", organization, actor=request.user)
+    def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
+        return bool(
+            features.has("organizations:trace-view-quick", organization, actor=request.user)
+            or features.has("organizations:trace-view-summary", organization, actor=request.user)
+        )
 
     @staticmethod
     def serialize_error(event: SnubaEvent) -> TraceError:
@@ -267,13 +271,14 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         # The event couldn't be found, it might be an error
         error_event = find_event(errors, lambda item: item["id"] == event_id)
         # Alright so we're looking at an error, time to see if we can find its transaction
-        if error_event:
+        if error_event is not None:
             # Unfortunately the only association from an event back to its transaction is name & span_id
             # First maybe we got lucky and the error happened on the transaction's "span"
+            error_span = error_event["trace.span"]
             transaction_event = find_event(
-                transactions, lambda item: item["trace.span"] == error_event["trace.span"]
+                transactions, lambda item: item["trace.span"] == error_span
             )
-            if transaction_event:
+            if transaction_event is not None:
                 return transaction_event, eventstore.get_event_by_id(
                     transaction_event["project.id"], transaction_event["id"]
                 )
