@@ -53,11 +53,12 @@ function EventInputName({api, organization, eventView, savedQuery}: Props) {
     );
   }
 
+  const value = eventView.name || NAME_DEFAULT;
+
   return (
-    <StyledTitle>
+    <StyledTitle data-test-id={`discover2-query-name-${value}`}>
       <StyledEditableText
-        name="discover2-query-name"
-        value={eventView.name || NAME_DEFAULT}
+        value={value}
         onChange={handleChange}
         errorMessage={t('Please set a name for this query')}
       />

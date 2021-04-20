@@ -121,7 +121,11 @@ function EditableText({value, onChange, name, errorMessage, successMessage}: Pro
   return (
     <Wrapper>
       {isEditing ? (
-        <InputWrapper ref={inputWrapper} isEmpty={isEmpty}>
+        <InputWrapper
+          ref={inputWrapper}
+          isEmpty={isEmpty}
+          data-test-id="editable-text-input"
+        >
           <StyledField inline={false} flexibleControlStateSize stacked>
             <StyledInput
               name={name}
@@ -133,7 +137,11 @@ function EditableText({value, onChange, name, errorMessage, successMessage}: Pro
           <InputLabel>{inputValue}</InputLabel>
         </InputWrapper>
       ) : (
-        <Content onClick={handleContentClick} ref={contentRef}>
+        <Content
+          onClick={handleContentClick}
+          ref={contentRef}
+          data-test-id="editable-text-label"
+        >
           <Label>
             <InnerLabel>{inputValue}</InnerLabel>
           </Label>
