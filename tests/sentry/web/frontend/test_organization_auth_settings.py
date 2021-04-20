@@ -1,5 +1,5 @@
-from django.core.urlresolvers import reverse
 from django.db import models
+from django.urls import reverse
 
 from sentry.auth.authenticators import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid

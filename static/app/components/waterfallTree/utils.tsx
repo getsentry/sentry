@@ -1,4 +1,5 @@
 import {DurationDisplay} from 'app/components/waterfallTree/types';
+import CHART_PALETTE from 'app/constants/chartPalette';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
@@ -184,4 +185,39 @@ export const clamp = (value: number, min: number, max: number): number => {
     return max;
   }
   return value;
+};
+
+const getLetterIndex = (letter: string): number => {
+  const index = 'abcdefghijklmnopqrstuvwxyz'.indexOf(letter) || 0;
+  return index === -1 ? 0 : index;
+};
+
+const colorsAsArray = Object.keys(CHART_PALETTE).map(key => CHART_PALETTE[17][key]);
+
+export const barColors = {
+  default: CHART_PALETTE[17][4],
+  transaction: CHART_PALETTE[17][8],
+  http: CHART_PALETTE[17][10],
+  db: CHART_PALETTE[17][17],
+};
+
+export const pickBarColour = (input: string | undefined): string => {
+  // We pick the color for span bars using the first three letters of the op name.
+  // That way colors stay consistent between transactions.
+
+  if (!input || input.length < 3) {
+    return CHART_PALETTE[17][4];
+  }
+
+  if (barColors[input]) {
+    return barColors[input];
+  }
+
+  const letterIndex1 = getLetterIndex(input.slice(0, 1));
+  const letterIndex2 = getLetterIndex(input.slice(1, 2));
+  const letterIndex3 = getLetterIndex(input.slice(2, 3));
+
+  return colorsAsArray[
+    (letterIndex1 + letterIndex2 + letterIndex3) % colorsAsArray.length
+  ];
 };
