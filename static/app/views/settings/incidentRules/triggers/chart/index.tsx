@@ -258,21 +258,19 @@ class TriggersChart extends React.PureComponent<Props, State> {
 
                 const chart = (
                   <React.Fragment>
+                    {header}
+                    <TransparentLoadingMask visible={reloading} />
                     {loading || reloading ? (
                       <ChartPlaceholder />
                     ) : (
-                      <React.Fragment>
-                        {header}
-                        <TransparentLoadingMask visible={reloading} />
-                        <ThresholdsChart
-                          period={statsPeriod}
-                          maxValue={maxValue ? maxValue.value : maxValue}
-                          data={timeseriesData}
-                          triggers={triggers}
-                          resolveThreshold={resolveThreshold}
-                          thresholdType={thresholdType}
-                        />
-                      </React.Fragment>
+                      <ThresholdsChart
+                        period={statsPeriod}
+                        maxValue={maxValue ? maxValue.value : maxValue}
+                        data={timeseriesData}
+                        triggers={triggers}
+                        resolveThreshold={resolveThreshold}
+                        thresholdType={thresholdType}
+                      />
                     )}
                     <ChartControls>
                       <InlineContainer>
