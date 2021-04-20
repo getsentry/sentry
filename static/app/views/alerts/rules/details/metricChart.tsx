@@ -13,7 +13,10 @@ import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
-import {parseStatsPeriod, StatsPeriodType} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {
+  parseStatsPeriod,
+  StatsPeriodType,
+} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
@@ -333,16 +336,15 @@ class MetricChart extends React.PureComponent<Props, State> {
             const [pointX, pointY] = pointData as [number, number];
             const isModified = dateModified && pointX <= new Date(dateModified).getTime();
 
-            const startTime = getFormattedDate(
-              moment(pointX),
-              'MMM D LT',
-              {local: true},
-              );
-            const {period, periodLength} = parseStatsPeriod(interval) ?? {periodLength: 'm', period: `${timeWindow}`};
+            const startTime = getFormattedDate(moment(pointX), 'MMM D LT', {local: true});
+            const {period, periodLength} = parseStatsPeriod(interval) ?? {
+              periodLength: 'm',
+              period: `${timeWindow}`,
+            };
             const endTime = getFormattedDate(
               moment(pointX).add(parseInt(period, 10), periodLength as StatsPeriodType),
               'MMM D LT',
-              {local: true},
+              {local: true}
             );
             const title = isModified
               ? `<strong>${t('Alert Rule Modified')}</strong>`
