@@ -7,7 +7,7 @@ import {Widget} from './types';
 import WidgetCard from './widgetCard';
 import WidgetWrapper from './widgetWrapper';
 
-const initialStyles: React.ComponentProps<typeof WidgetWrapper>['animate'] = {
+const initialStyles: React.ComponentProps<typeof WidgetWrapper>['whileDrag'] = {
   x: 0,
   y: 0,
   scaleX: 1,
@@ -63,7 +63,8 @@ function SortableWidget(props: Props) {
         boxShadow: currentWidgetDragging ? theme.dropShadowHeavy : 'none',
         borderRadius: currentWidgetDragging ? theme.borderRadius : undefined,
       }}
-      animate={
+      drag={false}
+      whileDrag={
         transform
           ? {
               x: transform.x,
