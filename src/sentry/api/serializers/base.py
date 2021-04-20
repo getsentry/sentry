@@ -1,15 +1,17 @@
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Union
+from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, TypeVar, Union
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
+K = TypeVar("K")
+
 registry = {}
 
 
-def register(type: Any) -> Callable[[Any], Any]:
+def register(type: Any) -> Callable[[K], K]:
     """ A wrapper that adds the wrapped Serializer to the Serializer registry (see above) for the key `type`. """
 
-    def wrapped(cls: Any) -> Any:
+    def wrapped(cls: K) -> K:
         registry[type] = cls()
         return cls
 
