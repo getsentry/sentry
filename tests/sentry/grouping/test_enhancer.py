@@ -8,7 +8,9 @@ def dump_obj(obj):
         return obj
     rv = {}
     for (key, value) in obj.__dict__.items():
-        if isinstance(value, list):
+        if key.startswith("_"):
+            continue
+        elif isinstance(value, list):
             rv[key] = [dump_obj(x) for x in value]
         elif isinstance(value, dict):
             rv[key] = {k: dump_obj(v) for k, v in value.items()}
@@ -17,7 +19,8 @@ def dump_obj(obj):
     return rv
 
 
-def test_basic_parsing(insta_snapshot):
+@pytest.mark.parametrize("version", [1, 2])
+def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """
 # This is a config
@@ -35,6 +38,8 @@ family:native                                   max-frames=3
         bases=["common:v1"],
     )
 
+    enhancement.version = version
+
     dumped = enhancement.dumps()
     insta_snapshot(dump_obj(enhancement))
     assert Enhancements.loads(dumped).dumps() == dumped
@@ -47,6 +52,18 @@ def test_parsing_errors():
         Enhancements.from_config_string("invalid.message:foo -> bar")
 
 
+def test_caller_recursion():
+    # Remove this test when CallerMatch can be applied recursively
+    with pytest.raises(InvalidEnhancerConfig):
+        Enhancements.from_config_string("[ category:foo ] | [ category:bar ] | category:baz +app")
+
+
+def test_callee_recursion():
+    # Remove this test when CalleeMatch can be applied recursively
+    with pytest.raises(InvalidEnhancerConfig):
+        Enhancements.from_config_string(" category:foo | [ category:bar ] | [ category:baz ] +app")
+
+
 def test_basic_path_matching():
     enhancement = Enhancements.from_config_string(
         """
@@ -57,33 +74,34 @@ def test_basic_path_matching():
 
     assert bool(
         js_rule.get_matching_frame_actions(
-            {"abs_path": "http://example.com/foo/test.js", "filename": "/foo/test.js"}, "javascript"
+            [{"abs_path": "http://example.com/foo/test.js", "filename": "/foo/test.js"}],
+            "javascript",
         )
     )
 
     assert not bool(
         js_rule.get_matching_frame_actions(
-            {"abs_path": "http://example.com/foo/bar.js", "filename": "/foo/bar.js"}, "javascript"
+            [{"abs_path": "http://example.com/foo/bar.js", "filename": "/foo/bar.js"}], "javascript"
         )
     )
 
     assert bool(
         js_rule.get_matching_frame_actions(
-            {"abs_path": "http://example.com/foo/test.js"}, "javascript"
+            [{"abs_path": "http://example.com/foo/test.js"}], "javascript"
         )
     )
 
-    assert not bool(js_rule.get_matching_frame_actions({"filename": "/foo/bar.js"}, "javascript"))
+    assert not bool(js_rule.get_matching_frame_actions([{"filename": "/foo/bar.js"}], "javascript"))
 
     assert bool(
         js_rule.get_matching_frame_actions(
-            {"abs_path": "http://example.com/foo/TEST.js"}, "javascript"
+            [{"abs_path": "http://example.com/foo/TEST.js"}], "javascript"
         )
     )
 
     assert not bool(
         js_rule.get_matching_frame_actions(
-            {"abs_path": "http://example.com/foo/bar.js"}, "javascript"
+            [{"abs_path": "http://example.com/foo/bar.js"}], "javascript"
         )
     )
 
@@ -99,22 +117,24 @@ def test_family_matching():
 
     assert bool(
         js_rule.get_matching_frame_actions(
-            {"abs_path": "http://example.com/foo/TEST.js"}, "javascript"
+            [{"abs_path": "http://example.com/foo/TEST.js"}], "javascript"
         )
     )
 
     assert not bool(
-        js_rule.get_matching_frame_actions({"abs_path": "http://example.com/foo/TEST.js"}, "native")
+        js_rule.get_matching_frame_actions(
+            [{"abs_path": "http://example.com/foo/TEST.js"}], "native"
+        )
     )
 
     assert not bool(
         native_rule.get_matching_frame_actions(
-            {"abs_path": "http://example.com/foo/TEST.js", "function": "std::whatever"},
+            [{"abs_path": "http://example.com/foo/TEST.js", "function": "std::whatever"}],
             "javascript",
         )
     )
 
-    assert bool(native_rule.get_matching_frame_actions({"function": "std::whatever"}, "native"))
+    assert bool(native_rule.get_matching_frame_actions([{"function": "std::whatever"}], "native"))
 
 
 def test_app_matching():
@@ -128,20 +148,20 @@ def test_app_matching():
 
     assert bool(
         app_yes_rule.get_matching_frame_actions(
-            {"abs_path": "http://example.com/foo/TEST.js", "in_app": True}, "javascript"
+            [{"abs_path": "http://example.com/foo/TEST.js", "in_app": True}], "javascript"
         )
     )
     assert not bool(
         app_yes_rule.get_matching_frame_actions(
-            {"abs_path": "http://example.com/foo/TEST.js", "in_app": False}, "javascript"
+            [{"abs_path": "http://example.com/foo/TEST.js", "in_app": False}], "javascript"
         )
     )
 
     assert bool(
-        app_no_rule.get_matching_frame_actions({"abs_path": "/test.c", "in_app": False}, "native")
+        app_no_rule.get_matching_frame_actions([{"abs_path": "/test.c", "in_app": False}], "native")
     )
     assert not bool(
-        app_no_rule.get_matching_frame_actions({"abs_path": "/test.c", "in_app": True}, "native")
+        app_no_rule.get_matching_frame_actions([{"abs_path": "/test.c", "in_app": True}], "native")
     )
 
 
@@ -161,42 +181,196 @@ def test_package_matching():
 
     assert bool(
         bundled_rule.get_matching_frame_actions(
-            {"package": "/var/containers/MyApp/Frameworks/libsomething"}, "native"
+            [{"package": "/var/containers/MyApp/Frameworks/libsomething"}], "native"
         )
     )
 
     assert bool(
         macos_rule.get_matching_frame_actions(
-            {"package": "/Applications/MyStuff.app/Contents/MacOS/MyStuff"}, "native"
+            [{"package": "/Applications/MyStuff.app/Contents/MacOS/MyStuff"}], "native"
         )
     )
 
-    assert bool(linux_rule.get_matching_frame_actions({"package": "linux-gate.so"}, "native"))
+    assert bool(linux_rule.get_matching_frame_actions([{"package": "linux-gate.so"}], "native"))
 
     assert bool(
         windows_rule.get_matching_frame_actions(
-            {"package": "D:\\Windows\\System32\\kernel32.dll"}, "native"
+            [{"package": "D:\\Windows\\System32\\kernel32.dll"}], "native"
         )
     )
 
     assert bool(
         windows_rule.get_matching_frame_actions(
-            {"package": "d:\\windows\\System32\\kernel32.dll"}, "native"
+            [{"package": "d:\\windows\\System32\\kernel32.dll"}], "native"
         )
     )
 
     assert not bool(
         bundled_rule.get_matching_frame_actions(
-            {"package": "/var2/containers/MyApp/Frameworks/libsomething"}, "native"
+            [{"package": "/var2/containers/MyApp/Frameworks/libsomething"}], "native"
         )
     )
 
     assert not bool(
         bundled_rule.get_matching_frame_actions(
-            {"package": "/var/containers/MyApp/MacOs/MyApp"}, "native"
+            [{"package": "/var/containers/MyApp/MacOs/MyApp"}], "native"
         )
     )
 
     assert not bool(
-        bundled_rule.get_matching_frame_actions({"package": "/usr/lib/linux-gate.so"}, "native")
+        bundled_rule.get_matching_frame_actions([{"package": "/usr/lib/linux-gate.so"}], "native")
+    )
+
+
+def test_type_matching():
+    enhancement = Enhancements.from_config_string(
+        """
+        family:other error.type:ZeroDivisionError -app
+        family:other error.type:*Error -app
+    """
+    )
+
+    zero_rule, error_rule = enhancement.rules
+
+    assert not zero_rule.get_matching_frame_actions([{"function": "foo"}], "python")
+    assert not zero_rule.get_matching_frame_actions([{"function": "foo"}], "python", None)
+    assert not error_rule.get_matching_frame_actions([{"function": "foo"}], "python")
+    assert not error_rule.get_matching_frame_actions([{"function": "foo"}], "python", None)
+
+    assert zero_rule.get_matching_frame_actions(
+        [{"function": "foo"}], "python", {"type": "ZeroDivisionError"}
+    )
+
+    assert not zero_rule.get_matching_frame_actions(
+        [{"function": "foo"}], "native", {"type": "FooError"}
+    )
+
+    assert error_rule.get_matching_frame_actions(
+        [{"function": "foo"}], "python", {"type": "ZeroDivisionError"}
+    )
+
+    assert error_rule.get_matching_frame_actions(
+        [{"function": "foo"}], "python", {"type": "FooError"}
+    )
+
+
+def test_value_matching():
+    enhancement = Enhancements.from_config_string(
+        """
+        family:other error.value:foo -app
+        family:other error.value:Failed* -app
+    """
+    )
+
+    foo_rule, failed_rule = enhancement.rules
+
+    assert not foo_rule.get_matching_frame_actions([{"function": "foo"}], "python")
+    assert not foo_rule.get_matching_frame_actions([{"function": "foo"}], "python", None)
+    assert not failed_rule.get_matching_frame_actions([{"function": "foo"}], "python")
+    assert not failed_rule.get_matching_frame_actions([{"function": "foo"}], "python", None)
+
+    assert foo_rule.get_matching_frame_actions([{"function": "foo"}], "python", {"value": "foo"})
+
+    assert not foo_rule.get_matching_frame_actions(
+        [{"function": "foo"}], "native", {"value": "Failed to download"}
+    )
+
+    assert not failed_rule.get_matching_frame_actions(
+        [{"function": "foo"}], "python", {"value": "foo"}
+    )
+
+    assert failed_rule.get_matching_frame_actions(
+        [{"function": "foo"}], "python", {"value": "Failed to download"}
+    )
+
+
+def test_mechanism_matching():
+    enhancement = Enhancements.from_config_string(
+        """
+        family:other error.mechanism:NSError -app
+    """
+    )
+
+    (rule,) = enhancement.rules
+
+    assert not rule.get_matching_frame_actions([{"function": "foo"}], "python")
+    assert not rule.get_matching_frame_actions([{"function": "foo"}], "python", None)
+
+    assert rule.get_matching_frame_actions(
+        [{"function": "foo"}], "python", {"mechanism": {"type": "NSError"}}
+    )
+
+    assert not rule.get_matching_frame_actions(
+        [{"function": "foo"}], "native", {"mechanism": {"type": "NSError"}}
+    )
+
+    assert not rule.get_matching_frame_actions(
+        [{"function": "foo"}], "python", {"mechanism": {"type": "fooerror"}}
+    )
+
+
+def test_range_matching():
+    enhancement = Enhancements.from_config_string(
+        """
+        [ function:foo ] | function:* | [ function:baz ] category=bar
+    """
+    )
+
+    (rule,) = enhancement.rules
+
+    assert (
+        sorted(
+            dict(
+                rule.get_matching_frame_actions(
+                    [
+                        {"function": "main"},
+                        {"function": "foo"},
+                        {"function": "bar"},
+                        {"function": "baz"},
+                        {"function": "abort"},
+                    ],
+                    "python",
+                )
+            )
+        )
+        == [2]
+    )
+
+
+def test_range_matching_direct():
+    enhancement = Enhancements.from_config_string(
+        """
+        function:bar | [ function:baz ] -group
+    """
+    )
+
+    (rule,) = enhancement.rules
+
+    assert (
+        sorted(
+            dict(
+                rule.get_matching_frame_actions(
+                    [
+                        {"function": "main"},
+                        {"function": "foo"},
+                        {"function": "bar"},
+                        {"function": "baz"},
+                        {"function": "abort"},
+                    ],
+                    "python",
+                )
+            )
+        )
+        == [2]
+    )
+
+    assert not rule.get_matching_frame_actions(
+        [
+            {"function": "main"},
+            {"function": "foo"},
+            {"function": "bar"},
+            {"function": "abort"},
+            {"function": "baz"},
+        ],
+        "python",
     )

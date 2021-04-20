@@ -1,0 +1,32 @@
+{
+  "event_id": "c7e885c701464684a365b74bc50491dc",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "RtlFreeUnicodeString",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "package": "C:\\Windows\\System32\\DriverStore\\FileRepository\\u0360470.inf_amd64_35c64671e7fac064\\B360357\\atio6axx.dll"
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_READ",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+      }
+    ]
+  },
+  "platform": "native"
+}

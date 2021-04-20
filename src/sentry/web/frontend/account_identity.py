@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
 from sentry.identity.pipeline import IdentityProviderPipeline

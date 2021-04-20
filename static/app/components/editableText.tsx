@@ -1,9 +1,9 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import TextOverflow from 'app/components/textOverflow';
 import {IconEdit} from 'app/icons/iconEdit';
-import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
 import useKeypress from 'app/utils/useKeyPress';
@@ -14,15 +14,26 @@ import Field from 'app/views/settings/components/forms/field';
 type Props = {
   value: string;
   onChange: (value: string) => void;
+  name?: string;
+  errorMessage?: React.ReactNode;
+  successMessage?: React.ReactNode;
+  isDisabled?: boolean;
 };
 
-function EditableText({value, onChange}: Props) {
+function EditableText({
+  value,
+  onChange,
+  name,
+  errorMessage,
+  successMessage,
+  isDisabled = false,
+}: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value);
 
   const isEmpty = !inputValue.trim();
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputWrapper = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -30,16 +41,34 @@ function EditableText({value, onChange}: Props) {
   const esc = useKeypress('Escape');
 
   // check to see if the user clicked outside of this component
-  useOnClickOutside(wrapperRef, () => {
-    if (isEditing && !isEmpty) {
-      onChange(inputValue);
+  useOnClickOutside(inputWrapper, () => {
+    if (isEditing) {
+      if (isEmpty) {
+        displayStatusMessage('error');
+        return;
+      }
+
+      if (inputValue !== value) {
+        onChange(inputValue);
+        displayStatusMessage('success');
+      }
+
       setIsEditing(false);
     }
   });
 
   const onEnter = useCallback(() => {
-    if (enter && !isEmpty) {
-      onChange(inputValue);
+    if (enter) {
+      if (isEmpty) {
+        displayStatusMessage('error');
+        return;
+      }
+
+      if (inputValue !== value) {
+        onChange(inputValue);
+        displayStatusMessage('success');
+      }
+
       setIsEditing(false);
     }
   }, [enter, inputValue, onChange]);
@@ -50,6 +79,12 @@ function EditableText({value, onChange}: Props) {
       setIsEditing(false);
     }
   }, [esc, value]);
+
+  useEffect(() => {
+    if (value !== inputValue) {
+      setInputValue(value);
+    }
+  }, [value]);
 
   // focus the cursor in the input field on edit start
   useEffect(() => {
@@ -70,6 +105,19 @@ function EditableText({value, onChange}: Props) {
     }
   }, [onEnter, onEsc, isEditing]); // watch the Enter and Escape key presses
 
+  function displayStatusMessage(status: 'error' | 'success') {
+    if (status === 'error') {
+      if (errorMessage) {
+        addErrorMessage(errorMessage);
+      }
+      return;
+    }
+
+    if (successMessage) {
+      addSuccessMessage(successMessage);
+    }
+  }
+
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     setInputValue(event.target.value);
   }
@@ -79,22 +127,29 @@ function EditableText({value, onChange}: Props) {
   }
 
   return (
-    <Wrapper ref={wrapperRef}>
+    <Wrapper isDisabled={isDisabled}>
       {isEditing ? (
-        <InputWrapper isEmpty={isEmpty}>
-          <StyledField
-            error={isEmpty ? t('Text required') : undefined}
-            inline={false}
-            flexibleControlStateSize
-            stacked
-            required
-          >
-            <StyledInput ref={inputRef} value={inputValue} onChange={handleInputChange} />
+        <InputWrapper
+          ref={inputWrapper}
+          isEmpty={isEmpty}
+          data-test-id="editable-text-input"
+        >
+          <StyledField inline={false} flexibleControlStateSize stacked>
+            <StyledInput
+              name={name}
+              ref={inputRef}
+              value={inputValue}
+              onChange={handleInputChange}
+            />
           </StyledField>
           <InputLabel>{inputValue}</InputLabel>
         </InputWrapper>
       ) : (
-        <Content onClick={handleContentClick} ref={contentRef}>
+        <Content
+          onClick={isDisabled ? undefined : handleContentClick}
+          ref={contentRef}
+          data-test-id="editable-text-label"
+        >
           <Label>
             <InnerLabel>{inputValue}</InnerLabel>
           </Label>
@@ -139,23 +194,37 @@ const StyledIconEdit = styled(IconEdit)`
   height: 40px;
   position: absolute;
   right: 0;
+  cursor: pointer;
 `;
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{isDisabled: boolean}>`
   display: flex;
   justify-content: flex-start;
   height: 40px;
-  :hover {
-    ${StyledIconEdit} {
-      opacity: 1;
-    }
-    ${Label} {
-      border-color: ${p => p.theme.gray300};
-    }
-    ${InnerLabel} {
-      border-bottom-color: transparent;
-    }
-  }
+  ${p =>
+    p.isDisabled
+      ? `
+          ${StyledIconEdit} {
+            cursor: default;
+          }
+
+          ${InnerLabel} {
+            border-bottom-color: transparent;
+          }
+        `
+      : `
+          :hover {
+            ${StyledIconEdit} {
+              opacity: 1;
+            }
+            ${Label} {
+              border-color: ${p.theme.gray300};
+            }
+            ${InnerLabel} {
+              border-bottom-color: transparent;
+            }
+          }
+        `}
 `;
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`

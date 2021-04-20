@@ -104,7 +104,6 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/proguard/`,
           title: t('ProGuard'),
-          show: () => !!organization?.features?.includes('android-mappings'),
         },
         {
           path: `${pathPrefix}/source-maps/`,

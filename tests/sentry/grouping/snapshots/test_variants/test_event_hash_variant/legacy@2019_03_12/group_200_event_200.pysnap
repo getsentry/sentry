@@ -1,0 +1,170 @@
+---
+created: '2021-04-02T09:10:50.868534Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlUserThreadStart"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "BaseThreadInitThunk"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "TppWorkerThread"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "TppWorkpExecuteCallback"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "HTTP_THREAD_POOL::_StaticWorkItemCallback"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "HTTP_ASYNC_OVERLAPPED::OnWorkItem"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "WEBIO_REQUEST::OnIoComplete"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "HTTP_USER_REQUEST::OnSendRequest"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "HTTP_BASE_OBJECT::Dereference"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "destructor'"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "HTTP_USER_REQUEST::~HTTP_USER_REQUEST"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "destructor'"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlFreeHeap"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "memset"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlpFreeUserBlock"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlpFreeUserBlockToHeap"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlFreeHeap"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlpFreeHeapInternal"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlpFreeHeap"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlEnterCriticalSection"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlpEnterCriticalSectionContended"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlpWaitOnCriticalSection"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlpWaitOnAddress"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "RtlpOptimizeWaitOnAddressWaitList"
+        type*
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+system:
+  hash: "e5c2dc6670a947b5251eb5ae72799124"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlUserThreadStart"
+          frame
+            function (function name is not used if module or filename are available)
+              "BaseThreadInitThunk"
+          frame
+            function (function name is not used if module or filename are available)
+              "TppWorkerThread"
+          frame
+            function (function name is not used if module or filename are available)
+              "TppWorkpExecuteCallback"
+          frame
+            function (function name is not used if module or filename are available)
+              "HTTP_THREAD_POOL::_StaticWorkItemCallback"
+          frame
+            function (function name is not used if module or filename are available)
+              "HTTP_ASYNC_OVERLAPPED::OnWorkItem"
+          frame
+            function (function name is not used if module or filename are available)
+              "WEBIO_REQUEST::OnIoComplete"
+          frame
+            function (function name is not used if module or filename are available)
+              "HTTP_USER_REQUEST::OnSendRequest"
+          frame
+            function (function name is not used if module or filename are available)
+              "HTTP_BASE_OBJECT::Dereference"
+          frame
+            function (function name is not used if module or filename are available)
+              "destructor'"
+          frame
+            function (function name is not used if module or filename are available)
+              "HTTP_USER_REQUEST::~HTTP_USER_REQUEST"
+          frame
+            function (function name is not used if module or filename are available)
+              "destructor'"
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlFreeHeap"
+          frame
+            function (function name is not used if module or filename are available)
+              "memset"
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlpFreeUserBlock"
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlpFreeUserBlockToHeap"
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlFreeHeap"
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlpFreeHeapInternal"
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlpFreeHeap"
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlEnterCriticalSection"
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlpEnterCriticalSectionContended"
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlpWaitOnCriticalSection"
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlpWaitOnAddress"
+          frame
+            function (function name is not used if module or filename are available)
+              "RtlpOptimizeWaitOnAddressWaitList"
+        type*
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

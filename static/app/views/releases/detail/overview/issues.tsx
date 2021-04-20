@@ -19,6 +19,7 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import EmptyState from '../emptyState';
 
@@ -102,7 +103,7 @@ class Issues extends React.Component<Props, State> {
         defaultStatsPeriod,
       }),
       limit: 10,
-      sort: 'new',
+      sort: IssueSortOptions.FREQ,
     };
 
     switch (issuesType) {
@@ -237,7 +238,7 @@ class Issues extends React.Component<Props, State> {
             <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
           </OpenInButtonBar>
         </ControlsWrapper>
-        <TableWrapper data-test-id="release-wrapper">
+        <div data-test-id="release-wrapper">
           <GroupList
             orgId={orgId}
             endpointPath={path}
@@ -249,7 +250,7 @@ class Issues extends React.Component<Props, State> {
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
           />
-        </TableWrapper>
+        </div>
       </React.Fragment>
     );
   }
@@ -277,10 +278,6 @@ const StyledDropdownButton = styled(DropdownButton)`
 
 const StyledDropdownItem = styled(DropdownItem)`
   white-space: nowrap;
-`;
-
-const TableWrapper = styled('div')`
-  margin-bottom: ${space(4)};
 `;
 
 const StyledPagination = styled(Pagination)`
