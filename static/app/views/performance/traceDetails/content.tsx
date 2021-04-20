@@ -360,7 +360,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       index,
       numberOfHiddenTransactionsAbove,
       traceInfo,
-      hasGuideAnchor = true,
+      hasGuideAnchor,
     }: {
       continuingDepths: TreeDepth[];
       isOrphan: boolean;
@@ -368,7 +368,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       index: number;
       numberOfHiddenTransactionsAbove: number;
       traceInfo: TraceInfo;
-      hasGuideAnchor?: boolean;
+      hasGuideAnchor: boolean;
     }
   ) {
     const {location, organization} = this.props;
@@ -483,6 +483,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             !isLastTransaction && hasChildren
               ? [{depth: 0, isOrphanDepth: isNextChildOrphaned}]
               : [],
+          hasGuideAnchor: true,
         });
 
         acc.index = result.lastIndex + 1;
