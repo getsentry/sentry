@@ -14,16 +14,28 @@ export default function DemoHeader() {
     <Wrapper>
       <LogoSvg />
       <ButtonBar gap={4}>
-        <StyledExternalLink href="https://docs.sentry.io">
+        <StyledExternalLink
+          onClick={() => trackAdvancedAnalyticsEvent('growth.demo_click_docs', {}, null)}
+          href="https://docs.sentry.io"
+        >
           {t('Documentation')}
         </StyledExternalLink>
+        <BaseButton
+          priority="form"
+          onClick={() =>
+            trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {}, null)
+          }
+          href="https://sentry.io/_/demo/"
+        >
+          {t('Request a Demo')}
+        </BaseButton>
         <GetStarted
           onClick={() =>
             trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {}, null)
           }
           href="https://sentry.io/signup/"
         >
-          {t('Sign Up')}
+          {t('Sign Up for Free')}
         </GetStarted>
       </ButtonBar>
     </Wrapper>
@@ -59,13 +71,16 @@ const LogoSvg = styled(IconSentryFull)`
   color: ${p => p.theme.textColor};
 `;
 
-const GetStarted = styled(Button)`
-  background-color: #e1567c;
-  color: #fff;
-  box-shadow: 0 2px 0 rgb(54 45 89 / 10%);
-  border-color: transparent;
+const BaseButton = styled(Button)`
   border-radius: 2rem;
   text-transform: uppercase;
+`;
+
+const GetStarted = styled(BaseButton)`
+  border-color: transparent;
+  box-shadow: 0 2px 0 rgb(54 45 89 / 10%);
+  background-color: #e1567c;
+  color: #fff;
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
