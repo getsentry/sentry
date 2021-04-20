@@ -31,7 +31,7 @@ export type Widget = {
 export type DashboardListItem = {
   id: string;
   title: string;
-  dateCreated: string;
+  dateCreated?: string;
   createdBy?: User;
   widgetDisplay: DisplayType[];
 };

@@ -7,7 +7,7 @@ from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
-from sentry.models import Dashboard, DashboardWidgetDisplayTypes
+from sentry.models import Dashboard
 
 
 class OrganizationDashboardsPermission(OrganizationPermission):
@@ -39,7 +39,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 
-        dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        dashboards = Dashboard.objects.filter(organization_id=organization.id).select_related(
+            "created_by"
+        )
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
@@ -55,9 +57,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 if isinstance(item, dict):
                     cloned = item.copy()
                     widgets = cloned.pop("widgets", [])
-                    cloned["widgetDisplay"] = [
-                        DashboardWidgetDisplayTypes.get_type_name(w["displayType"]) for w in widgets
-                    ]
+                    cloned["widgetDisplay"] = [w["displayType"] for w in widgets]
                     serialized.append(cloned)
                 else:
                     dashboards.append(item)

@@ -62,7 +62,9 @@ class DashboardList extends React.Component<Props> {
               ? tct('[numWidgets] widgets', {numWidgets: dashboard.widgetDisplay.length})
               : tct('[numWidgets] widget', {numWidgets: dashboard.widgetDisplay.length})
           }
-          dateStatus={<TimeSince date={dashboard.dateCreated} />}
+          dateStatus={
+            dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
+          }
           createdBy={dashboard.createdBy}
           renderWidgets={() => (
             <WidgetGrid>

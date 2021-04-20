@@ -12,7 +12,6 @@ import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
   title?: string;
-  subtitle?: string;
   detail?: React.ReactNode;
   to: object;
   createdBy?: User | undefined;
@@ -31,7 +30,6 @@ class DashboardCard extends React.PureComponent<Props> {
   render() {
     const {
       title,
-      subtitle,
       detail,
       renderContextMenu,
       renderWidgets,
@@ -58,12 +56,13 @@ class DashboardCard extends React.PureComponent<Props> {
           <DashboardCardBody>{renderWidgets()}</DashboardCardBody>
           <DashboardCardFooter>
             <DateSelected>
-              {subtitle}
               {dateStatus ? (
                 <DateStatus>
                   {t('Created')} {dateStatus}
                 </DateStatus>
-              ) : null}
+              ) : (
+                <DateStatus />
+              )}
             </DateSelected>
             {renderContextMenu && renderContextMenu()}
           </DashboardCardFooter>
