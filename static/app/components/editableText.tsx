@@ -17,9 +17,17 @@ type Props = {
   name?: string;
   errorMessage?: React.ReactNode;
   successMessage?: React.ReactNode;
+  isDisabled?: boolean;
 };
 
-function EditableText({value, onChange, name, errorMessage, successMessage}: Props) {
+function EditableText({
+  value,
+  onChange,
+  name,
+  errorMessage,
+  successMessage,
+  isDisabled = false,
+}: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value);
 
@@ -119,7 +127,7 @@ function EditableText({value, onChange, name, errorMessage, successMessage}: Pro
   }
 
   return (
-    <Wrapper>
+    <Wrapper isDisabled={isDisabled}>
       {isEditing ? (
         <InputWrapper
           ref={inputWrapper}
@@ -138,7 +146,7 @@ function EditableText({value, onChange, name, errorMessage, successMessage}: Pro
         </InputWrapper>
       ) : (
         <Content
-          onClick={handleContentClick}
+          onClick={isDisabled ? undefined : handleContentClick}
           ref={contentRef}
           data-test-id="editable-text-label"
         >
@@ -189,21 +197,34 @@ const StyledIconEdit = styled(IconEdit)`
   cursor: pointer;
 `;
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{isDisabled: boolean}>`
   display: flex;
   justify-content: flex-start;
   height: 40px;
-  :hover {
-    ${StyledIconEdit} {
-      opacity: 1;
-    }
-    ${Label} {
-      border-color: ${p => p.theme.gray300};
-    }
-    ${InnerLabel} {
-      border-bottom-color: transparent;
-    }
-  }
+  ${p =>
+    p.isDisabled
+      ? `
+          ${StyledIconEdit} {
+            cursor: default;
+          }
+
+          ${InnerLabel} {
+            border-bottom-color: transparent;
+          }
+        `
+      : `
+          :hover {
+            ${StyledIconEdit} {
+              opacity: 1;
+            }
+            ${Label} {
+              border-color: ${p.theme.gray300};
+            }
+            ${InnerLabel} {
+              border-bottom-color: transparent;
+            }
+          }
+        `}
 `;
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`

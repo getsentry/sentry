@@ -321,6 +321,7 @@ class DashboardDetail extends React.Component<Props, State> {
                   <DashboardTitle
                     dashboard={modifiedDashboard || dashboard}
                     onUpdate={this.setModifiedDashboard}
+                    isEditing={isEditing}
                   />
                   <Controls
                     organization={organization}
