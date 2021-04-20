@@ -1,64 +1,19 @@
 import logging
+from typing import Any
 
-from django.db import IntegrityError
-from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework import status
 from rest_framework.response import Response
 
-from sentry import features
+from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalTeamSerializer
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models import ExternalTeam
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders, get_provider_enum
+from sentry.models import Team
 
 logger = logging.getLogger(__name__)
 
 
-class ExternalTeamSerializer(CamelSnakeModelSerializer):
-    team_id = serializers.IntegerField(required=True)
-    external_name = serializers.CharField(required=True)
-    provider = serializers.ChoiceField(choices=list(EXTERNAL_PROVIDERS.values()))
-
-    class Meta:
-        model = ExternalTeam
-        fields = ["team_id", "external_name", "provider"]
-
-    def validate_provider(self, provider: str) -> int:
-        provider_option = get_provider_enum(provider)
-        if provider_option in [ExternalProviders.GITHUB, ExternalProviders.GITLAB]:
-            return provider_option.value
-
-        raise serializers.ValidationError(
-            f'The provider "{provider}" is not supported. We currently accept GitHub and GitLab team identities.'
-        )
-
-    def create(self, validated_data):
-        return ExternalTeam.objects.get_or_create(**validated_data)
-
-    def update(self, instance, validated_data):
-        if "id" in validated_data:
-            validated_data.pop("id")
-        for key, value in validated_data.items():
-            setattr(self.instance, key, value)
-        try:
-            self.instance.save()
-            return self.instance
-        except IntegrityError:
-            raise serializers.ValidationError(
-                "There already exists an external team association with this external_name and provider."
-            )
-
-
-class ExternalTeamMixin:
-    def has_feature(self, request, team):
-        return features.has(
-            "organizations:import-codeowners", team.organization, actor=request.user
-        )
-
-
-class ExternalTeamEndpoint(TeamEndpoint, ExternalTeamMixin):
-    def post(self, request, team):
+class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
+    def post(self, request: Any, team: Team) -> Response:
         """
         Create an External Team
         `````````````

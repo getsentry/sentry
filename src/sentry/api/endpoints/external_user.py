@@ -1,73 +1,19 @@
 import logging
+from typing import Any
 
-from django.db import IntegrityError
-from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework import status
 from rest_framework.response import Response
 
-from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalUserSerializer
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models import ExternalUser, OrganizationMember
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders, get_provider_enum
+from sentry.models import Organization
 
 logger = logging.getLogger(__name__)
 
 
-class ExternalUserSerializer(CamelSnakeModelSerializer):
-    member_id = serializers.IntegerField(required=True)
-    external_name = serializers.CharField(required=True)
-    provider = serializers.ChoiceField(choices=list(EXTERNAL_PROVIDERS.values()))
-
-    class Meta:
-        model = ExternalUser
-        fields = ["member_id", "external_name", "provider"]
-
-    def validate_provider(self, provider: str) -> int:
-        provider_option = get_provider_enum(provider)
-        if provider_option in [ExternalProviders.GITHUB, ExternalProviders.GITLAB]:
-            return provider_option.value
-
-        raise serializers.ValidationError(
-            f'The provider "{provider}" is not supported. We currently accept GitHub and GitLab user identities.'
-        )
-
-    def validate_member_id(self, member_id):
-        try:
-            return OrganizationMember.objects.get(
-                id=member_id, organization=self.context["organization"]
-            )
-        except OrganizationMember.DoesNotExist:
-            raise serializers.ValidationError("This member does not exist.")
-
-    def create(self, validated_data):
-        organizationmember = validated_data.pop("member_id", None)
-        return ExternalUser.objects.get_or_create(
-            organizationmember=organizationmember, **validated_data
-        )
-
-    def update(self, instance, validated_data):
-        if "id" in validated_data:
-            validated_data.pop("id")
-        for key, value in validated_data.items():
-            setattr(self.instance, key, value)
-        try:
-            self.instance.save()
-            return self.instance
-        except IntegrityError:
-            raise serializers.ValidationError(
-                "There already exists an external user association with this external_name and provider."
-            )
-
-
-class ExternalUserMixin:
-    def has_feature(self, request, organization):
-        return features.has("organizations:import-codeowners", organization, actor=request.user)
-
-
-class ExternalUserEndpoint(OrganizationEndpoint, ExternalUserMixin):
-    def post(self, request, organization):
+class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
+    def post(self, request: Any, organization: Organization) -> Response:
         """
         Create an External User
         `````````````
