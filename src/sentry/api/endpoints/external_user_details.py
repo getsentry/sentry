@@ -36,8 +36,8 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         self.assert_has_feature(request, organization)
 
         serializer = ExternalUserSerializer(
-            external_user,
-            request.data,
+            instance=external_user,
+            data=request.data,
             context={"organization": organization},
             partial=True,
         )
