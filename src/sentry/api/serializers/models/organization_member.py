@@ -68,7 +68,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             external_actors = list(ExternalActor.objects.filter(actor_id__in=actor_mapping.keys()))
 
             for external_actor in external_actors:
-                serialized = serialize(external_actor, user, key="team")
+                serialized = serialize(external_actor, user, key="user")
                 user = actor_mapping.get(external_actor.actor.id)
                 external_users_map[user["id"]].append(serialized)
 
