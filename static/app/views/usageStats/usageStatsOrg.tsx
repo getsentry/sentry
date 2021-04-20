@@ -6,18 +6,13 @@ import moment from 'moment';
 import AsyncComponent from 'app/components/asyncComponent';
 import Card from 'app/components/card';
 import OptionSelector from 'app/components/charts/optionSelector';
-import {
-  ChartControls,
-  HeaderTitle,
-  InlineContainer,
-  SectionValue,
-} from 'app/components/charts/styles';
+import {ChartControls, HeaderTitle, InlineContainer} from 'app/components/charts/styles';
 import {DateTimeObject, getInterval} from 'app/components/charts/utils';
 import NotAvailable from 'app/components/notAvailable';
 import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
@@ -31,7 +26,6 @@ import {
 import {Outcome, UsageSeries, UsageStat} from './types';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
-  CHART_OPTIONS_DATACATEGORY,
   ChartDataTransform,
   ChartStats,
 } from './usageChart';
@@ -340,6 +334,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       },
       {
         title: t('Accepted'),
+        description: tct(
+          'Accepted [dataCategory] were successfully processed by Sentry.',
+          {dataCategory}
+        ),
         value: accepted,
       },
       {
@@ -350,11 +348,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         ),
         value: filtered,
       },
-      // TODO(org-stats): Need a better description for dropped data
       {
         title: t('Dropped'),
         description: tct(
-          'Dropped [dataCategory] were discarded due to rate-limits, quota limits, or spike protection',
+          'Dropped [dataCategory] were discarded due to invalid data, rate-limits, quota limits, or spike protection',
           {dataCategory}
         ),
         value: dropped,
@@ -390,8 +387,6 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       chartDateInterval,
       chartDateStart,
       chartDateEnd,
-      chartDateStartDisplay,
-      chartDateEndDisplay,
       chartTransform,
     } = this.chartData;
 
@@ -403,10 +398,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         isLoading={loading}
         isError={hasError}
         errors={chartErrors}
-        title={tct('Usage for [start] — [end]', {
-          start: chartDateStartDisplay,
-          end: chartDateEndDisplay,
-        })}
+        title=" " // Force the title to be blank
         footer={this.renderChartFooter()}
         dataCategory={dataCategory}
         dataTransform={chartTransform}
@@ -419,46 +411,16 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   renderChartFooter = () => {
-    const {dataCategory, dataDatetime, handleChangeState} = this.props;
-    const {chartTransform} = this.chartData;
-
-    const {period} = dataDatetime;
-
-    // Remove options for relative periods shorter than 1 week
-    const relativePeriods = Object.keys(DEFAULT_RELATIVE_PERIODS).reduce((acc, key) => {
-      const periodDays = parsePeriodToHours(key) / 24;
-      if (periodDays >= 7) {
-        acc[key] = DEFAULT_RELATIVE_PERIODS[key];
-      }
-      return acc;
-    }, {});
+    const {handleChangeState} = this.props;
+    const {chartTransform, chartDateStartDisplay, chartDateEndDisplay} = this.chartData;
 
     return (
       <ChartControls>
         <InlineContainer>
-          <SectionValue>
-            <OptionSelector
-              title={t('Display')}
-              selected={period || DEFAULT_STATS_PERIOD}
-              options={Object.keys(relativePeriods).map(k => ({
-                label: DEFAULT_RELATIVE_PERIODS[k],
-                value: k,
-              }))}
-              onChange={(val: string) =>
-                handleChangeState({pagePeriod: val as RelativePeriod})
-              }
-            />
-          </SectionValue>
-          <SectionValue>
-            <OptionSelector
-              title={t('of')}
-              selected={dataCategory}
-              options={CHART_OPTIONS_DATACATEGORY}
-              onChange={(val: string) =>
-                handleChangeState({dataCategory: val as DataCategory})
-              }
-            />
-          </SectionValue>
+          {tct('Usage for [start] — [end]', {
+            start: chartDateStartDisplay,
+            end: chartDateEndDisplay,
+          })}
         </InlineContainer>
         <InlineContainer>
           <OptionSelector
