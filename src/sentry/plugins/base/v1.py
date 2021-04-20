@@ -3,8 +3,8 @@ __all__ = ("Plugin",)
 import logging
 from threading import local
 
-from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 from sentry.auth import access
 from sentry.plugins import HIDDEN_PLUGINS

@@ -2,9 +2,9 @@ import re
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Set, Tuple
 from urllib.parse import urlparse, urlunparse
 
-from django.core.urlresolvers import reverse
-from django.utils.html import escape, mark_safe
-from django.utils.safestring import SafeString
+from django.urls import reverse
+from django.utils.html import escape
+from django.utils.safestring import SafeString, mark_safe
 
 from sentry import options
 from sentry.models import (
@@ -43,6 +43,10 @@ def register(provider: ExternalProviders) -> Callable:
         return send_notification
 
     return wrapped
+
+
+def fire(provider: ExternalProviders, notification: Any, user: User, context: Mapping[str, Any]):
+    registry[provider](notification, user, context)
 
 
 class ActivityNotification:
@@ -120,6 +124,7 @@ class ActivityNotification:
         context = {
             "data": activity.data,
             "author": activity.user,
+            "title": self.get_title(),
             "project": self.project,
             "project_link": self.get_project_link(),
         }
@@ -281,6 +286,17 @@ class ActivityNotification:
         user_context.update(context)
         return user_context
 
+    def get_title(self) -> str:
+        return self.get_activity_name()
+
+    def get_dm_links(self):
+        links = {}
+        links["settings_url"] = absolute_uri("/settings/account/notifications/")
+        links["group_url"] = self.group.get_absolute_url()
+        group_context = self.get_group_context()
+        links["short_id"] = group_context["group"].qualified_short_id
+        return links
+
     def send(self) -> None:
         if not self.should_email():
             return
@@ -291,10 +307,9 @@ class ActivityNotification:
 
         context = self.get_base_context()
         context.update(self.get_context())
-
         for provider, participants in participants_by_provider.items():
             for user, reason in participants.items():
                 user_context = self.update_user_context_from_group(
                     user, reason, context, self.group
                 )
-                registry[provider](self, user, user_context)
+                fire(provider, self, user, user_context)

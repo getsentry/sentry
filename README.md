@@ -16,9 +16,9 @@ in realtime. The server is in Python, but it contains a full API for
 sending events from any language, in any application.
 
 <p align="center">
-  <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/screenshots/thumb-1.png" width="290">
-  <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/screenshots/thumb-2.png" width="290">
-  <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/screenshots/thumb-3.png" width="290">
+  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-1.png" width="290">
+  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-2.png" width="290">
+  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-3.png" width="290">
 </p>
 
 ## Official Sentry SDKs

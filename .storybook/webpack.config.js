@@ -4,15 +4,7 @@ const path = require('path');
 const webpack = require('webpack');
 const appConfig = require('../webpack.config');
 
-const staticPath = path.resolve(
-  __dirname,
-  '..',
-  'src',
-  'sentry',
-  'static',
-  'sentry',
-  'app'
-);
+const staticPath = path.resolve(__dirname, '..', 'static', 'app');
 
 /**
  * Default the config parameter that storybook passes into our webpack config

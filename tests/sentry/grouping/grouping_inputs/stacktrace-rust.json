@@ -1,6 +1,5 @@
 {
   "_grouping": {
-    "enhancement_base": "common:2019-03-23",
     "enhancements": "family:native function:log_demo::* +app"
   },
   "exception": {

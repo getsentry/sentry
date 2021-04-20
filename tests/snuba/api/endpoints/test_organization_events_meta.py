@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from pytz import utc
 from rest_framework.exceptions import ParseError
 

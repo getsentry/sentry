@@ -46,6 +46,10 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-release-details",
     "sentry-api-0-project-releases",
     "sentry-api-0-project-release-details",
+    # stats
+    "sentry-api-0-organization-stats",
+    "sentry-api-0-organization-stats-v2",
+    "sentry-api-0-project-stats",
 }
 
 SAMPLED_TASKS = {
@@ -251,6 +255,9 @@ def configure_sdk():
                 == "/api/0/organizations/{organization_slug}/issues/"
             ):
                 metrics.incr("internal.captured.events.envelopes.issues")
+
+            if transaction:
+                metrics.incr("internal.captured.events.transactions")
 
             # Assume only transactions get sent via envelopes
             if options.get("transaction-events.force-disable-internal-project"):

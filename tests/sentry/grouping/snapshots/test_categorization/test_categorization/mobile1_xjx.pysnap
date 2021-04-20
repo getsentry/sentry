@@ -1,0 +1,17 @@
+---
+created: '2021-03-29T22:02:38.941984Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+RemoteServiceException:_ (thread_id:_, crashed:_)
+                   dalvik.system.NativeStart  main category=system
+          com.android.internal.os.ZygoteInit  main category=internals
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invokeNative category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=system
+                          android.os.Handler  dispatchMessage category=internals
+                android.app.ActivityThread$H  handleMessage category=std
