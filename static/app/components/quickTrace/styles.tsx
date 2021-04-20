@@ -96,6 +96,7 @@ const MenuItemContent = styled('div')`
 type DropdownItemProps = {
   children: React.ReactNode;
   to?: string | LocationDescriptor;
+  allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
   width?: 'small' | 'large';
 };
@@ -103,11 +104,17 @@ type DropdownItemProps = {
 export function DropdownItem({
   children,
   onSelect,
+  allowDefaultEvent,
   to,
   width = 'large',
 }: DropdownItemProps) {
   return (
-    <StyledMenuItem to={to} onSelect={onSelect} width={width}>
+    <StyledMenuItem
+      to={to}
+      onSelect={onSelect}
+      width={width}
+      allowDefaultEvent={allowDefaultEvent}
+    >
       <MenuItemContent>{children}</MenuItemContent>
     </StyledMenuItem>
   );
@@ -123,6 +130,7 @@ export const DropdownItemSubContainer = styled('div')`
 `;
 
 export const StyledTruncate = styled(Truncate)`
+  padding-left: ${space(1)};
   white-space: nowrap;
 `;
 
