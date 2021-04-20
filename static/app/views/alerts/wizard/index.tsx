@@ -100,62 +100,59 @@ class AlertWizard extends React.Component<Props, State> {
                 projectSlug={projectId}
                 title={t('Create Alert Rule')}
               />
-              <Layout.Title>{t('Select Alert Type')}</Layout.Title>
+              <Layout.Title>{t('What should we alert you about?')}</Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
           <StyledLayoutBody>
             <Layout.Main fullWidth>
-              <List symbol="colored-numeric">
-                <StyledListItem>{t('What should we alert you about?')}</StyledListItem>
-                <WizardBody>
-                  <WizardOptions>
-                    <Styledh2>{t('Errors')}</Styledh2>
-                    {AlertWizardOptions.map(({categoryHeading, options}, i) => (
-                      <OptionsWrapper key={categoryHeading}>
-                        {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
-                        <RadioPanelGroup
-                          choices={options.map(alertType => {
-                            return [alertType, AlertWizardAlertNames[alertType]] as [
-                              string,
-                              React.ReactNode
-                            ];
-                          })}
-                          onChange={this.handleChangeAlertOption}
-                          value={alertOption}
-                          label="alert-option"
-                        />
-                      </OptionsWrapper>
-                    ))}
-                  </WizardOptions>
-                  <WizardPanel visible={!!panelContent && !!alertOption}>
-                    <WizardPanelBody>
-                      {panelContent && alertOption && (
-                        <div>
-                          <PanelHeader>{AlertWizardAlertNames[alertOption]}</PanelHeader>
-                          <PanelBody withPadding>
-                            <PanelDescription>
-                              {panelContent.description}{' '}
-                              {panelContent.docsLink && (
-                                <ExternalLink href={panelContent.docsLink}>
-                                  {t('Learn more')}
-                                </ExternalLink>
-                              )}
-                            </PanelDescription>
-                            <WizardImage src={panelContent.illustration} />
-                            <ExampleHeader>{t('Examples')}</ExampleHeader>
-                            <ExampleList symbol="bullet">
-                              {panelContent.examples.map((example, i) => (
-                                <ExampleItem key={i}>{example}</ExampleItem>
-                              ))}
-                            </ExampleList>
-                          </PanelBody>
-                        </div>
-                      )}
-                      <WizardButton>{this.renderCreateAlertButton()}</WizardButton>
-                    </WizardPanelBody>
-                  </WizardPanel>
-                </WizardBody>
-              </List>
+              <WizardBody>
+                <WizardOptions>
+                  <Styledh2>{t('Errors')}</Styledh2>
+                  {AlertWizardOptions.map(({categoryHeading, options}, i) => (
+                    <OptionsWrapper key={categoryHeading}>
+                      {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
+                      <RadioPanelGroup
+                        choices={options.map(alertType => {
+                          return [alertType, AlertWizardAlertNames[alertType]] as [
+                            string,
+                            React.ReactNode
+                          ];
+                        })}
+                        onChange={this.handleChangeAlertOption}
+                        value={alertOption}
+                        label="alert-option"
+                      />
+                    </OptionsWrapper>
+                  ))}
+                </WizardOptions>
+                <WizardPanel visible={!!panelContent && !!alertOption}>
+                  <WizardPanelBody>
+                    {panelContent && alertOption && (
+                      <div>
+                        <PanelHeader>{AlertWizardAlertNames[alertOption]}</PanelHeader>
+                        <PanelBody withPadding>
+                          <PanelDescription>
+                            {panelContent.description}{' '}
+                            {panelContent.docsLink && (
+                              <ExternalLink href={panelContent.docsLink}>
+                                {t('Learn more')}
+                              </ExternalLink>
+                            )}
+                          </PanelDescription>
+                          <WizardImage src={panelContent.illustration} />
+                          <ExampleHeader>{t('Examples')}</ExampleHeader>
+                          <ExampleList symbol="bullet">
+                            {panelContent.examples.map((example, i) => (
+                              <ExampleItem key={i}>{example}</ExampleItem>
+                            ))}
+                          </ExampleList>
+                        </PanelBody>
+                      </div>
+                    )}
+                    <WizardButton>{this.renderCreateAlertButton()}</WizardButton>
+                  </WizardPanelBody>
+                </WizardPanel>
+              </WizardBody>
             </Layout.Main>
           </StyledLayoutBody>
         </Feature>
@@ -168,13 +165,6 @@ const StyledLayoutBody = styled(Layout.Body)`
   margin-bottom: -${space(3)};
 `;
 
-const StyledListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-top: ${space(3)};
-  margin-bottom: ${space(3)};
-  max-width: 350px;
-`;
-
 const Styledh2 = styled('h2')`
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeLarge};
@@ -183,11 +173,11 @@ const Styledh2 = styled('h2')`
 
 const WizardBody = styled('div')`
   display: flex;
+  padding-top: ${space(1)};
 `;
 
 const WizardOptions = styled('div')`
   flex: 3;
-  margin-left: ${space(4)};
   margin-right: ${space(3)};
   padding-right: ${space(3)};
   max-width: 300px;
@@ -198,7 +188,6 @@ const WizardImage = styled('img')`
 `;
 
 const WizardPanel = styled(Panel)<{visible?: boolean}>`
-  margin-top: -50px;
   max-width: 700px;
   position: sticky;
   top: 20px;
