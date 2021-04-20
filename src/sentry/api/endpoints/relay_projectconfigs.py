@@ -3,7 +3,7 @@ import random
 
 from django.conf import settings
 from rest_framework.response import Response
-from sentry_sdk import Hub, set_tag, start_span, start_transaction
+from sentry_sdk import Hub, capture_exception, set_tag, start_span, start_transaction
 
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint
@@ -187,15 +187,21 @@ class RelayProjectConfigsEndpoint(Endpoint):
             project.organization = organization
             project._organization_cache = organization
 
-            with start_span(op="get_config"):
-                with metrics.timer("relay_project_configs.get_config.duration"):
-                    project_config = config.get_project_config(
-                        project,
-                        full_config=full_config_requested,
-                        project_keys=project_keys.get(project.id) or [],
-                    )
+            try:
+                with start_span(op="get_config"):
+                    with metrics.timer("relay_project_configs.get_config.duration"):
+                        project_config = config.get_project_config(
+                            project,
+                            full_config=full_config_requested,
+                            project_keys=project_keys.get(project.id) or [],
+                        )
 
-            configs[str(project_id)] = project_config.to_dict()
+                configs[str(project_id)] = project_config.to_dict()
+            except Exception:
+                # When projectconfig generation for a single project crashes,
+                # we can disable it until we've recovered. But we shouldn't
+                # fail the whole batch of config requests.
+                capture_exception()
 
         if full_config_requested:
             projectconfig_cache.set_many(configs)
