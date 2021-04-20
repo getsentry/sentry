@@ -139,7 +139,7 @@ def cleanup_unused_data():
 
     used_inputs = {}
 
-    def new_apply(self, frames, idx, rule=None):
+    def new_apply(self, frames, match_frames, idx, rule=None):
         inputs_for_rule = used_inputs.setdefault(rule.matcher_description, [])
 
         # Tolerate up to four testcases per rule. This number is arbitrary but
@@ -148,7 +148,7 @@ def cleanup_unused_data():
         if len(inputs_for_rule) < 4:
             inputs_for_rule.append(_current_input.val)
 
-        return old_apply(self, frames, idx, rule=rule)
+        return old_apply(self, frames, match_frames, idx, rule=rule)
 
     VarAction.apply_modifications_to_frame = new_apply
 
