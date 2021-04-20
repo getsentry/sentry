@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import AbstractSet, Any, Mapping, MutableMapping, Sequence, Set
+from typing import AbstractSet, Any, Iterable, Mapping, MutableMapping, Sequence, Set
 
 from django.db.models import Count
 
@@ -22,17 +22,15 @@ from sentry.models import (
 from sentry.utils.compat import zip
 
 
-def get_team_memberships(team_list: Sequence[Team], user: User) -> Set[int]:
+def get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated():
-        return set()
+        return []
 
-    return {
-        team_id
-        for team_id in OrganizationMemberTeam.objects.filter(
-            organizationmember__user=user, team__in=team_list
-        ).values_list("team", flat=True)
-    }
+    team_ids: Iterable[int] = OrganizationMemberTeam.objects.filter(
+        organizationmember__user=user, team__in=team_list
+    ).values_list("team", flat=True)
+    return team_ids
 
 
 def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int]:
