@@ -37,11 +37,11 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
 from exam import Exam, before, fixture
@@ -105,6 +105,36 @@ class BaseTestCase(Fixtures, Exam):
 
     def tasks(self):
         return TaskRunner()
+
+    @classmethod
+    @contextmanager
+    def static_asset_manifest(cls, manifest_data):
+        dist_path = "src/sentry/static/sentry/dist"
+        manifest_path = f"{dist_path}/manifest.json"
+
+        with open(manifest_path, "w") as manifest_fp:
+            json.dump(manifest_data, manifest_fp)
+
+        files = []
+        for file_path in manifest_data.values():
+            full_path = f"{dist_path}/{file_path}"
+            # make directories in case they don't exist
+            # (e.g. dist path should exist, but subdirs won't)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            open(full_path, "a").close()
+            files.append(full_path)
+
+        try:
+            yield {"manifest": manifest_data, "files": files}
+        finally:
+            with open(manifest_path, "w") as manifest_fp:
+                # Instead of unlinking, preserve an empty manifest file so that other tests that
+                # may or may not load static assets, do not fail
+                manifest_fp.write("{}")
+
+            # Remove any files created from the test manifest
+            for filepath in files:
+                os.unlink(filepath)
 
     @classmethod
     @contextmanager
@@ -1062,15 +1092,9 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "conditions": "has:geo.country_code",
         }
 
-    def do_request(self, method, url, data=None, features=None):
-        if features is None:
-            features = {
-                "organizations:dashboards-basic": True,
-                "organizations:dashboards-edit": True,
-            }
+    def do_request(self, method, url, data=None):
         func = getattr(self.client, method)
-        with self.feature(features):
-            return func(url, data=data)
+        return func(url, data=data)
 
     def assert_widget_queries(self, widget_id, data):
         result_queries = DashboardWidgetQuery.objects.filter(widget_id=widget_id).order_by("order")

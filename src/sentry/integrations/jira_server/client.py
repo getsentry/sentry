@@ -1,7 +1,7 @@
 from urllib.parse import parse_qsl
 
 import jwt
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from oauthlib.oauth1 import SIGNATURE_RSA
 from requests_oauthlib import OAuth1
 

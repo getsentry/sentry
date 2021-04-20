@@ -17,6 +17,8 @@ export type GrowthEventParameters = {
   'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'growth.demo_click_get_started': {};
+  'growth.demo_click_docs': {};
+  'growth.demo_click_request_demo': {};
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -33,4 +35,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.submitted_mobile_prompt_ask_teammate':
     'Growth: Submitted Mobile Prompt Ask Teammate',
   'growth.demo_click_get_started': 'Growth: Demo Click Get Started',
+  'growth.demo_click_docs': 'Growth: Demo Click Docs',
+  'growth.demo_click_request_demo': 'Growth: Demo Click Request Demo',
 };

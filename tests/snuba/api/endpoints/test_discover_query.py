@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 import pytest
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
