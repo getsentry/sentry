@@ -1,5 +1,6 @@
 from django.utils import timezone
 
+from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
 from sentry.models import Rule
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
@@ -30,3 +31,28 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
             self.browser.snapshot("alert rules - list")
+
+    def test_alert_rules_incidents(self):
+        alert_rule_critical = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            name="some rule [crit]",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule_critical, "hi", 100)
+
+        self.create_incident(status=2, alert_rule=alert_rule_critical)
+        crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
+        IncidentTrigger.objects.create(
+            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.RESOLVED.value
+        )
+
+        with self.feature(["organizations:incidents", "organizations:alert-list"]):
+            self.browser.get(self.path)
+            self.browser.wait_until_not(".loading-indicator")
+            self.browser.snapshot("alert rules - alert list")
