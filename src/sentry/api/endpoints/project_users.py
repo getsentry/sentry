@@ -1,5 +1,3 @@
-import re
-
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -7,8 +5,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.models import EventUser
-
-EMAIL_REGEX = re.compile(r"^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$")
 
 
 class ProjectUsersEndpoint(ProjectEndpoint):
@@ -33,20 +29,28 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             pieces = request.GET["query"].strip().split(":", 1)
             if len(pieces) != 2:
                 return Response([])
-            if EMAIL_REGEX.fullmatch(pieces[1]):
-                try:
-                    # project_id and email are indexed together
-                    queryset = [EventUser.objects.get(project_id=project.id, email=pieces[1])]
-                except EventUser.DoesNotExist:
-                    return Response(status=status.HTTP_404_NOT_FOUND)
-                return Response(serialize(queryset, request.user))
-            else:
+            # username and ip can return multiple eventuser objects
+            if any(p in "ip" or p in "username" for p in pieces):
                 try:
                     queryset = queryset.filter(
-                        **{f"{EventUser.attr_from_keyword(pieces[0])}__icontains": pieces[1]}
+                        project_id=project.id,
+                        **{f"{EventUser.attr_from_keyword(pieces[0])}__icontains": pieces[1]},
                     )
+                except EventUser.DoesNotExist:
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+            else:
+                try:
+                    queryset = [
+                        queryset.get(
+                            project_id=project.id,
+                            **{f"{EventUser.attr_from_keyword(pieces[0])}": pieces[1]},
+                        )
+                    ]
+                except EventUser.DoesNotExist:
+                    return Response(status=status.HTTP_404_NOT_FOUND)
                 except KeyError:
                     return Response([])
+                return Response(serialize(queryset, request.user))
 
         return self.paginate(
             request=request,
