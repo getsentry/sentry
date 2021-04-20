@@ -72,6 +72,7 @@ export const getReleaseUnhandledIssuesUrl = (
       query: stringifyQueryObject(
         new QueryResults([`release:${version}`, 'error.unhandled:true'])
       ),
+      sort: IssueSortOptions.FREQ,
     },
   };
 };
