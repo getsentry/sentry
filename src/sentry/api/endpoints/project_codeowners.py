@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List, Mapping, MutableMapping, Union
+from typing import Any, List, Mapping, MutableMapping, Sequence, Union
 
 from rest_framework import serializers, status  # type: ignore
 from rest_framework.exceptions import PermissionDenied  # type: ignore
@@ -27,10 +27,10 @@ logger = logging.getLogger(__name__)
 
 
 def validate_association(
-    raw_items: List[Union[UserEmail, ExternalUser, ExternalTeam]],
-    associations: List[Union[UserEmail, ExternalUser, ExternalTeam]],
+    raw_items: Sequence[Union[UserEmail, ExternalUser, ExternalTeam]],
+    associations: Sequence[Union[UserEmail, ExternalUser, ExternalTeam]],
     type: str,
-) -> List[str]:
+) -> Sequence[str]:
     if type == "emails":
         # associations are UserEmail objects
         sentry_items = [item.email for item in associations]
@@ -67,7 +67,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         if not attrs.get("raw", "").strip():
             return attrs
 
-        external_association_err = []
+        external_association_err: List[str] = []
         # Get list of team/user names from CODEOWNERS file
         teamnames, usernames, emails = parse_code_owners(attrs["raw"])
 

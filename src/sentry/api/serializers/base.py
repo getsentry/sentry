@@ -1,11 +1,11 @@
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, TypeVar, Union
+from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.utils.json import JSONData
 
-K = TypeVar("K")
+K = Any
 
 registry = {}
 
