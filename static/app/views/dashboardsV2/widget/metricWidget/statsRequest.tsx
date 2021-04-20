@@ -115,7 +115,7 @@ function StatsRequest({
 
       const metricDataEndpoint = `/projects/${organization.slug}/${projectSlug}/metrics/data/`;
 
-      if (!!groupBy.length) {
+      if (!!groupBy?.length) {
         const groupByParameter = [...groupBy].join('&groupBy=');
         return api.requestPromise(`${metricDataEndpoint}?groupBy=${groupByParameter}`, {
           query,
@@ -150,13 +150,13 @@ function StatsRequest({
       const breakDownChartData = getBreakdownChartData({
         response: sessionResponse,
         legend: !!legend ? legend : `Query ${index + 1}`,
-        groupBy: !!groupBy.length ? groupBy[0] : undefined,
+        groupBy: !!groupBy?.length ? groupBy[0] : undefined,
       });
 
       const chartData = fillChartDataFromSessionsResponse({
         response: sessionResponse,
         field,
-        groupBy: !!groupBy.length ? groupBy[0] : null,
+        groupBy: !!groupBy?.length ? groupBy[0] : null,
         chartData: breakDownChartData,
         valueFormatter:
           yAxis === 'session.duration'

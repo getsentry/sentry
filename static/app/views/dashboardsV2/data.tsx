@@ -2,10 +2,8 @@ import {t} from 'app/locale';
 
 import {DashboardDetails} from './types';
 
-export const emptyDashboardId = 'default-overview';
-
 export const EMPTY_DASHBOARD: DashboardDetails = {
-  id: emptyDashboardId,
+  id: '',
   dateCreated: '',
   createdBy: '',
   title: t('Untitled dashboard'),

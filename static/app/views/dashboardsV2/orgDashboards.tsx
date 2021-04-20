@@ -11,7 +11,6 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-import {emptyDashboardId} from './data';
 import {DashboardDetails, DashboardListItem} from './types';
 
 type OrgDashboardsChildrenProps = {
@@ -88,7 +87,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     // If we don't have a selected dashboard, and one isn't going to arrive
     // we can redirect to the first dashboard in the list.
-    const dashboardId = data.length ? data[0].id : emptyDashboardId;
+    const dashboardId = data.length ? data[0].id : 'default-overview';
     const url = `/organizations/${organization.slug}/dashboards/${dashboardId}/`;
     browserHistory.replace({
       pathname: url,

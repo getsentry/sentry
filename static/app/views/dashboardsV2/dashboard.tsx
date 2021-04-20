@@ -19,6 +19,7 @@ type Props = {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
+  paramDashboardId: string;
   selection: GlobalSelection;
   isEditing: boolean;
   /**
@@ -117,10 +118,15 @@ class Dashboard extends React.Component<Props> {
   }
 
   render() {
-    const {isEditing, onUpdate, dashboard, organization} = this.props;
+    const {
+      isEditing,
+      onUpdate,
+      dashboard: {widgets},
+      organization,
+      paramDashboardId,
+    } = this.props;
 
     const items = this.getWidgetIds();
-    const {widgets} = dashboard;
 
     return (
       <DndContext
@@ -144,7 +150,7 @@ class Dashboard extends React.Component<Props> {
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && (
               <AddWidget
-                dashboardId={dashboard.id}
+                dashboardId={paramDashboardId}
                 orgSlug={organization.slug}
                 orgFeatures={organization.features}
                 onClick={this.handleStartAdd}

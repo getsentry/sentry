@@ -51,7 +51,7 @@ function SearchBar({
     );
   }
 
-  function getTagValues(tag: Tag): Promise<string[]> {
+  function getTagValues(tag: Tag, _query: string): Promise<string[]> {
     return fetchTagValues(tag.key).then(
       tagValues => tagValues,
       () => {
