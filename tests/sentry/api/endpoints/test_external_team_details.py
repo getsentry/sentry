@@ -11,7 +11,7 @@ class ExternalTeamDetailsTest(APITestCase):
         self.login_as(self.user)
 
         self.external_team = self.create_external_team(
-            self.team, external_name="@NisanthanNanthakumar"
+            self.team, external_name="@getsentry/ecosystem"
         )
 
     def test_basic_delete(self):

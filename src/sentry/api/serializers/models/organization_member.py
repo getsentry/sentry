@@ -70,14 +70,17 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             for external_actor in external_actors:
                 serialized = serialize(external_actor, user, key="team")
                 user = actor_mapping.get(external_actor.actor.id)
-                external_users_map[user].append(serialized)
+                external_users_map[user["id"]].append(serialized)
 
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
             user = users_by_id.get(str(item.user_id), None)
+            external_users = []
+            if user:
+                external_users = external_users_map.get(user.get("id"))
             attrs[item] = {
                 "user": user,
-                "externalUsers": external_users_map.get(user),
+                "externalUsers": external_users,
             }
         return attrs
 
