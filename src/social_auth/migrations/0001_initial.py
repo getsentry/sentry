@@ -1,5 +1,6 @@
-from django.db import migrations, models
 from django.conf import settings
+from django.db import migrations, models
+
 import social_auth.fields
 
 
@@ -22,7 +23,11 @@ class Migration(migrations.Migration):
                 ("extra_data", social_auth.fields.JSONField(default="{}")),
                 (
                     "user",
-                    models.ForeignKey(related_name="social_auth", to=settings.AUTH_USER_MODEL),
+                    models.ForeignKey(
+                        related_name="social_auth",
+                        to=settings.AUTH_USER_MODEL,
+                        on_delete=models.CASCADE,
+                    ),
                 ),
             ],
         ),
