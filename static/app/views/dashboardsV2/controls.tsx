@@ -114,7 +114,7 @@ class Controls extends React.Component<Props> {
     if (dashboard) {
       currentOption = {
         label: dashboard.title,
-        value: dashboard,
+        value: {...dashboard, widgetDisplay: dashboard.widgets.map(w => w.displayType)},
       };
     } else if (dropdownOptions.length) {
       currentOption = dropdownOptions[0];
