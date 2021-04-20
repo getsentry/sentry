@@ -48,6 +48,10 @@ type MenuItemProps = {
    * A server rendered URL.
    */
   href?: string;
+  /**
+   * Enable to allow default event on click
+   */
+  allowDefaultEvent?: boolean;
 
   className?: string;
 };
@@ -56,12 +60,14 @@ type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItem
 
 class MenuItem extends React.Component<Props> {
   handleClick = (e: React.MouseEvent): void => {
-    const {onSelect, disabled, eventKey} = this.props;
+    const {onSelect, disabled, eventKey, allowDefaultEvent} = this.props;
     if (disabled) {
       return;
     }
     if (onSelect) {
-      e.preventDefault();
+      if (allowDefaultEvent !== true) {
+        e.preventDefault();
+      }
       callIfFunction(onSelect, eventKey);
     }
   };
