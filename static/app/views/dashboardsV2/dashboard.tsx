@@ -20,6 +20,7 @@ type Props = {
   organization: Organization;
   dashboard: DashboardDetails;
   selection: GlobalSelection;
+  paramDashboardId: string;
   isEditing: boolean;
   /**
    * Fired when widgets are added/removed/sorted.
@@ -117,10 +118,15 @@ class Dashboard extends React.Component<Props> {
   }
 
   render() {
-    const {isEditing, onUpdate, dashboard, organization} = this.props;
+    const {
+      isEditing,
+      onUpdate,
+      dashboard: {widgets},
+      organization,
+      paramDashboardId,
+    } = this.props;
 
     const items = this.getWidgetIds();
-    const {widgets} = dashboard;
 
     return (
       <DndContext
@@ -144,7 +150,7 @@ class Dashboard extends React.Component<Props> {
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && (
               <AddWidget
-                dashboardId={dashboard.id || 'default-overview'}
+                dashboardId={paramDashboardId}
                 orgSlug={organization.slug}
                 orgFeatures={organization.features}
                 onClick={this.handleStartAdd}

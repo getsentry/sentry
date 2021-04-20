@@ -4,34 +4,35 @@ import styled from '@emotion/styled';
 
 import SelectControl from 'app/components/forms/selectControl';
 import Highlight from 'app/components/highlight';
+import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
-import {Metric} from './types';
+import {MetricMeta} from './types';
 
 type Props = {
-  metrics: Metric[];
-  onChange: <F extends keyof Pick<Props, 'metric' | 'aggregation'>>(
+  metricMetas: MetricMeta[];
+  onChange: <F extends keyof Pick<Props, 'metricMeta' | 'aggregation'>>(
     field: F,
     value: Props[F]
   ) => void;
-  aggregation?: Metric['operations'][0];
-  metric?: Metric;
+  aggregation?: MetricMeta['operations'][0];
+  metricMeta?: MetricMeta;
 };
 
-function MetricSelectField({metrics, metric, aggregation, onChange}: Props) {
-  const operations = metric?.operations ?? [];
+function MetricSelectField({metricMetas, metricMeta, aggregation, onChange}: Props) {
+  const operations = metricMeta?.operations ?? [];
   return (
     <Wrapper>
       <StyledSelectField
         name="metric"
-        choices={metrics.map(m => [m.name, m.name])}
+        choices={metricMetas.map(m => [m.name, m.name])}
         placeholder={t('Select metric')}
         onChange={v => {
-          const newMetric = metrics.find(m => m.name === v);
-          onChange('metric', newMetric);
+          const newMetric = metricMetas.find(m => m.name === v);
+          onChange('metricMeta', newMetric);
         }}
-        value={metric?.name}
+        value={metricMeta?.name}
         components={{
           Option: ({
             label,
@@ -56,6 +57,7 @@ function MetricSelectField({metrics, metric, aggregation, onChange}: Props) {
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
             borderRight: 'none',
+            boxShadow: 'none',
           }),
         }}
         inline={false}
@@ -63,24 +65,30 @@ function MetricSelectField({metrics, metric, aggregation, onChange}: Props) {
         stacked
         allowClear
       />
-      <StyledSelectControl
-        name="aggregation"
-        placeholder={t('Aggr')}
-        disabled={!operations.length}
-        options={operations.map(operation => ({
-          label: operation,
-          value: operation,
-        }))}
-        value={aggregation ?? ''}
-        onChange={v => onChange('aggregation', v)}
-        styles={{
-          control: provided => ({
-            ...provided,
-            borderTopLeftRadius: 0,
-            borderBottomLeftRadius: 0,
-          }),
-        }}
-      />
+      <Tooltip
+        disabled={!!operations.length}
+        title={t('Please select a metric to enable this field')}
+      >
+        <SelectControl
+          name="aggregation"
+          placeholder={t('Aggr')}
+          disabled={!operations.length}
+          options={operations.map(operation => ({
+            label: operation === 'count_unique' ? 'unique' : operation,
+            value: operation,
+          }))}
+          value={aggregation ?? ''}
+          onChange={({value}) => onChange('aggregation', value)}
+          styles={{
+            control: provided => ({
+              ...provided,
+              borderTopLeftRadius: 0,
+              borderBottomLeftRadius: 0,
+              boxShadow: 'none',
+            }),
+          }}
+        />
+      </Tooltip>
     </Wrapper>
   );
 }
@@ -94,7 +102,5 @@ const StyledSelectField = styled(SelectField)`
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 0.4fr;
+  grid-template-columns: 1fr 0.5fr;
 `;
-
-const StyledSelectControl = styled(SelectControl)``;

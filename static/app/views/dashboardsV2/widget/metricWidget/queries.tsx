@@ -9,28 +9,28 @@ import Input from 'app/views/settings/components/forms/controls/input';
 
 import GroupByField from './groupByField';
 import MetricSelectField from './metricSelectField';
-import {Metric, MetricQuery} from './types';
+import {MetricMeta, MetricQuery} from './types';
 
 type Props = {
-  metrics: Metric[];
+  metricMetas: MetricMeta[];
+  metricTags: string[];
   queries: MetricQuery[];
   onRemoveQuery: (index: number) => void;
   onAddQuery: () => void;
   onChangeQuery: (queryIndex: number, query: MetricQuery) => void;
-  metric?: Metric;
 };
 
 function Queries({
-  metrics,
+  metricMetas,
+  metricTags,
   queries,
   onRemoveQuery,
   onAddQuery,
   onChangeQuery,
-  metric,
 }: Props) {
   function handleFieldChange(queryIndex: number, field: keyof MetricQuery) {
     const widgetQuery = queries[queryIndex];
-    return function handleChange(value?: string | string[] | Metric) {
+    return function handleChange(value?: string | string[] | MetricMeta) {
       const newQuery = {...widgetQuery, [field]: value};
       onChangeQuery(queryIndex, newQuery);
     };
@@ -42,13 +42,13 @@ function Queries({
         return (
           <Fields displayDeleteButton={queries.length > 1} key={queryIndex}>
             <MetricSelectField
-              metrics={metrics}
-              metric={query.metric}
+              metricMetas={metricMetas}
+              metricMeta={query.metricMeta}
               aggregation={query.aggregation}
               onChange={(field, value) => handleFieldChange(queryIndex, field)(value)}
             />
             <GroupByField
-              tags={metric?.tags}
+              metricTags={metricTags}
               groupBy={query.groupBy}
               onChange={v => handleFieldChange(queryIndex, 'groupBy')(v)}
             />
@@ -114,7 +114,7 @@ const Fields = styled('div')<{displayDeleteButton: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: ${p =>
-      p.displayDeleteButton ? '1.5fr 1fr 0.5fr max-content' : '1.5fr 1fr 0.5fr'};
+      p.displayDeleteButton ? '1.3fr 1fr 0.5fr max-content' : '1.3fr 1fr 0.5fr'};
     grid-gap: ${space(1)};
     align-items: center;
   }

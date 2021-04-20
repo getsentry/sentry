@@ -1171,7 +1171,7 @@ function routes() {
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
+                /* webpackChunkName: "DashboardsV2Container" */ 'app/views/dashboardsV2'
               )
             }
             component={errorHandler(LazyLoad)}

@@ -10,51 +10,60 @@ import {t} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 
-import {Metric, MetricQuery} from './types';
+import {MetricQuery} from './types';
 
 type Props = {
   onChange: (groupBy: MetricQuery['groupBy']) => void;
-  tags?: Metric['tags'];
+  metricTags: string[];
   groupBy?: MetricQuery['groupBy'];
 };
 
-function GroupByField({tags = [], groupBy = [], onChange}: Props) {
+function GroupByField({metricTags, groupBy = [], onChange}: Props) {
   const hasSelected = !!groupBy.length;
 
-  function handleClick(tag: Metric['tags'][0]) {
+  function handleClick(tag: string) {
     if (groupBy.includes(tag)) {
-      onChange(groupBy.filter(groupByOption => groupByOption !== tag));
+      const filteredGroupBy = groupBy.filter(groupByOption => groupByOption !== tag);
+      onChange(filteredGroupBy);
+      return;
     }
-    onChange([...groupBy, tag]);
+    onChange([...new Set([...groupBy, tag])]);
   }
 
-  function handleUnselectAll() {
+  function handleUnselectAll(event: React.MouseEvent) {
+    event.stopPropagation();
     onChange([]);
   }
 
   return (
     <DropdownAutoComplete
       searchPlaceholder={t('Search tag')}
-      items={tags.map(tag => ({
-        value: tag,
-        searchKey: tag,
+      items={metricTags.map(metricTag => ({
+        value: metricTag,
+        searchKey: metricTag,
         label: ({inputValue}) => (
-          <Item onClick={() => handleClick(tag)}>
-            <Highlight text={inputValue}>{tag}</Highlight>
-            <CheckboxFancy isChecked={groupBy.includes(tag)} />
+          <Item onClick={() => handleClick(metricTag)}>
+            <div>
+              <Highlight text={inputValue}>{metricTag}</Highlight>
+            </div>
+            <CheckboxFancy isChecked={groupBy.includes(metricTag)} />
           </Item>
         ),
       }))}
+      style={{
+        width: '100%',
+      }}
+      maxHeight={110}
     >
       {({isOpen, getActorProps}) => (
-        <Field {...getActorProps()} isOpen={isOpen}>
+        <Field {...getActorProps()} hasSelected={hasSelected} isOpen={isOpen}>
           {!hasSelected ? (
             <Placeholder>{t('Group by')}</Placeholder>
           ) : (
             <React.Fragment>
-              <TextOverflow>
+              <StyledTextOverflow>
                 {groupBy.map(groupByOption => groupByOption).join(',')}
-              </TextOverflow>
+              </StyledTextOverflow>
               <StyledClose
                 color={hasSelected ? 'textColor' : 'gray300'}
                 onClick={handleUnselectAll}
@@ -76,10 +85,15 @@ function GroupByField({tags = [], groupBy = [], onChange}: Props) {
 
 export default GroupByField;
 
-const Field = styled('div')<{isOpen: boolean}>`
+const Field = styled('div')<{isOpen: boolean; hasSelected: boolean}>`
   ${p => inputStyles(p)};
+  padding: 0 10px;
   min-width: 250px;
-  display: flex;
+  display: grid;
+  grid-template-columns: ${p =>
+    p.hasSelected ? '1fr max-content max-content' : '1fr  max-content'};
+  resize: none;
+  overflow: hidden;
   align-items: center;
   ${p =>
     p.isOpen &&
@@ -106,7 +120,7 @@ const ChevronWrapper = styled('div')`
 `;
 
 const StyledClose = styled(IconClose)`
-  height: 10px;
+  height: 100%;
   width: 10px;
   padding: ${space(1)} 0;
   stroke-width: 1.5;
@@ -118,4 +132,8 @@ const Placeholder = styled('div')`
   flex: 1;
   color: ${p => p.theme.gray200};
   padding: 0 ${space(0.25)};
+`;
+
+const StyledTextOverflow = styled(TextOverflow)`
+  flex: 1;
 `;

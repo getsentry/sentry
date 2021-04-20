@@ -51,6 +51,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
   componentDidMount() {
     const {route, router} = this.props;
+    this.checkStateRoute();
     router.setRouteLeaveHook(route, this.onRouteLeave);
     window.addEventListener('beforeunload', this.onUnload);
   }
@@ -339,8 +340,9 @@ class DashboardDetail extends React.Component<Props, State> {
     reloadData,
     error,
   }: Parameters<OrgDashboards['props']['children']>[0]) {
-    const {organization} = this.props;
+    const {organization, params} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
+    const {dashboardId} = params;
 
     return (
       <GlobalSelectionHeader
@@ -378,6 +380,7 @@ class DashboardDetail extends React.Component<Props, State> {
               <NotFound />
             ) : dashboard ? (
               <Dashboard
+                paramDashboardId={dashboardId}
                 dashboard={modifiedDashboard || dashboard}
                 organization={organization}
                 isEditing={this.isEditing}
