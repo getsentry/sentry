@@ -76,9 +76,15 @@ class ReactPageViewTest(TestCase):
     def test_org_settings_captures_slug(self):
         owner = self.create_user("bar@example.com")
         org = self.create_organization(owner=owner)
-        path = f"/settings/{org.slug}/some-page/"
-
         # User is *not* logged in. Check for redirect to org's auth login.
-        resp = self.client.get(path)
-        assert resp.status_code == 302
-        assert resp.url == f"/auth/login/{org.slug}/"
+
+        for path in [
+            f"/organizations/{org.slug}/settings/",
+            f"/organizations/{org.slug}/discover/",
+            f"/organizations/{org.slug}/new_page_that_does_not_exist_yet/",
+            f"/settings/{org.slug}/developer-settings/",
+            f"/settings/{org.slug}/new_page_that_does_not_exist_yet/",
+        ]:
+            resp = self.client.get(path)
+            assert resp.status_code == 302
+            assert resp.url == f"/auth/login/{org.slug}/"

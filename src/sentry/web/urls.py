@@ -536,8 +536,8 @@ urlpatterns += [
                     RestoreOrganizationView.as_view(),
                     name="sentry-restore-organization",
                 ),
-                # need to catch settings and force it to react
-                url(r"^(?P<organization_slug>[\w_-]+)/settings/", react_page_view),
+                # need to catch `settings`, `discover`, etc., and force them to react
+                url(r"^(?P<organization_slug>[\w_-]+)/[\w_-]+/", react_page_view),
             ]
         ),
     ),
