@@ -216,7 +216,6 @@ const ExampleList = styled(List)`
 `;
 
 const WizardPanelBody = styled(PanelBody)`
-  margin-bottom: 0;
   flex: 1;
   min-width: 100%;
 `;

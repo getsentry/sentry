@@ -249,7 +249,7 @@ class ActionsPanel extends React.PureComponent<Props> {
 
     return (
       <React.Fragment>
-        <StyledListItem>{t('Perform actions')}</StyledListItem>
+        <PerformActionsListItem>{t('Perform actions')}</PerformActionsListItem>
         <AlertParagraph>
           {t(
             'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
@@ -359,7 +359,6 @@ const AlertParagraph = styled('p')`
   color: ${p => p.theme.subText};
   margin-left: ${space(4)};
   margin-bottom: ${space(1)};
-  margin-top: -25px;
 `;
 
 const PanelItemGrid = styled(PanelItem)`
@@ -391,6 +390,10 @@ const RuleRowContainer = styled('div')`
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(3)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const PerformActionsListItem = styled(StyledListItem)`
+  margin-bottom: 0;
 `;
 
 export default withOrganization(ActionsPanelWithSpace);

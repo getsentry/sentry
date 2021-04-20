@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import * as Layout from 'app/components/layouts/thirds';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
@@ -165,7 +166,7 @@ class Create extends React.Component<Props, State> {
 }
 
 const AlertConditionsBody = styled(Layout.Body)`
-  margin-bottom: -20px;
+  margin-bottom: -${space(3)};
 
   * {
     max-width: 1000px;
