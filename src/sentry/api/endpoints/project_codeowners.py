@@ -13,12 +13,12 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import (
-    actor_type_to_string,
     ExternalActor,
     Project,
     ProjectCodeOwners,
     RepositoryProjectPathConfig,
     UserEmail,
+    actor_type_to_string,
 )
 from sentry.ownership.grammar import convert_codeowners_syntax, parse_code_owners
 from sentry.utils import metrics

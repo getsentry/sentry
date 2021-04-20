@@ -75,9 +75,9 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
             user = users_by_id.get(str(item.user_id), None)
-            external_users = []
+            external_users: List[Any] = []
             if user:
-                external_users = external_users_map.get(user.get("id"))
+                external_users = external_users_map.get(user["id"], [])
             attrs[item] = {
                 "user": user,
                 "externalUsers": external_users,
