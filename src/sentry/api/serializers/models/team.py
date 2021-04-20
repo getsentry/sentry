@@ -76,7 +76,7 @@ def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Te
 
 
 @register(Team)
-class TeamSerializer(Serializer):
+class TeamSerializer(Serializer):  # type: ignore
     def get_attrs(
         self, item_list: Sequence[Team], user: User, **kwargs: Any
     ) -> MutableMapping[Team, MutableMapping[str, Any]]:

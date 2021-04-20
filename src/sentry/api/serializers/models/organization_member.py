@@ -41,7 +41,7 @@ def get_team_slugs_by_organization_member_id(
 
 
 @register(OrganizationMember)
-class OrganizationMemberSerializer(Serializer):
+class OrganizationMemberSerializer(Serializer):  # type: ignore
     def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
         self.expand = expand or []
 

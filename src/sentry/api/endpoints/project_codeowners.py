@@ -1,9 +1,9 @@
 import logging
 from typing import Any, List, Mapping, MutableMapping, Union
 
-from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.response import Response
+from rest_framework import serializers, status  # type: ignore
+from rest_framework.exceptions import PermissionDenied  # type: ignore
+from rest_framework.response import Response  # type: ignore
 
 from sentry import analytics, features
 from sentry.api.bases.project import ProjectEndpoint
@@ -175,7 +175,7 @@ class ProjectCodeOwnersMixin:
             )
 
 
-class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):
+class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):  # type: ignore
     def get(self, request: Any, project: Project) -> Response:
         """
         Retrieve List of CODEOWNERS configurations for a project
