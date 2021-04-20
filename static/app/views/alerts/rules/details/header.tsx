@@ -97,7 +97,7 @@ const Details = styled(PageHeader)`
 `;
 
 const RuleTitle = styled(PageHeading, {
-  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
   line-height: 1.5;

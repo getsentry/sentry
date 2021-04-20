@@ -9,7 +9,8 @@ type Props = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
  * Do not forward required to `input` to avoid default browser behavior
  */
 const Input = styled('input', {
-  shouldForwardProp: prop => isPropValid(prop) && prop !== 'required',
+  shouldForwardProp: prop =>
+    typeof prop === 'string' && isPropValid(prop) && prop !== 'required',
 })<Props>`
   ${inputStyles};
 `;

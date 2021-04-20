@@ -48,7 +48,8 @@ class Link extends React.Component<Props> {
 export default withRouter(Link);
 
 const Anchor = styled('a', {
-  shouldForwardProp: prop => isPropValid(prop) && prop !== 'disabled',
+  shouldForwardProp: prop =>
+    typeof prop === 'string' && isPropValid(prop) && prop !== 'disabled',
 })<{disabled?: boolean}>`
   ${p =>
     p.disabled &&
