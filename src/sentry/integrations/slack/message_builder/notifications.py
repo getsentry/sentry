@@ -1,10 +1,12 @@
 import re
-from typing import Any, Mapping
+from typing import Any, List, Mapping
 from urllib.parse import urljoin
 
+from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.utils import LEVEL_TO_COLOR
 from sentry.notifications.activity.base import ActivityNotification
 from sentry.utils.http import absolute_uri
+from sentry.models import Group, Rule
 
 
 def get_referrer_qstring(notification: ActivityNotification) -> str:
@@ -46,3 +48,13 @@ def build_notification_attachment(
         "footer": footer,
         "color": LEVEL_TO_COLOR["info"],
     }
+
+
+def build_issue_notification_attachment(
+    group: Group,
+    event=None,
+    tags: Mapping[str, str] = None,
+    rules: List[Rule] = None,
+):
+
+    return build_group_attachment(group, event, tags, rules, issue_alert=True)
