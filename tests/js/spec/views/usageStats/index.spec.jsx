@@ -35,7 +35,7 @@ describe('UsageStats', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
+    expect(wrapper.text()).toContain('Organization Usage Stats');
 
     expect(wrapper.find('UsageChart')).toHaveLength(1);
     expect(wrapper.find('UsageTable')).toHaveLength(1);
@@ -56,7 +56,9 @@ describe('UsageStats', function () {
 
     const orgChart = wrapper.find('UsageChart');
     expect(orgChart.props().dataCategory).toEqual(DataCategory.ERRORS);
-    expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[0].value);
+    expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[1].value);
+
+    expect(wrapper.text()).toContain('Project Usage Stats for Errors');
 
     const projectAsync = wrapper.find('UsageStatsProjects');
     expect(projectAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
@@ -126,10 +128,10 @@ describe('UsageStats', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
+    expect(wrapper.text()).toContain('Organization Usage Stats');
 
-    expect(wrapper.find('UsageChart')).toHaveLength(0);
-    expect(wrapper.find('UsageTable')).toHaveLength(0);
+    expect(wrapper.find('UsageChart')).toHaveLength(1);
+    expect(wrapper.find('UsageTable')).toHaveLength(1);
     expect(wrapper.find('IconWarning')).toHaveLength(2);
   });
 
@@ -230,17 +232,16 @@ describe('UsageStats', function () {
     await tick();
     wrapper.update();
 
-    const optionPagePeriod = wrapper.find('OptionSelector[title="Display"]');
-    const oneDay = Object.keys(DEFAULT_RELATIVE_PERIODS)[0];
-    optionPagePeriod.props().onChange(oneDay);
+    const optionPagePeriod = wrapper.find(`DropdownItem[eventKey="90d"]`);
+    optionPagePeriod.props().onSelect('90d');
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        pagePeriod: oneDay,
+        pagePeriod: '90d',
       }),
     });
 
-    const optionDataCategory = wrapper.find('OptionSelector[title="of"]');
-    optionDataCategory.props().onChange(DataCategory.ATTACHMENTS);
+    const optionDataCategory = wrapper.find('DropdownItem[eventKey="attachments"]');
+    optionDataCategory.props().onSelect(DataCategory.ATTACHMENTS);
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({dataCategory: DataCategory.ATTACHMENTS}),
     });
@@ -251,6 +252,47 @@ describe('UsageStats', function () {
       query: expect.objectContaining({
         chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
       }),
+    });
+  });
+
+  it('removes page query parameters during outbound navigation', async () => {
+    const wrapper = mountWithTheme(
+      <UsageStats
+        organization={organization}
+        location={{
+          query: {
+            pageStart: '2021-01-01T00:00:00Z',
+            pageEnd: '2021-01-07T00:00:00Z',
+            pagePeriod: ninetyDays,
+            pageUtc: true,
+            dataCategory: DataCategory.TRANSACTIONS,
+            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            sort: '-project',
+            notAPageKey: 'hello', // Should not be removed
+          },
+        }}
+        router={router}
+      />,
+      router
+    );
+
+    await tick();
+    wrapper.update();
+
+    const outboundLinks = wrapper.instance().getNextLocations({id: 1, slug: 'project'});
+    expect(outboundLinks).toEqual({
+      performance: {
+        query: {project: 1, notAPageKey: 'hello'},
+        pathname: '/organizations/org-slug/performance/',
+      },
+      projectDetail: {
+        query: {project: 1, notAPageKey: 'hello'},
+        pathname: '/organizations/org-slug/projects/project',
+      },
+      issueList: {
+        query: {project: 1, notAPageKey: 'hello'},
+        pathname: '/organizations/org-slug/issues/',
+      },
     });
   });
 });

@@ -475,7 +475,7 @@ const StyledPanelTable = styled(PanelTable)<{
     `svg:not([data-test-id='icon-check-mark']) {
     display: none;`}
   & > * {
-    padding: ${p => (p.hasAlertList ? `${space(1.5)} ${space(2)}` : space(2))};
+    padding: ${p => (p.hasAlertList ? `${space(2)} ${space(2)}` : space(2))};
   }
 `;
 

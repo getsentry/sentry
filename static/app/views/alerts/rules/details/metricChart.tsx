@@ -66,6 +66,9 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
       silent: true,
       lineStyle: {color: lineColor, type: 'dashed', width: 1},
       data: [{yAxis: threshold} as any],
+      label: {
+        show: false,
+      },
     }),
     data: [],
   };
@@ -248,7 +251,6 @@ class MetricChart extends React.PureComponent<Props, State> {
     warningDuration: number
   ) {
     const {rule, orgId, projects, timePeriod} = this.props;
-    const preset = this.metricPreset;
     const ctaOpts = {
       orgSlug: orgId,
       projects: projects as Project[],
@@ -257,9 +259,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       end: timePeriod.end,
     };
 
-    const {buttonText, ...props} = preset
-      ? preset.makeCtaParams(ctaOpts)
-      : makeDefaultCta(ctaOpts);
+    const {buttonText, ...props} = makeDefaultCta(ctaOpts);
 
     const resolvedPercent = (
       (100 * Math.max(totalDuration - criticalDuration - warningDuration, 0)) /
@@ -315,7 +315,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         forwardedRef={this.handleRef}
         grid={{
           left: 0,
-          right: 0,
+          right: space(2),
           top: space(2),
           bottom: 0,
         }}
@@ -405,6 +405,10 @@ class MetricChart extends React.PureComponent<Props, State> {
       )
     );
 
+    const viableEndDate = getUtcDateString(
+      moment.utc(timePeriod.end).add(rule.timeWindow, 'minutes')
+    );
+
     return (
       <EventsRequest
         api={api}
@@ -416,7 +420,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           .map(project => Number(project.id))}
         interval={interval}
         start={viableStartDate}
-        end={timePeriod.end}
+        end={viableEndDate}
         yAxis={rule.aggregate}
         includePrevious={false}
         currentSeriesName={rule.aggregate}
@@ -545,12 +549,15 @@ class MetricChart extends React.PureComponent<Props, State> {
                 });
 
                 if (selectedIncident && incident.id === selectedIncident.id) {
+                  const selectedIncidentColor =
+                    incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
+
                   areaSeries.push({
                     type: 'line',
                     markArea: MarkArea({
                       silent: true,
                       itemStyle: {
-                        color: color(incidentColor).alpha(0.42).rgb().string(),
+                        color: color(selectedIncidentColor).alpha(0.42).rgb().string(),
                       },
                       data: [
                         [{xAxis: incidentStartDate}, {xAxis: incidentCloseDate}],

@@ -83,13 +83,14 @@ class UsageStatsLastMin extends AsyncComponent<Props, State> {
   }
 
   renderComponent() {
-    const {dataCategoryName} = this.props;
+    const {dataCategory, dataCategoryName} = this.props;
 
     return (
       <Wrapper>
         <Number>{this.minuteData ?? <NotAvailable />}</Number>
         <Description>
-          {tct('accepted [dataCategoryName]', {
+          {tct('[preposition][dataCategoryName] accepted ', {
+            preposition: dataCategory === DataCategory.ATTACHMENTS ? 'of ' : '',
             dataCategoryName: dataCategoryName.toLowerCase(),
           })}
           <br />
@@ -112,9 +113,9 @@ const Wrapper = styled('div')`
 `;
 const Number = styled('div')`
   font-size: 32px;
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${space(1)};
 `;
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(1.5)};
+  line-height: 1.4;
 `;

@@ -1,0 +1,62 @@
+---
+created: '2021-04-02T10:31:50.637379Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            function* (isolated function)
+              "CUseCountedObject<T>::UCDestroy"
+          frame (non app frame)
+            function* (isolated function)
+              "destructor'"
+          frame (non app frame)
+            function* (isolated function)
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+          frame (non app frame)
+            function* (isolated function)
+              "CContext::LUCBeginLayerDestruction"
+          frame (non app frame)
+            function* (isolated function)
+              "NDXGI::CDevice::DestroyDriverInstance"
+          frame (non app frame)
+          frame (non app frame)
+            function*
+              "OpenAdapter12"
+          frame (non app frame)
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+system:
+  hash: "d69ad378fab4de58c7236a72ce3101ee"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function* (isolated function)
+              "CUseCountedObject<T>::UCDestroy"
+          frame*
+            function* (isolated function)
+              "destructor'"
+          frame*
+            function* (isolated function)
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+          frame*
+            function* (isolated function)
+              "CContext::LUCBeginLayerDestruction"
+          frame*
+            function* (isolated function)
+              "NDXGI::CDevice::DestroyDriverInstance"
+          frame
+          frame*
+            function*
+              "OpenAdapter12"
+          frame
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"

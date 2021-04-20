@@ -43,7 +43,7 @@ type MenuItemProps = {
   /**
    * A router target destination
    */
-  to?: Link['props']['to'];
+  to?: React.ComponentProps<typeof Link>['to'];
   /**
    * A server rendered URL.
    */

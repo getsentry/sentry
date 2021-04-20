@@ -181,7 +181,7 @@ class RuleListRow extends React.Component<Props, State> {
                 />
               </FlexCenter>
               <AlertNameAndStatus>
-                <div>{alertLink}</div>
+                <AlertName>{alertLink}</AlertName>
                 {!isIssueAlert(rule) && this.renderLastIncidentDate()}
               </AlertNameAndStatus>
             </AlertNameWrapper>
@@ -335,7 +335,11 @@ const AlertNameWrapper = styled(FlexCenter)<{isIncident?: boolean}>`
 const AlertNameAndStatus = styled('div')`
   ${overflowEllipsis}
   margin-left: ${space(1.5)};
-  line-height: 1.4;
+  line-height: 1.35;
+`;
+
+const AlertName = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const ProjectBadge = styled(IdBadge)`

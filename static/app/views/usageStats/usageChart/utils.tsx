@@ -2,7 +2,7 @@ import moment from 'moment';
 
 import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {DataCategory, IntervalPeriod} from 'app/types';
-import {intervalToMilliseconds} from 'app/utils/dates';
+import {parsePeriodToHours} from 'app/utils/dates';
 
 import {formatUsageWithUnits} from '../utils';
 
@@ -10,23 +10,31 @@ import {formatUsageWithUnits} from '../utils';
  * Avoid changing "MMM D" format as X-axis labels on UsageChart are naively
  * truncated by date.slice(0, 6). This avoids "..." when truncating by ECharts.
  */
-export const FORMAT_DATETIME_HOURLY = 'MMM D LT';
 export const FORMAT_DATETIME_DAILY = 'MMM D';
+export const FORMAT_DATETIME_HOURLY = 'MMM D LT';
 
 /**
  * Used to generate X-axis data points and labels for UsageChart
  * Ensure that this method is idempotent and doesn't change the moment object
  * that is passed in
+ *
+ * If hours are not shown, this method will need to follow the server timezone
+ * (which is UTC) to avoid oddities caused by the user being ahead/behind UTC.
  */
 export function getDateFromMoment(m: moment.Moment, interval: IntervalPeriod = '1d') {
-  const days = intervalToMilliseconds(interval) / (1000 * 60 * 60 * 24);
-  const localtime = moment(m).startOf('h').local();
+  const days = parsePeriodToHours(interval) / 24;
+  if (days >= 1) {
+    return moment(m).utc().format(FORMAT_DATETIME_DAILY);
+  }
 
-  return days >= 1
-    ? localtime.format(FORMAT_DATETIME_DAILY)
-    : `${localtime.format(FORMAT_DATETIME_HOURLY)} - ${localtime
-        .add(1, 'h')
-        .format('LT')}`;
+  const parsedInterval = parseStatsPeriod(interval);
+  const localtime = moment(m).local();
+
+  return parsedInterval
+    ? `${localtime.format(FORMAT_DATETIME_HOURLY)} - ${localtime
+        .add(parsedInterval.period as any, parsedInterval.periodLength as any)
+        .format('LT')}`
+    : localtime.format(FORMAT_DATETIME_HOURLY);
 }
 
 export function getDateFromUnixTimestamp(timestamp: number) {
