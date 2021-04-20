@@ -11,8 +11,6 @@ export const TIME_OPTIONS: SelectValue<string>[] = [
   {label: t('Last 7 days'), value: TimePeriod.SEVEN_DAYS},
 ];
 
-export const ALERT_RULE_DETAILS_DEFAULT_PERIOD = TimePeriod.ONE_DAY;
-
 export const TIME_WINDOWS = {
   [TimePeriod.SIX_HOURS]: TimeWindow.ONE_HOUR * 6 * 60 * 1000,
   [TimePeriod.ONE_DAY]: TimeWindow.ONE_DAY * 60 * 1000,
