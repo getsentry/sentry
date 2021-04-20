@@ -153,20 +153,24 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     const endTime = moment(intervals[intervals.length - 1]);
     const intervalMinutes = moment(endTime).diff(startTime, 'm') / (intervals.length - 1);
 
-    const FORMAT_DATETIME =
-      intervalMinutes >= 24 * 60 ? FORMAT_DATETIME_DAILY : FORMAT_DATETIME_HOURLY;
+    // If interval is a day or more, use UTC to format date. Otherwise, the date
+    // may shift ahead/behind when converting to the user's local time.
+    const isPerDay = intervalMinutes >= 24 * 60;
+    const FORMAT_DATETIME = isPerDay ? FORMAT_DATETIME_DAILY : FORMAT_DATETIME_HOURLY;
 
     const xAxisStart = moment(startTime);
     const xAxisEnd = moment(endTime);
-    const displayStart = moment(startTime);
-    const displayEnd = moment(endTime).add(intervalMinutes, 'm');
+    const displayStart = isPerDay ? moment(startTime).utc() : moment(startTime).local();
+    const displayEnd = isPerDay
+      ? moment(endTime).utc()
+      : moment(endTime).local().add(intervalMinutes, 'm');
 
     return {
       chartDateInterval: `${intervalMinutes}m` as IntervalPeriod,
       chartDateStart: xAxisStart.format(),
       chartDateEnd: xAxisEnd.format(),
-      chartDateStartDisplay: displayStart.local().format(FORMAT_DATETIME),
-      chartDateEndDisplay: displayEnd.local().format(FORMAT_DATETIME),
+      chartDateStartDisplay: displayStart.format(FORMAT_DATETIME),
+      chartDateEndDisplay: displayEnd.format(FORMAT_DATETIME),
     };
   }
 
