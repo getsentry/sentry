@@ -11,6 +11,7 @@ from sentry.models import (
     TeamStatus,
     User,
 )
+from sentry.utils.json import JSONData
 
 
 def get_serialized_users_by_id(users_set: Set[User], user: User) -> Mapping[str, User]:
@@ -81,7 +82,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
 
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         d = {
             "id": str(obj.id),
             "email": obj.get_email(),
@@ -124,7 +125,7 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
 
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         d = super().serialize(obj, attrs, user)
         d["teams"] = attrs.get("teams", [])
         return d
@@ -169,7 +170,7 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
 
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         d = super().serialize(obj, attrs, user)
         d["projects"] = attrs.get("projects", [])
         return d

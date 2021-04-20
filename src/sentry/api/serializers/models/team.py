@@ -20,6 +20,7 @@ from sentry.models import (
     User,
 )
 from sentry.utils.compat import zip
+from sentry.utils.json import JSONData
 
 
 def get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
@@ -116,7 +117,7 @@ class TeamSerializer(Serializer):  # type: ignore
 
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         if attrs.get("avatar"):
             avatar = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
@@ -177,7 +178,7 @@ class TeamWithProjectsSerializer(TeamSerializer):
 
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         d = super().serialize(obj, attrs, user)
         d["projects"] = attrs["projects"]
         d["externalTeams"] = attrs["externalTeams"]

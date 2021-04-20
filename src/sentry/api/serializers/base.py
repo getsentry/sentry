@@ -3,6 +3,8 @@ from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Seque
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.utils.json import JSONData
+
 K = TypeVar("K")
 
 registry = {}
@@ -96,7 +98,7 @@ class Serializer:
 
     def serialize(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         """
         Convert an arbitrary python object `obj` to an object that only contains primitives.
 

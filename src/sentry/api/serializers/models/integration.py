@@ -16,6 +16,7 @@ from sentry.models import (
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import get_provider_string
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
 class IntegrationSerializer(Serializer):  # type: ignore
     def serialize(
         self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         provider = obj.get_provider()
         return {
             "id": str(obj.id),
@@ -64,7 +65,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         user: User,
         include_config: bool = True,
         **kwargs: Any,
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
 
         if not include_config:
@@ -97,7 +98,7 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
 
     def serialize(
         self, obj: Integration, attrs: Mapping[str, Any], user: User, include_config: bool = True
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
@@ -147,7 +148,7 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
 class IntegrationProviderSerializer(Serializer):  # type: ignore
     def serialize(
         self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         org_slug = kwargs.pop("organization").slug
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None
@@ -177,7 +178,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
     def serialize(
         self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
         organization_id = kwargs.pop("organization_id")
         installation = obj.get_installation(organization_id)
@@ -234,7 +235,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 
     def serialize(
         self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])
         return data
@@ -244,7 +245,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 class ExternalTeamSerializer(Serializer):  # type: ignore
     def serialize(
         self, obj: Any, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         provider = get_provider_string(obj.provider)
         return {
             "id": str(obj.id),
@@ -258,7 +259,7 @@ class ExternalTeamSerializer(Serializer):  # type: ignore
 class ExternalUserSerializer(Serializer):  # type: ignore
     def serialize(
         self, obj: Any, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         provider = get_provider_string(obj.provider)
         return {
             "id": str(obj.id),
