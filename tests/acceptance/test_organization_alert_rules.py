@@ -51,11 +51,9 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
             threshold_period=1,
         )
         trigger = self.create_alert_rule_trigger(alert_rule_critical, "hi", 100)
-        crit_incident = self.create_incident(
-            status=20, alert_rule=alert_rule_critical, date_created=timezone.now()
-        )
+        crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
         IncidentTrigger.objects.create(
-            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.RESOLVED.value
+            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.ACTIVE.value
         )
 
         with self.feature(["organizations:incidents", "organizations:alert-list"]):
