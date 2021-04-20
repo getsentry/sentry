@@ -708,7 +708,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             <Feature organization={organization} features={['alert-wizard']}>
               {({hasFeature}) =>
                 hasFeature ? (
-                  <List symbol="colored-numeric" initialCounterValue={1}>
+                  <List symbol="colored-numeric">
                     <RuleConditionsFormForWizard
                       api={this.api}
                       projectSlug={params.projectId}

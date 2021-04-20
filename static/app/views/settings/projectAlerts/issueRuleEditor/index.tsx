@@ -554,7 +554,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               ) : null
             }
           >
-            <List symbol="colored-numeric" initialCounterValue={1}>
+            <List symbol="colored-numeric">
               {this.state.loading && <SemiTransparentLoadingMask />}
               <StyledListItem>{t('Add alert settings')}</StyledListItem>
               <Panel>
