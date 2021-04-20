@@ -104,9 +104,9 @@ const BreadcrumbList = styled('div')`
 `;
 
 type BreadcrumbLinkProps = {
-  children?: React.ReactNode;
-  preserveGlobalSelection?: boolean;
   to: React.ComponentProps<typeof Link>['to'];
+  preserveGlobalSelection?: boolean;
+  children?: React.ReactNode;
 };
 
 const BreadcrumbLink = styled(
