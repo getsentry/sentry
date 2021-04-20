@@ -9,13 +9,19 @@ from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.integrations import validate_provider
 from sentry.models import ExternalActor, Organization, OrganizationMember, Team, User
-from sentry.types.integrations import EXTERNAL_PROVIDERS
+from sentry.types.integrations import ExternalProviders, get_provider_choices
+
+AVAILABLE_PROVIDERS = {
+    ExternalProviders.GITHUB,
+    ExternalProviders.GITLAB,
+    ExternalProviders.SLACK,
+}
 
 
 class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
     external_id = serializers.CharField()
     external_name = serializers.CharField(required=True)
-    provider = serializers.ChoiceField(choices=list(EXTERNAL_PROVIDERS.values()))
+    provider = serializers.ChoiceField(choices=get_provider_choices(AVAILABLE_PROVIDERS))
 
     @property
     def organization(self):
@@ -31,7 +37,9 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
 
     def get_provider_id(self, validated_data: MutableMapping[str, Any]) -> int:
         provider_name_option = validated_data.pop("provider", None)
-        return validate_provider(provider_name_option).value
+        return validate_provider(
+            provider_name_option, available_providers=AVAILABLE_PROVIDERS
+        ).value
 
     def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
         actor_id = self.get_actor_id(validated_data)
