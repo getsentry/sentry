@@ -371,6 +371,7 @@ const StyledDropdownLink = styled('div')`
 
 const ActionsRow = styled(FlexCenter)`
   justify-content: center;
+  padding: ${space(1)};
 `;
 
 export default RuleListRow;
