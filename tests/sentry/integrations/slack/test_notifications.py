@@ -37,7 +37,7 @@ def send_notification(*args):
 
 
 def get_attachment():
-    assert len(responses.calls) > 1
+    assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[0].request.body)
     assert "attachments" in data
     attachments = json.loads(data["attachments"][0])
