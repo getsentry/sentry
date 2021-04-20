@@ -14,7 +14,6 @@ import {
 } from 'app/components/charts/styles';
 import {DateTimeObject, getInterval} from 'app/components/charts/utils';
 import NotAvailable from 'app/components/notAvailable';
-import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -133,70 +132,37 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     chartDateStartDisplay: string;
     chartDateEndDisplay: string;
   } {
-    const {dataDatetime} = this.props;
-    const {period, start, end} = dataDatetime;
+    const {orgStats} = this.state;
 
-    const interval = getInterval(dataDatetime);
-    const intervalMinutes = parsePeriodToHours(interval) * 60;
-    if (intervalMinutes < 1) {
-      throw new Error('UsageStatsOrg: Unable to parse interval for specified period');
+    // Use fillers as loading/error states will not display datetime at all
+    if (!orgStats || !orgStats.intervals || orgStats.intervals.length < 2) {
+      const now = moment();
+
+      return {
+        chartDateInterval: '1d',
+        chartDateStart: now.format(),
+        chartDateEnd: now.format(),
+        chartDateStartDisplay: now.local().format(FORMAT_DATETIME_DAILY),
+        chartDateEndDisplay: now.local().format(FORMAT_DATETIME_DAILY),
+      };
     }
+
+    const {intervals} = orgStats;
+
+    const startTime = moment(intervals[0]);
+    const endTime = moment(intervals[intervals.length - 1]);
+    const intervalMinutes = moment(endTime).diff(startTime, 'm') / (intervals.length - 1);
 
     const FORMAT_DATETIME =
       intervalMinutes >= 24 * 60 ? FORMAT_DATETIME_DAILY : FORMAT_DATETIME_HOURLY;
 
-    if (start && end) {
-      const dateStart = moment(start);
-      const dateEnd = moment(end);
-
-      return {
-        chartDateInterval: interval,
-        chartDateStart: dateStart.format(),
-        chartDateEnd: dateEnd.format(),
-        chartDateStartDisplay: dateStart.local().format(FORMAT_DATETIME),
-        chartDateEndDisplay: dateEnd.local().format(FORMAT_DATETIME),
-      };
-    }
-
-    // Default to 14d period at 1hr interval
-    let chartDateStart = moment().subtract(14, 'd');
-    const chartDateEnd = moment();
-
-    if (period) {
-      try {
-        const statsPeriod = parseStatsPeriod(period);
-        if (!statsPeriod) {
-          throw new Error('UsageStatsOrg: Format for data period is not recognized');
-        }
-
-        if (intervalMinutes >= 24 * 60) {
-          chartDateEnd.startOf('d');
-        } else if (intervalMinutes >= 60) {
-          chartDateEnd.startOf('h');
-        } else if (intervalMinutes >= 1) {
-          chartDateEnd.startOf('m');
-        }
-
-        chartDateStart = moment(chartDateEnd).subtract(
-          statsPeriod.period as any, // TODO(ts): Oddity with momentjs types
-          statsPeriod.periodLength as any
-        );
-      } catch (err) {
-        // do nothing
-      }
-    }
-
-    // The API response includes the current time period (which is ongoing)
-    // E.g. Getting 24h at 1h interval gets you 24 blocks, but because it
-    // includes the current hour, we need to +1 hour on dateStart to remove
-    // empty column on left of chart
-    const xAxisStart = moment(chartDateStart).add(intervalMinutes, 'm');
-    const xAxisEnd = moment(chartDateEnd);
-    const displayStart = moment(chartDateStart);
-    const displayEnd = moment(chartDateEnd).add(intervalMinutes, 'm');
+    const xAxisStart = moment(startTime);
+    const xAxisEnd = moment(endTime);
+    const displayStart = moment(startTime);
+    const displayEnd = moment(endTime).add(intervalMinutes, 'm');
 
     return {
-      chartDateInterval: interval,
+      chartDateInterval: `${intervalMinutes}m` as IntervalPeriod,
       chartDateStart: xAxisStart.format(),
       chartDateEnd: xAxisEnd.format(),
       chartDateStartDisplay: displayStart.local().format(FORMAT_DATETIME),
