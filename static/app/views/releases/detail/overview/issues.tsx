@@ -19,6 +19,7 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import EmptyState from '../emptyState';
 
@@ -102,7 +103,7 @@ class Issues extends React.Component<Props, State> {
         defaultStatsPeriod,
       }),
       limit: 10,
-      sort: 'freq',
+      sort: IssueSortOptions.FREQ,
     };
 
     switch (issuesType) {
