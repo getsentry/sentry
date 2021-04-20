@@ -877,7 +877,7 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
     except Exception as e:
         logger.warning(
             "snuba.snql.parsing.error",
-            extra={"error": str(e), "params": json.dumps(query_params)},
+            extra={"error": str(e), "params": json.dumps(query_params), "referrer": referrer},
         )
         metrics.incr(
             "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "parsing.error"}
@@ -899,7 +899,12 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
     except Exception as e:
         logger.warning(
             "snuba.snql.dryrun.sending.error",
-            extra={"error": str(e), "params": json.dumps(query_params), "query": str(query)},
+            extra={
+                "error": str(e),
+                "params": json.dumps(query_params),
+                "query": str(query),
+                "referrer": referrer,
+            },
         )
         metrics.incr(
             "snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "sending.error"}
@@ -917,6 +922,7 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
                 "params": json.dumps(query_params),
                 "query": str(query),
                 "resp": snql_resp.data,
+                "referrer": referrer,
             },
         )
         metrics.incr(
@@ -932,6 +938,7 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
                 "query": str(query),
                 "snql": "sql" in snql_data,
                 "legacy": "sql" in legacy_data,
+                "referrer": referrer,
             },
         )
         metrics.incr("snuba.snql.dryrun.failure", tags={"referrer": referrer, "reason": "nosql"})
@@ -945,6 +952,7 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
                 "query": str(query),
                 "snql": snql_data["sql"],
                 "legacy": legacy_data["sql"],
+                "referrer": referrer,
             },
         )
         metrics.incr(
