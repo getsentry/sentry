@@ -1,9 +1,9 @@
 import random
-from typing import Optional
+from typing import Optional, Set
 
 from sentry import options
 
-referrer_blacklist = {}
+referrer_blacklist: Set[str] = set()
 referrers_by_entity = {
     "api.performance.durationpercentilechart": "discover_transactions",
     "api.performance.vital-detail": "discover_transactions",
@@ -25,7 +25,7 @@ referrers = {
 
 # Returns None (do not use SnQL), "auto" (use dataset as entity) or a specific entity to use.
 def should_use_snql(referrer: Optional[str]) -> Optional[str]:
-    if referrer in referrer_blacklist:
+    if not referrer or referrer in referrer_blacklist:
         return None
 
     use_snql = False
