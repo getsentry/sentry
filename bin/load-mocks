@@ -329,7 +329,10 @@ def create_sample_time_series(event, release=None):
 
 
 def main(num_events=1, extra_events=False, load_trends=False, slow=False):
-    user = User.objects.filter(is_superuser=True)[0]
+    try:
+        user = User.objects.filter(is_superuser=True)[0]
+    except IndexError:
+        raise Exception("No superuser exists (run `make bootstrap`)")
 
     dummy_user, _ = User.objects.get_or_create(
         username="dummy@example.com", defaults={"email": "dummy@example.com"}
