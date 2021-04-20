@@ -15,7 +15,6 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
-import {parsePeriodToHours} from 'app/utils/dates';
 
 import {
   FORMAT_DATETIME_DAILY,
