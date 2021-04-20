@@ -28,6 +28,7 @@ GUIDES = {
     "release_adoption": {"id": 13, "required_targets": ["release_adoption"]},
     "user_misery": {"id": 14, "required_targets": ["user_misery"]},
     "stack_trace_preview": {"id": 15, "required_targets": ["issue_stream_title"]},
+    "trace_view": {"id": 16, "required_targets": []},
 }
 
 # demo mode has different guides
