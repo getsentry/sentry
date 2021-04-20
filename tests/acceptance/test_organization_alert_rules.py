@@ -50,13 +50,21 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
             resolve_threshold=10,
             threshold_period=1,
         )
-        trigger = self.create_alert_rule_trigger(alert_rule_critical, "hi", 100)
+        trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule_critical, alert_threshold=100
+        )
         crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
         IncidentTrigger.objects.create(
             incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.ACTIVE.value
         )
 
-        with self.feature(["organizations:incidents", "organizations:alert-list"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:alert-list",
+                "organizations:team-alerts-ownership",
+            ]
+        ):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
             self.browser.snapshot("alert rules - alert list")
