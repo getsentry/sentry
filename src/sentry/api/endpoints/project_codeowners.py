@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping, MutableMapping
+from typing import Any, List, Mapping, MutableMapping, Union
 
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -25,7 +25,27 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
+def validate_association(
+    raw_items: List[Union[UserEmail, ExternalUser, ExternalTeam]],
+    associations: List[Union[UserEmail, ExternalUser, ExternalTeam]],
+    type: str,
+) -> List[str]:
+    if type == "emails":
+        # associations are UserEmail objects
+        sentry_items = [item.email for item in associations]
+    else:
+        # associations can be ExternalUser or ExternalTeam objects
+        sentry_items = [item.external_name for item in associations]
+
+    diff = [item for item in raw_items if item not in sentry_items]
+
+    if len(diff):
+        return [f'The following {type} do not have an association in Sentry: {", ".join(diff)}.']
+
+    return []
+
+
+class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
     code_mapping_id = serializers.IntegerField(required=True)
     raw = serializers.CharField(required=True)
     organization_integration_id = serializers.IntegerField(required=False)
@@ -55,7 +75,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
             email__in=emails,
             user__sentry_orgmember_set__organization=self.context["project"].organization,
         )
-        user_emails_diff = self._validate_association(emails, user_emails, "emails")
+        user_emails_diff = validate_association(emails, user_emails, "emails")
 
         external_association_err.extend(user_emails_diff)
 
@@ -65,7 +85,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
             organizationmember__organization=self.context["project"].organization,
         )
 
-        external_users_diff = self._validate_association(usernames, external_users, "usernames")
+        external_users_diff = validate_association(usernames, external_users, "usernames")
 
         external_association_err.extend(external_users_diff)
 
@@ -75,7 +95,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
             team__organization=self.context["project"].organization,
         )
 
-        external_teams_diff = self._validate_association(teamnames, external_teams, "team names")
+        external_teams_diff = validate_association(teamnames, external_teams, "team names")
 
         external_association_err.extend(external_teams_diff)
 
@@ -100,23 +120,6 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         )
 
         return {**validated_data, **attrs}
-
-    def _validate_association(self, raw_items, associations, type):
-        if type == "emails":
-            # associations are UserEmail objects
-            sentry_items = [item.email for item in associations]
-        else:
-            # associations can be ExternalUser or ExternalTeam objects
-            sentry_items = [item.external_name for item in associations]
-
-        diff = [item for item in raw_items if item not in sentry_items]
-
-        if len(diff):
-            return [
-                f'The following {type} do not have an association in Sentry: {", ".join(diff)}.'
-            ]
-
-        return []
 
     def validate_code_mapping_id(self, code_mapping_id: int) -> RepositoryProjectPathConfig:
         if ProjectCodeOwners.objects.filter(
@@ -157,8 +160,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
 
 class ProjectCodeOwnersMixin:
     def has_feature(self, request: Any, project: Project) -> bool:
-        return features.has(
-            "organizations:import-codeowners", project.organization, actor=request.user
+        return bool(
+            features.has(
+                "organizations:import-codeowners", project.organization, actor=request.user
+            )
         )
 
     def track_response_code(self, type: str, status: str) -> None:
