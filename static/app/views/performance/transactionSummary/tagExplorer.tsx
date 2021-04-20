@@ -1,9 +1,8 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor} from 'history';
+import {Location} from 'history';
 
-import {TagSegment} from 'app/actionCreators/events';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import GridEditable from 'app/components/gridEditable';
@@ -44,6 +43,14 @@ const COLUMN_ORDER = [
     },
   },
   {
+    key: 'aggregate',
+    name: 'Avg Duration',
+    width: -1,
+    column: {
+      kind: 'field',
+    },
+  },
+  {
     key: 'frequency',
     name: 'Frequency',
     width: -1,
@@ -53,34 +60,19 @@ const COLUMN_ORDER = [
   },
   {
     key: 'comparison',
-    name: 'Comparison',
+    name: 'Comparison To Avg',
     width: -1,
     column: {
       kind: 'field',
     },
   },
   {
-    key: 'otherValues',
-    name: 'Facet Map',
+    key: 'totalTimeLost',
+    name: 'Total Time Lost',
     width: -1,
     column: {
       kind: 'field',
     },
-  },
-];
-
-const HEADER_OPTIONS: DropdownOption[] = [
-  {
-    label: 'Suspect Tag Values',
-    value: '-sumdelta',
-  },
-  {
-    label: 'Slowest Tag Values',
-    value: '-aggregate',
-  },
-  {
-    label: 'Fastest Tag Values',
-    value: 'aggregate',
   },
 ];
 
@@ -92,6 +84,22 @@ const DURATION_OPTIONS: DropdownOption[] = [
   {
     label: 'measurements.lcp',
     value: 'measurements[lcp]',
+  },
+  {
+    label: 'spans.browser',
+    value: 'span_op_breakdowns[ops.browser]',
+  },
+  {
+    label: 'spans.db',
+    value: 'span_op_breakdowns[ops.db]',
+  },
+  {
+    label: 'spans.http',
+    value: 'span_op_breakdowns[ops.http]',
+  },
+  {
+    label: 'spans.resource',
+    value: 'span_op_breakdowns[ops.resource]',
   },
 ];
 
@@ -154,105 +162,15 @@ const renderBodyCell = (
       </Tooltip>
     );
   }
+  if (column.key === 'aggregate') {
+    return <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />;
+  }
 
-  if (column.key === 'otherValues' && Array.isArray(value)) {
-    const converted = dataRow.otherValues;
-    const segments = converted.map(val => {
-      return {
-        count: val.count,
-        name: val.name,
-        key: dataRow.key,
-        value: val.value,
-        isOther: val.isOther,
-        url: '',
-      };
-    });
-
-    return <SegmentVisualization location={location} segments={segments} />;
+  if (column.key === 'totalTimeLost') {
+    return <PerformanceDuration abbreviation milliseconds={dataRow.totalTimeLost} />;
   }
   return value;
 };
-
-type SegmentValue = {
-  to: LocationDescriptor;
-  onClick: () => void;
-  index: number;
-};
-type SegmentProps = {
-  location: Location;
-  segments: TagSegment[];
-};
-const SegmentVisualization = (props: SegmentProps) => {
-  const {location, segments} = props;
-  return (
-    <SegmentBar>
-      {segments.map((value, index) => {
-        const pct = value.count * 100;
-        const pctLabel = Math.floor(pct);
-        const renderTooltipValue = () => {
-          return value.name || t('n/a');
-        };
-
-        const tooltipHtml = (
-          <React.Fragment>
-            <div className="truncate">{renderTooltipValue()}</div>
-            {pctLabel}%
-          </React.Fragment>
-        );
-
-        const segmentProps: SegmentValue = {
-          index,
-          to: value.url,
-          onClick: () => handleTagValueClick(location, value.key ?? '', value.value),
-        };
-
-        return (
-          <div key={value.value} style={{width: pct + '%'}}>
-            <Tooltip title={tooltipHtml} containerDisplayMode="block">
-              {value.isOther ? <OtherSegment /> : <Segment {...segmentProps} />}
-            </Tooltip>
-          </div>
-        );
-      })}
-    </SegmentBar>
-  );
-};
-
-const SegmentBar = styled('div')`
-  display: flex;
-  overflow: hidden;
-  border-radius: 2px;
-`;
-
-const COLORS = [
-  '#3A3387',
-  '#5F40A3',
-  '#8C4FBD',
-  '#B961D3',
-  '#DE76E4',
-  '#EF91E8',
-  '#F7B2EC',
-  '#FCD8F4',
-  '#FEEBF9',
-];
-
-const OtherSegment = styled('span')`
-  display: block;
-  width: 100%;
-  height: 16px;
-  color: inherit;
-  outline: none;
-  background-color: ${COLORS[COLORS.length - 1]};
-`;
-
-const Segment = styled(Link)<SegmentValue>`
-  display: block;
-  width: 100%;
-  height: 16px;
-  color: inherit;
-  outline: none;
-  background-color: ${p => COLORS[p.index]};
-`;
 
 const renderBodyCellWithData = (parentProps: Props) => {
   return (
@@ -279,21 +197,13 @@ type Props = {
 };
 
 type State = {
-  tagOrder: string;
   aggregateColumn: string;
 };
 
 class _TagExplorer extends React.Component<Props, State> {
   state: State = {
-    tagOrder: HEADER_OPTIONS[0].value,
     aggregateColumn: DURATION_OPTIONS[0].value,
   };
-
-  setTagOrder(value: string) {
-    this.setState({
-      tagOrder: value,
-    });
-  }
 
   setAggregateColumn(value: string) {
     this.setState({
@@ -303,14 +213,10 @@ class _TagExplorer extends React.Component<Props, State> {
 
   render() {
     const {eventView, organization, location} = this.props;
-    const {tagOrder, aggregateColumn} = this.state;
+    const {aggregateColumn} = this.state;
     const handleCursor = () => {};
 
-    const sortDropdownOptions = HEADER_OPTIONS;
     const columnDropdownOptions = DURATION_OPTIONS;
-
-    const selectedSort =
-      sortDropdownOptions.find(o => o.value === tagOrder) || sortDropdownOptions[0];
     const selectedColumn =
       columnDropdownOptions.find(o => o.value === aggregateColumn) ||
       columnDropdownOptions[0];
@@ -320,7 +226,6 @@ class _TagExplorer extends React.Component<Props, State> {
         eventView={eventView}
         orgSlug={organization.slug}
         location={location}
-        tagOrder={tagOrder}
         aggregateColumn={aggregateColumn}
         limit={5}
       >
@@ -328,11 +233,8 @@ class _TagExplorer extends React.Component<Props, State> {
           return (
             <React.Fragment>
               <TagsHeader
-                selectedSort={selectedSort}
-                sortOptions={sortDropdownOptions}
                 selectedColumn={selectedColumn}
                 columnOptions={columnDropdownOptions}
-                handleSortDropdownChange={(v: string) => this.setTagOrder(v)}
                 handleColumnDropdownChange={(v: string) => this.setAggregateColumn(v)}
               />
               <GridEditable
@@ -364,49 +266,15 @@ type DropdownOption = {
 };
 
 type HeaderProps = {
-  selectedSort: DropdownOption;
-  sortOptions: DropdownOption[];
   selectedColumn: DropdownOption;
   columnOptions: DropdownOption[];
-  handleSortDropdownChange: (k: string) => void;
   handleColumnDropdownChange: (k: string) => void;
 };
 function TagsHeader(props: HeaderProps) {
-  const {
-    selectedSort,
-    sortOptions,
-    selectedColumn,
-    columnOptions,
-    handleSortDropdownChange,
-    handleColumnDropdownChange,
-  } = props;
+  const {selectedColumn, columnOptions, handleColumnDropdownChange} = props;
   return (
     <Header>
-      <DropdownControl
-        data-test-id="sort-tag-values"
-        button={({isOpen, getActorProps}) => (
-          <StyledDropdownButton
-            {...getActorProps()}
-            isOpen={isOpen}
-            prefix={t('Sort')}
-            size="small"
-          >
-            {selectedSort.label}
-          </StyledDropdownButton>
-        )}
-      >
-        {sortOptions.map(({value, label}) => (
-          <DropdownItem
-            data-test-id={`option-${value}`}
-            key={value}
-            onSelect={handleSortDropdownChange}
-            eventKey={value}
-            isActive={value === selectedSort.value}
-          >
-            {label}
-          </DropdownItem>
-        ))}
-      </DropdownControl>
+      <SectionHeading>{t('Suspect Tags')}</SectionHeading>
       <DropdownControl
         data-test-id="tag-column-performance"
         button={({isOpen, getActorProps}) => (
@@ -435,6 +303,17 @@ function TagsHeader(props: HeaderProps) {
     </Header>
   );
 }
+
+export const SectionHeading = styled('h4')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+  align-items: center;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: ${space(1)} 0;
+  line-height: 1.3;
+`;
 
 const Header = styled('div')`
   display: flex;
