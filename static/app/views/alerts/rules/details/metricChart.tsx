@@ -13,6 +13,7 @@ import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import {parseStatsPeriod, StatsPeriodType} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
@@ -135,7 +136,7 @@ function createIncidentSeries(
     trigger: 'item',
     alwaysShowContent: true,
     formatter: ({value, marker}) => {
-      const time = getFormattedDate(value, 'MMM D, YYYY LT');
+      const time = getFormattedDate(moment(value), 'MMM D, YYYY LT', {local: true});
       return [
         `<div class="tooltip-series"><div>`,
         `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
@@ -304,6 +305,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     maxThresholdValue: number,
     maxSeriesValue: number
   ) {
+    const {interval} = this.props;
     const {dateModified, timeWindow} = this.props.rule || {};
     return (
       <LineChart
@@ -331,10 +333,16 @@ class MetricChart extends React.PureComponent<Props, State> {
             const [pointX, pointY] = pointData as [number, number];
             const isModified = dateModified && pointX <= new Date(dateModified).getTime();
 
-            const startTime = getFormattedDate(new Date(pointX), 'MMM D LT');
+            const startTime = getFormattedDate(
+              moment(pointX),
+              'MMM D LT',
+              {local: true},
+              );
+            const {period, periodLength} = parseStatsPeriod(interval) ?? {periodLength: 'm', period: `${timeWindow}`};
             const endTime = getFormattedDate(
-              moment(new Date(pointX)).add(timeWindow, 'minutes'),
-              'MMM D LT'
+              moment(pointX).add(parseInt(period, 10), periodLength as StatsPeriodType),
+              'MMM D LT',
+              {local: true},
             );
             const title = isModified
               ? `<strong>${t('Alert Rule Modified')}</strong>`
