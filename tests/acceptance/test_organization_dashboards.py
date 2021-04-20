@@ -77,9 +77,6 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         self.project = self.create_project(
             organization=self.organization, teams=[self.team], name="Bengal"
         )
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
         self.dashboard = Dashboard.objects.create(
             title="Dashboard 1", created_by=self.user, organization=self.organization
         )

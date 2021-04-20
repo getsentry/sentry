@@ -50,20 +50,19 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         def handle_results(results):
             serialized = []
-            remaining = []
+            dashboards = []
             for item in results:
                 if isinstance(item, dict):
                     cloned = item.copy()
                     widgets = cloned.pop("widgets", [])
-                    cloned["widget_display"] = [
-                        DashboardWidgetDisplayTypes.get_type_name(w["display_type"])
-                        for w in widgets
+                    cloned["widgetDisplay"] = [
+                        DashboardWidgetDisplayTypes.get_type_name(w["displayType"]) for w in widgets
                     ]
                     serialized.append(cloned)
                 else:
-                    remaining.append(item)
+                    dashboards.append(item)
 
-            serialized.extend(serialize(remaining, request.user, serializer=list_serializer))
+            serialized.extend(serialize(dashboards, request.user, serializer=list_serializer))
             return serialized
 
         return self.paginate(
