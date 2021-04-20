@@ -79,8 +79,9 @@ install_pyenv() {
     python_version=$(xargs -n1 <.python-version)
     # NOTE: Older pyenv does not have access to the latest Python we require
     if [[ "$pyenv_version" < 1.2.26 ]]; then
-      echo >&2 "!!! Your pyenv is old and does not know how to find the Python we require. "
-      echo >&2 "Run \`brew update && brew upgrade pyenv\` (this is slow) and try again."
+      echo >&2 "!!! Your pyenv is old and does not know how to find the Python we require." \
+        "Run the following (this is slow) and try again."
+      echo >&2 "brew update && brew upgrade pyenv"
       exit 1
     fi
 
