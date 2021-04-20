@@ -371,7 +371,7 @@ function EventNodeSelector({
                 key={error.event_id}
                 event={error}
                 to={target}
-                enableDefault
+                allowDefaultEvent
                 onSelect={() => handleDropdownItem(nodeKey, organization, false)}
                 organization={organization}
                 anchor={anchor}
@@ -396,7 +396,7 @@ function EventNodeSelector({
                 event={event}
                 to={target}
                 onSelect={() => handleDropdownItem(nodeKey, organization, false)}
-                enableDefault
+                allowDefaultEvent
                 organization={organization}
                 subtext={getDuration(
                   event['transaction.duration'] / 1000,
@@ -410,7 +410,7 @@ function EventNodeSelector({
           {(errors.length > numEvents || events.length > numEvents) && (
             <DropdownItem
               to={generateTraceTarget(currentEvent, organization)}
-              enableDefault
+              allowDefaultEvent
               onSelect={() => handleDropdownItem(nodeKey, organization, true)}
             >
               {t('View all events')}
@@ -426,9 +426,9 @@ type DropdownNodeProps = {
   event: TraceError | QuickTraceEvent;
   organization: OrganizationSummary;
   anchor: 'left' | 'right';
-  enableDefault?: boolean;
+  allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
-  to?: string | LocationDescriptor;
+  to?: LocationDescriptor;
   subtext?: string;
 };
 
@@ -436,13 +436,13 @@ function DropdownNodeItem({
   event,
   onSelect,
   to,
-  enableDefault,
+  allowDefaultEvent,
   organization,
   subtext,
   anchor,
 }: DropdownNodeProps) {
   return (
-    <DropdownItem to={to} onSelect={onSelect} enableDefault={enableDefault}>
+    <DropdownItem to={to} onSelect={onSelect} allowDefaultEvent={allowDefaultEvent}>
       <DropdownItemSubContainer>
         <Projects orgId={organization.slug} slugs={[event.project_slug]}>
           {({projects}) => {
