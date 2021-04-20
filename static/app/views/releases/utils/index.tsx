@@ -54,6 +54,7 @@ export const getReleaseNewIssuesUrl = (
       start: undefined,
       end: undefined,
       query: stringifyQueryObject(new QueryResults([`firstRelease:${version}`])),
+      sort: 'freq',
     },
   };
 };

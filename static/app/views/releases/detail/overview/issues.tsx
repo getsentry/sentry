@@ -102,7 +102,7 @@ class Issues extends React.Component<Props, State> {
         defaultStatsPeriod,
       }),
       limit: 10,
-      sort: 'new',
+      sort: 'freq',
     };
 
     switch (issuesType) {
