@@ -25,13 +25,14 @@ class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         :param required string external_name: the associated Github/Gitlab team name.
         :auth: required
         """
-        if not self.has_feature(request, team):
-            raise PermissionDenied
+        self.assert_has_feature(request, team.organization)
 
-        serializer = ExternalTeamSerializer(data={**request.data, "team_id": team.id})
-        if serializer.is_valid():
-            external_team, created = serializer.save()
-            status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
-            return Response(serialize(external_team, request.user), status=status_code)
+        serializer = ExternalTeamSerializer(
+            data={**request.data, "team_id": team.id}, context={"organization": team.organization}
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        external_team, created = serializer.save()
+        status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(serialize(external_team, request.user, key="team"), status=status_code)

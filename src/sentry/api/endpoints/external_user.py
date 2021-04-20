@@ -20,20 +20,19 @@ class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
 
         :pparam string organization_slug: the slug of the organization the
                                           user belongs to.
-        :param required string provider: enum("github", "gitlab")
+        :param required string provider: enum("github", "gitlab", "slack")
         :param required string external_name: the associated Github/Gitlab user name.
-        :param required int member_id: the organization_member id.
+        :param required int user_id: the User id.
         :auth: required
         """
-        if not self.has_feature(request, organization):
-            raise PermissionDenied
+        self.assert_has_feature(request, organization)
 
         serializer = ExternalUserSerializer(
-            context={"organization": organization}, data={**request.data}
+            data=request.data, context={"organization": organization}
         )
-        if serializer.is_valid():
-            external_user, created = serializer.save()
-            status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
-            return Response(serialize(external_user, request.user), status=status_code)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        external_user, created = serializer.save()
+        status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(serialize(external_user, request.user, key="user"), status=status_code)

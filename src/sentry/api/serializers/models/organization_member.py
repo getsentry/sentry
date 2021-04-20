@@ -4,7 +4,7 @@ from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import (
-    ExternalUser,
+    ExternalActor,
     OrganizationMember,
     OrganizationMemberTeam,
     Team,
@@ -50,7 +50,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationMember, MutableMapping[str, Any]]:
         """
-        Fetch all of the associated Users and ExternalUsers needed to serialize
+        Fetch all of the associated Users and ExternalActors needed to serialize
         the organization_members in `item_list`.
         TODO(dcramer): assert on relations
         """
@@ -64,11 +64,13 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         external_users_map = defaultdict(list)
 
         if "externalUsers" in self.expand:
-            external_users = list(ExternalUser.objects.filter(organizationmember__in=item_list))
+            actor_mapping = {user.actor_id: user for user in users_set}
+            external_actors = list(ExternalActor.objects.filter(actor_id__in=actor_mapping.keys()))
 
-            for external_user in external_users:
-                serialized = serialize(external_user, user)
-                external_users_map[external_user.organizationmember_id].append(serialized)
+            for external_actor in external_actors:
+                serialized = serialize(external_actor, user)
+                user = actor_mapping.get(external_actor.actor.id)
+                external_users_map[user].append(serialized)
 
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
