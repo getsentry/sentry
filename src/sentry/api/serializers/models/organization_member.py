@@ -35,7 +35,7 @@ def get_team_slugs_by_organization_member_id(
     teams_by_id = {team.id: team for team in teams}
 
     results = defaultdict(list)
-    for member_id, team_id in team_ids_by_organization_member_id:
+    for member_id, team_id in team_ids_by_organization_member_id.items():
         results[member_id].append(teams_by_id[team_id].slug)
     return results
 
@@ -72,11 +72,10 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
             user = users_by_id.get(str(item.user_id), None)
-            if user:
-                attrs[item] = {
-                    "user": user,
-                    "externalUsers": external_users_map.get(item.id),
-                }
+            attrs[item] = {
+                "user": user,
+                "externalUsers": external_users_map.get(item.id),
+            }
 
         return attrs
 
