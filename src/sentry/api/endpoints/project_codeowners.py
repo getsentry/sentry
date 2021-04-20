@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Mapping, MutableMapping
 
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -13,6 +14,7 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import (
     ExternalTeam,
     ExternalUser,
+    Project,
     ProjectCodeOwners,
     RepositoryProjectPathConfig,
     UserEmail,
@@ -32,7 +34,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         model = ProjectCodeOwners
         fields = ["raw", "code_mapping_id", "organization_integration_id"]
 
-    def validate(self, attrs):
+    def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         # If it already exists, set default attrs with existing values
         if self.instance:
             attrs = {
@@ -43,6 +45,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
 
         if not attrs.get("raw", "").strip():
             return attrs
+
         external_association_err = []
         # Get list of team/user names from CODEOWNERS file
         teamnames, usernames, emails = parse_code_owners(attrs["raw"])
@@ -115,7 +118,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
 
         return []
 
-    def validate_code_mapping_id(self, code_mapping_id):
+    def validate_code_mapping_id(self, code_mapping_id: int) -> RepositoryProjectPathConfig:
         if ProjectCodeOwners.objects.filter(
             repository_project_path_config=code_mapping_id
         ).exists() and (
@@ -131,7 +134,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         except RepositoryProjectPathConfig.DoesNotExist:
             raise serializers.ValidationError("This code mapping does not exist.")
 
-    def create(self, validated_data):
+    def create(self, validated_data: MutableMapping[str, Any]) -> ProjectCodeOwners:
         # Save projectcodeowners record
         repository_project_path_config = validated_data.pop("code_mapping_id", None)
         project = self.context["project"]
@@ -141,7 +144,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
             **validated_data,
         )
 
-    def update(self, instance, validated_data):
+    def update(
+        self, instance: ProjectCodeOwners, validated_data: MutableMapping[str, Any]
+    ) -> ProjectCodeOwners:
         if "id" in validated_data:
             validated_data.pop("id")
         for key, value in validated_data.items():
@@ -151,12 +156,12 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
 
 
 class ProjectCodeOwnersMixin:
-    def has_feature(self, request, project):
+    def has_feature(self, request: Any, project: Project) -> bool:
         return features.has(
             "organizations:import-codeowners", project.organization, actor=request.user
         )
 
-    def track_response_code(self, type, status):
+    def track_response_code(self, type: str, status: str) -> None:
         if type in ["create", "update"]:
             metrics.incr(
                 f"codeowners.{type}.http_response",
@@ -166,7 +171,7 @@ class ProjectCodeOwnersMixin:
 
 
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):
-    def get(self, request, project):
+    def get(self, request: Any, project: Project) -> Response:
         """
         Retrieve List of CODEOWNERS configurations for a project
         ````````````````````````````````````````````
@@ -191,7 +196,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
             status.HTTP_200_OK,
         )
 
-    def post(self, request, project):
+    def post(self, request: Any, project: Project) -> Response:
         """
         Upload a CODEWONERS for project
         `````````````
