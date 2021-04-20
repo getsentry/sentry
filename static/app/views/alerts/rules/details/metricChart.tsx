@@ -592,7 +592,7 @@ class MetricChart extends React.PureComponent<Props, State> {
 
           return (
             <ChartPanel>
-              <PanelBody withPadding>
+              <StyledPanelBody withPadding>
                 <ChartHeader>
                   <ChartTitle>
                     <PresetName>
@@ -609,7 +609,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                   maxThresholdValue,
                   maxSeriesValue
                 )}
-              </PanelBody>
+              </StyledPanelBody>
               {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
             </ChartPanel>
           );
@@ -667,6 +667,11 @@ const StatItem = styled('div')`
   display: flex;
   align-items: center;
   margin: 0 ${space(2)} 0 0;
+`;
+
+/* Override padding to make chart appear centered */
+const StyledPanelBody = styled(PanelBody)`
+  padding-right: 6px;
 `;
 
 const StatCount = styled('span')`
