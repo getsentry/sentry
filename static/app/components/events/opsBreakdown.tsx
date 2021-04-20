@@ -8,8 +8,8 @@ import {
   SpanEntry,
   TraceContextType,
 } from 'app/components/events/interfaces/spans/types';
-import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
+import {pickBarColour} from 'app/components/waterfallTree/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {EntryType, Event, EventTransaction} from 'app/types/event';
@@ -237,7 +237,7 @@ class OpsBreakdown extends React.Component<Props> {
 
       const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
       const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-      const opsColor: string = pickSpanBarColour(operationName);
+      const opsColor: string = pickBarColour(operationName);
 
       return (
         <OpsLine key={operationName}>

@@ -23,7 +23,7 @@ import {
   VirtualScrollbar,
   VirtualScrollbarGrip,
 } from 'app/components/waterfallTree/miniHeader';
-import {toPercent} from 'app/components/waterfallTree/utils';
+import {pickBarColour, toPercent} from 'app/components/waterfallTree/utils';
 import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
@@ -426,6 +426,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             index={index}
             isVisible={isVisible}
             renderedChildren={accumulated.renderedChildren}
+            barColour={pickBarColour(transaction['transaction.op'])}
           />
         </React.Fragment>
       ),
@@ -539,6 +540,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                       index={0}
                       isVisible
                       renderedChildren={transactionGroups}
+                      barColour={pickBarColour('')}
                     />
                     {this.renderInfoMessage({
                       isVisible: true,

@@ -5,7 +5,6 @@ import partial from 'lodash/partial';
 
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
-import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import UserMisery from 'app/components/userMisery';
@@ -14,6 +13,7 @@ import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
 import {
   getDurationDisplay,
   getHumanDuration,
+  pickBarColour,
   toPercent,
 } from 'app/components/waterfallTree/utils';
 import {t} from 'app/locale';
@@ -497,7 +497,7 @@ const spanOperationBreakdownRenderer = (field: string) => (
       <RowRectangle
         spanBarHatch={false}
         style={{
-          backgroundColor: pickSpanBarColour(operationName),
+          backgroundColor: pickBarColour(operationName),
           left: 0,
           width: toPercent(widthPercentage || 0),
         }}

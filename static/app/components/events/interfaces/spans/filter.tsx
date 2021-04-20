@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
-import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
+import {pickBarColour} from 'app/components/waterfallTree/utils';
 import {IconFilter} from 'app/icons';
 import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -155,7 +155,7 @@ class Filter extends React.Component<Props> {
 
                 return (
                   <ListItem key={operationName} isChecked={isActive}>
-                    <OperationDot backgroundColor={pickSpanBarColour(operationName)} />
+                    <OperationDot backgroundColor={pickBarColour(operationName)} />
                     <OperationName>{operationName}</OperationName>
                     <OperationCount>{operationCount}</OperationCount>
                     <CheckboxFancy
