@@ -3,6 +3,7 @@ from typing import Any, List, Mapping, MutableMapping, Union
 
 from rest_framework import serializers, status  # type: ignore
 from rest_framework.exceptions import PermissionDenied  # type: ignore
+from rest_framework.request import Request  # type: ignore
 from rest_framework.response import Response  # type: ignore
 
 from sentry import analytics, features
@@ -159,7 +160,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
 
 
 class ProjectCodeOwnersMixin:
-    def has_feature(self, request: Any, project: Project) -> bool:
+    def has_feature(self, request: Request, project: Project) -> bool:
         return bool(
             features.has(
                 "organizations:import-codeowners", project.organization, actor=request.user
@@ -176,7 +177,7 @@ class ProjectCodeOwnersMixin:
 
 
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):  # type: ignore
-    def get(self, request: Any, project: Project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve List of CODEOWNERS configurations for a project
         ````````````````````````````````````````````
@@ -201,7 +202,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
             status.HTTP_200_OK,
         )
 
-    def post(self, request: Any, project: Project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Upload a CODEWONERS for project
         `````````````
