@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY
 from sentry.cache import default_cache

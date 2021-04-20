@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.conf.urls import url
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.html import format_html
 from rest_framework.response import Response
 
