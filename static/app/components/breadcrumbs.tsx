@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Link from 'app/components/links/link';
@@ -102,8 +103,19 @@ const BreadcrumbList = styled('div')`
   padding: ${space(1)} 0;
 `;
 
-const BreadcrumbLink = styled(({preserveGlobalSelection, ...props}) =>
-  preserveGlobalSelection ? <GlobalSelectionLink {...props} /> : <Link {...props} />
+type BreadcrumbLinkProps = {
+  to: React.ComponentProps<typeof Link>['to'];
+  preserveGlobalSelection?: boolean;
+  children?: React.ReactNode;
+};
+
+const BreadcrumbLink = styled(
+  ({preserveGlobalSelection, to, ...props}: BreadcrumbLinkProps) =>
+    preserveGlobalSelection ? (
+      <GlobalSelectionLink to={to as LocationDescriptor} {...props} />
+    ) : (
+      <Link to={to} {...props} />
+    )
 )`
   ${getBreadcrumbListItemStyles}
 

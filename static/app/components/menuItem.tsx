@@ -213,7 +213,8 @@ function getChildStyles(props: MenuListItemProps & {theme: Theme}) {
 }
 
 const MenuAnchor = styled('a', {
-  shouldForwardProp: p => ['isActive', 'disabled'].includes(p) === false,
+  shouldForwardProp: p =>
+    typeof p === 'string' && ['isActive', 'disabled'].includes(p) === false,
 })<MenuListItemProps>`
   ${getListItemStyles}
 `;
@@ -247,7 +248,8 @@ const MenuTarget = styled('span')<MenuListItemProps>`
 `;
 
 const MenuLink = styled(Link, {
-  shouldForwardProp: p => ['isActive', 'disabled'].includes(p) === false,
+  shouldForwardProp: p =>
+    typeof p === 'string' && ['isActive', 'disabled'].includes(p) === false,
 })<MenuListItemProps>`
   ${getListItemStyles}
 `;

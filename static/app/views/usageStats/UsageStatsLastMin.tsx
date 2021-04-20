@@ -113,9 +113,9 @@ const Wrapper = styled('div')`
 `;
 const Number = styled('div')`
   font-size: 32px;
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${space(1)};
 `;
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(1.5)};
+  line-height: 1.4;
 `;
