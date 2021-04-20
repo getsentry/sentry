@@ -68,9 +68,8 @@ def cached(cache, function, *args, **kwargs):
     key = (function, args, tuple(sorted(kwargs.items())))
 
     if key in cache:
-        hits, rv = cache[key]
-        cache[key] = hits + 1, rv
+        rv = cache[key]
     else:
-        _, rv = cache[key] = 1, function(*args)
+        rv = cache[key] = function(*args)
 
     return rv
