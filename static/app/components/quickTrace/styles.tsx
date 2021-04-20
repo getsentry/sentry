@@ -77,14 +77,15 @@ export const DropdownContainer = styled('span')`
 export const DropdownMenuHeader = styled(MenuHeader)<{first?: boolean}>`
   background: ${p => p.theme.backgroundSecondary};
   ${p => p.first && 'border-radius: 2px'};
-  ${p => !p.first && `border-top: 1px solid ${p.theme.innerBorder};`}
-  border-bottom: none;
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${space(1)} ${space(1.5)};
 `;
 
 const StyledMenuItem = styled(MenuItem)<{width: 'small' | 'large'}>`
-  border-top: 1px solid ${p => p.theme.innerBorder};
   width: ${p => (p.width === 'large' ? '350px' : '200px')};
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
 `;
 
 const MenuItemContent = styled('div')`
