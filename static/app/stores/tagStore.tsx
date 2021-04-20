@@ -78,6 +78,7 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
       'unresolved',
       'ignored',
       'assigned',
+      'for_review',
       'unassigned',
       'linked',
       'unlinked',

@@ -285,7 +285,7 @@ class IssueListOverview extends React.Component<Props, State> {
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
-    const {savedSearch, organization, location} = this.props;
+    const {savedSearch, location} = this.props;
     if (savedSearch) {
       return savedSearch.query;
     }
@@ -294,13 +294,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (query !== undefined) {
       return query as string;
-    }
-
-    if (
-      organization.features.includes('inbox') &&
-      organization.features.includes('inbox-tab-default')
-    ) {
-      return Query.FOR_REVIEW;
     }
 
     return DEFAULT_QUERY;
@@ -314,15 +307,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (location.query.sort) {
       return location.query.sort as string;
-    }
-
-    const {organization} = this.props;
-    if (
-      organization.features.includes('inbox') &&
-      organization.features.includes('inbox-tab-default') &&
-      this.getQuery() === Query.FOR_REVIEW
-    ) {
-      return IssueSortOptions.INBOX;
     }
 
     return DEFAULT_SORT;
@@ -543,14 +527,7 @@ class IssueListOverview extends React.Component<Props, State> {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    const orgFeatures = new Set(this.props.organization.features);
-    const expandParams: string[] = ['owners'];
-    if (orgFeatures.has('inbox')) {
-      expandParams.push('inbox');
-    }
-    if (expandParams.length) {
-      requestParams.expand = expandParams;
-    }
+    requestParams.expand = ['owners', 'inbox'];
     requestParams.collapse = 'stats';
 
     if (this._lastRequest) {
@@ -600,9 +577,7 @@ class IssueListOverview extends React.Component<Props, State> {
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = jqXHR.getResponseHeader('Link');
 
-        if (this.props.organization.features.includes('inbox')) {
-          this.fetchCounts(queryCount, fetchAllCounts);
-        }
+        this.fetchCounts(queryCount, fetchAllCounts);
 
         this.setState({
           error: null,
@@ -824,7 +799,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const topIssue = ids[0];
     const {memberList} = this.state;
     const query = this.getQuery();
-    const showInboxTime = this.getSort() === 'inbox';
+    const showInboxTime = this.getSort() === IssueSortOptions.INBOX;
 
     return ids.map((id, index) => {
       const hasGuideAnchor = id === topIssue;
@@ -1017,14 +992,6 @@ class IssueListOverview extends React.Component<Props, State> {
         />
       ),
     });
-
-    // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
-    if (
-      organization.features.includes('inbox') &&
-      !tags?.is?.values?.includes('for_review')
-    ) {
-      tags?.is?.values?.push('for_review');
-    }
 
     const projectIds = selection?.projects?.map(p => p.toString());
     const orgSlug = organization.slug;

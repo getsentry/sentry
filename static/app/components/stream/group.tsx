@@ -369,7 +369,6 @@ class StreamGroup extends React.Component<Props, State> {
       withChart && data && data.filtered && statsPeriod && useFilteredStats
     );
 
-    const hasInbox = organization.features.includes('inbox');
     const unresolved = data.status === 'unresolved' ? true : false;
 
     return (
@@ -377,7 +376,6 @@ class StreamGroup extends React.Component<Props, State> {
         data-test-id="group"
         onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
         reviewed={reviewed}
-        hasInbox={hasInbox}
         unresolved={unresolved}
         actionTaken={actionTaken}
       >
@@ -403,7 +401,6 @@ class StreamGroup extends React.Component<Props, State> {
           />
           <EventOrGroupExtraDetails
             hasGuideAnchor={hasGuideAnchor}
-            organization={organization}
             data={data}
             showInboxTime={showInboxTime}
           />
@@ -573,15 +570,12 @@ export default withGlobalSelection(withOrganization(StreamGroup));
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
   reviewed: boolean;
-  hasInbox: boolean;
   unresolved: boolean;
   actionTaken: boolean;
 }>`
   position: relative;
-  padding: ${p => (p.hasInbox ? `${space(1.5)} 0` : `${space(1)} 0`)};
+  padding: ${space(1.5)} 0;
   line-height: 1.1;
-
-  ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
 
   ${p =>
     (p.reviewed || !p.unresolved) &&

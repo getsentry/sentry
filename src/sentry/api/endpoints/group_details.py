@@ -134,7 +134,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             environment_ids = [e.id for e in environments]
             expand = request.GET.getlist("expand", [])
             collapse = request.GET.getlist("collapse", [])
-            has_inbox = features.has("organizations:inbox", organization, actor=request.user)
 
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
@@ -190,7 +189,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
             )
 
-            if "inbox" in expand and has_inbox:
+            if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
                 inbox_reason = inbox_map.get(group.id)
                 data.update({"inbox": inbox_reason})
