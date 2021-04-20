@@ -16,20 +16,20 @@ import TimeSince from 'app/components/timeSince';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
+import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
 
 import DashboardCard from './dashboardCard';
 
 type Props = {
   organization: Organization;
   location: Location;
-  dashboards: DashboardDetails[] | null;
+  dashboards: DashboardListItem[] | null;
   pageLinks: string;
 };
 
 class DashboardList extends React.Component<Props> {
-  static miniWidget(widget: Widget): string {
-    switch (widget.displayType) {
+  static miniWidget(displayType: DisplayType): string {
+    switch (displayType) {
       case 'bar':
         return WidgetBar;
       case 'area':
@@ -58,24 +58,24 @@ class DashboardList extends React.Component<Props> {
             query: {},
           }}
           detail={
-            dashboard.widgets.length > 1
-              ? tct('[numWidgets] widgets', {numWidgets: dashboard.widgets.length})
-              : tct('[numWidgets] widget', {numWidgets: dashboard.widgets.length})
+            dashboard.widgetDisplay.length > 1
+              ? tct('[numWidgets] widgets', {numWidgets: dashboard.widgetDisplay.length})
+              : tct('[numWidgets] widget', {numWidgets: dashboard.widgetDisplay.length})
           }
           dateStatus={<TimeSince date={dashboard.dateCreated} />}
           createdBy={dashboard.createdBy}
           renderWidgets={() => (
             <WidgetGrid>
-              {dashboard.widgets.map((widget, i) => {
-                return widget.displayType === 'big_number' ? (
+              {dashboard.widgetDisplay.map((displayType, i) => {
+                return displayType === 'big_number' ? (
                   <BigNumberWidgetWrapper
-                    key={`${i}-${widget.id}`}
-                    src={DashboardList.miniWidget(widget)}
+                    key={`${i}-${displayType}`}
+                    src={DashboardList.miniWidget(displayType)}
                   />
                 ) : (
                   <MiniWidgetWrapper
-                    key={`${i}-${widget.id}`}
-                    src={DashboardList.miniWidget(widget)}
+                    key={`${i}-${displayType}`}
+                    src={DashboardList.miniWidget(displayType)}
                   />
                 );
               })}

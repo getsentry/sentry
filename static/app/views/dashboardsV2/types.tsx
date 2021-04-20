@@ -33,6 +33,7 @@ export type DashboardListItem = {
   title: string;
   dateCreated: string;
   createdBy?: User;
+  widgetDisplay: DisplayType[];
 };
 
 /**

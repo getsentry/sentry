@@ -18,7 +18,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
-import {DashboardDetails} from '../types';
+import {DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
 
@@ -29,7 +29,7 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  dashboards: DashboardDetails[] | null;
+  dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
 } & AsyncComponent['state'];
 

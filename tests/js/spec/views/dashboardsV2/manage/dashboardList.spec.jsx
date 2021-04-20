@@ -1,10 +1,8 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import DashboardList from 'app/views/dashboardsV2/manage/dashboardList'
-
+import DashboardList from 'app/views/dashboardsV2/manage/dashboardList';
 
 describe('Dashboards > DashboardList', function () {
   let dashboards, widgets;
@@ -12,7 +10,6 @@ describe('Dashboards > DashboardList', function () {
     features: ['dashboards-manage'],
     projects: [TestStubs.Project()],
   });
-
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -51,21 +48,22 @@ describe('Dashboards > DashboardList', function () {
         }
       ),
     ];
-    dashboards =
-    [
+    dashboards = [
       TestStubs.Dashboard([], {
-        "id":"1",
-        "title":"Dashboard 1",
-        "dateCreated":"2021-04-19T13:13:23.962105Z",
-        "createdBy":{"id":"1"},
+        id: '1',
+        title: 'Dashboard 1',
+        dateCreated: '2021-04-19T13:13:23.962105Z',
+        createdBy: {id: '1'},
+        widgetDisplay: [],
       }),
       TestStubs.Dashboard(widgets, {
-        "id":"2",
-        "title":"Dashboard 2",
-        "dateCreated":"2021-04-19T13:13:23.962105Z",
-        "createdBy":{"id":"1"},
+        id: '2',
+        title: 'Dashboard 2',
+        dateCreated: '2021-04-19T13:13:23.962105Z',
+        createdBy: {id: '1'},
+        widgetDisplay: ['line', 'table'],
       }),
-    ]
+    ];
   });
 
   it('renders an empty list', function () {
