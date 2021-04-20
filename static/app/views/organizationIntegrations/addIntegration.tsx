@@ -13,7 +13,7 @@ type Props = {
   provider: IntegrationProvider;
   onInstall: (data: IntegrationWithConfig) => void;
   account?: string;
-  organization?: Organization; //for analytics
+  organization: Organization; //for analytics
   analyticsParams?: {
     view:
       | 'integrations_directory_integration_detail'

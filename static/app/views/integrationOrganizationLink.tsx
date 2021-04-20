@@ -180,6 +180,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
           <AddIntegration
             provider={provider}
             onInstall={this.onInstallWithInstallationId}
+            organization={organization}
           >
             {addIntegrationWithInstallationId => (
               <ButtonWrapper>
