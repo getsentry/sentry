@@ -154,7 +154,6 @@ const StyledPanel = styled(Panel)`
   background: none;
   margin-bottom: 0;
   margin-top: ${space(1)};
-  margin-top: ${space(1)};
   display: grid;
   align-content: space-between;
   align-items: start;
