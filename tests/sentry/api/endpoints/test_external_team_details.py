@@ -1,6 +1,5 @@
-from sentry.models import ExternalTeam
+from sentry.models import ExternalActor
 from sentry.testutils import APITestCase
-from sentry.types.integrations import ExternalProviders
 
 
 class ExternalTeamDetailsTest(APITestCase):
@@ -10,10 +9,9 @@ class ExternalTeamDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-        self.external_team = ExternalTeam.objects.create(
-            team_id=str(self.team.id),
-            provider=ExternalProviders.GITHUB.value,
-            external_name="@getsentry/ecosystem",
+
+        self.external_team = self.create_external_team(
+            self.team, external_name="@NisanthanNanthakumar"
         )
 
     def test_basic_delete(self):
@@ -21,7 +19,7 @@ class ExternalTeamDetailsTest(APITestCase):
             self.get_success_response(
                 self.organization.slug, self.team.slug, self.external_team.id, method="delete"
             )
-        assert not ExternalTeam.objects.filter(id=str(self.external_team.id)).exists()
+        assert not ExternalActor.objects.filter(id=str(self.external_team.id)).exists()
 
     def test_basic_update(self):
         with self.feature({"organizations:import-codeowners": True}):
