@@ -13,11 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
-    def convert_args(self, request: Any, *args: Any, **kwargs: Any) -> Tuple[Any, Any]:
-        """ A little magic to make types work for convert_args. """
-        return self._convert_args(request, *args, **kwargs)
-
-    def _convert_args(
+    def convert_args(
         self, request: Any, organization_slug: str, external_user_id: int, *args: Any, **kwargs: Any
     ) -> Tuple[Any, Any]:
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
