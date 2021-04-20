@@ -315,9 +315,9 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
 
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
-    def serialize_event(self, event, *args, **kwargs):
+    def serialize_event(self, event, detailed=False, *args, **kwargs):
         result = super().serialize_event(event, *args, **kwargs)
-        if "transaction.status" in event:
+        if detailed:
             result.update(
                 {
                     "transaction.status": SPAN_STATUS_CODE_TO_NAME.get(
@@ -357,7 +357,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             parent = parents.pop()
             parent["children"].sort(key=child_sort_key)
             for child in parent["children"]:
-                child["generation"] = parent["generation"] + 1
+                child["generation"] = (
+                    parent["generation"] + 1 if parent["generation"] is not None else None
+                )
                 parents.append(child)
 
     def serialize(
@@ -379,7 +381,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         results_map = OrderedDict()
         to_check = deque()
         if root:
-            parent_events[root["id"]] = self.serialize_event(root, None, 0)
+            parent_events[root["id"]] = self.serialize_event(root, detailed, None, 0)
             results_map[None] = [parent_events[root["id"]]]
             to_check.append(root)
 
@@ -398,7 +400,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         parent_map[parent_span_id] = siblings
 
                     previous_event = parent_events[current_event["id"]] = self.serialize_event(
-                        current_event, None, 0
+                        current_event, detailed, None, 0
                     )
 
                     # not using a defaultdict here as a DefaultOrderedDict isn't worth the effort
@@ -444,7 +446,12 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
                     for child_event in child_events:
                         parent_events[child_event["id"]] = self.serialize_event(
-                            child_event, current_event["id"], previous_event["generation"] + 1
+                            child_event,
+                            detailed,
+                            current_event["id"],
+                            previous_event["generation"] + 1
+                            if previous_event["generation"] is not None
+                            else None,
                         )
                         # Add this event to its parent's children
                         previous_event["children"].append(parent_events[child_event["id"]])
