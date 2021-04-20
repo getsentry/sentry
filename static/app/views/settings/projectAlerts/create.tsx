@@ -168,7 +168,7 @@ class Create extends React.Component<Props, State> {
 const AlertConditionsBody = styled(Layout.Body)`
   margin-bottom: -${space(3)};
 
-  * {
+  *:not(img) {
     max-width: 1000px;
   }
 `;
