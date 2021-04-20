@@ -1,9 +1,6 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
 
 import ManageDashboards from 'app/views/dashboardsV2/manage';
 
@@ -52,4 +49,4 @@ describe('Dashboards > Detail', function () {
     const content = wrapper.find('SentryDocumentTitle');
     expect(content.text()).toContain('You need at least one project to use this view');
   });
-})
+});
