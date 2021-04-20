@@ -11,6 +11,7 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
+        self.org = self.create_organization()
         self.path = f"/organizations/{self.organization.slug}/alerts/rules/"
 
     def test_empty_alert_rules(self):
