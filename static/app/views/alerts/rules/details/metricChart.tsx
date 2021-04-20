@@ -21,6 +21,7 @@ import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
@@ -28,7 +29,6 @@ import {getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
-import ConfigStore from 'app/stores/configStore';
 
 import {
   AlertRuleStatus,
@@ -64,7 +64,9 @@ type State = {
 };
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
-  const {options: {timezone}} = ConfigStore.get('user');
+  const {
+    options: {timezone},
+  } = ConfigStore.get('user');
   return moment.tz(date, timezone).format(format);
 }
 
@@ -76,6 +78,9 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
       silent: true,
       lineStyle: {color: lineColor, type: 'dashed', width: 1},
       data: [{yAxis: threshold} as any],
+      label: {
+        show: false,
+      },
     }),
     data: [],
   };
@@ -323,7 +328,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         forwardedRef={this.handleRef}
         grid={{
           left: 0,
-          right: 0,
+          right: space(2),
           top: space(2),
           bottom: 0,
         }}
@@ -347,7 +352,10 @@ class MetricChart extends React.PureComponent<Props, State> {
               periodLength: 'm',
               period: `${timeWindow}`,
             };
-            const endTime = formatTooltipDate(moment(pointX).add(parseInt(period, 10), periodLength as StatsPeriodType), 'MMM D LT');
+            const endTime = formatTooltipDate(
+              moment(pointX).add(parseInt(period, 10), periodLength as StatsPeriodType),
+              'MMM D LT'
+            );
             const title = isModified
               ? `<strong>${t('Alert Rule Modified')}</strong>`
               : `${marker} <strong>${seriesName}</strong>`;
