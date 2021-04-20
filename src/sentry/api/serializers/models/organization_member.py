@@ -77,9 +77,8 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             user = users_by_id.get(str(item.user_id), None)
             attrs[item] = {
                 "user": user,
-                "externalUsers": external_users_map.get(item.id),
+                "externalUsers": external_users_map.get(user),
             }
-
         return attrs
 
     def serialize(
