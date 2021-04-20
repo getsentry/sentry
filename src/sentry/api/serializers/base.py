@@ -19,7 +19,7 @@ def register(type: Any) -> Callable[[K], K]:
 
 
 def serialize(
-    objects: Union[Any, List[Any]],
+    objects: Union[Any, Sequence[Any]],
     user: Optional[Any] = None,
     serializer: Optional[Any] = None,
     **kwargs: Any,
