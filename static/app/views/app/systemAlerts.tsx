@@ -13,9 +13,13 @@ type State = {
 };
 
 class Alerts extends React.Component<Props, State> {
-  state: State = {
-    alerts: [],
-  };
+  state = this.getInitialState();
+
+  getInitialState(): State {
+    return {
+      alerts: AlertStore.getInitialState() as Alert[],
+    };
+  }
 
   componentWillUnmount() {
     this.unlistener?.();
