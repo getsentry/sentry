@@ -2,7 +2,6 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
-import moment from 'moment';
 
 import Access from 'app/components/acl/access';
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
@@ -10,6 +9,7 @@ import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
+import DateTime from 'app/components/dateTime';
 import DropdownLink from 'app/components/dropdownLink';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
@@ -21,6 +21,7 @@ import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
 import {Color} from 'app/utils/theme';
 import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
 
@@ -141,7 +142,6 @@ class RuleListRow extends React.Component<Props, State> {
       onDelete,
       userTeams,
     } = this.props;
-    const dateCreated = moment(rule.dateCreated).format('ll');
     const slug = rule.projects[0];
     const editLink = `/organizations/${orgId}/alerts/${
       isIssueAlert(rule) ? 'rules' : 'metric-rules'
@@ -201,7 +201,15 @@ class RuleListRow extends React.Component<Props, State> {
           </FlexCenter>
         )}
         {!hasAlertList && <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>}
-        <FlexCenter>{dateCreated}</FlexCenter>
+        <FlexCenter>
+          <DateTime
+            date={getDynamicText({
+              value: rule.dateCreated,
+              fixed: new Date('2021-04-20'),
+            })}
+            format="ll"
+          />
+        </FlexCenter>
         <ActionsRow>
           <Access access={['alerts:write']}>
             {({hasAccess}) => (
