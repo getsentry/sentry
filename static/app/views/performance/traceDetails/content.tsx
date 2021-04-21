@@ -483,7 +483,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             !isLastTransaction && hasChildren
               ? [{depth: 0, isOrphanDepth: isNextChildOrphaned}]
               : [],
-          hasGuideAnchor: true,
+          hasGuideAnchor: index === 0,
         });
 
         acc.index = result.lastIndex + 1;
