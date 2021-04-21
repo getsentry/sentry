@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import snuba
+from sentry.utils.snql import SnQLOption
 
 
 class SnubaTest(TestCase, SnubaTestCase):
@@ -201,7 +202,7 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
                     filter_keys={"project_id": [self.project.id], "group_id": [event_2.group.id]},
                 ),
             ],
-            snql_entity="auto",
+            snql_option=SnQLOption("auto", True),
         )
         assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
             {(event_1.group.id, event_1.event_id)},
