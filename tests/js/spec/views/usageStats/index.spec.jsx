@@ -287,11 +287,14 @@ describe('UsageStats', function () {
       },
       projectDetail: {
         query: {project: 1, notAPageKey: 'hello'},
-        pathname: '/organizations/org-slug/projects/project',
+        pathname: '/organizations/org-slug/projects/project/',
       },
       issueList: {
         query: {project: 1, notAPageKey: 'hello'},
         pathname: '/organizations/org-slug/issues/',
+      },
+      settings: {
+        pathname: '/settings/org-slug/projects/project/',
       },
     });
   });
