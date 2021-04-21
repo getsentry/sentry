@@ -75,19 +75,16 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
 
         if "externalUsers" in self.expand:
             organization_id = get_organization_id(item_list)
-            actor_mapping = {user.actor_id: user for user in users_set}
             external_actors = list(
                 ExternalActor.objects.filter(
-                    actor_id__in=actor_mapping.keys(),
+                    actor_id__in={user.actor_id for user in users_set},
                     organization_id=organization_id,
                 )
             )
 
-            for external_actor in external_actors:
-                serialized = serialize(external_actor, user, key="user")
-                user = actor_mapping.get(external_actor.actor.id)
-                user_id = str(user.id)
-                external_users_map[user_id].append(serialized)
+            serialized_list = serialize(external_actors, user, key="user")
+            for serialized in serialized_list:
+                external_users_map[serialized["userId"]].append(serialized)
 
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:

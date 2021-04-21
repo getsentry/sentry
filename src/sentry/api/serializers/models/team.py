@@ -167,11 +167,9 @@ class TeamWithProjectsSerializer(TeamSerializer):
             project_map[project_team.team_id].append(projects_by_id[project_team.project_id])
 
         external_teams_map = defaultdict(list)
-        for external_actor in external_actors:
-            serialized = serialize(external_actor, user)
-            team = actor_mapping.get(external_actor.actor_id)
-            if team:
-                external_teams_map[team.id].append(serialized)
+        serialized_list = serialize(external_actors, user, key="team")
+        for serialized in serialized_list:
+            external_teams_map[serialized["teamId"]].append(serialized)
 
         result = super().get_attrs(item_list, user)
         for team in item_list:
