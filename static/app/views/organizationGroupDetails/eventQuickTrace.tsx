@@ -12,6 +12,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization, PromptActivity} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {getDocsPlatform} from 'app/utils/docs';
 import {snoozedDays} from 'app/utils/promptsActivity';
 import withApi from 'app/utils/withApi';
 
@@ -83,6 +84,14 @@ class EventQuickTrace extends React.Component<Props, State> {
     this.trackAnalytics({eventKey, eventName});
   }
 
+  createDocsLink() {
+    const platform = this.props.group.project.platform ?? null;
+    const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
+    return docsPlatform === null
+      ? 'https://docs.sentry.io/product/performance/getting-started/'
+      : `https://docs.sentry.io/platforms/${docsPlatform}/performance/`;
+  }
+
   render() {
     const {shouldShow} = this.state;
     if (!shouldShow) {
@@ -100,7 +109,7 @@ class EventQuickTrace extends React.Component<Props, State> {
             <Button
               size="small"
               priority="primary"
-              href="https://docs.sentry.io/product/performance/getting-started/"
+              href={this.createDocsLink()}
               onClick={() =>
                 this.trackAnalytics({
                   eventKey: 'quick_trace.missing_instrumentation.docs',
