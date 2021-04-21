@@ -9,7 +9,7 @@ from rest_framework.request import Request  # type: ignore
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.integrations import validate_provider
-from sentry.models import ExternalActor, Organization, OrganizationMember, Team, User
+from sentry.models import ExternalActor, Organization, Team, User
 from sentry.types.integrations import ExternalProviders, get_provider_choices
 
 AVAILABLE_PROVIDERS = {
@@ -74,13 +74,10 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
         """ Ensure that this user exists and that they belong to the organization. """
 
         try:
-            return (
-                OrganizationMember.objects.filter(user_id=user_id, organization=self.organization)
-                .select_related("user")
-                .get()
-                .user
+            return User.objects.get(
+                id=user_id, sentry_orgmember_set__organization=self.organization
             )
-        except OrganizationMember.DoesNotExist:
+        except User.DoesNotExist:
             raise serializers.ValidationError("This member does not exist.")
 
     class Meta:
