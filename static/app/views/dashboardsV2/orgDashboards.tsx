@@ -6,10 +6,8 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
 import NotFound from 'app/components/errors/notFound';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
@@ -100,21 +98,15 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization, children} = this.props;
+    const {children} = this.props;
     const {selectedDashboard, error} = this.state;
 
-    return (
-      <PageContent>
-        <LightWeightNoProjectMessage organization={organization}>
-          {children({
-            error,
-            dashboard: selectedDashboard,
-            dashboards: this.getDashboards(),
-            reloadData: this.reloadData.bind(this),
-          })}
-        </LightWeightNoProjectMessage>
-      </PageContent>
-    );
+    return children({
+      error,
+      dashboard: selectedDashboard,
+      dashboards: this.getDashboards(),
+      reloadData: this.reloadData.bind(this),
+    });
   }
 
   renderError(error: Error) {

@@ -563,32 +563,34 @@ class MissingServiceNode extends React.Component<
 
     const docPlatform = getDocsPlatform(platform, true);
     const docsHref =
-      docPlatform !== 'javascript'
-        ? `https://docs.sentry.io/platforms/${docPlatform}/performance#connecting-services`
-        : 'https://docs.sentry.io/platforms/javascript/performance/connect-services/';
+      docPlatform === null || docPlatform === 'javascript'
+        ? 'https://docs.sentry.io/platforms/javascript/performance/connect-services/'
+        : `https://docs.sentry.io/platforms/${docPlatform}/performance#connecting-services`;
     return (
       <React.Fragment>
         {connectorSide === 'left' && <TraceConnector />}
-        <DropdownLink
-          caret={false}
-          title={
-            <StyledEventNode
-              type="white"
-              hoverText={t('No services connected')}
-              text="???"
-            />
-          }
-          anchorRight={anchor === 'right'}
-        >
-          <DropdownItem width="small">
-            <ExternalDropdownLink href={docsHref} onClick={this.trackExternalLink}>
-              {t('Connect to a service')}
-            </ExternalDropdownLink>
-          </DropdownItem>
-          <DropdownItem onSelect={this.dismissMissingService} width="small">
-            {t('Dismiss')}
-          </DropdownItem>
-        </DropdownLink>
+        <DropdownContainer>
+          <DropdownLink
+            caret={false}
+            title={
+              <StyledEventNode
+                type="white"
+                hoverText={t('No services connected')}
+                text="???"
+              />
+            }
+            anchorRight={anchor === 'right'}
+          >
+            <DropdownItem width="small">
+              <ExternalDropdownLink href={docsHref} onClick={this.trackExternalLink}>
+                {t('Connect to a service')}
+              </ExternalDropdownLink>
+            </DropdownItem>
+            <DropdownItem onSelect={this.dismissMissingService} width="small">
+              {t('Dismiss')}
+            </DropdownItem>
+          </DropdownLink>
+        </DropdownContainer>
         {connectorSide === 'right' && <TraceConnector />}
       </React.Fragment>
     );

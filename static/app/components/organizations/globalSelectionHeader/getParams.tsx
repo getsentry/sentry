@@ -4,6 +4,8 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IntervalPeriod} from 'app/types';
 import {defined} from 'app/utils';
 
+export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
+
 const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?$';
 
 export function parseStatsPeriod(input: string | IntervalPeriod) {
