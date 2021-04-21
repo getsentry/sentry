@@ -164,7 +164,7 @@ apply-migrations() {
 }
 
 create-user() {
-    if [[ -n "$GITHUB_ACTIONS" ]]; then
+    if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
         sentry createuser --superuser --email foo@tbd.com --no-password
     else
         sentry createuser --superuser
@@ -188,7 +188,7 @@ bootstrap() {
 
 clean() {
     echo "--> Cleaning static cache"
-    rm -rf dist/* static/dist/*
+    rm -rf dist/* src/sentry/static/sentry/dist/*
     echo "--> Cleaning integration docs cache"
     rm -rf src/sentry/integration-docs
     echo "--> Cleaning pyc files"

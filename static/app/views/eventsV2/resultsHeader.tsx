@@ -8,6 +8,7 @@ import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
@@ -95,8 +96,8 @@ class ResultsHeader extends React.Component<Props, State> {
     const {savedQuery, loading} = this.state;
 
     return (
-      <Layout.Header>
-        <Layout.HeaderContent>
+      <StyledLayoutHeader>
+        <StyledHeaderContent>
           <DiscoverBreadcrumb
             eventView={eventView}
             organization={organization}
@@ -108,8 +109,8 @@ class ResultsHeader extends React.Component<Props, State> {
             eventView={eventView}
           />
           {this.renderAuthor()}
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
+        </StyledHeaderContent>
+        <StyledHeaderActions>
           <SavedQueryButtonGroup
             location={location}
             organization={organization}
@@ -120,8 +121,8 @@ class ResultsHeader extends React.Component<Props, State> {
             updateCallback={() => this.fetchData()}
             onIncompatibleAlertQuery={onIncompatibleAlertQuery}
           />
-        </Layout.HeaderActions>
-      </Layout.Header>
+        </StyledHeaderActions>
+      </StyledLayoutHeader>
     );
   }
 }
@@ -132,6 +133,28 @@ const Subtitle = styled('h4')`
   line-height: 1.4;
   color: ${p => p.theme.gray300};
   margin: 0;
+  margin-top: ${space(2)};
+`;
+
+const StyledLayoutHeader = styled(Layout.Header)`
+  padding-left: 0;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    padding-left: 0;
+  }
+`;
+
+const StyledHeaderContent = styled(Layout.HeaderContent)`
+  padding-left: ${space(2)};
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    padding-left: ${space(4)};
+  }
+`;
+
+const StyledHeaderActions = styled(Layout.HeaderActions)`
+  padding-left: ${space(2)};
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    padding-left: 0;
+  }
 `;
 
 export default withApi(ResultsHeader);

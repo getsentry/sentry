@@ -2,8 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {components, StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import SelectControl from 'app/components/forms/selectControl';
@@ -389,38 +387,57 @@ type ContainerProps = Omit<
 
 type ContainerState = {
   selectedOrganization?: string;
-  organizations?: Organization[];
+  organizations: Organization[];
 };
 
-const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerState>({
-  displayName: 'ContextPickerModalContainer',
-  mixins: [Reflux.connect(OrganizationsStore, 'organizations') as any],
-  getInitialState() {
+class ContextPickerModalContainer extends React.Component<
+  ContainerProps,
+  ContainerState
+> {
+  state = this.getInitialState();
+
+  getInitialState(): ContainerState {
     const storeState = OrganizationStore.get();
     return {
+      organizations: OrganizationsStore.getAll(),
       selectedOrganization: storeState.organization?.slug,
     };
-  },
+  }
 
-  handleSelectOrganization(organizationSlug: string) {
+  componentWillUnmount() {
+    this.unlistener?.();
+  }
+
+  unlistener = OrganizationsStore.listen(
+    (organizations: Organization[]) => this.setState({organizations}),
+    undefined
+  );
+
+  handleSelectOrganization = (organizationSlug: string) => {
     this.setState({selectedOrganization: organizationSlug});
-  },
+  };
 
-  renderModal({projects, initiallyLoaded}) {
+  renderModal({
+    projects,
+    initiallyLoaded,
+  }: {
+    projects?: Project[];
+    initiallyLoaded?: boolean;
+  }) {
     return (
       <ContextPickerModal
         {...this.props}
         projects={projects || []}
         loading={!initiallyLoaded}
         organizations={this.state.organizations}
-        organization={this.state.selectedOrganization}
+        organization={this.state.selectedOrganization!}
         onSelectOrganization={this.handleSelectOrganization}
       />
     );
-  },
+  }
 
   render() {
-    const {projectSlugs} = this.props; // eslint-disable-line react/prop-types
+    const {projectSlugs} = this.props;
 
     if (this.state.selectedOrganization) {
       return (
@@ -429,14 +446,16 @@ const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerSt
           allProjects={!projectSlugs?.length}
           slugs={projectSlugs}
         >
-          {renderProps => this.renderModal(renderProps)}
+          {({projects, initiallyLoaded}) =>
+            this.renderModal({projects: projects as Project[], initiallyLoaded})
+          }
         </Projects>
       );
     }
 
     return this.renderModal({});
-  },
-});
+  }
+}
 
 export default ContextPickerModalContainer;
 

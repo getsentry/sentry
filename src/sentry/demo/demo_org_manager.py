@@ -21,7 +21,7 @@ from sentry.models import (
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.email import create_fake_email
 
-from .data_population import handle_react_python_scenario
+from .data_population import handle_react_python_scenario, populate_org_members
 from .models import DemoOrganization, DemoOrgStatus, DemoUser
 from .utils import generate_random_name
 
@@ -57,6 +57,8 @@ def create_demo_org(quick=False) -> Organization:
                 name="React", organization=org, platform="javascript-react"
             )
             react_project.add_team(team)
+
+            populate_org_members(org, team)
 
             # we'll be adding transactions later
             Project.objects.filter(organization=org).update(

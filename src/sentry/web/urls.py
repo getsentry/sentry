@@ -91,6 +91,13 @@ urlpatterns += [
     ),
     # Frontend client config
     url(r"^api/client-config/?$", api.ClientConfigView.as_view(), name="sentry-api-client-config"),
+    # We do not want to have webpack assets served under a versioned URL, as these assets have
+    # a filecontent-based hash in its filenames so that it can be cached long term
+    url(
+        r"^_static/dist/(?P<module>[^/]+)/(?P<path>.*)$",
+        generic.static_media_with_manifest,
+        name="sentry-webpack-media",
+    ),
     # The static version is either a 10 digit timestamp, a sha1, or md5 hash
     url(
         r"^_static/(?:(?P<version>\d{10}|[a-f0-9]{32,40})/)?(?P<module>[^/]+)/(?P<path>.*)$",

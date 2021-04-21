@@ -10,6 +10,7 @@ import {
 } from 'app/components/waterfallTree/miniHeader';
 import {
   getHumanDuration,
+  pickBarColour,
   rectOfContent,
   toPercent,
 } from 'app/components/waterfallTree/utils';
@@ -33,7 +34,6 @@ import {
   boundsGenerator,
   getSpanID,
   getSpanOperation,
-  pickSpanBarColour,
   SpanBoundsType,
   SpanGeneratedBoundsType,
 } from './utils';
@@ -577,7 +577,7 @@ class ActualMinimap extends React.PureComponent<{
     spanTree: JSX.Element;
     nextSpanNumber: number;
   } {
-    const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
+    const spanBarColour: string = pickBarColour(getSpanOperation(span));
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
