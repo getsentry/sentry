@@ -44,11 +44,10 @@ else like actual grouping happens elsewhere like test_variants.py.
    leaked PII to the public and all of this will have been for nothing.
 """
 
+import contextlib
 import json  # NOQA
 import os
-import traceback
 import uuid
-from threading import local
 
 import pytest
 from django.utils.functional import cached_property
@@ -113,55 +112,59 @@ INPUTS = [
     CategorizationInput(fname) for fname in os.listdir(_fixture_path) if fname.endswith(".json")
 ]
 
-_current_input = local()
-
 
 @pytest.mark.parametrize("input", INPUTS, ids=lambda x: x.filename[:-5].replace("-", "_"))
-def test_categorization(input: CategorizationInput, insta_snapshot, cleanup_unused_data):
+def test_categorization(input: CategorizationInput, insta_snapshot, track_enhancers_coverage):
     # XXX: In-process re-runs using pytest-watch or whatever will behave
     # wrongly because input.data is reused between tests, we do this for perf.
     data = input.data
-    _current_input.val = input
-    try:
+    with track_enhancers_coverage(input):
         normalize_stacktraces_for_grouping(data, CONFIG)
-    finally:
-        del _current_input.val
-
-    cleanup_unused_data[input.filename] = True
 
     insta_snapshot(get_stacktrace_render(data))
 
 
 @pytest.fixture(scope="session", autouse=True)
-def cleanup_unused_data():
-    print("GROUPING CLEANUP")
-    traceback.print_stack()
+def track_enhancers_coverage():
     from sentry.grouping.enhancer import VarAction
 
     old_apply = VarAction.apply_modifications_to_frame
 
     used_inputs = {}
 
-    def new_apply(self, frames, idx, rule=None):
-        inputs_for_rule = used_inputs.setdefault(rule.matcher_description, [])
+    current_input = None
 
-        # Tolerate up to four testcases per rule. This number is arbitrary but
-        # the idea is that after matching a system frame for the hundreth time,
-        # nothing is really tested anymore.
-        if len(inputs_for_rule) < 4:
-            inputs_for_rule.append(_current_input.val)
+    def new_apply(self, frames, idx, rule=None):
+        if current_input is not None:
+            inputs_for_rule = used_inputs.setdefault(rule.matcher_description, [])
+
+            # Tolerate up to four testcases per rule. This number is arbitrary but
+            # the idea is that after matching a system frame for the hundreth time,
+            # nothing is really tested anymore.
+            if len(inputs_for_rule) < 4:
+                inputs_for_rule.append(current_input)
 
         return old_apply(self, frames, idx, rule=rule)
 
-    VarAction.apply_modifications_to_frame = new_apply
-
     ran_tests = {}
-    yield ran_tests
 
-    print("GROUPING TEARDOWN")
+    @contextlib.contextmanager
+    def inner(input):
+        ran_tests[input.filename] = True
+        nonlocal current_input
+        # if this assertion is ever hit because we dare to multithread tests in
+        # some way, current_input can be changed to a thread-local
+        assert current_input is None, "context manager does not support multithreading"
+        current_input = input
 
-    # pytest guarantees us this line is run in case of errors, no try-finally necessary
-    VarAction.apply_modifications_to_frame = old_apply
+        VarAction.apply_modifications_to_frame = new_apply
+        try:
+            yield
+        finally:
+            current_input = None
+            VarAction.apply_modifications_to_frame = old_apply
+
+    yield inner
 
     if not all(ran_tests.get(input.filename) for input in INPUTS):
         # need to run entire test_categorization for this test to run
