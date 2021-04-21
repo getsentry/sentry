@@ -5,6 +5,7 @@ import {withTheme} from 'emotion-theming';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
+import {addSuccessMessage} from 'app/actionCreators/indicator';
 import * as Layout from 'app/components/layouts/thirds';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import PickProjectToContinue from 'app/components/pickProjectToContinue';
@@ -16,13 +17,15 @@ import {Theme} from 'app/utils/theme';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withProjects from 'app/utils/withProjects';
 import AsyncView from 'app/views/asyncView';
+import {DashboardDetails} from 'app/views/dashboardsV2/types';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
 import BuildStep from '../buildStep';
 import BuildSteps from '../buildSteps';
 import ChooseDataSetStep from '../choseDataStep';
 import Header from '../header';
-import {DataSet, DisplayType, displayTypes} from '../utils';
+import {DataSet, DisplayType, MetricWidgetQuery, Widget, WidgetType} from '../types';
+import {displayTypes} from '../utils';
 
 import Card from './card';
 import Queries from './queries';
@@ -47,7 +50,10 @@ type Props = RouteComponentProps<RouteParams, {}> &
     projects: Project[];
     loadingProjects: boolean;
     selection: GlobalSelection;
+    dashboard: DashboardDetails;
     onChangeDataSet: (dataSet: DataSet) => void;
+    onSave: (widgets: Widget[]) => void;
+    widget?: Widget;
   };
 
 type State = AsyncView['state'] & {
@@ -165,9 +171,43 @@ class MetricWidget extends AsyncView<Props, State> {
     return !projectId || typeof projectId !== 'string';
   }
 
-  async handleSave() {
-    //wip
-  }
+  handleSave = (projectId: Project['id']) => async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    const {onSave, dashboard} = this.props;
+    this.setState({loading: true});
+
+    const {queries, searchQuery, title, displayType} = this.state;
+
+    const widgetQueries: MetricWidgetQuery[] = queries.map(
+      ({metricMeta, aggregation, legend, groupBy}) => ({
+        name: legend ?? '',
+        conditions: searchQuery ?? '',
+        fields: metricMeta && aggregation ? [`${aggregation}(${metricMeta.name})`] : [],
+        groupBy: groupBy?.join(' ') ?? '',
+        projectId,
+      })
+    );
+
+    try {
+      const widgetData = {
+        type: WidgetType.METRIC,
+        metrics_queries: widgetQueries,
+        title,
+        displayType,
+      };
+
+      //await validateWidget(this.api, organization.slug, widgetData);
+
+      onSave([...dashboard.widgets, widgetData]);
+      addSuccessMessage(t('Added widget.'));
+    } catch (err) {
+      // const widgetErrors = mapErrors(err?.responseJSON ?? {}, {});
+      // this.setState({widgetErrors});
+    } finally {
+      this.setState({loading: false});
+    }
+  };
 
   renderBody() {
     const {
@@ -219,7 +259,7 @@ class MetricWidget extends AsyncView<Props, State> {
             orgSlug={orgSlug}
             title={title}
             onChangeTitle={newTitle => this.handleFieldChange('title', newTitle)}
-            onSave={this.handleSave}
+            onSave={this.handleSave(project.id)}
           />
           <Layout.Body>
             <BuildSteps>

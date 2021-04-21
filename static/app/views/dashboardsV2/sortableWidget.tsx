@@ -1,9 +1,15 @@
 import React, {useEffect} from 'react';
+import {InjectedRouter} from 'react-router/lib/Router';
 import {useSortable} from '@dnd-kit/sortable';
+import {Location} from 'history';
 
+import {Client} from 'app/api';
+import {GlobalSelection, Organization, Project} from 'app/types';
 import theme from 'app/utils/theme';
+import withProjects from 'app/utils/withProjects';
 
-import {Widget} from './types';
+import MetricWidgetCard from './widget/metricWidget/card';
+import {EventWidget, Widget, WidgetType} from './widget/types';
 import WidgetCard from './widgetCard';
 import WidgetWrapper from './widgetWrapper';
 
@@ -16,6 +22,12 @@ const initialStyles: React.ComponentProps<typeof WidgetWrapper>['animate'] = {
 };
 
 type Props = {
+  api: Client;
+  location: Location;
+  projects: Project[];
+  organization: Organization;
+  selection: GlobalSelection;
+  router: InjectedRouter;
   widget: Widget;
   dragId: string;
   isEditing: boolean;
@@ -24,7 +36,19 @@ type Props = {
 };
 
 function SortableWidget(props: Props) {
-  const {widget, dragId, isEditing, onDelete, onEdit} = props;
+  const {
+    api,
+    location,
+    projects,
+    organization,
+    selection,
+    router,
+    widget,
+    dragId,
+    isEditing,
+    onDelete,
+    onEdit,
+  } = props;
 
   const {
     attributes,
@@ -49,6 +73,58 @@ function SortableWidget(props: Props) {
       document.body.style.cursor = '';
     };
   }, [currentWidgetDragging]);
+
+  function renderCard() {
+    if (!widget.type || widget.type === WidgetType.EVENT) {
+      return (
+        <WidgetCard
+          widget={widget as EventWidget}
+          isEditing={isEditing}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          isSorting={isSorting}
+          hideToolbar={isSorting}
+          currentWidgetDragging={currentWidgetDragging}
+          draggableProps={{
+            attributes,
+            listeners,
+          }}
+          showContextMenu
+        />
+      );
+    }
+
+    const {projectId, conditions: searchQuery} = widget.metrics_queries[0];
+
+    const widgetProject = projects.find(project => project.id === projectId)!;
+
+    const groupings = widget.metrics_queries.map(({name, fields, groupBy}) => {
+      const aggregation = fields[0].substr(0, fields[0].indexOf('('));
+      return {
+        legend: !!name ? name : undefined,
+        aggregation,
+        groupBy: !!groupBy ? groupBy.split(' ') : undefined,
+        metricMeta: {
+          name: fields[0].substr(aggregation.length).replace(/["'()]/g, ''),
+          operations: [aggregation],
+        },
+      };
+    });
+
+    const {displayType, title} = widget;
+
+    return (
+      <MetricWidgetCard
+        api={api}
+        router={router}
+        location={location}
+        selection={selection}
+        organization={organization}
+        project={widgetProject}
+        widget={{title, searchQuery, displayType, groupings}}
+      />
+    );
+  }
 
   return (
     <WidgetWrapper
@@ -81,22 +157,9 @@ function SortableWidget(props: Props) {
         },
       }}
     >
-      <WidgetCard
-        widget={widget}
-        isEditing={isEditing}
-        onDelete={onDelete}
-        onEdit={onEdit}
-        isSorting={isSorting}
-        hideToolbar={isSorting}
-        currentWidgetDragging={currentWidgetDragging}
-        draggableProps={{
-          attributes,
-          listeners,
-        }}
-        showContextMenu
-      />
+      {renderCard()}
     </WidgetWrapper>
   );
 }
 
-export default SortableWidget;
+export default withProjects(SortableWidget);

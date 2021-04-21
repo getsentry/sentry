@@ -1,7 +1,8 @@
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
+import {DashboardDetails} from 'app/views/dashboardsV2/types';
+import {Widget} from 'app/views/dashboardsV2/widget/types';
 
 export function createDashboard(
   api: Client,

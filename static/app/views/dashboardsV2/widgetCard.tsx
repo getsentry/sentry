@@ -25,7 +25,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
-import {Widget} from './types';
+import {EventWidget} from './widget/types';
 import {eventViewFromWidget} from './utils';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
@@ -37,7 +37,7 @@ type Props = ReactRouter.WithRouterProps & {
   organization: Organization;
   location: Location;
   isEditing: boolean;
-  widget: Widget;
+  widget: EventWidget;
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;

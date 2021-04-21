@@ -24,14 +24,14 @@ import {
   doDiscoverQuery,
 } from 'app/utils/discover/genericDiscoverQuery';
 
-import {Widget, WidgetQuery} from './types';
+import {EventWidget, EventWidgetQuery} from './widget/types';
 import {eventViewFromWidget} from './utils';
 
 // Don't fetch more than 4000 bins as we're plotting on a small area.
 const MAX_BIN_COUNT = 4000;
 
 function getWidgetInterval(
-  widget: Widget,
+  widget: EventWidget,
   datetimeObj: Partial<GlobalSelection['datetime']>
 ): string {
   // Bars charts are daily totals to aligned with discover. It also makes them
@@ -58,7 +58,7 @@ function transformSeries(stats: EventsStats, seriesName: string): Series {
   };
 }
 
-function transformResult(query: WidgetQuery, result: RawResult): Series[] {
+function transformResult(query: EventWidgetQuery, result: RawResult): Series[] {
   let output: Series[] = [];
 
   const seriesNamePrefix = query.name;
@@ -93,7 +93,7 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
 type Props = {
   api: Client;
   organization: Organization;
-  widget: Widget;
+  widget: EventWidget;
   selection: GlobalSelection;
   children: (
     props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
@@ -130,7 +130,10 @@ class WidgetQueries extends React.Component<Props, State> {
 
     // We do not fetch data whenever the query name changes.
     const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+      (
+        [names, queries]: [string[], Omit<EventWidgetQuery, 'name'>[]],
+        {name, ...rest}
+      ) => {
         names.push(name);
         queries.push(rest);
         return [names, queries];
@@ -139,7 +142,10 @@ class WidgetQueries extends React.Component<Props, State> {
     );
 
     const [widgetQueryNames, widgetQueries] = widget.queries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+      (
+        [names, queries]: [string[], Omit<EventWidgetQuery, 'name'>[]],
+        {name, ...rest}
+      ) => {
         names.push(name);
         queries.push(rest);
         return [names, queries];

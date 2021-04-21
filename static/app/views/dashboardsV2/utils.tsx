@@ -4,7 +4,8 @@ import {GlobalSelection} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 
-import {DashboardDetails, WidgetQuery} from './types';
+import {EventWidgetQuery} from './widget/types';
+import {DashboardDetails} from './types';
 
 export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
   return cloneDeep(dashboard);
@@ -12,7 +13,7 @@ export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
 
 export function eventViewFromWidget(
   title: string,
-  query: WidgetQuery,
+  query: EventWidgetQuery,
   selection: GlobalSelection
 ): EventView {
   const {start, end, period: statsPeriod} = selection.datetime;

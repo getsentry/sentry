@@ -6,10 +6,10 @@ import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 
-import {DashboardDetails, Widget} from '../../types';
+import {DashboardDetails} from '../../types';
 import EventWidget from '../eventWidget';
 import MetricWidget from '../metricWidget';
-import {DataSet} from '../utils';
+import {DataSet, Widget} from '../types';
 
 type RouteParams = {
   orgId: string;
@@ -95,7 +95,9 @@ function WidgetNew({onSave, widget, ...props}: Props) {
     );
   }
 
-  return <MetricWidget {...props} onChangeDataSet={handleDataSetChange} />;
+  return (
+    <MetricWidget {...props} onSave={onSave} onChangeDataSet={handleDataSetChange} />
+  );
 }
 
 export default WidgetNew;

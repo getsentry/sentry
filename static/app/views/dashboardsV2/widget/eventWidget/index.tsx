@@ -20,12 +20,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withTags from 'app/utils/withTags';
 import AsyncView from 'app/views/asyncView';
-import {
-  DashboardDetails,
-  DisplayType,
-  Widget,
-  WidgetQuery,
-} from 'app/views/dashboardsV2/types';
+import {DashboardDetails} from 'app/views/dashboardsV2/types';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 
@@ -34,7 +29,8 @@ import BuildStep from '../buildStep';
 import BuildSteps from '../buildSteps';
 import ChooseDataSetStep from '../choseDataStep';
 import Header from '../header';
-import {DataSet, displayTypes} from '../utils';
+import {DataSet, DisplayType, EventWidgetQuery, Widget, WidgetType} from '../types';
+import {displayTypes} from '../utils';
 
 import Queries from './queries';
 import {mapErrors, normalizeQueries} from './utils';
@@ -60,7 +56,7 @@ type State = AsyncView['state'] & {
   title: string;
   displayType: DisplayType;
   interval: string;
-  queries: Widget['queries'];
+  queries: EventWidgetQuery[];
   widgetErrors?: Record<string, any>;
 };
 
@@ -68,6 +64,7 @@ class EventWidget extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
+      type: WidgetType.EVENT,
       title: t('Custom %s Widget', DisplayType.AREA),
       displayType: DisplayType.AREA,
       interval: '5m',
@@ -114,7 +111,7 @@ class EventWidget extends AsyncView<Props, State> {
     });
   };
 
-  handleChangeQuery = (index: number, query: WidgetQuery) => {
+  handleChangeQuery = (index: number, query: EventWidgetQuery) => {
     this.setState(state => {
       const newState = cloneDeep(state);
       set(newState, `queries.${index}`, query);
@@ -129,6 +126,7 @@ class EventWidget extends AsyncView<Props, State> {
     this.setState({loading: true});
     try {
       const widgetData: Widget = pick(this.state, [
+        'type',
         'title',
         'displayType',
         'interval',
@@ -149,7 +147,7 @@ class EventWidget extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization, onChangeDataSet, selection, tags} = this.props;
-    const {title, displayType, queries, interval, widgetErrors} = this.state;
+    const {title, displayType, queries, interval, widgetErrors, type} = this.state;
     const orgSlug = organization.slug;
 
     function fieldOptions(measurementKeys: string[]) {
@@ -204,7 +202,7 @@ class EventWidget extends AsyncView<Props, State> {
                     api={this.api}
                     organization={organization}
                     selection={selection}
-                    widget={{title, queries, displayType, interval}}
+                    widget={{type, title, queries, displayType, interval}}
                     isEditing={false}
                     onDelete={() => undefined}
                     onEdit={() => undefined}

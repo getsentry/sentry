@@ -5,9 +5,8 @@ import {
   isAggregateField,
   isLegalYAxisType,
 } from 'app/utils/discover/fields';
-import {Widget} from 'app/views/dashboardsV2/types';
 
-import {DisplayType} from '../utils';
+import {DisplayType, Widget} from '../types';
 
 type ValidationError = {
   [key: string]: string[] | ValidationError[] | ValidationError;

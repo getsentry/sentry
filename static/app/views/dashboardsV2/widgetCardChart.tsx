@@ -26,7 +26,7 @@ import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 
-import {Widget} from './types';
+import {EventWidget} from './widget/types';
 import WidgetQueries from './widgetQueries';
 
 type TableResultProps = Pick<
@@ -42,7 +42,7 @@ type WidgetCardChartProps = Pick<ReactRouter.WithRouterProps, 'router'> &
     theme: Theme;
     organization: Organization;
     location: Location;
-    widget: Widget;
+    widget: EventWidget;
     selection: GlobalSelection;
   };
 

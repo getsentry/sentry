@@ -8,7 +8,8 @@ import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 
-import {DashboardDetails, DisplayType} from './types';
+import {DisplayType} from './widget/types';
+import {DashboardDetails} from './types';
 import WidgetWrapper from './widgetWrapper';
 
 export const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';

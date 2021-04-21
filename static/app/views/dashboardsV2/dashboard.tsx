@@ -1,7 +1,9 @@
 import React from 'react';
+import {InjectedRouter} from 'react-router/lib/Router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
@@ -11,12 +13,15 @@ import {GlobalSelection, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
+import {EventWidget, Widget} from './widget/types';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, Widget} from './types';
+import {DashboardDetails} from './types';
 
 type Props = {
   api: Client;
+  router: InjectedRouter;
+  location: Location;
   organization: Organization;
   dashboard: DashboardDetails;
   paramDashboardId: string;
@@ -83,7 +88,7 @@ class Dashboard extends React.Component<Props> {
     openAddDashboardWidgetModal({
       organization,
       dashboard,
-      widget,
+      widget: widget as EventWidget,
       selection,
       onAddWidget: this.handleAddComplete,
       onUpdateWidget: this.handleUpdateComplete(index),
@@ -100,7 +105,7 @@ class Dashboard extends React.Component<Props> {
   }
 
   renderWidget(widget: Widget, index: number) {
-    const {isEditing} = this.props;
+    const {isEditing, api, router, organization, location, selection} = this.props;
 
     const key = generateWidgetId(widget, index);
     const dragId = key;
@@ -108,7 +113,12 @@ class Dashboard extends React.Component<Props> {
     return (
       <SortableWidget
         key={key}
+        api={api}
+        router={router}
         widget={widget}
+        organization={organization}
+        selection={selection}
+        location={location}
         dragId={dragId}
         isEditing={isEditing}
         onDelete={this.handleDeleteWidget(index)}

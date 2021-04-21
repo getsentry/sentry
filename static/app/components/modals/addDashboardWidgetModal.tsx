@@ -28,12 +28,13 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'app/views/dashboardsV2/data';
+import {DashboardDetails} from 'app/views/dashboardsV2/types';
 import {
-  DashboardDetails,
   DisplayType,
-  Widget,
-  WidgetQuery,
-} from 'app/views/dashboardsV2/types';
+  EventWidget,
+  EventWidgetQuery,
+  WidgetType,
+} from 'app/views/dashboardsV2/widget/types';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -43,9 +44,9 @@ export type DashboardWidgetModalOptions = {
   organization: Organization;
   dashboard: DashboardDetails;
   selection: GlobalSelection;
-  onAddWidget: (data: Widget) => void;
-  widget?: Widget;
-  onUpdateWidget?: (nextWidget: Widget) => void;
+  onAddWidget: (data: EventWidget) => void;
+  widget?: EventWidget;
+  onUpdateWidget?: (nextWidget: EventWidget) => void;
 };
 
 type Props = ModalRenderProps &
@@ -65,10 +66,11 @@ type FlatValidationError = {
 };
 
 type State = {
-  title: string;
-  displayType: Widget['displayType'];
-  interval: Widget['interval'];
-  queries: Widget['queries'];
+  type: EventWidget['type'];
+  title: EventWidget['title'];
+  displayType: EventWidget['displayType'];
+  interval: EventWidget['interval'];
+  queries: EventWidget['queries'];
   loading: boolean;
   errors?: Record<string, any>;
 };
@@ -191,6 +193,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     if (!widget) {
       this.state = {
+        type: WidgetType.EVENT,
         title: '',
         displayType: DisplayType.LINE,
         interval: '5m',
@@ -202,6 +205,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
 
     this.state = {
+      type: WidgetType.EVENT,
       title: widget.title,
       displayType: widget.displayType,
       interval: widget.interval,
@@ -224,7 +228,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     } = this.props;
     this.setState({loading: true});
     try {
-      const widgetData: Widget = pick(this.state, [
+      const widgetData: EventWidget = pick(this.state, [
+        'type',
         'title',
         'displayType',
         'interval',
@@ -258,7 +263,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       set(newState, field, value);
 
       if (field === 'displayType') {
-        const displayType = value as Widget['displayType'];
+        const displayType = value as EventWidget['displayType'];
         set(newState, 'queries', normalizeQueries(displayType, prevState.queries));
       }
 
@@ -266,7 +271,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     });
   };
 
-  handleQueryChange = (widgetQuery: WidgetQuery, index: number) => {
+  handleQueryChange = (widgetQuery: EventWidgetQuery, index: number) => {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, `queries.${index}`, widgetQuery);
@@ -369,7 +374,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 name="displayType"
                 label={t('Visualization Display')}
                 value={state.displayType}
-                onChange={(option: {label: string; value: Widget['displayType']}) => {
+                onChange={(option: {
+                  label: string;
+                  value: EventWidget['displayType'];
+                }) => {
                   this.handleFieldChange('displayType')(option.value);
                 }}
               />
@@ -387,7 +395,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   displayType={state.displayType}
                   queries={state.queries}
                   errors={errors?.queries}
-                  onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
+                  onChange={(queryIndex: number, widgetQuery: EventWidgetQuery) =>
                     this.handleQueryChange(widgetQuery, queryIndex)
                   }
                   canAddSearchConditions={this.canAddSearchConditions()}

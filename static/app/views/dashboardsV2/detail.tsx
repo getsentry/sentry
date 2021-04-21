@@ -22,12 +22,13 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
+import {Widget} from './widget/types';
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import OrgDashboards from './orgDashboards';
 import DashboardTitle from './title';
-import {DashboardDetails, DashboardState, Widget} from './types';
+import {DashboardDetails, DashboardState} from './types';
 import {cloneDashboard} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
@@ -340,7 +341,7 @@ class DashboardDetail extends React.Component<Props, State> {
     reloadData,
     error,
   }: Parameters<OrgDashboards['props']['children']>[0]) {
-    const {organization, params} = this.props;
+    const {organization, params, router, location} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
@@ -385,6 +386,8 @@ class DashboardDetail extends React.Component<Props, State> {
                 organization={organization}
                 isEditing={this.isEditing}
                 onUpdate={this.onWidgetChange}
+                router={router}
+                location={location}
               />
             ) : (
               <LoadingIndicator />

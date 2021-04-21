@@ -10,17 +10,16 @@ import {Organization} from 'app/types';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
-import {WidgetQuery} from '../../types';
-import {DisplayType} from '../utils';
+import {DisplayType, EventWidgetQuery} from '../types';
 
 type Props = {
-  queries: WidgetQuery[];
+  queries: EventWidgetQuery[];
   selectedProjectIds: number[];
   organization: Organization;
   displayType: DisplayType;
   onRemoveQuery: (index: number) => void;
   onAddQuery: () => void;
-  onChangeQuery: (queryIndex: number, queries: WidgetQuery) => void;
+  onChangeQuery: (queryIndex: number, queries: EventWidgetQuery) => void;
   errors?: Array<Record<string, any>>;
 };
 
@@ -34,7 +33,7 @@ function Queries({
   onChangeQuery,
   errors,
 }: Props) {
-  function handleFieldChange(queryIndex: number, field: keyof WidgetQuery) {
+  function handleFieldChange(queryIndex: number, field: keyof EventWidgetQuery) {
     const widgetQuery = queries[queryIndex];
     return function handleChange(value: string) {
       const newQuery = {...widgetQuery, [field]: value};

@@ -109,6 +109,7 @@ class DashboardWidgetMetricsQuerySerializer(CamelSnakeSerializer):
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
     groupby = serializers.CharField(required=False, allow_blank=True)
+    project_id = serializers.CharField(required=True, allow_blank=False)
 
     required_for_create = {"fields", "conditions"}
 
@@ -273,6 +274,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                     conditions=query["conditions"],
                     name=query.get("name", ""),
                     groupby=query.get("groupby", ""),
+                    projectid=query["projectid"],
                     order=i,
                 )
             )

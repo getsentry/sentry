@@ -1,4 +1,4 @@
-import {DisplayType} from '../utils';
+import {DisplayType} from '../types';
 
 export type MetricMeta = {
   name: string;

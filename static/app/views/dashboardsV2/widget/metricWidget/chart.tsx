@@ -22,7 +22,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
-import {DisplayType} from '../utils';
+import {DisplayType} from '../types';
 
 type Props = {
   series: Series[];

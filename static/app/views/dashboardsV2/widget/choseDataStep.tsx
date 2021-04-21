@@ -4,7 +4,7 @@ import {t} from 'app/locale';
 import RadioField from 'app/views/settings/components/forms/radioField';
 
 import BuildStep from './buildStep';
-import {DataSet} from './utils';
+import {DataSet} from './types';
 
 const dataSetChoices: [string, string][] = [
   [DataSet.EVENTS, t('Events')],

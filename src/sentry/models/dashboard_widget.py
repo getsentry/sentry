@@ -98,6 +98,8 @@ class DashboardWidgetMetricsQuery(DashboardWidgetQueryBase):
 
     #: A list of metrics tag names to group by
     groupby = ArrayField()
+    #: every metric needs a project
+    project = FlexibleForeignKey("sentry.Project")
 
     class Meta:
         app_label = "sentry"
