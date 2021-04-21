@@ -19,6 +19,7 @@ type Props = {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
+  paramDashboardId: string;
   selection: GlobalSelection;
   paramDashboardId: string;
   isEditing: boolean;

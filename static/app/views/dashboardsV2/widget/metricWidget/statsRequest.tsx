@@ -153,6 +153,8 @@ function StatsRequest({
         groupBy: groupBy ?? [],
       });
 
+      console.log('breakDownChartData', breakDownChartData);
+
       const chartData = fillChartDataFromMetricsResponse({
         response: sessionResponse,
         field,
@@ -166,6 +168,8 @@ function StatsRequest({
 
       return [...Object.values(chartData)];
     });
+
+    console.log('seriesData', seriesData);
 
     const newSeries = seriesData.reduce((mergedSeries, chartDataSeries) => {
       return mergedSeries.concat(chartDataSeries);

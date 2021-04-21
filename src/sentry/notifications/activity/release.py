@@ -23,6 +23,7 @@ from sentry.notifications.helpers import (
     get_deploy_values_by_provider,
     transform_to_notification_settings_by_user,
 )
+from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingOptionValues,
@@ -32,7 +33,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
-from .base import ActivityNotification, notification_providers
+from .base import ActivityNotification
 
 
 class ReleaseActivityNotification(ActivityNotification):
@@ -178,6 +179,7 @@ class ReleaseActivityNotification(ActivityNotification):
         )
 
         return {
+            **self.get_base_context(),
             "commit_count": len(self.commit_list),
             "author_count": len(self.email_list),
             "file_count": file_count,
@@ -189,7 +191,9 @@ class ReleaseActivityNotification(ActivityNotification):
             "text_description": f"Version {self.release.version} was deployed to {self.environment}",
         }
 
-    def get_user_context(self, user: User) -> MutableMapping[str, Any]:
+    def get_user_context(
+        self, user: User, reason: Optional[int] = None
+    ) -> MutableMapping[str, Any]:
         if user.is_superuser or self.organization.flags.allow_joinleave:
             projects = self.projects
         else:
@@ -210,6 +214,7 @@ class ReleaseActivityNotification(ActivityNotification):
 
         resolved_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
         return {
+            **super().get_user_context(user, reason),
             "projects": zip(projects, release_links, resolved_issue_counts),
             "project_count": len(projects),
         }
@@ -219,9 +224,6 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_title(self) -> str:
         return self.get_subject()
-
-    def get_dm_links(self):
-        return {"settings_url": absolute_uri("/settings/account/notifications/")}
 
     def get_template(self) -> str:
         return "sentry/emails/activity/release.txt"

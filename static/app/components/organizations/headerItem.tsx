@@ -124,7 +124,7 @@ type ColorProps = {
 };
 
 const StyledHeaderItem = styled('div', {
-  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
 })<
   ColorProps & {
     loading: boolean;
