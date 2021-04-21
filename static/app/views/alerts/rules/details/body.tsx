@@ -18,7 +18,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconFire, IconInfo, IconUser, IconWarning} from 'app/icons';
+import {IconCheckmark, IconFire, IconInfo, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -122,21 +122,27 @@ export default class DetailsBody extends React.Component<Props> {
       return null;
     }
 
-    const icon =
+    const status =
       trigger.label === 'critical' ? (
-        <IconFire color="red300" size="sm" />
+        <StatusWrapper>
+          <IconFire color="red300" size="sm" /> Critical
+        </StatusWrapper>
       ) : trigger.label === 'warning' ? (
-        <IconWarning color="yellow300" size="sm" />
+        <StatusWrapper>
+          <IconWarning color="yellow300" size="sm" /> Warning
+        </StatusWrapper>
       ) : (
-        <IconCheckmark color="green300" size="sm" isCircled />
+        <StatusWrapper>
+          <IconCheckmark color="green300" size="sm" isCircled /> Resolved
+        </StatusWrapper>
       );
 
     const thresholdTypeText =
-      rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Above') : t('Below');
+      rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('above') : t('below');
 
     return (
       <TriggerCondition>
-        {icon}
+        {status}
         <TriggerText>{`${thresholdTypeText} ${trigger.alertThreshold}`}</TriggerText>
       </TriggerCondition>
     );
@@ -185,11 +191,7 @@ export default class DetailsBody extends React.Component<Props> {
               <KeyValueTableRow
                 keyName={t('Team')}
                 value={
-                  teamActor ? (
-                    <ActorAvatar actor={teamActor} size={24} />
-                  ) : (
-                    <IconUser size="20px" color="gray400" />
-                  )
+                  teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
                 }
               />
             </Feature>
@@ -324,7 +326,7 @@ export default class DetailsBody extends React.Component<Props> {
                               'This is the time period which the metric is evaluated by.'
                             )}
                           >
-                            <IconInfo size="xs" />
+                            <IconInfo size="xs" color="gray200" />
                           </Tooltip>
                         </SidebarHeading>
 
@@ -404,6 +406,12 @@ const DetailWrapper = styled('div')`
   }
 `;
 
+const StatusWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
 const HeaderContainer = styled('div')`
   display: flex;
   flex-direction: row;
@@ -413,7 +421,7 @@ const HeaderContainer = styled('div')`
 const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
-  align-items: start;
+  align-items: flex-start;
   gap: ${space(4)};
 `;
 
@@ -448,6 +456,7 @@ const SidebarHeading = styled(SectionHeading)<{noMargin?: boolean}>`
   grid-template-columns: auto auto;
   justify-content: flex-start;
   margin-top: ${p => (p.noMargin ? 0 : space(2))};
+  margin-bottom: ${space(0.5)};
   line-height: 1;
   gap: ${space(1)};
 `;
@@ -479,7 +488,7 @@ const TriggerCondition = styled('div')`
 `;
 
 const TriggerText = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${space(0.5)};
   white-space: nowrap;
 `;
 
