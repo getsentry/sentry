@@ -30,7 +30,7 @@
     "@types/classnames": "2.2.11",
     "@types/color": "^3.0.0",
     "@types/create-react-class": "^15.6.2",
-    "@types/diff": "4.0.2",
+    "@types/diff": "5.0.0",
     "@types/dompurify": "^2.2.1",
     "@types/echarts": "^4.9.3",
     "@types/jest": "^26.0.22",
