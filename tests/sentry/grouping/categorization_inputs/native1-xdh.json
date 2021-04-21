@@ -1,0 +1,156 @@
+{
+  "event_id": "4dfd511973494a15a3ca0b4105737f12",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "RtlUserThreadStart",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "BaseThreadInitThunk",
+              "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "exit",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "__crt_state_management::enter_os_call",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "ExitProcessImplementation",
+              "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "RtlExitUserProcess",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "LdrShutdownProcess",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlActivateActivationContextUnsafeFast",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\heap\\free.c",
+              "filename": "free.c",
+              "function": "free",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCR120.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\stdcpp\\xonce.cpp",
+              "filename": "xonce.cpp",
+              "function": "_Call_onceEx",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCP120.dll"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\stdcpp\\xonce.cpp",
+              "filename": "xonce.cpp",
+              "function": "_Mtx_guard::{ctor}",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCP120.dll"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\stdcpp\\thr\\mutex.c",
+              "filename": "mutex.c",
+              "function": "mtx_do_lock",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCP120.dll"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\concrt\\rtlocks.cpp",
+              "filename": "rtlocks.cpp",
+              "function": "Concurrency::critical_section::lock",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCR120.dll"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\concrt\\rtlocks.cpp",
+              "filename": "rtlocks.cpp",
+              "function": "Concurrency::details::LockQueueNode::{ctor}",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCR120.dll"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\concrt\\schedulerbase.h",
+              "filename": "schedulerbase.h",
+              "function": "Concurrency::details::SchedulerBase::CurrentContext",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCR120.dll"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\concrt\\schedulerbase.cpp",
+              "filename": "schedulerbase.cpp",
+              "function": "Concurrency::details::SchedulerBase::CreateContextFromDefaultScheduler",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCR120.dll"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\concrt\\schedulerbase.cpp",
+              "filename": "schedulerbase.cpp",
+              "function": "Concurrency::details::SchedulerBase::AttachExternalContext",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCR120.dll"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\concrt\\schedulerbase.cpp",
+              "filename": "schedulerbase.cpp",
+              "function": "Concurrency::details::SchedulerBase::GetExternalContext",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCR120.dll"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\concrt\\externalcontextbase.cpp",
+              "filename": "externalcontextbase.cpp",
+              "function": "Concurrency::details::ExternalContextBase::PrepareForUse",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCR120.dll"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\concrt\\utils.cpp",
+              "filename": "utils.cpp",
+              "function": "Concurrency::details::RegisterAsyncWaitAndLoadLibrary",
+              "package": "C:\\WINDOWS\\SYSTEM32\\MSVCR120.dll"
+            },
+            {
+              "function": "CreateThreadpoolWaitStub",
+              "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "memset",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "TppRaiseInvalidParameter",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            }
+          ]
+        },
+        "type": "0xc000000d / 0x00000000",
+        "value": "Fatal Error: 0xc000000d / 0x00000000"
+      }
+    ]
+  },
+  "platform": "native"
+}

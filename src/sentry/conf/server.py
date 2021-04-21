@@ -330,6 +330,7 @@ INSTALLED_APPS = (
     "django.contrib.sites",
     "crispy_forms",
     "rest_framework",
+    "manifest_loader",
     "sentry",
     "sentry.analytics",
     "sentry.incidents.apps.Config",
@@ -367,6 +368,17 @@ SILENCED_SYSTEM_CHECKS = (
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
+# webpack assets live at a different URL that is unversioned
+# as we configure webpack to include file content based hash in the filename
+STATIC_MANIFEST_URL = "/_static/dist/"
+
+# The webpack output directory, used by django-manifest-loader
+STATICFILES_DIRS = [
+    os.path.join(STATIC_ROOT, "sentry", "dist"),
+]
+
+# django-manifest-loader settings
+MANIFEST_LOADER = {"cache": True}
 
 # various middleware will use this to identify resources which should not access
 # cookies
@@ -397,7 +409,7 @@ CSRF_COOKIE_NAME = "sc"
 
 # Auth configuration
 
-from django.core.urlresolvers import reverse_lazy
+from django.urls import reverse_lazy
 
 LOGIN_REDIRECT_URL = reverse_lazy("sentry-login-redirect")
 LOGIN_URL = reverse_lazy("sentry-login")
@@ -832,8 +844,6 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
-    # Enable android mappings in processing section of settings.
-    "organizations:android-mappings": False,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
     # Enable explicit use of AND and OR in search.
@@ -907,10 +917,12 @@ SENTRY_FEATURES = {
     "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable readonly dashboards (dashboards 2)
-    "organizations:dashboards-basic": False,
-    # Enable custom editable dashboards (dashboards 2)
-    "organizations:dashboards-edit": False,
+    # Enable readonly dashboards
+    "organizations:dashboards-basic": True,
+    # Enable custom editable dashboards
+    "organizations:dashboards-edit": True,
+    # Enable dashboards manager.
+    "organizations:dashboards-manage": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -935,17 +947,11 @@ SENTRY_FEATURES = {
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
     "organizations:performance-tag-explorer": False,
-    # Enable the new Project Detail page
-    "organizations:project-detail": False,
-    # Enable links to Project Detail page from all over the app
-    "organizations:project-detail-links": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
-    # Enable the new charts on top of the Releases page
-    "organizations:releases-top-charts": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": False,
     # Enable option to send alert, workflow, and deploy notifications
@@ -964,8 +970,6 @@ SENTRY_FEATURES = {
     "organizations:sso-rippling": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
-    # Enable stack trace preview card on issue row hover
-    "organizations:stacktrace-hover-preview": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
@@ -1957,7 +1961,7 @@ SENTRY_RELAY_WHITELIST_PK = [
 
 # When open registration is not permitted then only relays in the
 # list of explicitly allowed relays can register.
-SENTRY_RELAY_OPEN_REGISTRATION = False
+SENTRY_RELAY_OPEN_REGISTRATION = True
 
 # GeoIP
 # Used for looking up IP addresses.

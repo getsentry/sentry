@@ -1,7 +1,7 @@
 import functools
 import os.path
 from collections import namedtuple
-from datetime import timedelta
+from datetime import datetime, timedelta
 from random import randint
 from urllib.parse import quote
 
@@ -235,7 +235,7 @@ def duration(value):
 def date(dt, arg=None):
     from django.template.defaultfilters import date
 
-    if not timezone.is_aware(dt):
+    if isinstance(dt, datetime) and not timezone.is_aware(dt):
         dt = dt.replace(tzinfo=timezone.utc)
     return date(dt, arg)
 
@@ -280,7 +280,7 @@ def soft_break(value, length):
     )
 
 
-@register.assignment_tag
+@register.simple_tag
 def random_int(a, b=None):
     if b is None:
         a, b = 0, a

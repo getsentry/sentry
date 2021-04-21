@@ -5,31 +5,25 @@ import moment from 'moment';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Card from 'app/components/card';
-import ErrorPanel from 'app/components/charts/errorPanel';
 import OptionSelector from 'app/components/charts/optionSelector';
-import {
-  ChartControls,
-  HeaderTitle,
-  InlineContainer,
-  SectionValue,
-} from 'app/components/charts/styles';
+import {ChartControls, HeaderTitle, InlineContainer} from 'app/components/charts/styles';
 import {DateTimeObject, getInterval} from 'app/components/charts/utils';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {Panel, PanelBody} from 'app/components/panels';
+import NotAvailable from 'app/components/notAvailable';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconWarning} from 'app/icons';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
 
-import {FORMAT_DATETIME_HOURLY, getDateFromMoment} from './usageChart/utils';
+import {
+  FORMAT_DATETIME_DAILY,
+  FORMAT_DATETIME_HOURLY,
+  getDateFromMoment,
+} from './usageChart/utils';
 import {Outcome, UsageSeries, UsageStat} from './types';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
-  CHART_OPTIONS_DATACATEGORY,
   ChartDataTransform,
   ChartStats,
 } from './usageChart';
@@ -53,6 +47,19 @@ type State = {
 } & AsyncComponent['state'];
 
 class UsageStatsOrganization extends AsyncComponent<Props, State> {
+  componentDidUpdate(prevProps: Props) {
+    const {dataDatetime: prevDateTime} = prevProps;
+    const {dataDatetime: currDateTime} = this.props;
+
+    if (
+      prevDateTime.start !== currDateTime.start ||
+      prevDateTime.end !== currDateTime.end ||
+      prevDateTime.period !== currDateTime.period
+    ) {
+      this.reloadData();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
   }
@@ -77,10 +84,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   get chartData(): {
     chartStats: ChartStats;
     cardStats: {
-      total: string;
-      accepted: string;
-      dropped: string;
-      filtered: string;
+      total?: string;
+      accepted?: string;
+      dropped?: string;
+      filtered?: string;
     };
     dataError?: Error;
     chartDateInterval: IntervalPeriod;
@@ -107,7 +114,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       case ChartDataTransform.PERIODIC:
         return {chartTransform};
       default:
-        return {chartTransform: ChartDataTransform.CUMULATIVE};
+        return {chartTransform: ChartDataTransform.PERIODIC};
     }
   }
 
@@ -118,43 +125,45 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     chartDateStartDisplay: string;
     chartDateEndDisplay: string;
   } {
-    const {dataDatetime} = this.props;
-    const {period, start, end} = dataDatetime;
-    const interval = getInterval(dataDatetime);
+    const {orgStats} = this.state;
 
-    let chartDateStart = moment().subtract(14, 'd');
-    let chartDateEnd = moment();
+    // Use fillers as loading/error states will not display datetime at all
+    if (!orgStats || !orgStats.intervals || orgStats.intervals.length < 2) {
+      const now = moment();
 
-    try {
-      if (start && end) {
-        chartDateStart = moment(start);
-        chartDateEnd = moment(end);
-      }
-
-      if (period) {
-        const statsPeriod = parseStatsPeriod(period);
-        if (!statsPeriod) {
-          throw new Error('Format for data period is not recognized');
-        }
-
-        chartDateStart = moment().subtract(
-          statsPeriod.period as any, // TODO(ts): Oddity with momentjs types
-          statsPeriod.periodLength as any
-        );
-      }
-    } catch (err) {
-      // do nothing
+      return {
+        chartDateInterval: '1d',
+        chartDateStart: now.format(),
+        chartDateEnd: now.format(),
+        chartDateStartDisplay: now.local().format(FORMAT_DATETIME_DAILY),
+        chartDateEndDisplay: now.local().format(FORMAT_DATETIME_DAILY),
+      };
     }
 
-    // chartDateStart need to +1 hour to remove empty column on left of chart
-    const dateStart = chartDateStart.add(1, 'h').startOf('h');
-    const dateEnd = chartDateEnd.startOf('h');
+    const {intervals} = orgStats;
+
+    const startTime = moment(intervals[0]);
+    const endTime = moment(intervals[intervals.length - 1]);
+    const intervalMinutes = moment(endTime).diff(startTime, 'm') / (intervals.length - 1);
+
+    // If interval is a day or more, use UTC to format date. Otherwise, the date
+    // may shift ahead/behind when converting to the user's local time.
+    const isPerDay = intervalMinutes >= 24 * 60;
+    const FORMAT_DATETIME = isPerDay ? FORMAT_DATETIME_DAILY : FORMAT_DATETIME_HOURLY;
+
+    const xAxisStart = moment(startTime);
+    const xAxisEnd = moment(endTime);
+    const displayStart = isPerDay ? moment(startTime).utc() : moment(startTime).local();
+    const displayEnd = isPerDay
+      ? moment(endTime).utc()
+      : moment(endTime).local().add(intervalMinutes, 'm');
+
     return {
-      chartDateInterval: interval,
-      chartDateStart: dateStart.format(),
-      chartDateEnd: dateEnd.format(),
-      chartDateStartDisplay: dateStart.local().format(FORMAT_DATETIME_HOURLY),
-      chartDateEndDisplay: dateEnd.local().format(FORMAT_DATETIME_HOURLY),
+      chartDateInterval: `${intervalMinutes}m` as IntervalPeriod,
+      chartDateStart: xAxisStart.format(),
+      chartDateEnd: xAxisEnd.format(),
+      chartDateStartDisplay: displayStart.format(FORMAT_DATETIME),
+      chartDateEndDisplay: displayEnd.format(FORMAT_DATETIME),
     };
   }
 
@@ -163,18 +172,18 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   ): {
     chartStats: ChartStats;
     cardStats: {
-      total: string;
-      accepted: string;
-      dropped: string;
-      filtered: string;
+      total?: string;
+      accepted?: string;
+      dropped?: string;
+      filtered?: string;
     };
     dataError?: Error;
   } {
     const cardStats = {
-      total: '-',
-      accepted: '-',
-      dropped: '-',
-      filtered: '-',
+      total: undefined,
+      accepted: undefined,
+      dropped: undefined,
+      filtered: undefined,
     };
     const chartStats: ChartStats = {
       accepted: [],
@@ -214,7 +223,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       orgStats.groups.forEach(group => {
         const {outcome, category} = group.by;
 
-        // HACK The backend enum are singular, but the frontend enums are plural
+        // HACK: The backend enum are singular, but the frontend enums are plural
         if (!dataCategory.includes(`${category}`)) {
           return;
         }
@@ -278,7 +287,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       return {
         cardStats,
         chartStats,
-        dataError: err,
+        dataError: new Error('Failed to parse stats data'),
       };
     }
   }
@@ -294,6 +303,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       },
       {
         title: t('Accepted'),
+        description: tct(
+          'Accepted [dataCategory] were successfully processed by Sentry.',
+          {dataCategory}
+        ),
         value: accepted,
       },
       {
@@ -304,11 +317,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         ),
         value: filtered,
       },
-      // TODO(org-stats): Need a better description for dropped data
       {
         title: t('Dropped'),
         description: tct(
-          'Dropped [dataCategory] were discarded due to rate-limits, quota limits, or spike protection',
+          'Dropped [dataCategory] were discarded due to invalid data, rate-limits, quota limits, or spike protection',
           {dataCategory}
         ),
         value: dropped,
@@ -326,7 +338,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
               )}
             </HeaderTitle>
             <CardContent>
-              <TextOverflow>{c.value}</TextOverflow>
+              <TextOverflow>{c.value ?? <NotAvailable />}</TextOverflow>
             </CardContent>
           </StyledCard>
         ))}
@@ -336,19 +348,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
   renderChart() {
     const {dataCategory} = this.props;
-    const {error, loading, orgStats} = this.state;
-
-    if (loading) {
-      return (
-        <Panel>
-          <PanelBody>
-            <LoaderWrapper>
-              <LoadingIndicator />
-            </LoaderWrapper>
-          </PanelBody>
-        </Panel>
-      );
-    }
+    const {error, errors, loading} = this.state;
 
     const {
       chartStats,
@@ -356,29 +356,18 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       chartDateInterval,
       chartDateStart,
       chartDateEnd,
-      chartDateStartDisplay,
-      chartDateEndDisplay,
       chartTransform,
     } = this.chartData;
 
-    if (error || dataError || !orgStats) {
-      return (
-        <Panel>
-          <PanelBody>
-            <ErrorPanel height="256px">
-              <IconWarning color="gray300" size="lg" />
-            </ErrorPanel>
-          </PanelBody>
-        </Panel>
-      );
-    }
+    const hasError = error || !!dataError;
+    const chartErrors: any = dataError ? {...errors, data: dataError} : errors; // TODO(ts): AsyncComponent
 
     return (
       <UsageChart
-        title={tct('Usage for [start] — [end]', {
-          start: chartDateStartDisplay,
-          end: chartDateEndDisplay,
-        })}
+        isLoading={loading}
+        isError={hasError}
+        errors={chartErrors}
+        title=" " // Force the title to be blank
         footer={this.renderChartFooter()}
         dataCategory={dataCategory}
         dataTransform={chartTransform}
@@ -391,37 +380,16 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   renderChartFooter = () => {
-    const {dataCategory, dataDatetime, handleChangeState} = this.props;
-    const {chartTransform} = this.chartData;
-
-    const {period} = dataDatetime;
+    const {handleChangeState} = this.props;
+    const {chartTransform, chartDateStartDisplay, chartDateEndDisplay} = this.chartData;
 
     return (
       <ChartControls>
         <InlineContainer>
-          <SectionValue>
-            <OptionSelector
-              title={t('Display')}
-              selected={period || DEFAULT_STATS_PERIOD}
-              options={Object.keys(DEFAULT_RELATIVE_PERIODS).map(k => ({
-                label: DEFAULT_RELATIVE_PERIODS[k],
-                value: k,
-              }))}
-              onChange={(val: string) =>
-                handleChangeState({pagePeriod: val as RelativePeriod})
-              }
-            />
-          </SectionValue>
-          <SectionValue>
-            <OptionSelector
-              title={t('of')}
-              selected={dataCategory}
-              options={CHART_OPTIONS_DATACATEGORY}
-              onChange={(val: string) =>
-                handleChangeState({dataCategory: val as DataCategory})
-              }
-            />
-          </SectionValue>
+          {tct('Usage for [start] — [end]', {
+            start: chartDateStartDisplay,
+            end: chartDateEndDisplay,
+          })}
         </InlineContainer>
         <InlineContainer>
           <OptionSelector
@@ -472,17 +440,4 @@ const StyledCard = styled(Card)`
 const CardContent = styled('div')`
   margin-top: ${space(1)};
   font-size: 32px;
-`;
-
-const LoaderWrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  /* Height of chart + footer is generally constant
-     Specify height here to reduce page reflow */
-  width: 100%;
-  height: 285px;
-  margin: 0;
-  padding: 0;
 `;

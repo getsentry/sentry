@@ -66,13 +66,13 @@ export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
     return highFidelity ? '30m' : '1h';
   }
 
-  if (diffInMinutes <= ONE_HOUR) {
-    // Less than or equal to 1 hour
-    return highFidelity ? '1m' : '5m';
+  if (diffInMinutes > ONE_HOUR) {
+    // Between 1 hour and 24 hours
+    return highFidelity ? '5m' : '15m';
   }
 
-  // Between 1 hour and 24 hours
-  return highFidelity ? '5m' : '15m';
+  // Less than or equal to 1 hour
+  return highFidelity ? '1m' : '5m';
 }
 
 export function getDiffInMinutes(datetimeObj: DateTimeObject): number {

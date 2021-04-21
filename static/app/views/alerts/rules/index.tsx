@@ -237,14 +237,26 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         pathname: location.pathname,
                         query: {
                           ...currentQuery,
+                          asc: sort.field === 'name' && !sort.asc ? '1' : undefined,
+                          sort: 'name',
+                        },
+                      }}
+                    >
+                      {t('Alert Rule')} {sort.field === 'name' && sortArrow}
+                    </StyledSortLink>,
+                    // eslint-disable-next-line react/jsx-key
+                    <StyledSortLink
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...currentQuery,
                           asc: isAlertRuleSort && !sort.asc ? '1' : undefined,
                           sort: ['incident_status', 'date_triggered'],
                         },
                       }}
                     >
-                      {t('Alert Rule')} {isAlertRuleSort && sortArrow}
+                      {t('Status')} {isAlertRuleSort && sortArrow}
                     </StyledSortLink>,
-                    t('Status'),
                   ]
                 : [
                     t('Type'),
@@ -444,6 +456,11 @@ const StyledPanelTable = styled(PanelTable)<{
   showTeamCol: boolean;
   hasAlertList: boolean;
 }>`
+  overflow: auto;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    overflow: initial;
+  }
+
   ${PanelTableHeader} {
     padding: ${space(2)};
     line-height: normal;
@@ -458,7 +475,7 @@ const StyledPanelTable = styled(PanelTable)<{
     `svg:not([data-test-id='icon-check-mark']) {
     display: none;`}
   & > * {
-    padding: ${p => (p.hasAlertList ? `${space(1.5)} ${space(2)}` : space(2))};
+    padding: ${p => (p.hasAlertList ? `${space(2)} ${space(2)}` : space(2))};
   }
 `;
 

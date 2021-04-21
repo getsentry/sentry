@@ -3,7 +3,6 @@ import isString from 'lodash/isString';
 import set from 'lodash/set';
 import moment from 'moment';
 
-import CHART_PALETTE from 'app/constants/chartPalette';
 import {EntryType, EventTransaction} from 'app/types/event';
 import {assert} from 'app/types/utils';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
@@ -21,82 +20,8 @@ import {
   TreeDepthType,
 } from './types';
 
-type Rect = {
-  // x and y are left/top coords respectively
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-
-// get position of element relative to top/left of document
-const getOffsetOfElement = (element: Element) => {
-  // left and top are relative to viewport
-  const {left, top} = element.getBoundingClientRect();
-
-  // get values that the document is currently scrolled by
-  const scrollLeft = window.pageXOffset;
-  const scrollTop = window.pageYOffset;
-
-  return {x: left + scrollLeft, y: top + scrollTop};
-};
-
-export const rectOfContent = (element: Element): Rect => {
-  const {x, y} = getOffsetOfElement(element);
-
-  // offsets for the border and any scrollbars (clientLeft and clientTop),
-  // and if the element was scrolled (scrollLeft and scrollTop)
-  //
-  // NOTE: clientLeft and clientTop does not account for any margins nor padding
-  const contentOffsetLeft = element.clientLeft - element.scrollLeft;
-  const contentOffsetTop = element.clientTop - element.scrollTop;
-
-  return {
-    x: x + contentOffsetLeft,
-    y: y + contentOffsetTop,
-    width: element.scrollWidth,
-    height: element.scrollHeight,
-  };
-};
-
-export const rectOfViewport = (): Rect => ({
-  x: window.pageXOffset,
-  y: window.pageYOffset,
-  width: window.document.documentElement.clientWidth,
-  height: window.document.documentElement.clientHeight,
-});
-
-export const rectRelativeTo = (rect: Rect, pos = {x: 0, y: 0}): Rect => ({
-  x: rect.x - pos.x,
-  y: rect.y - pos.y,
-  width: rect.width,
-  height: rect.height,
-});
-
-export const rectOfElement = (element: HTMLElement): Rect => {
-  const {x, y} = getOffsetOfElement(element);
-  return {
-    x,
-    y,
-    width: element.offsetWidth,
-    height: element.offsetHeight,
-  };
-};
-
-export const clamp = (value: number, min: number, max: number): number => {
-  if (value < min) {
-    return min;
-  }
-  if (value > max) {
-    return max;
-  }
-  return value;
-};
-
 export const isValidSpanID = (maybeSpanID: any) =>
   isString(maybeSpanID) && maybeSpanID.length > 0;
-
-export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
 
 export type SpanBoundsType = {startTimestamp: number; endTimestamp: number};
 export type SpanGeneratedBoundsType =
@@ -252,51 +177,6 @@ export const boundsGenerator = (bounds: {
       }
     }
   };
-};
-
-export const getHumanDuration = (duration: number): string => {
-  // note: duration is assumed to be in seconds
-
-  const durationMS = duration * 1000;
-  return `${durationMS.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}ms`;
-};
-
-const getLetterIndex = (letter: string): number => {
-  const index = 'abcdefghijklmnopqrstuvwxyz'.indexOf(letter) || 0;
-  return index === -1 ? 0 : index;
-};
-
-const colorsAsArray = Object.keys(CHART_PALETTE).map(key => CHART_PALETTE[17][key]);
-
-export const spanColors = {
-  default: CHART_PALETTE[17][4],
-  transaction: CHART_PALETTE[17][8],
-  http: CHART_PALETTE[17][10],
-  db: CHART_PALETTE[17][17],
-};
-
-export const pickSpanBarColour = (input: string | undefined): string => {
-  // We pick the color for span bars using the first three letters of the op name.
-  // That way colors stay consistent between transactions.
-
-  if (!input || input.length < 3) {
-    return CHART_PALETTE[17][4];
-  }
-
-  if (spanColors[input]) {
-    return spanColors[input];
-  }
-
-  const letterIndex1 = getLetterIndex(input.slice(0, 1));
-  const letterIndex2 = getLetterIndex(input.slice(1, 2));
-  const letterIndex3 = getLetterIndex(input.slice(2, 3));
-
-  return colorsAsArray[
-    (letterIndex1 + letterIndex2 + letterIndex3) % colorsAsArray.length
-  ];
 };
 
 export function generateRootSpan(trace: ParsedTraceType): RawSpanType {

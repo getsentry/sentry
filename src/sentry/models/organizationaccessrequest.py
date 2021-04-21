@@ -1,6 +1,6 @@
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.urls import reverse
 
 from sentry import roles
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
