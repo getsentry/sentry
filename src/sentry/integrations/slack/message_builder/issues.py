@@ -6,7 +6,6 @@ from sentry import tagstore
 from sentry.integrations.slack.utils import ACTIONED_ISSUE_COLOR, LEVEL_TO_COLOR
 from sentry.models import (
     ActorTuple,
-    Event,
     Group,
     GroupAssignee,
     GroupStatus,
@@ -156,7 +155,7 @@ def build_footer(group: Group, issue_alert: bool, project: Project, rules=None):
     return footer
 
 
-def build_tag_fields(event_for_tags: Event, tags: Mapping[str, str] = None):
+def build_tag_fields(event_for_tags, tags: Mapping[str, str] = None):
     fields = []
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
@@ -250,7 +249,7 @@ def build_actions(
 
 def build_group_attachment(
     group: Group,
-    event: Event = None,
+    event=None,
     tags: Mapping[str, str] = None,
     identity: Identity = None,
     actions=None,

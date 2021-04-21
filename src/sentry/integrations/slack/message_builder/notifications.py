@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.utils import LEVEL_TO_COLOR
-from sentry.models import Event, Group, Rule
+from sentry.models import Group, Rule
 from sentry.notifications.activity.base import ActivityNotification
 from sentry.utils.http import absolute_uri
 
@@ -52,7 +52,7 @@ def build_notification_attachment(
 
 def build_issue_notification_attachment(
     group: Group,
-    event: Event = None,
+    event=None,
     tags: Mapping[str, str] = None,
     rules: List[Rule] = None,
 ):
