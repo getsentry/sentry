@@ -134,7 +134,7 @@ def track_enhancers_coverage():
 
     current_input = None
 
-    def new_apply(self, frames, idx, rule=None):
+    def new_apply(self, frames, match_frames, idx, rule=None):
         if current_input is not None:
             inputs_for_rule = used_inputs.setdefault(rule.matcher_description, [])
 
@@ -144,7 +144,7 @@ def track_enhancers_coverage():
             if len(inputs_for_rule) < 4:
                 inputs_for_rule.append(current_input)
 
-        return old_apply(self, frames, idx, rule=rule)
+        return old_apply(self, frames, match_frames, idx, rule=rule)
 
     ran_tests = {}
 

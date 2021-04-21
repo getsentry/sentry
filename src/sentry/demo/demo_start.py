@@ -34,6 +34,9 @@ class DemoStartView(BaseView):
         skip_buffer = request.POST.get("skip_buffer") == "1"
         sentry_sdk.set_tag("skip_buffer", skip_buffer)
 
+        scenario = request.POST.get("scenario")
+        sentry_sdk.set_tag("scenario", scenario)
+
         if member_id and not skip_buffer:
             try:
                 # only assign them to an active org for a member role

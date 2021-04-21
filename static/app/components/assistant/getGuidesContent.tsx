@@ -248,7 +248,7 @@ function getDemoModeGuides(): GuidesContent {
           title: t('Issues'),
           target: 'issues',
           description: t(
-            `Here's a list of what's broken with your applicaiton. And everything you need to know to fix it.`
+            `Here's a list of what's broken with your application. And everything you need to know to fix it.`
           ),
         },
         {

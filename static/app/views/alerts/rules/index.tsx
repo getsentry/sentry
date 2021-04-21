@@ -456,6 +456,11 @@ const StyledPanelTable = styled(PanelTable)<{
   showTeamCol: boolean;
   hasAlertList: boolean;
 }>`
+  overflow: auto;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    overflow: initial;
+  }
+
   ${PanelTableHeader} {
     padding: ${space(2)};
     line-height: normal;
@@ -470,7 +475,7 @@ const StyledPanelTable = styled(PanelTable)<{
     `svg:not([data-test-id='icon-check-mark']) {
     display: none;`}
   & > * {
-    padding: ${p => (p.hasAlertList ? `${space(1.5)} ${space(2)}` : space(2))};
+    padding: ${p => (p.hasAlertList ? `${space(2)} ${space(2)}` : space(2))};
   }
 `;
 

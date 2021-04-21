@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.api.base import Endpoint
 from sentry.utils.assets import get_asset_url

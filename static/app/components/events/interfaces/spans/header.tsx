@@ -8,6 +8,12 @@ import {
   VirtualScrollbar,
   VirtualScrollbarGrip,
 } from 'app/components/waterfallTree/miniHeader';
+import {
+  getHumanDuration,
+  pickBarColour,
+  rectOfContent,
+  toPercent,
+} from 'app/components/waterfallTree/utils';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -26,14 +32,10 @@ import {
 } from './types';
 import {
   boundsGenerator,
-  getHumanDuration,
   getSpanID,
   getSpanOperation,
-  pickSpanBarColour,
-  rectOfContent,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  toPercent,
 } from './utils';
 
 export const MINIMAP_SPAN_BAR_HEIGHT = 4;
@@ -575,7 +577,7 @@ class ActualMinimap extends React.PureComponent<{
     spanTree: JSX.Element;
     nextSpanNumber: number;
   } {
-    const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
+    const spanBarColour: string = pickBarColour(getSpanOperation(span));
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,

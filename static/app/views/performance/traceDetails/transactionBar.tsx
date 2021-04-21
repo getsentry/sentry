@@ -1,5 +1,4 @@
 import React from 'react';
-import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import Count from 'app/components/count';
@@ -27,16 +26,19 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'app/components/waterfallTree/treeConnector';
-import {getDurationDisplay} from 'app/components/waterfallTree/utils';
+import {
+  getDurationDisplay,
+  getHumanDuration,
+  toPercent,
+} from 'app/components/waterfallTree/utils';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
-import {Theme} from 'app/utils/theme';
 
 import {DividerContainer, ErrorBadge, TransactionBarTitleContent} from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
-import {getHumanDuration, isTraceFullDetailed, toPercent} from './utils';
+import {isTraceFullDetailed} from './utils';
 
 const MARGIN_LEFT = 0;
 
@@ -52,7 +54,7 @@ type Props = {
   isExpanded: boolean;
   isVisible: boolean;
   toggleExpandedState: () => void;
-  theme: Theme;
+  barColour?: string;
 };
 
 type State = {
@@ -326,10 +328,8 @@ class TransactionBar extends React.Component<Props, State> {
   }
 
   renderRectangle() {
-    const {transaction, traceInfo, theme} = this.props;
+    const {transaction, traceInfo, barColour} = this.props;
     const {showDetail} = this.state;
-
-    const palette = theme.charts.getColorPalette(traceInfo.maxGeneration);
 
     // Use 1 as the difference in the event that startTimestamp === endTimestamp
     const delta = Math.abs(traceInfo.endTimestamp - traceInfo.startTimestamp) || 1;
@@ -344,7 +344,7 @@ class TransactionBar extends React.Component<Props, State> {
       <RowRectangle
         spanBarHatch={false}
         style={{
-          backgroundColor: palette[transaction.generation % palette.length],
+          backgroundColor: barColour,
           left: `clamp(0%, ${toPercent(startPercentage || 0)}, calc(100% - 1px))`,
           width: toPercent(widthPercentage || 0),
         }}
@@ -450,4 +450,4 @@ function getOffset(generation) {
   return generation * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 }
 
-export default withTheme(TransactionBar);
+export default TransactionBar;
