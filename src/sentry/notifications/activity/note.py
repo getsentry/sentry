@@ -6,6 +6,7 @@ from .base import ActivityNotification
 class NoteActivityNotification(ActivityNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         return {
+            **self.get_base_context(),
             "text_description": str(self.activity.data["text"]),
         }
 
