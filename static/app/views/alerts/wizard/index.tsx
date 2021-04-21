@@ -164,7 +164,7 @@ const StyledLayoutBody = styled(Layout.Body)`
 
 const Styledh2 = styled('h2')`
   font-weight: normal;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)} !important;
 `;
 
