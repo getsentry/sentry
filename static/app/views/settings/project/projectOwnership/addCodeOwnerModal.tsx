@@ -18,8 +18,8 @@ type Props = {
   api: Client;
   organization: Organization;
   project: Project;
-  codeMappings: any;
-  onSave: (data: any) => void;
+  codeMappings: RepositoryProjectPathConfig[];
+  onSave: (data: CodeOwners) => void;
 } & ModalRenderProps;
 
 type State = {
@@ -82,7 +82,9 @@ class AddCodeOwnerModal extends React.Component<Props, State> {
             },
           }
         );
-        const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
+        const codeMapping = codeMappings.find(
+          mapping => mapping.id === codeMappingId?.toString()
+        );
         this.handleAddedFile({...data, codeMapping});
       } catch (_err) {
         this.setState({error: true, errorJSON: _err.responseJSON, isLoading: false});

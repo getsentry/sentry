@@ -8,7 +8,7 @@ import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {CodeOwners, Organization, Project, RepositoryProjectPathConfig} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -26,8 +26,8 @@ type Props = {
 
 type State = {
   ownership: null | any;
-  codeMappings: null | any;
-  codeowners: null | any;
+  codeMappings: RepositoryProjectPathConfig[];
+  codeowners?: CodeOwners[];
 } & AsyncView['state'];
 
 class ProjectOwnership extends AsyncView<Props, State> {
@@ -94,15 +94,15 @@ tags.sku_class:enterprise #enterprise`;
     }));
   };
 
-  handleCodeownerAdded = (data: any) => {
+  handleCodeownerAdded = (data: CodeOwners) => {
     const {codeowners} = this.state;
-    const newCodeowners = codeowners.concat(data);
+    const newCodeowners = codeowners?.concat(data);
     this.setState({codeowners: newCodeowners});
   };
 
-  handleCodeownerDeleted = (data: any) => {
+  handleCodeownerDeleted = (data: CodeOwners) => {
     const {codeowners} = this.state;
-    const newCodeowners = codeowners.filter(codeowner => codeowner.id !== data.id);
+    const newCodeowners = codeowners?.filter(codeowner => codeowner.id !== data.id);
     this.setState({codeowners: newCodeowners});
   };
 
