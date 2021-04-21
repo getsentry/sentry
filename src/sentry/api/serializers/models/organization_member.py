@@ -43,18 +43,12 @@ def get_team_slugs_by_organization_member_id(
 
 def get_organization_id(organization_members: Sequence[OrganizationMember]) -> int:
     """ Ensure all organization_members have the same organization ID and then return that ID. """
-    organization_id: Optional[int] = None
-
-    for organization_member in organization_members:
-        next_organization_id = organization_member.organization.id
-        if next_organization_id and not organization_id:
-            organization_id = next_organization_id
-        elif not (next_organization_id and organization_id == next_organization_id):
-            raise Exception("Cannot determine organization")
-
-    if not organization_id:
+    organization_ids = {
+        organization_member.organization_id for organization_member in organization_members
+    }
+    if len(organization_ids) != 1:
         raise Exception("Cannot determine organization")
-    return organization_id
+    return int(organization_ids.pop())
 
 
 @register(OrganizationMember)
