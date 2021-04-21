@@ -30,7 +30,5 @@ class ExternalActorSerializer(Serializer):  # type: ignore
             data["userId"] = str(obj.actor.resolve().id)
         elif key == "team":
             data["teamId"] = str(obj.actor.resolve().id)
-        else:
-            data["actorId"] = str(obj.actor.id)
 
         return data

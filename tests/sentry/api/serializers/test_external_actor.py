@@ -23,7 +23,7 @@ class ExternalActorSerializerTest(TestCase):
         assert result["id"] == str(external_actor.id)
         assert result["externalName"] == "Marcos"
         assert result["externalId"] == "Gaeta"
-        assert result["userId"] == user.id
+        assert result["userId"] == str(user.id)
 
     def test_team(self):
         user = self.create_user()
@@ -44,4 +44,4 @@ class ExternalActorSerializerTest(TestCase):
         assert result["id"] == str(external_actor.id)
         assert result["externalName"] == "Marcos"
         assert result["externalId"] == "Gaeta"
-        assert result["teamId"] == team.id
+        assert result["teamId"] == str(team.id)
