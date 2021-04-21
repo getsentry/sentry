@@ -21,6 +21,8 @@ class OrganizationSerializerTest(TestCase):
             "custom-event-title",
             "custom-symbol-sources",
             "data-forwarding",
+            "dashboards-basic",
+            "dashboards-edit",
             "discover-basic",
             "discover-query",
             "event-attachments",

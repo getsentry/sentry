@@ -186,6 +186,7 @@ class ReleaseActivityNotification(ActivityNotification):
             "deploy": self.deploy,
             "environment": self.environment,
             "setup_repo_link": absolute_uri(f"/organizations/{self.organization.slug}/repos/"),
+            "text_description": f"Version {self.release.version} was deployed to {self.environment}",
         }
 
     def get_user_context(self, user: User) -> MutableMapping[str, Any]:
@@ -215,6 +216,12 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_subject(self) -> str:
         return f"Deployed version {self.release.version} to {self.environment}"
+
+    def get_title(self) -> str:
+        return self.get_subject()
+
+    def get_dm_links(self):
+        return {"settings_url": absolute_uri("/settings/account/notifications/")}
 
     def get_template(self) -> str:
         return "sentry/emails/activity/release.txt"

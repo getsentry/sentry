@@ -975,7 +975,7 @@ urlpatterns = [
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
-                    include(GROUP_URLS, namespace="sentry-api-0-organization-group"),
+                    include(GROUP_URLS),
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/$",
@@ -1787,7 +1787,7 @@ urlpatterns = [
         ),
     ),
     # Groups
-    url(r"^(?:issues|groups)/", include(GROUP_URLS, namespace="sentry-api-0-group")),
+    url(r"^(?:issues|groups)/", include(GROUP_URLS)),
     url(
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),

@@ -51,7 +51,7 @@ const DUMMY_COMMIT: Commit = {
       stacktraceOrder: 1,
       language: '',
       clock24Hours: false,
-      avatarType: '',
+      avatarType: 'letter_avatar',
     },
     flags: {newsletter_consent_prompt: false},
     hasPasswordAuth: true,
