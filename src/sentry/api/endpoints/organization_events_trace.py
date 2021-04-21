@@ -33,6 +33,7 @@ from sentry.utils.validators import INVALID_EVENT_DETAILS, is_event_id
 logger: logging.Logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
 
+# TODO(3.8): This is a hack so we can get TypedDicts before 3.8
 if TYPE_CHECKING:
     from mypy_extensions import TypedDict
 else:
