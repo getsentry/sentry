@@ -41,10 +41,6 @@ describe('UsageStats', function () {
     expect(wrapper.find('UsageTable')).toHaveLength(1);
     expect(wrapper.find('IconWarning')).toHaveLength(0);
 
-    const minAsync = wrapper.find('UsageStatsLastMin');
-    expect(minAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
-    expect(minAsync.text()).toContain('6'); // Display 2nd last value in series
-
     const orgAsync = wrapper.find('UsageStatsOrganization');
     expect(orgAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
     expect(orgAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
@@ -58,7 +54,9 @@ describe('UsageStats', function () {
     expect(orgChart.props().dataCategory).toEqual(DataCategory.ERRORS);
     expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[1].value);
 
-    expect(wrapper.text()).toContain('Project Usage Stats for Errors');
+    const minAsync = wrapper.find('UsageStatsPerMin');
+    expect(minAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
+    expect(minAsync.text()).toContain('6'); // Display 2nd last value in series
 
     const projectAsync = wrapper.find('UsageStatsProjects');
     expect(projectAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
@@ -71,28 +69,28 @@ describe('UsageStats', function () {
     // API calls with defaults
     expect(mock).toHaveBeenCalledTimes(3);
 
-    // From UsageStatsLastMin
+    // From UsageStatsOrg
     expect(mock).toHaveBeenNthCalledWith(
       1,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '5m',
-          interval: '1m',
+          statsPeriod: DEFAULT_STATS_PERIOD,
+          interval: '1h',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
         },
       })
     );
 
-    // From UsageStatsOrg
+    // From UsageStatsPerMin
     expect(mock).toHaveBeenNthCalledWith(
       2,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: DEFAULT_STATS_PERIOD,
-          interval: '1h',
+          statsPeriod: '5m',
+          interval: '1m',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
         },
@@ -179,8 +177,8 @@ describe('UsageStats', function () {
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '5m',
-          interval: '1m',
+          statsPeriod: ninetyDays,
+          interval: '1d',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
         },
@@ -191,8 +189,8 @@ describe('UsageStats', function () {
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: ninetyDays,
-          interval: '1d',
+          statsPeriod: '5m',
+          interval: '1m',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
         },

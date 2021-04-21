@@ -4,13 +4,11 @@ import * as Sentry from '@sentry/react';
 import moment from 'moment';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import Card from 'app/components/card';
 import OptionSelector from 'app/components/charts/optionSelector';
-import {ChartControls, HeaderTitle, InlineContainer} from 'app/components/charts/styles';
+import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
 import {DateTimeObject, getInterval} from 'app/components/charts/utils';
 import NotAvailable from 'app/components/notAvailable';
-import QuestionTooltip from 'app/components/questionTooltip';
-import TextOverflow from 'app/components/textOverflow';
+import ScoreCard from 'app/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -27,6 +25,7 @@ import UsageChart, {
   ChartDataTransform,
   ChartStats,
 } from './usageChart';
+import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {
@@ -129,19 +128,19 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     // Use fillers as loading/error states will not display datetime at all
     if (!orgStats || !orgStats.intervals || orgStats.intervals.length < 2) {
-      const now = moment();
+      const {dataDatetime} = this.props;
 
       return {
-        chartDateInterval: '1d',
-        chartDateStart: now.format(),
-        chartDateEnd: now.format(),
-        chartDateStartDisplay: now.local().format(FORMAT_DATETIME_DAILY),
-        chartDateEndDisplay: now.local().format(FORMAT_DATETIME_DAILY),
+        chartDateInterval: getInterval(dataDatetime),
+        chartDateStart: '',
+        chartDateEnd: '',
+        chartDateStartDisplay: '',
+        chartDateEndDisplay: '',
       };
     }
 
+    // Calculate intervals using API data
     const {intervals} = orgStats;
-
     const startTime = moment(intervals[0]);
     const endTime = moment(intervals[intervals.length - 1]);
     const intervalMinutes = moment(endTime).diff(startTime, 'm') / (intervals.length - 1);
@@ -158,8 +157,15 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       ? moment(endTime).utc()
       : moment(endTime).local().add(intervalMinutes, 'm');
 
+    const intervalString =
+      intervalMinutes < 60
+        ? `${intervalMinutes}m`
+        : intervalMinutes < 60 * 24
+        ? `${intervalMinutes / 60}h`
+        : `${intervalMinutes / (60 * 24)}d`;
+
     return {
-      chartDateInterval: `${intervalMinutes}m` as IntervalPeriod,
+      chartDateInterval: intervalString as IntervalPeriod,
       chartDateStart: xAxisStart.format(),
       chartDateEnd: xAxisEnd.format(),
       chartDateStartDisplay: displayStart.format(FORMAT_DATETIME),
@@ -293,7 +299,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   renderCards() {
-    const {dataCategory, dataCategoryName} = this.props;
+    const {dataCategory, dataCategoryName, organization} = this.props;
+    const {loading} = this.state;
     const {total, accepted, dropped, filtered} = this.chartData.cardStats;
 
     const cardMetadata = [
@@ -303,15 +310,17 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       },
       {
         title: t('Accepted'),
-        description: tct(
-          'Accepted [dataCategory] were successfully processed by Sentry.',
-          {dataCategory}
-        ),
+        help: tct('Accepted [dataCategory] were successfully processed by Sentry.', {
+          dataCategory,
+        }),
         value: accepted,
+        secondaryValue: (
+          <UsageStatsPerMin organization={organization} dataCategory={dataCategory} />
+        ),
       },
       {
         title: t('Filtered'),
-        description: tct(
+        help: tct(
           'Filtered [dataCategory] were blocked due to your inbound data filter rules',
           {dataCategory}
         ),
@@ -319,7 +328,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       },
       {
         title: t('Dropped'),
-        description: tct(
+        help: tct(
           'Dropped [dataCategory] were discarded due to invalid data, rate-limits, quota limits, or spike protection',
           {dataCategory}
         ),
@@ -327,23 +336,15 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       },
     ];
 
-    return (
-      <CardWrapper>
-        {cardMetadata.map((c, i) => (
-          <StyledCard key={i}>
-            <HeaderTitle>
-              <TextOverflow>{c.title}</TextOverflow>
-              {c.description && (
-                <QuestionTooltip size="sm" position="top" title={c.description} />
-              )}
-            </HeaderTitle>
-            <CardContent>
-              <TextOverflow>{c.value ?? <NotAvailable />}</TextOverflow>
-            </CardContent>
-          </StyledCard>
-        ))}
-      </CardWrapper>
-    );
+    return cardMetadata.map((card, i) => (
+      <StyledScoreCard
+        key={i}
+        title={card.title}
+        score={loading ? undefined : card.value}
+        help={card.help}
+        trend={card.secondaryValue}
+      />
+    ));
   }
 
   renderChart() {
@@ -381,15 +382,31 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
   renderChartFooter = () => {
     const {handleChangeState} = this.props;
-    const {chartTransform, chartDateStartDisplay, chartDateEndDisplay} = this.chartData;
+    const {loading} = this.state;
+    const {
+      chartDateInterval,
+      chartTransform,
+      chartDateStartDisplay,
+      chartDateEndDisplay,
+    } = this.chartData;
 
     return (
-      <ChartControls>
+      <Footer>
         <InlineContainer>
-          {tct('Usage for [start] — [end]', {
-            start: chartDateStartDisplay,
-            end: chartDateEndDisplay,
-          })}
+          <FooterDate>
+            <SectionHeading>{t('Date Range')}</SectionHeading>
+            <span>
+              {loading ? (
+                <NotAvailable />
+              ) : (
+                tct('[start] — [end] ([interval] interval)', {
+                  start: chartDateStartDisplay,
+                  end: chartDateEndDisplay,
+                  interval: chartDateInterval,
+                })
+              )}
+            </span>
+          </FooterDate>
         </InlineContainer>
         <InlineContainer>
           <OptionSelector
@@ -401,7 +418,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
             }
           />
         </InlineContainer>
-      </ChartControls>
+      </Footer>
     );
   };
 
@@ -409,7 +426,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     return (
       <React.Fragment>
         {this.renderCards()}
-        {this.renderChart()}
+        <ChartWrapper>{this.renderChart()}</ChartWrapper>
       </React.Fragment>
     );
   }
@@ -417,27 +434,33 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
 export default UsageStatsOrganization;
 
-const CardWrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  grid-auto-rows: 1fr;
-  grid-gap: ${space(2)};
-  margin-bottom: ${space(3)};
+const StyledScoreCard = styled(ScoreCard)`
+  grid-column: auto / span 1;
+  margin: 0;
+`;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-auto-flow: row;
+const ChartWrapper = styled('div')`
+  grid-column: 1 / -1;
+`;
+
+const Footer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: ${space(1)} ${space(3)};
+  border-top: 1px solid ${p => p.theme.border};
+`;
+const FooterDate = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  > ${SectionHeading} {
+    margin-right: ${space(1.5)};
   }
-`;
 
-const StyledCard = styled(Card)`
-  align-items: flex-start;
-  min-height: 95px;
-  padding: ${space(2)} ${space(3)};
-  color: ${p => p.theme.textColor};
-`;
-
-const CardContent = styled('div')`
-  margin-top: ${space(1)};
-  font-size: 32px;
+  > span:last-child {
+    font-weight: 400;
+    font-size: ${p => p.theme.fontSizeMedium};
+  }
 `;

@@ -70,4 +70,9 @@ describe('getXAxisDates', () => {
       'Jul 9 8:00 PM - 9:00 PM',
     ]);
   });
+
+  it('recovers from odd arguments', () => {
+    const dates = getXAxisDates('', '');
+    expect(dates).toEqual([]);
+  });
 });

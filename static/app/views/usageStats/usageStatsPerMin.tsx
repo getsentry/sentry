@@ -2,8 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import NotAvailable from 'app/components/notAvailable';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, Organization} from 'app/types';
 
@@ -13,7 +12,6 @@ import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 type Props = {
   organization: Organization;
   dataCategory: DataCategory;
-  dataCategoryName: string;
 } & AsyncComponent['props'];
 
 type State = {
@@ -30,7 +28,7 @@ type State = {
  * We're going with this approach for simplicity sake. By keeping the range
  * as small as possible, this call is quite fast.
  */
-class UsageStatsLastMin extends AsyncComponent<Props, State> {
+class UsageStatsPerMin extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
   }
@@ -57,23 +55,22 @@ class UsageStatsLastMin extends AsyncComponent<Props, State> {
       return undefined;
     }
 
-    const {intervals, groups} = orgStats;
-    let eventsLastMin = 0;
-
     // The last minute in the series is still "in progress"
     // Read data from 2nd last element for the latest complete minute
+    const {intervals, groups} = orgStats;
     const lastMin = Math.max(intervals.length - 2, 0);
 
-    groups.forEach(group => {
+    const eventsLastMin = groups.reduce((count, group) => {
       const {outcome, category} = group.by;
 
       // HACK: The backend enum are singular, but the frontend enums are plural
       if (!dataCategory.includes(`${category}`) || outcome !== Outcome.ACCEPTED) {
-        return;
+        return count;
       }
 
-      eventsLastMin = group.series['sum(quantity)'][lastMin];
-    });
+      count += group.series['sum(quantity)'][lastMin];
+      return count;
+    }, 0);
 
     return formatUsageWithUnits(
       eventsLastMin,
@@ -83,39 +80,23 @@ class UsageStatsLastMin extends AsyncComponent<Props, State> {
   }
 
   renderComponent() {
-    const {dataCategory, dataCategoryName} = this.props;
+    if (!this.minuteData) {
+      return null;
+    }
 
     return (
       <Wrapper>
-        <Number>{this.minuteData ?? <NotAvailable />}</Number>
-        <Description>
-          {tct('[preposition][dataCategoryName] accepted ', {
-            preposition: dataCategory === DataCategory.ATTACHMENTS ? 'of ' : '',
-            dataCategoryName: dataCategoryName.toLowerCase(),
-          })}
-          <br />
-          {t('in the last minute')}
-        </Description>
+        {this.minuteData} {t('in last min')}
       </Wrapper>
     );
   }
 }
 
-export default UsageStatsLastMin;
+export default UsageStatsPerMin;
 
 const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 200px;
-  text-align: center;
-`;
-const Number = styled('div')`
-  font-size: 32px;
-  margin-bottom: ${space(1)};
-`;
-const Description = styled('div')`
+  display: inline-block;
+  color: ${p => p.theme.success};
   font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1.4;
+  margin-left: ${space(2)};
 `;

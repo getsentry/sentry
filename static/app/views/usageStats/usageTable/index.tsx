@@ -108,7 +108,7 @@ class UsageTable extends React.Component<Props> {
 export default UsageTable;
 
 export const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: auto 100px 100px 100px 100px;
+  grid-template-columns: auto repeat(4, 100px);
 `;
 export const CellStat = styled('div')`
   flex-shrink: 1;

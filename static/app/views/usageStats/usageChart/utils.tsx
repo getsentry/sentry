@@ -48,6 +48,10 @@ export function getXAxisDates(
   interval: IntervalPeriod = '1d'
 ): string[] {
   const range: string[] = [];
+  if (!dateStart || !dateEnd) {
+    return range;
+  }
+
   const start = moment(dateStart).startOf('h');
   const end = moment(dateEnd).startOf('h');
 
