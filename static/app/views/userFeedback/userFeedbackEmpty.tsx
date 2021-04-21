@@ -95,20 +95,18 @@ class UserFeedbackEmpty extends React.Component<Props> {
         <ButtonList gap={1}>
           <Button
             external
+            priority="primary"
             onClick={() =>
               this.trackAnalytics({
                 eventKey: 'user_feedback.docs_clicked',
                 eventName: 'User Feedback Docs Clicked',
               })
             }
-            href={`https://docs.sentry.io/platforms/${
-              this.selectedProjects[0]?.platform || 'javascript'
-            }/enriching-events/user-feedback/`}
+            href={`https://docs.sentry.io/platform-redirect/?next=/enriching-events/user-feedback/&platform=${this.selectedProjects[0]?.platform}`}
           >
             {t('Read the docs')}
           </Button>
           <Button
-            priority="primary"
             onClick={() => {
               Sentry.showReportDialog({
                 // should never make it to the Sentry API, but just in case, use throwaway id
