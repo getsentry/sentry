@@ -836,7 +836,7 @@ def get_performance_facets(
     target_sample = 50000 * (math.log(transaction_count, 10) - 3)
 
     dynamic_sample_rate = 0 if transaction_count <= 0 else (target_sample / transaction_count)
-    sample_rate = math.min(math.max(dynamic_sample_rate, 0), 1) if sampling_enabled else None
+    sample_rate = min(max(dynamic_sample_rate, 0), 1) if sampling_enabled else None
     frequency_sample_rate = sample_rate if sample_rate else 1
 
     excluded_tags = [
