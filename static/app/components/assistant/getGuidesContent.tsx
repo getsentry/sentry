@@ -226,6 +226,33 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'trace_view',
+      requiredTargets: ['trace_view_guide_row', 'trace_view_guide_row_details'],
+      steps: [
+        {
+          title: t('Event Breakdown'),
+          target: 'trace_view_guide_breakdown',
+          description: t(
+            `The event breakdown shows you the breakdown of event types within a trace.`
+          ),
+        },
+        {
+          title: t('Transactions'),
+          target: 'trace_view_guide_row',
+          description: t(
+            `Get an overview of every transaction. You can quickly see the all the transactions in a trace alongside the project, transaction duration, and any related errors.`
+          ),
+        },
+        {
+          title: t('Transactions Details'),
+          target: 'trace_view_guide_row_details',
+          description: t(
+            `Click on any transaction to get see more details and even go to its transaction details.`
+          ),
+        },
+      ],
+    },
   ];
 }
 
