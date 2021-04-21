@@ -283,7 +283,7 @@ export function LatencyChartControls(props: {location: Location}) {
         return (
           <React.Fragment>
             <OptionSelector
-              title={t('Filter')}
+              title={t('Outliers')}
               selected={activeFilter.value}
               options={filterOptions}
               onChange={handleFilterChange}

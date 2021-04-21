@@ -100,7 +100,7 @@ class VitalsContent extends React.Component<Props, State> {
                       onSearch={this.handleSearch}
                     />
                     <DropdownControl
-                      buttonProps={{prefix: t('Filter')}}
+                      buttonProps={{prefix: t('Outliers')}}
                       label={activeFilter.label}
                     >
                       {FILTER_OPTIONS.map(({label, value}) => (
