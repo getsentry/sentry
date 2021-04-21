@@ -456,6 +456,11 @@ const StyledPanelTable = styled(PanelTable)<{
   showTeamCol: boolean;
   hasAlertList: boolean;
 }>`
+  overflow: auto;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    overflow: initial;
+  }
+
   ${PanelTableHeader} {
     padding: ${space(2)};
     line-height: normal;
