@@ -274,7 +274,6 @@ def query_trace_data(
     )
 
 
-# TODO(wmak): remove ignore once the base is typed
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(
