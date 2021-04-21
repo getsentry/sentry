@@ -10,7 +10,6 @@ import ErrorRobot from 'app/components/errorRobot';
 import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
 import TagStore from 'app/stores/tagStore';
-import {logExperiment} from 'app/utils/analytics';
 import * as parseLinkHeader from 'app/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
 
@@ -1679,13 +1678,6 @@ describe('IssueList', function () {
 
   describe('with inbox feature', function () {
     const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
-    it('renders inbox layout', function () {
-      organization.features = ['inbox'];
-      organization.experiments = {InboxExperiment: 1};
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
-      expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
-      expect(logExperiment).toHaveBeenCalledTimes(1);
-    });
 
     it('displays a count that represents the current page', function () {
       organization.features = ['inbox'];
