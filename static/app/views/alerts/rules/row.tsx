@@ -167,7 +167,7 @@ class RuleListRow extends React.Component<Props, State> {
       [IncidentStatus.CRITICAL]: t('Critical'),
       [IncidentStatus.WARNING]: t('Warning'),
       [IncidentStatus.CLOSED]: t('Resolved'),
-      [IncidentStatus.OPEN]: t('Resolved'),
+      [IncidentStatus.OPENED]: t('Resolved'),
     };
 
     return (
@@ -185,7 +185,9 @@ class RuleListRow extends React.Component<Props, State> {
                   title={
                     isIssueAlert(rule)
                       ? t('Issue Alert')
-                      : IssueStatusText[rule?.latestIncident?.status]
+                      : IssueStatusText[
+                          rule?.latestIncident?.status ?? IncidentStatus.CLOSED
+                        ]
                   }
                 >
                   <AlertBadge
