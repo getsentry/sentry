@@ -41,6 +41,22 @@ def get_team_slugs_by_organization_member_id(
     return results
 
 
+def get_organization_id(organization_members: Sequence[OrganizationMember]) -> int:
+    """ Ensure all organization_members have the same organization ID and then return that ID. """
+    organization_id: Optional[int] = None
+
+    for organization_member in organization_members:
+        next_organization_id = organization_member.organization.id
+        if next_organization_id and not organization_id:
+            organization_id = next_organization_id
+        elif not (next_organization_id and organization_id == next_organization_id):
+            raise Exception("Cannot determine organization")
+
+    if not organization_id:
+        raise Exception("Cannot determine organization")
+    return organization_id
+
+
 @register(OrganizationMember)
 class OrganizationMemberSerializer(Serializer):  # type: ignore
     def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
@@ -64,20 +80,26 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         external_users_map = defaultdict(list)
 
         if "externalUsers" in self.expand:
+            organization_id = get_organization_id(item_list)
             actor_mapping = {user.actor_id: user for user in users_set}
-            external_actors = list(ExternalActor.objects.filter(actor_id__in=actor_mapping.keys()))
+            external_actors = list(
+                ExternalActor.objects.filter(
+                    actor_id__in=actor_mapping.keys(),
+                    organization_id=organization_id,
+                )
+            )
 
             for external_actor in external_actors:
                 serialized = serialize(external_actor, user, key="user")
                 user = actor_mapping.get(external_actor.actor.id)
-                external_users_map[user["id"]].append(serialized)
+                user_id = str(user.id)
+                external_users_map[user_id].append(serialized)
 
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
             user = users_by_id.get(str(item.user_id), None)
-            external_users: List[Any] = []
-            if user:
-                external_users = external_users_map.get(user["id"], [])
+            user_id = user["id"] if user else ""
+            external_users = external_users_map.get(user_id, [])
             attrs[item] = {
                 "user": user,
                 "externalUsers": external_users,

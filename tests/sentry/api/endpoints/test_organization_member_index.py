@@ -477,22 +477,22 @@ class OrganizationMemberListTest(APITestCase):
     def test_user_has_external_user_association(self):
         response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
         assert len(response.data) == 2
-        member = next(filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data))
-        assert member
-        assert len(member["externalUsers"]) == 1
-        assert member["externalUsers"][0]["id"] == str(self.external_user.id)
-        assert member["externalUsers"][0]["memberId"] == member["id"]
+        user = next(filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data))
+        assert user
+        assert len(user["externalUsers"]) == 1
+        assert user["externalUsers"][0]["id"] == str(self.external_user.id)
+        assert user["externalUsers"][0]["userId"] == user["id"]
 
     def test_user_has_external_user_associations_across_multiple_orgs(self):
         self.org_2 = self.create_organization(owner=self.user_2)
         self.external_user_2 = self.create_external_user(self.user_2, self.org_2)
         response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
         assert len(response.data) == 2
-        member = next(filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data))
-        assert member
-        assert len(member["externalUsers"]) == 1
-        assert member["externalUsers"][0]["id"] == str(self.external_user.id)
-        assert member["externalUsers"][0]["memberId"] == member["id"]
+        user = next(filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data))
+        assert user
+        assert len(user["externalUsers"]) == 1
+        assert user["externalUsers"][0]["id"] == str(self.external_user.id)
+        assert user["externalUsers"][0]["userId"] == user["id"]
 
 
 class OrganizationMemberListPostTest(APITestCase):
