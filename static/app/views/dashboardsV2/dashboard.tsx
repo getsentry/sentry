@@ -21,7 +21,6 @@ type Props = {
   dashboard: DashboardDetails;
   paramDashboardId: string;
   selection: GlobalSelection;
-  paramDashboardId: string;
   isEditing: boolean;
   /**
    * Fired when widgets are added/removed/sorted.

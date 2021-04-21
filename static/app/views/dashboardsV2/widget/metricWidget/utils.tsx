@@ -3,19 +3,28 @@ import {Series} from 'app/types/echarts';
 
 type ChartData = Record<string, Series>;
 
+function getSerieNameByGroups(
+  groupByKeys: string[],
+  groupBy: Record<string, string | number>
+) {
+  return groupByKeys.reduce((acc, groupByKey, index) => {
+    return index !== 0 ? `${acc}_${groupBy[groupByKey]}` : String(groupBy[groupByKey]);
+  }, '');
+}
+
 export function getBreakdownChartData({
   response,
   sessionResponseIndex,
-  groupBy,
   legend,
 }: {
   response: SessionApiResponse;
   sessionResponseIndex: number;
-  groupBy: string[];
   legend?: string;
 }): ChartData {
   return response.groups.reduce((groups, group, index) => {
-    if (!groupBy.length) {
+    const groupByKeys = Object.keys(group.by);
+
+    if (!groupByKeys.length) {
       groups[index] = {
         seriesName: legend ?? `Query ${sessionResponseIndex}`,
         data: [],
@@ -23,11 +32,12 @@ export function getBreakdownChartData({
       return groups;
     }
 
-    for (const groupByIndex in groupBy) {
-      const groupByName = group.by[groupBy[groupByIndex]];
-      const seriesName = legend ? `${legend} - ${groupByName}` : groupByName;
-      groups[groupByName] = {seriesName, data: []};
-    }
+    const serieNameByGroups = getSerieNameByGroups(groupByKeys, group.by);
+
+    groups[serieNameByGroups] = {
+      seriesName: legend ? `${legend}_${serieNameByGroups}` : serieNameByGroups,
+      data: [],
+    };
 
     return groups;
   }, {});
@@ -37,34 +47,36 @@ type FillChartDataFromMetricsResponse = {
   response: SessionApiResponse;
   field: string;
   chartData: ChartData;
-  groupBy: string[];
   valueFormatter?: (value: number) => number;
 };
 
 export function fillChartDataFromMetricsResponse({
   response,
   field,
-  groupBy,
   chartData,
   valueFormatter,
 }: FillChartDataFromMetricsResponse) {
   response.intervals.forEach((interval, index) => {
-    response.groups.forEach(group => {
+    for (const groupsIndex in response.groups) {
+      const group = response.groups[groupsIndex];
+      const groupByKeys = Object.keys(group.by);
       const value = group.series[field][index];
-      if (!groupBy.length) {
+
+      if (!groupByKeys.length) {
         chartData[0].data.push({
           name: interval,
           value: typeof valueFormatter === 'function' ? valueFormatter(value) : value,
         });
-      } else {
-        for (const groupByIndex in groupBy) {
-          chartData[group.by[groupBy[groupByIndex]]].data.push({
-            name: interval,
-            value: typeof valueFormatter === 'function' ? valueFormatter(value) : value,
-          });
-        }
+        return;
       }
-    });
+
+      const serieNameByGroups = getSerieNameByGroups(groupByKeys, group.by);
+
+      chartData[serieNameByGroups].data.push({
+        name: interval,
+        value: typeof valueFormatter === 'function' ? valueFormatter(value) : value,
+      });
+    }
   });
 
   return chartData;

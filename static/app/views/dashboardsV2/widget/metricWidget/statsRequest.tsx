@@ -143,22 +143,18 @@ function StatsRequest({
     }
 
     const seriesData = sessionReponses.map((sessionResponse, index) => {
-      const {aggregation, groupBy, legend, metricMeta} = filteredGroupings[index];
+      const {aggregation, legend, metricMeta} = filteredGroupings[index];
       const field = `${aggregation}(${metricMeta.name})`;
 
       const breakDownChartData = getBreakdownChartData({
         response: sessionResponse,
         sessionResponseIndex: index + 1,
         legend,
-        groupBy: groupBy ?? [],
       });
-
-      console.log('breakDownChartData', breakDownChartData);
 
       const chartData = fillChartDataFromMetricsResponse({
         response: sessionResponse,
         field,
-        groupBy: groupBy ?? [],
         chartData: breakDownChartData,
         valueFormatter:
           metricMeta.name === 'session.duration'
@@ -168,8 +164,6 @@ function StatsRequest({
 
       return [...Object.values(chartData)];
     });
-
-    console.log('seriesData', seriesData);
 
     const newSeries = seriesData.reduce((mergedSeries, chartDataSeries) => {
       return mergedSeries.concat(chartDataSeries);

@@ -158,7 +158,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
     const {api, organization, location} = this.props;
-    if (!dashboard?.id || dashboard.id === 'default-overview') {
+    if (!dashboard?.id) {
       return;
     }
 
@@ -380,8 +380,8 @@ class DashboardDetail extends React.Component<Props, State> {
               <NotFound />
             ) : dashboard ? (
               <Dashboard
-                paramDashboardId={dashboardId}
                 dashboard={modifiedDashboard || dashboard}
+                paramDashboardId={dashboardId}
                 organization={organization}
                 isEditing={this.isEditing}
                 onUpdate={this.onWidgetChange}
