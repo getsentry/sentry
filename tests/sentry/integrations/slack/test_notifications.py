@@ -36,6 +36,16 @@ def send_notification(*args):
     send_notification_as_slack(*args_list)
 
 
+def get_attachment():
+    assert len(responses.calls) >= 1
+    data = parse_qs(responses.calls[0].request.body)
+    assert "attachments" in data
+    attachments = json.loads(data["attachments"][0])
+
+    assert len(attachments) == 1
+    return attachments[0]
+
+
 class SlackActivityNotificationTest(ActivityTestCase):
     def setUp(self):
         NotificationSetting.objects.update_settings(
@@ -47,6 +57,12 @@ class SlackActivityNotificationTest(ActivityTestCase):
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             user=self.user,
         )
@@ -79,16 +95,8 @@ class SlackActivityNotificationTest(ActivityTestCase):
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
-    def get_attachment(self):
-        data = parse_qs(responses.calls[0].request.body)
-        assert "attachments" in data
-        attachments = json.loads(data["attachments"][0])
-
-        assert len(attachments) == 1
-        return attachments[0]
-
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_assignment(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is assigned
@@ -105,7 +113,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with self.tasks():
             notification.send()
 
-        attachment = self.get_attachment()
+        attachment = get_attachment()
 
         assert attachment["title"] == "Assigned"
         assert attachment["text"] == f"{self.name} assigned {self.short_id} to {self.name}"
@@ -115,7 +123,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_unassignment(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is unassigned
@@ -132,7 +140,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with self.tasks():
             notification.send()
 
-        attachment = self.get_attachment()
+        attachment = get_attachment()
 
         assert attachment["title"] == "Unassigned"
         assert attachment["text"] == f"{self.name} unassigned {self.short_id}"
@@ -142,7 +150,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_resolved(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is resolved
@@ -159,7 +167,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with self.tasks():
             notification.send()
 
-        attachment = self.get_attachment()
+        attachment = get_attachment()
 
         assert attachment["title"] == "Resolved Issue"
         assert attachment["text"] == f"{self.name} marked {self.short_id} as resolved"
@@ -169,7 +177,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_regression(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue regresses
@@ -186,7 +194,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with self.tasks():
             notification.send()
 
-        attachment = self.get_attachment()
+        attachment = get_attachment()
 
         assert attachment["title"] == "Regression"
         assert attachment["text"] == f"{self.name} marked {self.short_id} as a regression"
@@ -196,7 +204,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_new_processing_issue(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is held back in reprocessing
@@ -238,7 +246,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with self.tasks():
             notification.send()
 
-        attachment = self.get_attachment()
+        attachment = get_attachment()
 
         assert attachment["title"] == f"Processing Issues on {self.project.slug}"
         assert (
@@ -251,7 +259,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_resolved_in_release(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is resolved in a release
@@ -268,7 +276,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with self.tasks():
             notification.send()
 
-        attachment = self.get_attachment()
+        attachment = get_attachment()
         release_name = notification.activity.data["version"]
         assert attachment["title"] == "Resolved Issue"
         assert (
@@ -281,7 +289,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_note(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when a comment is made on an issue
@@ -298,7 +306,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with self.tasks():
             notification.send()
 
-        attachment = self.get_attachment()
+        attachment = get_attachment()
 
         assert attachment["title"] == f"New comment by {self.name}"
         assert attachment["text"] == notification.activity.data["text"]
@@ -308,7 +316,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.activity.base.fire", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_deploy(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when a deploy happens
@@ -335,7 +343,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with self.tasks():
             notification.send()
 
-        attachment = self.get_attachment()
+        attachment = get_attachment()
         assert (
             attachment["title"] == f"Deployed version {release.version} to {self.environment.name}"
         )
