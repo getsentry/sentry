@@ -109,11 +109,14 @@ class OrganizationStats extends React.Component<Props> {
       },
       projectDetail: {
         ...nextLocation,
-        pathname: `/organizations/${organization.slug}/projects/${project.slug}`,
+        pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
       },
       issueList: {
         ...nextLocation,
         pathname: `/organizations/${organization.slug}/issues/`,
+      },
+      settings: {
+        pathname: `/settings/${organization.slug}/projects/${project.slug}/`,
       },
     };
   };
