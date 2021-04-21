@@ -36,15 +36,15 @@ jobs:
         id: pip
         if: steps.changes.outputs.backend == 'true'
 
-      # - name: pip cache
-      #   uses: actions/cache@v2
-      #   if: steps.changes.outputs.backend == 'true'
-      #   with:
-      #     path: ${{ steps.pip.outputs.pip-cache-dir }}
-      #     key: |
-      #       ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
+      - name: pip cache
+        uses: actions/cache@v2
+        if: steps.changes.outputs.backend == 'true'
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: |
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
