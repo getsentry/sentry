@@ -77,11 +77,16 @@ class AssembleChecksumMismatch(Exception):
     pass
 
 
-def get_storage():
-    from sentry import options
+def get_storage(config=None):
 
-    backend = options.get("filestore.backend")
-    options = options.get("filestore.options")
+    if config is not None:
+        backend = config["backend"]
+        options = config["options"]
+    else:
+        from sentry import options as options_store
+
+        backend = options_store.get("filestore.backend")
+        options = options_store.get("filestore.options")
 
     try:
         backend = settings.SENTRY_FILESTORE_ALIASES[backend]
