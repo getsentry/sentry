@@ -132,7 +132,7 @@ def test_categorization(input: CategorizationInput, insta_snapshot, cleanup_unus
     insta_snapshot(get_stacktrace_render(data))
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def cleanup_unused_data():
     print("GROUPING CLEANUP")
     traceback.print_stack()
