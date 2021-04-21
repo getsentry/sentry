@@ -121,7 +121,7 @@ class UserFeedbackEmpty extends React.Component<Props> {
               });
             }}
           >
-            {t('Open Dialog')}
+            {t('See an example')}
           </Button>
         </ButtonList>
       </OnboardingPanel>
