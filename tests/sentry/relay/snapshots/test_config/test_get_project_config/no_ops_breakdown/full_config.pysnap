@@ -1,5 +1,5 @@
 ---
-created: '2021-03-24T22:52:16.803444Z'
+created: '2021-04-06T16:38:02.511477Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -87,7 +87,7 @@ config:
     webCrawlers:
       isEnabled: false
   groupingConfig:
-    enhancements: eJybzDhxY3J-bm5-npWRgaGlroGxrpHxBABcTQcY
+    enhancements: eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ
     id: newstyle:2019-10-29
   piiConfig:
     applications:

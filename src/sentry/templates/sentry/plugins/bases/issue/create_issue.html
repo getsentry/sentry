@@ -7,7 +7,7 @@
 {% block title %}{{ title }} | {{ block.super }}{% endblock %}
 
 {% block css %}
-  <link href="{% asset_url "sentry" "dist/select2.css" %}" rel="stylesheet"/>
+  <link href="{% manifest_asset_url "sentry" "select2.css" %}" rel="stylesheet"/>
 {% endblock %}
 
 {% block scripts %}

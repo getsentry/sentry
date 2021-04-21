@@ -21,7 +21,7 @@ query-mac() {
 }
 
 query_big_sur() {
-    if require sw_vers && sw_vers -productVersion | grep -E "11\." > /dev/null; then
+    if require sw_vers && sw_vers -productVersion | grep -E "11\." >/dev/null; then
         return 0
     fi
     return 1
@@ -104,7 +104,10 @@ setup-git() {
     echo "--> Installing git hooks"
     mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
     # shellcheck disable=SC2016
-    python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
+    python3 -c '' || (
+        echo 'Please run `make setup-pyenv` to install the required Python 3 version.'
+        exit 1
+    )
     pip install -r requirements-pre-commit.txt
     pre-commit install --install-hooks
     echo ""
@@ -112,8 +115,11 @@ setup-git() {
 
 node-version-check() {
     # Checks to see if node's version matches the one specified in package.json for Volta.
-	node -pe "process.exit(Number(!(process.version == 'v' + require('./package.json').volta.node )))" || \
-	(echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'; exit 1)
+    node -pe "process.exit(Number(!(process.version == 'v' + require('./package.json').volta.node )))" ||
+        (
+            echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'
+            exit 1
+        )
 }
 
 install-js-dev() {
@@ -144,7 +150,7 @@ run-dependent-services() {
 
 create-db() {
     # shellcheck disable=SC2155
-    local CREATEDB=$(command -v createdb 2> /dev/null)
+    local CREATEDB=$(command -v createdb 2>/dev/null)
     if [[ -z "$CREATEDB" ]]; then
         CREATEDB="docker exec sentry_postgres createdb"
     fi
@@ -158,7 +164,7 @@ apply-migrations() {
 }
 
 create-user() {
-    if [[ -n "$GITHUB_ACTIONS" ]]; then
+    if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
         sentry createuser --superuser --email foo@tbd.com --no-password
     else
         sentry createuser --superuser
@@ -182,7 +188,7 @@ bootstrap() {
 
 clean() {
     echo "--> Cleaning static cache"
-    rm -rf dist/* static/dist/*
+    rm -rf dist/* src/sentry/static/sentry/dist/*
     echo "--> Cleaning integration docs cache"
     rm -rf src/sentry/integration-docs
     echo "--> Cleaning pyc files"
@@ -194,7 +200,7 @@ clean() {
 
 drop-db() {
     # shellcheck disable=SC2155
-    local DROPDB=$(command -v dropdb 2> /dev/null)
+    local DROPDB=$(command -v dropdb 2>/dev/null)
     if [[ -z "$DROPDB" ]]; then
         DROPDB="docker exec sentry_postgres dropdb"
     fi

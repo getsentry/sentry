@@ -59,9 +59,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         {
           query: {
             query: location.query.query,
-            file_formats: organization.features.includes('android-mappings')
-              ? ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle']
-              : undefined,
+            file_formats: ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle'],
           },
         },
       ],

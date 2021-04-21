@@ -291,7 +291,7 @@ class InvalidParams(Exception):
 
 
 def get_constrained_date_range(
-    params, allow_minute_resolution=False
+    params, allow_minute_resolution=False, max_points=MAX_POINTS
 ) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
@@ -341,7 +341,7 @@ def get_constrained_date_range(
                 "The time-range when using one-minute resolution intervals is restricted to the last 30 days."
             )
 
-    if date_range.total_seconds() / interval > MAX_POINTS:
+    if date_range.total_seconds() / interval > max_points:
         raise InvalidParams(
             "Your interval and date range would create too many results. "
             "Use a larger interval, or a smaller date range."

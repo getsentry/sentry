@@ -124,7 +124,7 @@ type ColorProps = {
 };
 
 const StyledHeaderItem = styled('div', {
-  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
 })<
   ColorProps & {
     loading: boolean;
@@ -189,7 +189,7 @@ const StyledChevron = styled(IconChevron, {shouldForwardProp: isPropValid})<{
   color: ${getColor};
 `;
 
-const SettingsIconLink = styled(Link)`
+export const SettingsIconLink = styled(Link)`
   color: ${p => p.theme.gray300};
   align-items: center;
   display: inline-flex;

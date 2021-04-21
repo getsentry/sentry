@@ -4,7 +4,6 @@ import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
-import {SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
@@ -19,19 +18,10 @@ import {Theme} from 'app/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 export {
-  DurationPill,
-  SpanBarRectangle as TransactionBarRectangle,
-  SpanRowCell as TransactionRowCell,
-  SpanRowCellContainer as TransactionRowCellContainer,
-} from 'app/components/events/interfaces/spans/spanBar';
-
-export {
   Row,
   SpanDetails as TransactionDetails,
   SpanDetailContainer as TransactionDetailsContainer,
 } from 'app/components/events/interfaces/spans/spanDetail';
-
-export {SpanRowMessage as TransactionRowMessage} from 'app/components/events/interfaces/spans/styles';
 
 export const SearchContainer = styled('div')`
   display: flex;
@@ -73,10 +63,6 @@ export const TraceViewContainer = styled('div')`
 
 export const StyledPanel = styled(Panel)`
   overflow: hidden;
-`;
-
-export const TransactionRow = styled(SpanRow)<{cursor: 'pointer' | 'default'}>`
-  cursor: ${p => p.cursor};
 `;
 
 export const TransactionBarTitleContent = styled('span')`

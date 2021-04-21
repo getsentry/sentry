@@ -1,4 +1,5 @@
 import omit from 'lodash/omit';
+import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
@@ -257,7 +258,8 @@ export function makeEventView({
 export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: string} {
   const start = isTransaction(event)
     ? event.startTimestamp
-    : new Date(event.dateCreated).getTime() / 1000;
+    : moment(event.dateReceived ? event.dateReceived : event.dateCreated).valueOf() /
+      1000;
   const end = isTransaction(event) ? event.endTimestamp : start;
   return getTraceDateTimeRange({start, end});
 }

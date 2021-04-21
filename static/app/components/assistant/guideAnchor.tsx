@@ -132,10 +132,13 @@ export const GuideAnchor = createReactClass<Props, State>({
     const lastStep = currentStepCount === totalStepCount;
     const hasManySteps = totalStepCount > 1;
 
+    // to clear `#assistant` from the url
+    const href = window.location.hash === '#assistant' ? '#' : '';
+
     const dismissButton = (
       <DismissButton
         size="small"
-        href="#" // to clear `#assistant` from the url
+        href={href}
         onClick={this.handleDismiss}
         priority="link"
       >

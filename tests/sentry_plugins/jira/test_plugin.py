@@ -1,7 +1,7 @@
 import responses
 from django.contrib.auth.models import AnonymousUser
-from django.core.urlresolvers import reverse
 from django.test import RequestFactory
+from django.urls import reverse
 from exam import fixture
 
 from sentry.testutils import TestCase

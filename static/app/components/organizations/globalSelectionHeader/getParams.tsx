@@ -1,11 +1,14 @@
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {IntervalPeriod} from 'app/types';
 import {defined} from 'app/utils';
+
+export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 
 const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?$';
 
-export function parseStatsPeriod(input: string) {
+export function parseStatsPeriod(input: string | IntervalPeriod) {
   const result = input.match(STATS_PERIOD_PATTERN);
 
   if (!result) {

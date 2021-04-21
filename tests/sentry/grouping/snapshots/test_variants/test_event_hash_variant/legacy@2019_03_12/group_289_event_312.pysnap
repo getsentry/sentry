@@ -1,0 +1,186 @@
+---
+created: '2021-04-02T09:10:51.026405Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp"
+            function*
+              "boost::thread::start_thread_noexcept"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "thread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_pthread_start"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp"
+            function*
+              "boost::`anonymous namespace'::thread_proxy"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "glDeleteTextures_Exec"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gleUnbindDeleteHashNamesAndObjects"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gleUnbindTextureObject"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gldUpdateDispatch"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "gldUpdateDispatch"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusSubmitDataBuffers"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gldCreateDevice"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__pthread_kill"
+        type*
+          "0x00000000 / 0x00000000"
+        value (stacktrace and type take precedence)
+          "Fatal Error: 0x00000000 / 0x00000000"
+--------------------------------------------------------------------------
+system:
+  hash: "445c51c35600b1cfdc2e5985c5bdd75b"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp"
+            function*
+              "boost::thread::start_thread_noexcept"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "thread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_pthread_start"
+          frame*
+            filename*
+              "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp"
+            function*
+              "boost::`anonymous namespace'::thread_proxy"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename*
+              "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename*
+              "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame
+            function (function name is not used if module or filename are available)
+              "glDeleteTextures_Exec"
+          frame
+            function (function name is not used if module or filename are available)
+              "gleUnbindDeleteHashNamesAndObjects"
+          frame
+            function (function name is not used if module or filename are available)
+              "gleUnbindTextureObject"
+          frame
+            function (function name is not used if module or filename are available)
+              "gldUpdateDispatch"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "gldUpdateDispatch"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusSubmitDataBuffers"
+          frame
+            function (function name is not used if module or filename are available)
+              "gldCreateDevice"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog"
+          frame
+            function (function name is not used if module or filename are available)
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__pthread_kill"
+        type*
+          "0x00000000 / 0x00000000"
+        value (stacktrace and type take precedence)
+          "Fatal Error: 0x00000000 / 0x00000000"

@@ -40,6 +40,8 @@ Makefile                    @getsentry/owners-sentry-dev
 .pre-commit-config.yaml     @getsentry/owners-sentry-dev
 .git-blame-ignore-revs      @getsentry/owners-sentry-dev
 
+mypy.ini @getsentry/python-typing
+
 # Build & Releases
 /.github/workflows/release.yml  @getsentry/releases
 /scripts/bump-version.sh        @getsentry/releases

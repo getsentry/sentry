@@ -1,0 +1,93 @@
+{
+  "event_id": "e8215c9bdaab4b508a6e505a1290b858",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "0x00000000000000cd"
+          },
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 205,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS",
+              "subcode": 8
+            },
+            "signal": {
+              "code": 0,
+              "code_name": "BUS_NOOP",
+              "name": "SIGBUS",
+              "number": 10
+            }
+          },
+          "synthetic": null,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "_dispatch_main_queue_callback_4CF$VARIANT$mp",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_call_block_and_release",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "objc_retain",
+              "package": "libobjc.A.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS",
+        "value": "sharedApplication >\nAttempted to dereference garbage pointer 0xcd."
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

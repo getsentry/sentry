@@ -1,48 +1,18 @@
 import re
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Set, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Set, Tuple
 from urllib.parse import urlparse, urlunparse
 
-from django.core.urlresolvers import reverse
-from django.utils.html import escape, mark_safe
-from django.utils.safestring import SafeString
+from django.urls import reverse
+from django.utils.html import escape
+from django.utils.safestring import SafeString, mark_safe
 
-from sentry import options
-from sentry.models import (
-    Activity,
-    Group,
-    GroupSubscription,
-    ProjectOption,
-    User,
-    UserAvatar,
-    UserOption,
-)
+from sentry.models import Activity, GroupSubscription, User, UserAvatar, UserOption
+from sentry.notifications.notify import notify
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
-from sentry.utils.email import group_id_to_email
 from sentry.utils.http import absolute_uri
-from sentry.utils.linksign import generate_signed_link
-
-registry: MutableMapping[ExternalProviders, Callable] = {}
-
-
-def notification_providers() -> Iterable[ExternalProviders]:
-    return registry.keys()
-
-
-def register(provider: ExternalProviders) -> Callable:
-    """
-    A wrapper that adds the wrapped function to the send_notification_registry
-    (see above) for the provider.
-    """
-
-    def wrapped(send_notification: Callable) -> Callable:
-        registry[provider] = send_notification
-        return send_notification
-
-    return wrapped
 
 
 class ActivityNotification:
@@ -51,12 +21,6 @@ class ActivityNotification:
         self.project = activity.project
         self.organization = self.project.organization
         self.group = activity.group
-
-    def _get_subject_prefix(self) -> str:
-        prefix = ProjectOption.objects.get_value(project=self.project, key="mail:subject_prefix")
-        if not prefix:
-            prefix = options.get("mail.subject-prefix")
-        return str(prefix)
 
     def should_email(self) -> bool:
         return True
@@ -115,15 +79,17 @@ class ActivityNotification:
         return str(self.group.get_absolute_url(params={"referrer": referrer}))
 
     def get_base_context(self) -> MutableMapping[str, Any]:
+        """ The most basic context shared by every notification type. """
         activity = self.activity
 
         context = {
             "data": activity.data,
             "author": activity.user,
+            "title": self.get_title(),
             "project": self.project,
             "project_link": self.get_project_link(),
         }
-        if activity.group:
+        if self.group:
             context.update(self.get_group_context())
         return context
 
@@ -140,54 +106,40 @@ class ActivityNotification:
             "referrer": self.__class__.__name__,
         }
 
-    def get_email_type(self) -> str:
-        return f"notify.activity.{self.activity.get_type_display()}"
+    def get_context(self) -> MutableMapping[str, Any]:
+        """
+        Context shared by every recipient of this notification. This may contain
+        expensive computation so it should only be called once. Override this
+        method if the notification does not need HTML/text descriptions.
+        """
+        description, params, html_params = self.get_description()
+        return {
+            **self.get_base_context(),
+            "activity_name": self.get_activity_name(),
+            "text_description": self.description_as_text(description, params),
+            "html_description": self.description_as_html(description, html_params or params),
+        }
+
+    def get_user_context(
+        self, user: User, reason: Optional[int] = None
+    ) -> MutableMapping[str, Any]:
+        """ Get user-specific context. Do not call get_context() here. """
+        return {
+            "reason": GroupSubscriptionReason.descriptions.get(
+                reason, "are subscribed to this issue"
+            )
+        }
+
+    def get_category(self) -> str:
+        raise NotImplementedError
 
     def get_subject(self) -> str:
         group = self.group
 
         return f"{group.qualified_short_id} - {group.title}"
 
-    def get_subject_with_prefix(self) -> bytes:
-        return f"{self._get_subject_prefix()}{self.get_subject()}".encode("utf-8")
-
     def get_activity_name(self) -> str:
         raise NotImplementedError
-
-    def get_context(self) -> MutableMapping[str, Any]:
-        description, params, html_params = self.get_description()
-        return {
-            "activity_name": self.get_activity_name(),
-            "text_description": self.description_as_text(description, params),
-            "html_description": self.description_as_html(description, html_params or params),
-        }
-
-    def get_user_context(self, user: User) -> MutableMapping[str, Any]:
-        # use in case context of email changes depending on user
-        return {}
-
-    def get_category(self) -> str:
-        raise NotImplementedError
-
-    def get_headers(self) -> Mapping[str, Any]:
-        project = self.project
-        group = self.group
-
-        headers = {
-            "X-Sentry-Project": project.slug,
-            "X-SMTPAPI": json.dumps({"category": self.get_category()}),
-        }
-
-        if group:
-            headers.update(
-                {
-                    "X-Sentry-Logger": group.logger,
-                    "X-Sentry-Logger-Level": group.get_level_display(),
-                    "X-Sentry-Reply-To": group_id_to_email(group.id),
-                }
-            )
-
-        return headers
 
     def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         raise NotImplementedError
@@ -196,7 +148,7 @@ class ActivityNotification:
         user = self.activity.user
         if not user:
             return '<img class="avatar" src="{}" width="20px" height="20px" />'.format(
-                escape(self._get_sentry_avatar_url())
+                escape(self.get_sentry_avatar_url())
             )
         avatar_type = user.get_avatar_type()
         if avatar_type == "upload":
@@ -206,7 +158,8 @@ class ActivityNotification:
         else:
             return get_email_avatar(user.get_display_name(), user.get_label(), 20, True)
 
-    def _get_sentry_avatar_url(self) -> str:
+    @staticmethod
+    def get_sentry_avatar_url() -> str:
         url = "/images/sentry-email-avatar.png"
         return str(absolute_uri(get_asset_url("sentry", url)))
 
@@ -254,32 +207,8 @@ class ActivityNotification:
 
         return mark_safe(description.format(**context))
 
-    def get_unsubscribe_link(self, user_id: int, group_id: int) -> str:
-        return generate_signed_link(
-            user_id,
-            "sentry-account-email-unsubscribe-issue",
-            kwargs={"issue_id": group_id},
-        )
-
-    def update_user_context_from_group(
-        self,
-        user: User,
-        reason: int,
-        context: MutableMapping[str, Any],
-        group: Optional[Group],
-    ) -> Mapping[str, Any]:
-        if group:
-            context.update(
-                {
-                    "reason": GroupSubscriptionReason.descriptions.get(
-                        reason, "are subscribed to this issue"
-                    ),
-                    "unsubscribe_link": self.get_unsubscribe_link(user.id, group.id),
-                }
-            )
-        user_context = self.get_user_context(user)
-        user_context.update(context)
-        return user_context
+    def get_title(self) -> str:
+        return self.get_activity_name()
 
     def send(self) -> None:
         if not self.should_email():
@@ -289,12 +218,8 @@ class ActivityNotification:
         if not participants_by_provider:
             return
 
-        context = self.get_base_context()
-        context.update(self.get_context())
+        # Only calculate shared context once.
+        shared_context = self.get_context()
 
         for provider, participants in participants_by_provider.items():
-            for user, reason in participants.items():
-                user_context = self.update_user_context_from_group(
-                    user, reason, context, self.group
-                )
-                registry[provider](self, user, user_context)
+            notify(provider, self, participants, shared_context)

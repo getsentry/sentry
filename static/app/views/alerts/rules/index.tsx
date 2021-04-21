@@ -206,13 +206,21 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       flatten(ruleList?.map(({projects}) => projects))
     );
 
-    const sort: {asc: boolean; field: 'date_added' | 'name'} = {
+    const sort: {
+      asc: boolean;
+      field: 'date_added' | 'name' | ['incident_status', 'date_triggered'];
+    } = {
       asc: query.asc === '1',
       field: query.sort || 'date_added',
     };
     const {cursor: _cursor, page: _page, ...currentQuery} = query;
     const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const hasAlertList = organization.features.includes('alert-list');
+    const isAlertRuleSort =
+      sort.field.includes('incident_status') || sort.field.includes('date_triggered');
+    const sortArrow = (
+      <IconArrow color="gray300" size="xs" direction={sort.asc ? 'up' : 'down'} />
+    );
 
     const userTeams = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
     return (
@@ -222,7 +230,34 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
           <StyledPanelTable
             headers={[
               ...(hasAlertList
-                ? [t('Alert Rule'), t('Status')]
+                ? [
+                    // eslint-disable-next-line react/jsx-key
+                    <StyledSortLink
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...currentQuery,
+                          asc: sort.field === 'name' && !sort.asc ? '1' : undefined,
+                          sort: 'name',
+                        },
+                      }}
+                    >
+                      {t('Alert Rule')} {sort.field === 'name' && sortArrow}
+                    </StyledSortLink>,
+                    // eslint-disable-next-line react/jsx-key
+                    <StyledSortLink
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...currentQuery,
+                          asc: isAlertRuleSort && !sort.asc ? '1' : undefined,
+                          sort: ['incident_status', 'date_triggered'],
+                        },
+                      }}
+                    >
+                      {t('Status')} {isAlertRuleSort && sortArrow}
+                    </StyledSortLink>,
+                  ]
                 : [
                     t('Type'),
                     // eslint-disable-next-line react/jsx-key
@@ -231,19 +266,12 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         pathname: location.pathname,
                         query: {
                           ...currentQuery,
-                          asc: sort.field === 'name' && sort.asc ? undefined : '1',
+                          asc: sort.field === 'name' && !sort.asc ? '1' : undefined,
                           sort: 'name',
                         },
                       }}
                     >
-                      {t('Alert Name')}{' '}
-                      {sort.field === 'name' && (
-                        <IconArrow
-                          color="gray300"
-                          size="xs"
-                          direction={sort.asc ? 'up' : 'down'}
-                        />
-                      )}
+                      {t('Alert Name')} {sort.field === 'name' && sortArrow}
                     </StyledSortLink>,
                   ]),
               t('Project'),
@@ -255,19 +283,12 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                   pathname: location.pathname,
                   query: {
                     ...currentQuery,
-                    asc: sort.field === 'date_added' && sort.asc ? undefined : '1',
+                    asc: sort.field === 'date_added' && !sort.asc ? '1' : undefined,
                     sort: 'date_added',
                   },
                 }}
               >
-                {t('Created')}{' '}
-                {sort.field === 'date_added' && (
-                  <IconArrow
-                    color="gray300"
-                    size="xs"
-                    direction={sort.asc ? 'up' : 'down'}
-                  />
-                )}
+                {t('Created')} {sort.field === 'date_added' && sortArrow}
               </StyledSortLink>,
               t('Actions'),
             ]}
@@ -334,6 +355,10 @@ class AlertRulesListContainer extends React.Component<Props> {
       query.team = ALERT_LIST_QUERY_DEFAULT_TEAMS;
     }
 
+    if (organization.features.includes('alert-list') && !query.sort) {
+      query.sort = ['incident_status', 'date_triggered'];
+    }
+
     router.replace({
       pathname: location.pathname,
       query: {
@@ -357,7 +382,9 @@ class AlertRulesListContainer extends React.Component<Props> {
       eventKey: 'alert_rules.viewed',
       eventName: 'Alert Rules: Viewed',
       organization_id: organization.id,
-      sort: location.query.sort,
+      sort: Array.isArray(location.query.sort)
+        ? location.query.sort.join(',')
+        : location.query.sort,
     });
   }
 
@@ -429,6 +456,11 @@ const StyledPanelTable = styled(PanelTable)<{
   showTeamCol: boolean;
   hasAlertList: boolean;
 }>`
+  overflow: auto;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    overflow: initial;
+  }
+
   ${PanelTableHeader} {
     padding: ${space(2)};
     line-height: normal;
@@ -443,7 +475,7 @@ const StyledPanelTable = styled(PanelTable)<{
     `svg:not([data-test-id='icon-check-mark']) {
     display: none;`}
   & > * {
-    padding: ${p => (p.hasAlertList ? `${space(1.5)} ${space(2)}` : space(2))};
+    padding: ${p => (p.hasAlertList ? `${space(2)} ${space(2)}` : space(2))};
   }
 `;
 

@@ -1,0 +1,28 @@
+---
+created: '2021-03-29T22:02:41.012670Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGABRT:DRHT (thread_id:_, crashed:_)
+                                              stripped_application_code
+                                       UIKit  UIApplicationMain category=threadbase
+                                              stripped_application_code
+                              CoreFoundation  CFRunLoopRunInMode category=system
+                              CoreFoundation  CFRunLoopRunSpecific category=internals
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRunLoopDoSources0 category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                      WebKit  WebKit::WebProcessProxy::didClose category=system
+                                      WebKit  WebKit::WebPageProxy::processDidCrash category=internals
+                                      WebKit  WebKit::WebPageProxy::resetStateAfterProcessExited category=internals
+                                      WebKit  WebKit::WebPageProxy::resetState category=internals
+                                      WebKit  WebKit::invalidateCallbackMap<T> category=internals
+                                      WebKit  WebKit::GenericCallback<T>::invalidate category=internals
+                                              stripped_application_code
+                           libsystem_c.dylib  abort category=throw
+                                              stripped_application_code
+                                              stripped_application_code

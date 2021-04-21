@@ -1,4 +1,4 @@
-import {MinimalProject, SeriesApi} from 'app/types';
+import {SeriesApi} from 'app/types';
 
 export enum Outcome {
   ACCEPTED = 'accepted',
@@ -25,11 +25,3 @@ export type UsageStat = {
     other?: number;
   };
 };
-
-export type OrganizationUsageStats = {
-  statsErrors: UsageStat[];
-  statsTransactions: UsageStat[];
-  statsAttachments: UsageStat[];
-};
-
-export type ProjectUsageStats = MinimalProject & OrganizationUsageStats;
