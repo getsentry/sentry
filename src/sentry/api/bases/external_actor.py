@@ -29,12 +29,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         return self.context["organization"]
 
     def get_actor_id(self, validated_data: MutableMapping[str, Any]) -> int:
-        target_option = validated_data.pop(self._actor_key, None)
-
-        if not target_option:
-            raise Exception("Invalid actor")
-
-        return int(target_option.actor_id)
+        return int(validated_data.pop(self._actor_key))
 
     def get_provider_id(self, validated_data: MutableMapping[str, Any]) -> int:
         provider_name_option = validated_data.pop("provider", None)
