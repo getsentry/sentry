@@ -83,7 +83,7 @@ class GroupEventToolbar extends React.Component<Props> {
                     onClick={() => this.handleTraceLink(organization)}
                   >
                     View Full Trace
-                    <FeatureBadge type="beta" />
+                    <FeatureBadge type="new" />
                   </Link>
                 </LinkContainer>
               )}
