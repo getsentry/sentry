@@ -136,12 +136,12 @@ class MockDataSource:
         "session": {
             # "type": "counter",
             "operations": ["sum"],
-            "tags": dict(_base_tags, rating=["good", "bad"]),
+            "tags": _base_tags,
         },
         "user": {
             # "type": "set",
             "operations": ["count_unique"],
-            "tags": dict(_base_tags, membership=["gold", "platinum"]),
+            "tags": _base_tags,
         },
         "session.duration": {
             # "type": "distribution",
@@ -282,9 +282,11 @@ class MockDataSource:
         metric_names = self._get_metric_names(metric_names)
 
         return sorted(
-            tag_name
-            for metric_name in metric_names
-            for tag_name in self._metrics[metric_name]["tags"]
+            {
+                tag_name
+                for metric_name in metric_names
+                for tag_name in self._metrics[metric_name]["tags"]
+            }
         )
 
     def get_tag_values(self, project: Project, tag_name: str, metric_names=None) -> Dict[str, str]:
