@@ -132,6 +132,7 @@ tags.sku_class:enterprise #enterprise`;
                   onClick={this.handleAddCodeOwner}
                   size="small"
                   priority="primary"
+                  data-test-id="add-codeowner-button"
                 >
                   {t('Add Codeowner File')}
                 </CodeOwnerButton>

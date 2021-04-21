@@ -200,6 +200,7 @@ class AddCodeOwnerModal extends React.Component<Props, State> {
 }
 
 export default withApi(AddCodeOwnerModal);
+export {AddCodeOwnerModal};
 
 const StyledSelectField = styled(SelectField)`
   border-bottom: None;
