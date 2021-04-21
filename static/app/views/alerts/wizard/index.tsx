@@ -113,10 +113,7 @@ class AlertWizard extends React.Component<Props, State> {
                       {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
                       <RadioPanelGroup
                         choices={options.map(alertType => {
-                          return [alertType, AlertWizardAlertNames[alertType]] as [
-                            string,
-                            React.ReactNode
-                          ];
+                          return [alertType, AlertWizardAlertNames[alertType]];
                         })}
                         onChange={this.handleChangeAlertOption}
                         value={alertOption}
