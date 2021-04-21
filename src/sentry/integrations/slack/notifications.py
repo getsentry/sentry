@@ -2,7 +2,10 @@ import logging
 from typing import AbstractSet, Any, Mapping, Tuple
 
 from sentry.integrations.slack.client import SlackClient  # NOQA
-from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
+from sentry.integrations.slack.message_builder.notifications import (
+    build_issue_notification_attachment,
+    build_notification_attachment,
+)
 from sentry.models import ExternalActor, Organization, User
 from sentry.notifications.activity.base import ActivityNotification
 from sentry.notifications.notify import register_notification_provider
@@ -51,11 +54,15 @@ def get_channel_and_token(
 
 
 @register_notification_provider(ExternalProviders.SLACK)
-def send_notification_as_slack(
+def send_activity_notification_as_slack(
     notification: ActivityNotification,
     users: Mapping[User, int],
     shared_context: Mapping[str, Any],
 ) -> None:
+    """
+    Send an "activity notification" to a Slack user which are workflow and deploy notification types
+    """
+
     external_actors_by_user = get_integrations_by_user_id(notification.organization, users.keys())
 
     client = SlackClient()
@@ -100,3 +107,54 @@ def send_notification_as_slack(
         instance="slack.activity.notification",
         skip_internal=False,
     )
+
+
+def send_issue_notification_as_slack(
+    user_id: Any,
+    context: Any,
+    project: Any,
+) -> None:
+    """
+    Send an "issue notification" to a Slack user which are project level issue alerts
+    """
+    user = User.objects.get(id=user_id)
+    external_actors = ExternalActor.objects.filter(
+        provider=ExternalProviders.SLACK.value,
+        actor=user.actor,
+        organization=project.organization,
+    ).select_related("integration")
+
+    client = SlackClient()
+
+    for external_actor in external_actors:
+        attachments = [
+            build_issue_notification_attachment(
+                context["group"],
+                event=context["event"],
+                tags=context["tags"],
+                rules=context["rules"],
+            )
+        ]
+        integration = external_actor.integration
+
+        if integration:
+            token = integration.metadata["access_token"]
+
+        payload = {
+            "token": token,
+            "channel": external_actor.external_id,
+            "link_names": 1,
+            "attachments": json.dumps(attachments),
+        }
+        try:
+            client.post("/chat.postMessage", data=payload, timeout=5)
+        except ApiError as e:
+            logger.info(
+                "notification.fail.slack_post",
+                extra={
+                    "error": str(e),
+                    "notification": "issue_alert",
+                    "user": user_id,
+                    "channel_id": external_actor.external_id,
+                },
+            )

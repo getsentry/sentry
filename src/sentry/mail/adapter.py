@@ -81,7 +81,7 @@ class MailAdapter:
 
         project = event.group.project
         extra["project_id"] = project.id
-        if digests.enabled(project):
+        if not digests.enabled(project):  # CEO TODO rm not
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
@@ -430,6 +430,9 @@ class MailAdapter:
                     "user_id": user_id,
                 },
             )
+            from sentry.integrations.slack.notifications import send_issue_notification_as_slack
+
+            send_issue_notification_as_slack(user_id, context, project)
 
             self.add_unsubscribe_link(context, user_id, project, "alert_email")
             self._send_mail(

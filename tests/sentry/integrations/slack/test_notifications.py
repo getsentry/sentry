@@ -3,7 +3,7 @@ from urllib.parse import parse_qs
 import responses
 from django.utils import timezone
 
-from sentry.integrations.slack.notifications import send_notification_as_slack
+from sentry.integrations.slack.notifications import send_activity_notification_as_slack
 from sentry.models import (
     Activity,
     Deploy,
@@ -33,7 +33,7 @@ from tests.sentry.mail.activity import ActivityTestCase
 
 def send_notification(*args):
     args_list = list(args)[1:]
-    send_notification_as_slack(*args_list)
+    send_activity_notification_as_slack(*args_list)
 
 
 def get_attachment():

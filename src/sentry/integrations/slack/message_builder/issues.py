@@ -176,6 +176,9 @@ def build_tag_fields(event_for_tags, tags=None):
 
 
 def build_actions(group, project, text, color, actions=None, identity=None):
+    """
+    Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign
+    """
     status = group.get_status()
     members = get_member_assignees(group)
     teams = get_team_assignees(group)
