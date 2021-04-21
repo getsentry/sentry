@@ -46,7 +46,7 @@ describe('Dashboards > Detail', function () {
       TestStubs.routerContext()
     );
 
-    const content = wrapper.find('SentryDocumentTitle');
+    const content = wrapper.find('DocumentTitle');
     expect(content.text()).toContain('You need at least one project to use this view');
   });
 });
