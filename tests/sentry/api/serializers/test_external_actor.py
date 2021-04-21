@@ -20,6 +20,7 @@ class ExternalActorSerializerTest(TestCase):
 
         result = serialize(external_actor, user, key="user")
 
+        assert "actorId" not in result
         assert result["id"] == str(external_actor.id)
         assert result["externalName"] == "Marcos"
         assert result["externalId"] == "Gaeta"
@@ -41,6 +42,7 @@ class ExternalActorSerializerTest(TestCase):
 
         result = serialize(external_actor, user, key="team")
 
+        assert "actorId" not in result
         assert result["id"] == str(external_actor.id)
         assert result["externalName"] == "Marcos"
         assert result["externalId"] == "Gaeta"

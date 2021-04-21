@@ -78,14 +78,15 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
     def validate_user_id(self, user_id: int) -> User:
         """ Ensure that this user exists and that they belong to the organization. """
 
-        organization_members = OrganizationMember.objects.filter(
-            user_id=user_id, organization=self.organization
-        ).select_related("user")
-
-        if not organization_members:
+        try:
+            return (
+                OrganizationMember.objects.filter(user_id=user_id, organization=self.organization)
+                .select_related("user")
+                .get()
+                .user
+            )
+        except OrganizationMember.DoesNotExist:
             raise serializers.ValidationError("This member does not exist.")
-
-        return organization_members[0].user
 
     class Meta:
         model = ExternalActor
