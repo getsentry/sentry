@@ -137,11 +137,6 @@ const SelectPicker = ({async, creatable, forwardedRef, ...props}: SelectPickerPr
 
   return <Component ref={forwardedRef} {...props} />;
 };
-SelectPicker.propTypes = {
-  async: PropTypes.bool,
-  creatable: PropTypes.bool,
-  forwardedRef: PropTypes.any,
-};
 
 const StyledSelect = styled(SelectPicker)`
   .Select-control {
