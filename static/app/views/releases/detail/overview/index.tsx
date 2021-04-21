@@ -5,9 +5,12 @@ import {Location, LocationDescriptor, Query} from 'history';
 import {restoreRelease} from 'app/actionCreators/release';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import {Body, Main, Side} from 'app/components/layouts/thirds';
-import {t} from 'app/locale';
+import {IconInfo} from 'app/icons';
+import {t, tct} from 'app/locale';
 import {GlobalSelection, NewQuery, Organization, ReleaseProject} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
@@ -295,6 +298,16 @@ class ReleaseOverview extends AsyncView<Props> {
                     onRestore={() => this.handleRestore(project, refetchData)}
                   />
                 )}
+
+                <Alert icon={<IconInfo />}>
+                  {tct('Looks like release data is out of bounds. [recenterLink]', {
+                    recenterLink: (
+                      <GlobalSelectionLink to="#">
+                        {t('Re-center the date selection.')}
+                      </GlobalSelectionLink>
+                    ),
+                  })}
+                </Alert>
 
                 {(hasDiscover || hasPerformance || hasHealthData) && (
                   <ReleaseChart
