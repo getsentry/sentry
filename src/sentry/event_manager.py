@@ -918,16 +918,6 @@ def get_culprit(data):
     )
 
 
-def _find_group_id(all_hashes):
-    for h in all_hashes:
-        if h.group_id is not None:
-            return h.group_id
-        if h.group_tombstone_id is not None:
-            raise HashDiscarded("Matches group tombstone %s" % h.group_tombstone_id)
-
-    return None
-
-
 def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
     project = event.project
 
