@@ -735,8 +735,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       thresholdChart={chart}
                       onFilterSearch={this.handleFilterUpdate}
                     />
-                    {triggerForm(hasAccess)}
-                    {ruleNameOwnerForm(hasAccess)}
+                    <List symbol="colored-numeric" initialCounterValue={2}>
+                      {triggerForm(hasAccess)}
+                      {ruleNameOwnerForm(hasAccess)}
+                    </List>
                   </React.Fragment>
                 )
               }
