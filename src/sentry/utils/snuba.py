@@ -866,7 +866,11 @@ def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
     query_params, forward, reverse = query_data
     og_debug = query_params.get("debug", False)
     referrer = headers.get("referer", "<unknown>")
-    snql_entity = headers.get("snql_entity")
+    snql_entity = None
+    if "snql_entity" in headers:
+        snql_entity = headers["snql_entity"] or None
+        del headers["snql_entity"]
+
     try:
         if snql_entity is None or snql_entity == "auto":
             snql_entity = query_params["dataset"]
