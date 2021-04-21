@@ -191,8 +191,6 @@ const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: 
   white-space: nowrap;
   max-width: 200px;
 
-  z-index: ${p => p.theme.zIndex.dropdown};
-
   &:hover,
   &:active {
     ${p =>

@@ -13,14 +13,19 @@ import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import {
+  parseStatsPeriod,
+  StatsPeriodType,
+} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
-import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
+import {getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
@@ -57,6 +62,13 @@ type State = {
   width: number;
   height: number;
 };
+
+function formatTooltipDate(date: moment.MomentInput, format: string): string {
+  const {
+    options: {timezone},
+  } = ConfigStore.get('user');
+  return moment.tz(date, timezone).format(format);
+}
 
 function createThresholdSeries(lineColor: string, threshold: number): LineChartSeries {
   return {
@@ -138,7 +150,7 @@ function createIncidentSeries(
     trigger: 'item',
     alwaysShowContent: true,
     formatter: ({value, marker}) => {
-      const time = getFormattedDate(value, 'MMM D, YYYY LT');
+      const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
       return [
         `<div class="tooltip-series"><div>`,
         `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
@@ -307,6 +319,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     maxThresholdValue: number,
     maxSeriesValue: number
   ) {
+    const {interval} = this.props;
     const {dateModified, timeWindow} = this.props.rule || {};
     return (
       <LineChart
@@ -334,9 +347,13 @@ class MetricChart extends React.PureComponent<Props, State> {
             const [pointX, pointY] = pointData as [number, number];
             const isModified = dateModified && pointX <= new Date(dateModified).getTime();
 
-            const startTime = getFormattedDate(new Date(pointX), 'MMM D LT');
-            const endTime = getFormattedDate(
-              moment(new Date(pointX)).add(timeWindow, 'minutes'),
+            const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
+            const {period, periodLength} = parseStatsPeriod(interval) ?? {
+              periodLength: 'm',
+              period: `${timeWindow}`,
+            };
+            const endTime = formatTooltipDate(
+              moment(pointX).add(parseInt(period, 10), periodLength as StatsPeriodType),
               'MMM D LT'
             );
             const title = isModified
@@ -511,11 +528,14 @@ class MetricChart extends React.PureComponent<Props, State> {
                   lastPoint
                 );
                 const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
-                series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
-                if (areaColor === theme.yellow300) {
-                  warningDuration += areaEnd - areaStart;
-                } else {
-                  criticalDuration += areaEnd - areaStart;
+                if (areaEnd > areaStart) {
+                  series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
+
+                  if (areaColor === theme.yellow300) {
+                    warningDuration += Math.abs(areaEnd - areaStart);
+                  } else {
+                    criticalDuration += Math.abs(areaEnd - areaStart);
+                  }
                 }
 
                 statusChanges?.forEach((activity, idx) => {
@@ -534,17 +554,19 @@ class MetricChart extends React.PureComponent<Props, State> {
                     activity.value === `${IncidentStatus.CRITICAL}`
                       ? theme.red300
                       : theme.yellow300;
-                  series.push(
-                    createStatusAreaSeries(
-                      statusAreaColor,
-                      statusAreaStart,
-                      statusAreaEnd
-                    )
-                  );
-                  if (statusAreaColor === theme.yellow300) {
-                    warningDuration += statusAreaEnd - statusAreaStart;
-                  } else {
-                    criticalDuration += statusAreaEnd - statusAreaStart;
+                  if (statusAreaEnd > statusAreaStart) {
+                    series.push(
+                      createStatusAreaSeries(
+                        statusAreaColor,
+                        statusAreaStart,
+                        statusAreaEnd
+                      )
+                    );
+                    if (statusAreaColor === theme.yellow300) {
+                      warningDuration += Math.abs(statusAreaEnd - statusAreaStart);
+                    } else {
+                      criticalDuration += Math.abs(statusAreaEnd - statusAreaStart);
+                    }
                   }
                 });
 
@@ -592,7 +614,7 @@ class MetricChart extends React.PureComponent<Props, State> {
 
           return (
             <ChartPanel>
-              <PanelBody withPadding>
+              <StyledPanelBody withPadding>
                 <ChartHeader>
                   <ChartTitle>
                     <PresetName>
@@ -609,7 +631,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                   maxThresholdValue,
                   maxSeriesValue
                 )}
-              </PanelBody>
+              </StyledPanelBody>
               {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
             </ChartPanel>
           );
@@ -667,6 +689,11 @@ const StatItem = styled('div')`
   display: flex;
   align-items: center;
   margin: 0 ${space(2)} 0 0;
+`;
+
+/* Override padding to make chart appear centered */
+const StyledPanelBody = styled(PanelBody)`
+  padding-right: 6px;
 `;
 
 const StatCount = styled('span')`
