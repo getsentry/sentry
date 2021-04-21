@@ -1556,6 +1556,9 @@ SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # store. MUST be a power of two.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
+# This flags activates the Change Data Capture backend in the development environment
+SENTRY_USE_CDC_DEV = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": {
 #         "image": "image-name:version",
@@ -1599,6 +1602,7 @@ SENTRY_DEVSERVICES = {
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {
             "postgres": {"bind": "/var/lib/postgresql/data"},
+            "wal2json": {"bind": "/wal2json"},
             CDC_CONFIG_DIR: {"bind": "/cdc"},
             os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
                 "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
@@ -1613,7 +1617,7 @@ SENTRY_DEVSERVICES = {
             "-c",
             "max_wal_senders=1",
         ],
-        "entrypoint": "/cdc/postgres-entrypoint.sh",
+        "entrypoint": "/cdc/postgres-entrypoint.sh" if SENTRY_USE_CDC_DEV else None,
         "healthcheck": {
             "test": ["CMD", "pg_isready", "-U", "postgres"],
             "interval": 30000000000,  # Test every 30 seconds (in ns).
