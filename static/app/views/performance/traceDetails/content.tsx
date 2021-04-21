@@ -31,6 +31,7 @@ import {Organization} from 'app/types';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
 import {TraceFullDetailed, TraceMeta} from 'app/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'app/utils/performance/quickTrace/utils';
 import Breadcrumb from 'app/views/performance/breadcrumb';
@@ -227,7 +228,10 @@ class TraceDetailsContent extends React.Component<Props, State> {
             2,
             true
           )}
-          subtext={<TimeSince date={(traceInfo.endTimestamp || 0) * 1000} />}
+          subtext={getDynamicText({
+            value: <TimeSince date={(traceInfo.endTimestamp || 0) * 1000} />,
+            fixed: '5 days ago',
+          })}
         />
       </TraceDetailHeader>
     );
