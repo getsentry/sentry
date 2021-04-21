@@ -409,7 +409,9 @@ const DetailWrapper = styled('div')`
 const StatusWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  svg {
+    margin-right: ${space(0.5)};
+  }
 `;
 
 const HeaderContainer = styled('div')`
