@@ -193,10 +193,11 @@ def get_one_transaction(org: Organization, project_slug: Optional[str]):
 def get_one_discover_query(org: Organization):
     discover_query = DiscoverSavedQuery.objects.filter(organization=org).first()
 
-    return f"organizations/{org.slug}/discover/results/?id={discover_query.id}&statsPeriod=7d"
+    return f"/organizations/{org.slug}/discover/results/?id={discover_query.id}&statsPeriod=7d"
 
 
 def get_one_web_vitals(org: Organization, project_slug: Optional[str]):
+    # project_slug should be specified so we always get a front end project
     project = _get_project(org, project_slug)
     transaction = _get_one_transaction_name(project)
 
