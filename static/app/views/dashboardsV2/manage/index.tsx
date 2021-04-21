@@ -6,17 +6,16 @@ import pick from 'lodash/pick';
 
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import PageHeading from 'app/components/pageHeading';
 import SearchBar from 'app/components/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
 
 import {DashboardListItem} from '../types';
 
@@ -26,15 +25,15 @@ type Props = {
   organization: Organization;
   location: Location;
   router: ReactRouter.InjectedRouter;
-} & AsyncComponent['props'];
+} & AsyncView['props'];
 
 type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
-} & AsyncComponent['state'];
+} & AsyncView['state'];
 
-class ManageDashboards extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class ManageDashboards extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
     return [
       [
@@ -86,7 +85,7 @@ class ManageDashboards extends AsyncComponent<Props, State> {
     );
   }
 
-  renderBody() {
+  renderDashboards() {
     const {dashboards, dashboardsPageLinks} = this.state;
     const {organization, location} = this.props;
     return (
@@ -99,7 +98,11 @@ class ManageDashboards extends AsyncComponent<Props, State> {
     );
   }
 
-  render() {
+  getTitle() {
+    return t('Manage Dashboards');
+  }
+
+  renderBody() {
     const {organization} = this.props;
 
     return (
@@ -108,28 +111,26 @@ class ManageDashboards extends AsyncComponent<Props, State> {
         features={['dashboards-manage']}
         renderDisabled={this.renderNoAccess}
       >
-        <SentryDocumentTitle title={t('Manage Dashboards')} orgSlug={organization.slug}>
-          <LightWeightNoProjectMessage organization={organization}>
-            <PageContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: 'Dashboards',
-                    to: `/organizations/${organization.slug}/dashboards/`,
-                  },
-                  {
-                    label: 'Manage Dashboards',
-                  },
-                ]}
-              />
-              <PageHeader>
-                <PageHeading>Manage Dashboards</PageHeading>
-              </PageHeader>
-              {this.renderActions()}
-              {this.renderComponent()}
-            </PageContent>
-          </LightWeightNoProjectMessage>
-        </SentryDocumentTitle>
+        <LightWeightNoProjectMessage organization={organization}>
+          <PageContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: 'Dashboards',
+                  to: `/organizations/${organization.slug}/dashboards/`,
+                },
+                {
+                  label: 'Manage Dashboards',
+                },
+              ]}
+            />
+            <PageHeader>
+              <PageHeading>{t('Manage Dashboards')}</PageHeading>
+            </PageHeader>
+            {this.renderActions()}
+            {this.renderDashboards()}
+          </PageContent>
+        </LightWeightNoProjectMessage>
       </Feature>
     );
   }

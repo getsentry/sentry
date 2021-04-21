@@ -108,6 +108,6 @@ describe('Dashboards > DashboardList', function () {
     );
     const card = wrapper.find('DashboardCard').last();
     const link = card.find('Link').last().prop('to');
-    expect(link.pathname).toEqual(`/organizations/org-slug/dashboards/2`);
+    expect(link.pathname).toEqual(`/organizations/org-slug/dashboards/2/`);
   });
 });

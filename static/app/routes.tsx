@@ -1188,7 +1188,7 @@ function routes() {
               path="widget/new/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget/new'
+                  /* webpackChunkName: "ManageDashboards" */ 'app/views/dashboardsV2/widget/new'
                 )
               }
               component={errorHandler(LazyLoad)}

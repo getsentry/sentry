@@ -175,7 +175,7 @@ class Controls extends React.Component<Props> {
   }
 }
 
-export const DashboardEditFeature = ({
+const DashboardEditFeature = ({
   children,
 }: {
   children: (hasFeature: boolean) => React.ReactNode;
