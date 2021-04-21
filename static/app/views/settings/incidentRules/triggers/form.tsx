@@ -182,7 +182,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               triggerLabel={
                 <React.Fragment>
                   <TriggerIndicator size={12} />
-                  {isCritical ? t('Critical Status') : t('Warning Status')}
+                  {isCritical ? t('Critical') : t('Warning')}
                 </React.Fragment>
               }
               placeholder={isCritical ? '300' : t('None')}
@@ -208,7 +208,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           triggerLabel={
             <React.Fragment>
               <ResolvedIndicator size={12} />
-              {t('Resolved Status')}
+              {t('Resolved')}
             </React.Fragment>
           }
           placeholder={t('Automatic')}
