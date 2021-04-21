@@ -260,10 +260,10 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   padding: 0 0 14px;
   border-radius: 4px;
   cursor: pointer;
-  background: ${p => p.selected && '#ecf5fd'};
+  background: ${p => p.selected && p.theme.alert.info.backgroundLight};
 
   &:hover {
-    background: #ebebef;
+    background: ${p => p.theme.alert.muted.backgroundLight};
   }
 
   h3 {
@@ -272,7 +272,7 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
     align-items: center;
     justify-content: center;
     width: 100%;
-    color: ${p => p.theme.subText};
+    color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
     text-align: center;
     font-size: ${p => p.theme.fontSizeExtraSmall};
     text-transform: uppercase;
