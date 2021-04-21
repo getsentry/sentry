@@ -18,7 +18,7 @@ export default class AsyncView<
     const title = this.getTitle();
     return (
       <DocumentTitle title={`${title ? `${title} - ` : ''}Sentry`}>
-        {this.renderComponent()}
+        {this.renderComponent() as React.ReactChild}
       </DocumentTitle>
     );
   }

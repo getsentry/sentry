@@ -28,7 +28,11 @@ function SentryDocumentTitle({title, orgSlug, projectSlug, children}: Props) {
 
   const docTitle = getDocTitle();
 
-  return <DocumentTitle title={`${docTitle} - Sentry`}>{children}</DocumentTitle>;
+  return (
+    <DocumentTitle title={`${docTitle} - Sentry`}>
+      {children as React.ReactChild}
+    </DocumentTitle>
+  );
 }
 
 export default SentryDocumentTitle;
