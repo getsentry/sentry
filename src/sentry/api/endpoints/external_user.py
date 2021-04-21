@@ -1,8 +1,8 @@
 import logging
-from typing import Any
 
-from rest_framework import status
-from rest_framework.response import Response
+from rest_framework import status  # type: ignore
+from rest_framework.request import Request  # type: ignore
+from rest_framework.response import Response  # type: ignore
 
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalUserSerializer
@@ -12,8 +12,8 @@ from sentry.models import Organization
 logger = logging.getLogger(__name__)
 
 
-class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
-    def post(self, request: Any, organization: Organization) -> Response:
+class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):  # type: ignore
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create an External User
         `````````````

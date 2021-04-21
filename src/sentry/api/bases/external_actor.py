@@ -2,8 +2,9 @@ from typing import Any, MutableMapping
 
 from django.db import IntegrityError
 from django.http import Http404
-from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
+from rest_framework import serializers  # type: ignore
+from rest_framework.exceptions import PermissionDenied  # type: ignore
+from rest_framework.request import Request  # type: ignore
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -24,7 +25,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
     provider = serializers.ChoiceField(choices=get_provider_choices(AVAILABLE_PROVIDERS))
 
     @property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.context["organization"]
 
     def get_actor_id(self, validated_data: MutableMapping[str, Any]) -> int:
@@ -33,13 +34,12 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         if not target_option:
             raise Exception("Invalid actor")
 
-        return target_option.actor_id
+        return int(target_option.actor_id)
 
     def get_provider_id(self, validated_data: MutableMapping[str, Any]) -> int:
         provider_name_option = validated_data.pop("provider", None)
-        return validate_provider(
-            provider_name_option, available_providers=AVAILABLE_PROVIDERS
-        ).value
+        provider = validate_provider(provider_name_option, available_providers=AVAILABLE_PROVIDERS)
+        return int(provider.value)
 
     def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
         actor_id = self.get_actor_id(validated_data)
@@ -111,12 +111,12 @@ class ExternalTeamSerializer(ExternalActorSerializerBase):
 
 class ExternalActorEndpointMixin:
     @staticmethod
-    def has_feature(request: Any, organization: Organization) -> bool:
+    def has_feature(request: Request, organization: Organization) -> bool:
         return bool(
             features.has("organizations:import-codeowners", organization, actor=request.user)
         )
 
-    def assert_has_feature(self, request: Any, organization: Organization) -> None:
+    def assert_has_feature(self, request: Request, organization: Organization) -> None:
         if not self.has_feature(request, organization):
             raise PermissionDenied
 

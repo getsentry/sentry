@@ -1,17 +1,17 @@
 from typing import Any, Mapping, Optional
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import ExternalActor
+from sentry.models import ExternalActor, User
 from sentry.types.integrations import get_provider_string
 
 
 @register(ExternalActor)
-class ExternalActorSerializer(Serializer):
+class ExternalActorSerializer(Serializer):  # type: ignore
     def serialize(
         self,
         obj: ExternalActor,
-        attrs: Mapping[Any, Any],
-        user: Any,
+        attrs: Mapping[str, Any],
+        user: User,
         key: Optional[str] = None,
         **kwargs: Any,
     ) -> Mapping[str, Any]:

@@ -1,8 +1,8 @@
 import logging
-from typing import Any
 
-from rest_framework import status
-from rest_framework.response import Response
+from rest_framework import status  # type: ignore
+from rest_framework.request import Request  # type: ignore
+from rest_framework.response import Response  # type: ignore
 
 from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalTeamSerializer
 from sentry.api.bases.team import TeamEndpoint
@@ -12,8 +12,8 @@ from sentry.models import Team
 logger = logging.getLogger(__name__)
 
 
-class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
-    def post(self, request: Any, team: Team) -> Response:
+class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):  # type: ignore
+    def post(self, request: Request, team: Team) -> Response:
         """
         Create an External Team
         `````````````

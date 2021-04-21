@@ -1,22 +1,22 @@
 import logging
 from typing import Any, Tuple
 
-from rest_framework import status
-from rest_framework.response import Response
+from rest_framework import status  # type: ignore
+from rest_framework.request import Request  # type: ignore
+from rest_framework.response import Response  # type: ignore
 
+from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalTeamSerializer
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ExternalActor, Team
 
-from .external_team import ExternalActorEndpointMixin, ExternalTeamSerializer
-
 logger = logging.getLogger(__name__)
 
 
-class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
+class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):  # type: ignore
     def convert_args(
         self,
-        request: Any,
+        request: Request,
         organization_slug: str,
         team_slug: str,
         external_team_id: int,
@@ -28,7 +28,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         kwargs["external_team"] = self.get_external_actor_or_404(external_team_id)
         return args, kwargs
 
-    def put(self, request: Any, team: Team, external_team: ExternalActor) -> Response:
+    def put(self, request: Request, team: Team, external_team: ExternalActor) -> Response:
         """
         Update an External Team
         `````````````
@@ -58,7 +58,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request: Any, team: Team, external_team: ExternalActor) -> Response:
+    def delete(self, request: Request, team: Team, external_team: ExternalActor) -> Response:
         """
         Delete an External Team
         """
