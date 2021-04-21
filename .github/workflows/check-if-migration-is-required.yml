@@ -1,5 +1,12 @@
 name: check if migration is required
 on:
+  # The push check on a PR tests HEAD
+  push:
+    paths:
+      # Matches all python files regardless of directory depth.
+      - '**.py'
+      - requirements*.txt
+  # The PR tests against the merge of master and the head of the PR
   pull_request:
     paths:
       # Matches all python files regardless of directory depth.
@@ -13,8 +20,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Set python version output
         id: python-version

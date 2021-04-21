@@ -1,9 +1,6 @@
 name: command line
 on:
   push:
-    branches:
-      - master
-      - releases/**
   pull_request:
 
 jobs:
