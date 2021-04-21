@@ -11,6 +11,7 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import space from 'app/styles/space';
@@ -203,8 +204,8 @@ class ContextPickerModal extends React.Component<Props> {
     const {projects} = this.props;
     const nonMemberProjects: Project[] = [];
     const memberProjects: Project[] = [];
-    projects.map(project =>
-      !project.isMember ? nonMemberProjects.push(project) : memberProjects.push(project)
+    projects.forEach(project =>
+      project.isMember ? memberProjects.push(project) : nonMemberProjects.push(project)
     );
 
     return [memberProjects, nonMemberProjects];
@@ -270,11 +271,13 @@ class ContextPickerModal extends React.Component<Props> {
 
   renderProjectSelectOrMessage() {
     const {organization, projects} = this.props;
+    const [memberProjects, nonMemberProjects] = this.getMemberProjects();
+    const {isSuperuser} = ConfigStore.get('user') || {};
 
     const projectOptions = [
       {
         label: t('Projects I belong to'),
-        options: this.getMemberProjects()[0].map(p => ({
+        options: memberProjects.map(p => ({
           value: p.slug,
           label: t(`${p.slug}`),
           isDisabled: false,
@@ -282,10 +285,10 @@ class ContextPickerModal extends React.Component<Props> {
       },
       {
         label: t("Projects I don't belong to"),
-        options: this.getMemberProjects()[1].map(p => ({
+        options: nonMemberProjects.map(p => ({
           value: p.slug,
           label: t(`${p.slug}`),
-          isDisabled: true,
+          isDisabled: isSuperuser ? false : true,
         })),
       },
     ];
