@@ -1,19 +1,30 @@
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Union
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.utils.json import JSONData
 
-K = Any
+K = TypeVar("K")
 
-registry = {}
+registry: MutableMapping[Any, Any] = {}
 
 
-def register(type: Any) -> Callable[[K], K]:
+def register(type: Any) -> Callable[[Type[K]], Type[K]]:
     """ A wrapper that adds the wrapped Serializer to the Serializer registry (see above) for the key `type`. """
 
-    def wrapped(cls: K) -> K:
+    def wrapped(cls: Type[K]) -> Type[K]:
         registry[type] = cls()
         return cls
 
