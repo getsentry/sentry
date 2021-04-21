@@ -40,7 +40,6 @@ from sentry.models import (
     UserReport,
 )
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
-from sentry.testutils.helpers import Feature
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.compat import mock
 from sentry.utils.outcomes import Outcome
@@ -1580,10 +1579,3 @@ class ReleaseIssueTest(TestCase):
             last_seen=self.timestamp + 100,
             first_seen=self.timestamp + 100,
         )
-
-
-class RaceFreeEventManagerTest(EventManagerTest):
-    @pytest.fixture(autouse=True)
-    def _save_aggregate_parameterized(self):
-        with Feature({"projects:race-free-group-creation": True}):
-            yield
