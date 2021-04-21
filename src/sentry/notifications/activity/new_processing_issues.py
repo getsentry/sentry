@@ -38,6 +38,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
 
     def get_context(self) -> MutableMapping[str, Any]:
         return {
+            **self.get_base_context(),
             "project": self.project,
             "issues": self.issues,
             "reprocessing_active": self.activity.data["reprocessing_active"],
