@@ -6,6 +6,7 @@ from sentry import tagstore
 from sentry.integrations.slack.utils import ACTIONED_ISSUE_COLOR, LEVEL_TO_COLOR
 from sentry.models import (
     ActorTuple,
+    Event,
     Group,
     GroupAssignee,
     GroupStatus,
@@ -139,7 +140,7 @@ def build_rule_url(rule: Rule, group: Group, project: Project):
     return absolute_uri(rule_url)
 
 
-def build_footer(group, issue_alert, project, rules=None):
+def build_footer(group: Group, issue_alert: bool, project: Project, rules=None):
     footer = f"{group.qualified_short_id}"
 
     if rules:
@@ -155,7 +156,7 @@ def build_footer(group, issue_alert, project, rules=None):
     return footer
 
 
-def build_tag_fields(event_for_tags, tags=None):
+def build_tag_fields(event_for_tags: Event, tags: Mapping[str, str] = None):
     fields = []
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
@@ -175,7 +176,9 @@ def build_tag_fields(event_for_tags, tags=None):
     return fields
 
 
-def build_actions(group, project, text, color, actions=None, identity=None):
+def build_actions(
+    group: Group, project: Project, text: str, color: str, actions=None, identity: Identity = None
+):
     """
     Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign
     """
@@ -247,7 +250,7 @@ def build_actions(group, project, text, color, actions=None, identity=None):
 
 def build_group_attachment(
     group: Group,
-    event=None,
+    event: Event = None,
     tags: Mapping[str, str] = None,
     identity: Identity = None,
     actions=None,

@@ -6,7 +6,7 @@ from sentry.integrations.slack.message_builder.notifications import (
     build_issue_notification_attachment,
     build_notification_attachment,
 )
-from sentry.models import ExternalActor, Organization, User
+from sentry.models import ExternalActor, Organization, Project, User
 from sentry.notifications.activity.base import ActivityNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.shared_integrations.exceptions import ApiError
@@ -110,9 +110,9 @@ def send_activity_notification_as_slack(
 
 
 def send_issue_notification_as_slack(
-    user_id: Any,
-    context: Any,
-    project: Any,
+    user_id: int,
+    context: Mapping[str, Any],
+    project: Project,
 ) -> None:
     """
     Send an "issue notification" to a Slack user which are project level issue alerts
