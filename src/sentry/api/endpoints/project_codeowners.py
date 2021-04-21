@@ -69,7 +69,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
 
         external_association_err: List[str] = []
         # Get list of team/user names from CODEOWNERS file
-        teamnames, usernames, emails = parse_code_owners(attrs["raw"])
+        team_names, usernames, emails = parse_code_owners(attrs["raw"])
 
         # Check if there exists Sentry users with the emails listed in CODEOWNERS
         user_emails = UserEmail.objects.filter(
@@ -82,14 +82,14 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
 
         # Check if the usernames have an association
         external_actors = ExternalActor.objects.filter(
-            external_name__in=usernames,
+            external_name__in=usernames + team_names,
             organization=self.context["project"].organization,
         )
 
         external_users_diff = validate_association(usernames, external_actors, "usernames")
         external_association_err.extend(external_users_diff)
 
-        external_teams_diff = validate_association(teamnames, external_actors, "team names")
+        external_teams_diff = validate_association(team_names, external_actors, "team names")
         external_association_err.extend(external_teams_diff)
 
         if len(external_association_err):
@@ -101,7 +101,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         for external_actor in external_actors:
             type = actor_type_to_string(external_actor.actor.type)
             if type == "user":
-                user = external_actor.actor.resolve().email
+                user = external_actor.actor.resolve()
                 users_dict[external_actor.external_name] = user.email
             elif type == "team":
                 team = external_actor.actor.resolve()
