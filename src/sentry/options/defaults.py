@@ -117,7 +117,7 @@ register(
     default={"url": "http://localhost:7901"},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
-# Leaving these empty will usage the same storage driver configured for
+# Leaving these empty will use the same storage driver configured for
 # Filestore
 register(
     "chart-rendering.storage.backend", default=None, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
