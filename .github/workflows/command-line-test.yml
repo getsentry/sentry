@@ -13,8 +13,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Check for python file changes
         uses: getsentry/paths-filter@v2
