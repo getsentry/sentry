@@ -1,8 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+import pick from 'lodash/pick';
 import set from 'lodash/set';
 
+import {validateWidget} from 'app/actionCreators/dashboards';
+import {addSuccessMessage} from 'app/actionCreators/indicator';
 import WidgetQueryFields from 'app/components/dashboards/widgetQueryFields';
 import SelectControl from 'app/components/forms/selectControl';
 import * as Layout from 'app/components/layouts/thirds';
@@ -17,7 +20,12 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withTags from 'app/utils/withTags';
 import AsyncView from 'app/views/asyncView';
-import {DisplayType, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
+import {
+  DashboardDetails,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+} from 'app/views/dashboardsV2/types';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 
@@ -29,6 +37,7 @@ import Header from '../header';
 import {DataSet, displayTypes} from '../utils';
 
 import Queries from './queries';
+import {mapErrors, normalizeQueries} from './utils';
 
 const newQuery = {
   name: '',
@@ -42,6 +51,9 @@ type Props = AsyncView['props'] & {
   onChangeDataSet: (dataSet: DataSet) => void;
   selection: GlobalSelection;
   tags: TagCollection;
+  dashboard: DashboardDetails;
+  onSave: (widgets: Widget[]) => void;
+  widget?: Widget;
 };
 
 type State = AsyncView['state'] & {
@@ -49,6 +61,7 @@ type State = AsyncView['state'] & {
   displayType: DisplayType;
   interval: string;
   queries: Widget['queries'];
+  widgetErrors?: Record<string, any>;
 };
 
 class EventWidget extends AsyncView<Props, State> {
@@ -62,15 +75,34 @@ class EventWidget extends AsyncView<Props, State> {
     };
   }
 
+  getFirstQueryError(key: string) {
+    const {widgetErrors} = this.state;
+
+    if (!widgetErrors) {
+      return undefined;
+    }
+
+    return widgetErrors.find(queryError => !!queryError?.[key]);
+  }
+
   handleFieldChange = <F extends keyof State>(field: F, value: State[F]) => {
-    this.setState(state => ({...state, [field]: value}));
+    this.setState(state => {
+      const newState = cloneDeep(state);
+      set(newState, field, value);
+
+      if (field === 'displayType') {
+        set(newState, 'queries', normalizeQueries(value as DisplayType, state.queries));
+      }
+
+      return {...newState, widgetErrors: undefined};
+    });
   };
 
   handleRemoveQuery = (index: number) => {
     this.setState(state => {
       const newState = cloneDeep(state);
       newState.queries.splice(index, index + 1);
-      return newState;
+      return {...newState, widgetErrors: undefined};
     });
   };
 
@@ -86,13 +118,38 @@ class EventWidget extends AsyncView<Props, State> {
     this.setState(state => {
       const newState = cloneDeep(state);
       set(newState, `queries.${index}`, query);
-      return newState;
+      return {...newState, widgetErrors: undefined};
     });
+  };
+
+  handleSave = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    const {organization, onSave, dashboard} = this.props;
+    this.setState({loading: true});
+    try {
+      const widgetData: Widget = pick(this.state, [
+        'title',
+        'displayType',
+        'interval',
+        'queries',
+      ]);
+
+      await validateWidget(this.api, organization.slug, widgetData);
+
+      onSave([...dashboard.widgets, widgetData]);
+      addSuccessMessage(t('Added widget.'));
+    } catch (err) {
+      const widgetErrors = mapErrors(err?.responseJSON ?? {}, {});
+      this.setState({widgetErrors});
+    } finally {
+      this.setState({loading: false});
+    }
   };
 
   renderBody() {
     const {organization, onChangeDataSet, selection, tags} = this.props;
-    const {title, displayType, queries, interval} = this.state;
+    const {title, displayType, queries, interval, widgetErrors} = this.state;
     const orgSlug = organization.slug;
 
     function fieldOptions(measurementKeys: string[]) {
@@ -120,6 +177,7 @@ class EventWidget extends AsyncView<Props, State> {
             orgSlug={orgSlug}
             title={title}
             onChangeTitle={newTitle => this.handleFieldChange('title', newTitle)}
+            onSave={this.handleSave}
           />
           <Layout.Body>
             <BuildSteps>
@@ -140,6 +198,7 @@ class EventWidget extends AsyncView<Props, State> {
                     onChange={(option: {label: string; value: DisplayType}) => {
                       this.handleFieldChange('displayType', option.value);
                     }}
+                    error={widgetErrors?.displayType}
                   />
                   <WidgetCard
                     api={this.api}
@@ -172,6 +231,7 @@ class EventWidget extends AsyncView<Props, State> {
                   onRemoveQuery={this.handleRemoveQuery}
                   onAddQuery={this.handleAddQuery}
                   onChangeQuery={this.handleChangeQuery}
+                  errors={widgetErrors?.queries}
                 />
               </BuildStep>
               <Measurements>
@@ -181,6 +241,7 @@ class EventWidget extends AsyncView<Props, State> {
                   const buildStepContent = (
                     <WidgetQueryFields
                       style={{padding: 0}}
+                      errors={this.getFirstQueryError('fields')}
                       displayType={displayType}
                       fieldOptions={amendedFieldOptions}
                       fields={queries[0].fields}

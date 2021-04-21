@@ -21,6 +21,7 @@ type Props = {
   onRemoveQuery: (index: number) => void;
   onAddQuery: () => void;
   onChangeQuery: (queryIndex: number, queries: WidgetQuery) => void;
+  errors?: Array<Record<string, any>>;
 };
 
 function Queries({
@@ -31,6 +32,7 @@ function Queries({
   onRemoveQuery,
   onAddQuery,
   onChangeQuery,
+  errors,
 }: Props) {
   function handleFieldChange(queryIndex: number, field: keyof WidgetQuery) {
     const widgetQuery = queries[queryIndex];
@@ -64,7 +66,13 @@ function Queries({
         const displayDeleteButton = queries.length > 1;
         const displayLegendAlias = !hideLegendAlias;
         return (
-          <StyledField key={queryIndex} inline={false} flexibleControlStateSize stacked>
+          <StyledField
+            key={queryIndex}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            error={errors?.[queryIndex].conditions}
+          >
             <Fields
               displayDeleteButton={displayDeleteButton}
               displayLegendAlias={displayLegendAlias}

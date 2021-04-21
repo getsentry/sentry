@@ -40,7 +40,7 @@ function Card({widget, api, location, router, organization, project, selection}:
           api={api}
           location={location}
           organization={organization}
-          projectId={project.id}
+          projectSlug={project.slug}
           yAxis={yAxis}
           queries={queries}
           environments={selection.environments}

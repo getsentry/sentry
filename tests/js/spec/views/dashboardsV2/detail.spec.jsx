@@ -59,6 +59,7 @@ describe('Dashboards > Detail', function () {
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
           route={route}
+          location={location}
         />,
         initialData.routerContext
       );

@@ -5,15 +5,17 @@ type ChartData = Record<string, Series>;
 
 export function getBreakdownChartData({
   response,
+  legend,
   groupBy,
 }: {
   response: SessionApiResponse;
-  groupBy: string | null;
+  legend: string;
+  groupBy?: string;
 }): ChartData {
   return response.groups.reduce((groups, group, index) => {
-    const seriesName = groupBy ? group.by[groupBy] : index;
-    groups[seriesName] = {
-      seriesName,
+    const key = groupBy ? group.by[groupBy] : index;
+    groups[key] = {
+      seriesName: legend,
       data: [],
     };
     return groups;
