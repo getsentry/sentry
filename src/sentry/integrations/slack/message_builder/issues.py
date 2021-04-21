@@ -131,10 +131,10 @@ def build_action_text(group: Group, identity: Identity, action):
     )
 
 
-def build_rule_url(rule: Rule, group: Group, project: Project):
+def build_rule_url(rule: Rule, group: Group, project: Project, issue_alert: bool):
     org_slug = group.organization.slug
     project_slug = project.slug
-    if type(rule) == tuple:
+    if issue_alert:
         return absolute_uri(rule[1])
     rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
     return absolute_uri(rule_url)
@@ -144,7 +144,7 @@ def build_footer(group: Group, issue_alert: bool, project: Project, rules=None):
     footer = f"{group.qualified_short_id}"
 
     if rules:
-        rule_url = build_rule_url(rules[0], group, project)
+        rule_url = build_rule_url(rules[0], group, project, issue_alert)
         if issue_alert:
             footer += f" via <{rule_url}|{rules[0][0]}>"
         else:
