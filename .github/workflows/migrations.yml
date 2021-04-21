@@ -36,7 +36,7 @@ jobs:
           echo "from @getsentry/owners-migrations, then ask a Github admin to merge." && exit 1
 
   sql:
-    name: Generate SQL & other checks
+    name: Generate SQL
     runs-on: ubuntu-20.04
     timeout-minutes: 8
     needs: did-migration-change
@@ -75,14 +75,9 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
 
-      - name: Apply migrations & unchanged lockfile
+      - name: Apply migrations
         run: |
           sentry upgrade --noinput
-          sentry django makemigrations -n irrelevant_value
-          cat migrations_lockfile.txt
-          git status --short | wc -l
-          [ $(git status --short | grep "M migrations_lockfile.txt" | wc -l) == 1 ] && \
-            echo >&2 "You have not updated the migration_lockfile.txt" && exit 1
 
       # Checkout the current ref
       - uses: actions/checkout@v1
