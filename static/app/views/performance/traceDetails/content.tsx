@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import Alert from 'app/components/alert';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ButtonBar from 'app/components/buttonBar';
 import DiscoverFeature from 'app/components/discover/discoverFeature';
 import DiscoverButton from 'app/components/discoverButton';
@@ -197,25 +198,27 @@ class TraceDetailsContent extends React.Component<Props, State> {
     const {meta} = this.props;
     return (
       <TraceDetailHeader>
-        <MetaData
-          headingText={t('Event Breakdown')}
-          tooltipText={t(
-            'The number of transactions and errors there are in this trace.'
-          )}
-          bodyText={tct('[transactions]  |  [errors]', {
-            transactions: tn(
-              '%s Transaction',
-              '%s Transactions',
-              meta?.transactions ?? traceInfo.transactions.size
-            ),
-            errors: tn('%s Error', '%s Errors', meta?.errors ?? traceInfo.errors.size),
-          })}
-          subtext={tn(
-            'Across %s project',
-            'Across %s projects',
-            meta?.projects ?? traceInfo.projects.size
-          )}
-        />
+        <GuideAnchor target="trace_view_guide_breakdown">
+          <MetaData
+            headingText={t('Event Breakdown')}
+            tooltipText={t(
+              'The number of transactions and errors there are in this trace.'
+            )}
+            bodyText={tct('[transactions]  |  [errors]', {
+              transactions: tn(
+                '%s Transaction',
+                '%s Transactions',
+                meta?.transactions ?? traceInfo.transactions.size
+              ),
+              errors: tn('%s Error', '%s Errors', meta?.errors ?? traceInfo.errors.size),
+            })}
+            subtext={tn(
+              'Across %s project',
+              'Across %s projects',
+              meta?.projects ?? traceInfo.projects.size
+            )}
+          />
+        </GuideAnchor>
         <MetaData
           headingText={t('Total Duration')}
           tooltipText={t('The time elapsed between the start and end of this trace.')}
@@ -357,6 +360,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       index,
       numberOfHiddenTransactionsAbove,
       traceInfo,
+      hasGuideAnchor,
     }: {
       continuingDepths: TreeDepth[];
       isOrphan: boolean;
@@ -364,6 +368,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       index: number;
       numberOfHiddenTransactionsAbove: number;
       traceInfo: TraceInfo;
+      hasGuideAnchor: boolean;
     }
   ) {
     const {location, organization} = this.props;
@@ -388,6 +393,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
           index: acc.lastIndex + 1,
           numberOfHiddenTransactionsAbove: acc.numberOfHiddenTransactionsAbove,
           traceInfo,
+          hasGuideAnchor: false,
         });
 
         acc.lastIndex = result.lastIndex;
@@ -425,6 +431,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             isLast={isLast}
             index={index}
             isVisible={isVisible}
+            hasGuideAnchor={hasGuideAnchor}
             renderedChildren={accumulated.renderedChildren}
             barColour={pickBarColour(transaction['transaction.op'])}
           />
@@ -476,6 +483,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             !isLastTransaction && hasChildren
               ? [{depth: 0, isOrphanDepth: isNextChildOrphaned}]
               : [],
+          hasGuideAnchor: true,
         });
 
         acc.index = result.lastIndex + 1;
@@ -539,6 +547,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                       isLast={false}
                       index={0}
                       isVisible
+                      hasGuideAnchor={false}
                       renderedChildren={transactionGroups}
                       barColour={pickBarColour('')}
                     />
