@@ -35,6 +35,7 @@ type Props = {
   api: Client;
   organization: Organization;
   route: PlainRoute;
+  location: Location;
 } & WithRouterProps<{orgId: string; dashboardId: string}, {}>;
 
 type State = {
@@ -44,7 +45,7 @@ type State = {
 
 class DashboardDetail extends React.Component<Props, State> {
   state: State = {
-    dashboardState: 'view',
+    dashboardState: this.isCreateView() ? 'create' : 'view',
     modifiedDashboard: null,
   };
 
@@ -56,6 +57,14 @@ class DashboardDetail extends React.Component<Props, State> {
 
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onUnload);
+  }
+
+  isCreateView() {
+    const {dashboardId} = this.props.params;
+    if (dashboardId === 'create') {
+      return true;
+    }
+    return false;
   }
 
   onEdit = (dashboard: State['modifiedDashboard']) => () => {

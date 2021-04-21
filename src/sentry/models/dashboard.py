@@ -43,6 +43,12 @@ class Dashboard(Model):
             return PREBUILT_DASHBOARDS[dashboard_id]
         return None
 
+    @staticmethod
+    def get_empty(dashboard_id):
+        if dashboard_id in EMPTY_DASHBOARD:
+            return EMPTY_DASHBOARD[dashboard_id]
+        return None
+
 
 class DashboardTombstone(Model):
     """
@@ -70,6 +76,16 @@ class DashboardTombstone(Model):
 #
 # All widgets and queries in prebuilt dashboards must not have id attributes defined,
 # or users will be unable to 'update' them with a forked version.
+EMPTY_DASHBOARD = {
+    "create": {
+        "id": "create",
+        "title": "Untitled Dashboard",
+        "dateCreated": "",
+        "createdBy": "",
+        "widgets": [],
+    }
+}
+
 PREBUILT_DASHBOARDS = {
     item["id"]: item
     for item in [

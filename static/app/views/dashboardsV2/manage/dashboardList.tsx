@@ -10,7 +10,11 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
+import {deleteDashboard} from 'app/actionCreators/dashboards';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import {t, tct} from 'app/locale';
@@ -18,9 +22,12 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
 
+import {ContextMenu} from '../widgetCard';
+
 import DashboardCard from './dashboardCard';
 
 type Props = {
+  api: Client;
   organization: Organization;
   location: Location;
   dashboards: DashboardListItem[] | null;
@@ -44,6 +51,21 @@ class DashboardList extends React.Component<Props> {
       default:
         return WidgetLine;
     }
+  }
+
+  handleDelete(dashboard: DashboardListItem) {
+    const {api, organization} = this.props;
+
+    const promise = deleteDashboard(api, organization.slug, dashboard.id);
+    promise
+      .then(() => {
+        addSuccessMessage(t('Dashboard deleted'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Dashboard not deleted'));
+      });
+
+    return promise;
   }
 
   renderMiniDashboards() {
@@ -82,6 +104,19 @@ class DashboardList extends React.Component<Props> {
                 );
               })}
             </WidgetGrid>
+          )}
+          renderContextMenu={() => (
+            <ContextMenu>
+              <MenuItem
+                key="delete-dashboard"
+                onClick={event => {
+                  event.preventDefault();
+                  this.handleDelete(dashboard);
+                }}
+              >
+                {t('Delete')}
+              </MenuItem>
+            </ContextMenu>
           )}
         />
       );

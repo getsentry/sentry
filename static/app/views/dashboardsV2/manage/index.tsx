@@ -4,18 +4,22 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import Button from 'app/components/button';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import PageHeading from 'app/components/pageHeading';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import {DashboardListItem} from '../types';
@@ -23,6 +27,7 @@ import {DashboardListItem} from '../types';
 import DashboardList from './dashboardList';
 
 type Props = {
+  api: Client;
   organization: Organization;
   location: Location;
   router: ReactRouter.InjectedRouter;
@@ -88,9 +93,10 @@ class ManageDashboards extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {dashboards, dashboardsPageLinks} = this.state;
-    const {organization, location} = this.props;
+    const {organization, location, api} = this.props;
     return (
       <DashboardList
+        api={api}
         dashboards={dashboards}
         organization={organization}
         pageLinks={dashboardsPageLinks}
@@ -98,6 +104,8 @@ class ManageDashboards extends AsyncComponent<Props, State> {
       />
     );
   }
+
+  onCreate() {}
 
   render() {
     const {organization} = this.props;
@@ -124,6 +132,16 @@ class ManageDashboards extends AsyncComponent<Props, State> {
               />
               <PageHeader>
                 <PageHeading>Manage Dashboards</PageHeading>
+                <Button
+                  data-test-id="dashboard-create"
+                  to={{
+                    pathname: `/organizations/${organization.slug}/dashboards/create/`,
+                  }}
+                  priority="primary"
+                  icon={<IconAdd size="xs" isCircled />}
+                >
+                  {t('Create Dashboard')}
+                </Button>
               </PageHeader>
               {this.renderActions()}
               {this.renderComponent()}
@@ -151,4 +169,4 @@ const StyledActions = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export default withOrganization(ManageDashboards);
+export default withApi(withOrganization(ManageDashboards));

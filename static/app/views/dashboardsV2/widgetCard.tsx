@@ -280,7 +280,7 @@ const WidgetHeader = styled('div')`
   justify-content: space-between;
 `;
 
-const ContextMenu = ({children}) => (
+export const ContextMenu = ({children}) => (
   <DropdownMenu>
     {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
       const topLevelCx = classNames('dropdown', {
