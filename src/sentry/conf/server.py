@@ -134,6 +134,8 @@ SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 # here. This directory may not exist until that file is generated.
 CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
 
+CDC_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "cdc")
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -1595,7 +1597,23 @@ SENTRY_DEVSERVICES = {
         "pull": True,
         "ports": {"5432/tcp": 5432},
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
-        "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
+        "volumes": {
+            "postgres": {"bind": "/var/lib/postgresql/data"},
+            CDC_CONFIG_DIR: {"bind": "/cdc"},
+            os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
+                "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
+            },
+        },
+        "command": [
+            "postgres",
+            "-c",
+            "wal_level=logical",
+            "-c",
+            "max_replication_slots=1",
+            "-c",
+            "max_wal_senders=1",
+        ],
+        "entrypoint": "/cdc/postgres-entrypoint.sh",
         "healthcheck": {
             "test": ["CMD", "pg_isready", "-U", "postgres"],
             "interval": 30000000000,  # Test every 30 seconds (in ns).
