@@ -290,43 +290,45 @@ export default class DetailsBody extends React.Component<Props> {
               <Layout.Body>
                 <Layout.Main>
                   <HeaderContainer>
-                    <div>
-                      <SidebarHeading noMargin>{t('Display')}</SidebarHeading>
-                      <ChartControls>
-                        <DropdownControl label={timePeriod.display}>
-                          {TIME_OPTIONS.map(({label, value}) => (
-                            <DropdownItem
-                              key={value}
-                              eventKey={value}
-                              onSelect={this.props.handleTimePeriodChange}
-                            >
-                              {label}
-                            </DropdownItem>
-                          ))}
-                        </DropdownControl>
-                      </ChartControls>
-                    </div>
-                    {projects && projects.length && (
+                    <HeaderGrid>
                       <div>
-                        <SidebarHeading noMargin>{t('Project')}</SidebarHeading>
-
-                        <IdBadge avatarSize={16} project={projects[0]} />
+                        <SidebarHeading noMargin>{t('Display')}</SidebarHeading>
+                        <ChartControls>
+                          <DropdownControl label={timePeriod.display}>
+                            {TIME_OPTIONS.map(({label, value}) => (
+                              <DropdownItem
+                                key={value}
+                                eventKey={value}
+                                onSelect={this.props.handleTimePeriodChange}
+                              >
+                                {label}
+                              </DropdownItem>
+                            ))}
+                          </DropdownControl>
+                        </ChartControls>
                       </div>
-                    )}
-                    <div>
-                      <SidebarHeading noMargin>
-                        {t('Time Interval')}
-                        <Tooltip
-                          title={t(
-                            'This is the time period which the metric is evaluated by.'
-                          )}
-                        >
-                          <IconInfo size="xs" />
-                        </Tooltip>
-                      </SidebarHeading>
+                      {projects && projects.length && (
+                        <div>
+                          <SidebarHeading noMargin>{t('Project')}</SidebarHeading>
 
-                      <RuleText>{this.getTimeWindow()}</RuleText>
-                    </div>
+                          <IdBadge avatarSize={16} project={projects[0]} />
+                        </div>
+                      )}
+                      <div>
+                        <SidebarHeading noMargin>
+                          {t('Time Interval')}
+                          <Tooltip
+                            title={t(
+                              'This is the time period which the metric is evaluated by.'
+                            )}
+                          >
+                            <IconInfo size="xs" />
+                          </Tooltip>
+                        </SidebarHeading>
+
+                        <RuleText>{this.getTimeWindow()}</RuleText>
+                      </div>
+                    </HeaderGrid>
                   </HeaderContainer>
 
                   <MetricChart
@@ -398,6 +400,14 @@ const DetailWrapper = styled('div')`
 
 const HeaderContainer = styled('div')`
   display: flex;
+  flex-direction: row;
+  align-content: flex-start;
+`;
+
+const HeaderGrid = styled('div')`
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
   gap: ${space(4)};
 `;
 
@@ -436,10 +446,12 @@ const StatusContainer = styled('div')`
 `;
 
 const SidebarHeading = styled(SectionHeading)<{noMargin?: boolean}>`
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: flex-start;
   margin-top: ${p => (p.noMargin ? 0 : space(2))};
   line-height: 1;
+  gap: ${space(1)};
 `;
 
 const ChartControls = styled('div')`
