@@ -72,9 +72,8 @@ describe('Dashboards > DashboardList', function () {
         organization={organization}
         dashboards={[]}
         pageLinks=""
-        location={location}
-      />,
-      TestStubs.routerContext()
+        location={{query: {}}}
+      />
     );
     const content = wrapper.find('DashboardCard');
     // No dashboards
@@ -88,9 +87,8 @@ describe('Dashboards > DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={location}
-      />,
-      TestStubs.routerContext()
+        location={{query: {}}}
+      />
     );
     const content = wrapper.find('DashboardCard');
     expect(content).toHaveLength(2);
@@ -102,12 +100,26 @@ describe('Dashboards > DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={location}
-      />,
-      TestStubs.routerContext()
+        location={{query: {}}}
+      />
     );
     const card = wrapper.find('DashboardCard').last();
     const link = card.find('Link').last().prop('to');
     expect(link.pathname).toEqual(`/organizations/org-slug/dashboards/2/`);
+  });
+
+  it('persists global selection headers', async function () {
+    const wrapper = mountWithTheme(
+      <DashboardList
+        organization={organization}
+        dashboards={dashboards}
+        pageLinks=""
+        location={{query: {statsPeriod: '7d'}}}
+      />
+    );
+    const card = wrapper.find('DashboardCard').last();
+    const link = card.find('Link').last().prop('to');
+    expect(link.pathname).toEqual(`/organizations/org-slug/dashboards/2/`);
+    expect(link.query).toEqual({statsPeriod: '7d'});
   });
 });
