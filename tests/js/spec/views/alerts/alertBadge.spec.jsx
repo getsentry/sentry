@@ -8,7 +8,7 @@ import {IncidentStatus} from 'app/views/alerts/types';
 describe('AlertBadge', function () {
   it('displays status', function () {
     const wrapper = mountWithTheme(<AlertBadge status={IncidentStatus.CLOSED} />);
-    expect(wrapper.text()).toBe('Okay');
+    expect(wrapper.text()).toBe('Resolved');
   });
   it('hides status text', function () {
     const wrapper = mountWithTheme(
