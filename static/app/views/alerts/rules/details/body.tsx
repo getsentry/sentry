@@ -407,7 +407,7 @@ const HeaderContainer = styled('div')`
 const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
-  align-items: center;
+  align-items: start;
   gap: ${space(4)};
 `;
 
