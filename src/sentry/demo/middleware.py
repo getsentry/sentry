@@ -66,7 +66,7 @@ class DemoMiddleware:
 
         # find a member in the target org
         member = OrganizationMember.objects.filter(
-            organization__slug=org_slug, role="member"
+            organization__slug=org_slug, user__demouser__isnull=False, role="member"
         ).first()
         # if no member, can't login
         if not member or not member.user:

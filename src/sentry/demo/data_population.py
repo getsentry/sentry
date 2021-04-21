@@ -33,7 +33,11 @@ from sentry.models import (
     CommitAuthor,
     CommitFileChange,
     File,
+    Group,
+    GroupAssignee,
     Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
     Project,
     ProjectKey,
     Release,
@@ -41,13 +45,17 @@ from sentry.models import (
     ReleaseFile,
     Repository,
     Team,
+    User,
 )
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_timestamp
+from sentry.utils.email import create_fake_email
 from sentry.utils.samples import create_sample_event_basic, random_geo, random_ip, random_normal
 from sentry.utils.snuba import SnubaError
 
 release_prefix = "checkout-app"
+
+user_email_domain = "example.com"
 
 commit_message_base_messages = [
     "feat: Do something to",
@@ -61,6 +69,15 @@ base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "ro
 crash_free_rate_by_release = [1.0, 0.99, 0.9]
 # higher crash rate if we are doing a quick org
 crash_free_rate_by_release_quick = [1.0, 0.95, 0.75]
+
+org_users = [
+    ("scefali", "Stephen Cefali"),
+    ("aj", "AJ Jindal"),
+    (
+        "jennifer.song",
+        "Jen Song",
+    ),
+]
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +182,7 @@ def get_list_of_base_contexts():
 def get_user_by_id(id_0_offset):
     name_list = get_list_of_names()
     name = name_list[id_0_offset]
-    email = f"{name.lower()}@example.com"
+    email = f"{name.lower()}@{user_email_domain}"
     return UserInterface.to_python(
         {
             "id": id_0_offset + 1,
@@ -178,11 +195,9 @@ def get_user_by_id(id_0_offset):
 
 
 def gen_random_author():
-    author = "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words))
-    return (
-        author,
-        "{}@example.com".format(author.replace(" ", ".")),
-    )
+    (email_base, name) = random.choice(org_users)
+    email = create_fake_email(email_base, "demo")
+    return (name, email)
 
 
 def gen_base_context():
@@ -219,7 +234,6 @@ def generate_commits(required_files, file_extensions):
             base_path = random.choice(base_paths_by_file_type[extension])
             filename = base_path + random.choice(loremipsum.words) + "." + extension
 
-        # TODO: pass in user list for commits
         author = gen_random_author()
 
         base_message = random.choice(commit_message_base_messages)
@@ -407,6 +421,15 @@ def update_context(event, trace=None):
         }
     base_trace.update(**trace)
     context["trace"] = base_trace
+
+
+def populate_org_members(org, team):
+    for user_info in org_users:
+        (email_base, name) = user_info
+        email = create_fake_email(email_base, "demo")
+        user, _ = User.objects.get_or_create(name=name, email=email, is_managed=True)
+        member = OrganizationMember.objects.create(user=user, organization=org, role="member")
+        OrganizationMemberTeam.objects.create(team=team, organizationmember=member, is_active=True)
 
 
 class DataPopulation:
@@ -700,6 +723,14 @@ class DataPopulation:
             query=data["query"],
             version=data["version"],
         )
+
+    def assign_issues(self):
+        org_members = OrganizationMember.objects.filter(organization=self.org, role="member")
+        for group in Group.objects.filter(project__organization=self.org):
+            # assign 2/3rds of issues to a random user in our org
+            if random.random() > 0.33:
+                member = random.choice(org_members)
+                GroupAssignee.objects.assign(group, member.user)
 
     def iter_timestamps(self, disribution_fn_num: int, starting_release: int = 0):
         """
@@ -1099,6 +1130,7 @@ class DataPopulation:
             self.populate_generic_error(
                 python_project, "errors/python/concat_str_none.json", 4, starting_release=2
             )
+        self.assign_issues()
 
 
 def handle_react_python_scenario(react_project: Project, python_project: Project, quick=False):
