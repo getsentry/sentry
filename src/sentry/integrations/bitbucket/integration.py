@@ -171,11 +171,14 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             principal_data = state["principal"]
 
             domain = principal_data["links"]["html"]["href"].replace("https://", "").rstrip("/")
+            if "nickname" in principal_data:
+                split_domain = domain.split("/")
+                domain = "/".join([split_domain[0], principal_data["nickname"]])
 
             return {
                 "provider": self.key,
                 "external_id": state["clientKey"],
-                "name": principal_data.get("username", principal_data["uuid"]),
+                "name": principal_data.get("nickname", principal_data["uuid"]),
                 "metadata": {
                     "public_key": state["publicKey"],
                     "shared_secret": state["sharedSecret"],
