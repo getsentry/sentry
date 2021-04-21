@@ -163,6 +163,13 @@ class RuleListRow extends React.Component<Props, State> {
       <TitleLink to={hasRedesign ? detailsLink : editLink}>{rule.name}</TitleLink>
     );
 
+    const IssueStatusText: Record<IncidentStatus, string> = {
+      [IncidentStatus.CRITICAL]: t('Critical'),
+      [IncidentStatus.WARNING]: t('Warning'),
+      [IncidentStatus.CLOSED]: t('Resolved'),
+      [IncidentStatus.OPEN]: t('Resolved'),
+    };
+
     return (
       <ErrorBoundary>
         {!hasAlertList ? (
@@ -174,11 +181,19 @@ class RuleListRow extends React.Component<Props, State> {
           <React.Fragment>
             <AlertNameWrapper isIncident={isIssueAlert(rule)}>
               <FlexCenter>
-                <AlertBadge
-                  status={rule?.latestIncident?.status}
-                  isIssue={isIssueAlert(rule)}
-                  hideText
-                />
+                <Tooltip
+                  title={
+                    isIssueAlert(rule)
+                      ? t('Issue Alert')
+                      : IssueStatusText[rule?.latestIncident?.status]
+                  }
+                >
+                  <AlertBadge
+                    status={rule?.latestIncident?.status}
+                    isIssue={isIssueAlert(rule)}
+                    hideText
+                  />
+                </Tooltip>
               </FlexCenter>
               <AlertNameAndStatus>
                 <AlertName>{alertLink}</AlertName>
@@ -344,6 +359,7 @@ const AlertName = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
+  width: 100% !important;
 `;
 
 const TriggerText = styled('div')`
