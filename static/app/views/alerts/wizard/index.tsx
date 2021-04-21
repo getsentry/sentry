@@ -98,9 +98,9 @@ class AlertWizard extends React.Component<Props, State> {
                 hasMetricAlerts={hasMetricAlerts}
                 orgSlug={organization.slug}
                 projectSlug={projectId}
-                title={t('Create Alert Rule')}
+                title={t('Select Alert')}
               />
-              <Layout.Title>{t('What should we alert you about?')}</Layout.Title>
+              <Layout.Title>{t('Select Alert')}</Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
           <StyledLayoutBody>
