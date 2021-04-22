@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import {CacheProvider} from '@emotion/core'; // This is needed to set "speedy" = false (for percy)
 import {cache} from 'emotion'; // eslint-disable-line emotion/no-vanilla
 import {ThemeProvider} from 'emotion-theming';
@@ -20,7 +21,7 @@ type State = {
 
 class Main extends React.Component<Props, State> {
   state = {
-    theme: ConfigStore.get('theme') === 'dark' ? darkTheme : lightTheme,
+    theme: this.themeName === 'dark' ? darkTheme : lightTheme,
   };
 
   componentDidMount() {
@@ -37,6 +38,10 @@ class Main extends React.Component<Props, State> {
     }
   }
 
+  get themeName() {
+    return ConfigStore.get('theme');
+  }
+
   render() {
     return (
       <ThemeProvider<Theme> theme={this.state.theme}>
@@ -45,6 +50,10 @@ class Main extends React.Component<Props, State> {
           theme={this.state.theme}
         />
         <CacheProvider value={cache}>{this.props.children}</CacheProvider>
+        {ReactDOM.createPortal(
+          <meta name="color-scheme" content={this.themeName} />,
+          document.head
+        )}
       </ThemeProvider>
     );
   }

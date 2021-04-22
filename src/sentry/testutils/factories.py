@@ -5,6 +5,7 @@ import warnings
 from binascii import hexlify
 from hashlib import sha1
 from importlib import import_module
+from typing import Any
 from uuid import uuid4
 
 import petname
@@ -46,9 +47,8 @@ from sentry.models import (
     CommitFileChange,
     Environment,
     EventAttachment,
+    ExternalActor,
     ExternalIssue,
-    ExternalTeam,
-    ExternalUser,
     File,
     Group,
     GroupLink,
@@ -954,18 +954,18 @@ class Factories:
         )
 
     @staticmethod
-    def create_external_user(organizationmember, **kwargs):
+    def create_external_user(user: User, **kwargs: Any) -> ExternalActor:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
 
-        return ExternalUser.objects.create(organizationmember=organizationmember, **kwargs)
+        return ExternalActor.objects.create(actor=user.actor, **kwargs)
 
     @staticmethod
-    def create_external_team(team, **kwargs):
+    def create_external_team(team: Team, **kwargs: Any) -> ExternalActor:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
 
-        return ExternalTeam.objects.create(team=team, **kwargs)
+        return ExternalActor.objects.create(actor=team.actor, **kwargs)
 
     @staticmethod
     def create_codeowners(project, code_mapping, **kwargs):

@@ -88,7 +88,7 @@ class EventQuickTrace extends React.Component<Props, State> {
     const platform = this.props.group.project.platform ?? null;
     const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
     return docsPlatform === null
-      ? 'https://docs.sentry.io/product/performance/getting-started/'
+      ? null // this platform does not support performance
       : `https://docs.sentry.io/platforms/${docsPlatform}/performance/`;
   }
 
@@ -98,104 +98,103 @@ class EventQuickTrace extends React.Component<Props, State> {
       return null;
     }
 
+    const docsLink = this.createDocsLink();
+
+    // if the platform does not support performance, do not show this prompt
+    if (docsLink === null) {
+      return null;
+    }
+
     return (
       <StyledPanel dashedBorder>
         <div>
+          <Header>{t('Configure Distributed Tracing')}</Header>
           <Description>
-            <h3>{t('Configure Distributed Tracing')}</h3>
-            <p>{t('See what happened right before and after this error')}</p>
+            {t('See what happened right before and after this error')}
           </Description>
-          <ButtonList>
+        </div>
+        <Image src={quickTraceExample} alt="configure distributed tracing" />
+        <ActionButtons>
+          <Button
+            size="small"
+            priority="primary"
+            href={docsLink}
+            onClick={() =>
+              this.trackAnalytics({
+                eventKey: 'quick_trace.missing_instrumentation.docs',
+                eventName: 'Quick Trace: Missing Instrumentation Docs',
+              })
+            }
+          >
+            {t('Read the docs')}
+          </Button>
+          <ButtonBar merged>
             <Button
+              title={t('Remind me next week')}
               size="small"
-              priority="primary"
-              href={this.createDocsLink()}
               onClick={() =>
-                this.trackAnalytics({
-                  eventKey: 'quick_trace.missing_instrumentation.docs',
-                  eventName: 'Quick Trace: Missing Instrumentation Docs',
+                this.handleClick({
+                  action: 'snoozed',
+                  eventKey: 'quick_trace.missing_instrumentation.snoozed',
+                  eventName: 'Quick Trace: Missing Instrumentation Snoozed',
                 })
               }
             >
-              {t('Read the docs')}
+              {t('Snooze')}
             </Button>
-            <ButtonBar merged>
-              <Button
-                title={t('Remind me next week')}
-                size="small"
-                onClick={() =>
-                  this.handleClick({
-                    action: 'snoozed',
-                    eventKey: 'quick_trace.missing_instrumentation.snoozed',
-                    eventName: 'Quick Trace: Missing Instrumentation Snoozed',
-                  })
-                }
-              >
-                {t('Snooze')}
-              </Button>
-              <Button
-                title={t('Dismiss for this project')}
-                size="small"
-                onClick={() =>
-                  this.handleClick({
-                    action: 'dismissed',
-                    eventKey: 'quick_trace.missing_instrumentation.dismissed',
-                    eventName: 'Quick Trace: Missing Instrumentation Dismissed',
-                  })
-                }
-              >
-                {t('Dismiss')}
-              </Button>
-            </ButtonBar>
-          </ButtonList>
-        </div>
-        <div>
-          <Image src={quickTraceExample} alt="configure distributed tracing" />
-        </div>
+            <Button
+              title={t('Dismiss for this project')}
+              size="small"
+              onClick={() =>
+                this.handleClick({
+                  action: 'dismissed',
+                  eventKey: 'quick_trace.missing_instrumentation.dismissed',
+                  eventName: 'Quick Trace: Missing Instrumentation Dismissed',
+                })
+              }
+            >
+              {t('Dismiss')}
+            </Button>
+          </ButtonBar>
+        </ActionButtons>
       </StyledPanel>
     );
   }
 }
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(3)};
-  padding-bottom: ${space(1)};
-  background: none;
-  margin-bottom: 0;
-  margin-top: ${space(1)};
   display: grid;
-  align-content: space-between;
-  align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
+  grid-template-columns: 1.5fr 1fr;
+  grid-template-rows: auto max-content;
+  grid-gap: ${space(1)};
+  background: none;
+  padding: ${space(2)};
+  margin: ${space(2)} 0;
+`;
+
+const Header = styled('h3')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  text-transform: uppercase;
+  color: ${p => p.theme.gray300};
+  margin-bottom: ${space(1)};
 `;
 
 const Description = styled('div')`
-  h3 {
-    font-size: 14px;
-    text-transform: uppercase;
-    margin-bottom: ${space(0.25)};
-    color: ${p => p.theme.gray300};
-  }
-
-  p {
-    font-size: 13px;
-    font-weight: bold;
-    color: ${p => p.theme.textColor};
-    margin-bottom: ${space(1.5)};
-  }
-`;
-
-const ButtonList = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(1)};
-  align-items: center;
-  justify-self: end;
-  margin-bottom: 16px;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Image = styled('img')`
-  float: right;
+  grid-row: 1/3;
+  grid-column: 2/3;
+  justify-self: end;
+`;
+
+const ActionButtons = styled('div')`
+  display: grid;
+  grid-template-columns: max-content auto;
+  justify-items: start;
+  align-items: end;
+  grid-column-gap: ${space(1)};
 `;
 
 export default withApi(EventQuickTrace);
