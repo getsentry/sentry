@@ -13,12 +13,12 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import (
-    ExternalTeam,
-    ExternalUser,
+    ExternalActor,
     Project,
     ProjectCodeOwners,
     RepositoryProjectPathConfig,
     UserEmail,
+    actor_type_to_string,
 )
 from sentry.ownership.grammar import convert_codeowners_syntax, parse_code_owners
 from sentry.utils import metrics
@@ -27,18 +27,18 @@ logger = logging.getLogger(__name__)
 
 
 def validate_association(
-    raw_items: Sequence[Union[UserEmail, ExternalUser, ExternalTeam]],
-    associations: Sequence[Union[UserEmail, ExternalUser, ExternalTeam]],
+    raw_items: Sequence[Union[UserEmail, ExternalActor]],
+    associations: Sequence[Union[UserEmail, ExternalActor]],
     type: str,
 ) -> Sequence[str]:
     if type == "emails":
         # associations are UserEmail objects
         sentry_items = [item.email for item in associations]
     else:
-        # associations can be ExternalUser or ExternalTeam objects
+        # associations are ExternalActor objects
         sentry_items = [item.external_name for item in associations]
 
-    diff = [item for item in raw_items if item not in sentry_items]
+    diff = [str(item) for item in raw_items if item not in sentry_items]
 
     if len(diff):
         return [f'The following {type} do not have an association in Sentry: {", ".join(diff)}.']
@@ -69,45 +69,44 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
 
         external_association_err: List[str] = []
         # Get list of team/user names from CODEOWNERS file
-        teamnames, usernames, emails = parse_code_owners(attrs["raw"])
+        team_names, usernames, emails = parse_code_owners(attrs["raw"])
 
         # Check if there exists Sentry users with the emails listed in CODEOWNERS
         user_emails = UserEmail.objects.filter(
             email__in=emails,
             user__sentry_orgmember_set__organization=self.context["project"].organization,
         )
-        user_emails_diff = validate_association(emails, user_emails, "emails")
 
+        user_emails_diff = validate_association(emails, user_emails, "emails")
         external_association_err.extend(user_emails_diff)
 
         # Check if the usernames have an association
-        external_users = ExternalUser.objects.filter(
-            external_name__in=usernames,
-            organizationmember__organization=self.context["project"].organization,
+        external_actors = ExternalActor.objects.filter(
+            external_name__in=usernames + team_names,
+            organization=self.context["project"].organization,
         )
 
-        external_users_diff = validate_association(usernames, external_users, "usernames")
-
+        external_users_diff = validate_association(usernames, external_actors, "usernames")
         external_association_err.extend(external_users_diff)
 
-        # Check if the team names have an association
-        external_teams = ExternalTeam.objects.filter(
-            external_name__in=teamnames,
-            team__organization=self.context["project"].organization,
-        )
-
-        external_teams_diff = validate_association(teamnames, external_teams, "team names")
-
+        external_teams_diff = validate_association(team_names, external_actors, "team names")
         external_association_err.extend(external_teams_diff)
 
         if len(external_association_err):
             raise serializers.ValidationError({"raw": "\n".join(external_association_err)})
 
         # Convert CODEOWNERS into IssueOwner syntax
-        users_dict = {
-            user.external_name: user.organizationmember.user.email for user in external_users
-        }
-        teams_dict = {team.external_name: f"#{team.team.slug}" for team in external_teams}
+        users_dict = {}
+        teams_dict = {}
+        for external_actor in external_actors:
+            type = actor_type_to_string(external_actor.actor.type)
+            if type == "user":
+                user = external_actor.actor.resolve()
+                users_dict[external_actor.external_name] = user.email
+            elif type == "team":
+                team = external_actor.actor.resolve()
+                teams_dict[external_actor.external_name] = f"#{team.slug}"
+
         emails_dict = {email: email for email in emails}
         associations = {**users_dict, **teams_dict, **emails_dict}
 
