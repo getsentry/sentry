@@ -1691,6 +1691,16 @@ function routes() {
           />
 
           <Route
+            path="/organizations/:orgId/stats/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "OrganizationStats" */ 'app/views/organizationStats'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+
+          <Route
             path="/organizations/:orgId/projects/:projectId/events/:eventId/"
             component={errorHandler(ProjectEventRedirect)}
           />
@@ -2024,15 +2034,6 @@ function routes() {
         <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
           <Route component={errorHandler(OrganizationRoot)}>
             {hook('routes:organization-root')}
-            <Route
-              path="/organizations/:orgId/stats/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "OrganizationStats" */ 'app/views/organizationStats'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
 
             <Route
               path="/organizations/:orgId/projects/:projectId/getting-started/"
