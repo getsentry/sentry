@@ -111,8 +111,6 @@ def get_redirect_url(request, org):
     # more complicated scenarios with query lookups
     try:
         # no project slug
-        if scenario == "oneRelease":
-            return get_one_release(org)
         if scenario == "oneDiscoverQuery":
             return get_one_discover_query(org)
 
@@ -134,6 +132,11 @@ def get_redirect_url(request, org):
             return get_one_web_vitals(org, project_slug)
         if scenario == "oneTransactionSummary":
             return get_one_transaction_summary(org, project_slug)
+
+        # releases
+        if scenario == "oneRelease":
+            return get_one_release(org, project_slug)
+
     except Exception:
         # if an error happens and just let the user enter the sandbox
         # on the default page
@@ -143,10 +146,13 @@ def get_redirect_url(request, org):
     return f"/organizations/{org.slug}/issues/"
 
 
-def get_one_release(org: Organization):
+def get_one_release(org: Organization, project_slug: Optional[str]):
+    project = _get_project(org, project_slug)
+    release_query = Release.objects.filter(organization=org)
+    if project_slug:
+        release_query = release_query.filter(projects=project)
     # pick the most recent release
-    release = Release.objects.filter(organization=org).order_by("-date_added").first()
-    project = release.projects.first()
+    release = release_query.order_by("-date_added").first()
     version = quote(release.version)
 
     return f"/organizations/{org.slug}/releases/{version}/?project={project.id}"

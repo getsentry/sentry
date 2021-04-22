@@ -100,7 +100,11 @@ class DemoStartTeset(TestCase):
         org = Organization.objects.get(members__id=member_id)
         group = Group.objects.filter(project__organization=org, project__slug="react").first()
         project = Project.objects.get(slug="react", organization=org)
-        release = Release.objects.filter(organization=org).order_by("-date_added").first()
+        release = (
+            Release.objects.filter(organization=org, projects=project)
+            .order_by("-date_added")
+            .first()
+        )
         version = quote(release.version)
 
         base_issue_url = f"/organizations/{org.slug}/issues/{group.id}/?project={group.project_id}"
