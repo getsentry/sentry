@@ -144,7 +144,6 @@ class Controls extends React.Component<Props> {
             data-test-id="dashboard-manage"
             to={{
               pathname: `/organizations/${organization.slug}/dashboards/manage/`,
-              query: {},
             }}
           >
             {t('Manage Dashboards')}
