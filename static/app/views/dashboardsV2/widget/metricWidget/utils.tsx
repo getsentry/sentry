@@ -7,9 +7,7 @@ function getSerieNameByGroups(
   groupByKeys: string[],
   groupBy: Record<string, string | number>
 ) {
-  return groupByKeys.reduce((acc, groupByKey, index) => {
-    return index !== 0 ? `${acc}_${groupBy[groupByKey]}` : String(groupBy[groupByKey]);
-  }, '');
+  return groupByKeys.map(groupByKey => groupBy[groupByKey]).join('_');
 }
 
 export function getBreakdownChartData({
