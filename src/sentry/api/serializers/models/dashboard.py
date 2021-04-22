@@ -73,8 +73,8 @@ class DashboardWidgetMetricsQuerySerializer(Serializer):
             "name": obj.name,
             "fields": obj.fields,
             "conditions": str(obj.conditions),
-            "groupby": str(obj.groupby),
-            "projectId": str(obj.project_id),
+            "groupby": obj.groupby,
+            "projectId": obj.project_id,
             "widgetId": str(obj.widget_id),
         }
 

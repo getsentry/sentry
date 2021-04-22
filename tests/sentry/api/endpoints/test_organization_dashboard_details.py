@@ -5,6 +5,7 @@ from sentry.models import (
     DashboardTombstone,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetMetricsQuery,
     DashboardWidgetQuery,
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
@@ -49,6 +50,14 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             conditions=self.geo_errors_query["conditions"],
             order=0,
         )
+        self.widget_2_metrics_query = DashboardWidgetMetricsQuery.objects.create(
+            widget=self.widget_2,
+            name="release health",
+            fields=["sum(session)"],
+            groupby=["session.status"],
+            project=self.project,
+            order=0,
+        )
 
     def url(self, dashboard_id):
         return reverse(
@@ -78,8 +87,14 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget_query(widget_queries[0], self.widget_1_data_1)
         self.assert_serialized_widget_query(widget_queries[1], self.widget_1_data_2)
 
+        assert len(widgets[0]["metrics_queries"]) == 0
+
         assert len(widgets[1]["queries"]) == 1
         self.assert_serialized_widget_query(widgets[1]["queries"][0], self.widget_2_data_1)
+
+        metrics_queries = widgets[1]["metrics_queries"]
+        assert len(metrics_queries) == 1
+        self.assert_serialized_widget_metrics_query(metrics_queries[0], self.widget_2_metrics_query)
 
     def test_dashboard_does_not_exist(self):
         response = self.do_request("get", self.url(1234567890))
@@ -676,3 +691,101 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400
         assert response.data == ["You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()
+
+
+class MetricsQueryTest(OrganizationDashboardDetailsTestCase):
+    def generate_data(self, add_widget_id=False, add_query_id=False):
+        data = {
+            "widgets": [
+                {
+                    "title": "My Widget",
+                    "displayType": "line",
+                    "metrics_queries": [
+                        {
+                            "fields": ["sum(session)"],
+                            "conditions": "environment:prod",
+                            "projectId": self.project.id,
+                        }
+                    ],
+                }
+            ]
+        }
+
+        if add_widget_id:
+            data["widgets"][0]["id"] = self.widget_2.id
+
+        if add_query_id:
+            data["widgets"][0]["metrics_queries"][0]["id"] = self.widget_2_metrics_query.id
+
+        return data
+
+    def test_invalid_id(self):
+        # Can't have a query ID when widget is fresh:
+        data = self.generate_data(add_widget_id=False, add_query_id=True)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400
+
+    def _test_minimal(self, data):
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200
+
+    def test_minimal(self):
+        data = self.generate_data(add_widget_id=False, add_query_id=False)
+        self._test_minimal(data)
+
+    def test_minimal_update_widget(self):
+        data = self.generate_data(add_widget_id=True, add_query_id=False)
+        self._test_minimal(data)
+
+    def test_minimal_update_query(self):
+        data = self.generate_data(add_widget_id=True, add_query_id=True)
+        self._test_minimal(data)
+
+    def _test_groupby(self, data):
+        data["widgets"][0]["metrics_queries"][0]["groupby"] = ["environment"]
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200
+        assert response.data["widgets"][0]["metrics_queries"][0]["groupby"] == ["environment"]
+
+    def test_groupby(self):
+        data = self.generate_data(add_widget_id=False, add_query_id=False)
+        self._test_groupby(data)
+
+    def test_groupby_update_widget(self):
+        data = self.generate_data(add_widget_id=True, add_query_id=False)
+        self._test_groupby(data)
+
+    def test_groupby_update_query(self):
+        data = self.generate_data(add_widget_id=True, add_query_id=True)
+        self._test_groupby(data)
+
+    def _test_missing(self, data):
+        for field in ("fields", "projectId"):
+            data["widgets"][0]["metrics_queries"][0].pop(field)
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 400, (data, response.data)
+
+    def test_missing(self):
+        data = self.generate_data(add_widget_id=False, add_query_id=False)
+        self._test_missing(data)
+
+    def test_missing_update_widget(self):
+        data = self.generate_data(add_widget_id=True, add_query_id=False)
+        self._test_missing(data)
+
+    def _test_invalid_project_id(self, data):
+        data["widgets"][0]["metrics_queries"][0]["projectId"] = 0
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, (data, response.data)
+
+    def test_invalid_project_id(self):
+        data = self.generate_data(add_widget_id=False, add_query_id=False)
+        self._test_invalid_project_id(data)
+
+    def test_invalid_project_id_update_widget(self):
+        data = self.generate_data(add_widget_id=True, add_query_id=False)
+        self._test_invalid_project_id(data)
+
+    def test_invalid_project_id_update_query(self):
+        data = self.generate_data(add_widget_id=True, add_query_id=True)
+        self._test_invalid_project_id(data)

@@ -108,7 +108,7 @@ class DashboardWidgetMetricsQuerySerializer(CamelSnakeSerializer):
     fields = serializers.ListField(child=serializers.CharField(), required=False)
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
-    groupby = serializers.CharField(required=False, allow_blank=True)
+    groupby = serializers.ListField(required=False)
     project_id = serializers.IntegerField(required=False)
 
     required_for_create = {"fields", "conditions", "project_id"}
@@ -116,14 +116,13 @@ class DashboardWidgetMetricsQuerySerializer(CamelSnakeSerializer):
     validate_id = validate_id
 
     def validate(self, data):
-        # TODO: validate more
         if not data.get("id"):
             keys = set(data.keys())
             if self.required_for_create - keys:
                 raise serializers.ValidationError(
                     {
                         "fields": "fields are required during creation.",
-                        "conditions": "conditions are required during creation.",
+                        "project_id": "project_id is required during creation.",
                     }
                 )
 
@@ -163,6 +162,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                 raise serializers.ValidationError(
                     {"displayType": "displayType is required during creation."}
                 )
+            for query_type in "queries", "metrics_queries":
+                if any("id" in query for query in data.get(query_type, [])):
+                    raise serializers.ValidationError(
+                        {query_type: "Queries cannot have IDs when the widget is new."}
+                    )
+
         return data
 
 
