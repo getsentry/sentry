@@ -126,7 +126,9 @@ class ReleaseActivityNotification(ActivityNotification):
             return GroupSubscriptionReason.committed
         return None
 
-    def get_participants(self) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    def get_participants_with_group_subscription_reason(
+        self,
+    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
         # Collect all users with verified emails on a team in the related projects.
         users = list(User.objects.get_team_members_with_verified_email_for_projects(self.projects))
 

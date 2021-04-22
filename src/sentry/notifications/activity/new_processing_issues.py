@@ -29,7 +29,9 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         ActivityNotification.__init__(self, activity)
         self.issues = summarize_issues(self.activity.data["issues"])
 
-    def get_participants(self) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    def get_participants_with_group_subscription_reason(
+        self,
+    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
         users_by_provider = NotificationSetting.objects.get_notification_recipients(self.project)
         return {
             provider: {user: GroupSubscriptionReason.processing_issue for user in users}
