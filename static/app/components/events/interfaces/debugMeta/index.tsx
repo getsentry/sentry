@@ -441,9 +441,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
                   onShowAllImages={this.handleChangeFilter}
                 />
               )}
-              <PanelBody forwardRef={this.panelBodyRef}>
-                {this.renderImageList()}
-              </PanelBody>
+              <PanelBody ref={this.panelBodyRef}>{this.renderImageList()}</PanelBody>
             </React.Fragment>
           ) : (
             <EmptyMessage icon={<IconWarning size="xl" />}>
