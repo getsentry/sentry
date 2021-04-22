@@ -6,7 +6,7 @@ import {
   isLegalYAxisType,
 } from 'app/utils/discover/fields';
 
-import {DisplayType, Widget} from '../types';
+import {DisplayType, EventWidget} from '../types';
 
 type ValidationError = {
   [key: string]: string[] | ValidationError[] | ValidationError;
@@ -38,8 +38,8 @@ export function mapErrors(
 
 export function normalizeQueries(
   displayType: DisplayType,
-  queries: Widget['queries']
-): Widget['queries'] {
+  queries: EventWidget['queries']
+): EventWidget['queries'] {
   const isTimeseriesChart = [
     DisplayType.LINE,
     DisplayType.AREA,

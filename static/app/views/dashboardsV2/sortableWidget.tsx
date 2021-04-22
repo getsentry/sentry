@@ -9,7 +9,7 @@ import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
 
 import MetricWidgetCard from './widget/metricWidget/card';
-import {EventWidget, Widget, WidgetType} from './widget/types';
+import {EventWidget, MetricWidget, Widget} from './widget/types';
 import WidgetCard from './widgetCard';
 import WidgetWrapper from './widgetWrapper';
 
@@ -75,53 +75,56 @@ function SortableWidget(props: Props) {
   }, [currentWidgetDragging]);
 
   function renderCard() {
-    if (!widget.type || widget.type === WidgetType.EVENT) {
+    const isMetricWidget = (widget as MetricWidget).metrics_queries;
+
+    if (isMetricWidget) {
+      const metricWidget = widget as MetricWidget;
+
+      const {projectId, conditions: searchQuery} = metricWidget.metrics_queries[0];
+      const widgetProject = projects.find(project => project.id === projectId)!;
+
+      const groupings = metricWidget.metrics_queries.map(({name, fields, groupBy}) => {
+        const aggregation = fields[0].substr(0, fields[0].indexOf('('));
+        return {
+          legend: !!name ? name : undefined,
+          aggregation,
+          groupBy: !!groupBy ? groupBy.split(' ') : undefined,
+          metricMeta: {
+            name: fields[0].substr(aggregation.length).replace(/["'()]/g, ''),
+            operations: [aggregation],
+          },
+        };
+      });
+
+      const {displayType, title} = widget;
+
       return (
-        <WidgetCard
-          widget={widget as EventWidget}
-          isEditing={isEditing}
-          onDelete={onDelete}
-          onEdit={onEdit}
-          isSorting={isSorting}
-          hideToolbar={isSorting}
-          currentWidgetDragging={currentWidgetDragging}
-          draggableProps={{
-            attributes,
-            listeners,
-          }}
-          showContextMenu
+        <MetricWidgetCard
+          api={api}
+          router={router}
+          location={location}
+          selection={selection}
+          organization={organization}
+          project={widgetProject}
+          widget={{title, searchQuery, displayType, groupings}}
         />
       );
     }
 
-    const {projectId, conditions: searchQuery} = widget.metrics_queries[0];
-
-    const widgetProject = projects.find(project => project.id === projectId)!;
-
-    const groupings = widget.metrics_queries.map(({name, fields, groupBy}) => {
-      const aggregation = fields[0].substr(0, fields[0].indexOf('('));
-      return {
-        legend: !!name ? name : undefined,
-        aggregation,
-        groupBy: !!groupBy ? groupBy.split(' ') : undefined,
-        metricMeta: {
-          name: fields[0].substr(aggregation.length).replace(/["'()]/g, ''),
-          operations: [aggregation],
-        },
-      };
-    });
-
-    const {displayType, title} = widget;
-
     return (
-      <MetricWidgetCard
-        api={api}
-        router={router}
-        location={location}
-        selection={selection}
-        organization={organization}
-        project={widgetProject}
-        widget={{title, searchQuery, displayType, groupings}}
+      <WidgetCard
+        widget={widget as EventWidget}
+        isEditing={isEditing}
+        onDelete={onDelete}
+        onEdit={onEdit}
+        isSorting={isSorting}
+        hideToolbar={isSorting}
+        currentWidgetDragging={currentWidgetDragging}
+        draggableProps={{
+          attributes,
+          listeners,
+        }}
+        showContextMenu
       />
     );
   }

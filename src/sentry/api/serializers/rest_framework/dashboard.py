@@ -109,9 +109,9 @@ class DashboardWidgetMetricsQuerySerializer(CamelSnakeSerializer):
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
     groupby = serializers.CharField(required=False, allow_blank=True)
-    project_id = serializers.CharField(required=True, allow_blank=False)
+    project_id = serializers.IntegerField(required=False)
 
-    required_for_create = {"fields", "conditions"}
+    required_for_create = {"fields", "conditions", "project_id"}
 
     validate_id = validate_id
 
@@ -267,6 +267,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         new_metrics_queries = []
         for i, query in enumerate(widget_data.pop("metrics_queries", [])):
+
+            project_id = self.validate_project_id(query["project_id"])
+
             new_metrics_queries.append(
                 DashboardWidgetMetricsQuery(
                     widget=widget,
@@ -274,7 +277,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                     conditions=query["conditions"],
                     name=query.get("name", ""),
                     groupby=query.get("groupby", ""),
-                    projectid=query["projectid"],
+                    project_id=project_id,
                     order=i,
                 )
             )
@@ -310,7 +313,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                 self.update_widget_query(existing_map[query_id], query_data, next_order + i)
             elif not query_id:
                 new_queries.append(
-                    self.instance_from(query_class, widget, query_data, next_order + i)
+                    self.create_widget_query(query_class, widget, query_data, next_order + i)
                 )
             else:
                 raise serializers.ValidationError("You cannot use a query not owned by this widget")
@@ -324,6 +327,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         if query.__class__ is DashboardWidgetMetricsQuery:
             query.groupby = data.get("groupby", query.groupby)
+            project_id = self.validate_project_id(data.get("project_id", query.project_id))
+
+            query.project_id = project_id
+
         else:
             query.orderby = data.get("orderby", query.orderby)
 
@@ -333,8 +340,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     def remove_missing_queries(self, query_class, widget_id, keep_ids):
         query_class.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
 
-    @staticmethod
-    def instance_from(query_class, widget, query_data, order):
+    def create_widget_query(self, query_class, widget, query_data, order):
         kwargs = dict(
             widget=widget,
             fields=query_data["fields"],
@@ -344,10 +350,18 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         )
         if query_class is DashboardWidgetMetricsQuery:
             kwargs["groupby"] = query_data.get("groupby", "")
+            kwargs["project_id"] = self.validate_project_id(query_data["project_id"])
         else:
             kwargs["orderby"] = query_data.get("orderby", "")
 
         return query_class(**kwargs)
+
+    def validate_project_id(self, project_id):
+        """ Only allow project ID from this organization """
+        if project_id not in {p.id for p in self.context["projects"]}:
+            raise serializers.ValidationError(f"Invalid project ID {project_id}.")
+
+        return project_id
 
 
 class DashboardSerializer(DashboardDetailsSerializer):

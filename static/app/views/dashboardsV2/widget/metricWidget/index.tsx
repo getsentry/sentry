@@ -5,6 +5,7 @@ import {withTheme} from 'emotion-theming';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
+import {validateWidget} from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import * as Layout from 'app/components/layouts/thirds';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -59,8 +60,8 @@ type Props = RouteComponentProps<RouteParams, {}> &
 type State = AsyncView['state'] & {
   title: string;
   displayType: DisplayType;
-  metricMetas: MetricMeta[];
-  metricTags: string[];
+  metricMetas: MetricMeta[] | null;
+  metricTags: string[] | null;
   queries: MetricQuery[];
   searchQuery?: string;
 };
@@ -106,7 +107,7 @@ class MetricWidget extends AsyncView<Props, State> {
       this.reloadData();
     }
 
-    if (!prevState.metricMetas.length && !!this.state.metricMetas.length) {
+    if (!prevState.metricMetas?.length && !!this.state.metricMetas?.length) {
       this.handleChangeQuery(0, {metricMeta: this.state.metricMetas[0]});
     }
 
@@ -174,7 +175,7 @@ class MetricWidget extends AsyncView<Props, State> {
   handleSave = (projectId: Project['id']) => async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {onSave, dashboard} = this.props;
+    const {onSave, dashboard, organization} = this.props;
     this.setState({loading: true});
 
     const {queries, searchQuery, title, displayType} = this.state;
@@ -197,8 +198,7 @@ class MetricWidget extends AsyncView<Props, State> {
         displayType,
       };
 
-      //await validateWidget(this.api, organization.slug, widgetData);
-
+      await validateWidget(this.api, organization.slug, widgetData);
       onSave([...dashboard.widgets, widgetData]);
       addSuccessMessage(t('Added widget.'));
     } catch (err) {
@@ -246,6 +246,10 @@ class MetricWidget extends AsyncView<Props, State> {
           noProjectRedirectPath={`/organizations/${orgSlug}/dashboards/`}
         />
       );
+    }
+
+    if (!metricTags || !metricMetas) {
+      return null;
     }
 
     return (
