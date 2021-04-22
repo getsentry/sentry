@@ -206,7 +206,7 @@ const ModalContainer = styled('div')`
 `;
 
 const FeedbackAlert = styled(Alert)`
-  margin: 20px 0px;
+  margin: 20px 0px 0px 0px;
 `;
 
 const StyledInputField = styled(InputField)`
