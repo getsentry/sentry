@@ -38,4 +38,6 @@ def notify_participants(
     # project: Project,
 ) -> None:
     """ Send notifications to these users. """
-    registry[provider](notification, users, shared_context)
+    APPROVED_PROVIDERS = [ExternalProviders.EMAIL, ExternalProviders.SLACK]
+    if provider in APPROVED_PROVIDERS:
+        registry[provider](notification, users, shared_context)

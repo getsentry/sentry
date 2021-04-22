@@ -86,7 +86,7 @@ class MailAdapter:
 
         project = event.group.project
         extra["project_id"] = project.id
-        if not digests.enabled(project):  # CEO TODO rm not
+        if digests.enabled(project):
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
@@ -248,11 +248,14 @@ class MailAdapter:
             output[provider] = all_possible_user_ids - disabled_users[provider]
         return output
 
-    def get_user_ids_for_teams_to_resolve(teams_to_resolve):
-        return User.objects.filter(
-            is_active=True,
-            sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
-        ).values_list("id", flat=True)
+    def get_user_ids_for_teams_to_resolve(self, teams_to_resolve):
+        return {
+            user_id
+            for user_id in User.objects.filter(
+                is_active=True,
+                sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
+            ).values_list("id", flat=True)
+        }
 
     @staticmethod
     def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, Set[int]]:
@@ -433,7 +436,6 @@ class MailAdapter:
         }
         context["target_type"] = target_type
         context["target_identifier"] = target_identifier
-
         participants_by_provider = self.get_send_to(
             project=project,
             target_type=target_type,
@@ -480,7 +482,9 @@ class MailAdapter:
 
     def notify_digest(self, project, digest, target_type, target_identifier=None):
         metrics.incr("mail_adapter.notify_digest")
-        user_ids = self.get_send_to(project, target_type, target_identifier)
+        user_ids = self.get_send_to(project, target_type, target_identifier)[
+            ExternalProviders.EMAIL
+        ]
         logger.info(
             "mail.adapter.notify_digest",
             extra={
