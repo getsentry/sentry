@@ -7,7 +7,6 @@ import Link from 'app/components/links/link';
 import {SettingsIconLink} from 'app/components/organizations/headerItem';
 import {Panel} from 'app/components/panels';
 import PanelTable from 'app/components/panels/panelTable';
-import TextOverflow from 'app/components/textOverflow';
 import {IconSettings, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 import {DataCategory, Project} from 'app/types';
@@ -53,14 +52,15 @@ class UsageTable extends React.Component<Props> {
 
     return [
       <CellProject key={0}>
-        <TextOverflow>
+        <Link to={stat.projectLink}>
           <StyledIdBadge
-            project={project}
             avatarSize={16}
+            disableLink
             hideOverflow
-            displayName={<Link to={stat.projectLink}>{project.slug}</Link>}
+            project={project}
+            displayName={project.slug}
           />
-        </TextOverflow>
+        </Link>
         <SettingsIconLink to={stat.projectSettingsLink}>
           <IconSettings size={theme.iconSizes.sm} />
         </SettingsIconLink>
