@@ -42,7 +42,7 @@ type AnalyticsKey = keyof EventParameters;
 export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
   eventKey: T,
   analyticsParams: EventParameters[T],
-  org?: Organization, //we should pass in org whenever we can but not every place guarantees this
+  org: Organization | null, // if org is undefined, event won't be recorded
   options?: {startSession: boolean},
   mapValuesFn?: (params: object) => object
 ) {
@@ -74,11 +74,14 @@ export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
       // e.g. unencoded "%"
     }
 
+    //if org is null, we want organization_id to be null
+    const organization_id = org ? org.id : org;
+
     let params = {
       eventKey,
       eventName,
       analytics_session_id: sessionId,
-      organization_id: org?.id,
+      organization_id,
       role: org?.role,
       custom_referrer,
       ...analyticsParams,
@@ -86,12 +89,6 @@ export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
 
     if (mapValuesFn) {
       params = mapValuesFn(params) as any;
-    }
-
-    //TODO(steve): remove once we pass in org always
-    if (hasAnalyticsDebug() && !org) {
-      // eslint-disable-next-line no-console
-      console.warn(`Organization absent from event ${eventKey}`);
     }
 
     //could put this into a debug method or for the main trackAnalyticsEvent event

@@ -17,7 +17,9 @@ type Props = {
   isLast: boolean;
   index: number;
   isVisible: boolean;
+  hasGuideAnchor: boolean;
   renderedChildren: React.ReactNode[];
+  barColour?: string;
 };
 
 type State = {
@@ -44,7 +46,9 @@ class TransactionGroup extends React.Component<Props, State> {
       isLast,
       index,
       isVisible,
+      hasGuideAnchor,
       renderedChildren,
+      barColour,
     } = this.props;
     const {isExpanded} = this.state;
 
@@ -62,6 +66,8 @@ class TransactionGroup extends React.Component<Props, State> {
           isExpanded={isExpanded}
           toggleExpandedState={this.toggleExpandedState}
           isVisible={isVisible}
+          hasGuideAnchor={hasGuideAnchor}
+          barColour={barColour}
         />
         {isExpanded && renderedChildren}
       </React.Fragment>

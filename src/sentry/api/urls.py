@@ -129,6 +129,9 @@ from .endpoints.organization_auth_provider_send_reminders import (
 )
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
+from .endpoints.organization_code_mapping_codeowners import (
+    OrganizationCodeMappingCodeOwnersEndpoint,
+)
 from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
 from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
@@ -742,6 +745,11 @@ urlpatterns = [
                     OrganizationCodeMappingDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-code-mapping-details",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/codeowners/$",
+                    OrganizationCodeMappingCodeOwnersEndpoint.as_view(),
+                    name="sentry-api-0-organization-code-mapping-codeowners",
+                ),
                 # Discover
                 url(
                     r"^(?P<organization_slug>[^\/]+)/discover/query/$",
@@ -1001,12 +1009,12 @@ urlpatterns = [
                     name="sentry-api-0-organization-member-index",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/members/externaluser/$",
+                    r"^(?P<organization_slug>[^\/]+)/external-users/$",
                     ExternalUserEndpoint.as_view(),
                     name="sentry-api-0-organization-external-user",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/members/externaluser/(?P<external_user_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/external-users/(?P<external_user_id>[^\/]+)/$",
                     ExternalUserDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-external-user-details",
                 ),
@@ -1361,12 +1369,12 @@ urlpatterns = [
                     name="sentry-api-0-team-avatar",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/externalteam/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/external-teams/$",
                     ExternalTeamEndpoint.as_view(),
                     name="sentry-api-0-external-team",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/externalteam/(?P<external_team_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/external-teams/(?P<external_team_id>[^\/]+)/$",
                     ExternalTeamDetailsEndpoint.as_view(),
                     name="sentry-api-0-external-team-details",
                 ),

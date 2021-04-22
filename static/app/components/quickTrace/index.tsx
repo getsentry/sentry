@@ -1,5 +1,4 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'app/components/dropdownLink';
@@ -251,7 +250,6 @@ function handleNode(key: string, organization: OrganizationSummary) {
 }
 
 function handleDropdownItem(
-  target: LocationDescriptor,
   key: string,
   organization: OrganizationSummary,
   extra: boolean
@@ -262,7 +260,6 @@ function handleDropdownItem(
     organization_id: parseInt(organization.id, 10),
     node_key: key,
   });
-  browserHistory.push(target);
 }
 
 type EventNodeSelectorProps = {
@@ -373,7 +370,9 @@ function EventNodeSelector({
               <DropdownNodeItem
                 key={error.event_id}
                 event={error}
-                onSelect={() => handleDropdownItem(target, nodeKey, organization, false)}
+                to={target}
+                allowDefaultEvent
+                onSelect={() => handleDropdownItem(nodeKey, organization, false)}
                 organization={organization}
                 anchor={anchor}
               />
@@ -395,7 +394,9 @@ function EventNodeSelector({
               <DropdownNodeItem
                 key={event.event_id}
                 event={event}
-                onSelect={() => handleDropdownItem(target, nodeKey, organization, false)}
+                to={target}
+                onSelect={() => handleDropdownItem(nodeKey, organization, false)}
+                allowDefaultEvent
                 organization={organization}
                 subtext={getDuration(
                   event['transaction.duration'] / 1000,
@@ -408,14 +409,9 @@ function EventNodeSelector({
           })}
           {(errors.length > numEvents || events.length > numEvents) && (
             <DropdownItem
-              onSelect={() =>
-                handleDropdownItem(
-                  generateTraceTarget(currentEvent, organization),
-                  nodeKey,
-                  organization,
-                  true
-                )
-              }
+              to={generateTraceTarget(currentEvent, organization)}
+              allowDefaultEvent
+              onSelect={() => handleDropdownItem(nodeKey, organization, true)}
             >
               {t('View all events')}
             </DropdownItem>
@@ -430,25 +426,30 @@ type DropdownNodeProps = {
   event: TraceError | QuickTraceEvent;
   organization: OrganizationSummary;
   anchor: 'left' | 'right';
+  allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
+  to?: LocationDescriptor;
   subtext?: string;
 };
 
 function DropdownNodeItem({
   event,
   onSelect,
+  to,
+  allowDefaultEvent,
   organization,
   subtext,
   anchor,
 }: DropdownNodeProps) {
   return (
-    <DropdownItem onSelect={onSelect}>
+    <DropdownItem to={to} onSelect={onSelect} allowDefaultEvent={allowDefaultEvent}>
       <DropdownItemSubContainer>
         <Projects orgId={organization.slug} slugs={[event.project_slug]}>
           {({projects}) => {
             const project = projects.find(p => p.slug === event.project_slug);
             return (
               <ProjectBadge
+                disableLink
                 hideName
                 project={project ? project : {slug: event.project_slug}}
                 avatarSize={16}
@@ -562,32 +563,34 @@ class MissingServiceNode extends React.Component<
 
     const docPlatform = getDocsPlatform(platform, true);
     const docsHref =
-      docPlatform !== 'javascript'
-        ? `https://docs.sentry.io/platforms/${docPlatform}/performance#connecting-services`
-        : 'https://docs.sentry.io/platforms/javascript/performance/connect-services/';
+      docPlatform === null || docPlatform === 'javascript'
+        ? 'https://docs.sentry.io/platforms/javascript/performance/connect-services/'
+        : `https://docs.sentry.io/platforms/${docPlatform}/performance#connecting-services`;
     return (
       <React.Fragment>
         {connectorSide === 'left' && <TraceConnector />}
-        <DropdownLink
-          caret={false}
-          title={
-            <StyledEventNode
-              type="white"
-              hoverText={t('No services connected')}
-              text="???"
-            />
-          }
-          anchorRight={anchor === 'right'}
-        >
-          <DropdownItem width="small">
-            <ExternalDropdownLink href={docsHref} onClick={this.trackExternalLink}>
-              {t('Connect to a service')}
-            </ExternalDropdownLink>
-          </DropdownItem>
-          <DropdownItem onSelect={this.dismissMissingService} width="small">
-            {t('Dismiss')}
-          </DropdownItem>
-        </DropdownLink>
+        <DropdownContainer>
+          <DropdownLink
+            caret={false}
+            title={
+              <StyledEventNode
+                type="white"
+                hoverText={t('No services connected')}
+                text="???"
+              />
+            }
+            anchorRight={anchor === 'right'}
+          >
+            <DropdownItem width="small">
+              <ExternalDropdownLink href={docsHref} onClick={this.trackExternalLink}>
+                {t('Connect to a service')}
+              </ExternalDropdownLink>
+            </DropdownItem>
+            <DropdownItem onSelect={this.dismissMissingService} width="small">
+              {t('Dismiss')}
+            </DropdownItem>
+          </DropdownLink>
+        </DropdownContainer>
         {connectorSide === 'right' && <TraceConnector />}
       </React.Fragment>
     );

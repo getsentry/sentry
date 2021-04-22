@@ -371,13 +371,6 @@ let appConfig = {
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
-      '@emotion/styled': path.join(staticPrefix, 'app', 'styled'),
-      '@original-emotion/styled': path.join(
-        __dirname,
-        'node_modules',
-        '@emotion',
-        'styled'
-      ),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
