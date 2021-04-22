@@ -71,8 +71,11 @@ describe('getXAxisDates', () => {
     ]);
   });
 
-  it('recovers from odd arguments', () => {
-    const dates = getXAxisDates('', '');
-    expect(dates).toEqual([]);
+  it('handles invalid date strings', () => {
+    const dates1 = getXAxisDates('', '');
+    expect(dates1).toEqual([]);
+
+    const dates2 = getXAxisDates('sentry', '2021-01-01');
+    expect(dates2).toEqual([]);
   });
 });
