@@ -273,8 +273,7 @@ describe('groupDetails', function () {
     );
   });
 
-  it('renders inbox reason', async function () {
-    organization.features = ['inbox'];
+  it('renders for review reason', async function () {
     issueDetailsMock = MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {
