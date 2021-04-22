@@ -46,7 +46,7 @@ type State = {
 class DashboardDetail extends React.Component<Props, State> {
   state: State = {
     dashboardState: this.isCreateView() ? 'create' : 'view',
-    modifiedDashboard: null,
+    modifiedDashboard: this.isCreateView() ? EMPTY_DASHBOARD : null,
   };
 
   componentDidMount() {
