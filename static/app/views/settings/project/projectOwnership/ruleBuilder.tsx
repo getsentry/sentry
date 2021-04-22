@@ -231,7 +231,7 @@ const BuilderBar = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const BuilderSelect = styled(SelectField)<SelectField['props']>`
+const BuilderSelect = styled(SelectField)`
   margin-right: ${space(1.5)};
   width: 50px;
   flex-shrink: 0;
