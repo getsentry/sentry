@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {toPercent} from 'app/components/performance/waterfall/utils';
 import Tooltip from 'app/components/tooltip';
-import {toPercent} from 'app/components/waterfallTree/utils';
 import {EventTransaction} from 'app/types/event';
 import {defined} from 'app/utils';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';

@@ -2,8 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import {MessageRow} from 'app/components/waterfallTree/messageRow';
-import {pickBarColour} from 'app/components/waterfallTree/utils';
+import {MessageRow} from 'app/components/performance/waterfall/messageRow';
+import {pickBarColour} from 'app/components/performance/waterfall/utils';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';

@@ -8,8 +8,8 @@ import {
   SpanEntry,
   TraceContextType,
 } from 'app/components/events/interfaces/spans/types';
+import {pickBarColour} from 'app/components/performance/waterfall/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {pickBarColour} from 'app/components/waterfallTree/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {EntryType, Event, EventTransaction} from 'app/types/event';

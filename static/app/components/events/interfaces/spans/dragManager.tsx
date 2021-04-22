@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {clamp, rectOfContent} from 'app/components/waterfallTree/utils';
+import {clamp, rectOfContent} from 'app/components/performance/waterfall/utils';
 import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 
 // we establish the minimum window size so that the window size of 0% is not possible

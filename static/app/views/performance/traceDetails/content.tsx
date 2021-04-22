@@ -16,15 +16,15 @@ import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import TimeSince from 'app/components/timeSince';
-import {MessageRow} from 'app/components/waterfallTree/messageRow';
+import {MessageRow} from 'app/components/performance/waterfall/messageRow';
 import {
   DividerSpacer,
   ScrollbarContainer,
   VirtualScrollbar,
   VirtualScrollbarGrip,
-} from 'app/components/waterfallTree/miniHeader';
-import {pickBarColour, toPercent} from 'app/components/waterfallTree/utils';
+} from 'app/components/performance/waterfall/miniHeader';
+import {pickBarColour, toPercent} from 'app/components/performance/waterfall/utils';
+import TimeSince from 'app/components/timeSince';
 import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
