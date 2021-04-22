@@ -125,13 +125,15 @@ class Create extends React.Component<Props, State> {
             <BuilderBreadCrumbs
               hasMetricAlerts={hasMetricAlerts}
               orgSlug={organization.slug}
-              alertName={wizardAlertType && AlertWizardAlertNames[wizardAlertType]}
-              title={wizardAlertType ? t('Create Alert Rule') : title}
+              alertName={t('Set Conditions')}
+              title={wizardAlertType ? t('Select Alert') : title}
               projectSlug={projectId}
             />
 
             <Layout.Title>
-              {wizardAlertType ? t('Set Alert Conditions') : title}
+              {wizardAlertType
+                ? `${t('Set Conditions for')} ${AlertWizardAlertNames[wizardAlertType]}`
+                : title}
             </Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
