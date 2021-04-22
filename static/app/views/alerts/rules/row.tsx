@@ -159,8 +159,10 @@ class RuleListRow extends React.Component<Props, State> {
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
     const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const hasAlertList = organization.features.includes('alert-list');
-    const alertLink = (
-      <TitleLink to={hasRedesign ? detailsLink : editLink}>{rule.name}</TitleLink>
+    const alertLink = hasRedesign ? (
+      <TitleLink to={detailsLink}>{rule.name}</TitleLink>
+    ) : (
+      rule.name
     );
 
     const IssueStatusText: Record<IncidentStatus, string> = {
