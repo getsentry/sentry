@@ -1,6 +1,6 @@
 import time
 from collections import namedtuple
-from typing import Any, Generator, Mapping, Optional
+from typing import Any, Generator, List, Mapping, Optional
 
 import jwt
 from requests import Session
@@ -115,7 +115,7 @@ def get_pre_release_version_info(session: Session, credentials: AppConnectCreden
     NOTE: the pre release version information is identical to the release version information
     :return: a list of prerelease builds version information (see above)
     """
-    url = f"https://api.appstoreconnect.apple.com/v1/apps/{app_id}/preReleaseVersions"
+    url = f"v1/apps/{app_id}/preReleaseVersions"
     data = _get_appstore_info_paged_data(session, credentials, url)
     result = []
     for d in data:
@@ -154,7 +154,7 @@ def get_release_version_info(session: Session, credentials: AppConnectCredential
     NOTE: the release version information is identical to the pre release version information
     :return: a list of release builds version information (see above)
     """
-    url = f"https://api.appstoreconnect.apple.com/v1/apps/{app_id}/appStoreVersions"
+    url = f"v1/apps/{app_id}/appStoreVersions"
     data = _get_appstore_info_paged_data(session, credentials, url)
     result = []
     for d in data:
@@ -192,3 +192,33 @@ def get_build_info(session: Session, credentials: AppConnectCredentials, app_id:
         "pre_releases": get_pre_release_version_info(session, credentials, app_id),
         "releases": get_release_version_info(session, credentials, app_id),
     }
+
+
+AppInfo = namedtuple("AppInfo", ["name", "bundle_id", "app_id"])
+
+
+def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[List[AppInfo]]:
+    """
+    Returns the available applications from an account
+    :return: a list of available applications or None if the login failed, an empty list
+    means that the login was successful but there were no applications available
+    """
+    url = "v1/apps"
+    ret_val = []
+    try:
+        apps = _get_appstore_info_paged_data(session, credentials, url)
+        for app in apps:
+            app_info = AppInfo(
+                app_id=app.get("id"),
+                bundle_id=safe.get_path(app, "attributes", "bundleId"),
+                name=safe.get_path(app, "attributes", "name"),
+            )
+            if (
+                app_info.app_id is not None
+                and app_info.bundle_id is not None
+                and app_info.name is not None
+            ):
+                ret_val.append(app_info)
+    except ValueError:
+        return None
+    return ret_val
