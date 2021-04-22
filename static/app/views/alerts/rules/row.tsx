@@ -361,7 +361,6 @@ const AlertName = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
-  width: 100% !important;
 `;
 
 const TriggerText = styled('div')`
