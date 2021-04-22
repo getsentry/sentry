@@ -37,11 +37,11 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type State = {
-  alertOption: AlertType | null;
+  alertOption: AlertType;
 };
 class AlertWizard extends React.Component<Props, State> {
   state: State = {
-    alertOption: null,
+    alertOption: 'issues',
   };
 
   handleChangeAlertOption = (alertOption: AlertType) => {
