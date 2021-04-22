@@ -1,8 +1,8 @@
+from django.urls import reverse
 from exam import fixture
-from django.core.urlresolvers import reverse
+
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
 from sentry_plugins.pivotal.plugin import PivotalPlugin
 
 

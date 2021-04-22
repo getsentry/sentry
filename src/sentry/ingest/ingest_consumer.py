@@ -1,29 +1,27 @@
-import random
 import functools
 import logging
-import msgpack
+import random
 
+import msgpack
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
-import sentry_sdk
-
-from sentry import eventstore, features
-
+from sentry import eventstore, features, options
+from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.event_manager import save_attachment
+from sentry.eventstore.processing import event_processing_store
+from sentry.ingest.types import ConsumerType
+from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json, metrics
-from sentry.utils.sdk import mark_scope_as_unsafe
-from sentry.utils.dates import to_datetime
-from sentry.utils.cache import cache_key_for_event
-from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
-from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.ingest.types import ConsumerType
-from sentry.ingest.userreport import Conflict, save_userreport
-from sentry.event_manager import save_attachment
-from sentry.eventstore.processing import event_processing_store
+from sentry.utils.cache import cache_key_for_event
+from sentry.utils.dates import to_datetime
+from sentry.utils.kafka import create_batching_kafka_consumer
+from sentry.utils.sdk import mark_scope_as_unsafe
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +106,9 @@ def _do_process_event(message, projects):
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
 
+    if project_id == settings.SENTRY_PROJECT:
+        metrics.incr("internal.captured.ingest_consumer.unparsed")
+
     # check that we haven't already processed this event (a previous instance of the forwarder
     # died before it could commit the event queue offset)
     #
@@ -131,6 +132,11 @@ def _do_process_event(message, projects):
         )
         return  # message already processed do not reprocess
 
+    if project_id in (options.get("store.load-shed-pipeline-projects") or ()):
+        # This killswitch is for the worst of scenarios and should probably not
+        # cause additional load on our logging infrastructure
+        return
+
     try:
         project = projects[project_id]
     except KeyError:
@@ -144,15 +150,22 @@ def _do_process_event(message, projects):
     # which assumes that data passed in is a raw dictionary.
     data = json.loads(payload)
 
+    if project_id == settings.SENTRY_PROJECT:
+        metrics.incr(
+            "internal.captured.ingest_consumer.parsed",
+            tags={"event_type": data.get("type") or "null"},
+        )
+
     cache_key = event_processing_store.store(data)
 
     if attachments:
-        attachment_objects = [
-            CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-            for attachment in attachments
-        ]
+        with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
+            attachment_objects = [
+                CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+                for attachment in attachments
+            ]
 
-        attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
+            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
 
     # Preprocess this event, which spawns either process_event or
     # save_event. Pass data explicitly to avoid fetching it again from the

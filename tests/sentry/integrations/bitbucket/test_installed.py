@@ -1,10 +1,10 @@
 import responses
 
-from sentry.testutils import APITestCase
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
-from sentry.integrations.bitbucket.integration import scopes, BitbucketIntegrationProvider
-from sentry.models import Integration, Repository, Project
+from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvider, scopes
+from sentry.models import Integration, Project, Repository
 from sentry.plugins.base import plugins
+from sentry.testutils import APITestCase
 from tests.sentry.plugins.testutils import register_mock_plugins, unregister_mock_plugins
 
 

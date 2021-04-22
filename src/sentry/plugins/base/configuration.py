@@ -1,9 +1,8 @@
-from django.utils.translation import ugettext as _
-from django.utils.safestring import mark_safe
-from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
 from django.contrib import messages
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
+from django.urls import reverse
+from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext as _
 
 from sentry import options
 from sentry.api import client

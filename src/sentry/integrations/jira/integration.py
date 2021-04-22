@@ -1,30 +1,30 @@
 import logging
-from operator import attrgetter
 import re
+from operator import attrgetter
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.translation import ugettext as _
 
 from sentry import features
 from sentry.integrations import (
-    IntegrationInstallation,
-    IntegrationFeatures,
-    IntegrationProvider,
-    IntegrationMetadata,
     FeatureDescription,
-)
-from sentry.shared_integrations.exceptions import (
-    ApiUnauthorized,
-    ApiError,
-    IntegrationError,
-    IntegrationFormError,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
 )
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiUnauthorized,
+    IntegrationError,
+    IntegrationFormError,
+)
 from sentry.utils.compat import filter
-from sentry.utils.http import absolute_uri
 from sentry.utils.decorators import classproperty
+from sentry.utils.http import absolute_uri
 
 from .client import JiraApiClient, JiraCloud
 from .utils import build_user_choice

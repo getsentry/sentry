@@ -1,13 +1,13 @@
-import responses
+from urllib.parse import parse_qs
 
+import responses
+from django.urls import reverse
 from exam import fixture
-from django.core.urlresolvers import reverse
+
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-from urllib.parse import parse_qs
-
 from sentry_plugins.pushover.plugin import PushoverPlugin
 
 SUCCESS = """{"status":1,"request":"e460545a8b333d0da2f3602aff3133d6"}"""

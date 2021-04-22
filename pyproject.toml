@@ -7,6 +7,13 @@ build-backend = "setuptools.build_meta"
 line-length=100
 target-version=['py36']
 
+[tool.isort]
+profile = "black"
+line_length = 100
+lines_between_sections = 1
+known_first_party = "sentry"
+skip = "migrations"
+
 [tool.pytest.ini_options]
 # note: When updating the traceback format, make sure to update .github/pytest.json
 # We don't use the celery pytest plugin.
@@ -35,6 +42,11 @@ filterwarnings = [
     # TODO(joshuarli): Upgrade responses, then revisit this.
     #                  It'll probably show up in other dependencies.
     "ignore::DeprecationWarning",
+
+    # At writing, the Google Bigtable Emulator relies on deprecated behavior
+    # internally, this can be removed once a version containing this fix is
+    # released: https://github.com/googleapis/python-bigtable/pull/246
+    "ignore:The `channel` argument is deprecated; use `transport` instead.:PendingDeprecationWarning:google.cloud.bigtable*",
 
     # The following warning filters are for pytest only.
     # This is so we don't have to wrap most datetime objects in testing code

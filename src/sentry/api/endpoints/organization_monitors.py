@@ -7,9 +7,9 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
+from sentry.db.models.query import in_iexact
 from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus, MonitorType
 from sentry.search.utils import tokenize_query
-from sentry.db.models.query import in_iexact
 
 
 def map_value_to_constant(constant, value):

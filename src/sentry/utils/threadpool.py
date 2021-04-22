@@ -1,5 +1,5 @@
-from queue import Queue, Empty
 from collections import defaultdict
+from queue import Empty, Queue
 from threading import Thread
 
 

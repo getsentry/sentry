@@ -1,13 +1,12 @@
+from contextlib import contextmanager
 from uuid import uuid4
 
-from django.core.urlresolvers import reverse
-from contextlib import contextmanager
+from django.urls import reverse
+from sentry_relay import generate_key_pair
 
-from sentry.utils import json
 from sentry.models import Relay
 from sentry.testutils import APITestCase
-
-from sentry_relay import generate_key_pair
+from sentry.utils import json
 
 
 @contextmanager

@@ -1,12 +1,10 @@
 import pytest
 
-from sentry.utils.compat.mock import patch
-
-from sentry.tasks.relay import schedule_update_config_cache
+from sentry.models import ProjectKey, ProjectOption
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
-
-from sentry.models import ProjectKey, ProjectOption
+from sentry.tasks.relay import schedule_update_config_cache
+from sentry.utils.compat.mock import patch
 
 
 def _cache_keys_for_project(project):

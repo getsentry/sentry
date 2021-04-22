@@ -1,13 +1,13 @@
 import logging
 
 from django.contrib import messages
-from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.pipeline import Pipeline
-from sentry.models import Identity, IdentityStatus, IdentityProvider
 
 from . import default_manager
 

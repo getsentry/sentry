@@ -1,8 +1,9 @@
+from urllib.parse import urlencode
+
 from django import template
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.safestring import mark_safe
-from urllib.parse import urlencode
 
 from sentry.models import User, UserAvatar
 from sentry.utils.avatar import get_email_avatar, get_gravatar_url, get_letter_avatar

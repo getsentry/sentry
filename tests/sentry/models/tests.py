@@ -1,19 +1,18 @@
-import pytest
-
 from datetime import timedelta
-from django.core import mail
-from django.core.urlresolvers import reverse
 
+import pytest
+from django.core import mail
 from django.http import HttpRequest
+from django.urls import reverse
 from django.utils import timezone
 from exam import fixture
 
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeIntegrityFailure
-from sentry.models import ProjectKey, LostPasswordHash
-from sentry.testutils import TestCase
 from sentry.eventstore.models import Event
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.models import LostPasswordHash, ProjectKey
+from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class ProjectKeyTest(TestCase):

@@ -4,15 +4,7 @@ const path = require('path');
 const webpack = require('webpack');
 const appConfig = require('../webpack.config');
 
-const staticPath = path.resolve(
-  __dirname,
-  '..',
-  'src',
-  'sentry',
-  'static',
-  'sentry',
-  'app'
-);
+const staticPath = path.resolve(__dirname, '..', 'static', 'app');
 
 /**
  * Default the config parameter that storybook passes into our webpack config
@@ -45,10 +37,6 @@ module.exports = ({config} = {config: emptyConfig}) => {
           ...firstRule,
           test: /\.(mjs|[tj]sx?)$/,
           include: [path.join(__dirname), staticPath, path.join(__dirname, '../docs-ui')],
-        },
-        {
-          test: /\.css$/,
-          use: ['style-loader', 'css-loader'],
         },
         {
           test: /\.less$/,
@@ -86,9 +74,7 @@ module.exports = ({config} = {config: emptyConfig}) => {
         jQuery: 'jquery',
       }),
       new webpack.DefinePlugin({
-        'process.env': {
-          FIXED_DYNAMIC_CONTENT: true,
-        },
+        'process.env.FIXED_DYNAMIC_CONTENT': true,
       }),
     ],
 
@@ -101,6 +87,9 @@ module.exports = ({config} = {config: emptyConfig}) => {
         ...config.resolve.alias,
         ...appConfig.resolve.alias,
         app: staticPath,
+      },
+      fallback: {
+        ...appConfig.resolve.fallback,
       },
     },
   };

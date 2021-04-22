@@ -1,7 +1,7 @@
 from django.conf.urls import url
 
-from sentry.plugins.base.v2 import Plugin2
 from sentry.plugins.base.response import JSONResponse
+from sentry.plugins.base.v2 import Plugin2
 from sentry.testutils import TestCase
 
 
@@ -47,15 +47,14 @@ def test_load_plugin_project_urls():
 
 
 def test_load_plugin_group_urls():
-    from sentry_plugins.clubhouse.plugin import ClubhousePlugin
-    from sentry_plugins.jira.plugin import JiraPlugin
-    from sentry_plugins.github.plugin import GitHubPlugin
-    from sentry_plugins.pivotal.plugin import PivotalPlugin
-    from sentry_plugins.bitbucket.plugin import BitbucketPlugin
-    from sentry_plugins.asana.plugin import AsanaPlugin
-    from sentry_plugins.phabricator.plugin import PhabricatorPlugin
-
     from sentry.plugins.base.group_api_urls import load_plugin_urls
+    from sentry_plugins.asana.plugin import AsanaPlugin
+    from sentry_plugins.bitbucket.plugin import BitbucketPlugin
+    from sentry_plugins.clubhouse.plugin import ClubhousePlugin
+    from sentry_plugins.github.plugin import GitHubPlugin
+    from sentry_plugins.jira.plugin import JiraPlugin
+    from sentry_plugins.phabricator.plugin import PhabricatorPlugin
+    from sentry_plugins.pivotal.plugin import PivotalPlugin
 
     patterns = load_plugin_urls(
         (

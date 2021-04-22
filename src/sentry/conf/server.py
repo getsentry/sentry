@@ -2,21 +2,20 @@
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
 
-from django.conf.global_settings import *  # NOQA
-
 import os
 import os.path
 import re
 import socket
 import sys
 import tempfile
+from datetime import timedelta
+from urllib.parse import urlparse
+
+from django.conf.global_settings import *  # NOQA
 
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
-
-from datetime import timedelta
-from urllib.parse import urlparse
 
 
 def gettext_noop(s):
@@ -331,6 +330,7 @@ INSTALLED_APPS = (
     "django.contrib.sites",
     "crispy_forms",
     "rest_framework",
+    "manifest_loader",
     "sentry",
     "sentry.analytics",
     "sentry.incidents.apps.Config",
@@ -368,6 +368,17 @@ SILENCED_SYSTEM_CHECKS = (
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
+# webpack assets live at a different URL that is unversioned
+# as we configure webpack to include file content based hash in the filename
+STATIC_MANIFEST_URL = "/_static/dist/"
+
+# The webpack output directory, used by django-manifest-loader
+STATICFILES_DIRS = [
+    os.path.join(STATIC_ROOT, "sentry", "dist"),
+]
+
+# django-manifest-loader settings
+MANIFEST_LOADER = {"cache": True}
 
 # various middleware will use this to identify resources which should not access
 # cookies
@@ -398,7 +409,7 @@ CSRF_COOKIE_NAME = "sc"
 
 # Auth configuration
 
-from django.core.urlresolvers import reverse_lazy
+from django.urls import reverse_lazy
 
 LOGIN_REDIRECT_URL = reverse_lazy("sentry-login-redirect")
 LOGIN_URL = reverse_lazy("sentry-login")
@@ -833,12 +844,12 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
-    # Enable android mappings in processing section of settings.
-    "organizations:android-mappings": False,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
+    # Enable unfurling charts using the Chartcuterie service
+    "organizations:chart-unfurls": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -862,7 +873,7 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
-    # Enable the quick trace view on event details and errors
+    # Enable the quick trace view on event details
     "organizations:trace-view-quick": False,
     # Enable the trace view summary
     "organizations:trace-view-summary": False,
@@ -906,10 +917,12 @@ SENTRY_FEATURES = {
     "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable readonly dashboards (dashboards 2)
-    "organizations:dashboards-basic": False,
-    # Enable custom editable dashboards (dashboards 2)
-    "organizations:dashboards-edit": False,
+    # Enable readonly dashboards
+    "organizations:dashboards-basic": True,
+    # Enable custom editable dashboards
+    "organizations:dashboards-edit": True,
+    # Enable dashboards manager.
+    "organizations:dashboards-manage": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -934,19 +947,16 @@ SENTRY_FEATURES = {
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
     "organizations:performance-tag-explorer": False,
-    # Enable the new Project Detail page
-    "organizations:project-detail": False,
-    # Enable links to Project Detail page from all over the app
-    "organizations:project-detail-links": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
-    # Enable the new charts on top of the Releases page
-    "organizations:releases-top-charts": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": False,
+    # Enable option to send alert, workflow, and deploy notifications
+    # to 3rd parties (e.g. Slack) in addition to email
+    "organizations:notification-platform": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on
@@ -960,8 +970,6 @@ SENTRY_FEATURES = {
     "organizations:sso-rippling": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
-    # Enable stack trace preview card on issue row hover
-    "organizations:stacktrace-hover-preview": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
@@ -983,6 +991,8 @@ SENTRY_FEATURES = {
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
     "organizations:alert-wizard": False,
+    # Enable new alert rules + incidents view
+    "organizations:alert-list": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1001,7 +1011,7 @@ SENTRY_FEATURES = {
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
-    "projects:race-free-group-creation": False,
+    "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
     # Enable functionality for sampling of events on projects.
@@ -1261,6 +1271,10 @@ SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
+# Render charts on the backend. This uses the Chartcuterie external service.
+SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
+SENTRY_CHART_RENDERER_OPTIONS = {}
+
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT = None
@@ -1509,9 +1523,9 @@ SENTRY_WATCHERS = (
         "webpack",
         [
             os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            "serve",
             "--color",
-            "--output-pathinfo",
-            "--watch",
+            "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
                     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")
@@ -1739,7 +1753,6 @@ SENTRY_SDK_CONFIG = {
     "release": sentry.__build__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
-    "_experiments": {"smart_transaction_trimming": True},
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
@@ -1948,7 +1961,7 @@ SENTRY_RELAY_WHITELIST_PK = [
 
 # When open registration is not permitted then only relays in the
 # list of explicitly allowed relays can register.
-SENTRY_RELAY_OPEN_REGISTRATION = False
+SENTRY_RELAY_OPEN_REGISTRATION = True
 
 # GeoIP
 # Used for looking up IP addresses.
@@ -2137,6 +2150,12 @@ SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
+# Timeout for the project counter statement execution.
+# In case of contention on the project counter, prevent workers saturation with
+# save_event tasks from single project.
+# Value is in milliseconds. Set to `None` to disable.
+SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
+
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
 
@@ -2144,27 +2163,14 @@ SENTRY_EXTRA_WORKERS = None
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
 
-# if set to true, create demo organizations on-demand instead of using a buffer
-DEMO_NO_ORG_BUFFER = False
-
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
 
 # paramters that determine how demo events are generated
-DEMO_DATA_GEN_PARAMS = {
-    "MAX_DAYS": 7,  # how many days of data
-    "SCALE_FACTOR": 1,  # scales the frequency of events
-    "BASE_OFFSET": 0.5,  # higher values increases the minimum number of events in an hour
-    "NAME_STEP_SIZE": 10,  # higher value means fewer possible test users in sample
-    "BREADCRUMB_LOOKBACK_TIME": 5,  # how far back should breadcrumbs go from the time of the event
-    "DEFAULT_BACKOFF_TIME": 0,  # backoff time between sending events
-    "ERROR_BACKOFF_TIME": 0.5,  # backoff time after a snuba error
-    "NUM_RELEASES": 3,
-}
+DEMO_DATA_GEN_PARAMS = {}
 
 # parameters for an org when quickly generating them synchronously
-DEMO_DATA_QUICK_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()
-DEMO_DATA_QUICK_GEN_PARAMS.update(MAX_DAYS=1, SCALE_FACTOR=0.5, NAME_STEP_SIZE=100)
+DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []

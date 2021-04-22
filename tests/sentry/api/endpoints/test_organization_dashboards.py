@@ -1,8 +1,8 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
-from sentry.utils.compat import zip
 from sentry.models import Dashboard, DashboardTombstone
 from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.utils.compat import zip
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -69,10 +69,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 201
 
     def test_post_features_required(self):
-        response = self.do_request(
-            "post", self.url, data={"title": "Dashboard from Post"}, features=[]
-        )
-        assert response.status_code == 404
+        with self.feature({"organizations:dashboards-basic": False}):
+            response = self.do_request(
+                "post",
+                self.url,
+                data={"title": "Dashboard from Post"},
+            )
+            assert response.status_code == 404
 
     def test_post_with_widgets(self):
         data = {

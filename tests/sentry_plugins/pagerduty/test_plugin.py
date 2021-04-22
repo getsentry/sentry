@@ -1,12 +1,11 @@
 import responses
-
+from django.urls import reverse
 from exam import fixture
-from django.core.urlresolvers import reverse
+
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
 from sentry_plugins.pagerduty.plugin import PagerDutyPlugin
 
 INVALID_METHOD = (

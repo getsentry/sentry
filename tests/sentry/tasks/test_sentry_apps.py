@@ -1,33 +1,33 @@
-import pytest
-
-from celery import Task
 from collections import namedtuple
-from django.core.urlresolvers import reverse
-from sentry.utils.compat.mock import patch
+
+import pytest
+from celery import Task
+from django.urls import reverse
 from requests.exceptions import Timeout
 
+from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.models import Rule, SentryApp, SentryAppInstallation
-from sentry.testutils import TestCase
-from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.faux import faux
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.utils.http import absolute_uri
 from sentry.receivers.sentry_apps import *  # NOQA
-from sentry.utils import json
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
-from sentry.tasks.post_process import post_process_group
-from sentry.api.serializers import serialize
 from sentry.shared_integrations.exceptions import ClientError, IgnorableSentryAppError
+from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
-    send_alert_event,
+    installation_webhook,
     notify_sentry_app,
     process_resource_change_bound,
-    installation_webhook,
-    workflow_notification,
+    send_alert_event,
     send_webhooks,
+    workflow_notification,
 )
+from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.faux import faux
+from sentry.utils import json
+from sentry.utils.compat.mock import patch
+from sentry.utils.http import absolute_uri
+from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 
 def raiseStatuseFalse():

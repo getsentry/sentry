@@ -1,17 +1,18 @@
-from urllib.parse import parse_qsl
-from django.core.urlresolvers import reverse
-from django.db.models import F
 from datetime import timedelta
+from urllib.parse import parse_qsl
+
+from django.db.models import F
+from django.urls import reverse
 
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
     Authenticator,
+    AuthProvider,
     InviteStatus,
     Organization,
     OrganizationMember,
-    AuthProvider,
 )
 from sentry.testutils import TestCase
 

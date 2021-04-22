@@ -1,7 +1,8 @@
 import logging
+
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_text
 
@@ -16,7 +17,7 @@ from sentry.db.models import (
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .base import ExportQueryType, ExportStatus, DEFAULT_EXPIRATION
+from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 
 logger = logging.getLogger(__name__)
 

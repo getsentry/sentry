@@ -1,12 +1,12 @@
 import zipfile
-from uuid import uuid4
 from io import BytesIO
+from uuid import uuid4
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
+from sentry.models import File, ProjectDebugFile, Release, ReleaseFile
 from sentry.testutils import APITestCase
-from sentry.models import ProjectDebugFile, Release, ReleaseFile, File
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs

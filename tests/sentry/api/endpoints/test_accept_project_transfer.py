@@ -1,10 +1,11 @@
-from uuid import uuid4
 from urllib.parse import urlencode
-from django.core.urlresolvers import reverse
-from sentry.utils.signing import sign
-from sentry.models import Project
+from uuid import uuid4
 
+from django.urls import reverse
+
+from sentry.models import Project
 from sentry.testutils import APITestCase, PermissionTestCase
+from sentry.utils.signing import sign
 
 
 class AcceptTransferProjectPermissionTest(PermissionTestCase):

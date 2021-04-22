@@ -1,4 +1,6 @@
-from django.core.urlresolvers import reverse
+from typing import List, Optional
+
+from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
@@ -25,6 +27,14 @@ class SentryAPIException(APIException):
             }
 
         self.detail = {"detail": detail}
+
+
+class ParameterValidationError(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "parameter-validation-error"
+
+    def __init__(self, message: str, context: Optional[List[str]] = None) -> None:
+        super().__init__(message=message, context=".".join(context))
 
 
 class ProjectMoved(SentryAPIException):

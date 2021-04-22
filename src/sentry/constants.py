@@ -5,16 +5,15 @@ web-server
 
 import logging
 import os.path
+from collections import OrderedDict, namedtuple
 from datetime import timedelta
 
-from collections import OrderedDict, namedtuple
+import sentry_relay
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.utils.integrationdocs import load_doc
 from sentry.utils.geo import rust_geoip
-
-import sentry_relay
+from sentry.utils.integrationdocs import load_doc
 
 
 def get_all_languages():
@@ -75,7 +74,7 @@ SENTRY_APP_SLUG_MAX_LENGTH = 64
 MAX_ROLLUP_POINTS = 10000
 
 
-# Team slugs which may not be used. Generally these are top level URL patterns
+# Organization slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
 RESERVED_ORGANIZATION_SLUGS = frozenset(
     (

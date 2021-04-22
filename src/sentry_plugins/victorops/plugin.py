@@ -1,9 +1,8 @@
-from sentry.plugins.bases.notify import NotifyPlugin
-
-from sentry_plugins.base import CorePluginMixin
-from sentry.shared_integrations.exceptions import ApiError
-from sentry_plugins.utils import get_secret_field_config
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.notify import NotifyPlugin
+from sentry.shared_integrations.exceptions import ApiError
+from sentry_plugins.base import CorePluginMixin
+from sentry_plugins.utils import get_secret_field_config
 
 from .client import VictorOpsClient
 

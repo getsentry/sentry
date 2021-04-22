@@ -1,8 +1,8 @@
-from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
+from django.urls import reverse
 
-from tests.apidocs.util import APIDocsTestCase
 from sentry.models import EventUser
+from tests.apidocs.util import APIDocsTestCase
 
 
 class ProjectUsersDocs(APIDocsTestCase):

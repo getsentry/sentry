@@ -1,11 +1,10 @@
-import re
 import posixpath
+import re
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy, produces_variants
-from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, has_url_origin
-from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder, ident_encoder
-
+from sentry.grouping.strategies.base import produces_variants, strategy
+from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
+from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 
 _ruby_anon_func = re.compile(r"_\d{2,}")
 _filename_version_re = re.compile(
@@ -428,7 +427,7 @@ def stacktrace_legacy(stacktrace, context, **meta):
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
-    rv = context.config.enhancements.assemble_stacktrace_component(
+    rv, _ = context.config.enhancements.assemble_stacktrace_component(
         values, frames_for_filtering, meta["event"].platform
     )
     rv.update(contributes=contributes, hint=hint)

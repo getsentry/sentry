@@ -2,23 +2,22 @@ from urllib.parse import urlparse
 
 from django.forms.utils import ErrorList
 from django.http import HttpResponse
+from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from django.core.urlresolvers import reverse
-from django.utils.decorators import method_decorator
+from jwt.exceptions import ExpiredSignatureError
 
 from sentry import options
-from sentry.utils import json
 from sentry.models import Organization
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.web.helpers import render_to_response
-
-from sentry_plugins.jira_ac.forms import JiraConfigForm
-from sentry_plugins.jira_ac.models import JiraTenant
-from sentry_plugins.jira_ac.utils import get_jira_auth_from_request, ApiError
-from jwt.exceptions import ExpiredSignatureError
 from sentry.utils.sdk import bind_organization_context, configure_scope
 from sentry.web.decorators import transaction_start
+from sentry.web.helpers import render_to_response
+from sentry_plugins.jira_ac.forms import JiraConfigForm
+from sentry_plugins.jira_ac.models import JiraTenant
+from sentry_plugins.jira_ac.utils import ApiError, get_jira_auth_from_request
 
 JIRA_KEY = f"{urlparse(absolute_uri()).hostname}.jira_ac"
 

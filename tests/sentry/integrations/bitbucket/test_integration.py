@@ -1,11 +1,10 @@
-import responses
+from urllib.parse import quote, urlencode
 
-from django.core.urlresolvers import reverse
+import responses
+from django.urls import reverse
 
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-
-from urllib.parse import quote
 
 
 class BitbucketIntegrationTest(APITestCase):
@@ -45,15 +44,17 @@ class BitbucketIntegrationTest(APITestCase):
 
     @responses.activate
     def test_get_repositories_exact_match(self):
+        querystring = urlencode({"q": 'name="stuf"'})
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/sentryuser?name=stuf",
+            f"https://api.bitbucket.org/2.0/repositories/sentryuser?{querystring}",
             json={"values": [{"full_name": "sentryuser/stuf"}]},
         )
 
+        querystring = urlencode({"q": 'name~"stuf"'})
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/sentryuser?name~stuf",
+            f"https://api.bitbucket.org/2.0/repositories/sentryuser?{querystring}",
             json={
                 "values": [
                     {"full_name": "sentryuser/stuff"},
@@ -91,9 +92,10 @@ class BitbucketIntegrationTest(APITestCase):
 
     @responses.activate
     def test_get_repositories_no_exact_match(self):
+        querystring = urlencode({"q": 'name~"stu"'})
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/sentryuser?name~stuf",
+            f"https://api.bitbucket.org/2.0/repositories/sentryuser?{querystring}",
             json={
                 "values": [
                     {"full_name": "sentryuser/stuff"},
@@ -112,9 +114,10 @@ class BitbucketIntegrationTest(APITestCase):
             },
         )
 
+        querystring = urlencode({"q": 'name="stu"'})
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/sentryuser?name=stuf",
+            f"https://api.bitbucket.org/2.0/repositories/sentryuser?{querystring}",
             json={"values": []},
         )
 

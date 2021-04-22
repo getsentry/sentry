@@ -1,25 +1,18 @@
-import pytest
 import base64
-from sentry.utils.compat import mock
-from exam import fixture
-from urllib.parse import urlencode, urlparse, parse_qs
+from urllib.parse import parse_qs, urlencode, urlparse
 
+import pytest
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db import models
+from django.urls import reverse
+from exam import fixture
 
 from sentry.auth.authenticators import TotpInterface
-from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes, HAS_SAML2
-from sentry.models import (
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    AuthProvider,
-    Organization,
-)
+from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Provider
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, AuthProvider, Organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
-from sentry.utils.compat import map
-
+from sentry.utils.compat import map, mock
 
 dummy_provider_config = {
     "idp": {

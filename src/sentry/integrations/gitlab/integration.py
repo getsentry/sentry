@@ -1,23 +1,24 @@
 from urllib.parse import urlparse
-from django.utils.translation import ugettext_lazy as _
-from django import forms
 
-from sentry.web.helpers import render_to_response
-from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.gitlab import get_user_info, get_oauth_data
+from django import forms
+from django.utils.translation import ugettext_lazy as _
+
+from sentry.identity.gitlab import get_oauth_data, get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
+from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
     FeatureDescription,
-    IntegrationInstallation,
     IntegrationFeatures,
-    IntegrationProvider,
+    IntegrationInstallation,
     IntegrationMetadata,
+    IntegrationProvider,
 )
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.utils.http import absolute_uri
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.http import absolute_uri
+from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupClient
 from .issues import GitlabIssueBasic
@@ -89,6 +90,19 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
             self.default_identity = self.get_default_identity()
 
         return GitLabApiClient(self)
+
+    def get_codeowner_file(self, repo, ref=None):
+        filepath_options = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
+        for filepath in filepath_options:
+            try:
+                contents = self.get_client().get_file(repo, filepath, ref)
+            except ApiError:
+                continue
+
+            html_url = self.format_source_url(repo, filepath, ref)
+            return {"filepath": filepath, "html_url": html_url, "raw": contents}
+
+        return None
 
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else

@@ -1,8 +1,8 @@
-from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
-from sentry.incidents.models import IncidentActivityType
-
 import pytest
 from django.utils.functional import cached_property
+
+from sentry.incidents.models import IncidentActivityType
+from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -297,15 +297,14 @@ class Fixtures:
         if not user:
             user = self.user
         if not organization:
-            organization = self.organization
+            organization = self.organization  # Force creation.
 
-        organizationmember = OrganizationMember.objects.get(user=user, organization=organization)
-        return Factories.create_external_user(organizationmember=organizationmember, **kwargs)
+        return Factories.create_external_user(user=user, organization=organization, **kwargs)
 
     def create_external_team(self, team=None, **kwargs):
         if not team:
             team = self.team
-        return Factories.create_external_team(team=team, **kwargs)
+        return Factories.create_external_team(team=team, organization=team.organization, **kwargs)
 
     def create_codeowners(self, project=None, code_mapping=None, **kwargs):
         if not project:

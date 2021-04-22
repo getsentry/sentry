@@ -1,4 +1,5 @@
 from django.utils.functional import empty
+
 from sentry.utils.compat import zip
 
 
@@ -56,3 +57,19 @@ def compact(seq):
 
     elif isinstance(seq, list):
         return [k for k in seq if k is not None]
+
+
+def cached(cache, function, *args, **kwargs):
+    """Calls ``function`` or retrieves its return value from the ``cache``.
+
+    This is similar to ``functools.cache``, but uses a custom cache instead
+    of a global one. The cache can be shared between multiple functions.
+    """
+    key = (function, args, tuple(sorted(kwargs.items())))
+
+    if key in cache:
+        rv = cache[key]
+    else:
+        rv = cache[key] = function(*args)
+
+    return rv

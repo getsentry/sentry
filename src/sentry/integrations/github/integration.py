@@ -1,28 +1,27 @@
 import re
+
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import http, options
-
 from sentry.integrations import (
-    IntegrationInstallation,
-    IntegrationFeatures,
-    IntegrationProvider,
-    IntegrationMetadata,
     FeatureDescription,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
 )
-from sentry.shared_integrations.exceptions import ApiError
-from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.models import Repository
 from sentry.pipeline import PipelineView
+from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
 
 from .client import GitHubAppsClient
 from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
 from .utils import get_jwt
-
 
 DESCRIPTION = """
 Connect your Sentry organization into your GitHub organization or user account.
@@ -63,7 +62,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=GitHub%Integration%20Problem",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=GitHub%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github",
     aspects={},
 )
@@ -86,6 +85,20 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
     def get_client(self):
         return GitHubAppsClient(integration=self.model)
+
+    def get_codeowner_file(self, repo, ref=None):
+        try:
+            files = self.get_client().search_file(repo.name, "CODEOWNERS")
+            for f in files["items"]:
+                if f["name"] == "CODEOWNERS":
+                    filepath = f["path"]
+                    html_url = f["html_url"]
+                    contents = self.get_client().get_file(repo.name, filepath)
+                    return {"filepath": filepath, "html_url": html_url, "raw": contents}
+        except ApiError:
+            return None
+
+        return None
 
     def get_repositories(self, query=None):
         if not query:

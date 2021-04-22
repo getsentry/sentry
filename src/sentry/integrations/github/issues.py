@@ -1,6 +1,7 @@
-from django.core.urlresolvers import reverse
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from django.urls import reverse
+
 from sentry.integrations.issues import IssueBasicMixin
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
 

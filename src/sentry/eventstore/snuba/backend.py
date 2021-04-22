@@ -1,6 +1,7 @@
+import logging
 from copy import deepcopy
 from datetime import timedelta
-import logging
+
 import sentry_sdk
 
 from sentry.eventstore.base import EventStorage

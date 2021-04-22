@@ -1,24 +1,24 @@
-import os
 import mmap
+import os
 import tempfile
 import time
-
-from hashlib import sha1
-from uuid import uuid4
-from threading import Semaphore
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from hashlib import sha1
+from threading import Semaphore
+from uuid import uuid4
 
 from django.conf import settings
-from django.core.files.base import File as FileObj
 from django.core.files.base import ContentFile
+from django.core.files.base import File as FileObj
 from django.core.files.storage import get_storage_class
-from django.db import models, transaction, IntegrityError
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 from sentry.app import locks
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, JSONField, Model
-from sentry.tasks.files import delete_file as delete_file_task, delete_unreferenced_blobs
+from sentry.tasks.files import delete_file as delete_file_task
+from sentry.tasks.files import delete_unreferenced_blobs
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -77,11 +77,16 @@ class AssembleChecksumMismatch(Exception):
     pass
 
 
-def get_storage():
-    from sentry import options
+def get_storage(config=None):
 
-    backend = options.get("filestore.backend")
-    options = options.get("filestore.options")
+    if config is not None:
+        backend = config["backend"]
+        options = config["options"]
+    else:
+        from sentry import options as options_store
+
+        backend = options_store.get("filestore.backend")
+        options = options_store.get("filestore.options")
 
     try:
         backend = settings.SENTRY_FILESTORE_ALIASES[backend]
@@ -258,13 +263,13 @@ class FileBlob(Model):
         return "/".join(pieces)
 
     def delete(self, *args, **kwargs):
+        if self.path:
+            self.deletefile(commit=False)
         lock = locks.get(f"fileblob:upload:{self.checksum}", duration=UPLOAD_RETRY_TIME)
         with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.delete")(
             lock.acquire
         ):
             super().delete(*args, **kwargs)
-        if self.path:
-            self.deletefile(commit=False)
 
     def deletefile(self, commit=False):
         assert self.path

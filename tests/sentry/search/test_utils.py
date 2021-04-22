@@ -1,6 +1,6 @@
-import pytest
-from sentry.utils.compat import mock
 from datetime import datetime, timedelta
+
+import pytest
 from django.utils import timezone
 
 from sentry.models import (
@@ -12,16 +12,17 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.testutils import TestCase
 from sentry.search.base import ANY
 from sentry.search.utils import (
-    parse_query,
+    InvalidQuery,
+    convert_user_tag_to_query,
     get_latest_release,
     get_numeric_field_value,
-    convert_user_tag_to_query,
+    parse_query,
     tokenize_query,
-    InvalidQuery,
 )
+from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 def test_get_numeric_field_value():
@@ -63,6 +64,11 @@ def test_tokenize_query_only_keyed_fields():
         (
             "((x y)) a():>a AND (!b:b OR c():<c) z)",
             {"a()": [">a"], "!b": ["b"], "c()": ["<c"], "query": ["x", "y", "z"]},
+        ),
+        ('a:"\\"a\\""', {"a": ['\\"a\\"']}),
+        (
+            'a:"i \\" quote" b:"b\\"bb" c:"cc"',
+            {"a": ['i \\" quote'], "b": ['b\\"bb'], "c": ["cc"]},
         ),
     ]
 
@@ -290,6 +296,10 @@ class ParseQueryTest(TestCase):
     def test_assigned_me_or_none(self):
         result = self.parse_query("assigned:me_or_none")
         assert result == {"assigned_to": ["me_or_none", self.user], "tags": {}, "query": ""}
+
+    def test_assigned_none(self):
+        result = self.parse_query("assigned:none")
+        assert result == {"assigned_to": None, "tags": {}, "query": ""}
 
     def test_assigned_email(self):
         result = self.parse_query(f"assigned:{self.user.email}")
@@ -526,6 +536,14 @@ class ParseQueryTest(TestCase):
         result = self.parse_query("assigned_or_suggested:me_or_none")
         assert result == {
             "assigned_or_suggested": ["me_or_none", self.user],
+            "tags": {},
+            "query": "",
+        }
+
+    def test_assigned_or_suggested_none(self):
+        result = self.parse_query("assigned_or_suggested:none")
+        assert result == {
+            "assigned_or_suggested": None,
             "tags": {},
             "query": "",
         }

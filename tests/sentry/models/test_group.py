@@ -13,7 +13,7 @@ from sentry.models import (
     get_group_with_redirect,
 )
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class GroupTest(TestCase, SnubaTestCase):
@@ -164,9 +164,36 @@ class GroupTest(TestCase, SnubaTestCase):
 
         assert group2 == group
 
+        with self.assertRaises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id(
+                group.organization.id, "server_name:my-server-with-dashes-0ac14dadda3b428cf"
+            )
+
         group.update(status=GroupStatus.PENDING_DELETION)
         with self.assertRaises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id(group.organization.id, short_id)
+
+    def test_qualified_share_id_bulk(self):
+        project = self.create_project(name="foo bar")
+        group = self.create_group(project=project, short_id=project.next_short_id())
+        group_2 = self.create_group(project=project, short_id=project.next_short_id())
+        group_short_id = group.qualified_short_id
+        group_2_short_id = group_2.qualified_short_id
+        assert [group] == Group.objects.by_qualified_short_id_bulk(
+            group.organization.id, [group_short_id]
+        )
+        assert {group, group_2} == set(
+            Group.objects.by_qualified_short_id_bulk(
+                group.organization.id,
+                [group_short_id, group_2_short_id],
+            )
+        )
+
+        group.update(status=GroupStatus.PENDING_DELETION)
+        with self.assertRaises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id_bulk(
+                group.organization.id, [group_short_id, group_2_short_id]
+            )
 
     def test_first_last_release(self):
         project = self.create_project()

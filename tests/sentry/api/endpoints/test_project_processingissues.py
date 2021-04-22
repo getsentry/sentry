@@ -1,8 +1,9 @@
 from datetime import datetime
-from django.utils import timezone
-from django.core.urlresolvers import reverse
 
-from sentry.models import ProcessingIssue, EventError, RawEvent, EventProcessingIssue
+from django.urls import reverse
+from django.utils import timezone
+
+from sentry.models import EventError, EventProcessingIssue, ProcessingIssue, RawEvent
 from sentry.testutils import APITestCase
 
 

@@ -1,47 +1,37 @@
-from django.utils.encoding import force_text, force_bytes
+from django.utils.encoding import force_bytes, force_text
 
 __all__ = ["JavaScriptStacktraceProcessor"]
 
+import base64
 import errno
 import logging
 import re
 import sys
-import base64
 import zlib
-
-from django.conf import settings
 from os.path import splitext
-from requests.utils import get_encoding_from_headers
 from urllib.parse import urlsplit
-from symbolic import SourceMapView
+
 import sentry_sdk
-
-# In case SSL is unavailable (light builds) we can't import this here.
-try:
-    from OpenSSL.SSL import ZeroReturnError
-except ImportError:
-
-    class ZeroReturnError(Exception):
-        pass
-
+from django.conf import settings
+from requests.utils import get_encoding_from_headers
+from symbolic import SourceMapView
 
 from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import EventError, ReleaseFile, Organization
+from sentry.models import EventError, Organization, ReleaseFile
+from sentry.stacktraces.processing import StacktraceProcessor
+from sentry.utils import metrics
 
 # separate from either the source cache or the source maps cache, this is for
 # holding the results of attempting to fetch both kinds of files, either from the
 # database or from the internet
 from sentry.utils.cache import cache
-
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
-from sentry.utils.safe import get_path
-from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
-from sentry.stacktraces.processing import StacktraceProcessor
 
 from .cache import SourceCache, SourceMapCache
 
@@ -415,6 +405,18 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
                 (url, result.headers, z_body, result.status, result.encoding),
                 get_max_age(result.headers),
             )
+
+            # since the cache.set above can fail we can end up in a situation
+            # where the file is too large for the cache. In that case we abort
+            # the fetch and cache a failure and lock the domain for future
+            # http fetches.
+            if cache.get(cache_key) is None:
+                error = {
+                    "type": EventError.TOO_LARGE_FOR_CACHE,
+                    "url": http.expose_url(url),
+                }
+                http.lock_domain(url, error=error)
+                raise http.CannotFetch(error)
 
     # If we did not get a 200 OK we just raise a cannot fetch here.
     if result.status != 200:

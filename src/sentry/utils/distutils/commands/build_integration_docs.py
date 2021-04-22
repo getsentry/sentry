@@ -1,5 +1,4 @@
 import os.path
-
 from distutils import log
 
 from .base import BaseBuildCommand

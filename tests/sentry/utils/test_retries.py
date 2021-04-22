@@ -1,8 +1,9 @@
-import pytest
-from sentry.utils.compat import mock
-
 from unittest import TestCase
-from sentry.utils.retries import ConditionalRetryPolicy, TimedRetryPolicy, RetryException
+
+import pytest
+
+from sentry.utils.compat import mock
+from sentry.utils.retries import ConditionalRetryPolicy, RetryException, TimedRetryPolicy
 
 
 class ConditionalRetryPolicyTestCase(TestCase):

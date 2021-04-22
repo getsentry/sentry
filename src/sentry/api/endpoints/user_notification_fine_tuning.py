@@ -5,19 +5,13 @@ from rest_framework.response import Response
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserNotificationsSerializer
-from sentry.models import (
-    NotificationSetting,
-    Project,
-    UserOption,
-    UserEmail,
-)
-from sentry.models.integration import ExternalProviders
+from sentry.models import NotificationSetting, Project, UserEmail, UserOption
 from sentry.notifications.legacy_mappings import (
     get_option_value_from_int,
     get_type_from_fine_tuning_key,
 )
 from sentry.notifications.types import FineTuningAPIKey
-
+from sentry.types.integrations import ExternalProviders
 
 INVALID_EMAIL_MSG = (
     "Invalid email value(s) provided. Email values must be verified emails for the given user."
@@ -38,13 +32,14 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             )
 
         notifications = UserNotificationsSerializer()
-        serialized = serialize(
-            user,
-            request.user,
-            notifications,
-            notification_type=notification_type,
+        return Response(
+            serialize(
+                user,
+                request.user,
+                notifications,
+                notification_type=notification_type,
+            )
         )
-        return Response(serialized)
 
     def put(self, request, user, notification_type):
         """

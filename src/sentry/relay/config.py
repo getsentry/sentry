@@ -1,25 +1,24 @@
 import uuid
+from datetime import datetime
 
+from pytz import utc
 from sentry_sdk import Hub
 
-from datetime import datetime
-from pytz import utc
-
-from sentry import quotas, utils, features
+from sentry import features, quotas, utils
 from sentry.constants import ObjectStatus
+from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.grouping.api import get_grouping_config_dict_for_project
-from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.ingest.inbound_filters import (
-    get_all_filter_specs,
-    FilterTypes,
     FilterStatKeys,
+    FilterTypes,
+    get_all_filter_specs,
     get_filter_key,
 )
+from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
+from sentry.models.projectkey import ProjectKeyStatus
+from sentry.relay.utils import to_camel_case_name
 from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
-from sentry.relay.utils import to_camel_case_name
-from sentry.datascrubbing import get_pii_config, get_datascrubbing_settings
-from sentry.models.projectkey import ProjectKeyStatus
 
 
 def get_project_key_config(project_key):
@@ -137,6 +136,11 @@ def get_project_config(project, full_config=True, project_keys=None):
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
         if dynamic_sampling is not None:
             cfg["config"]["dynamicSampling"] = dynamic_sampling
+
+    if features.has("organizations:performance-ops-breakdown", project.organization):
+        breakdowns_config = project.get_option("sentry:breakdowns")
+        if breakdowns_config is not None:
+            cfg["config"]["breakdowns"] = breakdowns_config
 
     if not full_config:
         # This is all we need for external Relay processors

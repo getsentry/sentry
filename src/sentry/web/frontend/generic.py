@@ -3,8 +3,8 @@ import posixpath
 from urllib.parse import unquote
 
 from django.conf import settings
-from django.http import HttpResponseNotFound, Http404
 from django.contrib.staticfiles import finders
+from django.http import Http404, HttpResponseNotFound
 from django.views import static
 
 FOREVER_CACHE = "max-age=315360000"
@@ -31,6 +31,23 @@ def resolve(path):
     if path[-1] == "/" or os.path.isdir(absolute_path):
         raise Http404("Directory indexes are not allowed here.")
     return os.path.split(absolute_path)
+
+
+def static_media_with_manifest(request, **kwargs):
+    """
+    Serve static files that are generated with webpack.
+
+    Only these assets should have a long TTL as its filename has a hash based on file contents
+    """
+    path = kwargs.get("path", "")
+
+    kwargs["path"] = f"dist/{path}"
+    response = static_media(request, **kwargs)
+
+    if not settings.DEBUG:
+        response["Cache-Control"] = FOREVER_CACHE
+
+    return response
 
 
 def static_media(request, **kwargs):

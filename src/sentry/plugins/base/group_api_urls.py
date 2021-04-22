@@ -1,7 +1,13 @@
 import logging
 import re
 
-from django.conf.urls import include, url, RegexURLResolver, RegexURLPattern
+from django.conf.urls import include, url
+
+try:
+    from django.urls import URLPattern, URLResolver
+except ImportError:
+    # TODO(django22): Remove once we've upgraded
+    from django.conf.urls import RegexURLPattern as URLPattern, RegexURLResolver as URLResolver
 
 from sentry.plugins.base import plugins
 
@@ -18,10 +24,11 @@ def load_plugin_urls(plugins):
             # a plugin's get_group_urls should return an iterable of url()'s,
             # which can either be RegexURLResolver or RegexURLPattern
             for u in urls:
-                if not isinstance(u, (RegexURLResolver, RegexURLPattern)):
+                if not isinstance(u, (URLResolver, URLPattern)):
                     raise TypeError(
-                        "url must be RegexURLResolver or RegexURLPattern, not %r: %r"
-                        % (type(u).__name__, u)
+                        "url must be URLResolver or URLPattern, not {!r}: {!r}".format(
+                            type(u).__name__, u
+                        )
                     )
         except Exception:
             logger.exception("routes.failed", extra={"plugin": type(plugin).__name__})

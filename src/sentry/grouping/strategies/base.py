@@ -1,8 +1,9 @@
 import inspect
 
+import sentry_sdk
+
 from sentry import projectoptions
 from sentry.grouping.enhancer import Enhancements
-
 
 STRATEGIES = {}
 
@@ -10,6 +11,8 @@ STRATEGIES = {}
 RISK_LEVEL_LOW = 0
 RISK_LEVEL_MEDIUM = 1
 RISK_LEVEL_HIGH = 2
+
+DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
 
 
 def strategy(id=None, ids=None, interfaces=None, name=None, score=None):
@@ -76,7 +79,10 @@ class GroupingContext:
             raise RuntimeError(f"failed to dispatch interface {path} to strategy")
 
         kwargs["context"] = self
-        rv = strategy(interface, *args, **kwargs)
+        with sentry_sdk.start_span(
+            op="sentry.grouping.GroupingContext.get_grouping_component", description=path
+        ):
+            rv = strategy(interface, *args, **kwargs)
         assert isinstance(rv, dict)
 
         if self["variant"] is not None:
@@ -225,6 +231,8 @@ class StrategyConfiguration:
     changelog = None
     hidden = False
     risk = RISK_LEVEL_LOW
+    initial_context = {}
+    enhancements_base: str = DEFAULT_GROUPING_ENHANCEMENTS_BASE
 
     def __init__(self, enhancements=None, **extra):
         if enhancements is None:
@@ -266,6 +274,7 @@ def create_strategy_configuration(
     base=None,
     risk=None,
     initial_context=None,
+    enhancements_base=None,
 ):
     """Declares a new strategy configuration.
 
@@ -285,6 +294,7 @@ def create_strategy_configuration(
     NewStrategyConfiguration.strategies = dict(base.strategies) if base else {}
     NewStrategyConfiguration.delegates = dict(base.delegates) if base else {}
     NewStrategyConfiguration.initial_context = dict(base.initial_context) if base else {}
+    NewStrategyConfiguration.enhancements_base = base.enhancements_base if base else None
     if risk is None:
         risk = RISK_LEVEL_LOW
     NewStrategyConfiguration.risk = risk
@@ -316,6 +326,9 @@ def create_strategy_configuration(
 
     if initial_context:
         NewStrategyConfiguration.initial_context.update(initial_context)
+
+    if enhancements_base:
+        NewStrategyConfiguration.enhancements_base = enhancements_base
 
     NewStrategyConfiguration.changelog = inspect.cleandoc(changelog or "")
     NewStrategyConfiguration.__name__ = "StrategyConfiguration(%s)" % id

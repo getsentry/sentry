@@ -1,8 +1,9 @@
 import re
 
-from django.core.urlresolvers import reverse
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError, ApiUnauthorized
+from django.urls import reverse
+
 from sentry.integrations.issues import IssueBasicMixin
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.utils.http import absolute_uri
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")

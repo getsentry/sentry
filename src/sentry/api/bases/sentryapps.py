@@ -1,5 +1,6 @@
-from django.http import Http404
 from functools import wraps
+
+from django.http import Http404
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -10,7 +11,7 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
-from sentry.models import SentryApp, SentryAppInstallation, Organization
+from sentry.models import Organization, SentryApp, SentryAppInstallation
 from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
 
@@ -72,7 +73,7 @@ class SentryAppsPermission(SentryPermission):
             "member:read",
             "team:read",
         ),
-        "POST": ("org:read", "org:integrations", "org:write", "org:admin"),
+        "POST": ("org:write", "org:admin"),
     }
 
     def has_object_permission(self, request, view, organization):
@@ -167,7 +168,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 class SentryAppPermission(SentryPermission):
     unpublished_scope_map = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
-        "PUT": ("org:read", "org:integrations", "org:write", "org:admin"),
+        "PUT": ("org:write", "org:admin"),
         "POST": ("org:write", "org:admin"),  # used for publishing an app
         "DELETE": ("org:write", "org:admin"),
     }
@@ -378,8 +379,8 @@ class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
 
 class SentryInternalAppTokenPermission(SentryPermission):
     scope_map = {
-        "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
-        "POST": ("org:read", "org:integrations", "org:write", "org:admin"),
+        "GET": ("org:write", "org:admin"),
+        "POST": ("org:write", "org:admin"),
         "DELETE": ("org:write", "org:admin"),
     }
 

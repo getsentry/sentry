@@ -1,24 +1,23 @@
 from base64 import b64encode
-from django.core.urlresolvers import reverse
+
+from django.urls import reverse
 
 from sentry.models import ApiKey, ApiToken
 from sentry.testutils import APITestCase
 
 
 class ApiIndexTest(APITestCase):
+    endpoint = "sentry-api-index"
+
     def test_anonymous(self):
-        url = reverse("sentry-api-index")
-        response = self.client.get(url)
-        assert response.status_code == 200
+        response = self.get_success_response()
         assert response.data["version"] == "0"
         assert not response.data["user"]
         assert not response.data["auth"]
 
     def test_session_auth(self):
         self.login_as(user=self.user)
-        url = reverse("sentry-api-index")
-        response = self.client.get(url)
-        assert response.status_code == 200
+        response = self.get_success_response()
         assert response.data["version"] == "0"
         assert response.data["user"]["id"] == str(self.user.id)
         assert not response.data["auth"]

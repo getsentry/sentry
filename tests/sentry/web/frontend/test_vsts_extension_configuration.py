@@ -1,8 +1,9 @@
 from urllib.parse import parse_qsl, urlparse
-from django.core.urlresolvers import reverse
 
-from sentry.testutils import TestCase
+from django.urls import reverse
+
 from sentry.models import OrganizationMember
+from sentry.testutils import TestCase
 
 
 class VstsExtensionConfigurationTest(TestCase):

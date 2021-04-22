@@ -5,21 +5,21 @@ import pytest
 import responses
 from django.utils import timezone
 from exam import patcher
-from sentry.utils.compat.mock import Mock, patch
 
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
+    SUBSCRIPTION_STATUS_MAX_AGE,
     apply_dataset_query_conditions,
     build_snuba_filter,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
-    update_subscription_in_snuba,
     subscription_checker,
-    SUBSCRIPTION_STATUS_MAX_AGE,
+    update_subscription_in_snuba,
 )
-from sentry.utils.snuba import _snuba_pool
-from sentry.utils import json
 from sentry.testutils import TestCase
+from sentry.utils import json
+from sentry.utils.compat.mock import Mock, patch
+from sentry.utils.snuba import _snuba_pool
 
 
 class BaseSnubaTaskTest(metaclass=abc.ABCMeta):

@@ -1,7 +1,7 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
+
 from sentry.integrations.issues import IssueBasicMixin
 from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
-
 
 ISSUE_TYPES = (
     ("bug", "Bug"),

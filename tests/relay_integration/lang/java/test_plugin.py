@@ -1,8 +1,8 @@
 import zipfile
 from io import BytesIO
 
-from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
 
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

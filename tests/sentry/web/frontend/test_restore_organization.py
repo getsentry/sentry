@@ -1,7 +1,7 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import Organization, OrganizationStatus
-from sentry.testutils import TestCase, PermissionTestCase
+from sentry.testutils import PermissionTestCase, TestCase
 
 
 class RestoreOrganizationPermissionTest(PermissionTestCase):

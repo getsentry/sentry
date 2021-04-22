@@ -1,5 +1,6 @@
-import psycopg2
 import traceback
+
+import psycopg2
 
 
 class CompositeTraceback:

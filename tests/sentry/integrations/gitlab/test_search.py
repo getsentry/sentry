@@ -1,7 +1,7 @@
-import responses
-
-from django.core.urlresolvers import reverse
 from urllib.parse import parse_qs
+
+import responses
+from django.urls import reverse
 
 from sentry.utils import json
 
@@ -46,7 +46,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_external_issue_results_with_iid(self):
         responses.add(
             responses.GET,
-            "https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=25",
+            "https://example.gitlab.com/api/v4/projects/5/issues?scope=all&iids=25",
             json=[{"iid": 25, "title": "AEIOU Error", "project_id": "5"}],
         )
         resp = self.client.get(
@@ -60,7 +60,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_project_results(self):
         responses.add(
             responses.GET,
-            "https://example.gitlab.com/api/v4/groups/1/projects?query=GetSentry&simple=True",
+            "https://example.gitlab.com/api/v4/groups/1/projects?search=GetSentry&simple=True&include_subgroups=False&page=1&per_page=100",
             json=[
                 {
                     "id": "1",
@@ -136,7 +136,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_no_external_issues_results_iid(self):
         responses.add(
             responses.GET,
-            "https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=11",
+            "https://example.gitlab.com/api/v4/projects/5/issues?scope=all&iids=11",
             json=[],
         )
         resp = self.client.get(
@@ -150,7 +150,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_no_project_results(self):
         responses.add(
             responses.GET,
-            "https://example.gitlab.com/api/v4/groups/1/projects?query=GetSentry&simple=True",
+            "https://example.gitlab.com/api/v4/groups/1/projects?search=GetSentry&simple=True&include_subgroups=False&page=1&per_page=100",
             json=[],
         )
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})

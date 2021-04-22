@@ -1,10 +1,10 @@
+import logging
 import os
+import time
 
 import pytest
-from confluent_kafka.admin import AdminClient
 from confluent_kafka import Producer
-import time
-import logging
+from confluent_kafka.admin import AdminClient
 
 _log = logging.getLogger(__name__)
 
@@ -148,8 +148,8 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
 
     def ingest_consumer(settings):
         from sentry.ingest.ingest_consumer import (
-            create_batching_kafka_consumer,
             IngestConsumerWorker,
+            create_batching_kafka_consumer,
         )
 
         # Relay is configured to use this topic for all ingest messages. See

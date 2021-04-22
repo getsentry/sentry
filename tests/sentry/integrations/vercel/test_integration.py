@@ -1,9 +1,8 @@
-import responses
+from urllib.parse import parse_qs
 
+import responses
 from rest_framework.serializers import ValidationError
 
-
-from urllib.parse import parse_qs
 from sentry.integrations.vercel import VercelIntegrationProvider
 from sentry.models import (
     Integration,
@@ -11,8 +10,8 @@ from sentry.models import (
     Project,
     ProjectKey,
     ProjectKeyStatus,
-    SentryAppInstallationForProvider,
     SentryAppInstallation,
+    SentryAppInstallationForProvider,
 )
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
@@ -32,11 +31,11 @@ class VercelIntegrationTest(IntegrationTestCase):
         }
 
         if is_team:
-            team_query = "?teamId=my_team_id"
+            team_query = "teamId=my_team_id"
             access_json["team_id"] = "my_team_id"
             responses.add(
                 responses.GET,
-                "https://api.vercel.com/v1/teams/my_team_id%s" % team_query,
+                f"https://api.vercel.com/v1/teams/my_team_id?{team_query}",
                 json={"name": "My Team Name", "slug": "my_team_slug"},
             )
         else:
@@ -54,13 +53,13 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            "https://api.vercel.com/v4/projects/%s" % team_query,
+            f"https://api.vercel.com/v4/projects/?limit=20&{team_query}",
             json={"projects": [], "pagination": {"count": 0}},
         )
 
         responses.add(
             responses.POST,
-            "https://api.vercel.com/v1/integrations/webhooks%s" % team_query,
+            f"https://api.vercel.com/v1/integrations/webhooks?{team_query}",
             json={"id": "webhook-id"},
         )
 

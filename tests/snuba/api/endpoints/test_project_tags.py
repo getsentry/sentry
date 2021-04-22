@@ -1,37 +1,29 @@
-from django.core.urlresolvers import reverse
-
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class ProjectTagsTest(APITestCase, SnubaTestCase):
-    def test_simple(self):
-        user = self.create_user()
-        org = self.create_organization()
-        team = self.create_team(organization=org)
-        self.create_member(organization=org, user=user, teams=[team])
+    endpoint = "sentry-api-0-project-tags"
 
-        project = self.create_project(organization=org, teams=[team])
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_simple(self):
         self.store_event(
             data={
                 "tags": {"foo": "oof", "bar": "rab"},
                 "timestamp": iso_format(before_now(minutes=1)),
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={"tags": {"bar": "rab2"}, "timestamp": iso_format(before_now(minutes=1))},
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
-        self.login_as(user=user)
+        response = self.get_valid_response(self.project.organization.slug, self.project.slug)
 
-        url = reverse(
-            "sentry-api-0-project-tags",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
         data = {v["key"]: v for v in response.data}
         assert len(data) == 3
 

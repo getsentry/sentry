@@ -1,7 +1,7 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
+from sentry.models import Integration, ProjectCodeOwners
 from sentry.testutils import APITestCase
-from sentry.models import Integration, ProjectCodeOwners, ProjectOwnership
 
 
 class ProjectCodeOwnersEndpointTestCase(APITestCase):
@@ -88,6 +88,19 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["codeMappingId"] == str(self.code_mapping_with_integration.id)
         assert resp_data["provider"] == self.integration.provider
 
+    def test_get_expanded_codeowners_with_integration(self):
+        self._create_codeowner_with_integration()
+        with self.feature({"organizations:import-codeowners": True}):
+            resp = self.client.get(f"{self.url}?expand=codeMapping")
+        assert resp.status_code == 200
+        resp_data = resp.data[0]
+        assert resp_data["raw"] == self.code_owner.raw
+        assert resp_data["dateCreated"] == self.code_owner.date_added
+        assert resp_data["dateUpdated"] == self.code_owner.date_updated
+        assert resp_data["codeMappingId"] == str(self.code_mapping_with_integration.id)
+        assert resp_data["provider"] == self.integration.provider
+        assert resp_data["codeMapping"]["id"] == str(self.code_mapping_with_integration.id)
+
     def test_basic_post(self):
         with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -169,12 +182,13 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.status_code == 400
         assert response.data == {"codeMappingId": ["This code mapping does not exist."]}
 
-    def test_default_project_ownership_record_created(self):
-        assert ProjectOwnership.objects.filter(project=self.project).exists() is False
+    def test_no_duplicates_allowed(self):
         with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 201, response.content
-        assert ProjectOwnership.objects.filter(project=self.project).exists() is True
+            assert response.status_code == 201, response.content
+            response = self.client.post(self.url, self.data)
+            assert response.status_code == 400
+            assert response.data == {"codeMappingId": ["This code mapping is already in use."]}
 
     def test_schema_is_correct(self):
         with self.feature({"organizations:import-codeowners": True}):
@@ -233,4 +247,19 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                     ],
                 }
             ],
+        }
+
+    def test_codeowners_scope_emails_to_org_security(self):
+        self.user2 = self.create_user("user2@sentry.io")
+        self.data = {
+            "raw": "docs/*    @NisanthanNanthakumar   user2@sentry.io\n",
+            "codeMappingId": self.code_mapping.id,
+        }
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 400
+        assert response.data == {
+            "raw": [
+                f"The following emails do not have an association in Sentry: {self.user2.email}."
+            ]
         }

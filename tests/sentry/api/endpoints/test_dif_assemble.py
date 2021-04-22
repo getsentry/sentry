@@ -1,20 +1,20 @@
-from sentry.utils.compat.mock import patch
 from hashlib import sha1
 
-from django.core.urlresolvers import reverse
 from django.core.files.base import ContentFile
+from django.urls import reverse
 
-from sentry.models import ApiToken, FileBlob, File, FileBlobIndex, FileBlobOwner
+from sentry.models import ApiToken, File, FileBlob, FileBlobIndex, FileBlobOwner
 from sentry.models.debugfile import ProjectDebugFile
-from sentry.testutils import APITestCase
 from sentry.tasks.assemble import (
+    AssembleTask,
+    ChunkFileState,
     assemble_dif,
     assemble_file,
     get_assemble_status,
     set_assemble_status,
-    AssembleTask,
-    ChunkFileState,
 )
+from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 
 
 class DifAssembleEndpoint(APITestCase):

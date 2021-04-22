@@ -1,6 +1,6 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
-from sentry.models import OrganizationOnboardingTask, OnboardingTask, OnboardingTaskStatus
+from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
 from sentry.testutils import APITestCase
 
 

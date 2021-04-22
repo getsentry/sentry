@@ -5,9 +5,9 @@ from openapi_core import create_spec
 from openapi_core.contrib.django import DjangoOpenAPIRequest, DjangoOpenAPIResponse
 from openapi_core.validation.response.validators import ResponseValidator
 
-from sentry.utils import json
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils import json
 
 
 class APIDocsTestCase(APITestCase):

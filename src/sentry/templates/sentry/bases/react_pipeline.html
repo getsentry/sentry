@@ -1,14 +1,19 @@
 {% extends "sentry/base-react.html" %}
 {% load sentry_assets %}
 
-{% block body_app_boot %}
-{% script %}
-<script>
-  $(function() {
-    if (typeof RenderPipelineView === 'function') {
-        RenderPipelineView("{{ pipelineName }}", {{ props | safe }});
+{% block initial_data %}
+  {{ block.super }}
+  {% script %}
+  <script>
+    window.__pipelineInitialData = {
+      name: "{{ pipelineName }}",
+      props: {{ props | safe }},
     };
-  });
-</script>
-{% endscript %}
+  </script>
+  {% endscript %}
+{% endblock %}
+
+{% block scripts_main_entrypoint %}
+    {% manifest_asset_url "sentry" "pipeline.js" as asset_url %}
+    {% script src=asset_url data-entry="true" %}{% endscript %}
 {% endblock %}

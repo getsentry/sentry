@@ -1,8 +1,8 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models.groupinbox import GroupInbox
-from sentry.utils import json
 from sentry.testutils import APITestCase
+from sentry.utils import json
 
 
 class ProjectCreateSampleTest(APITestCase):

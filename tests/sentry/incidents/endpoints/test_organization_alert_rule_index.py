@@ -1,12 +1,17 @@
+from copy import deepcopy
+
 import pytz
 import requests
-
-from copy import deepcopy
 from exam import fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleThresholdType,
+    IncidentTrigger,
+    TriggerStatus,
+)
 from sentry.models.organizationmember import OrganizationMember
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase
@@ -434,6 +439,40 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
 
+    def test_limit_as_1_with_paging_sort_name(self):
+        self.setup_project_and_rules()
+        # Test Limit as 1, no cursor:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "1", "project": self.project.id, "sort": "name", "asc": 1}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 1
+        self.assert_alert_rule_serialized(self.alert_rule, result[0], skip_dates=True)
+        links = requests.utils.parse_header_links(
+            response.get("link").rstrip(">").replace(">,<", ",<")
+        )
+        next_cursor = links[1]["cursor"]
+        # Test Limit as 1, next page of previous request:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "cursor": next_cursor,
+                "per_page": "1",
+                "project": self.project.id,
+                "sort": "name",
+                "asc": 1,
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 1
+        assert result[0]["id"] == str(self.issue_rule.id)
+        assert result[0]["type"] == "rule"
+
     def test_limit_as_1_with_paging(self):
         self.setup_project_and_rules()
 
@@ -734,6 +773,59 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 2
 
+    def test_myteams_filter_superuser(self):
+        superuser = self.create_user(is_superuser=True)
+        another_org = self.create_organization(owner=superuser, name="Rowdy Tiger")
+        another_org_rules_url = f"/api/0/organizations/{another_org.slug}/combined-rules/"
+        another_org_team = self.create_team(organization=another_org, name="Meow Band", members=[])
+        another_project = self.create_project(
+            organization=another_org, teams=[another_org_team], name="Woof Choir"
+        )
+        self.login_as(superuser, superuser=True)
+        self.create_alert_rule(
+            name="alert rule",
+            organization=another_org,
+            projects=[another_project],
+            date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
+            owner=another_org_team.actor.get_actor_tuple(),
+        )
+
+        self.create_issue_alert_rule(
+            data={
+                "project": another_project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
+                "owner": another_org_team.actor,
+            }
+        )
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [another_project.id],
+                "team": ["myteams"],
+            }
+            response = self.client.get(
+                path=another_org_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [another_project.id],
+                "team": [another_org_team.id],
+            }
+            response = self.client.get(
+                path=another_org_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        assert len(response.data) == 2  # We are not on this team, but we are a superuser.
+
     def test_team_filter_no_access(self):
         self.setup_project_and_rules()
         another_org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -817,3 +909,153 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 4
+
+    def test_status_and_date_triggered_sort_order(self):
+        self.setup_project_and_rules()
+
+        alert_rule_critical = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            name="some rule [crit]",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        another_alert_rule_warning = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            name="another warning rule",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        alert_rule_warning = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            name="warning rule",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule_critical, "hi", 100)
+        trigger2 = self.create_alert_rule_trigger(alert_rule_critical, "bye", 50)
+
+        trigger3 = self.create_alert_rule_trigger(alert_rule_warning, "meow", 200)
+
+        self.create_incident(status=2, alert_rule=alert_rule_critical)
+        warning_incident = self.create_incident(status=10, alert_rule=alert_rule_critical)
+        self.create_incident(status=10, alert_rule=alert_rule_warning)
+        self.create_incident(status=10, alert_rule=another_alert_rule_warning)
+        crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
+        IncidentTrigger.objects.create(
+            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.RESOLVED.value
+        )
+        IncidentTrigger.objects.create(
+            incident=crit_incident, alert_rule_trigger=trigger2, status=TriggerStatus.ACTIVE.value
+        )
+        IncidentTrigger.objects.create(
+            incident=warning_incident,
+            alert_rule_trigger=trigger3,
+            status=TriggerStatus.ACTIVE.value,
+        )
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "sort": ["incident_status", "date_triggered"],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 7
+        # Assert critical rule is first, warnings are next (sorted by triggered date), and issue rules are last.
+        [r["id"] for r in result] == [
+            str(alert_rule_critical.id),
+            str(another_alert_rule_warning.id),
+            str(alert_rule_warning.id),
+            str(self.yet_another_alert_rule.id),
+            str(self.other_alert_rule.id),
+            str(self.alert_rule.id),
+            str(self.issue_rule.id),
+        ]
+
+        # Test paging with the status setup:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "2",
+                "project": [self.project.id, self.project2.id],
+                "sort": ["incident_status", "date_triggered"],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 2
+        self.assert_alert_rule_serialized(alert_rule_critical, result[0], skip_dates=True)
+        self.assert_alert_rule_serialized(another_alert_rule_warning, result[1], skip_dates=True)
+        links = requests.utils.parse_header_links(
+            response.get("link").rstrip(">").replace(">,<", ",<")
+        )
+        next_cursor = links[1]["cursor"]
+        # Get next page, we should be between the two status':
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "cursor": next_cursor,
+                "per_page": "2",
+                "project": [self.project.id, self.project2.id],
+                "sort": ["incident_status", "date_triggered"],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 2
+        self.assert_alert_rule_serialized(alert_rule_warning, result[0], skip_dates=True)
+
+    def test_expand_latest_incident(self):
+        self.setup_project_and_rules()
+
+        alert_rule_critical = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            name="some rule [crit]",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule_critical, "hi", 100)
+
+        self.create_incident(status=2, alert_rule=alert_rule_critical)
+        crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
+        IncidentTrigger.objects.create(
+            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.RESOLVED.value
+        )
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "expand": "latestIncident",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert len(result) == 4
+        assert result[0]["latestIncident"]["id"] == str(crit_incident.id)

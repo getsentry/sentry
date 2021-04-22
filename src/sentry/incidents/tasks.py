@@ -1,30 +1,30 @@
 import logging
+from urllib.parse import urlencode
 
 from django.db import transaction
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils import timezone
-from urllib.parse import urlencode
 
 from sentry.auth.access import from_user
 from sentry.incidents.models import (
-    AlertRuleTriggerAction,
+    INCIDENT_STATUS,
     AlertRuleStatus,
+    AlertRuleTriggerAction,
     Incident,
-    IncidentProject,
-    PendingIncidentSnapshot,
-    IncidentSnapshot,
     IncidentActivity,
     IncidentActivityType,
+    IncidentProject,
+    IncidentSnapshot,
     IncidentStatus,
     IncidentStatusMethod,
-    INCIDENT_STATUS,
+    PendingIncidentSnapshot,
 )
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -161,8 +161,8 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
     max_retries=2,
 )
 def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
-    from sentry.incidents.models import AlertRule
     from sentry.incidents.logic import update_incident_status
+    from sentry.incidents.models import AlertRule
 
     try:
         alert_rule = AlertRule.objects_with_snapshots.get(id=alert_rule_id)

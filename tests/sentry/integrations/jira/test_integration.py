@@ -1,9 +1,9 @@
 import copy
-import responses
-import pytest
 
+import pytest
+import responses
 from django.test.utils import override_settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from exam import fixture
 
 from sentry.integrations.jira import JiraIntegrationProvider
@@ -15,14 +15,14 @@ from sentry.models import (
 )
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase, IntegrationTestCase
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
 from sentry.utils.compat import mock
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from tests.fixtures.integrations.jira import StubJiraApiClient
 from tests.fixtures.integrations import StubService
+from tests.fixtures.integrations.jira import StubJiraApiClient
 
 
 def get_client():

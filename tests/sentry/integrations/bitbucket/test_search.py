@@ -1,6 +1,5 @@
 import responses
-
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import Integration
 from sentry.testutils import APITestCase

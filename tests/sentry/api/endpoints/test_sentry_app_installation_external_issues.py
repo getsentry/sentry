@@ -1,4 +1,5 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
+
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import APITestCase
 

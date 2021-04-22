@@ -1,13 +1,12 @@
 import datetime
-import os
-import os.path
-import sys
-import traceback
 
 # Import the stdlib json instead of sentry.utils.json, since this command is
 # run in setup.py
 import json  # NOQA
-
+import os
+import os.path
+import sys
+import traceback
 from distutils import log
 
 from .base import BaseBuildCommand
@@ -131,7 +130,8 @@ class BuildAssetsCommand(BaseBuildCommand):
         # TODO: Our JS builds should not require 4GB heap space
         env["NODE_OPTIONS"] = (env.get("NODE_OPTIONS", "") + " --max-old-space-size=4096").lstrip()
         self._run_command(["yarn", "tsc", "-p", "config/tsconfig.build.json"], env=env)
-        self._run_command(["yarn", "webpack", "--bail"], env=env)
+        self._run_command(["yarn", "build-production", "--bail"], env=env)
+        self._run_command(["yarn", "build-chartcuterie-config", "--bail"], env=env)
 
     def _write_version_file(self, version_info):
         manifest = {

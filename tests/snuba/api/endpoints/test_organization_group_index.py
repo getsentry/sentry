@@ -1,13 +1,13 @@
 from datetime import timedelta
-from dateutil.parser import parse as parse_datetime
 from uuid import uuid4
 
-from django.core.urlresolvers import reverse
+from dateutil.parser import parse as parse_datetime
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
 from sentry.models import (
-    add_group_to_inbox,
+    GROUP_OWNER_TYPE,
     Activity,
     ApiToken,
     ExternalIssue,
@@ -20,26 +20,25 @@ from sentry.models import (
     GroupLink,
     GroupOwner,
     GroupOwnerType,
-    GROUP_OWNER_TYPE,
+    GroupResolution,
     GroupSeen,
     GroupShare,
     GroupSnooze,
     GroupStatus,
-    GroupResolution,
     GroupSubscription,
     GroupTombstone,
     Integration,
     OrganizationIntegration,
-    UserOption,
     Release,
+    UserOption,
+    add_group_to_inbox,
     remove_group_from_inbox,
 )
-from sentry.utils import json
-from sentry.utils.compat.mock import patch, Mock
-
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils import json
+from sentry.utils.compat.mock import Mock, patch
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
@@ -253,7 +252,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.get_valid_response(
             sort="inbox",
-            query="is:unresolved is:for_review assigned_or_suggested:me_or_none",
+            query="is:unresolved is:for_review assigned_or_suggested:[me, none]",
             limit=10,
         )
         assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
@@ -762,13 +761,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
             GroupAssignee.objects.assign(ag, self.user)
 
         response = self.get_response(limit=10, query="assigned:me")
-        assert len(response.data) == 2
+        assert [row["id"] for row in response.data] == [str(g.id) for g in assigned_groups]
 
-        response = self.get_response(limit=10, query="assigned:me_or_none")
+        response = self.get_response(limit=10, query="assigned:[me, none]")
         assert len(response.data) == 5
 
         GroupAssignee.objects.assign(assigned_groups[1], self.create_user("other@user.com"))
-        response = self.get_response(limit=10, query="assigned:me_or_none")
+        response = self.get_response(limit=10, query="assigned:[me_or_none]")
         assert len(response.data) == 4
 
     def test_seen_stats(self):
@@ -1044,7 +1043,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert int(response.data[0]["id"]) == event.group.id
 
         response = self.get_response(
-            sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
+            sort_by="date", limit=10, query="assigned_or_suggested:[me, none]"
         )
         assert response.status_code == 200
         assert len(response.data) == 4
@@ -1063,7 +1062,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             user_id=not_me.id,
         )
         response = self.get_response(
-            sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
+            sort_by="date", limit=10, query="assigned_or_suggested:[me, none]"
         )
         assert response.status_code == 200
         assert len(response.data) == 3
@@ -1081,7 +1080,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         # Should now include event2 as it has shared ownership.
         response = self.get_response(
-            sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
+            sort_by="date", limit=10, query="assigned_or_suggested:[me, none]"
         )
         assert response.status_code == 200
         assert len(response.data) == 4

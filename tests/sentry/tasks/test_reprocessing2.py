@@ -1,19 +1,20 @@
+import uuid
 from io import BytesIO
 from time import time
+
 import pytest
-import uuid
 
 from sentry import eventstore
 from sentry.attachments import attachment_cache
-from sentry.models import Group, GroupAssignee, Activity, EventAttachment, File, UserReport
 from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
+from sentry.models import Activity, EventAttachment, File, Group, GroupAssignee, UserReport
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.cache import cache_key_for_event
 
 
@@ -202,6 +203,7 @@ def test_concurrent_events_go_into_new_group(
 @pytest.mark.django_db
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["delete", "keep"])
+@pytest.mark.parametrize("max_events", [2, None])
 def test_max_events(
     default_project,
     reset_snuba,
@@ -210,6 +212,7 @@ def test_max_events(
     burst_task_runner,
     monkeypatch,
     remaining_events,
+    max_events,
 ):
     @register_event_preprocessor
     def event_preprocessor(data):
@@ -232,7 +235,7 @@ def test_max_events(
         reprocess_group(
             default_project.id,
             group_id,
-            max_events=len(event_ids) // 2,
+            max_events=max_events,
             remaining_events=remaining_events,
         )
 
@@ -240,7 +243,7 @@ def test_max_events(
 
     for i, event_id in enumerate(event_ids):
         event = eventstore.get_event_by_id(default_project.id, event_id)
-        if i < len(event_ids) / 2:
+        if max_events is not None and i < (len(event_ids) - max_events):
             if remaining_events == "delete":
                 assert event is None
             elif remaining_events == "keep":
@@ -254,9 +257,9 @@ def test_max_events(
             assert dict(event.data) != dict(old_events[event_id].data)
 
     if remaining_events == "delete":
-        assert event.group.times_seen == len(event_ids) // 2
+        assert event.group.times_seen == (max_events or 5)
     elif remaining_events == "keep":
-        assert event.group.times_seen == len(event_ids)
+        assert event.group.times_seen == 5
     else:
         raise ValueError(remaining_events)
 
@@ -285,10 +288,20 @@ def test_attachments_and_userfeedback(
 
         return data
 
-    event_id_to_delete = process_and_save({"message": "hello world"}, seconds_ago=5)
+    # required such that minidump is loaded into attachments cache
+    MINIDUMP_PLACEHOLDER = {
+        "platform": "native",
+        "exception": {"values": [{"mechanism": {"type": "minidump"}, "type": "test bogus"}]},
+    }
+
+    event_id_to_delete = process_and_save(
+        {"message": "hello world", **MINIDUMP_PLACEHOLDER}, seconds_ago=5
+    )
     event_to_delete = eventstore.get_event_by_id(default_project.id, event_id_to_delete)
 
-    event_id = process_and_save({"message": "hello world"})
+    event_id = process_and_save(
+        {"message": "hello world", "platform": "native", **MINIDUMP_PLACEHOLDER}
+    )
     event = eventstore.get_event_by_id(default_project.id, event_id)
 
     for evt in (event, event_to_delete):
@@ -318,7 +331,7 @@ def test_attachments_and_userfeedback(
     new_event = eventstore.get_event_by_id(default_project.id, event_id)
     assert new_event.group_id != event.group_id
 
-    assert new_event.data["extra"]["attachments"] == [["event.attachment", "event.minidump"]]
+    assert new_event.data["extra"]["attachments"] == [["event.minidump"]]
 
     att, mdmp = EventAttachment.objects.filter(project_id=default_project.id).order_by("type")
     assert att.group_id == mdmp.group_id == new_event.group_id

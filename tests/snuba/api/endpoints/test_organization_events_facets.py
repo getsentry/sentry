@@ -1,8 +1,9 @@
-from pytz import utc
 from datetime import timedelta
-from django.utils import timezone
-from django.core.urlresolvers import reverse
 from uuid import uuid4
+
+from django.urls import reverse
+from django.utils import timezone
+from pytz import utc
 from rest_framework.exceptions import ParseError
 
 from sentry.testutils import APITestCase, SnubaTestCase

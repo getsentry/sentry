@@ -1,15 +1,14 @@
-import logging
-
-from .base import BaseEventProcessingStore
 from sentry.cache.redis import RedisClusterCache
+from sentry.utils.kvstore.cache import CacheKVStorage
 
-logger = logging.getLogger(__name__)
+from .base import EventProcessingStore
 
 
-class RedisClusterEventProcessingStore(BaseEventProcessingStore):
+def RedisClusterEventProcessingStore(**options) -> EventProcessingStore:
     """
-    Processing store implementation using the redis cluster cache as a backend.
-    """
+    Creates an instance of the processing store which uses the Redis Cluster
+    cache as its backend.
 
-    def __init__(self, **options):
-        super().__init__(inner=RedisClusterCache(**options))
+    Keyword argument are forwarded to the ``RedisClusterCache`` constructor.
+    """
+    return EventProcessingStore(CacheKVStorage(RedisClusterCache(**options)))

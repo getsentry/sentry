@@ -1,9 +1,9 @@
-from django.core.urlresolvers import reverse
-from sentry.utils.compat import mock
+from django.urls import reverse
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 
 
 class ProjectStacktraceLinkTest(APITestCase):

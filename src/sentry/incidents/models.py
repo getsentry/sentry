@@ -1,19 +1,20 @@
 from collections import namedtuple
+from enum import Enum
 
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
-from enum import Enum
 
 from sentry.db.models import (
+    ArrayField,
     FlexibleForeignKey,
     Model,
-    UUIDField,
     OneToOneCascadeDeletes,
+    UUIDField,
+    sane_repr,
 )
-from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
 from sentry.snuba.models import QuerySubscription
@@ -240,7 +241,10 @@ class TimeSeriesSnapshot(Model):
         # with what Snuba returns we cast floats to ints when they're whole numbers.
         return {
             "data": [
-                {"time": int(time), "count": count if not count.is_integer() else int(count)}
+                {
+                    "time": int(time),
+                    "count": count if count is None or not count.is_integer() else int(count),
+                }
                 for time, count in self.values
             ]
         }

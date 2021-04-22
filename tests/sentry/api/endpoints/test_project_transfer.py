@@ -1,9 +1,8 @@
-from sentry.utils.compat import mock
-
 from django.core import mail
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 
 
 class ProjectTransferTest(APITestCase):

@@ -1,7 +1,6 @@
-from sentry.utils.compat import mock
 from base64 import b64encode
-
 from datetime import timedelta
+
 from django.utils import timezone
 
 from sentry.models import (
@@ -9,21 +8,22 @@ from sentry.models import (
     ApiKey,
     Environment,
     Group,
-    GroupHash,
     GroupAssignee,
     GroupBookmark,
+    GroupHash,
+    GroupMeta,
     GroupResolution,
     GroupSeen,
     GroupSnooze,
-    GroupSubscription,
     GroupStatus,
+    GroupSubscription,
     GroupTombstone,
-    GroupMeta,
-    Release,
     Integration,
+    Release,
 )
-from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.plugins.base import plugins
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
 
 
@@ -564,3 +564,13 @@ class GroupDeleteTest(APITestCase):
         url = f"/api/0/issues/{group.id}/"
         response = self.client.delete(url, sort_by="date", limit=1)
         assert response.status_code == 429
+
+    def test_collapse_release(self):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data["firstRelease"] is None
+        response = self.client.get(url, {"collapse": ["release"]})
+        assert "firstRelease" not in response.data

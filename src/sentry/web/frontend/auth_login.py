@@ -1,9 +1,9 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
-from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
@@ -11,12 +11,12 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationStatus, OrganizationMember
+from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
 from sentry.signals import join_request_link_viewed, user_signup
-from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
-from sentry.web.frontend.base import BaseView
 from sentry.utils import auth, metrics
 from sentry.utils.sdk import capture_exception
+from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
+from sentry.web.frontend.base import BaseView
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
 
@@ -193,6 +193,19 @@ class AuthLoginView(BaseView):
 
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
+                if organization and settings.SENTRY_SINGLE_ORGANIZATION:
+                    try:
+                        om = OrganizationMember.objects.get(
+                            organization=organization, email=user.email
+                        )
+                    except OrganizationMember.DoesNotExist:
+                        pass
+                    else:
+                        # XXX(jferge): if user is in 2fa removed state,
+                        # dont redirect to org login page instead redirect to general login where
+                        # they will be prompted to check their email
+                        if om.user is None:
+                            return self.redirect(auth.get_login_url())
 
                 return self.redirect(auth.get_login_redirect(request))
             else:
@@ -210,7 +223,6 @@ class AuthLoginView(BaseView):
             "join_request_link": self.get_join_request_link(organization),
         }
         context.update(additional_context.run_callbacks(request))
-
         return self.respond_login(request, context, **kwargs)
 
     def handle_authenticated(self, request):

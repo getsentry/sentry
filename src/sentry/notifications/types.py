@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 """
 TODO(postgres): We've encoded these enums as integers to facilitate
@@ -7,6 +8,18 @@ communication with the API and plan to do so as soon as we use native enums in
 Postgres. In the meantime each enum has an adjacent object that maps the
 integers to their string values.
 """
+
+
+def get_notification_setting_type_name(value: int) -> Optional[str]:
+    return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
+
+
+def get_notification_setting_value_name(value: int) -> Optional[str]:
+    return NOTIFICATION_SETTING_OPTION_VALUES.get(NotificationSettingOptionValues(value))
+
+
+def get_notification_scope_name(value: int) -> Optional[str]:
+    return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
 
 
 class NotificationSettingTypes(Enum):
@@ -97,3 +110,66 @@ class UserOptionsSettingsKey(Enum):
     SELF_ASSIGN = "selfAssignOnResolve"
     SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
     WORKFLOW = "workflowNotifications"
+
+
+VALID_VALUES_FOR_KEY = {
+    NotificationSettingTypes.DEPLOY: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.COMMITTED_ONLY,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.ISSUE_ALERTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.WORKFLOW: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+        NotificationSettingOptionValues.NEVER,
+    },
+}
+
+
+NOTIFICATION_SETTING_DEFAULTS = {
+    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
+    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+}
+
+
+class GroupSubscriptionReason:
+    implicit = -1  # not for use as a persisted field value
+    committed = -2  # not for use as a persisted field value
+    processing_issue = -3  # not for use as a persisted field value
+
+    unknown = 0
+    comment = 1
+    assigned = 2
+    bookmark = 3
+    status_change = 4
+    deploy_setting = 5
+    mentioned = 6
+    team_mentioned = 7
+
+    descriptions = {
+        implicit: "have opted to receive updates for all issues within "
+        "projects that you are a member of",
+        committed: "were involved in a commit that is part of this release",
+        processing_issue: "are subscribed to alerts for this project",
+        comment: "have commented on this issue",
+        assigned: "have been assigned to this issue",
+        bookmark: "have bookmarked this issue",
+        status_change: "have changed the resolution status of this issue",
+        deploy_setting: "opted to receive all deploy notifications for this organization",
+        mentioned: "have been mentioned in this issue",
+        team_mentioned: "are a member of a team mentioned in this issue",
+    }
+
+
+SUBSCRIPTION_REASON_MAP = {
+    GroupSubscriptionReason.comment: "commented",
+    GroupSubscriptionReason.assigned: "assigned",
+    GroupSubscriptionReason.bookmark: "bookmarked",
+    GroupSubscriptionReason.status_change: "changed_status",
+    GroupSubscriptionReason.mentioned: "mentioned",
+}

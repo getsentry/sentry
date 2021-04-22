@@ -1,8 +1,8 @@
-import pytest
+from unittest import TestCase
 
+import pytest
 from exam import fixture
 
-from unittest import TestCase
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.redis import clusters
 

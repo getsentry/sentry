@@ -1,14 +1,15 @@
 import logging
-
 from datetime import datetime
-from django.utils import timezone
+
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
+from django.urls import reverse
+from django.utils import timezone
+
 from sentry.models.integration import Integration
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
-from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.hashlib import md5_text
+from sentry.utils.http import absolute_uri
 
 
 class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):

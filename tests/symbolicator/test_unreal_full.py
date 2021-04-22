@@ -1,18 +1,15 @@
-import pytest
 import zipfile
-from sentry.utils.compat.mock import patch
-
 from io import BytesIO
 
-from django.core.urlresolvers import reverse
+import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
 
-from sentry.testutils import TransactionTestCase, RelayStoreHelper
-from sentry.models import EventAttachment, File
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
-
+from sentry.models import EventAttachment, File
+from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.utils.compat.mock import patch
 from tests.symbolicator import get_fixture_path
-
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your

@@ -1,10 +1,11 @@
 from freezegun import freeze_time
 
-from sentry.data_export.base import ExportStatus, ExportQueryType
+from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
 from sentry.search.utils import parse_datetime_string
-from sentry.utils.snuba import MAX_FIELDS
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
+from sentry.utils.snuba import MAX_FIELDS
 
 
 class DataExportTest(APITestCase):
@@ -13,8 +14,12 @@ class DataExportTest(APITestCase):
 
     def setUp(self):
         self.user = self.create_user("user1@example.com")
-        self.org = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.org)
+        self.org = self.create_organization(name="Test")
+        self.team = self.create_team(organization=self.org, name="Data Export Team")
+        self.project = self.create_project(
+            organization=self.org, teams=[self.team], name="Data Export Proj"
+        )
+        self.create_member(user=self.user, organization=self.org, teams=[self.team])
         self.login_as(user=self.user)
 
     def make_payload(self, type, extras=None, overwrite=False):
@@ -138,6 +143,29 @@ class DataExportTest(APITestCase):
             ]
         }
 
+    def test_export_no_fields(self):
+        """
+        Ensures that if no fields are requested, returns a 400 status code with
+        the corresponding error message.
+        """
+        payload = self.make_payload("discover", {"field": []})
+        with self.feature("organizations:discover-query"):
+            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {"non_field_errors": ["at least one field is required to export"]}
+
+    def test_discover_without_query(self):
+        """
+        Ensurse that we handle export requests without a query, and return a 400 status code
+        """
+        payload = self.make_payload("discover", {"field": ["id"]}, overwrite=True)
+        with self.feature("organizations:discover-query"):
+            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {
+            "non_field_errors": [
+                "query is a required to export, please pass an empty string if you don't want to set one"
+            ]
+        }
+
     def test_export_invalid_fields(self):
         """
         Ensures that if too many fields are requested, returns a 400 status code with the
@@ -250,3 +278,23 @@ class DataExportTest(APITestCase):
         with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.org.slug, status_code=400, **payload)
         assert response.data == {"non_field_errors": ["Empty string after 'foo:'"]}
+
+    @mock.patch("sentry.data_export.endpoints.data_export.DiscoverProcessor")
+    def test_export_resolves_empty_project(self, mock_discover_processor):
+        """
+        Ensures that a request to this endpoint returns a 201 if projects
+        is an empty list.
+        """
+        payload = self.make_payload("discover", {"project": []})
+        with self.feature("organizations:discover-query"):
+            self.get_valid_response(self.org.slug, status_code=201, **payload)
+
+        query_info = mock_discover_processor.call_args[1]
+        assert query_info["discover_query"]["project"] == [self.project.id]
+
+        payload = self.make_payload("issue", {"project": None})
+        with self.feature("organizations:discover-query"):
+            self.get_valid_response(self.org.slug, status_code=201, **payload)
+
+        query_info = mock_discover_processor.call_args[1]
+        assert query_info["discover_query"]["project"] == [self.project.id]

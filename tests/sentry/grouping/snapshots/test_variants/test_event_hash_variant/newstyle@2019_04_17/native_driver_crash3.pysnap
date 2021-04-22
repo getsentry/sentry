@@ -1,0 +1,66 @@
+---
+created: '2021-04-02T10:31:53.528264Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            function*
+              "CUseCountedObject<T>::UCDestroy"
+          frame (non app frame)
+            function*
+              "destructor'"
+          frame (non app frame)
+            function*
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+          frame (non app frame)
+            function*
+              "CContext::LUCBeginLayerDestruction"
+          frame (non app frame)
+            function*
+              "NDXGI::CDevice::DestroyDriverInstance"
+          frame (non app frame)
+          frame (non app frame)
+            function*
+              "OpenAdapter12"
+          frame (non app frame)
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+system:
+  hash: "d69ad378fab4de58c7236a72ce3101ee"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "CUseCountedObject<T>::UCDestroy"
+          frame*
+            function*
+              "destructor'"
+          frame*
+            function*
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+          frame*
+            function*
+              "CContext::LUCBeginLayerDestruction"
+          frame*
+            function*
+              "NDXGI::CDevice::DestroyDriverInstance"
+          frame
+          frame*
+            function*
+              "OpenAdapter12"
+          frame
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"

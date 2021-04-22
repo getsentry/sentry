@@ -1,7 +1,6 @@
+from django.urls import reverse
 from pytz import utc
 from rest_framework.exceptions import ParseError
-
-from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

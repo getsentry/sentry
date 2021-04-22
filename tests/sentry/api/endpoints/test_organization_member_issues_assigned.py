@@ -1,5 +1,6 @@
 from datetime import timedelta
-from django.core.urlresolvers import reverse
+
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.models import GroupAssignee, ProjectStatus

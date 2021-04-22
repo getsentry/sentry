@@ -25,17 +25,19 @@
 
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
 
-  <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
+  <link href="{% manifest_asset_url "sentry" "sentry.css" %}" rel="stylesheet"/>
 
   {% block css %}{% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
-  {% script %}
-  <script>
-    window.__initialData = {% get_react_config %};
-  </script>
-  {% endscript %}
+  {% block initial_data %}
+    {% script %}
+    <script>
+      window.__initialData = {% get_react_config %};
+    </script>
+    {% endscript %}
+  {% endblock %}
 
   {% script %}
     {% include "sentry/partial/preload-data.html" %}
@@ -43,11 +45,17 @@
 
   {% block scripts %}
   {% locale_js_include %}
-  {% asset_url "sentry" "dist/vendor.js" as asset_url %}
+
+  {% manifest_asset_url "sentry" "runtime.js" as asset_url %}
   {% script src=asset_url %}{% endscript %}
 
-  {% asset_url "sentry" "dist/app.js" as asset_url %}
-  {% script src=asset_url data-entry="true" %}{% endscript %}
+  {% manifest_asset_url "sentry" "vendor.js" as asset_url %}
+  {% script src=asset_url %}{% endscript %}
+
+  {% block scripts_main_entrypoint %}
+    {% manifest_asset_url "sentry" "app.js" as asset_url %}
+    {% script src=asset_url data-entry="true" %}{% endscript %}
+  {% endblock %}
 
   {% injected_script_assets as injected_assets %}
   {% for asset_url in injected_assets %}

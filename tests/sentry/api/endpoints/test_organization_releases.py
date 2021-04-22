@@ -1,17 +1,15 @@
-from sentry.utils.compat.mock import patch
-
 from base64 import b64encode
 from datetime import datetime, timedelta
 
 import pytz
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from exam import fixture
 
-from sentry.app import locks
 from sentry.api.endpoints.organization_releases import (
     ReleaseHeadCommitSerializer,
     ReleaseSerializerWithProjects,
 )
+from sentry.app import locks
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.models import (
     Activity,
@@ -24,12 +22,13 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     ReleaseHeadCommit,
-    ReleaseProjectEnvironment,
     ReleaseProject,
+    ReleaseProjectEnvironment,
     Repository,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, SetRefsTestCase, TestCase
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationReleaseListTest(APITestCase):

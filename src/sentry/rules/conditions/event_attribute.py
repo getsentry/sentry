@@ -1,4 +1,5 @@
 from collections import OrderedDict
+
 from django import forms
 
 from sentry.rules.conditions.base import EventCondition
@@ -50,8 +51,8 @@ ATTR_CHOICES = [
 
 
 class EventAttributeForm(forms.Form):
-    attribute = forms.ChoiceField((a, a) for a in ATTR_CHOICES)
-    match = forms.ChoiceField(list(MATCH_CHOICES.items()))
+    attribute = forms.ChoiceField(choices=[(a, a) for a in ATTR_CHOICES])
+    match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()))
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
 

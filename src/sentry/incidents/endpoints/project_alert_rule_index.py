@@ -4,21 +4,21 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.project import ProjectEndpoint, ProjectAlertRulePermission
+from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
-    OffsetPaginator,
-    CombinedQuerysetPaginator,
     CombinedQuerysetIntermediary,
+    CombinedQuerysetPaginator,
+    OffsetPaginator,
 )
-from sentry.api.serializers import serialize, CombinedRuleSerializer
+from sentry.api.serializers import CombinedRuleSerializer, serialize
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule
 from sentry.integrations.slack import tasks
+from sentry.models import Rule, RuleStatus
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
-from sentry.models import Rule, RuleStatus
 
 
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
@@ -31,12 +31,12 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
-        alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, "date_added")
+        alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, ["date_added"])
         rule_intermediary = CombinedQuerysetIntermediary(
             Rule.objects.filter(
                 project=project, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
             ),
-            "date_added",
+            ["date_added"],
         )
 
         return self.paginate(

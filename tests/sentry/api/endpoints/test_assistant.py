@@ -1,8 +1,8 @@
 from copy import deepcopy
-from exam import fixture
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils import timezone
+from exam import fixture
 
 from sentry.assistant import manager
 from sentry.models import AssistantActivity

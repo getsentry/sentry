@@ -23,17 +23,18 @@ register(
     },
 )
 
-# Grouping enhancements defaults
-LEGACY_GROUPING_ENHANCEMENTS_BASE = "legacy:2019-03-12"
-DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
-register(
-    key="sentry:grouping_enhancements_base",
-    epoch_defaults={1: LEGACY_GROUPING_ENHANCEMENTS_BASE, 3: DEFAULT_GROUPING_ENHANCEMENTS_BASE},
-)
 register(key="sentry:grouping_enhancements", default="")
 
 # server side fingerprinting defaults.
 register(key="sentry:fingerprinting_rules", default="")
+
+# Secondary grouping setup to run in addition for transition phase.
+#
+# To ensure we minimize unnecessary load, we ttl the secondary grouping setup
+# to 90 days, as that's when all groups should have hashes associated with
+# them.
+register(key="sentry:secondary_grouping_expiry", default=0)
+register(key="sentry:secondary_grouping_config", default=None)
 
 # The JavaScript loader version that is the project default.  This option
 # is expected to be never set but the epoch defaults are used if no
@@ -62,3 +63,16 @@ register(key="filters:localhost", epoch_defaults={1: "0"})
 
 # Default dynamic sampling rules
 register(key="sentry:dynamicSampling", epoch_defaults={1: []})
+
+# Default breakdowns config
+register(
+    key="sentry:breakdowns",
+    epoch_defaults={
+        1: {
+            "span_ops": {
+                "type": "span_operations",
+                "matches": ["http", "db", "browser", "resource"],
+            }
+        },
+    },
+)

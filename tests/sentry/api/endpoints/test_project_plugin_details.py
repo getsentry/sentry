@@ -1,10 +1,10 @@
-from sentry.utils.compat import mock
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
+from sentry.models import AuditLogEntry, ProjectOption
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.models import ProjectOption, AuditLogEntry
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 
 
 class ProjectPluginDetailsTest(APITestCase):

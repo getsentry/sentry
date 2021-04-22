@@ -2,21 +2,22 @@ from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
-    event_search_grammar,
+    AggregateFilter,
     InvalidSearchQuery,
     SearchFilter,
-    AggregateFilter,
     SearchKey,
     SearchValue,
     SearchVisitor,
+    equality_operators,
+    event_search_grammar,
+    to_list,
 )
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.utils import (
-    parse_actor_value,
     parse_actor_or_none_value,
-    parse_user_value,
     parse_release,
     parse_status_value,
+    parse_user_value,
 )
 from sentry.utils.compat import map
 
@@ -57,6 +58,9 @@ class IssueSearchVisitor(SearchVisitor):
         # the key is "is" here, which we don't need
         negation, _, _, search_value = children
 
+        if search_value.raw_value.startswith("["):
+            raise InvalidSearchQuery('"in" syntax invalid for "is" search')
+
         if search_value.raw_value not in self.is_filter_translators:
             raise InvalidSearchQuery(
                 'Invalid value for "is" search, valid values are {}'.format(
@@ -90,27 +94,32 @@ def parse_search_query(query):
     return IssueSearchVisitor(allow_boolean=False).visit(tree)
 
 
-def convert_actor_value(value, projects, user, environments):
-    return parse_actor_value(projects, value, user)
-
-
 def convert_actor_or_none_value(value, projects, user, environments):
-    return parse_actor_or_none_value(projects, value, user)
+    # TODO: This will make N queries. This should be ok, we don't typically have large
+    # lists of actors here, but we can look into batching it if needed.
+    return [parse_actor_or_none_value(projects, actor, user) for actor in value]
 
 
 def convert_user_value(value, projects, user, environments):
-    return parse_user_value(value, user)
+    # TODO: This will make N queries. This should be ok, we don't typically have large
+    # lists of usernames here, but we can look into batching it if needed.
+    return [parse_user_value(username, user) for username in value]
 
 
 def convert_release_value(value, projects, user, environments):
-    return parse_release(value, projects, environments)
+    # TODO: This will make N queries. This should be ok, we don't typically have large
+    # lists of versions here, but we can look into batching it if needed.
+    return [parse_release(version, projects, environments) for version in value]
 
 
 def convert_status_value(value, projects, user, environments):
-    try:
-        return parse_status_value(value)
-    except ValueError:
-        raise InvalidSearchQuery(f"invalid status value of '{value}'")
+    parsed = []
+    for status in value:
+        try:
+            parsed.append(parse_status_value(status))
+        except ValueError:
+            raise InvalidSearchQuery(f"invalid status value of '{status}'")
+    return parsed
 
 
 value_converters = {
@@ -137,8 +146,13 @@ def convert_query_values(search_filters, projects, user, environments):
     def convert_search_filter(search_filter):
         if search_filter.key.name in value_converters:
             converter = value_converters[search_filter.key.name]
-            new_value = converter(search_filter.value.raw_value, projects, user, environments)
-            search_filter = search_filter._replace(value=SearchValue(new_value))
+            new_value = converter(
+                to_list(search_filter.value.raw_value), projects, user, environments
+            )
+            search_filter = search_filter._replace(
+                value=SearchValue(new_value),
+                operator="IN" if search_filter.operator in equality_operators else "NOT IN",
+            )
         elif isinstance(search_filter, AggregateFilter):
             raise InvalidSearchQuery(
                 f"Aggregate filters ({search_filter.key.name}) are not supported in issue searches."

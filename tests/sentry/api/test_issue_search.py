@@ -1,13 +1,13 @@
 from sentry.api.event_search import (
-    InvalidSearchQuery,
     AggregateFilter,
     AggregateKey,
+    InvalidSearchQuery,
     SearchFilter,
     SearchKey,
     SearchValue,
 )
 from sentry.api.issue_search import (
-    convert_actor_value,
+    convert_actor_or_none_value,
     convert_query_values,
     convert_release_value,
     convert_user_value,
@@ -156,7 +156,7 @@ class ConvertQueryValuesTest(TestCase):
     def test_valid_converter(self):
         filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]
         expected = value_converters["assigned_to"](
-            filters[0].value.raw_value, [self.project], self.user, None
+            [filters[0].value.raw_value], [self.project], self.user, None
         )
         filters = convert_query_values(filters, [self.project], self.user, None)
         assert filters[0].value.raw_value == expected
@@ -171,13 +171,13 @@ class ConvertQueryValuesTest(TestCase):
 class ConvertStatusValueTest(TestCase):
     def test_valid(self):
         for status_string, status_val in STATUS_QUERY_CHOICES.items():
-            filters = [SearchFilter(SearchKey("status"), "=", SearchValue(status_string))]
+            filters = [SearchFilter(SearchKey("status"), "=", SearchValue([status_string]))]
             result = convert_query_values(filters, [self.project], self.user, None)
-            assert result[0].value.raw_value == status_val
+            assert result[0].value.raw_value == [status_val]
 
-            filters = [SearchFilter(SearchKey("status"), "=", SearchValue(status_val))]
+            filters = [SearchFilter(SearchKey("status"), "=", SearchValue([status_val]))]
             result = convert_query_values(filters, [self.project], self.user, None)
-            assert result[0].value.raw_value == status_val
+            assert result[0].value.raw_value == [status_val]
 
     def test_invalid(self):
         filters = [SearchFilter(SearchKey("status"), "=", SearchValue("wrong"))]
@@ -192,38 +192,53 @@ class ConvertStatusValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
-class ConvertActorValueTest(TestCase):
+class ConvertActorOrNoneValueTest(TestCase):
     def test_user(self):
-        assert convert_actor_value("me", [self.project], self.user, None) == convert_user_value(
-            "me", [self.project], self.user, None
-        )
+        assert convert_actor_or_none_value(
+            ["me"], [self.project], self.user, None
+        ) == convert_user_value(["me"], [self.project], self.user, None)
+
+    def test_me_or_none(self):
+        assert convert_actor_or_none_value(["me_or_none"], [self.project], self.user, None) == [
+            [
+                "me_or_none",
+                self.user,
+            ]
+        ]
+
+    def test_none(self):
+        assert convert_actor_or_none_value(["none"], [self.project], self.user, None) == [None]
 
     def test_team(self):
-        assert (
-            convert_actor_value("#%s" % self.team.slug, [self.project], self.user, None)
-            == self.team
-        )
+        assert convert_actor_or_none_value(
+            [f"#{self.team.slug}"], [self.project], self.user, None
+        ) == [self.team]
 
     def test_invalid_team(self):
-        assert convert_actor_value("#never_upgrade", [self.project], self.user, None).id == 0
+        assert (
+            convert_actor_or_none_value(["#never_upgrade"], [self.project], self.user, None)[0].id
+            == 0
+        )
 
 
 class ConvertUserValueTest(TestCase):
     def test_me(self):
-        assert convert_user_value("me", [self.project], self.user, None) == self.user
+        assert convert_user_value(["me"], [self.project], self.user, None) == [self.user]
 
     def test_specified_user(self):
         user = self.create_user()
-        assert convert_user_value(user.username, [self.project], self.user, None) == user
+        assert convert_user_value([user.username], [self.project], self.user, None) == [user]
 
     def test_invalid_user(self):
-        assert convert_user_value("fake-user", [], None, None).id == 0
+        assert convert_user_value(["fake-user"], [], None, None)[0].id == 0
 
 
 class ConvertReleaseValueTest(TestCase):
     def test(self):
-        assert convert_release_value("123", [self.project], self.user, None) == "123"
+        assert convert_release_value(["123"], [self.project], self.user, None) == ["123"]
 
     def test_latest(self):
         release = self.create_release(self.project)
-        assert convert_release_value("latest", [self.project], self.user, None) == release.version
+        assert convert_release_value(["latest"], [self.project], self.user, None) == [
+            release.version
+        ]

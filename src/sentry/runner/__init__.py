@@ -1,12 +1,14 @@
+import datetime
 import logging
 import os
-import click
 import sys
-import sentry
-import datetime
+
+import click
 import sentry_sdk
-from sentry.utils.imports import import_string
+
+import sentry
 from sentry.utils.compat import map
+from sentry.utils.imports import import_string
 
 # We need to run this here because of a concurrency bug in Python's locale
 # with the lazy initialization.
@@ -113,7 +115,7 @@ def configure():
     or from another invocation of `configure()`. If Click, we're able
     to pass along the Click context object.
     """
-    from .settings import discover_configs, configure
+    from .settings import configure, discover_configs
 
     try:
         ctx = click.get_current_context()
@@ -170,7 +172,7 @@ def main():
         "max_content_width": 100,
     }
     # This variable is *only* set as part of direnv/.envrc, thus, we cannot affect production
-    if os.environ.get("SENTRY_DEVENV_DSN"):
+    if os.environ.get("SENTRY_DEVSERVICES_DSN"):
         # We do this here because `configure_structlog` executes later
         logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
         logger = logging.getLogger(__name__)
@@ -182,8 +184,8 @@ def main():
         try:
             func(**kwargs)
         except Exception as e:
-            # This reports to the project sentry-dev-env
-            with sentry_sdk.init(dsn=os.environ["SENTRY_DEVENV_DSN"]):
+            # This reports errors sentry-devservices
+            with sentry_sdk.init(dsn=os.environ["SENTRY_DEVSERVICES_DSN"]):
                 if os.environ.get("USER"):
                     sentry_sdk.set_user({"username": os.environ.get("USER")})
                 sentry_sdk.capture_exception(e)

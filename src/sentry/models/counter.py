@@ -1,7 +1,11 @@
-from django.db import connection, connections
+import random
+
+from django.conf import settings
+from django.db import connections, transaction
 from django.db.models.signals import post_migrate
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField
+from sentry import options
+from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
 class Counter(Model):
@@ -22,22 +26,47 @@ class Counter(Model):
         return increment_project_counter(project, delta)
 
 
-def increment_project_counter(project, delta=1):
+def increment_project_counter(project, delta=1, using="default"):
     """This method primarily exists so that south code can use it."""
     if delta <= 0:
         raise ValueError("There is only one way, and that's up.")
 
-    cur = connection.cursor()
-    try:
-        cur.execute(
-            """
-            select sentry_increment_project_counter(%s, %s)
-        """,
-            [project.id, delta],
-        )
-        return cur.fetchone()[0]
-    finally:
-        cur.close()
+    sample_rate = options.get("store.projectcounter-modern-upsert-sample-rate")
+
+    modern_upsert = sample_rate and random.random() <= sample_rate
+
+    # To prevent the statement_timeout leaking into the session we need to use
+    # set local which can be used only within a transaction
+    with transaction.atomic(using=using):
+        cur = connections[using].cursor()
+        try:
+            if settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT:
+                # WARNING: This is not a proper fix and should be removed once
+                #          we have better way of generating next_short_id.
+                cur.execute(
+                    "set local statement_timeout = %s",
+                    [settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT],
+                )
+
+            if modern_upsert:
+                # Our postgres wrapper thing does not allow for named arguments
+                cur.execute(
+                    "insert into sentry_projectcounter (project_id, value) "
+                    "values (%s, %s) "
+                    "on conflict (project_id) do update "
+                    "set value = sentry_projectcounter.value + %s "
+                    "returning value",
+                    [project.id, delta, delta],
+                )
+            else:
+                cur.execute(
+                    "select sentry_increment_project_counter(%s, %s)",
+                    [project.id, delta],
+                )
+
+            return cur.fetchone()[0]
+        finally:
+            cur.close()
 
 
 # this must be idempotent because it seems to execute twice

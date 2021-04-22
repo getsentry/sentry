@@ -1,18 +1,18 @@
 from hashlib import sha1
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
 
 from sentry import options
-from sentry.models import ApiToken, FileBlob, MAX_FILE_SIZE
-from sentry.testutils import APITestCase
 from sentry.api.endpoints.chunk import (
+    HASH_ALGORITHM,
     MAX_CHUNKS_PER_REQUEST,
     MAX_CONCURRENCY,
-    HASH_ALGORITHM,
     MAX_REQUEST_SIZE,
 )
+from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob
+from sentry.testutils import APITestCase
 
 
 class ChunkUploadTest(APITestCase):

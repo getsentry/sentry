@@ -1,6 +1,7 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
+
 from sentry.constants import SentryAppStatus
-from sentry.models import SentryApp, OrganizationMember
+from sentry.models import OrganizationMember, SentryApp
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.utils import json
@@ -329,21 +330,27 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 400
         assert response.data == {"allowedOrigins": ["'*' not allowed in origin"]}
 
-    def test_create_integration_exceeding_scopes(self):
+    def test_members_cant_update(self):
         member_om = OrganizationMember.objects.get(user=self.user, organization=self.org)
         member_om.role = "member"
         member_om.save()
         self.login_as(user=self.user)
         url = reverse("sentry-api-0-sentry-app-details", args=[self.unpublished_app.slug])
-        response = self.client.put(
-            url, data={"scopes": ["member:read", "member:write", "member:admin"]}
-        )
+        response = self.client.put(url, data={"scopes": ["member:read"]})
+        assert response.status_code == 403
+
+    def test_create_integration_exceeding_scopes(self):
+        member_om = OrganizationMember.objects.get(user=self.user, organization=self.org)
+        member_om.role = "manager"
+        member_om.save()
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-sentry-app-details", args=[self.unpublished_app.slug])
+        response = self.client.put(url, data={"scopes": ["org:read", "org:write", "org:admin"]})
 
         assert response.status_code == 400
         assert response.data == {
             "scopes": [
-                "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
-                "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+                "Requested permission of org:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
             ]
         }
 

@@ -1,27 +1,26 @@
+from datetime import datetime
+
+from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from rest_framework import status
 from rest_framework.response import Response
 
-from django.db.models import Q
-
 from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAlertRulePermission
+from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
-    OffsetPaginator,
-    CombinedQuerysetPaginator,
     CombinedQuerysetIntermediary,
+    CombinedQuerysetPaginator,
+    OffsetPaginator,
 )
-from sentry.api.serializers import serialize, CombinedRuleSerializer
-from sentry.incidents.models import AlertRule
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
+from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.models import AlertRule, Incident
+from sentry.models import OrganizationMemberTeam, Project, Rule, RuleStatus, Team, TeamStatus
 from sentry.snuba.dataset import Dataset
-from sentry.models import (
-    Rule,
-    RuleStatus,
-    Project,
-    OrganizationMemberTeam,
-    Team,
-)
+from sentry.utils.cursors import Cursor, StringCursor
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
@@ -48,6 +47,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         teams = set(request.GET.getlist("team", []))
         team_filter_query = None
         if teams:
+            # do normal teams lookup based on request params
             verified_ids = set()
             unassigned = None
             if "unassigned" in teams:
@@ -56,8 +56,15 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
             if "myteams" in teams:
                 teams.remove("myteams")
-                myteams = [t.id for t in request.access.teams]
-                verified_ids.update(myteams)
+                if is_active_superuser(request):
+                    # retrieve all teams within the organization
+                    myteams = Team.objects.filter(
+                        organization=organization, status=TeamStatus.VISIBLE
+                    ).values_list("id", flat=True)
+                    verified_ids.update(myteams)
+                else:
+                    myteams = [t.id for t in request.access.teams]
+                    verified_ids.update(myteams)
 
             for team_id in teams:  # Verify each passed Team id is numeric
                 if type(team_id) is not int and not team_id.isdigit():
@@ -76,7 +83,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                         f"Error: You do not have permission to access {team.name}",
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-
             team_filter_query = Q(owner_id__in=teams.values_list("actor_id", flat=True))
             if unassigned:
                 team_filter_query = team_filter_query | unassigned
@@ -97,20 +103,65 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             alert_rules = alert_rules.filter(team_filter_query)
             issue_rules = issue_rules.filter(team_filter_query)
 
+        expand = request.GET.getlist("expand", [])
+        if "latestIncident" in expand:
+            alert_rules = alert_rules.annotate(
+                incident_id=Coalesce(
+                    Subquery(
+                        Incident.objects.filter(alert_rule=OuterRef("pk"))
+                        .order_by("-date_started")
+                        .values("id")[:1]
+                    ),
+                    Value("-1"),
+                )
+            )
+
         is_asc = request.GET.get("asc", False) == "1"
-        sort_key = request.GET.get("sort", "date_added")
-        rule_sort_key = (
-            sort_key if sort_key != "name" else "label"
-        )  # Rule's don't share the same field name for their title/label/name...so we account for that here.
+        sort_key = request.GET.getlist("sort", ["date_added"])
+        rule_sort_key = [
+            "label" if x == "name" else x for x in sort_key
+        ]  # Rule's don't share the same field name for their title/label/name...so we account for that here.
+        case_insensitive = sort_key == ["name"]
+
+        if "incident_status" in sort_key:
+            alert_rules = alert_rules.annotate(
+                incident_status=Coalesce(
+                    Subquery(
+                        Incident.objects.filter(alert_rule=OuterRef("pk"))
+                        .order_by("-date_started")
+                        .values("status")[:1]
+                    ),
+                    Value(-1, output_field=IntegerField()),
+                )
+            )
+            issue_rules = issue_rules.annotate(
+                incident_status=Value(-2, output_field=IntegerField())
+            )
+
+        if "date_triggered" in sort_key:
+            far_past_date = Value(datetime.min, output_field=DateTimeField())
+            alert_rules = alert_rules.annotate(
+                date_triggered=Coalesce(
+                    Subquery(
+                        Incident.objects.filter(alert_rule=OuterRef("pk"))
+                        .order_by("-date_started")
+                        .values("date_started")[:1]
+                    ),
+                    far_past_date,
+                ),
+            )
+            issue_rules = issue_rules.annotate(date_triggered=far_past_date)
         alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, sort_key)
         rule_intermediary = CombinedQuerysetIntermediary(issue_rules, rule_sort_key)
         return self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
-            on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
+            on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer(expand=expand)),
             default_per_page=25,
             intermediaries=[alert_rule_intermediary, rule_intermediary],
             desc=not is_asc,
+            cursor_cls=StringCursor if case_insensitive else Cursor,
+            case_insensitive=case_insensitive,
         )
 
 

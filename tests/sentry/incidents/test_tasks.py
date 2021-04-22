@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
-from django.core.urlresolvers import reverse
+
+from django.urls import reverse
 from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
-from sentry.utils.compat.mock import Mock, patch
 
 from sentry.incidents.logic import (
     create_alert_rule_trigger,
@@ -13,22 +13,23 @@ from sentry.incidents.logic import (
     subscribe_to_incident,
 )
 from sentry.incidents.models import (
+    INCIDENT_STATUS,
     AlertRuleTriggerAction,
     IncidentActivityType,
+    IncidentSnapshot,
     IncidentStatus,
-    INCIDENT_STATUS,
     IncidentSubscription,
     PendingIncidentSnapshot,
-    IncidentSnapshot,
 )
 from sentry.incidents.tasks import (
     build_activity_context,
     generate_incident_activity_email,
     handle_trigger_action,
-    send_subscriber_notifications,
     process_pending_incident_snapshots,
+    send_subscriber_notifications,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock, patch
 from sentry.utils.http import absolute_uri
 
 

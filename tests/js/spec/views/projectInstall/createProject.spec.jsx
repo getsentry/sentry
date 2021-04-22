@@ -34,7 +34,6 @@ describe('CreateProject', function () {
             slug: 'testOrg',
             teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}],
           },
-          location: {query: {}},
         },
       ])
     );
@@ -104,6 +103,7 @@ describe('CreateProject', function () {
   it('should fill in platform name if its provided by url', function () {
     const props = {
       ...baseProps,
+      location: {query: {platform: 'ruby-rails'}},
     };
 
     const wrapper = mountWithTheme(
@@ -115,7 +115,6 @@ describe('CreateProject', function () {
             slug: 'testOrg',
             teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
           },
-          location: {query: {platform: 'ruby-rails'}},
         },
       ])
     );
@@ -128,6 +127,7 @@ describe('CreateProject', function () {
   it('should fill in category name if its provided by url', function () {
     const props = {
       ...baseProps,
+      location: {query: {category: 'mobile'}},
     };
 
     const wrapper = mountWithTheme(
@@ -139,7 +139,6 @@ describe('CreateProject', function () {
             slug: 'testOrg',
             teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
           },
-          location: {query: {category: 'mobile'}},
         },
       ])
     );

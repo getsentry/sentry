@@ -1,7 +1,6 @@
 import responses
-
 from django.test.utils import override_settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import Integration

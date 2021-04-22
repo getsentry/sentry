@@ -1,12 +1,13 @@
-import pytz
 from datetime import datetime, timedelta
 
+import pytz
+
+from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.dates import to_timestamp
 from sentry.utils.outcomes import Outcome
-from sentry_relay import DataCategory
 
 
 def floor_to_hour_epoch(value):
@@ -38,88 +39,106 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.start_time,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.start_time,
+                    "quantity": 1,
+                },
                 3,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.one_day_later,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.one_day_later,
+                    "quantity": 1,
+                },
                 4,
             )
             # security and default should be included in these queries
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.SECURITY,
-                self.start_time,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.SECURITY,
+                    "timestamp": self.start_time,
+                    "quantity": 1,
+                },
                 1,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.DEFAULT,
-                self.one_day_later,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.DEFAULT,
+                    "timestamp": self.one_day_later,
+                    "quantity": 1,
+                },
                 1,
             )
 
             # Also create some outcomes we shouldn't be querying
             self.store_outcomes(
-                other_organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.one_day_later,
-                1,
+                {
+                    "org_id": other_organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.one_day_later,
+                    "quantity": 1,
+                },
                 5,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.day_before_start_time,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.day_before_start_time,
+                    "quantity": 1,
+                },
                 6,
             )
             # we also shouldn't see any other datacategories in these queries
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.TRANSACTION,
-                self.one_day_later,
-                1,
-                1,
-            )
-            self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ATTACHMENT,
-                self.one_day_later,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.TRANSACTION,
+                    "timestamp": self.one_day_later,
+                    "quantity": 1,
+                },
                 1,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.SESSION,
-                self.one_day_later,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ATTACHMENT,
+                    "timestamp": self.one_day_later,
+                    "quantity": 1,
+                },
                 1,
+            )
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.SESSION,
+                    "timestamp": self.one_day_later,
+                    "quantity": 1,
+                },
                 1,
             )
 
@@ -152,88 +171,106 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.start_time,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.start_time,
+                    "key_id": 1,
+                },
                 3,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.one_day_later,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.one_day_later,
+                    "key_id": 1,
+                },
                 4,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.SECURITY,
-                self.start_time,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.SECURITY,
+                    "timestamp": self.start_time,
+                    "key_id": 1,
+                },
                 1,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.DEFAULT,
-                self.one_day_later,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.DEFAULT,
+                    "timestamp": self.one_day_later,
+                    "key_id": 1,
+                },
                 1,
             )
 
             # Also create some outcomes we shouldn't be querying
             self.store_outcomes(
-                self.organization.id,
-                other_project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.one_day_later,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": other_project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.one_day_later,
+                    "key_id": 1,
+                },
                 5,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.day_before_start_time,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.day_before_start_time,
+                    "key_id": 1,
+                },
                 6,
             )
 
             # we also shouldn't see any other datacategories in these queries
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.TRANSACTION,
-                self.one_day_later,
-                1,
-                1,
-            )
-            self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ATTACHMENT,
-                self.one_day_later,
-                1,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.TRANSACTION,
+                    "timestamp": self.one_day_later,
+                    "key_id": 1,
+                },
                 1,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.SESSION,
-                self.one_day_later,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ATTACHMENT,
+                    "timestamp": self.one_day_later,
+                    "key_id": 1,
+                },
                 1,
+            )
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.SESSION,
+                    "timestamp": self.one_day_later,
+                    "key_id": 1,
+                },
                 1,
             )
 
@@ -267,87 +304,105 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.start_time,
-                project_key.id,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.start_time,
+                    "key_id": project_key.id,
+                },
                 3,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.one_day_later,
-                project_key.id,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.one_day_later,
+                    "key_id": project_key.id,
+                },
                 4,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.SECURITY,
-                self.start_time,
-                project_key.id,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.SECURITY,
+                    "timestamp": self.start_time,
+                    "key_id": project_key.id,
+                },
                 1,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.DEFAULT,
-                self.one_day_later,
-                project_key.id,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.DEFAULT,
+                    "timestamp": self.one_day_later,
+                    "key_id": project_key.id,
+                },
                 1,
             )
 
             # Also create some outcomes we shouldn't be querying
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.one_day_later,
-                other_project_key.id,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.one_day_later,
+                    "key_id": other_project_key.id,
+                },
                 5,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ERROR,
-                self.day_before_start_time,
-                project_key.id,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.day_before_start_time,
+                    "key_id": project_key.id,
+                },
                 6,
             )
             # we also shouldn't see any other datacategories in these queries
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.TRANSACTION,
-                self.one_day_later,
-                project_key.id,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.TRANSACTION,
+                    "timestamp": self.one_day_later,
+                    "key_id": project_key.id,
+                },
                 1,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.ATTACHMENT,
-                self.one_day_later,
-                project_key.id,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ATTACHMENT,
+                    "timestamp": self.one_day_later,
+                    "key_id": project_key.id,
+                },
                 1,
             )
             self.store_outcomes(
-                self.organization.id,
-                self.project.id,
-                outcome.value,
-                DataCategory.SESSION,
-                self.one_day_later,
-                project_key.id,
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.SESSION,
+                    "timestamp": self.one_day_later,
+                    "key_id": project_key.id,
+                },
                 1,
             )
 

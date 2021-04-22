@@ -1,9 +1,9 @@
 import logging
+from uuid import uuid4
 
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework.response import Response
-from uuid import uuid4
-from django.db import transaction
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist

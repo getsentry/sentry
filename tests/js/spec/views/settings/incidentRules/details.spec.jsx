@@ -4,7 +4,18 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GlobalModal from 'app/components/globalModal';
+import {metric} from 'app/utils/analytics';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
+
+jest.mock('app/utils/analytics', () => ({
+  metric: {
+    startTransaction: jest.fn(() => ({
+      setTag: jest.fn(),
+      setData: jest.fn(),
+    })),
+    endTransaction: jest.fn(),
+  },
+}));
 
 describe('Incident Rules Details', function () {
   beforeAll(function () {
@@ -104,11 +115,12 @@ describe('Incident Rules Details', function () {
       .simulate('change', {target: {value: 12}});
 
     // Create a new action
-    wrapper.find('button[aria-label="Add New Action"]').simulate('click');
+    wrapper.find('button[aria-label="Add Action"]').simulate('click');
 
     // Save Trigger
-    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
+    wrapper.find('button[aria-label="Create Rule"]').simulate('submit');
 
+    expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -168,7 +180,7 @@ describe('Incident Rules Details', function () {
       .simulate('change', {target: {value: ''}});
 
     // Save Trigger
-    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
+    wrapper.find('button[aria-label="Create Rule"]').simulate('submit');
 
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),

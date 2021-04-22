@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+
 import click
 from click.formatting import join_options
 

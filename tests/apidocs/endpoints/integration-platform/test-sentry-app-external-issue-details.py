@@ -1,9 +1,8 @@
-from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
-
-from tests.apidocs.util import APIDocsTestCase
+from django.urls import reverse
 
 from sentry.models import SentryAppInstallation
+from tests.apidocs.util import APIDocsTestCase
 
 
 class SentryAppDetailsDocs(APIDocsTestCase):

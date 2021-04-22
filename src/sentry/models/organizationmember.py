@@ -1,19 +1,20 @@
-from bitfield import BitField
 from datetime import timedelta
+from enum import Enum
+from hashlib import md5
+from urllib.parse import urlencode
+from uuid import uuid4
+
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db import models, transaction
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.translation import ugettext_lazy as _
-from enum import Enum
-from hashlib import md5
 from structlog import get_logger
-from uuid import uuid4
-from urllib.parse import urlencode
 
+from bitfield import BitField
 from sentry import roles
-from sentry.constants import EVENTS_MEMBER_ADMIN_DEFAULT, ALERTS_MEMBER_WRITE_DEFAULT
+from sentry.constants import ALERTS_MEMBER_WRITE_DEFAULT, EVENTS_MEMBER_ADMIN_DEFAULT
 from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
@@ -256,8 +257,8 @@ class OrganizationMember(Model):
         msg.send_async([self.get_email()])
 
     def send_sso_unlink_email(self, actor, provider):
-        from sentry.utils.email import MessageBuilder
         from sentry.models import LostPasswordHash
+        from sentry.utils.email import MessageBuilder
 
         email = self.get_email()
 

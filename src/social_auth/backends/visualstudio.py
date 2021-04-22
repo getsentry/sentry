@@ -5,14 +5,12 @@ and put into sentry.conf.py
 """
 
 import requests
-
 from django.conf import settings
-from django.core.urlresolvers import reverse
-
-from social_auth.backends import BaseOAuth2, OAuthBackend
-from social_auth.utils import setting
+from django.urls import reverse
 
 from sentry.utils.http import absolute_uri
+from social_auth.backends import BaseOAuth2, OAuthBackend
+from social_auth.utils import setting
 
 VISUALSTUDIO_AUTHORIZATION_URL = "https://app.vssps.visualstudio.com/oauth2/authorize"
 VISUALSTUDIO_TOKEN_EXCHANGE_URL = "https://app.vssps.visualstudio.com/oauth2/token"

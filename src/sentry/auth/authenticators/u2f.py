@@ -1,7 +1,8 @@
-from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext_lazy as _
-from cryptography.exceptions import InvalidSignature, InvalidKey
 from time import time
+
+from cryptography.exceptions import InvalidKey, InvalidSignature
+from django.urls import reverse
+from django.utils.translation import ugettext_lazy as _
 from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
@@ -10,7 +11,7 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
-from .base import AuthenticatorInterface, ActivationChallengeResult
+from .base import ActivationChallengeResult, AuthenticatorInterface
 
 
 class U2fInterface(AuthenticatorInterface):

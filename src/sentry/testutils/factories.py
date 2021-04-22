@@ -1,23 +1,23 @@
-from django.conf import settings
-
 import io
 import os
-import petname
 import random
 import warnings
 from binascii import hexlify
 from hashlib import sha1
-from uuid import uuid4
 from importlib import import_module
+from typing import Any
+from uuid import uuid4
 
+import petname
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
 from django.utils import timezone
-from django.utils.text import slugify
 from django.utils.encoding import force_text
+from django.utils.text import slugify
 
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
-from sentry.constants import SentryAppStatus, SentryAppInstallationStatus
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -27,56 +27,56 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
-    IncidentTrigger,
     IncidentActivity,
     IncidentProject,
     IncidentSeen,
+    IncidentTrigger,
     IncidentType,
     TriggerStatus,
 )
 from sentry.mediators import (
-    sentry_apps,
-    sentry_app_installations,
     sentry_app_installation_tokens,
+    sentry_app_installations,
+    sentry_apps,
     service_hooks,
 )
 from sentry.models import (
     Activity,
+    Commit,
+    CommitAuthor,
+    CommitFileChange,
     Environment,
+    EventAttachment,
+    ExternalActor,
+    ExternalIssue,
+    File,
     Group,
+    GroupLink,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    PlatformExternalIssue,
     Project,
     ProjectBookmark,
+    ProjectCodeOwners,
+    ProjectDebugFile,
+    Release,
+    ReleaseCommit,
+    ReleaseFile,
+    Repository,
+    RepositoryProjectPathConfig,
+    Rule,
     Team,
     User,
     UserEmail,
-    Release,
-    Commit,
-    ReleaseCommit,
-    CommitAuthor,
-    Repository,
-    CommitFileChange,
-    ProjectDebugFile,
-    File,
     UserPermission,
-    EventAttachment,
     UserReport,
-    PlatformExternalIssue,
-    ExternalIssue,
-    GroupLink,
-    ReleaseFile,
-    RepositoryProjectPathConfig,
-    Rule,
-    ExternalUser,
-    ExternalTeam,
-    ProjectCodeOwners,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
-from sentry.utils import loremipsum, json
+from sentry.types.integrations import ExternalProviders
+from sentry.utils import json, loremipsum
 
 
 def get_fixture_path(name):
@@ -954,18 +954,18 @@ class Factories:
         )
 
     @staticmethod
-    def create_external_user(organizationmember, **kwargs):
-        kwargs.setdefault("provider", ExternalUser.get_provider_enum("github"))
+    def create_external_user(user: User, **kwargs: Any) -> ExternalActor:
+        kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
 
-        return ExternalUser.objects.create(organizationmember=organizationmember, **kwargs)
+        return ExternalActor.objects.create(actor=user.actor, **kwargs)
 
     @staticmethod
-    def create_external_team(team, **kwargs):
-        kwargs.setdefault("provider", ExternalTeam.get_provider_enum("github"))
+    def create_external_team(team: Team, **kwargs: Any) -> ExternalActor:
+        kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
 
-        return ExternalTeam.objects.create(team=team, **kwargs)
+        return ExternalActor.objects.create(actor=team.actor, **kwargs)
 
     @staticmethod
     def create_codeowners(project, code_mapping, **kwargs):

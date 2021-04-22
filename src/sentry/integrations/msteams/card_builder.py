@@ -1,10 +1,5 @@
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import (
-    Project,
-    GroupStatus,
-    GroupAssignee,
-    Team,
-)
+from sentry.models import GroupAssignee, GroupStatus, Project, Team
 from sentry.utils.assets import get_asset_url
 from sentry.utils.compat import map
 from sentry.utils.http import absolute_uri

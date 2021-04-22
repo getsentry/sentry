@@ -1,8 +1,9 @@
 import functools
 import os.path
 from collections import namedtuple
-from datetime import timedelta
+from datetime import datetime, timedelta
 from random import randint
+from urllib.parse import quote
 
 from django import template
 from django.template.defaultfilters import stringfilter
@@ -17,7 +18,6 @@ from sentry.api.serializers import serialize as serialize_func
 from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
-from urllib.parse import quote
 
 SentryVersion = namedtuple("SentryVersion", ["current", "latest", "update_available", "build"])
 
@@ -235,7 +235,7 @@ def duration(value):
 def date(dt, arg=None):
     from django.template.defaultfilters import date
 
-    if not timezone.is_aware(dt):
+    if isinstance(dt, datetime) and not timezone.is_aware(dt):
         dt = dt.replace(tzinfo=timezone.utc)
     return date(dt, arg)
 
@@ -280,7 +280,7 @@ def soft_break(value, length):
     )
 
 
-@register.assignment_tag
+@register.simple_tag
 def random_int(a, b=None):
     if b is None:
         a, b = 0, a

@@ -1,10 +1,10 @@
-import pytz
-
 from urllib.parse import urlencode
-from sentry.utils.compat.mock import patch
+
+import pytz
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
 from .page_objects.transaction_summary import TransactionSummaryPage
@@ -44,7 +44,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         # Create a transaction
         event = make_event(load_data("transaction", timestamp=before_now(minutes=1)))
         self.store_event(data=event, project_id=self.project.id)
-        self.wait_for_event_count(self.project.id, 1)
 
         self.store_event(
             data={
@@ -104,7 +103,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event_data["measurements"]["fp"]["value"] = 5000
         event = make_event(event_data)
         self.store_event(data=event, project_id=self.project.id)
-        self.wait_for_event_count(self.project.id, 1)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
@@ -164,18 +162,14 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event_data["measurements"]["cls"]["value"] = 3000000000
         self.store_event(data=event_data, project_id=self.project.id)
 
-        self.wait_for_event_count(self.project.id, 5)
-
         with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
             self.page.wait_until_loaded()
 
             self.browser.snapshot("real user monitoring - exclude outliers")
 
-            self.browser.element(
-                xpath="//button//span[contains(text(), 'Exclude Outliers')]"
-            ).click()
-            self.browser.element(xpath="//li//span[contains(text(), 'View All')]").click()
+            self.browser.element(xpath="//button//span[contains(text(), 'Exclude')]").click()
+            self.browser.element(xpath="//li//span[contains(text(), 'Include')]").click()
             self.page.wait_until_loaded()
 
             self.browser.snapshot("real user monitoring - view all data")

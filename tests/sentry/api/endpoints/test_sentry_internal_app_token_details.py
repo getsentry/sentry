@@ -1,8 +1,8 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
-from sentry.testutils import APITestCase
-from sentry.models import ApiToken
 from sentry.mediators.token_exchange import GrantExchanger
+from sentry.models import ApiToken
+from sentry.testutils import APITestCase
 
 
 class SentryInternalAppTokenCreationTest(APITestCase):

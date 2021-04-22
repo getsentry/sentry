@@ -1,23 +1,22 @@
-import petname
 import re
-
-from bitfield import BitField
+from urllib.parse import urlparse
 from uuid import uuid4
 
+import petname
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from urllib.parse import urlparse
 
-from sentry import options, features
+from bitfield import BitField
+from sentry import features, options
 from sentry.db.models import (
-    Model,
     BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
+    Model,
     sane_repr,
 )
 from sentry.tasks.relay import schedule_update_config_cache

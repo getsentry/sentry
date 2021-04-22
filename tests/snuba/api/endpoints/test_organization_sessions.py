@@ -1,10 +1,9 @@
 import datetime
-import pytz
-
 from uuid import uuid4
-from freezegun import freeze_time
 
-from django.core.urlresolvers import reverse
+import pytz
+from django.urls import reverse
+from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.utils.dates import to_timestamp

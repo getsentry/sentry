@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.testutils import TestCase
 
@@ -72,3 +72,13 @@ class ReactPageViewTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/bases/react.html")
         assert resp.context["request"]
+
+    def test_org_settings_captures_slug(self):
+        owner = self.create_user("bar@example.com")
+        org = self.create_organization(owner=owner)
+        path = f"/settings/{org.slug}/some-page/"
+
+        # User is *not* logged in. Check for redirect to org's auth login.
+        resp = self.client.get(path)
+        assert resp.status_code == 302
+        assert resp.url == f"/auth/login/{org.slug}/"

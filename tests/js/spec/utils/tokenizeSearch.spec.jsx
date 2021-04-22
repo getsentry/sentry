@@ -180,6 +180,26 @@ describe('utils/tokenizeSearch', function () {
           tagValues: {country: ['>canada'], 'coronaFree()': ['<newzealand']},
         },
       },
+      {
+        name: 'correctly preserves leading/trailing escaped quotes',
+        string: 'a:"\\"a\\""',
+        object: {
+          tokens: [{type: TokenType.TAG, key: 'a', value: '\\"a\\"'}],
+          tagValues: {a: ['\\"a\\"']},
+        },
+      },
+      {
+        name: 'correctly tokenizes escaped quotes',
+        string: 'a:"i \\" quote" b:"b\\"bb" c:"cc"',
+        object: {
+          tokens: [
+            {type: TokenType.TAG, key: 'a', value: 'i \\" quote'},
+            {type: TokenType.TAG, key: 'b', value: 'b\\"bb'},
+            {type: TokenType.TAG, key: 'c', value: 'cc'},
+          ],
+          tagValues: {a: ['i \\" quote'], b: ['b\\"bb'], c: ['cc']},
+        },
+      },
     ];
 
     for (const {name, string, object} of cases) {
@@ -225,6 +245,16 @@ describe('utils/tokenizeSearch', function () {
       results.query = ['x', 'y'];
       expect(results.formatString()).toEqual('a:a d:d x y');
       expect(results.query).toEqual(['x', 'y']);
+
+      results.query = ['a b c'];
+      expect(results.formatString()).toEqual('a:a d:d "a b c"');
+      expect(results.query).toEqual(['a b c']);
+
+      results.query = ['invalid literal for int() with base'];
+      expect(results.formatString()).toEqual(
+        'a:a d:d "invalid literal for int() with base"'
+      );
+      expect(results.query).toEqual(['invalid literal for int() with base']);
     });
 
     it('add ops to query object', function () {

@@ -1,18 +1,14 @@
 import datetime
-from sentry.utils.compat import mock
 
-from django.core.urlresolvers import reverse
-from django.db.models import F
 from django.conf import settings
+from django.db.models import F
+from django.urls import reverse
 from django.utils import timezone
 
-from sentry.auth.authenticators import (
-    TotpInterface,
-    RecoveryCodeInterface,
-    SmsInterface,
-)
+from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, TotpInterface
 from sentry.models import Authenticator, Organization
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 
 
 class UserAuthenticatorDetailsTest(APITestCase):

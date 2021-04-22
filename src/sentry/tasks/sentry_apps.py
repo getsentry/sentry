@@ -1,14 +1,10 @@
 import logging
 
 from celery.task import current
-from django.core.urlresolvers import reverse
-from requests.exceptions import (
-    ConnectionError,
-    RequestException,
-    Timeout,
-)
+from django.urls import reverse
+from requests.exceptions import ConnectionError, RequestException, Timeout
 
-from sentry.api.serializers import serialize, AppPlatformEvent
+from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
@@ -34,7 +30,6 @@ from sentry.utils import metrics
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
-
 
 logger = logging.getLogger("sentry.tasks.sentry_apps")
 

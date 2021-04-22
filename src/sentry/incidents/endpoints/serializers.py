@@ -2,26 +2,26 @@ import logging
 import operator
 from datetime import timedelta
 
-from rest_framework import serializers
-
 from django.db import transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
+from rest_framework import serializers
 
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.incidents.logic import (
+    CRITICAL_TRIGGER_LABEL,
+    WARNING_TRIGGER_LABEL,
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
-    InvalidTriggerActionError,
     ChannelLookupTimeoutError,
+    InvalidTriggerActionError,
     check_aggregate_column_support,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
-    CRITICAL_TRIGGER_LABEL,
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
     rewrite_trigger_action_fields,
@@ -29,23 +29,23 @@ from sentry.incidents.logic import (
     update_alert_rule,
     update_alert_rule_trigger,
     update_alert_rule_trigger_action,
-    WARNING_TRIGGER_LABEL,
 )
-from sentry.models import ActorTuple
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.integrations.slack.utils import validate_channel_id
+from sentry.models import ActorTuple
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
-from sentry.utils.snuba import raw_query
 from sentry.utils.compat import zip
+from sentry.utils.snuba import raw_query
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +168,10 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 )
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")
+        should_validate_channel_id = self.context.get("validate_channel_id", True)
+        # validate_channel_id is assumed to be true unless explicitly passed as false
+        if attrs["input_channel_id"] and should_validate_channel_id:
+            validate_channel_id(identifier, attrs["integration"].id, attrs["input_channel_id"])
         return attrs
 
     def create(self, validated_data):
@@ -257,6 +261,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                         "organization": self.context["organization"],
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
+                        "validate_channel_id": self.context.get("validate_channel_id"),
                         "input_channel_id": action_data.pop("input_channel_id", None),
                     },
                     instance=action_instance,
@@ -579,6 +584,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
                         "input_channel_id": self.context.get("input_channel_id"),
+                        "validate_channel_id": self.context.get("validate_channel_id"),
                     },
                     instance=trigger_instance,
                     data=trigger_data,

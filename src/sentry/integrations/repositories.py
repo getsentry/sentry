@@ -1,7 +1,8 @@
+from sentry_sdk import configure_scope
+
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry_sdk import configure_scope
 
 
 class RepositoryMixin:
@@ -96,4 +97,20 @@ class RepositoryMixin:
         ).update(status=ObjectStatus.VISIBLE)
 
     def has_repo_access(self, repo):
+        raise NotImplementedError
+
+    def get_codeowner_file(self, repo, ref=None):
+        """
+        Find and get the contents of a CODEOWNERS file.
+        Should use client().get_file to get and decode the contents.
+
+        args:
+         * repo - Repository object
+         * ref (optional) - if needed when searching/fetching the file
+
+        returns an Object {} with the following keys:
+         * html_url - the web url link to view the codeowner file
+         * filepath - full path of the file i.e. CODEOWNERS, .github/CODEOWNERS, docs/CODEOWNERS
+         * raw - the decoded raw contents of the codeowner file
+        """
         raise NotImplementedError

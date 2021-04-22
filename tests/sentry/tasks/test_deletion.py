@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -32,6 +31,7 @@ from sentry.models import (
     ReleaseCommit,
     ReleaseEnvironment,
     Repository,
+    Rule,
     Team,
     TeamStatus,
 )
@@ -47,7 +47,8 @@ from sentry.tasks.deletion import (
     revoke_api_tokens,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 
 
 class DeleteOrganizationTest(TestCase):
@@ -102,13 +103,32 @@ class DeleteOrganizationTest(TestCase):
 class DeleteTeamTest(TestCase):
     def test_simple(self):
         team = self.create_team(name="test", status=TeamStatus.PENDING_DELETION)
-        self.create_project(teams=[team], name="test1")
-        self.create_project(teams=[team], name="test2")
+        project = self.create_project(teams=[team], name="test1")
+        another_project = self.create_project(teams=[team], name="test2")
+        r1 = Rule.objects.create(label="test rule", project=project, owner=team.actor)
+        r2 = Rule.objects.create(
+            label="another test rule", project=another_project, owner=team.actor
+        )
+        ar1 = self.create_alert_rule(
+            name="test alert rule", owner=team.actor.get_actor_tuple(), projects=[project]
+        )
+        ar2 = self.create_alert_rule(
+            name="another test alert rule",
+            owner=team.actor.get_actor_tuple(),
+            projects=[another_project],
+        )
+
+        assert r1.owner == r2.owner == ar1.owner == ar2.owner == team.actor
 
         with self.tasks():
             delete_team(object_id=team.id)
 
+        r1.refresh_from_db()
+        r2.refresh_from_db()
+        ar1.refresh_from_db()
+        ar2.refresh_from_db()
         assert not Team.objects.filter(id=team.id).exists()
+        assert r1.owner == r2.owner == ar1.owner == ar2.owner is None
 
     def test_cancels_without_pending_status(self):
         team = self.create_team(name="test", status=TeamStatus.VISIBLE)

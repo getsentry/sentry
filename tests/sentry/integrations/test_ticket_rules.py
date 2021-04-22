@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.integrations.jira import JiraCreateTicketAction
@@ -10,7 +10,6 @@ from sentry.models.integration import Integration
 from sentry.models.rule import Rule
 from sentry.testutils import RuleTestCase
 from sentry.utils.compat import mock
-
 from tests.fixtures.integrations.jira import MockJira
 
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])

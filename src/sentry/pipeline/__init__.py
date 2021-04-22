@@ -1,14 +1,13 @@
 import logging
-
 from types import LambdaType
 
-from sentry.models import Organization
-from sentry.web.frontend.base import BaseView
-from sentry.utils import json
-from sentry.utils.session_store import RedisSessionStore
-from sentry.utils.hashlib import md5_text
-from sentry.web.helpers import render_to_response
 from sentry import analytics
+from sentry.models import Organization
+from sentry.utils import json
+from sentry.utils.hashlib import md5_text
+from sentry.utils.session_store import RedisSessionStore
+from sentry.web.frontend.base import BaseView
+from sentry.web.helpers import render_to_response
 
 # give users an hour to complete
 INTEGRATION_EXPIRATION_TTL = 60 * 60

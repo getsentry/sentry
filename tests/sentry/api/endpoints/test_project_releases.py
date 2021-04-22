@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 
 import pytz
+from django.urls import reverse
 from django.utils import timezone
-from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer

@@ -4,11 +4,12 @@ const fs = require('fs');
 const path = require('path');
 
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
+const {WebpackManifestPlugin} = require('webpack-manifest-plugin');
 const webpack = require('webpack');
-const ExtractTextPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
-const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
-const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
+const FixStyleOnlyEntriesPlugin = require('webpack-remove-empty-scripts');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
@@ -29,7 +30,13 @@ const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 // We want it in the case where we are running tests and it is in CI,
 // this should not happen in local
 const IS_CI = !!env.CI;
-const IS_ACCEPTANCE_TEST = IS_CI && !!env.VISUAL_SNAPSHOT_ENABLE;
+// We intentionally build in production mode for acceptance tests, so we explicitly use an env var to
+// say that the bundle will be used in acceptance tests. This affects webpack plugins and components
+// with dynamic data that render differently statically in tests.
+//
+// Note, cannot assume it is an acceptance test if `IS_CI` is true, as our image builds has the
+// `CI` env var set.
+const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
@@ -70,9 +77,11 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
 const SENTRY_EXPERIMENTAL_SPA =
   !DEPLOY_PREVIEW_CONFIG && !IS_UI_DEV_ONLY ? env.SENTRY_EXPERIMENTAL_SPA : true;
 
-// this is set by setup.py sdist
-const staticPrefix = path.join(__dirname, 'src/sentry/static/sentry');
-const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(staticPrefix, 'dist');
+// this is the path to the django "sentry" app, we output the webpack build here to `dist`
+// so that `django collectstatic` and so that we can serve the post-webpack bundles
+const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
+const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryDjangoAppPath, 'dist');
+const staticPrefix = path.join(__dirname, 'static');
 
 /**
  * Locale file extraction build step
@@ -153,14 +162,15 @@ supportedLocales
     // multiple expressions.
     //
     // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
-    const groupTest = module =>
+    const groupTest = (module, {chunkGraph}) =>
       localeGroupTests.some(pattern =>
         module.nameForCondition && pattern.test(module.nameForCondition())
           ? true
-          : Array.from(module.chunksIterable).some(c => c.name && pattern.test(c.name))
+          : chunkGraph.getModuleChunks(module).some(c => c.name && pattern.test(c.name))
       );
 
     localeChunkGroups[group] = {
+      chunks: 'initial',
       name: group,
       test: groupTest,
       enforce: true,
@@ -189,7 +199,7 @@ const localeRestrictionPlugins = [
  * Explicit codesplitting cache groups
  */
 const cacheGroups = {
-  vendors: {
+  defaultVendors: {
     name: 'vendor',
     // This `platformicons` check is required otherwise it will get put into this chunk instead
     // of `sentry.css` bundle
@@ -218,8 +228,15 @@ let appConfig = {
   entry: {
     /**
      * Main Sentry SPA
+     *
+     * The order here matters for `getsentry`
      */
-    app: 'app',
+    app: ['app/utils/statics-setup', 'app'],
+
+    /**
+     * Pipeline View for integrations
+     */
+    pipeline: ['app/utils/statics-setup', 'app/views/integrationPipeline'],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
@@ -263,7 +280,7 @@ let appConfig = {
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: [ExtractTextPlugin.loader, 'css-loader', 'less-loader'],
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader'],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
@@ -271,7 +288,9 @@ let appConfig = {
           {
             loader: 'file-loader',
             options: {
-              name: '[name].[hash:6].[ext]',
+              // This needs to be `false` because of platformicons package
+              esModule: false,
+              name: '[folder]/[name].[contenthash:6].[ext]',
             },
           },
         ],
@@ -288,18 +307,26 @@ let appConfig = {
   plugins: [
     new CleanWebpackPlugin(),
 
+    new WebpackManifestPlugin({}),
+
     /**
      * jQuery must be provided in the global scope specifically and only for
      * bootstrap, as it will not import jQuery itself.
      *
      * We discourage the use of global jQuery through eslint rules
      */
-    new webpack.ProvidePlugin({jQuery: 'jquery'}),
+    new webpack.ProvidePlugin({
+      jQuery: 'jquery',
+      process: 'process/browser',
+      Buffer: ['buffer', 'Buffer'],
+    }),
 
     /**
      * Extract CSS into separate files.
      */
-    new ExtractTextPlugin(),
+    new MiniCssExtractPlugin({
+      filename: '[name].[contenthash:6].css',
+    }),
 
     /**
      * Defines environment specific flags.
@@ -323,7 +350,7 @@ let appConfig = {
     /**
      * This removes empty js files for style only entries (e.g. sentry.less)
      */
-    new FixStyleOnlyEntriesPlugin({silent: true}),
+    new FixStyleOnlyEntriesPlugin({verbose: false}),
 
     new SentryInstrumentation(),
 
@@ -342,6 +369,7 @@ let appConfig = {
     alias: {
       app: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
+      'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
       '@emotion/styled': path.join(staticPrefix, 'app', 'styled'),
       '@original-emotion/styled': path.join(
@@ -365,27 +393,43 @@ let appConfig = {
       ),
     },
 
+    fallback: {
+      vm: false,
+      stream: false,
+      crypto: require.resolve('crypto-browserify'),
+      // `yarn why` says this is only needed in dev deps
+      string_decoder: false,
+    },
+
     modules: ['node_modules'],
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
   },
   output: {
     path: distPath,
-    filename: '[name].js',
-
-    // Rename global that is used to async load chunks
-    // Avoids 3rd party js from overwriting the default name (webpackJsonp)
-    jsonpFunction: 'sntryWpJsonp',
+    publicPath: '',
+    filename: '[name].[contenthash].js',
+    chunkFilename: '[name].[contenthash].js',
     sourceMapFilename: '[name].js.map',
   },
   optimization: {
+    chunkIds: 'named',
+    moduleIds: 'named',
+    runtimeChunk: {name: 'runtime'},
     splitChunks: {
-      chunks: 'all',
+      // Only affect async chunks, otherwise webpack could potentially split our initial chunks
+      // Which means the app will not load because we'd need these additional chunks to be loaded in our
+      // django template.
+      chunks: 'async',
       maxInitialRequests: 5,
       maxAsyncRequests: 7,
       cacheGroups,
     },
+
+    // This only runs in production mode
+    // Grabbed this example from https://github.com/webpack-contrib/css-minimizer-webpack-plugin
+    minimizer: ['...', new CssMinimizerPlugin()],
   },
-  devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
+  devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
 if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
@@ -399,7 +443,7 @@ if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
 }
 
-if (!IS_PRODUCTION) {
+if (IS_ACCEPTANCE_TEST) {
   appConfig.plugins.push(new LastBuiltPlugin({basePath: __dirname}));
 }
 
@@ -444,19 +488,17 @@ if (
 
     appConfig.devServer = {
       ...appConfig.devServer,
-      publicPath: '/_webpack',
+      publicPath: '/_static/dist/sentry',
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: {
         '/api/store/**': relayAddress,
         '/api/{1..9}*({0..9})/**': relayAddress,
         '/api/0/relays/outcomes/': relayAddress,
-        '!/_webpack': backendAddress,
+        '!/_static/dist/sentry/**': backendAddress,
       },
-      before: app =>
-        app.use((req, _res, next) => {
-          req.url = req.url.replace(/^\/_static\/[^\/]+\/sentry\/dist/, '/_webpack');
-          next();
-        }),
+      writeToDisk: filePath => {
+        return /manifest\.json/.test(filePath);
+      },
     };
   }
 }
@@ -508,9 +550,10 @@ if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
       ...(IS_UI_DEV_ONLY
         ? {devServer: `https://localhost:${SENTRY_WEBPACK_PROXY_PORT}`}
         : {}),
-      favicon: path.resolve(staticPrefix, 'images', 'favicon_dev.png'),
+      favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon_dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
+      excludeChunks: ['pipeline'],
       title: 'Sentry',
     })
   );
@@ -524,8 +567,6 @@ const minificationPlugins = [
     algorithm: 'gzip',
     test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
   }),
-  new OptimizeCssAssetsPlugin(),
-
   // NOTE: In production mode webpack will automatically minify javascript
   // using the TerserWebpackPlugin.
 ];

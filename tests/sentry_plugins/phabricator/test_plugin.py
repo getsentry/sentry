@@ -1,9 +1,8 @@
 import responses
-
-from exam import fixture
 from django.test import RequestFactory
-from sentry.testutils import PluginTestCase
+from exam import fixture
 
+from sentry.testutils import PluginTestCase
 from sentry_plugins.phabricator.plugin import PhabricatorPlugin
 
 

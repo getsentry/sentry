@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.api.serializers.rest_framework import ActorField, ListField
+from sentry.models import Team, User
 from sentry.testutils import TestCase
-from sentry.api.serializers.rest_framework import ListField, ActorField
-from sentry.models import User, Team
 
 
 class ChildSerializer(serializers.Serializer):

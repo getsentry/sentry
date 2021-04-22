@@ -1,4 +1,5 @@
 from collections import OrderedDict
+
 from django import forms
 
 from sentry import tagstore
@@ -32,7 +33,7 @@ MATCH_CHOICES = OrderedDict(
 
 class TaggedEventForm(forms.Form):
     key = forms.CharField(widget=forms.TextInput())
-    match = forms.ChoiceField(list(MATCH_CHOICES.items()), widget=forms.Select())
+    match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()), widget=forms.Select())
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
     def clean(self):

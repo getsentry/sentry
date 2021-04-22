@@ -1,14 +1,14 @@
-from sentry.utils.compat import mock
-from exam import fixture
-from urllib.parse import urlencode, urlparse, parse_qs
 from collections import namedtuple
+from urllib.parse import parse_qs, urlencode, urlparse
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
+from exam import fixture
 
-from sentry.auth.providers.oauth2 import OAuth2Provider, OAuth2Login, OAuth2Callback
+from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.models import AuthProvider
 from sentry.testutils import AuthProviderTestCase
 from sentry.utils import json
+from sentry.utils.compat import mock
 
 
 class DummyOAuth2Login(OAuth2Login):

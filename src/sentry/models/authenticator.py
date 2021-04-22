@@ -1,8 +1,14 @@
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
+from django.utils.translation import ugettext_lazy as _
 
+from sentry.auth.authenticators import (
+    AUTHENTICATOR_CHOICES,
+    AUTHENTICATOR_INTERFACES,
+    AUTHENTICATOR_INTERFACES_BY_TYPE,
+    available_authenticators,
+)
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -10,12 +16,6 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     EncryptedPickledObjectField,
     FlexibleForeignKey,
-)
-from sentry.auth.authenticators import (
-    AUTHENTICATOR_CHOICES,
-    AUTHENTICATOR_INTERFACES,
-    AUTHENTICATOR_INTERFACES_BY_TYPE,
-    available_authenticators,
 )
 
 

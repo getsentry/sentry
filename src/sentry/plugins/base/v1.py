@@ -1,18 +1,18 @@
 __all__ = ("Plugin",)
 
 import logging
-
-from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
 from threading import local
+
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 from sentry.auth import access
 from sentry.plugins import HIDDEN_PLUGINS
-from sentry.plugins.config import PluginConfigMixin
-from sentry.plugins.status import PluginStatusMixin
+from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
-from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
+from sentry.plugins.config import PluginConfigMixin
+from sentry.plugins.status import PluginStatusMixin
 from sentry.utils.hashlib import md5_text
 
 

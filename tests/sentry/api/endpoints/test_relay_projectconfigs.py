@@ -1,19 +1,16 @@
-import pytest
 import re
-
 from uuid import uuid4
 
-from django.core.urlresolvers import reverse
+import pytest
+from django.urls import reverse
+from sentry_relay.auth import generate_key_pair
 
 from sentry import quotas
 from sentry.constants import ObjectStatus
-from sentry.utils import safe, json
-from sentry.models.relay import Relay
 from sentry.models import Project
+from sentry.models.relay import Relay
 from sentry.testutils.helpers import Feature
-
-from sentry_relay.auth import generate_key_pair
-
+from sentry.utils import json, safe
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 

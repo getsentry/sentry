@@ -1,5 +1,5 @@
 from sentry import options
-from sentry.identity.oauth2 import OAuth2Provider, OAuth2CallbackView
+from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2Provider
 
 
 class VercelIdentityProvider(OAuth2Provider):

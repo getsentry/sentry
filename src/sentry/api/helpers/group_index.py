@@ -1,73 +1,70 @@
 import logging
-
 from collections import defaultdict
 from datetime import timedelta
 from uuid import uuid4
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
-
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import eventstream, features, search
-from sentry.app import ratelimiter
 from sentry.api.base import audit_logger
 from sentry.api.fields import ActorField
+from sentry.api.issue_search import InvalidSearchQuery, convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.api.serializers.models.group import SUBSCRIPTION_REASON_MAP
+from sentry.app import ratelimiter
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    ActorTuple,
+    TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
+    ActorTuple,
     Commit,
     Environment,
     Group,
     GroupAssignee,
+    GroupBookmark,
     GroupHash,
     GroupInboxReason,
     GroupLink,
-    GroupStatus,
-    GroupTombstone,
     GroupResolution,
-    GroupBookmark,
     GroupSeen,
     GroupShare,
     GroupSnooze,
+    GroupStatus,
     GroupSubscription,
-    GroupSubscriptionReason,
+    GroupTombstone,
     Release,
-    remove_group_from_inbox,
     Repository,
-    TOMBSTONE_FIELDS_FROM_GROUP,
     Team,
     User,
     UserOption,
+    remove_group_from_inbox,
 )
-from sentry.models.groupinbox import add_group_to_inbox, GroupInboxRemoveAction
-from sentry.models.group import looks_like_short_id, STATUS_UPDATE_CHOICES
-from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
+from sentry.models.group import STATUS_UPDATE_CHOICES, looks_like_short_id
+from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, add_group_to_inbox
+from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.signals import (
+    advanced_search_feature_gated,
     issue_deleted,
     issue_ignored,
     issue_mark_reviewed,
-    issue_unignored,
     issue_resolved,
+    issue_unignored,
     issue_unresolved,
-    advanced_search_feature_gated,
 )
 from sentry.tasks.deletion import delete_groups as delete_groups_task
-from sentry.utils.hashlib import md5_text
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.compat import zip
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.functional import extract_lazy_object
-from sentry.utils.compat import zip
+from sentry.utils.hashlib import md5_text
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -343,6 +340,9 @@ def _delete_groups(request, project, group_list, delete_type):
     transaction_id = uuid4().hex
 
     GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
+    # We remove `GroupInbox` rows here so that they don't end up influencing queries for
+    # `Group` instances that are pending deletion
+    GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
     delete_groups_task.apply_async(
         kwargs={
@@ -1051,3 +1051,54 @@ def prep_search(cls, request, project, extra_query_kwargs=None):
         query_kwargs["environments"] = environments
         result = search.query(**query_kwargs)
     return result, query_kwargs
+
+
+def get_first_last_release(request, group):
+    first_release = group.get_first_release()
+    if first_release is not None:
+        last_release = group.get_last_release()
+    else:
+        last_release = None
+
+    if first_release is not None and last_release is not None:
+        first_release, last_release = get_first_last_release_info(
+            request, group, [first_release, last_release]
+        )
+    elif first_release is not None:
+        first_release = get_release_info(request, group, first_release)
+    elif last_release is not None:
+        last_release = get_release_info(request, group, last_release)
+
+    return first_release, last_release
+
+
+def get_release_info(request, group, version):
+    try:
+        release = Release.objects.get(
+            projects=group.project,
+            organization_id=group.project.organization_id,
+            version=version,
+        )
+    except Release.DoesNotExist:
+        release = {"version": version}
+    return serialize(release, request.user)
+
+
+def get_first_last_release_info(request, group, versions):
+    releases = {
+        release.version: release
+        for release in Release.objects.filter(
+            projects=group.project,
+            organization_id=group.project.organization_id,
+            version__in=versions,
+        )
+    }
+    serialized_releases = serialize(
+        [releases.get(version) for version in versions],
+        request.user,
+    )
+    # Default to a dictionary if the release object wasn't found and not serialized
+    return [
+        item if item is not None else {"version": version}
+        for item, version in zip(serialized_releases, versions)
+    ]

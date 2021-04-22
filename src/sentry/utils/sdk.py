@@ -1,11 +1,9 @@
 import inspect
 import random
 
+import sentry_sdk
 from django.conf import settings
 from django.urls import resolve
-
-import sentry_sdk
-
 from sentry_sdk.client import get_options
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
@@ -48,6 +46,14 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-release-details",
     "sentry-api-0-project-releases",
     "sentry-api-0-project-release-details",
+    # stats
+    "sentry-api-0-organization-stats",
+    "sentry-api-0-organization-stats-v2",
+    "sentry-api-0-project-stats",
+}
+
+SAMPLED_TASKS = {
+    "sentry.tasks.send_ping",
 }
 
 _SYMBOLICATE_EVENT_TASKS = {
@@ -74,7 +80,7 @@ UNSAFE_TAG = "_unsafe"
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import configure_scope, push_scope, capture_message, capture_exception  # NOQA
+from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
 
 
 def is_current_event_safe():
@@ -180,6 +186,9 @@ def traces_sampler(sampling_context):
     if "celery_job" in sampling_context:
         task_name = sampling_context["celery_job"].get("task")
 
+        if task_name in SAMPLED_TASKS:
+            return 1.0
+
         if task_name in _PROCESS_EVENT_TASKS:
             return _sample_process_event_tasks()
 
@@ -201,9 +210,9 @@ def traces_sampler(sampling_context):
 
 
 def configure_sdk():
-    from sentry_sdk.integrations.logging import LoggingIntegration
-    from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
 
     assert sentry_sdk.Hub.main.client is None
@@ -246,6 +255,9 @@ def configure_sdk():
                 == "/api/0/organizations/{organization_slug}/issues/"
             ):
                 metrics.incr("internal.captured.events.envelopes.issues")
+
+            if transaction:
+                metrics.incr("internal.captured.events.transactions")
 
             # Assume only transactions get sent via envelopes
             if options.get("transaction-events.force-disable-internal-project"):

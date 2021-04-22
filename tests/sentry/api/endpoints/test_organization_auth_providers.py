@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.testutils import APITestCase, PermissionTestCase
 
@@ -20,15 +20,13 @@ class OrganizationAuthProvidersPermissionTest(PermissionTestCase):
 
 
 class OrganizationAuthProviders(APITestCase):
-    def test_get_list_of_auth_providers(self):
-        organization = self.create_organization(name="foo", owner=self.user)
+    endpoint = "sentry-api-0-organization-auth-providers"
 
-        path = reverse("sentry-api-0-organization-auth-providers", args=[organization.slug])
-
+    def setUp(self):
+        super().setUp()
         self.login_as(self.user)
 
+    def test_get_list_of_auth_providers(self):
         with self.feature("organizations:sso-basic"):
-            resp = self.client.get(path)
-
-        assert resp.status_code == 200
-        assert any(d["key"] == "dummy" for d in resp.data)
+            response = self.get_success_response(self.organization.slug)
+        assert any(d["key"] == "dummy" for d in response.data)

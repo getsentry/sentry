@@ -1,35 +1,32 @@
 import logging
-
 from uuid import uuid4
 
 from django.conf import settings
 from rest_framework import serializers
 
 from sentry.auth.access import SystemAccess
-from sentry.utils import json
-from sentry.tasks.base import instrumented_task
+from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.logic import (
+    ChannelLookupTimeoutError,
+    InvalidTriggerActionError,
+    get_slack_channel_ids,
+)
+from sentry.incidents.models import AlertRule
+from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
 from sentry.mediators import project_rules
 from sentry.models import (
     Integration,
+    Organization,
     Project,
     Rule,
     RuleActivity,
     RuleActivityType,
-    Organization,
     User,
 )
-from sentry.incidents.endpoints.serializers import (
-    AlertRuleSerializer,
-)
-from sentry.incidents.models import AlertRule
-from sentry.incidents.logic import (
-    get_slack_channel_ids,
-    ChannelLookupTimeoutError,
-    InvalidTriggerActionError,
-)
-from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
-from sentry.utils.redis import redis_clusters
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.tasks.base import instrumented_task
+from sentry.utils import json
+from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 
@@ -214,6 +211,7 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
             "access": SystemAccess(),
             "user": user,
             "use_async_lookup": True,
+            "validate_channel_id": False,
         },
         data=data,
         instance=alert_rule,

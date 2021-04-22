@@ -1,13 +1,13 @@
 import hmac
-
-from django.core.urlresolvers import reverse
-from exam import fixture
 from hashlib import sha256
-from sentry.utils.compat.mock import patch
+
+from django.urls import reverse
+from exam import fixture
 
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.utils.compat.mock import patch
 
 
 class ReleaseWebhookTestBase(TestCase):

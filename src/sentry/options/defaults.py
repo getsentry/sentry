@@ -1,13 +1,13 @@
 from sentry.logging import LoggingFormat
 from sentry.options import (
+    FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
-    FLAG_ALLOW_EMPTY,
     register,
 )
-from sentry.utils.types import Bool, Dict, String, Sequence, Int
+from sentry.utils.types import Bool, Dict, Int, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -117,6 +117,14 @@ register(
     default={"url": "http://localhost:7901"},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
+# Leaving these empty will use the same storage driver configured for
+# Filestore
+register(
+    "chart-rendering.storage.backend", default=None, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
+)
+register(
+    "chart-rendering.storage.options", default=None, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
@@ -193,6 +201,7 @@ register("snuba.search.max-chunk-size", default=2000)
 register("snuba.search.max-total-chunk-time-seconds", default=30.0)
 register("snuba.search.hits-sample-size", default=100)
 register("snuba.track-outcomes-sample-rate", default=0.0)
+register("snuba.snql.referrer-rate", default=0.0)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register("snuba.tagstore.cache-tagkeys-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
@@ -271,9 +280,6 @@ register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
 # Enables setting a sampling rate when producing the tag facet.
 register("discover2.tags_facet_enable_sampling", default=True, flags=FLAG_PRIORITIZE_DISK)
 
-# Enables setting a sampling rate when producing the tag facet.
-register("discover2.tags_performance_facet_sample_rate", default=0.1)
-
 # Killswitch for datascrubbing after stacktrace processing. Set to False to
 # disable datascrubbers.
 register("processing.can-use-scrubbers", default=True)
@@ -295,3 +301,13 @@ register("store.nodestore-stats-sample-rate", default=0.0)  # unused
 register("store.reprocessing-force-disable", default=False)
 
 register("store.race-free-group-creation-force-disable", default=False)
+
+
+# Killswitch for dropping events if they were to create groups
+register("store.load-shed-group-creation-projects", type=Sequence, default=[])
+
+# Killswitch for dropping events in ingest consumer or really anywhere
+register("store.load-shed-pipeline-projects", type=Sequence, default=[])
+
+# Switch for more performant project counter incr
+register("store.projectcounter-modern-upsert-sample-rate", default=0.0)

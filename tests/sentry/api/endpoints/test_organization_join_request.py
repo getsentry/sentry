@@ -1,9 +1,9 @@
-from exam import fixture
-from sentry.utils.compat.mock import patch
 from django.core import mail
+from exam import fixture
 
-from sentry.models import AuthProvider, InviteStatus, OrganizationOption, OrganizationMember
+from sentry.models import AuthProvider, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationJoinRequestTest(APITestCase):
@@ -13,59 +13,55 @@ class OrganizationJoinRequestTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.email = "test@example.com"
-        self.org = self.create_organization(owner=self.user)
 
     @fixture
     def owner(self):
-        return OrganizationMember.objects.get(user=self.user, organization=self.org)
+        return OrganizationMember.objects.get(user=self.user, organization=self.organization)
 
     def test_invalid_org_slug(self):
-        resp = self.get_response("invalid-slug", email=self.email)
-        assert resp.status_code == 404
+        self.get_error_response("invalid-slug", email=self.email, status_code=404)
 
     def test_email_required(self):
-        resp = self.get_response(self.org.slug)
-        assert resp.status_code == 400
-        assert resp.data["email"][0] == "This field is required."
+        response = self.get_error_response(self.organization.slug, status_code=400)
+        assert response.data["email"][0] == "This field is required."
 
     def test_invalid_email(self):
-        resp = self.get_response(self.org.slug, email="invalid-email")
-        assert resp.status_code == 400
-        assert resp.data["email"][0] == "Enter a valid email address."
+        response = self.get_error_response(
+            self.organization.slug, email="invalid-email", status_code=400
+        )
+        assert response.data["email"][0] == "Enter a valid email address."
 
     def test_organization_setting_disabled(self):
         OrganizationOption.objects.create(
-            organization_id=self.org.id, key="sentry:join_requests", value=False
+            organization_id=self.organization.id, key="sentry:join_requests", value=False
         )
 
-        resp = self.get_response(self.org.slug)
-        assert resp.status_code == 403
+        self.get_error_response(self.organization.slug, status_code=403)
 
     @patch(
         "sentry.api.endpoints.organization_join_request.ratelimiter.is_limited", return_value=True
     )
     def test_ratelimit(self, is_limited):
-        resp = self.get_response(self.org.slug, email=self.email)
-        assert resp.status_code == 429
-        assert resp.data["detail"] == "Rate limit exceeded."
+        response = self.get_error_response(
+            self.organization.slug, email=self.email, status_code=429
+        )
+        assert response.data["detail"] == "Rate limit exceeded."
 
     @patch("sentry.api.endpoints.organization_join_request.logger")
     def test_org_sso_enabled(self, mock_log):
-        AuthProvider.objects.create(organization=self.org, provider="google")
+        AuthProvider.objects.create(organization=self.organization, provider="google")
 
-        resp = self.get_response(self.org.slug, email=self.email)
-        assert resp.status_code == 403
+        self.get_error_response(self.organization.slug, email=self.email, status_code=403)
 
-        member = OrganizationMember.objects.get(organization=self.org)
+        member = OrganizationMember.objects.get(organization=self.organization)
         assert member == self.owner
         assert not mock_log.info.called
 
     @patch("sentry.api.endpoints.organization_join_request.logger")
     def test_user_already_exists(self, mock_log):
-        resp = self.get_response(self.org.slug, email=self.user.email)
-        assert resp.status_code == 204
+        self.get_success_response(self.organization.slug, email=self.user.email, status_code=204)
 
-        member = OrganizationMember.objects.get(organization=self.org)
+        member = OrganizationMember.objects.get(organization=self.organization)
         assert member == self.owner
         assert not mock_log.info.called
 
@@ -73,13 +69,12 @@ class OrganizationJoinRequestTest(APITestCase):
     def test_pending_member_already_exists(self, mock_log):
         pending_email = "pending@example.com"
         original_pending = self.create_member(
-            email=pending_email, organization=self.org, role="admin"
+            email=pending_email, organization=self.organization, role="admin"
         )
 
-        resp = self.get_response(self.org.slug, email=pending_email)
-        assert resp.status_code == 204
+        self.get_success_response(self.organization.slug, email=pending_email, status_code=204)
 
-        members = OrganizationMember.objects.filter(organization=self.org)
+        members = OrganizationMember.objects.filter(organization=self.organization)
         assert members.count() == 2
         pending = members.get(email=pending_email)
         assert pending == original_pending
@@ -91,15 +86,14 @@ class OrganizationJoinRequestTest(APITestCase):
         join_request_email = "join-request@example.com"
         original_join_request = self.create_member(
             email=join_request_email,
-            organization=self.org,
+            organization=self.organization,
             role="member",
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
 
-        resp = self.get_response(self.org.slug, email=join_request_email)
-        assert resp.status_code == 204
+        self.get_success_response(self.organization.slug, email=join_request_email, status_code=204)
 
-        members = OrganizationMember.objects.filter(organization=self.org)
+        members = OrganizationMember.objects.filter(organization=self.organization)
         assert members.count() == 2
         join_request = members.get(email=join_request_email)
         assert join_request == original_join_request
@@ -110,11 +104,9 @@ class OrganizationJoinRequestTest(APITestCase):
     @patch("sentry.analytics.record")
     def test_request_to_join(self, mock_record):
         with self.tasks():
-            resp = self.get_response(self.org.slug, email=self.email)
+            self.get_success_response(self.organization.slug, email=self.email, status_code=204)
 
-        assert resp.status_code == 204
-
-        members = OrganizationMember.objects.filter(organization=self.org)
+        members = OrganizationMember.objects.filter(organization=self.organization)
         assert members.count() == 2
         join_request = members.get(email=self.email)
         assert join_request.user is None
@@ -122,7 +114,7 @@ class OrganizationJoinRequestTest(APITestCase):
         assert not join_request.invite_approved
 
         mock_record.assert_called_with(
-            "join_request.created", member_id=join_request.id, organization_id=self.org.id
+            "join_request.created", member_id=join_request.id, organization_id=self.organization.id
         )
 
         assert len(mail.outbox) == 1

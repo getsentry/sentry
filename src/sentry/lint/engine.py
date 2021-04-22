@@ -8,15 +8,13 @@ For the js only path, we should not depend on any packages outside the
 python stdlib to prevent the need to install the world just to run eslint.
 """
 
-import os
-import sys
-import subprocess
-
 # Import the stdlib json instead of sentry.utils.json, since this command is
 # run in setup.py
 import json  # NOQA
-
-from subprocess import check_output, Popen
+import os
+import subprocess
+import sys
+from subprocess import Popen, check_output
 
 os.environ["PYFLAKES_NODOCTEST"] = "1"
 os.environ["SENTRY_PRECOMMIT"] = "1"
@@ -79,13 +77,13 @@ def get_js_files(file_list=None, snapshots=False):
         extensions = (".js", ".jsx", ".ts", ".tsx")
 
     if file_list is None:
-        file_list = ["tests/js", "src/sentry/static/sentry/app"]
+        file_list = ["tests/js", "static/app"]
     return [x for x in get_files_for_list(file_list) if x.endswith(extensions)]
 
 
 def get_less_files(file_list=None):
     if file_list is None:
-        file_list = ["src/sentry/static/sentry/less", "src/sentry/static/sentry/app"]
+        file_list = ["static/less", "static/app"]
     return [x for x in get_files_for_list(file_list) if x.endswith(".less")]
 
 

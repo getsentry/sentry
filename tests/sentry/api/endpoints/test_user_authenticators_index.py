@@ -1,5 +1,5 @@
-from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.urls import reverse
 
 from sentry.models import Authenticator
 from sentry.testutils import APITestCase

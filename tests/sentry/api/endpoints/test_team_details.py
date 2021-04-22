@@ -1,79 +1,89 @@
-from django.core.urlresolvers import reverse
+from typing import Optional
+
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, DeletedTeam, Team, TeamStatus
+from sentry.testutils import APITestCase
 from sentry.utils.compat.mock import patch
 
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team, TeamStatus, DeletedTeam
-from sentry.testutils import APITestCase
+
+class TeamDetailsTestBase(APITestCase):
+    endpoint = "sentry-api-0-team-details"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+
+    def assert_team_status(
+        self,
+        team_id: int,
+        mock_delete_team,
+        status: TeamStatus,
+        transaction_id: Optional[int] = None,
+    ) -> None:
+        team = Team.objects.get(id=team_id)
+
+        assert team.status == status
+
+        deleted_team = DeletedTeam.objects.filter(slug=team.slug)
+        audit_log_entry = AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.TEAM_REMOVE, target_object=team.id
+        )
+
+        if status == TeamStatus.VISIBLE:
+            assert not deleted_team
+            assert not audit_log_entry
+            mock_delete_team.assert_not_called()  # NOQA
+            return
+
+        # On spite of the name, this checks the DeletedTeam object, not the audit log
+        self.assert_valid_deleted_log(deleted_team.get(), team)
+        # *this* actually checks the audit log
+        assert audit_log_entry.get()
+        mock_delete_team.apply_async.assert_called_once_with(
+            kwargs={"object_id": team.id, "transaction_id": transaction_id}
+        )
+
+    def assert_team_deleted(self, team_id, mock_delete_team, transaction_id):
+        """
+        Checks team status, membership in DeletedTeams table, org
+        audit log, and to see that delete function has been called.
+        """
+        self.assert_team_status(
+            team_id, mock_delete_team, TeamStatus.PENDING_DELETION, transaction_id
+        )
+
+    def assert_team_not_deleted(self, team_id, mock_delete_team):
+        """
+        Checks team status, membership in DeletedTeams table, org
+        audit log, and to see that delete function has not been called.
+        """
+        self.assert_team_status(team_id, mock_delete_team, TeamStatus.VISIBLE)
 
 
-class TeamDetailsTest(APITestCase):
+class TeamDetailsTest(TeamDetailsTestBase):
     def test_simple(self):
         team = self.team  # force creation
-        self.login_as(user=self.user)
-        url = reverse(
-            "sentry-api-0-team-details",
-            kwargs={"organization_slug": team.organization.slug, "team_slug": team.slug},
-        )
-        response = self.client.get(url)
-        assert response.status_code == 200
+
+        response = self.get_valid_response(team.organization.slug, team.slug)
         assert response.data["id"] == str(team.id)
 
 
-class TeamUpdateTest(APITestCase):
+class TeamUpdateTest(TeamDetailsTestBase):
+    method = "put"
+
     def test_simple(self):
         team = self.team  # force creation
-        self.login_as(user=self.user)
-        url = reverse(
-            "sentry-api-0-team-details",
-            kwargs={"organization_slug": team.organization.slug, "team_slug": team.slug},
+
+        self.get_valid_response(
+            team.organization.slug, team.slug, name="hello world", slug="foobar"
         )
-        resp = self.client.put(url, data={"name": "hello world", "slug": "foobar"})
-        assert resp.status_code == 200, resp.content
+
         team = Team.objects.get(id=team.id)
         assert team.name == "hello world"
         assert team.slug == "foobar"
 
 
-class TeamDeleteTest(APITestCase):
-    def assert_team_deleted(self, team_id, mock_delete_team, transaction_id):
-        """Checks team status, membership in DeletedTeams table, org
-        audit log, and to see that delete function has been called"""
-
-        team = Team.objects.get(id=team_id)
-
-        assert team.status == TeamStatus.PENDING_DELETION
-
-        deleted_team = DeletedTeam.objects.get(slug=team.slug)
-        # in spite of the name, this checks the DeletedTeam object, not the
-        # audit log
-        self.assert_valid_deleted_log(deleted_team, team)
-
-        # *this* actually checks the audit log
-        audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.TEAM_REMOVE, target_object=team.id
-        )
-        assert audit_log_entry
-
-        mock_delete_team.apply_async.assert_called_once_with(
-            kwargs={"object_id": team.id, "transaction_id": transaction_id}
-        )
-
-    def assert_team_not_deleted(self, team_id, mock_delete_team):
-        """Checks team status, membership in DeletedTeams table, org
-        audit log, and to see that delete function has not been called"""
-
-        team = Team.objects.get(id=team_id)
-
-        assert team.status == TeamStatus.VISIBLE
-
-        deleted_team = DeletedTeam.objects.filter(slug=team.slug)
-        assert not deleted_team
-
-        audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.TEAM_REMOVE, target_object=team.id
-        )
-        assert not audit_log_entry
-
-        mock_delete_team.assert_not_called()  # NOQA
+class TeamDeleteTest(TeamDetailsTestBase):
+    method = "delete"
 
     @patch("sentry.api.endpoints.team_details.uuid4")
     @patch("sentry.api.endpoints.team_details.delete_team")
@@ -89,16 +99,9 @@ class TeamDeleteTest(APITestCase):
 
         self.login_as(admin_user)
 
-        url = reverse(
-            "sentry-api-0-team-details",
-            kwargs={"organization_slug": team.organization.slug, "team_slug": team.slug},
-        )
-
-        response = self.client.delete(url)
+        self.get_valid_response(team.organization.slug, team.slug, status_code=204)
 
         team = Team.objects.get(id=team.id)
-
-        assert response.status_code == 204, response.data
         self.assert_team_deleted(team.id, mock_delete_team, "abc123")
 
     @patch("sentry.api.endpoints.team_details.uuid4")
@@ -122,23 +125,15 @@ class TeamDeleteTest(APITestCase):
 
         self.login_as(admin_user)
 
-        url = reverse(
-            "sentry-api-0-team-details",
-            kwargs={"organization_slug": team.organization.slug, "team_slug": team.slug},
-        )
-
         # first, try deleting the team with open membership off
-        response = self.client.delete(url)
-
-        assert response.status_code == 403
+        self.get_valid_response(team.organization.slug, team.slug, status_code=403)
         self.assert_team_not_deleted(team.id, mock_delete_team)
 
         # now, with open membership on
         org.flags.allow_joinleave = True
         org.save()
-        response = self.client.delete(url)
 
-        assert response.status_code == 204
+        self.get_valid_response(team.organization.slug, team.slug, status_code=204)
         self.assert_team_deleted(team.id, mock_delete_team, "abc123")
 
     @patch("sentry.api.endpoints.team_details.delete_team")
@@ -158,12 +153,5 @@ class TeamDeleteTest(APITestCase):
 
         self.login_as(member_user)
 
-        url = reverse(
-            "sentry-api-0-team-details",
-            kwargs={"organization_slug": team.organization.slug, "team_slug": team.slug},
-        )
-
-        response = self.client.delete(url)
-
-        assert response.status_code == 403
+        self.get_valid_response(team.organization.slug, team.slug, status_code=403)
         self.assert_team_not_deleted(team.id, mock_delete_team)

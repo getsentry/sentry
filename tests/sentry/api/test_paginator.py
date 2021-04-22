@@ -1,22 +1,23 @@
 from datetime import timedelta
-from django.utils import timezone
 from unittest import TestCase as SimpleTestCase
+
+from django.utils import timezone
 
 from sentry.api.paginator import (
     BadPaginationError,
-    Paginator,
-    DateTimePaginator,
-    OffsetPaginator,
-    SequencePaginator,
-    GenericOffsetPaginator,
     ChainPaginator,
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
+    DateTimePaginator,
+    GenericOffsetPaginator,
+    OffsetPaginator,
+    Paginator,
+    SequencePaginator,
     reverse_bisect_left,
 )
-from sentry.models import User, Rule
 from sentry.incidents.models import AlertRule
-from sentry.testutils import TestCase, APITestCase
+from sentry.models import Rule, User
+from sentry.testutils import APITestCase, TestCase
 from sentry.utils.cursors import Cursor
 
 
@@ -547,9 +548,9 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         rule3 = Rule.objects.create(label="rule3", project=self.project)
 
         alert_rule_intermediary = CombinedQuerysetIntermediary(
-            AlertRule.objects.all(), "date_added"
+            AlertRule.objects.all(), ["date_added"]
         )
-        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
+        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), ["date_added"])
         paginator = CombinedQuerysetPaginator(
             intermediaries=[alert_rule_intermediary, rule_intermediary],
             desc=True,
@@ -639,13 +640,17 @@ class TestChainPaginator(TestCase):
         assert result.prev.has_results is False
 
     def test_small_first(self):
-        sources = [[1, 2], [3, 4, 5, 6]]
+        sources = [[1, 2], [3, 4, 5, 6, 7, 8, 9, 10]]
         paginator = self.cls(sources=sources)
-        result = paginator.get_result(limit=5)
-        assert len(result.results) == 5
-        assert result.results == [1, 2, 3, 4, 5]
-        assert result.next.has_results
-        assert result.prev.has_results is False
+        first = paginator.get_result(limit=4)
+        assert first.results == [1, 2, 3, 4]
+        assert first.next.has_results
+        assert not first.prev.has_results
+
+        second = paginator.get_result(limit=4, cursor=first.next)
+        assert second.results == [5, 6, 7, 8]
+        assert second.prev.has_results
+        assert second.next.has_results
 
     def test_results_from_two_sources(self):
         sources = [[1, 2, 3, 4], [5, 6, 7, 8]]

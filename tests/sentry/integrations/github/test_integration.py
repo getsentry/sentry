@@ -1,15 +1,15 @@
-import responses
-import sentry
-
-from sentry.utils.compat.mock import MagicMock
 from urllib.parse import urlencode, urlparse
 
-from sentry.shared_integrations.exceptions import ApiError
+import responses
+
+import sentry
 from sentry.constants import ObjectStatus
-from sentry.integrations.github import GitHubIntegrationProvider, API_ERRORS
-from sentry.models import Integration, OrganizationIntegration, Repository, Project
+from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
+from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
+from sentry.utils.compat.mock import MagicMock
 from tests.sentry.plugins.testutils import register_mock_plugins, unregister_mock_plugins
 
 
@@ -216,9 +216,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
 
+        querystring = urlencode({"q": "org:Test Organization ex"})
         responses.add(
             responses.GET,
-            self.base_url + "/search/repositories?q=org:test%20ex",
+            f"{self.base_url}/search/repositories?{querystring}",
             json={
                 "items": [
                     {"name": "example", "full_name": "test/example"},

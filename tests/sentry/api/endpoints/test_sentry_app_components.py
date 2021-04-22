@@ -1,7 +1,7 @@
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch, call
+from sentry.utils.compat.mock import call, patch
 
 
 class SentryAppComponentsTest(APITestCase):
@@ -83,28 +83,29 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         response = self.get_valid_response(self.org.slug, qs_params={"projectId": self.project.id})
 
         assert self.component3.uuid not in [d["uuid"] for d in response.data]
-        assert response.data == [
-            {
-                "uuid": str(self.component1.uuid),
-                "type": "issue-link",
-                "schema": self.component1.schema,
-                "sentryApp": {
-                    "uuid": self.sentry_app1.uuid,
-                    "slug": self.sentry_app1.slug,
-                    "name": self.sentry_app1.name,
-                },
+        components = {d["uuid"]: d for d in response.data}
+
+        assert components[str(self.component1.uuid)] == {
+            "uuid": str(self.component1.uuid),
+            "type": "issue-link",
+            "schema": self.component1.schema,
+            "sentryApp": {
+                "uuid": self.sentry_app1.uuid,
+                "slug": self.sentry_app1.slug,
+                "name": self.sentry_app1.name,
             },
-            {
-                "uuid": str(self.component2.uuid),
-                "type": "issue-link",
-                "schema": self.component2.schema,
-                "sentryApp": {
-                    "uuid": self.sentry_app2.uuid,
-                    "slug": self.sentry_app2.slug,
-                    "name": self.sentry_app2.name,
-                },
+        }
+
+        assert components[str(self.component2.uuid)] == {
+            "uuid": str(self.component2.uuid),
+            "type": "issue-link",
+            "schema": self.component2.schema,
+            "sentryApp": {
+                "uuid": self.sentry_app2.uuid,
+                "slug": self.sentry_app2.slug,
+                "name": self.sentry_app2.name,
             },
-        ]
+        }
 
     @patch("sentry.mediators.sentry_app_components.Preparer.run")
     def test_project_not_owned_by_org(self, run):

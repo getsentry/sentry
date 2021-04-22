@@ -1,22 +1,22 @@
-from exam import fixture, around
-from sentry.utils.compat.mock import patch
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
+from exam import around, fixture
 
 from sentry.models import Option
-from sentry.options.store import OptionsStore
 from sentry.options.manager import (
-    OptionsManager,
-    UnknownOption,
     DEFAULT_FLAGS,
     FLAG_IMMUTABLE,
     FLAG_NOSTORE,
-    FLAG_STOREONLY,
-    FLAG_REQUIRED,
     FLAG_PRIORITIZE_DISK,
+    FLAG_REQUIRED,
+    FLAG_STOREONLY,
+    OptionsManager,
+    UnknownOption,
 )
-from sentry.utils.types import Int, String
+from sentry.options.store import OptionsStore
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
+from sentry.utils.types import Int, String
 
 
 class OptionsManagerTest(TestCase):
