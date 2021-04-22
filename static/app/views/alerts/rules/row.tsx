@@ -207,10 +207,12 @@ class RuleListRow extends React.Component<Props, State> {
         )}
 
         <FlexCenter>
-          <ProjectBadge
-            avatarSize={18}
-            project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
-          />
+          <ProjectBadgeContainer>
+            <ProjectBadge
+              avatarSize={18}
+              project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
+            />
+          </ProjectBadgeContainer>
         </FlexCenter>
         {hasAlertOwnership && (
           <FlexCenter>
@@ -365,6 +367,10 @@ const AlertNameAndStatus = styled('div')`
 
 const AlertName = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const ProjectBadgeContainer = styled('div')`
+  width: 100%;
 `;
 
 const ProjectBadge = styled(IdBadge)`
