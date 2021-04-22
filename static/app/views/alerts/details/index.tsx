@@ -37,12 +37,13 @@ type State = {
   stats?: IncidentStats;
 };
 
-export const alertDetailsLink = (organization: Organization, incident: Incident) => `/organizations/${organization.slug}/alerts/rules/details/${
-  incident?.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-  incident?.alertRule.originalAlertRuleId
-    ? incident?.alertRule.originalAlertRuleId
-    : incident?.alertRule.id
-}/`
+export const alertDetailsLink = (organization: Organization, incident: Incident) =>
+  `/organizations/${organization.slug}/alerts/rules/details/${
+    incident?.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+    incident?.alertRule.originalAlertRuleId
+      ? incident?.alertRule.originalAlertRuleId
+      : incident?.alertRule.id
+  }/`;
 
 class IncidentDetails extends React.Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
