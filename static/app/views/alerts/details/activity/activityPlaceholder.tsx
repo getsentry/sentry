@@ -4,8 +4,9 @@ import {withTheme} from 'emotion-theming';
 
 import ActivityItem from 'app/components/activity/item';
 import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
-export default withTheme(function ActivityPlaceholder(props) {
+export default withTheme(function ActivityPlaceholder(props: {theme: Theme}) {
   return (
     <ActivityItem
       bubbleProps={{

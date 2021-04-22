@@ -1,7 +1,8 @@
 export type MetricQuery = {
-  tags: string;
-  groupBy: string;
+  legend: string;
   aggregation: string;
+  groupBy: string[];
+  tags?: string;
 };
 
 export type Metric = {
