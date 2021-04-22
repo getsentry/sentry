@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Set, Tuple, Union
 
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_DEFAULTS,
@@ -311,9 +311,13 @@ def get_settings_by_provider(
     settings: Mapping[
         NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]
     ]
-) -> Mapping[ExternalProviders, Mapping[NotificationScopeType, NotificationSettingOptionValues]]:
+) -> MutableMapping[
+    ExternalProviders, MutableMapping[NotificationScopeType, NotificationSettingOptionValues]
+]:
 
-    output = defaultdict(dict)
+    output: MutableMapping[
+        ExternalProviders, MutableMapping[NotificationScopeType, NotificationSettingOptionValues]
+    ] = defaultdict(dict)
 
     for scope_type in settings:
         for provider, value in settings[scope_type].items():

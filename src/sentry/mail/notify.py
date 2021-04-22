@@ -35,7 +35,6 @@ def notify_participants(
     provider: ExternalProviders,
     users: Mapping[User, int],
     shared_context: Mapping[str, Any],
-    # project: Project,
 ) -> None:
     """ Send notifications to these users. """
     APPROVED_PROVIDERS = [ExternalProviders.EMAIL, ExternalProviders.SLACK]
