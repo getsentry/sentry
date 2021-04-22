@@ -51,7 +51,7 @@ class AlertWizard extends React.Component<Props, State> {
   renderCreateAlertButton() {
     const {organization, project, location} = this.props;
     const {alertOption} = this.state;
-    const metricRuleTemplate = alertOption && AlertWizardRuleTemplates[alertOption];
+    const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
     const disabled =
       !organization.features.includes('performance-view') &&
       metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
@@ -86,7 +86,7 @@ class AlertWizard extends React.Component<Props, State> {
     } = this.props;
     const {alertOption} = this.state;
     const title = t('Alert Creation Wizard');
-    const panelContent = alertOption && AlertWizardPanelContent[alertOption];
+    const panelContent = AlertWizardPanelContent[alertOption];
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
@@ -124,28 +124,26 @@ class AlertWizard extends React.Component<Props, State> {
                 </WizardOptions>
                 <WizardPanel visible={!!panelContent && !!alertOption}>
                   <WizardPanelBody>
-                    {panelContent && alertOption && (
-                      <div>
-                        <PanelHeader>{AlertWizardAlertNames[alertOption]}</PanelHeader>
-                        <PanelBody withPadding>
-                          <PanelDescription>
-                            {panelContent.description}{' '}
-                            {panelContent.docsLink && (
-                              <ExternalLink href={panelContent.docsLink}>
-                                {t('Learn more')}
-                              </ExternalLink>
-                            )}
-                          </PanelDescription>
-                          <WizardImage src={panelContent.illustration} />
-                          <ExampleHeader>{t('Examples')}</ExampleHeader>
-                          <ExampleList symbol="bullet">
-                            {panelContent.examples.map((example, i) => (
-                              <ExampleItem key={i}>{example}</ExampleItem>
-                            ))}
-                          </ExampleList>
-                        </PanelBody>
-                      </div>
-                    )}
+                    <div>
+                      <PanelHeader>{AlertWizardAlertNames[alertOption]}</PanelHeader>
+                      <PanelBody withPadding>
+                        <PanelDescription>
+                          {panelContent.description}{' '}
+                          {panelContent.docsLink && (
+                            <ExternalLink href={panelContent.docsLink}>
+                              {t('Learn more')}
+                            </ExternalLink>
+                          )}
+                        </PanelDescription>
+                        <WizardImage src={panelContent.illustration} />
+                        <ExampleHeader>{t('Examples')}</ExampleHeader>
+                        <ExampleList symbol="bullet">
+                          {panelContent.examples.map((example, i) => (
+                            <ExampleItem key={i}>{example}</ExampleItem>
+                          ))}
+                        </ExampleList>
+                      </PanelBody>
+                    </div>
                     <WizardButton>{this.renderCreateAlertButton()}</WizardButton>
                   </WizardPanelBody>
                 </WizardPanel>
