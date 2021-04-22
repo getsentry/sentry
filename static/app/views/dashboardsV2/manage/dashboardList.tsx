@@ -27,7 +27,7 @@ type Props = {
   pageLinks: string;
 };
 
-function DashboardList(props: Props) {
+function DashboardList({organization, location, dashboards, pageLinks}: Props) {
   function miniWidget(displayType: DisplayType): string {
     switch (displayType) {
       case DisplayType.BAR:
@@ -47,7 +47,6 @@ function DashboardList(props: Props) {
   }
 
   function renderMiniDashboards() {
-    const {organization, dashboards, location} = props;
     return dashboards?.map((dashboard, index) => {
       return (
         <DashboardCard
@@ -85,7 +84,6 @@ function DashboardList(props: Props) {
   }
 
   function renderDashboardGrid() {
-    const {dashboards} = props;
     if (!dashboards?.length) {
       return (
         <EmptyStateWarning>
@@ -100,7 +98,7 @@ function DashboardList(props: Props) {
     <React.Fragment>
       {renderDashboardGrid()}
       <PaginationRow
-        pageLinks={props.pageLinks}
+        pageLinks={pageLinks}
         onCursor={(cursor: string, path: string, query: Query, direction: number) => {
           const offset = Number(cursor.split(':')[1]);
 
