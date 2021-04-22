@@ -1,4 +1,5 @@
 import os
+import sys
 
 from django.conf import settings
 from django.core.management.commands import makemigrations
@@ -27,9 +28,12 @@ def validate(migrations_file, latest_migration_by_app):
                 pass
 
     for app_label, name in sorted(latest_migration_by_app.items()):
-        assert (
-            infile[app_label] == name
-        ), f"The latest migration does not match the contents of the {app_label}: {name} vs {infile[app_label]}"
+        if infile[app_label] != name:
+            print(  # noqa: B314
+                f"ERROR: The latest migration does not match the contents of the {app_label}: {name} vs {infile[app_label]}"
+            )
+            # makemigrations.Command --check exits with 1 if a migration needs to be generated
+            sys.exit(2)
 
 
 class Command(makemigrations.Command):
