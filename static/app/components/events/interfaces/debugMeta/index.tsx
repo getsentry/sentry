@@ -458,7 +458,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
 export default DebugMeta;
 
-const StyledList = styled(List)<{height: number}>`
+// XXX(ts): Emotion11 has some trouble with List's defaultProps
+const StyledList = styled((p: React.ComponentProps<typeof List>) => <List {...p} />)<{
+  height: number;
+}>`
   height: auto !important;
   max-height: ${p => p.height}px;
   outline: none;
