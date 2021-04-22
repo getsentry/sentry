@@ -624,7 +624,10 @@ const Title = styled('h3')`
   height: 14px;
 `;
 
-const StyledList = styled(List)<{height: number}>`
+// XXX(ts): Emotion11 has some trouble with List's defaultProps
+const StyledList = styled((p: React.ComponentProps<typeof List>) => <List {...p} />)<{
+  height: number;
+}>`
   height: auto !important;
   max-height: ${p => p.height}px;
   overflow-y: auto !important;

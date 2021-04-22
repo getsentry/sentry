@@ -160,8 +160,13 @@ const Wrapper = styled('div')`
   ${aroundContentStyle}
 `;
 
-// it makes the list have a dynamic height; otherwise, in the case of filtered options, a list will be displayed with an empty space
-const StyledList = styled(List)<{height: number}>`
+// XXX(ts): Emotion11 has some trouble with List's defaultProps
+//
+// It gives the list have a dynamic height; otherwise, in the case of filtered
+// options, a list will be displayed with an empty space
+const StyledList = styled((p: React.ComponentProps<typeof List>) => <List {...p} />)<{
+  height: number;
+}>`
   height: auto !important;
   max-height: ${p => p.height}px;
   overflow-y: auto !important;
