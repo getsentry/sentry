@@ -1,6 +1,6 @@
 include setup.py README.md MANIFEST.in LICENSE AUTHORS
 recursive-include ./ requirements*.txt
-recursive-include ./config/relay *
+graft ./config
 graft src/sentry
 graft src/sentry_plugins
 graft src/social_auth
