@@ -20,6 +20,13 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
 
+const PlatformList = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-template-columns: repeat(auto-fill, 112px);
+  margin-bottom: ${space(2)};
+`;
+
 type Category = typeof PLATFORM_CATEGORIES[number]['id'];
 
 type Props = {
@@ -27,7 +34,7 @@ type Props = {
   platform?: string | null;
   showOther?: boolean;
   listClassName?: string;
-  listProps?: React.HTMLProps<HTMLDivElement>;
+  listProps?: React.ComponentProps<typeof PlatformList>;
   noAutoFilter?: boolean;
   defaultCategory?: Category;
 };
@@ -206,13 +213,6 @@ const CategoryNav = styled(NavTabs)`
     float: none;
     display: inline-block;
   }
-`;
-
-const PlatformList = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: repeat(auto-fill, 112px);
-  margin-bottom: ${space(2)};
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`

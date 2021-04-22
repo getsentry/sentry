@@ -267,16 +267,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
     this.setState({panelTableHeight});
   }
 
-  getListHeight() {
-    const {panelTableHeight} = this.state;
-
-    if (!panelTableHeight || panelTableHeight > IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT) {
-      return IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT;
-    }
-
-    return panelTableHeight;
-  }
-
   getRelevantImages() {
     const {data} = this.props;
     const {images} = data;
@@ -467,7 +457,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
               this.listRef = el;
             }}
             deferredMeasurementCache={cache}
-            height={this.getListHeight()}
+            height={IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT}
             overscanRowCount={5}
             rowCount={images.length}
             rowHeight={cache.rowHeight}
@@ -624,7 +614,10 @@ const Title = styled('h3')`
   height: 14px;
 `;
 
-const StyledList = styled(List)<{height: number}>`
+// XXX(ts): Emotion11 has some trouble with List's defaultProps
+const StyledList = styled((p: React.ComponentProps<typeof List>) => <List {...p} />)<{
+  height: number;
+}>`
   height: auto !important;
   max-height: ${p => p.height}px;
   overflow-y: auto !important;

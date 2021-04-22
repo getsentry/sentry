@@ -4,6 +4,6 @@ import {SelectValue} from 'app/types';
 import {DataFilter} from './types';
 
 export const FILTER_OPTIONS: SelectValue<DataFilter>[] = [
-  {label: t('Exclude Outliers'), value: 'exclude_outliers'},
-  {label: t('View All'), value: 'all'},
+  {label: t('Exclude'), value: 'exclude_outliers'},
+  {label: t('Include'), value: 'all'},
 ];

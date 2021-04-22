@@ -528,11 +528,14 @@ class MetricChart extends React.PureComponent<Props, State> {
                   lastPoint
                 );
                 const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
-                series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
-                if (areaColor === theme.yellow300) {
-                  warningDuration += areaEnd - areaStart;
-                } else {
-                  criticalDuration += areaEnd - areaStart;
+                if (areaEnd > areaStart) {
+                  series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
+
+                  if (areaColor === theme.yellow300) {
+                    warningDuration += Math.abs(areaEnd - areaStart);
+                  } else {
+                    criticalDuration += Math.abs(areaEnd - areaStart);
+                  }
                 }
 
                 statusChanges?.forEach((activity, idx) => {
@@ -551,17 +554,19 @@ class MetricChart extends React.PureComponent<Props, State> {
                     activity.value === `${IncidentStatus.CRITICAL}`
                       ? theme.red300
                       : theme.yellow300;
-                  series.push(
-                    createStatusAreaSeries(
-                      statusAreaColor,
-                      statusAreaStart,
-                      statusAreaEnd
-                    )
-                  );
-                  if (statusAreaColor === theme.yellow300) {
-                    warningDuration += statusAreaEnd - statusAreaStart;
-                  } else {
-                    criticalDuration += statusAreaEnd - statusAreaStart;
+                  if (statusAreaEnd > statusAreaStart) {
+                    series.push(
+                      createStatusAreaSeries(
+                        statusAreaColor,
+                        statusAreaStart,
+                        statusAreaEnd
+                      )
+                    );
+                    if (statusAreaColor === theme.yellow300) {
+                      warningDuration += Math.abs(statusAreaEnd - statusAreaStart);
+                    } else {
+                      criticalDuration += Math.abs(statusAreaEnd - statusAreaStart);
+                    }
                   }
                 });
 
@@ -609,7 +614,7 @@ class MetricChart extends React.PureComponent<Props, State> {
 
           return (
             <ChartPanel>
-              <PanelBody withPadding>
+              <StyledPanelBody withPadding>
                 <ChartHeader>
                   <ChartTitle>
                     <PresetName>
@@ -626,7 +631,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                   maxThresholdValue,
                   maxSeriesValue
                 )}
-              </PanelBody>
+              </StyledPanelBody>
               {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
             </ChartPanel>
           );
@@ -684,6 +689,11 @@ const StatItem = styled('div')`
   display: flex;
   align-items: center;
   margin: 0 ${space(2)} 0 0;
+`;
+
+/* Override padding to make chart appear centered */
+const StyledPanelBody = styled(PanelBody)`
+  padding-right: 6px;
 `;
 
 const StatCount = styled('span')`
