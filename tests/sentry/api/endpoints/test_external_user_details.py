@@ -1,4 +1,4 @@
-from sentry.models import ExternalUser
+from sentry.models import ExternalActor
 from sentry.testutils import APITestCase
 
 
@@ -18,7 +18,7 @@ class ExternalUserDetailsTest(APITestCase):
             self.get_success_response(
                 self.organization.slug, self.external_user.id, method="delete"
             )
-        assert not ExternalUser.objects.filter(id=str(self.external_user.id)).exists()
+        assert not ExternalActor.objects.filter(id=str(self.external_user.id)).exists()
 
     def test_basic_update(self):
         with self.feature({"organizations:import-codeowners": True}):

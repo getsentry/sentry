@@ -1001,12 +1001,12 @@ urlpatterns = [
                     name="sentry-api-0-organization-member-index",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/members/externaluser/$",
+                    r"^(?P<organization_slug>[^\/]+)/external-users/$",
                     ExternalUserEndpoint.as_view(),
                     name="sentry-api-0-organization-external-user",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/members/externaluser/(?P<external_user_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/external-users/(?P<external_user_id>[^\/]+)/$",
                     ExternalUserDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-external-user-details",
                 ),
@@ -1361,12 +1361,12 @@ urlpatterns = [
                     name="sentry-api-0-team-avatar",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/externalteam/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/external-teams/$",
                     ExternalTeamEndpoint.as_view(),
                     name="sentry-api-0-external-team",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/externalteam/(?P<external_team_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/external-teams/(?P<external_team_id>[^\/]+)/$",
                     ExternalTeamDetailsEndpoint.as_view(),
                     name="sentry-api-0-external-team-details",
                 ),

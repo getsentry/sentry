@@ -1,5 +1,6 @@
 import re
 from collections import namedtuple
+from typing import List, Tuple
 
 from parsimonious.exceptions import ParseError  # noqa
 from parsimonious.grammar import Grammar, NodeVisitor
@@ -236,7 +237,7 @@ def load_schema(schema):
     return [Rule.load(r) for r in schema["rules"]]
 
 
-def parse_code_owners(data):
+def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
     """Parse a CODEOWNERS text and returns the list of team names, list of usernames"""
     teams = []
     usernames = []

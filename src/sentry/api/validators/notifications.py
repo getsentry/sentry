@@ -1,13 +1,14 @@
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 from sentry.api.exceptions import ParameterValidationError
+from sentry.api.validators.integrations import validate_provider
 from sentry.notifications.helpers import validate as helper_validate
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.types.integrations import ExternalProviders, get_provider_enum
+from sentry.types.integrations import ExternalProviders
 
 
 def intersect_dict_set(d: Dict[int, Any], s: Set[int]) -> Dict[int, Any]:
@@ -64,10 +65,6 @@ def validate_type_option(type: Optional[str]) -> Optional[NotificationSettingTyp
     return validate_type(type) if type else None
 
 
-def validate_provider_option(provider: Optional[str]) -> Optional[ExternalProviders]:
-    return validate_provider(provider) if provider else None
-
-
 def validate_type(type: str, context: Optional[List[str]] = None) -> NotificationSettingTypes:
     try:
         return NotificationSettingTypes(type)
@@ -98,13 +95,6 @@ def validate_scope(
         return int(scope_id)
     except ValueError:
         raise ParameterValidationError(f"Invalid ID: {scope_id}", context)
-
-
-def validate_provider(provider: str, context: Optional[List[str]] = None) -> ExternalProviders:
-    provider_option = get_provider_enum(provider)
-    if provider_option:
-        return provider_option
-    raise ParameterValidationError(f"Unknown provider: {provider}", context)
 
 
 def validate_value(
@@ -171,7 +161,7 @@ def validate(
 
                 context = parent_context + [type_key, scope_type_key, str(scope_id)]
                 for provider_key, value_key in notifications_by_scope_id.items():
-                    provider = validate_provider(provider_key, context)
+                    provider = validate_provider(provider_key, context=context)
                     value = validate_value(type, value_key, context)
 
                     notification_settings_to_update[(type, scope_type, scope_id, provider)] = value

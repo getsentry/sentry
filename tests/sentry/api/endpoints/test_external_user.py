@@ -1,4 +1,3 @@
-from sentry.models import OrganizationMember
 from sentry.testutils import APITestCase
 
 
@@ -8,13 +7,13 @@ class ExternalUserTest(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.login_as(user=self.user)
+        self.login_as(self.user)
+
         self.org_slug = self.organization.slug  # force creation
-        self.organization_member = OrganizationMember.objects.get(user=self.user)
         self.data = {
             "externalName": "@NisanthanNanthakumar",
             "provider": "github",
-            "memberId": self.organization_member.id,
+            "userId": self.user.id,
         }
 
     def test_basic_post(self):
@@ -23,7 +22,7 @@ class ExternalUserTest(APITestCase):
         assert response.data == {
             **self.data,
             "id": str(response.data["id"]),
-            "memberId": str(self.organization_member.id),
+            "userId": str(self.user.id),
         }
 
     def test_without_feature_flag(self):
@@ -42,11 +41,11 @@ class ExternalUserTest(APITestCase):
             response = self.get_error_response(self.org_slug, status_code=400, **self.data)
         assert response.data == {"externalName": ["This field is required."]}
 
-    def test_missing_memberId(self):
-        self.data.pop("memberId")
+    def test_missing_userId(self):
+        self.data.pop("userId")
         with self.feature({"organizations:import-codeowners": True}):
             response = self.get_error_response(self.org_slug, status_code=400, **self.data)
-        assert response.data == {"memberId": ["This field is required."]}
+        assert response.data == {"userId": ["This field is required."]}
 
     def test_invalid_provider(self):
         self.data.update(provider="unknown")
@@ -64,5 +63,5 @@ class ExternalUserTest(APITestCase):
         assert response.data == {
             **self.data,
             "id": str(self.external_user.id),
-            "memberId": str(self.external_user.organizationmember_id),
+            "userId": str(self.user.id),
         }

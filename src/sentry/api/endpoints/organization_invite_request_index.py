@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from sentry import roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import OrganizationMemberWithTeamsSerializer, serialize
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.app import locks
 from sentry.models import AuditLogEntryEvent, InviteStatus, OrganizationMember
 from sentry.tasks.members import send_invite_request_notification_email
