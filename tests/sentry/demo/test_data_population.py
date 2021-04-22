@@ -9,7 +9,7 @@ from sentry.utils.compat.mock import patch
 # significantly decrease event volume
 DEMO_DATA_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()
 DEMO_DATA_GEN_PARAMS["MAX_DAYS"] = 1
-DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"] = 0.1
+DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"] = 0.05
 
 
 @override_settings(DEMO_MODE=True, DEMO_DATA_GEN_PARAMS=DEMO_DATA_GEN_PARAMS)
