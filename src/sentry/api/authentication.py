@@ -80,6 +80,7 @@ class RelayAuthentication(BasicAuthentication):
 
 class ApiKeyAuthentication(QuietBasicAuthentication):
     def authenticate_credentials(self, userid, password, request=None):
+        # We don't use request, but it needs to be passed through to DRF 3.7+.
         if password:
             return None
 
@@ -136,7 +137,6 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 class TokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
-    # might need to change this funcsig?
     def authenticate_credentials(self, request, token_str):
         token = SystemToken.from_request(request, token_str)
         try:
@@ -169,7 +169,6 @@ class TokenAuthentication(StandardAuthentication):
 class DSNAuthentication(StandardAuthentication):
     token_name = b"dsn"
 
-    # might need to change this funcsig?
     def authenticate_credentials(self, request, token):
         try:
             key = ProjectKey.from_dsn(token)
