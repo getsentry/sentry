@@ -310,7 +310,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       },
       {
         title: t('Accepted'),
-        help: tct('Accepted [dataCategory] were successfully processed by Sentry.', {
+        help: tct('Accepted [dataCategory] were successfully processed by Sentry', {
           dataCategory,
         }),
         value: accepted,
