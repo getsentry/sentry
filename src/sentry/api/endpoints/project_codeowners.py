@@ -1,10 +1,10 @@
 import logging
 from typing import Any, List, Mapping, MutableMapping, Sequence, Union
 
-from rest_framework import serializers, status  # type: ignore
-from rest_framework.exceptions import PermissionDenied  # type: ignore
-from rest_framework.request import Request  # type: ignore
-from rest_framework.response import Response  # type: ignore
+from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import analytics, features
 from sentry.api.bases.project import ProjectEndpoint
