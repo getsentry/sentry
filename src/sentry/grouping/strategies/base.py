@@ -80,7 +80,7 @@ class GroupingContext:
 
         kwargs["context"] = self
         with sentry_sdk.start_span(
-            op="sentry.grouping.GroupingContext.get_grouping_component", description=interface.path
+            op="sentry.grouping.GroupingContext.get_grouping_component", description=path
         ):
             rv = strategy(interface, *args, **kwargs)
         assert isinstance(rv, dict)
