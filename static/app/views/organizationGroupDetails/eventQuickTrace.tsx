@@ -88,13 +88,20 @@ class EventQuickTrace extends React.Component<Props, State> {
     const platform = this.props.group.project.platform ?? null;
     const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
     return docsPlatform === null
-      ? 'https://docs.sentry.io/product/performance/getting-started/'
+      ? null // this platform does not support performance
       : `https://docs.sentry.io/platforms/${docsPlatform}/performance/`;
   }
 
   render() {
     const {shouldShow} = this.state;
     if (!shouldShow) {
+      return null;
+    }
+
+    const docsLink = this.createDocsLink();
+
+    // if the platform does not support performance, do not show this prompt
+    if (docsLink === null) {
       return null;
     }
 
@@ -111,7 +118,7 @@ class EventQuickTrace extends React.Component<Props, State> {
           <Button
             size="small"
             priority="primary"
-            href={this.createDocsLink()}
+            href={docsLink}
             onClick={() =>
               this.trackAnalytics({
                 eventKey: 'quick_trace.missing_instrumentation.docs',
