@@ -93,9 +93,11 @@ class IncidentSerializer(Serializer):
 class DetailedIncidentSerializer(IncidentSerializer):
     def __init__(self, expand=None):
         if expand is None:
-            expand = ["seen_by"]
-        elif "seen_by" not in expand:
+            expand = []
+        if "seen_by" not in expand:
             expand.append("seen_by")
+        if "original_alert_rule" not in expand:
+            expand.append("original_alert_rule")
         super().__init__(expand=expand)
 
     def get_attrs(self, item_list, user, **kwargs):
