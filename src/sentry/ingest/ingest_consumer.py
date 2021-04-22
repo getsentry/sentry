@@ -159,12 +159,13 @@ def _do_process_event(message, projects):
     cache_key = event_processing_store.store(data)
 
     if attachments:
-        attachment_objects = [
-            CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-            for attachment in attachments
-        ]
+        with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
+            attachment_objects = [
+                CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+                for attachment in attachments
+            ]
 
-        attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
+            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
 
     # Preprocess this event, which spawns either process_event or
     # save_event. Pass data explicitly to avoid fetching it again from the
