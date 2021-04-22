@@ -28,7 +28,7 @@ import {PerformanceDuration} from '../utils';
 const COLUMN_ORDER = [
   {
     key: 'key',
-    name: 'Key',
+    name: 'Tag Key',
     width: -1,
     column: {
       kind: 'field',
@@ -60,7 +60,7 @@ const COLUMN_ORDER = [
   },
   {
     key: 'comparison',
-    name: 'Comparison To Avg',
+    name: 'Compared To Avg',
     width: -1,
     column: {
       kind: 'field',
