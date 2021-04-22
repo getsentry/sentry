@@ -1,5 +1,5 @@
 import React from 'react';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
