@@ -51,7 +51,9 @@ class ActivityNotification:
         if not self.group:
             return {}
 
-        participants_by_provider = GroupSubscription.objects.get_participants(self.group)
+        participants_by_provider: MutableMapping[
+            ExternalProviders, MutableMapping[User, int]
+        ] = GroupSubscription.objects.get_participants(self.group)
         user_option = self.activity.user
         if user_option:
             # Optionally remove the actor that created the activity from the recipients list.
@@ -124,7 +126,7 @@ class ActivityNotification:
         """ Get user-specific context. Do not call get_context() here. """
         return {
             "reason": GroupSubscriptionReason.descriptions.get(
-                reason, "are subscribed to this issue"
+                reason or 0, "are subscribed to this issue"
             )
         }
 
