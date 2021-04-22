@@ -21,6 +21,7 @@ import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
+import {alertDetailsLink} from 'app/views/alerts/details/index';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
 import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
@@ -36,7 +37,6 @@ import {DATA_SOURCE_LABELS, getIncidentMetricPreset, isIssueAlert} from '../util
 
 import Activity from './activity';
 import Chart from './chart';
-import {alertDetailsLink} from 'app/views/alerts/details/index';
 
 type Props = {
   incident?: Incident;
@@ -212,9 +212,10 @@ export default class DetailsBody extends React.Component<Props> {
       incident?.alertRule &&
       !isIssueAlert(incident?.alertRule) &&
       organization.features.includes('alert-details-redesign');
-    const alertRuleLink = hasRedesign && incident
-      ? alertDetailsLink(organization, incident)
-      : `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`;
+    const alertRuleLink =
+      hasRedesign && incident
+        ? alertDetailsLink(organization, incident)
+        : `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`;
 
     return (
       <StyledPageContent>
