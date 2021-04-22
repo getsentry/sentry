@@ -8,14 +8,9 @@ import FormField from './formField';
 import SelectControl, {ControlProps} from './selectControl';
 
 type SelectProps = Omit<ControlProps, 'onChange' | 'name'>;
-type FormProps = Omit<FormField['props'], 'onChange' | 'name'>;
+type FormProps = FormField['props'];
 
-type Props = {
-  name: string;
-  onChange: FormField['props']['onChange'];
-  deprecatedSelectControl?: boolean;
-} & FormProps &
-  SelectProps;
+type Props = FormProps & SelectProps;
 
 export default class SelectField extends FormField<Props> {
   static defaultProps = {
