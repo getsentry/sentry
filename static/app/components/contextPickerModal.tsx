@@ -9,6 +9,7 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import space from 'app/styles/space';
@@ -69,6 +70,12 @@ const selectStyles = {
     position: 'auto',
     boxShadow: 'none',
     marginBottom: 0,
+  }),
+  option: (provided: StylesConfig, state: any) => ({
+    ...provided,
+    opacity: state.isDisabled ? 0.6 : 1,
+    cursor: state.isDisabled ? 'not-allowed' : 'pointer',
+    pointerEvents: state.isDisabled ? 'none' : 'auto',
   }),
 };
 
@@ -191,6 +198,17 @@ class ContextPickerModal extends React.Component<Props> {
     this.navigateIfFinish([{slug: organization}], [{slug: value}]);
   };
 
+  getMemberProjects = () => {
+    const {projects} = this.props;
+    const nonMemberProjects: Project[] = [];
+    const memberProjects: Project[] = [];
+    projects.forEach(project =>
+      project.isMember ? memberProjects.push(project) : nonMemberProjects.push(project)
+    );
+
+    return [memberProjects, nonMemberProjects];
+  };
+
   onProjectMenuOpen = () => {
     const {projects, comingFromProjectId} = this.props;
     // Hacky way to pre-focus to an item with newer versions of react select
@@ -251,10 +269,27 @@ class ContextPickerModal extends React.Component<Props> {
 
   renderProjectSelectOrMessage() {
     const {organization, projects} = this.props;
-    // only show projects the user is a part of
-    const memberProjects = projects.filter(project => project.isMember);
+    const [memberProjects, nonMemberProjects] = this.getMemberProjects();
+    const {isSuperuser} = ConfigStore.get('user') || {};
 
-    const projectOptions = memberProjects.map(({slug}) => ({label: slug, value: slug}));
+    const projectOptions = [
+      {
+        label: t('Projects I belong to'),
+        options: memberProjects.map(p => ({
+          value: p.slug,
+          label: t(`${p.slug}`),
+          isDisabled: false,
+        })),
+      },
+      {
+        label: t("Projects I don't belong to"),
+        options: nonMemberProjects.map(p => ({
+          value: p.slug,
+          label: t(`${p.slug}`),
+          isDisabled: isSuperuser ? false : true,
+        })),
+      },
+    ];
 
     if (!projects.length) {
       return (

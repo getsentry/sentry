@@ -1,10 +1,9 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {ClassNames} from '@emotion/core';
+import {ClassNames, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
-import {withTheme} from 'emotion-theming';
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';

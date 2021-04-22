@@ -1,6 +1,6 @@
 import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
@@ -635,7 +635,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const links = parseLinkHeader(this.state.pageLinks);
     if (links && !links.previous.results && this.state.realtimeActive) {
       // Remove collapse stats from endpoint before supplying to poller
-      const issueEndpoint = new URL(links.previous.href);
+      const issueEndpoint = new URL(links.previous.href, window.location.origin);
       issueEndpoint.searchParams.delete('collapse');
       this._poller.setEndpoint(decodeURIComponent(issueEndpoint.href));
       this._poller.enable();
