@@ -143,12 +143,13 @@ def _do_process_event(message, projects):
         logger.error("Project for ingested event does not exist: %s", project_id)
         return
 
-    # Parse the JSON payload. This is required to compute the cache key and
-    # call process_event. The payload will be put into Kafka raw, to avoid
-    # serializing it again.
-    # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
-    # which assumes that data passed in is a raw dictionary.
-    data = json.loads(payload)
+    with sentry_sdk.start_span(op="ingest_consumer.process_event.parse_payload"):
+        # Parse the JSON payload. This is required to compute the cache key and
+        # call process_event. The payload will be put into Kafka raw, to avoid
+        # serializing it again.
+        # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
+        # which assumes that data passed in is a raw dictionary.
+        data = json.loads(payload)
 
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
@@ -159,12 +160,13 @@ def _do_process_event(message, projects):
     cache_key = event_processing_store.store(data)
 
     if attachments:
-        attachment_objects = [
-            CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-            for attachment in attachments
-        ]
+        with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
+            attachment_objects = [
+                CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+                for attachment in attachments
+            ]
 
-        attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
+            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
 
     # Preprocess this event, which spawns either process_event or
     # save_event. Pass data explicitly to avoid fetching it again from the
