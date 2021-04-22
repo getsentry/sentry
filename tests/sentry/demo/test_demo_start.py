@@ -94,10 +94,9 @@ class DemoStartTeset(TestCase):
         User.objects.create(email=org_owner_email)
         # gen the org w/o mocks and save the cookie
         resp = self.client.post(self.path)
-        member_id = resp.cookies[MEMBER_ID_COOKIE].value.split(":")[0]
         self.save_cookie(MEMBER_ID_COOKIE, resp.cookies[MEMBER_ID_COOKIE])
 
-        org = Organization.objects.get(members__id=member_id)
+        org = Organization.objects.get(demoorganization__isnull=False)
         project = Project.objects.get(slug="react", organization=org)
         group = Group.objects.filter(project=project).first()
         release = (
