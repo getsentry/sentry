@@ -189,12 +189,12 @@ const MenuHeader = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
   line-height: 0.75;
   padding: ${space(1.5)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 `;
 
 const SecondaryMenuHeader = styled(MenuHeader)`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   border-radius: 0;
 `;
 
