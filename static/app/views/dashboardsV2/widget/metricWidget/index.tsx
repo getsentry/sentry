@@ -29,13 +29,6 @@ import Queries from './queries';
 import SearchQueryField from './searchQueryField';
 import {MetricMeta, MetricQuery} from './types';
 
-const metricDisplayTypes = Object.keys(displayTypes).filter(
-  displayType =>
-    displayType !== DisplayType.BIG_NUMBER &&
-    displayType !== DisplayType.TABLE &&
-    displayType !== DisplayType.WORLD_MAP
-);
-
 type RouteParams = {
   dashboardId: string;
 };
@@ -53,8 +46,8 @@ type Props = RouteComponentProps<RouteParams, {}> &
 type State = AsyncView['state'] & {
   title: string;
   displayType: DisplayType;
-  metricMetas: MetricMeta[];
-  metricTags: string[];
+  metricMetas: MetricMeta[] | null;
+  metricTags: string[] | null;
   queries: MetricQuery[];
   searchQuery?: string;
 };
@@ -100,7 +93,7 @@ class MetricWidget extends AsyncView<Props, State> {
       this.reloadData();
     }
 
-    if (!prevState.metricMetas.length && !!this.state.metricMetas.length) {
+    if (!prevState.metricMetas?.length && !!this.state.metricMetas?.length) {
       this.handleChangeQuery(0, {metricMeta: this.state.metricMetas[0]});
     }
 
@@ -208,6 +201,10 @@ class MetricWidget extends AsyncView<Props, State> {
       );
     }
 
+    if (!metricTags || !metricMetas) {
+      return null;
+    }
+
     return (
       <GlobalSelectionHeader
         onUpdateProjects={this.handleProjectChange}
@@ -232,10 +229,11 @@ class MetricWidget extends AsyncView<Props, State> {
                 <VisualizationWrapper>
                   <StyledSelectField
                     name="displayType"
-                    choices={metricDisplayTypes.map(value => [
-                      value,
-                      displayTypes[value],
-                    ])}
+                    choices={[
+                      DisplayType.LINE,
+                      DisplayType.BAR,
+                      DisplayType.AREA,
+                    ].map(value => [value, displayTypes[value]])}
                     value={displayType}
                     onChange={value => {
                       this.handleFieldChange('displayType', value);

@@ -26,10 +26,15 @@ function MetricSelectField({metricMetas, metricMeta, aggregation, onChange}: Pro
     <Wrapper>
       <StyledSelectField
         name="metric"
-        choices={metricMetas.map(m => [m.name, m.name])}
+        choices={metricMetas.map(metricMetaChoice => [
+          metricMetaChoice.name,
+          metricMetaChoice.name,
+        ])}
         placeholder={t('Select metric')}
-        onChange={v => {
-          const newMetric = metricMetas.find(m => m.name === v);
+        onChange={value => {
+          const newMetric = metricMetas.find(
+            metricMetaChoice => metricMetaChoice.name === value
+          );
           onChange('metricMeta', newMetric);
         }}
         value={metricMeta?.name}
