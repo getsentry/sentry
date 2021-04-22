@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import ActionLink from 'app/components/actions/actionLink';
 import MenuItem from 'app/components/menuItem';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
 
 function MenuItemActionLinkBase({
   className,
@@ -25,8 +24,6 @@ const StyledActionLink = styled(ActionLink)`
 
   .dropdown-menu > li > &,
   .dropdown-menu > span > li > & {
-    padding: ${space(1)};
-
     &.disabled:hover {
       background: ${p => p.theme.white};
       color: #7a8188;
