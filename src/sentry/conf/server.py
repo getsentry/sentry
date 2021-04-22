@@ -1577,6 +1577,16 @@ SENTRY_USE_CDC_DEV = False
 #     }
 # }
 
+POSTGRES_INIT_DB_VOLUME = (
+    {
+        os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
+            "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
+        }
+    }
+    if SENTRY_USE_CDC_DEV
+    else {}
+)
+
 SENTRY_DEVSERVICES = {
     "redis": {
         "image": "redis:5.0-alpine",
@@ -1604,9 +1614,7 @@ SENTRY_DEVSERVICES = {
             "postgres": {"bind": "/var/lib/postgresql/data"},
             "wal2json": {"bind": "/wal2json"},
             CDC_CONFIG_DIR: {"bind": "/cdc"},
-            os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
-                "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
-            },
+            **POSTGRES_INIT_DB_VOLUME,
         },
         "command": [
             "postgres",

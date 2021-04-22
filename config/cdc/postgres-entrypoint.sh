@@ -1,10 +1,22 @@
 #!/bin/bash
+# This script replaces the default docker entrypoint for postgres in the
+# development environment.
+# Its job is to ensure postgres is properly configured to support the
+# Change Data Capture pipeline (by setting access permissions and installing
+# the replication plugin we use for CDC). Unfortunately the default
+# Postgres image does not allow this level of configurability so we need
+# to do it this way in order not to have to publish and maintain our own
+# Postgres image.
+#
+# This then, at the end, transfers control to the default entrypoint.
+
 set -e
 
 WAL2JSON_VERSION=0.0.1
 
 cdc_setup_hba_conf() {
-    # Ensure pg-hba is properly configured
+    # Ensure pg-hba is properly configured to allow connections
+    # to the replication slots.
 
     PG_HBA="$PGDATA/pg_hba.conf"
     if [ ! -f "$PG_HBA" ]; then
@@ -12,7 +24,7 @@ cdc_setup_hba_conf() {
     fi
 
     if [ "$(grep -c -E "^host\s+replication" "$PGDATA"/pg_hba.conf)" -ge 0 ]; then
-        echo "Replication config already present in pg_hba"
+        echo "Replication config already present in pg_hba. Not changing anything."
     else
         echo "host replication all all $POSTGRES_HOST_AUTH_METHOD" >> "$PGDATA/pg_hba.conf"
     fi
