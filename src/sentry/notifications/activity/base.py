@@ -2,16 +2,14 @@ import re
 from typing import Any, Mapping, MutableMapping, Optional, Set, Tuple
 from urllib.parse import urlparse, urlunparse
 
-from django.urls import reverse
 from django.utils.html import escape
 from django.utils.safestring import SafeString, mark_safe
 
-from sentry.models import Activity, GroupSubscription, User, UserAvatar, UserOption
+from sentry.models import Activity, GroupSubscription, User, UserOption
 from sentry.notifications.notify import notify
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.assets import get_asset_url
-from sentry.utils.avatar import get_email_avatar
 from sentry.utils.http import absolute_uri
 
 
@@ -144,36 +142,6 @@ class ActivityNotification:
     def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         raise NotImplementedError
 
-    def avatar_as_html(self) -> str:
-        user = self.activity.user
-        if not user:
-            return '<img class="avatar" src="{}" width="20px" height="20px" />'.format(
-                escape(self.get_sentry_avatar_url())
-            )
-        avatar_type = user.get_avatar_type()
-        if avatar_type == "upload":
-            return f'<img class="avatar" src="{escape(self._get_user_avatar_url(user))}" />'
-        elif avatar_type == "letter_avatar":
-            return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
-        else:
-            return get_email_avatar(user.get_display_name(), user.get_label(), 20, True)
-
-    @staticmethod
-    def get_sentry_avatar_url() -> str:
-        url = "/images/sentry-email-avatar.png"
-        return str(absolute_uri(get_asset_url("sentry", url)))
-
-    def _get_user_avatar_url(self, user: User, size: int = 20) -> str:
-        try:
-            avatar = UserAvatar.objects.get(user=user)
-        except UserAvatar.DoesNotExist:
-            return ""
-
-        url = reverse("sentry-user-avatar-url", args=[avatar.ident])
-        if size:
-            url = f"{url}?s={int(size)}"
-        return str(absolute_uri(url))
-
     def description_as_text(self, description: str, params: Mapping[str, Any]) -> str:
         user = self.activity.user
         if user:
@@ -197,7 +165,7 @@ class ActivityNotification:
 
         fmt = '<span class="avatar-container">{}</span> <strong>{}</strong>'
 
-        author = mark_safe(fmt.format(self.avatar_as_html(), escape(name)))
+        author = mark_safe(fmt.format(avatar_as_html(user), escape(name)))
 
         issue_name = escape(self.group.qualified_short_id or "an issue")
         an_issue = f'<a href="{escape(self.get_group_link())}">{issue_name}</a>'

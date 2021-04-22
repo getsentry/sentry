@@ -6,6 +6,7 @@ from sentry.integrations.slack.message_builder.issues import build_group_attachm
 from sentry.integrations.slack.utils import LEVEL_TO_COLOR
 from sentry.models import Group, Rule
 from sentry.notifications.activity.base import ActivityNotification
+from sentry.notifications.utils.avatar import get_sentry_avatar_url
 from sentry.utils.http import absolute_uri
 
 
@@ -44,7 +45,7 @@ def build_notification_attachment(
         "title": notification.get_title(),
         "text": context["text_description"],
         "mrkdwn_in": ["text"],
-        "footer_icon": notification.get_sentry_avatar_url(),
+        "footer_icon": get_sentry_avatar_url(),
         "footer": footer,
         "color": LEVEL_TO_COLOR["info"],
     }
