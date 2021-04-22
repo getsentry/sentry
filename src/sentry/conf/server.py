@@ -2092,7 +2092,12 @@ SOUTH_MIGRATION_CONVERSIONS = (
 MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
-MIGRATIONS_LOCKFILE_APP_WHITELIST = ()
+MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "jira_ac",
+    "nodestore",
+    "sentry",
+    "social_auth",
+)
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 
