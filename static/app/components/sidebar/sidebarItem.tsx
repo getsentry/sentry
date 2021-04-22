@@ -1,6 +1,6 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'app/components/featureBadge';

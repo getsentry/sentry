@@ -1,8 +1,8 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import {components, OptionProps} from 'react-select';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import {Mention, MentionsInput} from 'react-mentions';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 
 import Button from 'app/components/button';
 import NavTabs from 'app/components/navTabs';

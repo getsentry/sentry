@@ -1,7 +1,7 @@
 import React from 'react';
 import {Link} from 'react-router';
-import {css} from '@emotion/core';
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'app/components/links/externalLink';

@@ -1,7 +1,7 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 

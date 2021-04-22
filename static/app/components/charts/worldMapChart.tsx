@@ -1,6 +1,6 @@
 import React from 'react';
+import {withTheme} from '@emotion/react';
 import echarts, {EChartOption} from 'echarts';
-import {withTheme} from 'emotion-theming';
 import max from 'lodash/max';
 
 import {Series, SeriesDataUnit} from 'app/types/echarts';

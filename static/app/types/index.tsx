@@ -1,3 +1,8 @@
+// XXX(epurkhiser): When we switch to the new React JSX runtime (enabled in
+// React 17) we will no longer need this import and can drop
+// babel-preset-css-prop for babel-preset.
+/// <reference types="@emotion/react/types/css-prop" />
+
 import u2f from 'u2f-api';
 
 import Alert from 'app/components/alert';

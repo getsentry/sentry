@@ -1,6 +1,6 @@
 import React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';

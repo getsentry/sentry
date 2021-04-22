@@ -1,4 +1,4 @@
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 
 import {t} from 'app/locale';
 import {DynamicSamplingInnerName, LegacyBrowser} from 'app/types/dynamicSampling';

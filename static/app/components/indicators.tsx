@@ -1,7 +1,7 @@
 import React from 'react';
+import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
-import {ThemeProvider} from 'emotion-theming';
 import {AnimatePresence} from 'framer-motion';
 import Reflux from 'reflux';
 

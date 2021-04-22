@@ -1,5 +1,5 @@
 import React from 'react';
-import {ClassNames} from '@emotion/core';
+import {ClassNames} from '@emotion/react';
 import memoize from 'lodash/memoize';
 
 import {Client} from 'app/api';

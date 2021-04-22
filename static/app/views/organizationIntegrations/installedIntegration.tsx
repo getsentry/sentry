@@ -1,6 +1,6 @@
 import React from 'react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 
 import Access from 'app/components/acl/access';
 import Alert from 'app/components/alert';

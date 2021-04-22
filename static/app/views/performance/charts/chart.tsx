@@ -1,6 +1,6 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 import max from 'lodash/max';
 import min from 'lodash/min';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import {ThemeProvider} from 'emotion-theming';
+import {ThemeProvider} from '@emotion/react';
 
 import AlertStore from 'app/stores/alertStore';
 import {lightTheme} from 'app/utils/theme';

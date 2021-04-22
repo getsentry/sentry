@@ -1,6 +1,6 @@
 import React from 'react';
 import {MultiValueProps} from 'react-select';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';

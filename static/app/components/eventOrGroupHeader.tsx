@@ -1,6 +1,6 @@
 import React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 

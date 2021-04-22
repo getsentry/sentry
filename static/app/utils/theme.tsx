@@ -1,3 +1,5 @@
+import '@emotion/react';
+
 import color from 'color';
 
 import CHART_PALETTE from 'app/constants/chartPalette';
@@ -41,14 +43,14 @@ const colors = {
   pink100: '#FDC9D7',
   pink200: '#FA93AB',
   pink300: '#F05781',
-} as const;
+};
 
 /**
  * This is not in the gray palette because it should [generally] only be used for backgrounds
  */
 const backgroundSecondary = '#FAF9FB';
 
-const aliases = {
+const lightAliases = {
   /**
    * Primary text color
    */
@@ -207,9 +209,9 @@ const aliases = {
    */
   tagBarHover: colors.purple200,
   tagBar: colors.gray200,
-} as const;
+};
 
-const generateAlertTheme = alias => ({
+const generateAlertTheme = (alias: Aliases) => ({
   muted: {
     background: colors.gray200,
     backgroundLight: alias.backgroundSecondary,
@@ -243,7 +245,7 @@ const generateAlertTheme = alias => ({
   },
 });
 
-const generateBadgeTheme = alias => ({
+const generateBadgeTheme = (alias: Aliases) => ({
   default: {
     background: alias.badgeBackground,
     indicatorColor: alias.badgeBackground,
@@ -314,7 +316,7 @@ const level = {
   default: colors.gray300,
 };
 
-const generateButtonTheme = alias => ({
+const generateButtonTheme = (alias: Aliases) => ({
   borderRadius: '3px',
 
   default: {
@@ -545,10 +547,10 @@ const commonTheme = {
   demo: {
     headerSize: '70px',
   },
-} as const;
+};
 
 const darkAliases = {
-  ...aliases,
+  ...lightAliases,
   bodyBackground: colors.black,
   headerBackground: colors.gray500,
   background: colors.black,
@@ -583,30 +585,40 @@ const darkAliases = {
   overlayBackgroundAlpha: 'rgba(18, 9, 23, 0.7)',
   tagBarHover: colors.purple300,
   tagBar: colors.gray400,
-} as const;
+};
 
 export const lightTheme = {
   ...commonTheme,
-  ...aliases,
-  alert: generateAlertTheme(aliases),
-  badge: generateBadgeTheme(aliases),
-  button: generateButtonTheme(aliases),
-} as const;
+  ...lightAliases,
+  alert: generateAlertTheme(lightAliases),
+  badge: generateBadgeTheme(lightAliases),
+  button: generateButtonTheme(lightAliases),
+};
 
-export const darkTheme = {
+export const darkTheme: Theme = {
   ...commonTheme,
   ...darkAliases,
   alert: generateAlertTheme(darkAliases),
   badge: generateBadgeTheme(darkAliases),
   button: generateButtonTheme(darkAliases),
-} as const;
+};
 
-export type Theme = typeof lightTheme | typeof darkTheme;
+export type Theme = typeof lightTheme;
+export type Aliases = typeof lightAliases;
+
 export type Color = keyof typeof colors;
 export type IconSize = keyof typeof iconSizes;
-export type Aliases = typeof aliases;
 
 export default commonTheme;
 
+type MyTheme = Theme;
+
+/**
+ * Configure Emotion to use our theme
+ */
+declare module '@emotion/react' {
+  export interface Theme extends MyTheme {}
+}
+
 // This should never be used directly (except in storybook)
-export {aliases};
+export {lightAliases as aliases};

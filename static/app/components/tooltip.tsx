@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
-import styled, {SerializedStyles} from '@emotion/styled';
+import {SerializedStyles} from '@emotion/react';
+import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionStyle} from 'framer-motion';
 import memoize from 'lodash/memoize';
 import * as PopperJS from 'popper.js';

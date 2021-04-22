@@ -1,5 +1,5 @@
 import React from 'react';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 
 import {Aliases, Color, IconSize, Theme} from 'app/utils/theme';
 

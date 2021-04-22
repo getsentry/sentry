@@ -1,6 +1,6 @@
 import React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import {ClassNames} from '@emotion/core';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
