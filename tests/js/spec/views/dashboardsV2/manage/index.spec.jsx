@@ -28,8 +28,7 @@ describe('Dashboards > Detail', function () {
         organization={mockUnauthorizedOrg}
         location={{query: {}}}
         router={{}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const content = wrapper.find('PageContent');
@@ -42,8 +41,7 @@ describe('Dashboards > Detail', function () {
         organization={mockAuthorizedOrg}
         location={{query: {}}}
         router={{}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const content = wrapper.find('DocumentTitle');

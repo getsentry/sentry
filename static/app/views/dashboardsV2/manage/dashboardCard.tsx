@@ -6,7 +6,6 @@ import Card from 'app/components/card';
 import Link from 'app/components/links/link';
 import TextOverflow from 'app/components/textOverflow';
 import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {User} from 'app/types';
 
@@ -20,33 +19,41 @@ type Props = {
   onEventClick?: () => void;
 };
 
-export function DashboardCard(props: Props) {
+function DashboardCard({
+  title,
+  detail,
+  createdBy,
+  renderWidgets,
+  dateStatus,
+  to,
+  onEventClick,
+}: Props) {
   function onClick() {
-    props.onEventClick?.();
+    onEventClick?.();
   }
 
   return (
-    <Link data-test-id={`card-${props.title}`} onClick={onClick} to={props.to}>
+    <Link data-test-id={`card-${title}`} onClick={onClick} to={to}>
       <StyledDashboardCard interactive>
         <CardHeader>
           <CardContent>
-            <Title>{props.title}</Title>
-            <Detail>{props.detail}</Detail>
+            <Title>{title}</Title>
+            <Detail>{detail}</Detail>
           </CardContent>
           <AvatarWrapper>
-            {props.createdBy ? (
-              <ActivityAvatar type="user" user={props.createdBy} size={34} />
+            {createdBy ? (
+              <ActivityAvatar type="user" user={createdBy} size={34} />
             ) : (
               <ActivityAvatar type="system" size={34} />
             )}
           </AvatarWrapper>
         </CardHeader>
-        <CardBody>{props.renderWidgets()}</CardBody>
+        <CardBody>{renderWidgets()}</CardBody>
         <CardFooter>
           <DateSelected>
-            {props.dateStatus ? (
+            {dateStatus ? (
               <DateStatus>
-                {t('Created')} {props.dateStatus}
+                {t('Created')} {dateStatus}
               </DateStatus>
             ) : (
               <DateStatus />
@@ -88,12 +95,11 @@ const Title = styled(TextOverflow)`
   color: ${p => p.theme.textColor};
 `;
 
-const Detail = styled('div')`
+const Detail = styled(TextOverflow)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
   line-height: 1.5;
-  ${overflowEllipsis};
 `;
 
 const CardBody = styled('div')`
@@ -111,11 +117,10 @@ const CardFooter = styled('div')`
   padding: ${space(1)} ${space(2)};
 `;
 
-const DateSelected = styled('div')`
+const DateSelected = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeSmall};
   display: grid;
   grid-column-gap: ${space(1)};
-  ${overflowEllipsis};
   color: ${p => p.theme.textColor};
 `;
 
