@@ -3,7 +3,13 @@ from typing import Optional, Set
 
 from sentry import options
 
-referrer_blacklist: Set[str] = set()
+referrer_blacklist = {
+    "tsdb-modelid:4",
+    "tsdb-modelid:300",
+    "tsdb-modelid:200",
+    "tsdb-modelid:202",
+    "tsdb-modelid:100",
+}
 referrers_by_entity = {
     "api.performance.durationpercentilechart": "discover_transactions",
     "api.performance.vital-detail": "discover_transactions",
@@ -11,16 +17,20 @@ referrers_by_entity = {
     "api.trends.get-percentage-change": "discover_transactions",
     "api.performance.transaction-summary": "discover_transactions",
 }
-referrer_prefixes = ["outcomes.", "sessions.", "tsdb-modelid:6", "tsdb-modelid:5", "incidents."]
-referrers = {
-    "eventstore.get_events",
-    "group.filter_by_event_id",
-    "incidents.get_incident_aggregates",
-    "tagstore.get_tag_value_paginator_for_projects",
-    "api.serializer.projects.get_stats",
-    "tsdb-modelid:407",
+referrer_prefixes = [
+    "outcomes.",
+    "sessions.",
+    "tsdb-modelid:",
+    "incidents.",
+    "tagstore.",
+    "group.",
+    "search.",
+    "serializers.",
+    "eventstore.",
+    "search_sample.",
     "testing.test",
-}
+]
+referrers: Set[str] = set()
 
 
 # Returns None (do not use SnQL), "auto" (use dataset as entity) or a specific entity to use.
