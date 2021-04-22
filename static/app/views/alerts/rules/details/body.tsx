@@ -293,11 +293,14 @@ export default class DetailsBody extends React.Component<Props> {
           return initiallyLoaded ? (
             <React.Fragment>
               <StyledLayoutBody>
-                {selectedIncident && selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && <StyledAlert type="warning" icon={<IconInfo size="md" />}>
-                  {t(
-                    'Alert Rule settings have been updated since this alert was triggered.'
+                {selectedIncident &&
+                  selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
+                    <StyledAlert type="warning" icon={<IconInfo size="md" />}>
+                      {t(
+                        'Alert Rule settings have been updated since this alert was triggered.'
+                      )}
+                    </StyledAlert>
                   )}
-                </StyledAlert>}
               </StyledLayoutBody>
               <StyledLayoutBodyWrapper>
                 <Layout.Main>
