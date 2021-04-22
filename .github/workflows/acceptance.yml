@@ -107,6 +107,10 @@ jobs:
         run: |
           echo "::set-output name=python-version::$(cat .python-version)"
 
+      - name: Setup webpack cache
+        id: webpack-cache
+        run: echo "::set-output name=path::.webpack_cache"
+
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         with:
@@ -140,12 +144,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
+      - name: webpack cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.webpack-cache.outputs.path }}
+          key: ${{ runner.os }}-webpack-cache-${{ hashFiles('webpack.config.js') }}
+          restore-keys: |
+            ${{ runner.os }}-webpack-cache-
+
       - name: Install Javascript Dependencies
         run: |
           yarn install --frozen-lockfile
 
       - name: webpack
         env:
+          WEBPACK_CACHE_PATH: ${{ steps.webpack-cache.outputs.path }}
           SENTRY_INSTRUMENTATION: 1
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
