@@ -171,12 +171,7 @@ const CompactIssue = createReactClass<Props, State>({
     }
 
     return (
-      <PanelItem
-        className={className}
-        onClick={this.toggleSelect}
-        flexDirection="column"
-        style={{paddingTop: '12px', paddingBottom: '6px'}}
-      >
+      <IssueRow className={className} onClick={this.toggleSelect}>
         <CompactIssueHeader
           data={issue}
           organization={organization}
@@ -189,7 +184,7 @@ const CompactIssue = createReactClass<Props, State>({
           </div>
         )}
         {this.props.children}
-      </PanelItem>
+      </IssueRow>
     );
   },
 });
@@ -211,4 +206,10 @@ const IconLink = styled(Link)`
   & > svg {
     margin-right: ${space(0.5)};
   }
+`;
+
+const IssueRow = styled(PanelItem)`
+  padding-top: ${space(1.5)};
+  padding-bottom: ${space(0.75)};
+  flex-direction: column;
 `;

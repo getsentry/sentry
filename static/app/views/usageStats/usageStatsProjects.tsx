@@ -115,7 +115,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       case SortBy.DROPPED:
         return {key, direction};
       default:
-        return {key: SortBy.TOTAL, direction: -1};
+        return {key: SortBy.ACCEPTED, direction: -1};
     }
   }
 
@@ -185,16 +185,22 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   getTableLink(project: Project) {
     const {dataCategory, getNextLocations, organization} = this.props;
-    const {performance, projectDetail} = getNextLocations(project);
+    const {performance, projectDetail, settings} = getNextLocations(project);
 
     if (
       dataCategory === DataCategory.TRANSACTIONS &&
       organization.features.includes('performance-view')
     ) {
-      return performance;
+      return {
+        projectLink: performance,
+        projectSettingsLink: settings,
+      };
     }
 
-    return projectDetail;
+    return {
+      projectLink: projectDetail,
+      projectSettingsLink: settings,
+    };
   }
 
   handleChangeSort = (nextKey: SortBy) => {
@@ -263,8 +269,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         const stat = stats[proj.id] ?? {...baseStat};
         return {
           project: {...proj},
-          projectLink: this.getTableLink(proj),
-          projectSettingsLink: `/settings/sentry/projects/${proj.slug}/`,
+          ...this.getTableLink(proj),
           ...stat,
         };
       });

@@ -53,6 +53,24 @@ describe('decodeColumnOrder', function () {
     });
   });
 
+  it('can decode span op breakdown fields', function () {
+    const results = decodeColumnOrder([{field: 'spans.foo', width: 123}]);
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'spans.foo',
+      name: 'spans.foo',
+      column: {
+        kind: 'field',
+        field: 'spans.foo',
+      },
+      width: 123,
+      isSortable: false,
+      type: 'duration',
+    });
+  });
+
   it('can decode aggregate functions with no arguments', function () {
     let results = decodeColumnOrder([{field: 'count()', width: 123}]);
 
@@ -143,6 +161,42 @@ describe('decodeColumnOrder', function () {
       column: {
         kind: 'function',
         function: ['percentile', 'measurements.lcp', '0.65'],
+      },
+      width: COL_WIDTH_UNDEFINED,
+      isSortable: true,
+      type: 'duration',
+    });
+  });
+
+  it('can decode elements with aggregate functions using span op breakdowns', function () {
+    const results = decodeColumnOrder([{field: 'avg(spans.foo)'}]);
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'avg(spans.foo)',
+      name: 'avg(spans.foo)',
+      column: {
+        kind: 'function',
+        function: ['avg', 'spans.foo', undefined],
+      },
+      width: COL_WIDTH_UNDEFINED,
+      isSortable: true,
+      type: 'duration',
+    });
+  });
+
+  it('can decode elements with aggregate functions with multiple arguments using span op breakdowns', function () {
+    const results = decodeColumnOrder([{field: 'percentile(spans.lcp, 0.65)'}]);
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'percentile(spans.lcp, 0.65)',
+      name: 'percentile(spans.lcp, 0.65)',
+      column: {
+        kind: 'function',
+        function: ['percentile', 'spans.lcp', '0.65'],
       },
       width: COL_WIDTH_UNDEFINED,
       isSortable: true,

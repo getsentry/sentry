@@ -10,7 +10,7 @@ import ReactSelect, {
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 
 import {IconChevron, IconClose} from 'app/icons';
 import space from 'app/styles/space';

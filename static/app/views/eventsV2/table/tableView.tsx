@@ -400,8 +400,9 @@ class TableView extends React.Component<TableViewProps> {
 
           return;
         }
-        default:
-          updateQuery(query, action, column.name, value);
+        default: {
+          updateQuery(query, action, column, value);
+        }
       }
       nextView.query = stringifyQueryObject(query);
 

@@ -1176,28 +1176,19 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           >
-            <IndexRoute
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="widget/new/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget/new'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
             <Route
               path="manage/"
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "ManageDashboards" */ 'app/views/dashboardsV2/manage'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1709,6 +1700,16 @@ function routes() {
           />
 
           <Route
+            path="/organizations/:orgId/stats/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "OrganizationStats" */ 'app/views/organizationStats'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+
+          <Route
             path="/organizations/:orgId/projects/:projectId/events/:eventId/"
             component={errorHandler(ProjectEventRedirect)}
           />
@@ -1877,16 +1878,15 @@ function routes() {
           <Route
             path="/organizations/:orgId/dashboards/:dashboardId/"
             componentPromise={() =>
-              import(
-                /* webpackChunkName: "DashboardsV2Container" */ 'app/views/dashboardsV2'
-              )
+              import(/* webpackChunkName: "DashboardsV2" */ 'app/views/dashboardsV2')
             }
             component={errorHandler(LazyLoad)}
           >
-            <IndexRoute
+            <Route
+              path="widget/new/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
+                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget/new'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -2043,15 +2043,6 @@ function routes() {
         <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
           <Route component={errorHandler(OrganizationRoot)}>
             {hook('routes:organization-root')}
-            <Route
-              path="/organizations/:orgId/stats/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "OrganizationStats" */ 'app/views/organizationStats'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
 
             <Route
               path="/organizations/:orgId/projects/:projectId/getting-started/"

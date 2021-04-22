@@ -1,6 +1,6 @@
 import React from 'react';
 import {Link, withRouter, WithRouterProps} from 'react-router';
-import {ClassNames} from '@emotion/core';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
