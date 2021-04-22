@@ -26,7 +26,7 @@ class RuleNameOwnerForm extends React.PureComponent<Props> {
             disabled={disabled}
             name="name"
             label={t('Rule Name')}
-            help={t('Give your rule a name so it is easy to manage later')}
+            help={t('Add a name so it’s easy to find later.')}
             placeholder={t('Something really bad happened')}
             required
           />
