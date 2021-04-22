@@ -6,6 +6,7 @@ import {LocationDescriptorObject} from 'history';
 import AsyncComponent from 'app/components/asyncComponent';
 import {DateTimeObject} from 'app/components/charts/utils';
 import SortLink, {Alignments, Directions} from 'app/components/gridEditable/sortLink';
+import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {DataCategory, Organization, Project} from 'app/types';
@@ -23,8 +24,13 @@ type Props = {
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   tableSort?: string;
+  tableQuery?: string;
+  tableCursor?: string;
   handleChangeState: (
-    state: {sort?: string},
+    nextState: {
+      sort?: string;
+      query?: string;
+    },
     options?: {willUpdateRouter?: boolean}
   ) => LocationDescriptorObject;
   getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
@@ -218,6 +224,9 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       nextDirection = -1; // Default PROJECT to ascending
     }
 
+    // The header uses SortLink, which takes a LocationDescriptor and pushes
+    // that to the router. As such, we do not need to update the router in
+    // handleChangeState
     return handleChangeState(
       {sort: `${nextDirection > 0 ? '-' : ''}${nextKey}`},
       {willUpdateRouter: false}
@@ -237,7 +246,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     const stats: Record<number, object> = {};
 
     try {
-      const {projects} = this.props;
+      const {projects, tableQuery} = this.props;
 
       const baseStat: Partial<TableStat> = {
         [SortBy.TOTAL]: 0,
@@ -245,27 +254,38 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         [SortBy.FILTERED]: 0,
         [SortBy.DROPPED]: 0,
       };
+      const projectList = tableQuery
+        ? projects.filter(p => p.slug.includes(tableQuery))
+        : projects;
+      const projectSet = new Set(projectList.map(p => p.id));
 
       projectStats.groups.forEach(group => {
-        const {outcome, project} = group.by;
+        const {outcome, project: projectId} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
 
-        if (!stats[project]) {
-          stats[project] = {...baseStat};
+        if (!projectSet.has(projectId.toString())) {
+          return;
         }
 
-        stats[project].total += group.totals['sum(quantity)'];
+        if (!stats[projectId]) {
+          stats[projectId] = {...baseStat};
+        }
 
-        // Combine invalid outcomes with rate_limited as dropped
-        if (outcome !== SortBy.INVALID && outcome !== SortBy.RATE_LIMITED) {
-          stats[project][outcome] += group.totals['sum(quantity)'];
+        stats[projectId].total += group.totals['sum(quantity)'];
+
+        if (
+          outcome === SortBy.ACCEPTED ||
+          outcome === SortBy.FILTERED ||
+          outcome === SortBy.DROPPED
+        ) {
+          stats[projectId][outcome] += group.totals['sum(quantity)'];
         } else {
-          stats[project][SortBy.DROPPED] += group.totals['sum(quantity)'];
+          stats[projectId][SortBy.DROPPED] += group.totals['sum(quantity)'];
         }
       });
 
       // For projects without stats, fill in with zero
-      const tableStats: TableStat[] = projects.map(proj => {
+      const tableStats: TableStat[] = projectList.map(proj => {
         const stat = stats[proj.id] ?? {...baseStat};
         return {
           project: {...proj},
@@ -302,27 +322,38 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   renderComponent() {
     const {error, errors, loading} = this.state;
-    const {dataCategory, loadingProjects} = this.props;
+    const {dataCategory, loadingProjects, tableQuery, handleChangeState} = this.props;
     const {headers, tableStats} = this.tableData;
 
     return (
-      <Wrapper>
-        <UsageTable
-          isLoading={loading || loadingProjects}
-          isError={error}
-          errors={errors as any} // TODO(ts)
-          isEmpty={tableStats.length === 0}
-          headers={headers}
-          dataCategory={dataCategory}
-          usageStats={tableStats}
-        />
-      </Wrapper>
+      <React.Fragment>
+        <GridRow>
+          <SearchBar
+            defaultQuery=""
+            query={tableQuery}
+            placeholder={t('Search your projects')}
+            onSearch={(query: string) => handleChangeState({query})}
+          />
+        </GridRow>
+
+        <GridRow>
+          <UsageTable
+            isLoading={loading || loadingProjects}
+            isError={error}
+            errors={errors as any} // TODO(ts)
+            isEmpty={tableStats.length === 0}
+            headers={headers}
+            dataCategory={dataCategory}
+            usageStats={tableStats}
+          />
+        </GridRow>
+      </React.Fragment>
     );
   }
 }
 
 export default withProjects(UsageStatsProjects);
 
-const Wrapper = styled('div')`
+const GridRow = styled('div')`
   grid-column: 1 / -1;
 `;

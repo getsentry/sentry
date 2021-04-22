@@ -142,8 +142,10 @@ describe('UsageStats', function () {
           query: {
             pagePeriod: ninetyDays,
             dataCategory: DataCategory.TRANSACTIONS,
-            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
             sort: '-project',
+            query: 'myProjectSlug',
+            cursor: '0:1:0',
           },
         }}
       />,
@@ -220,8 +222,10 @@ describe('UsageStats', function () {
           query: {
             pagePeriod: ninetyDays,
             dataCategory: DataCategory.TRANSACTIONS,
-            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
             sort: '-project',
+            query: 'myProjectSlug',
+            cursor: '0:1:0',
           },
         }}
         router={router}
@@ -250,7 +254,15 @@ describe('UsageStats', function () {
     optionChartTransform.props().onChange(CHART_OPTIONS_DATA_TRANSFORM[1].value);
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+        transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+      }),
+    });
+
+    const inputQuery = wrapper.find('SearchBar');
+    inputQuery.props().onSearch('someSearchQuery');
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        query: 'someSearchQuery',
       }),
     });
   });
@@ -266,8 +278,10 @@ describe('UsageStats', function () {
             pagePeriod: ninetyDays,
             pageUtc: true,
             dataCategory: DataCategory.TRANSACTIONS,
-            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
             sort: '-project',
+            query: 'myProjectSlug',
+            cursor: '0:1:0',
             notAPageKey: 'hello', // Should not be removed
           },
         }}

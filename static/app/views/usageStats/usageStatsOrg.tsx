@@ -37,7 +37,7 @@ type Props = {
   handleChangeState: (state: {
     dataCategory?: DataCategory;
     pagePeriod?: RelativePeriod;
-    chartTransform?: ChartDataTransform;
+    transform?: ChartDataTransform;
   }) => void;
 } & AsyncComponent['props'];
 
@@ -416,7 +416,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
             selected={chartTransform}
             options={CHART_OPTIONS_DATA_TRANSFORM}
             onChange={(val: string) =>
-              handleChangeState({chartTransform: val as ChartDataTransform})
+              handleChangeState({transform: val as ChartDataTransform})
             }
           />
         </InlineContainer>
