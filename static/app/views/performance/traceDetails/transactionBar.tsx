@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
@@ -53,6 +54,7 @@ type Props = {
   continuingDepths: TreeDepth[];
   isExpanded: boolean;
   isVisible: boolean;
+  hasGuideAnchor: boolean;
   toggleExpandedState: () => void;
   barColour?: string;
 };
@@ -370,7 +372,7 @@ class TransactionBar extends React.Component<Props, State> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
-    const {index} = this.props;
+    const {hasGuideAnchor, index} = this.props;
     const {showDetail} = this.state;
     const {dividerPosition} = dividerHandlerChildrenProps;
 
@@ -386,7 +388,9 @@ class TransactionBar extends React.Component<Props, State> {
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
         >
-          {this.renderTitle(scrollbarManagerChildrenProps)}
+          <GuideAnchor target="trace_view_guide_row" disabled={!hasGuideAnchor}>
+            {this.renderTitle(scrollbarManagerChildrenProps)}
+          </GuideAnchor>
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
@@ -403,7 +407,9 @@ class TransactionBar extends React.Component<Props, State> {
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
         >
-          {this.renderRectangle()}
+          <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
+            {this.renderRectangle()}
+          </GuideAnchor>
         </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
       </RowCellContainer>

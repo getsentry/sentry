@@ -817,7 +817,10 @@ def get_performance_facets(
             referrer="{}.{}".format(referrer, "all_transactions"),
         )
         counts = [r["count"] for r in key_names["data"]]
-        if len(counts) != 1 or counts[0] == 0:
+        aggregates = [r["aggregate"] for r in key_names["data"]]
+
+        # Return early to avoid doing more queries with 0 count transactions or aggregates for columns that dont exist
+        if len(counts) != 1 or counts[0] == 0 or aggregates[0] is None:
             return []
 
     results = []
@@ -828,12 +831,13 @@ def get_performance_facets(
 
     # Dynamically sample so at least 10000 transactions are selected
     transaction_count = key_names["data"][0]["count"]
-    sampling_enabled = transaction_count > 10000
-    # Log growth starting at 10,000
-    target_sample = 10000 * (math.log(transaction_count, 10) - 3)
+    sampling_enabled = transaction_count > 50000
+    # Log growth starting at 50,000
+    target_sample = 50000 * (math.log(transaction_count, 10) - 3)
 
     dynamic_sample_rate = 0 if transaction_count <= 0 else (target_sample / transaction_count)
-    sample_rate = dynamic_sample_rate if sampling_enabled else None
+    sample_rate = min(max(dynamic_sample_rate, 0), 1) if sampling_enabled else None
+    frequency_sample_rate = sample_rate if sample_rate else 1
 
     excluded_tags = [
         "tags_key",
@@ -882,7 +886,7 @@ def get_performance_facets(
             referrer="{}.{}".format(referrer, "tag_values"),
             sample=sample_rate,
             turbo=sample_rate is not None,
-            limitby=[5, "tags_key"],
+            limitby=[1, "tags_key"],
         )
         results.extend(
             [
@@ -890,7 +894,7 @@ def get_performance_facets(
                     key=r["tags_key"],
                     value=r["tags_value"],
                     performance=float(r["aggregate"]),
-                    frequency=float(r["cnt"] / transaction_count),
+                    frequency=float((r["cnt"] / frequency_sample_rate) / transaction_count),
                     comparison=float(r["aggregate"] / transaction_aggregate),
                     sumdelta=float(r["sumdelta"]),
                 )
