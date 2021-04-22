@@ -61,7 +61,7 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:alert-list",
+                "organizations:alert-details-redesign",
                 "organizations:team-alerts-ownership",
             ]
         ):
