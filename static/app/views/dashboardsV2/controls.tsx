@@ -141,6 +141,7 @@ class Controls extends React.Component<Props> {
         </DashboardSelect>
         <Feature features={['organizations:dashboards-manage']}>
           <Button
+            data-test-id="dashboard-manage"
             to={{
               pathname: `/organizations/${organization.slug}/dashboards/manage/`,
               query: {},
