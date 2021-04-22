@@ -98,7 +98,10 @@ export type BaseTraceChildrenProps = Omit<
 
 export type QuickTrace = EmptyQuickTrace | PartialQuickTrace | FullQuickTrace;
 
-export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps & QuickTrace;
+export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps &
+  QuickTrace & {
+    currentEvent: QuickTraceEvent | null;
+  };
 
 export type TraceMeta = {
   projects: number;

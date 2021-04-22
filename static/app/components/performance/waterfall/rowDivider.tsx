@@ -1,4 +1,12 @@
+import React from 'react';
 import styled from '@emotion/styled';
+
+import {IconFire} from 'app/icons';
+import space from 'app/styles/space';
+
+export const DividerContainer = styled('div')`
+  position: relative;
+`;
 
 export const DividerLine = styled('div')<{showDetail?: boolean}>`
   background-color: ${p => (p.showDetail ? p.theme.textColor : p.theme.border)};
@@ -39,3 +47,26 @@ export const DividerLineGhostContainer = styled('div')`
   width: 100%;
   height: 100%;
 `;
+
+const BadgeBorder = styled('div')`
+  position: absolute;
+  margin: ${space(0.25)};
+  left: -11.5px;
+  background: ${p => p.theme.background};
+  width: ${space(3)};
+  height: ${space(3)};
+  border: 1px solid ${p => p.theme.red300};
+  border-radius: 50%;
+  z-index: ${p => p.theme.zIndex.traceView.dividerLine};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+export function ErrorBadge() {
+  return (
+    <BadgeBorder>
+      <IconFire color="red300" size="xs" />
+    </BadgeBorder>
+  );
+}

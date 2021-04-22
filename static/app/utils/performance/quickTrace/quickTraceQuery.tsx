@@ -8,6 +8,7 @@ import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/typ
 import {
   flattenRelevantPaths,
   getTraceTimeRangeFromEvent,
+  isCurrentEvent,
 } from 'app/utils/performance/quickTrace/utils';
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
@@ -26,6 +27,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
           error: null,
           trace: [],
           type: 'empty',
+          currentEvent: null,
         })}
       </React.Fragment>
     );
@@ -55,6 +57,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
                   return children({
                     ...traceFullResults,
                     trace,
+                    currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
                   });
                 } catch {
                   // let this fall through and check the next subtrace
@@ -68,7 +71,11 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               traceLiteResults.error === null &&
               traceLiteResults.trace !== null
             ) {
-              return children(traceLiteResults);
+              const {trace} = traceLiteResults;
+              return children({
+                ...traceLiteResults,
+                currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
+              });
             }
 
             return children({
@@ -76,6 +83,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               error: traceFullResults.error ?? traceLiteResults.error,
               trace: [],
               type: 'empty',
+              currentEvent: null,
             });
           }}
         </TraceFullQuery>
