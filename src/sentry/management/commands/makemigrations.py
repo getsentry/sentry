@@ -1,5 +1,6 @@
 import os
 
+from django.apps import apps
 from django.conf import settings
 from django.core.management.commands import makemigrations
 from django.db.migrations.loader import MigrationLoader
@@ -22,7 +23,7 @@ class Command(makemigrations.Command):
     """
 
     def handle(self, *app_labels, **options):
-        if not options["name"]:
+        if not options["name"] and not options.get("check_changes"):
             self.stderr.write(
                 "Please name your migrations using `-n <migration_name>`. "
                 "For example, `-n backfill_my_new_table`"
@@ -52,3 +53,7 @@ class Command(makemigrations.Command):
             os.path.join(settings.MIGRATIONS_LOCKFILE_PATH, "migrations_lockfile.txt"), "w"
         ) as f:
             f.write(template % result)
+
+        for app_label, name in sorted(latest_migration_by_app.items()):
+            file_path = f"{apps.get_app_config(app_label).path}/migrations/{name}.py"
+            assert os.path.isfile(file_path), f"The migration {name} cannot be found on disk."
