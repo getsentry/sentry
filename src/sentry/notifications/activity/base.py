@@ -24,14 +24,11 @@ class ActivityNotification:
     def should_email(self) -> bool:
         return True
 
-    def get_template(self) -> str:
-        return "sentry/emails/activity/generic.txt"
-
-    def get_html_template(self) -> str:
-        return "sentry/emails/activity/generic.html"
-
     def get_project_link(self) -> str:
         return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))
+
+    def get_filename(self) -> str:
+        return "activity/generic"
 
     def get_group_link(self) -> str:
         referrer = re.sub("Notification$", "Email", self.__class__.__name__)

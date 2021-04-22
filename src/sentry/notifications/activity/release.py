@@ -104,11 +104,8 @@ class ReleaseActivityNotification(ActivityNotification):
     def get_title(self) -> str:
         return self.get_subject()
 
-    def get_template(self) -> str:
-        return "sentry/emails/activity/release.txt"
-
-    def get_html_template(self) -> str:
-        return "sentry/emails/activity/release.html"
+    def get_filename(self) -> str:
+        return "activity/release"
 
     def get_category(self) -> str:
         return "release_activity_email"
