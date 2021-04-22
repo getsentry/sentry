@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
+import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
 
 export const RowTitleContainer = styled('div')`
   display: flex;
