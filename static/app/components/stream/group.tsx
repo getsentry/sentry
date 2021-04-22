@@ -1,8 +1,7 @@
 import React from 'react';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import {Box} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -380,16 +379,11 @@ class StreamGroup extends React.Component<Props, State> {
         actionTaken={actionTaken}
       >
         {canSelect && (
-          <GroupCheckBoxWrapper ml={2}>
+          <GroupCheckBoxWrapper>
             <GroupCheckBox id={data.id} disabled={!!displayReprocessingLayout} />
           </GroupCheckBoxWrapper>
         )}
-        <GroupSummary
-          width={[8 / 12, 8 / 12, 6 / 12]}
-          ml={canSelect ? 1 : 2}
-          mr={1}
-          flex="1"
-        >
+        <GroupSummary canSelect={!!canSelect}>
           <EventOrGroupHeader
             index={index}
             organization={organization}
@@ -614,12 +608,22 @@ const Wrapper = styled(PanelItem)<{
     `};
 `;
 
-const GroupSummary = styled(Box)`
+const GroupSummary = styled('div')<{canSelect: boolean}>`
   overflow: hidden;
+  margin-left: ${p => space(p.canSelect ? 1 : 2)};
+  margin-right: ${space(1)};
+  flex: 1;
+  width: 66.66%;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    width: 50%;
+  }
 `;
 
-const GroupCheckBoxWrapper = styled(Box)`
+const GroupCheckBoxWrapper = styled('div')`
+  margin-left: ${space(2)};
   align-self: flex-start;
+
   & input[type='checkbox'] {
     margin: 0;
     display: block;
@@ -645,7 +649,11 @@ const StyledDropdownList = styled('ul')`
   z-index: ${p => p.theme.zIndex.hovercard};
 `;
 
-const StyledMenuItem = styled(({to, children, ...p}) => (
+type MenuItemProps = React.HTMLProps<HTMLDivElement> & {
+  to?: React.ComponentProps<typeof Link>['to'];
+};
+
+const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
   <MenuItem noAnchor>
     {to ? (
       // @ts-expect-error allow target _blank for this link to open in new window

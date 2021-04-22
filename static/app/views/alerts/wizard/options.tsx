@@ -24,7 +24,6 @@ export type AlertType =
   | 'lcp'
   | 'fid'
   | 'cls'
-  | 'fcp'
   | 'custom';
 
 export const WebVitalAlertTypes = new Set(['lcp', 'fid', 'cls', 'fcp']);
@@ -40,7 +39,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   lcp: t('Largest Contentful Paint'),
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
-  fcp: t('First Contentful Paint'),
   custom: t('Custom Metric'),
 };
 
@@ -62,7 +60,6 @@ export const AlertWizardOptions: {
       'lcp',
       'fid',
       'cls',
-      'fcp',
     ],
   },
   {
@@ -174,16 +171,9 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
     illustration: diagramCLS,
   },
-  fcp: {
-    description: t(
-      'First Contentful Paint (FCP), like Largest Contentful Paint (LCP), measures loading performance. It marks the point when content such as text and images can first be seen on a page.'
-    ),
-    examples: [t('When the average FCP of a page is longer than 0.25 seconds.')],
-    docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
-  },
   custom: {
     description: t(
-      'Alert on metrics which are not listed above, such as first paint (FP) and time to first byte (TTFB).'
+      'Alert on metrics which are not listed above, such as first paint (FP), first contentful paint (FCP), and time to first byte (TTFB).'
     ),
     examples: [
       t('When the 95th percentile FP of a page is longer than 250 milliseconds.'),
@@ -248,14 +238,24 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
-  fcp: {
-    aggregate: 'p95(measurements.fcp)',
-    dataset: Dataset.TRANSACTIONS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
   custom: {
     aggregate: 'p95(measurements.fp)',
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
 };
+
+export const hidePrimarySelectorSet = new Set<AlertType>([
+  'num_errors',
+  'users_experiencing_errors',
+  'throughput',
+  'apdex',
+  'failure_rate',
+]);
+
+export const hideParameterSelectorSet = new Set<AlertType>([
+  'trans_duration',
+  'lcp',
+  'fid',
+  'cls',
+]);
