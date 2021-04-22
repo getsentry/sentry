@@ -21,7 +21,7 @@ const SidebarMenuItem = ({to, children, href, ...props}: Props) => {
 };
 
 const menuItemStyles = (
-  p: React.ComponentProps<typeof SidebarMenuItemLink> & {theme: Theme}
+  p: Omit<React.ComponentProps<typeof SidebarMenuItemLink>, 'children'> & {theme: Theme}
 ) => css`
   color: ${p.theme.textColor};
   cursor: pointer;

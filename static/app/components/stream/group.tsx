@@ -651,7 +651,11 @@ const StyledDropdownList = styled('ul')`
   z-index: ${p => p.theme.zIndex.hovercard};
 `;
 
-const StyledMenuItem = styled(({to, children, ...p}) => (
+type MenuItemProps = React.HTMLProps<HTMLDivElement> & {
+  to?: React.ComponentProps<typeof Link>['to'];
+};
+
+const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
   <MenuItem noAnchor>
     {to ? (
       // @ts-expect-error allow target _blank for this link to open in new window
