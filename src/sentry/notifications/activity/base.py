@@ -1,31 +1,23 @@
 import re
-from typing import Any, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Mapping, MutableMapping, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.html import escape
 from django.utils.safestring import SafeString, mark_safe
 
 from sentry.models import Activity, User
+from sentry.notifications.base import BaseNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import get_participants_for_group
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 
-class ActivityNotification:
+class ActivityNotification(BaseNotification):
     def __init__(self, activity: Activity) -> None:
         self.activity = activity
-        self.project = activity.project
-        self.organization = self.project.organization
-        self.group = activity.group
-
-    def should_email(self) -> bool:
-        return True
-
-    def get_project_link(self) -> str:
-        return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))
+        super().__init__(activity.project, activity.group)
 
     def get_filename(self) -> str:
         return "activity/generic"
@@ -83,17 +75,15 @@ class ActivityNotification:
         }
 
     def get_user_context(
-        self, user: User, reason: Optional[int] = None
+        self, user: User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         """ Get user-specific context. Do not call get_context() here. """
+        reason = extra_context.get("reason", 0)
         return {
             "reason": GroupSubscriptionReason.descriptions.get(
-                reason or 0, "are subscribed to this issue"
+                reason, "are subscribed to this issue"
             )
         }
-
-    def get_category(self) -> str:
-        raise NotImplementedError
 
     def get_subject(self) -> str:
         group = self.group
