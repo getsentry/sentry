@@ -107,8 +107,9 @@ describe('UsageStats', function () {
         query: {
           statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1d',
-          groupBy: ['category', 'outcome', 'project'],
+          groupBy: ['outcome', 'project'],
           field: ['sum(quantity)'],
+          category: 'error',
         },
       })
     );
@@ -205,7 +206,8 @@ describe('UsageStats', function () {
         query: {
           statsPeriod: ninetyDays,
           interval: '1d',
-          groupBy: ['category', 'outcome', 'project'],
+          groupBy: ['outcome', 'project'],
+          category: 'transaction',
           field: ['sum(quantity)'],
         },
       })
