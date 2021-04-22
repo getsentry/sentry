@@ -29,7 +29,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         return self.context["organization"]
 
     def get_actor_id(self, validated_data: MutableMapping[str, Any]) -> int:
-        return int(validated_data.pop(self._actor_key))
+        return int(validated_data.pop(self._actor_key).actor_id)
 
     def get_provider_id(self, validated_data: MutableMapping[str, Any]) -> int:
         provider_name_option = validated_data.pop("provider", None)
