@@ -17,9 +17,9 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 
 # We check that the latest migration is the one stored in the lockfile
-def validate(migrations_file, latest_migration_by_app):
+def validate(migrations_filepath, latest_migration_by_app):
     infile = {}
-    with open(migrations_file, encoding="utf-8") as file:
+    with open(migrations_filepath, encoding="utf-8") as file:
         for line in file:
             try:
                 app_label, name = line.split(": ")
@@ -65,14 +65,16 @@ class Command(makemigrations.Command):
                 latest_migration_by_app.get(app_label, ""), name
             )
 
-        migrations_file = os.path.join(settings.MIGRATIONS_LOCKFILE_PATH, "migrations_lockfile.txt")
+        migrations_filepath = os.path.join(
+            settings.MIGRATIONS_LOCKFILE_PATH, "migrations_lockfile.txt"
+        )
         if options.get("check_changes"):
-            validate(migrations_file, latest_migration_by_app)
+            validate(migrations_filepath, latest_migration_by_app)
         else:
             result = "\n".join(
                 f"{app_label}: {name}"
                 for app_label, name in sorted(latest_migration_by_app.items())
             )
 
-            with open(migrations_file, "w") as f:
+            with open(migrations_filepath, "w") as f:
                 f.write(template % result)
