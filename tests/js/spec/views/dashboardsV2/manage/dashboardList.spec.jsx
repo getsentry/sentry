@@ -4,10 +4,17 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DashboardList from 'app/views/dashboardsV2/manage/dashboardList';
 
+function openContextMenu(card) {
+  card.find('DropdownMenu MoreOptions svg').simulate('click');
+}
+
+function clickMenuItem(card, selector) {
+  card.find(`DropdownMenu MenuItem[data-test-id="${selector}"]`).simulate('click');
+}
+
 describe('Dashboards > DashboardList', function () {
-  let dashboards, widgets;
+  let dashboards, widgets, deleteMock, dashboardUpdateMock;
   const organization = TestStubs.Organization({
-    features: ['dashboards-manage'],
     projects: [TestStubs.Project()],
   });
 
@@ -64,6 +71,16 @@ describe('Dashboards > DashboardList', function () {
         widgetDisplay: ['line', 'table'],
       }),
     ];
+    deleteMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/',
+      method: 'DELETE',
+      statusCode: '204',
+    });
+    dashboardUpdateMock = jest.fn();
+  });
+
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
   });
 
   it('renders an empty list', function () {
@@ -121,5 +138,32 @@ describe('Dashboards > DashboardList', function () {
     const link = card.find('Link').last().prop('to');
     expect(link.pathname).toEqual(`/organizations/org-slug/dashboards/2/`);
     expect(link.query).toEqual({statsPeriod: '7d'});
+  });
+
+  it('can delete dashboards', async function () {
+    const wrapper = mountWithTheme(
+      <DashboardList
+        api={new MockApiClient()}
+        organization={organization}
+        dashboards={dashboards}
+        pageLinks=""
+        location={{query: {}}}
+        onDashboardsChange={dashboardUpdateMock}
+      />
+    );
+    let card = wrapper.find('DashboardCard').last();
+    expect(card.find('Title').text()).toEqual(dashboards[1].title);
+
+    openContextMenu(card);
+    wrapper.update();
+
+    card = wrapper.find('DashboardCard').last();
+    clickMenuItem(card, 'dashboard-delete');
+
+    // wait for request
+    await wrapper.update();
+
+    expect(deleteMock).toHaveBeenCalled();
+    // expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 });

@@ -11,7 +11,7 @@ import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {deleteDashboard} from 'app/actionCreators/dashboards';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import MenuItem from 'app/components/menuItem';
@@ -63,10 +63,14 @@ function DashboardList({
 
   function handleDelete(dashboard: DashboardListItem) {
     const promise = deleteDashboard(api, organization.slug, dashboard.id);
-    promise.then(() => {
-      onDashboardsChange();
-      addSuccessMessage(t('Dashboard deleted'));
-    });
+    promise
+      .then(() => {
+        onDashboardsChange();
+        addSuccessMessage(t('Dashboard deleted'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Dashboard deleted'));
+      });
 
     return promise;
   }
@@ -106,6 +110,7 @@ function DashboardList({
           renderContextMenu={() => (
             <ContextMenu>
               <MenuItem
+                data-test-id="dashboard-delete"
                 key="delete-dashboard"
                 onClick={event => {
                   event.preventDefault();
