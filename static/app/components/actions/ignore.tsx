@@ -10,7 +10,7 @@ import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal'
 import DropdownLink from 'app/components/dropdownLink';
 import Duration from 'app/components/duration';
 import Tooltip from 'app/components/tooltip';
-import {IconChevron, IconMute, IconNot} from 'app/icons';
+import {IconChevron, IconNot} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -115,11 +115,25 @@ const IgnoreActions = ({
 
   return (
     <ButtonBar merged>
+      <ActionLink
+        {...actionLinkProps}
+        type="button"
+        title={t('Ignore')}
+        onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
+        icon={<IconNot size="xs" />}
+      >
+        {t('Ignore')}
+      </ActionLink>
+
       <StyledDropdownLink
-        customTitle={<IconMute size="xs" color="gray300" />}
+        customTitle={
+          <ActionButton
+            disabled={disabled}
+            icon={<IconChevron direction="down" size="xs" />}
+          />
+        }
         alwaysRenderMenu
         disabled={disabled}
-        anchorRight
       >
         <MenuHeader>{t('Ignore')}</MenuHeader>
 
@@ -310,16 +324,12 @@ const StyledForActionLink = styled(ActionLink)`
 
 // The icon with no text label needs the height reduced for row actions
 const StyledDropdownLink = styled(DropdownLink)`
-  line-height: 0;
   transition: none;
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
 `;
 
 const DropdownMenuItem = styled('li')`
-  flex: 1;
-  justify-content: flex-start;
-
   :not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }

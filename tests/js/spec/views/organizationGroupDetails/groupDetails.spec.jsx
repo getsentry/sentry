@@ -219,6 +219,7 @@ describe('groupDetails', function () {
       expect.objectContaining({
         query: {
           environment: ['staging'],
+          expand: 'inbox',
         },
       })
     );

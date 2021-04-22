@@ -7,8 +7,7 @@ import IgnoreActions from 'app/components/actions/ignore';
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import DropdownLink from 'app/components/dropdownLink';
-import Tooltip from 'app/components/tooltip';
-import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
+import {IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, ResolutionStatus} from 'app/types';
@@ -22,25 +21,21 @@ type Props = {
   orgSlug: Organization['slug'];
   queryCount: number;
   query: string;
-  realtimeActive: boolean;
   allInQuerySelected: boolean;
   anySelected: boolean;
   multiSelected: boolean;
   issues: Set<string>;
   onShouldConfirm: (action: ConfirmAction) => boolean;
   onDelete: () => void;
-  onRealtimeChange: () => void;
   onMerge: () => void;
   onUpdate: (data?: any) => void;
   selectedProjectSlug?: string;
-  hasInbox?: boolean;
 };
 
 function ActionSet({
   orgSlug,
   queryCount,
   query,
-  realtimeActive,
   allInQuerySelected,
   anySelected,
   multiSelected,
@@ -48,10 +43,8 @@ function ActionSet({
   onUpdate,
   onShouldConfirm,
   onDelete,
-  onRealtimeChange,
   onMerge,
   selectedProjectSlug,
-  hasInbox,
 }: Props) {
   const numIssues = issues.size;
   const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
@@ -62,7 +55,7 @@ function ActionSet({
   const mergeDisabled = !(multiSelected && selectedProjectSlug);
 
   return (
-    <Wrapper hasInbox={hasInbox}>
+    <Wrapper>
       {selectedProjectSlug ? (
         <Projects orgId={orgSlug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -114,13 +107,11 @@ function ActionSet({
         disabled={!anySelected}
       />
 
-      {hasInbox && (
-        <GuideAnchor target="inbox_guide_review" position="bottom">
-          <div className="hidden-sm hidden-xs">
-            <ReviewAction disabled={!anySelected} onUpdate={onUpdate} />
-          </div>
-        </GuideAnchor>
-      )}
+      <GuideAnchor target="inbox_guide_review" position="bottom">
+        <div className="hidden-sm hidden-xs">
+          <ReviewAction disabled={!anySelected} onUpdate={onUpdate} />
+        </div>
+      </GuideAnchor>
 
       <div className="hidden-md hidden-sm hidden-xs">
         <ActionLink
@@ -156,16 +147,16 @@ function ActionSet({
         >
           {t('Merge')}
         </MenuItemActionLink>
-        {hasInbox && (
-          <MenuItemActionLink
-            className="hidden-md hidden-lg hidden-xl"
-            disabled={!anySelected}
-            onAction={() => onUpdate({inbox: false})}
-            title={t('Mark Reviewed')}
-          >
-            {t('Mark Reviewed')}
-          </MenuItemActionLink>
-        )}
+
+        <MenuItemActionLink
+          className="hidden-md hidden-lg hidden-xl"
+          disabled={!anySelected}
+          onAction={() => onUpdate({inbox: false})}
+          title={t('Mark Reviewed')}
+        >
+          {t('Mark Reviewed')}
+        </MenuItemActionLink>
+
         <MenuItemActionLink
           disabled={!anySelected}
           onAction={() => onUpdate({isBookmarked: true})}
@@ -208,21 +199,6 @@ function ActionSet({
           {t('Delete Issues')}
         </MenuItemActionLink>
       </DropdownLink>
-      {!hasInbox && (
-        <Tooltip
-          title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
-        >
-          <ActionButton
-            onClick={onRealtimeChange}
-            label={
-              realtimeActive
-                ? t('Pause real-time updates')
-                : t('Enable real-time updates')
-            }
-            icon={realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
-          />
-        </Tooltip>
-      )}
     </Wrapper>
   );
 }
