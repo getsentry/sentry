@@ -8,7 +8,7 @@ from sentry.integrations.slack.message_builder.notifications import (
 )
 from sentry.mail.notify import register_issue_notification_provider
 from sentry.models import ExternalActor, Organization, User
-from sentry.notifications.activity.base import ActivityNotification
+from sentry.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
@@ -56,7 +56,7 @@ def get_channel_and_token(
 
 @register_notification_provider(ExternalProviders.SLACK)
 def send_activity_notification_as_slack(
-    notification: ActivityNotification,
+    notification: BaseNotification,
     users: Mapping[User, int],
     shared_context: Mapping[str, Any],
 ) -> None:
