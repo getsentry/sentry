@@ -91,6 +91,19 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
         return GitLabApiClient(self)
 
+    def get_codeowner_file(self, repo, ref=None):
+        filepath_options = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
+        for filepath in filepath_options:
+            try:
+                contents = self.get_client().get_file(repo, filepath, ref)
+            except ApiError:
+                continue
+
+            html_url = self.format_source_url(repo, filepath, ref)
+            return {"filepath": filepath, "html_url": html_url, "raw": contents}
+
+        return None
+
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
