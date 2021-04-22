@@ -59,7 +59,6 @@ const ProjectBadge = ({
 
 const StyledLink = styled(Link)`
   flex-shrink: 0;
-  width: 100%;
 
   img:hover {
     cursor: pointer;
