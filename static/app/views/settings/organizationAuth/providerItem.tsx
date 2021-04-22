@@ -96,7 +96,7 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
         renderDisabled,
         renderInstallButton,
       }: FeatureRenderProps) => (
-        <PanelItem alignItems="center">
+        <PanelItem center>
           <ProviderInfo>
             <ProviderLogo
               className={`provider-logo ${provider.name
