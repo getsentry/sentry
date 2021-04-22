@@ -30,7 +30,7 @@ export const DATASOURCE_EVENT_TYPE_FILTERS = {
   [Datasource.TRANSACTION]: 'event.type:transaction',
 } as const;
 
-type OptionConfig = {
+export type OptionConfig = {
   aggregations: AggregationKey[];
   fields: LooseFieldKey[];
   measurementKeys?: string[];
@@ -44,22 +44,30 @@ export const errorFieldConfig: OptionConfig = {
   fields: ['user'],
 };
 
+const commonAggregations: AggregationKey[] = [
+  'avg',
+  'percentile',
+  'p50',
+  'p75',
+  'p95',
+  'p99',
+  'p100',
+];
+
+/**
+ * Allowed aggregations for alerts created from wizard
+ */
+export const wizardAlertFieldConfig: OptionConfig = {
+  aggregations: commonAggregations,
+  fields: ['transaction.duration'],
+  measurementKeys: Object.keys(WEB_VITAL_DETAILS),
+};
+
 /**
  * Allowed transaction aggregations for alerts
  */
 export const transactionFieldConfig: OptionConfig = {
-  aggregations: [
-    'avg',
-    'percentile',
-    'failure_rate',
-    'apdex',
-    'count',
-    'p50',
-    'p75',
-    'p95',
-    'p99',
-    'p100',
-  ],
+  aggregations: [...commonAggregations, 'failure_rate', 'apdex', 'count'],
   fields: ['transaction.duration'],
   measurementKeys: Object.keys(WEB_VITAL_DETAILS),
 };
