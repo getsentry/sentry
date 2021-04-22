@@ -199,7 +199,7 @@ class MailAdapter:
             else:
                 return self.get_send_to_owners(event, project)
         elif target_type == ActionTargetType.MEMBER:
-            # CEO: this is set to just email for now, but when we update the alert rule UI
+            # TODO(ceo): this is set to just email for now, but when we update the alert rule UI
             # to allow you to choose "notification" rather than "email" this will need to change
             return {ExternalProviders.EMAIL: self.get_send_to_member(project, target_identifier)}
         elif target_type == ActionTargetType.TEAM:
