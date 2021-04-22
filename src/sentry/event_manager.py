@@ -1090,12 +1090,12 @@ def _find_existing_group_id(
 
             if group_hash is not None and group_hash.state == GroupHash.State.SPLIT:
                 found_split = True
+                break
 
-            if not found_split:
-                root_hierarchical_hash = hash
+            root_hierarchical_hash = hash
 
-                if group_hash is not None:
-                    all_grouphashes.append(group_hash)
+            if group_hash is not None:
+                all_grouphashes.append(group_hash)
 
         if root_hierarchical_hash is None:
             # All hashes were split (should not be reachable from UI), so
@@ -1103,6 +1103,11 @@ def _find_existing_group_id(
             root_hierarchical_hash = hierarchical_hashes[-1]
 
     if not found_split:
+        # In case of a split we want to avoid accidentally finding the split-up
+        # group again via flat hashes, which are very likely associated with
+        # whichever group is attached to the split hash. This distinction will
+        # become irrelevant once we start moving existing events into child
+        # groups and delete the parent group.
         all_grouphashes.extend(flat_grouphashes)
 
     for group_hash in all_grouphashes:
