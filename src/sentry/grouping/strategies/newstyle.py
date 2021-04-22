@@ -1,4 +1,5 @@
 import re
+from typing import Any, Dict, List
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import call_with_variants, strategy
@@ -611,17 +612,40 @@ def chained_exception_variant_processor(variants, context, **meta):
 
 @strategy(id="threads:v1", interfaces=["threads"], score=1900)
 def threads(threads_interface, context, **meta):
-    thread_count = len(threads_interface.values)
-    if thread_count != 1:
-        return {
-            "app": GroupingComponent(
-                id="threads",
-                contributes=False,
-                hint="ignored because contains %d threads" % thread_count,
-            )
-        }
+    thread_variants = _filtered_threads(
+        [thread for thread in threads_interface.values if thread.get("crashed")], context, meta
+    )
+    if thread_variants is not None:
+        return thread_variants
 
-    stacktrace = threads_interface.values[0].get("stacktrace")
+    thread_variants = _filtered_threads(
+        [thread for thread in threads_interface.values if thread.get("current")], context, meta
+    )
+    if thread_variants is not None:
+        return thread_variants
+
+    thread_variants = _filtered_threads(threads_interface.values, context, meta)
+    if thread_variants is not None:
+        return thread_variants
+
+    return {
+        "app": GroupingComponent(
+            id="threads",
+            contributes=False,
+            hint=(
+                "ignored because does not contain exactly one crashing, "
+                "one current or just one thread, instead contains %s threads"
+                % len(threads_interface.values)
+            ),
+        )
+    }
+
+
+def _filtered_threads(threads: List[Dict[str, Any]], context, meta):
+    if len(threads) != 1:
+        return None
+
+    stacktrace = threads[0].get("stacktrace")
     if not stacktrace:
         return {
             "app": GroupingComponent(
