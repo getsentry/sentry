@@ -29,7 +29,7 @@ import BuildStep from '../buildStep';
 import BuildSteps from '../buildSteps';
 import ChooseDataSetStep from '../choseDataStep';
 import Header from '../header';
-import {DataSet, DisplayType, EventWidgetQuery, Widget, WidgetType} from '../types';
+import {DataSet, DisplayType, EventWidgetQuery, Widget} from '../types';
 import {displayTypes} from '../utils';
 
 import Queries from './queries';
@@ -64,7 +64,6 @@ class EventWidget extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      type: WidgetType.EVENT,
       title: t('Custom %s Widget', DisplayType.AREA),
       displayType: DisplayType.AREA,
       interval: '5m',
@@ -147,7 +146,7 @@ class EventWidget extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization, onChangeDataSet, selection, tags} = this.props;
-    const {title, displayType, queries, interval, widgetErrors, type} = this.state;
+    const {title, displayType, queries, interval, widgetErrors} = this.state;
     const orgSlug = organization.slug;
 
     function fieldOptions(measurementKeys: string[]) {
@@ -202,7 +201,7 @@ class EventWidget extends AsyncView<Props, State> {
                     api={this.api}
                     organization={organization}
                     selection={selection}
-                    widget={{type, title, queries, displayType, interval}}
+                    widget={{title, queries, displayType, interval}}
                     isEditing={false}
                     onDelete={() => undefined}
                     onEdit={() => undefined}

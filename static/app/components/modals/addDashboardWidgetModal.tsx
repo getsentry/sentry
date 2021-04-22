@@ -33,7 +33,6 @@ import {
   DisplayType,
   EventWidget,
   EventWidgetQuery,
-  WidgetType,
 } from 'app/views/dashboardsV2/widget/types';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
@@ -66,7 +65,6 @@ type FlatValidationError = {
 };
 
 type State = {
-  type: EventWidget['type'];
   title: EventWidget['title'];
   displayType: EventWidget['displayType'];
   interval: EventWidget['interval'];
@@ -102,9 +100,9 @@ function mapErrors(
 }
 
 function normalizeQueries(
-  displayType: Widget['displayType'],
-  queries: Widget['queries']
-): Widget['queries'] {
+  displayType: EventWidget['displayType'],
+  queries: EventWidget['queries']
+): EventWidget['queries'] {
   const isTimeseriesChart = ['line', 'area', 'stacked_area', 'bar'].includes(displayType);
 
   if (['table', 'world_map', 'big_number'].includes(displayType)) {
@@ -193,7 +191,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     if (!widget) {
       this.state = {
-        type: WidgetType.EVENT,
         title: '',
         displayType: DisplayType.LINE,
         interval: '5m',
@@ -205,7 +202,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
 
     this.state = {
-      type: WidgetType.EVENT,
       title: widget.title,
       displayType: widget.displayType,
       interval: widget.interval,
@@ -229,7 +225,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     this.setState({loading: true});
     try {
       const widgetData: EventWidget = pick(this.state, [
-        'type',
         'title',
         'displayType',
         'interval',
