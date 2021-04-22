@@ -9,6 +9,7 @@ referrer_blacklist = {
     "tsdb-modelid:200",
     "tsdb-modelid:202",
     "tsdb-modelid:100",
+    "eventstore.get_next_or_prev_event_id",
 }
 referrers_by_entity = {
     "api.performance.durationpercentilechart": "discover_transactions",
