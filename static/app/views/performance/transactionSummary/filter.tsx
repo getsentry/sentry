@@ -13,6 +13,8 @@ import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 
+import {decodeHistogramZoom} from './latencyChart';
+
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
 export enum SpanOperationBreakdownFilter {
@@ -235,12 +237,30 @@ export function filterToField(option: SpanOperationBreakdownFilter) {
   }
 }
 
-export function filterToSearchConditions(option: SpanOperationBreakdownFilter) {
+export function filterToSearchConditions(
+  option: SpanOperationBreakdownFilter,
+  location: Location
+) {
+  let field = filterToField(option);
+  if (!field) {
+    field = 'transaction.duration';
+  }
+
+  // Add duration search conditions implicitly
+
+  const {min, max} = decodeHistogramZoom(location);
+  let query = '';
+  if (typeof min === 'number') {
+    query = `${query} ${field}:>${min}ms`;
+  }
+  if (typeof max === 'number') {
+    query = `${query} ${field}:<${max}ms`;
+  }
   switch (option) {
     case SpanOperationBreakdownFilter.None:
-      return undefined;
+      return query ? query.trim() : undefined;
     default: {
-      return `has:${filterToField(option)}`;
+      return `${query} has:${filterToField(option)}`.trim();
     }
   }
 }

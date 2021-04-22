@@ -259,3 +259,19 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.TRANSACTION,
   },
 };
+
+export const hidePrimarySelectorSet = new Set<AlertType>([
+  'num_errors',
+  'users_experiencing_errors',
+  'throughput',
+  'apdex',
+  'failure_rate',
+]);
+
+export const hideParameterSelectorSet = new Set<AlertType>([
+  'trans_duration',
+  'lcp',
+  'fid',
+  'cls',
+  'fcp',
+]);
