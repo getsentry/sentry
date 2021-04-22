@@ -2,9 +2,9 @@ from typing import Any, MutableMapping
 
 from django.db import IntegrityError
 from django.http import Http404
-from rest_framework import serializers  # type: ignore
-from rest_framework.exceptions import PermissionDenied  # type: ignore
-from rest_framework.request import Request  # type: ignore
+from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer

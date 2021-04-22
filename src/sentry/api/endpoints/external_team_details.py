@@ -1,9 +1,9 @@
 import logging
 from typing import Any, Tuple
 
-from rest_framework import status  # type: ignore
-from rest_framework.request import Request  # type: ignore
-from rest_framework.response import Response  # type: ignore
+from rest_framework import status
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalTeamSerializer
 from sentry.api.bases.team import TeamEndpoint
