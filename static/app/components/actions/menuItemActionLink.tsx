@@ -33,7 +33,6 @@ const StyledActionLink = styled(ActionLink)`
 
 const MenuItemActionLink = styled(MenuItemActionLinkBase)`
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  padding: 0;
 
   &:last-child {
     border-bottom: none;
