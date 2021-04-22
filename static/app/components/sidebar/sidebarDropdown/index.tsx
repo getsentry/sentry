@@ -20,6 +20,7 @@ import space from 'app/styles/space';
 import {Config, Organization, User} from 'app/types';
 import withApi from 'app/utils/withApi';
 
+import SidebarMenuItemLink from '../sidebarMenuItemLink';
 import {CommonSidebarProps} from '../types';
 
 import Divider from './divider.styled';
@@ -169,8 +170,10 @@ const SentryLink = styled(Link)`
   }
 `;
 
-const UserSummary = styled(Link)`
-  ${menuItemStyles}
+const UserSummary = styled(Link)<
+  Omit<React.ComponentProps<typeof SidebarMenuItemLink>, 'children'>
+>`
+  ${p => menuItemStyles(p)}
   padding: 10px 15px;
 `;
 

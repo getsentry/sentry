@@ -1,7 +1,6 @@
 import React from 'react';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
+import {Panel, PanelBody} from 'app/components/panels';
 import {Organization, Project} from 'app/types';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
@@ -106,7 +105,6 @@ class Triggers extends React.Component<Props> {
     return (
       <React.Fragment>
         <Panel>
-          <PanelHeader>{t('Set A Threshold')}</PanelHeader>
           <PanelBody>
             <TriggerForm
               disabled={disabled}
