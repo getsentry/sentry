@@ -177,7 +177,8 @@ class SummaryContent extends React.Component<Props, State> {
     const totalCount = totalValues === null ? null : totalValues.count;
 
     const spanOperationBreakdownConditions = filterToSearchConditions(
-      spanOperationBreakdownFilter
+      spanOperationBreakdownFilter,
+      location
     );
 
     if (spanOperationBreakdownConditions) {

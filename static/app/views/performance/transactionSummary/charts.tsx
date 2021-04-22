@@ -15,6 +15,7 @@ import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import {OrganizationSummary, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
 import {TransactionsListOption} from 'app/views/releases/detail/overview';
 import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
@@ -29,7 +30,7 @@ import {
 import DurationChart from './durationChart';
 import DurationPercentileChart from './durationPercentileChart';
 import {SpanOperationBreakdownFilter} from './filter';
-import LatencyChart, {LatencyChartControls} from './latencyChart';
+import LatencyChart, {LatencyChartControls, ZOOM_END, ZOOM_START} from './latencyChart';
 import TrendChart from './trendChart';
 import VitalsChart from './vitalsChart';
 
@@ -91,7 +92,10 @@ class TransactionSummaryCharts extends React.Component<Props> {
     const {location} = this.props;
     browserHistory.push({
       pathname: location.pathname,
-      query: {...location.query, display: value},
+      query: {
+        ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
+        display: value,
+      },
     });
   };
 
