@@ -11,13 +11,13 @@ import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {deleteDashboard} from 'app/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
-import {t, tct} from 'app/locale';
+import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
@@ -32,58 +32,56 @@ type Props = {
   location: Location;
   dashboards: DashboardListItem[] | null;
   pageLinks: string;
+  onDashboardsChange: () => void;
 };
 
-class DashboardList extends React.Component<Props> {
-  static miniWidget(displayType: DisplayType): string {
+function DashboardList({
+  api,
+  organization,
+  location,
+  dashboards,
+  pageLinks,
+  onDashboardsChange,
+}: Props) {
+  function miniWidget(displayType: DisplayType): string {
     switch (displayType) {
-      case 'bar':
+      case DisplayType.BAR:
         return WidgetBar;
-      case 'area':
+      case DisplayType.AREA:
         return WidgetArea;
-      case 'big_number':
+      case DisplayType.BIG_NUMBER:
         return WidgetBigNumber;
-      case 'table':
+      case DisplayType.TABLE:
         return WidgetTable;
-      case 'world_map':
+      case DisplayType.WORLD_MAP:
         return WidgetWorldMap;
-      case 'line':
+      case DisplayType.LINE:
       default:
         return WidgetLine;
     }
   }
 
-  handleDelete(dashboard: DashboardListItem) {
-    const {api, organization} = this.props;
-
+  function handleDelete(dashboard: DashboardListItem) {
     const promise = deleteDashboard(api, organization.slug, dashboard.id);
-    promise
-      .then(() => {
-        addSuccessMessage(t('Dashboard deleted'));
-      })
-      .catch(() => {
-        addErrorMessage(t('Dashboard not deleted'));
-      });
+    promise.then(() => {
+      onDashboardsChange();
+      addSuccessMessage(t('Dashboard deleted'));
+    });
 
     return promise;
   }
 
-  renderMiniDashboards() {
-    const {organization, dashboards} = this.props;
+  function renderMiniDashboards() {
     return dashboards?.map((dashboard, index) => {
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
           title={dashboard.title}
           to={{
-            pathname: `/organizations/${organization.slug}/dashboards/${dashboard.id}`,
-            query: {},
+            pathname: `/organizations/${organization.slug}/dashboards/${dashboard.id}/`,
+            query: {...location.query},
           }}
-          detail={
-            dashboard.widgetDisplay.length > 1
-              ? tct('[numWidgets] widgets', {numWidgets: dashboard.widgetDisplay.length})
-              : tct('[numWidgets] widget', {numWidgets: dashboard.widgetDisplay.length})
-          }
+          detail={tn('%s widget', '%s widgets', dashboard.widgetDisplay.length)}
           dateStatus={
             dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
           }
@@ -94,12 +92,12 @@ class DashboardList extends React.Component<Props> {
                 return displayType === 'big_number' ? (
                   <BigNumberWidgetWrapper
                     key={`${i}-${displayType}`}
-                    src={DashboardList.miniWidget(displayType)}
+                    src={miniWidget(displayType)}
                   />
                 ) : (
                   <MiniWidgetWrapper
                     key={`${i}-${displayType}`}
-                    src={DashboardList.miniWidget(displayType)}
+                    src={miniWidget(displayType)}
                   />
                 );
               })}
@@ -111,7 +109,7 @@ class DashboardList extends React.Component<Props> {
                 key="delete-dashboard"
                 onClick={event => {
                   event.preventDefault();
-                  this.handleDelete(dashboard);
+                  handleDelete(dashboard);
                 }}
               >
                 {t('Delete')}
@@ -123,44 +121,40 @@ class DashboardList extends React.Component<Props> {
     });
   }
 
-  renderDashboardGrid() {
-    const {dashboards} = this.props;
-    if (dashboards?.length === 0) {
+  function renderDashboardGrid() {
+    if (!dashboards?.length) {
       return (
         <EmptyStateWarning>
           <p>{t('Sorry, no Dashboards match your filters.')}</p>
         </EmptyStateWarning>
       );
     }
-    return <DashboardGrid>{this.renderMiniDashboards()}</DashboardGrid>;
+    return <DashboardGrid>{renderMiniDashboards()}</DashboardGrid>;
   }
 
-  render() {
-    const {pageLinks} = this.props;
-    return (
-      <React.Fragment>
-        {this.renderDashboardGrid()}
-        <PaginationRow
-          pageLinks={pageLinks}
-          onCursor={(cursor: string, path: string, query: Query, direction: number) => {
-            const offset = Number(cursor.split(':')[1]);
+  return (
+    <React.Fragment>
+      {renderDashboardGrid()}
+      <PaginationRow
+        pageLinks={pageLinks}
+        onCursor={(cursor: string, path: string, query: Query, direction: number) => {
+          const offset = Number(cursor.split(':')[1]);
 
-            const newQuery: Query & {cursor?: string} = {...query, cursor};
-            const isPrevious = direction === -1;
+          const newQuery: Query & {cursor?: string} = {...query, cursor};
+          const isPrevious = direction === -1;
 
-            if (offset <= 0 && isPrevious) {
-              delete newQuery.cursor;
-            }
+          if (offset <= 0 && isPrevious) {
+            delete newQuery.cursor;
+          }
 
-            browserHistory.push({
-              pathname: path,
-              query: newQuery,
-            });
-          }}
-        />
-      </React.Fragment>
-    );
-  }
+          browserHistory.push({
+            pathname: path,
+            query: newQuery,
+          });
+        }}
+      />
+    </React.Fragment>
+  );
 }
 
 const DashboardGrid = styled('div')`
@@ -220,7 +214,7 @@ const MiniWidgetWrapper = styled('img')`
 `;
 
 const PaginationRow = styled(Pagination)`
-  margin-bottom: 20px;
+  margin-bottom: ${space(3)};
 `;
 
 export default DashboardList;

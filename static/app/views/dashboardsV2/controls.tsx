@@ -39,6 +39,7 @@ class Controls extends React.Component<Props> {
       dashboardState,
       dashboards,
       dashboard,
+      organization,
       onEdit,
       onCreate,
       onCancel,
@@ -130,7 +131,6 @@ class Controls extends React.Component<Props> {
             options={dropdownOptions}
             value={currentOption}
             onChange={({value}: {value: DashboardListItem}) => {
-              const {organization} = this.props;
               browserHistory.push({
                 pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
                 // TODO(mark) should this retain global selection?
@@ -139,6 +139,16 @@ class Controls extends React.Component<Props> {
             }}
           />
         </DashboardSelect>
+        <Feature features={['organizations:dashboards-manage']}>
+          <Button
+            data-test-id="dashboard-manage"
+            to={{
+              pathname: `/organizations/${organization.slug}/dashboards/manage/`,
+            }}
+          >
+            {t('Manage Dashboards')}
+          </Button>
+        </Feature>
         <DashboardEditFeature>
           {hasFeature => (
             <Button
@@ -175,7 +185,7 @@ class Controls extends React.Component<Props> {
   }
 }
 
-export const DashboardEditFeature = ({
+const DashboardEditFeature = ({
   children,
 }: {
   children: (hasFeature: boolean) => React.ReactNode;

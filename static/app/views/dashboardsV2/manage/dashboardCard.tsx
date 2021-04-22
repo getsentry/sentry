@@ -4,72 +4,68 @@ import styled from '@emotion/styled';
 import ActivityAvatar from 'app/components/activity/item/avatar';
 import Card from 'app/components/card';
 import Link from 'app/components/links/link';
+import TextOverflow from 'app/components/textOverflow';
 import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {User} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
-  title?: string;
-  detail?: React.ReactNode;
-  to: object;
+  title: string;
+  detail: React.ReactNode;
+  to: React.ComponentProps<typeof Link>['to'];
+  renderWidgets: () => React.ReactNode;
   createdBy?: User | undefined;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
-  renderWidgets: () => React.ReactNode;
-  renderContextMenu?: () => React.ReactNode;
+  renderContextMenu?: () => void;
 };
 
-class DashboardCard extends React.PureComponent<Props> {
-  handleClick = () => {
-    const {onEventClick} = this.props;
-    callIfFunction(onEventClick);
-  };
-
-  render() {
-    const {
-      title,
-      detail,
-      renderContextMenu,
-      renderWidgets,
-      createdBy,
-      dateStatus,
-    } = this.props;
-
-    return (
-      <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={this.props.to}>
-        <StyledDashboardCard interactive>
-          <DashboardCardHeader>
-            <DashboardCardContent>
-              <DashboardTitle>{title}</DashboardTitle>
-              <DashboardDetail>{detail}</DashboardDetail>
-            </DashboardCardContent>
-            <AvatarWrapper>
-              {createdBy ? (
-                <ActivityAvatar type="user" user={createdBy} size={34} />
-              ) : (
-                <ActivityAvatar type="system" size={34} />
-              )}
-            </AvatarWrapper>
-          </DashboardCardHeader>
-          <DashboardCardBody>{renderWidgets()}</DashboardCardBody>
-          <DashboardCardFooter>
-            <DateSelected>
-              {dateStatus ? (
-                <DateStatus>
-                  {t('Created')} {dateStatus}
-                </DateStatus>
-              ) : (
-                <DateStatus />
-              )}
-            </DateSelected>
-            {renderContextMenu && renderContextMenu()}
-          </DashboardCardFooter>
-        </StyledDashboardCard>
-      </Link>
-    );
+function DashboardCard({
+  title,
+  detail,
+  createdBy,
+  renderWidgets,
+  dateStatus,
+  to,
+  onEventClick,
+  renderContextMenu,
+}: Props) {
+  function onClick() {
+    onEventClick?.();
   }
+
+  return (
+    <Link data-test-id={`card-${title}`} onClick={onClick} to={to}>
+      <StyledDashboardCard interactive>
+        <CardHeader>
+          <CardContent>
+            <Title>{title}</Title>
+            <Detail>{detail}</Detail>
+          </CardContent>
+          <AvatarWrapper>
+            {createdBy ? (
+              <ActivityAvatar type="user" user={createdBy} size={34} />
+            ) : (
+              <ActivityAvatar type="system" size={34} />
+            )}
+          </AvatarWrapper>
+        </CardHeader>
+        <CardBody>{renderWidgets()}</CardBody>
+        <CardFooter>
+          <DateSelected>
+            {dateStatus ? (
+              <DateStatus>
+                {t('Created')} {dateStatus}
+              </DateStatus>
+            ) : (
+              <DateStatus />
+            )}
+          </DateSelected>
+          {renderContextMenu && renderContextMenu()}
+        </CardFooter>
+      </StyledDashboardCard>
+    </Link>
+  );
 }
 
 const AvatarWrapper = styled('span')`
@@ -78,7 +74,7 @@ const AvatarWrapper = styled('span')`
   height: min-content;
 `;
 
-const DashboardCardContent = styled('div')`
+const CardContent = styled('div')`
   flex-grow: 1;
   overflow: hidden;
   margin-right: ${space(1)};
@@ -93,25 +89,23 @@ const StyledDashboardCard = styled(Card)`
   }
 `;
 
-const DashboardCardHeader = styled('div')`
+const CardHeader = styled('div')`
   display: flex;
   padding: ${space(1.5)} ${space(2)};
 `;
 
-const DashboardTitle = styled('div')`
+const Title = styled(TextOverflow)`
   color: ${p => p.theme.textColor};
-  ${overflowEllipsis};
 `;
 
-const DashboardDetail = styled('div')`
+const Detail = styled(TextOverflow)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
   line-height: 1.5;
-  ${overflowEllipsis};
 `;
 
-const DashboardCardBody = styled('div')`
+const CardBody = styled('div')`
   background: ${p => p.theme.gray100};
   padding: ${space(1.5)} ${space(2)};
   max-height: 150px;
@@ -119,18 +113,17 @@ const DashboardCardBody = styled('div')`
   overflow: hidden;
 `;
 
-const DashboardCardFooter = styled('div')`
+const CardFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
 `;
 
-const DateSelected = styled('div')`
+const DateSelected = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeSmall};
   display: grid;
   grid-column-gap: ${space(1)};
-  ${overflowEllipsis};
   color: ${p => p.theme.textColor};
 `;
 
