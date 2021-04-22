@@ -95,11 +95,11 @@ class DemoStartTeset(TestCase):
         # gen the org w/o mocks and save the cookie
         resp = self.client.post(self.path)
         member_id = resp.cookies[MEMBER_ID_COOKIE].value.split(":")[0]
-        self.save_cookie(MEMBER_ID_COOKIE, signer.sign(member_id))
+        self.save_cookie(MEMBER_ID_COOKIE, resp.cookies[MEMBER_ID_COOKIE])
 
         org = Organization.objects.get(members__id=member_id)
-        group = Group.objects.filter(project__organization=org, project__slug="react").first()
         project = Project.objects.get(slug="react", organization=org)
+        group = Group.objects.filter(project=project).first()
         release = (
             Release.objects.filter(organization=org, projects=project)
             .order_by("-date_added")
