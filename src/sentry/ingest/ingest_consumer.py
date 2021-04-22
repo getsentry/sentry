@@ -143,13 +143,12 @@ def _do_process_event(message, projects):
         logger.error("Project for ingested event does not exist: %s", project_id)
         return
 
-    with sentry_sdk.start_span(op="ingest_consumer.process_event.parse_payload"):
-        # Parse the JSON payload. This is required to compute the cache key and
-        # call process_event. The payload will be put into Kafka raw, to avoid
-        # serializing it again.
-        # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
-        # which assumes that data passed in is a raw dictionary.
-        data = json.loads(payload)
+    # Parse the JSON payload. This is required to compute the cache key and
+    # call process_event. The payload will be put into Kafka raw, to avoid
+    # serializing it again.
+    # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
+    # which assumes that data passed in is a raw dictionary.
+    data = json.loads(payload)
 
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
