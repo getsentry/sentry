@@ -6,7 +6,8 @@ from rest_framework.response import Response
 from sentry import features, roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers import OrganizationMemberWithTeamsSerializer, serialize
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.models import AuditLogEntryEvent, InviteStatus, OrganizationMember
 from sentry.signals import member_invited
 

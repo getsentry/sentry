@@ -1,15 +1,30 @@
-from typing import Any, Mapping, Optional, Sequence, Union
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
-registry = {}
+from sentry.utils.json import JSONData
+
+K = TypeVar("K")
+
+registry: MutableMapping[Any, Any] = {}
 
 
-def register(type: Any):
+def register(type: Any) -> Callable[[Type[K]], Type[K]]:
     """ A wrapper that adds the wrapped Serializer to the Serializer registry (see above) for the key `type`. """
 
-    def wrapped(cls):
+    def wrapped(cls: Type[K]) -> Type[K]:
         registry[type] = cls()
         return cls
 
@@ -20,8 +35,8 @@ def serialize(
     objects: Union[Any, Sequence[Any]],
     user: Optional[Any] = None,
     serializer: Optional[Any] = None,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> Any:
     """
     Turn a model (or list of models) into a python object made entirely of primitives.
 
@@ -73,13 +88,15 @@ def serialize(
 class Serializer:
     """ A Serializer class contains the logic to serialize a specific type of object. """
 
-    def __call__(self, obj, attrs, user, **kwargs):
+    def __call__(
+        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> Optional[MutableMapping[str, Any]]:
         """ See documentation for `serialize`. """
         if obj is None:
-            return
+            return None
         return self.serialize(obj, attrs, user, **kwargs)
 
-    def get_attrs(self, item_list: Sequence[Any], user: Any, **kwargs) -> Mapping[Any, Any]:
+    def get_attrs(self, item_list: List[Any], user: Any, **kwargs: Any) -> MutableMapping[Any, Any]:
         """
         Fetch all of the associated data needed to serialize the objects in `item_list`.
 
@@ -90,7 +107,9 @@ class Serializer:
         """
         return {}
 
-    def serialize(self, obj: any, attrs: Mapping[Any, Any], user: Any, **kwargs):
+    def serialize(
+        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
         """
         Convert an arbitrary python object `obj` to an object that only contains primitives.
 

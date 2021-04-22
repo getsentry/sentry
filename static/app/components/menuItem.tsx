@@ -145,7 +145,7 @@ class MenuItem extends React.Component<Props> {
         divider={divider}
         noAnchor={noAnchor}
         header={header}
-        {...omit(props, ['href', 'title', 'onSelect', 'eventKey', 'to'])}
+        {...omit(props, ['href', 'title', 'onSelect', 'eventKey', 'to', 'as'])}
       >
         {renderChildren}
       </MenuListItem>

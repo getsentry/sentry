@@ -8,6 +8,7 @@ import Tooltip from 'app/components/tooltip';
 import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
 type DefaultProps = {
   allowClear: boolean;
@@ -110,7 +111,7 @@ class HeaderItem extends React.Component<Props> {
 }
 
 // Infer props here because of styled/theme
-const getColor = p => {
+const getColor = (p: ColorProps & {theme: Theme}) => {
   if (p.locked) {
     return p.theme.gray300;
   }

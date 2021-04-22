@@ -28,9 +28,25 @@ class Chartcuterie(ChartRenderer):
     def service_url(self) -> Optional[str]:
         return options.get("chart-rendering.chartcuterie", {}).get("url")
 
+    @property
+    def storage_options(self):
+        backend = options.get("chart-rendering.storage.backend")
+        opts = options.get("chart-rendering.storage.options")
+
+        # No custom storage driver configured, let get_storage fallback to default
+        if not backend:
+            return None
+
+        return {"backend": backend, "options": opts}
+
     def validate(self) -> None:
         if not self.is_enabled():
             return
+
+        if self.storage_options is not None and self.storage_options["options"] is None:
+            raise InvalidConfiguration(
+                "`chart-rendering.storage.options` must be configured if `chart-rendering.storage.backend` is configured"
+            )
 
         if not self.service_url:
             raise InvalidConfiguration("`chart-rendering.chartcuterie.url` is not configured")
@@ -74,7 +90,7 @@ class Chartcuterie(ChartRenderer):
             op="charts.chartcuterie.upload",
             description=type(self).__name__,
         ):
-            storage = get_storage()
+            storage = get_storage(self.storage_options)
             storage.save(file_name, BytesIO(resp.content))
             url = absolute_uri(storage.url(file_name))
 

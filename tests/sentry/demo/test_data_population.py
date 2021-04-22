@@ -18,6 +18,7 @@ class DataPopulationTest(TestCase):
         super().setUp()
         self.react_project = self.create_project(organization=self.organization, platform="react")
         self.python_project = self.create_project(organization=self.organization, platform="python")
+        self.create_member(organization=self.organization, user=self.create_user())
 
     @patch.object(DataPopulation, "send_session")
     def test_basic(self, mock_send_session):

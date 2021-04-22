@@ -351,6 +351,7 @@ const ProjectNameInput = styled('div')`
   align-items: center;
 
   input {
+    background: ${p => p.theme.background};
     border: 0;
     outline: 0;
     flex: 1;
