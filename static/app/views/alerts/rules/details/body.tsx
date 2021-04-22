@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import {SectionHeading} from 'app/components/charts/styles';
 import {getInterval} from 'app/components/charts/utils';
@@ -35,7 +36,7 @@ import {
 import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
 import AlertBadge from '../../alertBadge';
-import {Incident, IncidentStatus} from '../../types';
+import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';
 
 import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';
 import MetricChart from './metricChart';
@@ -291,6 +292,13 @@ export default class DetailsBody extends React.Component<Props> {
         {({initiallyLoaded, projects}) => {
           return initiallyLoaded ? (
             <React.Fragment>
+              <StyledLayoutBody>
+                {selectedIncident && selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && <StyledAlert type="warning" icon={<IconInfo size="md" />}>
+                  {t(
+                    'Alert Rule settings have been updated since this alert was triggered.'
+                  )}
+                </StyledAlert>}
+              </StyledLayoutBody>
               <StyledLayoutBodyWrapper>
                 <Layout.Main>
                   <HeaderContainer>
@@ -427,8 +435,20 @@ const HeaderGrid = styled('div')`
   gap: ${space(4)};
 `;
 
+const StyledLayoutBody = styled(Layout.Body)`
+  flex-grow: 0;
+  padding-bottom: 0 !important;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: auto;
+  }
+`;
+
 const StyledLayoutBodyWrapper = styled(Layout.Body)`
   margin-bottom: -${space(3)};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
 `;
 
 const ActivityWrapper = styled('div')`
