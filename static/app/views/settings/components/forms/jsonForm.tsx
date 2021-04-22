@@ -2,7 +2,6 @@ import React from 'react';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import PropTypes from 'prop-types';
-import {Box} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 import scrollToElement from 'scroll-to-element';
 
 import {defined} from 'app/utils';
@@ -168,7 +167,7 @@ class JsonForm extends React.Component<Props, State> {
     };
 
     return (
-      <Box {...otherProps}>
+      <div {...otherProps}>
         {typeof forms !== 'undefined' &&
           forms.map((formGroup, i) => (
             <React.Fragment key={i}>
@@ -178,7 +177,7 @@ class JsonForm extends React.Component<Props, State> {
         {typeof forms === 'undefined' &&
           typeof fields !== 'undefined' &&
           this.renderForm({fields, formPanelProps, title})}
-      </Box>
+      </div>
     );
   }
 }
