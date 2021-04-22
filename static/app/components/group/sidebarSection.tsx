@@ -31,7 +31,7 @@ type Props = {
   title: React.ReactNode;
   children: React.ReactNode;
   secondary?: boolean;
-} & Omit<React.HTMLProps<HTMLHeadingElement>, 'title'>;
+} & Omit<React.ComponentProps<typeof Heading>, 'title'>;
 
 /**
  * Used to add a new section in Issue Details's sidebar.
