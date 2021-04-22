@@ -24,7 +24,7 @@ function GroupTombstoneRow({data, onUndiscard}: RowProps) {
   const actor = data.actor;
 
   return (
-    <PanelItem alignItems="center">
+    <PanelItem center>
       <StyledBox>
         <EventOrGroupHeader
           includeLink={false}

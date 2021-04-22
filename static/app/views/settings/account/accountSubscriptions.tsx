@@ -110,7 +110,7 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                     )}
 
                     {subscriptions.map((subscription, index) => (
-                      <PanelItem p={2} alignItems="center" key={subscription.listId}>
+                      <PanelItem center key={subscription.listId}>
                         <SubscriptionDetails>
                           <SubscriptionName>{subscription.listName}</SubscriptionName>
                           {subscription.listDescription && (
