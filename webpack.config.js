@@ -571,6 +571,19 @@ if (IS_PRODUCTION) {
   });
 }
 
+// Cache webpack builds
+if (env.WEBPACK_CACHE_PATH) {
+  appConfig.cache = {
+    type: 'filesystem',
+    cacheLocation: path.resolve(__dirname, env.WEBPACK_CACHE_PATH),
+    buildDependencies: {
+      // This makes all dependencies of this file - build dependencies
+      config: [__filename],
+      // By default webpack and loaders are build dependencies
+    },
+  };
+}
+
 if (env.MEASURE) {
   const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
   const smp = new SpeedMeasurePlugin();

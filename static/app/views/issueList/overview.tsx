@@ -607,7 +607,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const links = parseLinkHeader(this.state.pageLinks);
     if (links && !links.previous.results && this.state.realtimeActive) {
       // Remove collapse stats from endpoint before supplying to poller
-      const issueEndpoint = new URL(links.previous.href);
+      const issueEndpoint = new URL(links.previous.href, window.location.origin);
       issueEndpoint.searchParams.delete('collapse');
       this._poller.setEndpoint(decodeURIComponent(issueEndpoint.href));
       this._poller.enable();
