@@ -1,6 +1,6 @@
 import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
