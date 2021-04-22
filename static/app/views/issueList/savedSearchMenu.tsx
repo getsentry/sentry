@@ -144,7 +144,6 @@ const SearchTitle = styled('div')`
 
 const SearchQueryContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  line-height: 1;
   ${overflowEllipsis}
 `;
 
