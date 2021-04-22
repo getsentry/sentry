@@ -1168,6 +1168,15 @@ function routes() {
           />
 
           <Route
+            path="/organizations/:orgId/dashboards/manage/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "ManageDashboards" */ 'app/views/dashboardsV2/manage'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
               import(
@@ -1176,15 +1185,6 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           >
-            <Route
-              path="manage/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ManageDashboards" */ 'app/views/dashboardsV2/manage'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
             <IndexRoute
               componentPromise={() =>
                 import(
