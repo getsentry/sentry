@@ -7,7 +7,7 @@ type Props = {
   visible: boolean;
   className?: string;
   children?: React.ReactNode;
-} & React.HTMLProps<HTMLDivElement>;
+} & React.ComponentProps<typeof LoadingMask>;
 
 const TransparentLoadingMask = styled(
   ({className, visible, children, ...props}: Props) => {
