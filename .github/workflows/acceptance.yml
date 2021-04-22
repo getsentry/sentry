@@ -148,9 +148,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.webpack-cache.outputs.path }}
-          key: ${{ runner.os }}-webpack-cache
+          key: ${{ runner.os }}-webpack-cache-${{ hashFiles('webpack.config.js') }}
           restore-keys: |
-            ${{ runner.os }}-webpack-cache
+            ${{ runner.os }}-webpack-cache-
 
       - name: Install Javascript Dependencies
         run: |
