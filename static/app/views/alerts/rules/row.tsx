@@ -28,6 +28,7 @@ import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
 import AlertBadge from '../alertBadge';
 import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
+import {alertDetailsLink} from 'app/views/alerts/details';
 
 type Props = {
   rule: CombinedMetricIssueAlerts;

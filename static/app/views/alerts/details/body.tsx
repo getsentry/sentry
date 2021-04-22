@@ -36,6 +36,7 @@ import {DATA_SOURCE_LABELS, getIncidentMetricPreset, isIssueAlert} from '../util
 
 import Activity from './activity';
 import Chart from './chart';
+import {alertDetailsLink} from 'app/views/alerts/details/index';
 
 type Props = {
   incident?: Incident;
@@ -211,13 +212,8 @@ export default class DetailsBody extends React.Component<Props> {
       incident?.alertRule &&
       !isIssueAlert(incident?.alertRule) &&
       organization.features.includes('alert-details-redesign');
-    const alertRuleLink = hasRedesign
-      ? `/organizations/${organization.slug}/alerts/rules/details/${
-          incident?.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-          incident?.alertRule.originalAlertRuleId
-            ? incident?.alertRule.originalAlertRuleId
-            : incident?.alertRule.id
-        }/`
+    const alertRuleLink = hasRedesign && incident
+      ? alertDetailsLink(organization, incident)
       : `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`;
 
     return (
