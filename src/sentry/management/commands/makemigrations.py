@@ -1,6 +1,5 @@
 import os
 
-from django.apps import apps
 from django.conf import settings
 from django.core.management.commands import makemigrations
 from django.db.migrations.loader import MigrationLoader
@@ -14,6 +13,23 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 %s
 """
+
+
+# We check that the latest migration is the one stored in the lockfile
+def validate(migrations_file, latest_migration_by_app):
+    infile = {}
+    with open(migrations_file, encoding="utf-8") as file:
+        for line in file:
+            try:
+                app_label, name = line.split(": ")
+                infile[app_label] = name.strip()
+            except ValueError:
+                pass
+
+    for app_label, name in sorted(latest_migration_by_app.items()):
+        assert (
+            infile[app_label] == name
+        ), f"The latest migration does not match the contents of the {app_label}: {name} vs {infile[app_label]}"
 
 
 class Command(makemigrations.Command):
@@ -45,15 +61,14 @@ class Command(makemigrations.Command):
                 latest_migration_by_app.get(app_label, ""), name
             )
 
-        result = "\n".join(
-            f"{app_label}: {name}" for app_label, name in sorted(latest_migration_by_app.items())
-        )
+        migrations_file = os.path.join(settings.MIGRATIONS_LOCKFILE_PATH, "migrations_lockfile.txt")
+        if options.get("check_changes"):
+            validate(migrations_file, latest_migration_by_app)
+        else:
+            result = "\n".join(
+                f"{app_label}: {name}"
+                for app_label, name in sorted(latest_migration_by_app.items())
+            )
 
-        with open(
-            os.path.join(settings.MIGRATIONS_LOCKFILE_PATH, "migrations_lockfile.txt"), "w"
-        ) as f:
-            f.write(template % result)
-
-        for app_label, name in sorted(latest_migration_by_app.items()):
-            file_path = f"{apps.get_app_config(app_label).path}/migrations/{name}.py"
-            assert os.path.isfile(file_path), f"The migration {name} cannot be found on disk."
+            with open(migrations_file, "w") as f:
+                f.write(template % result)
