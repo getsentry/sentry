@@ -612,21 +612,21 @@ def chained_exception_variant_processor(variants, context, **meta):
 
 @strategy(id="threads:v1", interfaces=["threads"], score=1900)
 def threads(threads_interface, context, **meta):
-    rv = _filtered_threads(
+    thread_variants = _filtered_threads(
         [thread for thread in threads_interface.values if thread.get("crashed")], context, meta
     )
-    if rv is not None:
-        return rv
+    if thread_variants is not None:
+        return thread_variants
 
-    rv = _filtered_threads(
+    thread_variants = _filtered_threads(
         [thread for thread in threads_interface.values if thread.get("current")], context, meta
     )
-    if rv is not None:
-        return rv
+    if thread_variants is not None:
+        return thread_variants
 
-    rv = _filtered_threads(threads_interface.values, context, meta)
-    if rv is not None:
-        return rv
+    thread_variants = _filtered_threads(threads_interface.values, context, meta)
+    if thread_variants is not None:
+        return thread_variants
 
     return {
         "app": GroupingComponent(
