@@ -30,7 +30,7 @@ def validate(migrations_filepath, latest_migration_by_app):
     for app_label, name in sorted(latest_migration_by_app.items()):
         if infile[app_label] != name:
             print(  # noqa: B314
-                f"ERROR: The latest migration does not match the contents of the {app_label}: {name} vs {infile[app_label]}"
+                f"ERROR: The latest migration does not match the one in the lockfile -> `{app_label}` app: {name} vs {infile[app_label]}"
             )
             # makemigrations.Command --check exits with 1 if a migration needs to be generated
             sys.exit(2)
