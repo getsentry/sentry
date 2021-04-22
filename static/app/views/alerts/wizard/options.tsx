@@ -4,7 +4,6 @@ import diagramCustom from 'sentry-images/spot/alerts-wizard-custom.svg';
 import diagramErrors from 'sentry-images/spot/alerts-wizard-errors.svg';
 import diagramFailureRate from 'sentry-images/spot/alerts-wizard-failure-rate.svg';
 import diagramFID from 'sentry-images/spot/alerts-wizard-fid.svg';
-import diagramFirstContentfulPaint from 'sentry-images/spot/alerts-wizard-first-contentful-paint.svg';
 import diagramIssues from 'sentry-images/spot/alerts-wizard-issues.svg';
 import diagramLCP from 'sentry-images/spot/alerts-wizard-lcp.svg';
 import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
