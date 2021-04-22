@@ -459,6 +459,9 @@ class DebugMeta extends React.PureComponent<Props, State> {
 export default DebugMeta;
 
 // XXX(ts): Emotion11 has some trouble with List's defaultProps
+
+// It gives the list have a dynamic height; otherwise, in the case of filtered
+// options, a list will be displayed with an empty space
 const StyledList = styled((p: React.ComponentProps<typeof List>) => <List {...p} />)<{
   height: number;
 }>`

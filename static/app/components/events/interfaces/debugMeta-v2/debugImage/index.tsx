@@ -50,7 +50,7 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
               <Tooltip title={code_file}>{codeFilename}</Tooltip>
             </FileName>
           )}
-          {codeFilename !== debugFilename && (
+          {codeFilename !== debugFilename && debugFilename && (
             <CodeFilename>{`(${debugFilename})`}</CodeFilename>
           )}
         </div>
