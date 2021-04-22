@@ -15,7 +15,7 @@ import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import {IconDelete, IconEdit, IconEllipsis, IconGrabbable} from 'app/icons';
+import {IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -28,6 +28,7 @@ import withOrganization from 'app/utils/withOrganization';
 import {EventWidget} from './widget/types';
 import {eventViewFromWidget} from './utils';
 import WidgetCardChart from './widgetCardChart';
+import WidgetCardToolbar from './widgetCardToolbar';
 import WidgetQueries from './widgetQueries';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
@@ -61,44 +62,6 @@ class WidgetCard extends React.Component<Props> {
       return true;
     }
     return false;
-  }
-
-  renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
-
-    if (!isEditing) {
-      return null;
-    }
-
-    return (
-      <ToolbarPanel>
-        <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-          <IconClick>
-            <StyledIconGrabbable
-              color="textColor"
-              {...draggableProps?.listeners}
-              {...draggableProps?.attributes}
-            />
-          </IconClick>
-          <IconClick
-            data-test-id="widget-edit"
-            onClick={() => {
-              onEdit();
-            }}
-          >
-            <IconEdit color="textColor" />
-          </IconClick>
-          <IconClick
-            data-test-id="widget-delete"
-            onClick={() => {
-              onDelete();
-            }}
-          >
-            <IconDelete color="textColor" />
-          </IconClick>
-        </IconContainer>
-      </ToolbarPanel>
-    );
   }
 
   renderContextMenu() {
@@ -161,6 +124,11 @@ class WidgetCard extends React.Component<Props> {
       renderErrorMessage,
       location,
       router,
+      onEdit,
+      onDelete,
+      draggableProps,
+      hideToolbar,
+      isEditing,
     } = this.props;
     return (
       <ErrorBoundary
@@ -194,7 +162,13 @@ class WidgetCard extends React.Component<Props> {
                     router={router}
                     organization={organization}
                   />
-                  {this.renderToolbar()}
+                  <WidgetCardToolbar
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    draggableProps={draggableProps}
+                    hideToolbar={hideToolbar}
+                    isEditing={isEditing}
+                  />
                 </React.Fragment>
               );
             }}
@@ -230,43 +204,6 @@ const StyledPanel = styled(Panel, {
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
   min-height: 96px;
-`;
-
-const ToolbarPanel = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
-
-  width: 100%;
-  height: 100%;
-
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-
-  background-color: ${p => p.theme.overlayBackgroundAlpha};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const IconContainer = styled('div')`
-  display: flex;
-  margin: 10px ${space(2)};
-  touch-action: none;
-`;
-
-const IconClick = styled('div')`
-  padding: ${space(1)};
-
-  &:hover {
-    cursor: pointer;
-  }
-`;
-
-const StyledIconGrabbable = styled(IconGrabbable)`
-  &:hover {
-    cursor: grab;
-  }
 `;
 
 const WidgetTitle = styled(HeaderTitle)`

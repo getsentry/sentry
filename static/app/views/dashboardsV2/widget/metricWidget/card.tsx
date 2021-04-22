@@ -13,6 +13,8 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, Project} from 'app/types';
 
+import WidgetCardToolbar from '../../widgetCardToolbar';
+
 import Chart from './chart';
 import StatsRequest from './statsRequest';
 import {MetricWidget} from './types';
@@ -25,9 +27,20 @@ type Props = {
   selection: GlobalSelection;
   router: InjectedRouter;
   project: Project;
-};
+} & React.ComponentProps<typeof WidgetCardToolbar>;
 
-function Card({widget, api, location, router, organization, project, selection}: Props) {
+function Card({
+  widget,
+  api,
+  location,
+  router,
+  organization,
+  project,
+  selection,
+  isEditing,
+  onDelete,
+  onEdit,
+}: Props) {
   const {groupings, searchQuery, title, displayType} = widget;
 
   return (
@@ -61,6 +74,7 @@ function Card({widget, api, location, router, organization, project, selection}:
             );
           }}
         </StatsRequest>
+        <WidgetCardToolbar isEditing={isEditing} onDelete={onDelete} onEdit={onEdit} />
       </StyledPanel>
     </ErrorBoundary>
   );

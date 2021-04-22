@@ -25,7 +25,7 @@ import BuildStep from '../buildStep';
 import BuildSteps from '../buildSteps';
 import ChooseDataSetStep from '../choseDataStep';
 import Header from '../header';
-import {DataSet, DisplayType, MetricWidgetQuery, Widget, WidgetType} from '../types';
+import {DataSet, DisplayType, MetricWidgetQuery, Widget} from '../types';
 import {displayTypes} from '../utils';
 
 import Card from './card';
@@ -192,7 +192,6 @@ class MetricWidget extends AsyncView<Props, State> {
 
     try {
       const widgetData = {
-        type: WidgetType.METRIC,
         metrics_queries: widgetQueries,
         title,
         displayType,

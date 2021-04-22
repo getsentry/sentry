@@ -75,12 +75,10 @@ function SortableWidget(props: Props) {
   }, [currentWidgetDragging]);
 
   function renderCard() {
-    const isMetricWidget = (widget as MetricWidget).metrics_queries;
-
-    if (isMetricWidget) {
+    if (!!(widget as MetricWidget).metrics_queries.length) {
       const metricWidget = widget as MetricWidget;
 
-      const {projectId, conditions: searchQuery} = metricWidget.metrics_queries[0];
+      const {projectId, conditions: searchQuery} = metricWidget.metrics_queries[0] ?? {};
       const widgetProject = projects.find(project => project.id === projectId)!;
 
       const groupings = metricWidget.metrics_queries.map(({name, fields, groupBy}) => {
@@ -107,6 +105,9 @@ function SortableWidget(props: Props) {
           organization={organization}
           project={widgetProject}
           widget={{title, searchQuery, displayType, groupings}}
+          isEditing={isEditing}
+          onDelete={onDelete}
+          onEdit={onEdit}
         />
       );
     }

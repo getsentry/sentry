@@ -10,11 +10,6 @@ export enum DisplayType {
   STACKED_AREA = 'stacked_area',
 }
 
-export enum WidgetType {
-  EVENT = 'event',
-  METRIC = 'metric',
-}
-
 export enum DataSet {
   EVENTS = 'events',
   METRICS = 'metrics',
@@ -42,12 +37,10 @@ type WidgetBase = {
 };
 
 export type MetricWidget = {
-  type: WidgetType;
   metrics_queries: MetricWidgetQuery[];
 } & WidgetBase;
 
 export type EventWidget = {
-  type: WidgetType.EVENT;
   interval: string;
   queries: EventWidgetQuery[];
 } & WidgetBase;

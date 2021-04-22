@@ -13,7 +13,7 @@ import {GlobalSelection, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-import {EventWidget, Widget} from './widget/types';
+import {EventWidget, MetricWidget, Widget} from './widget/types';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
 import {DashboardDetails} from './types';
@@ -84,7 +84,16 @@ class Dashboard extends React.Component<Props> {
   };
 
   handleEditWidget = (widget: Widget, index: number) => () => {
-    const {organization, dashboard, selection} = this.props;
+    const {organization, dashboard, selection, router, paramDashboardId} = this.props;
+
+    if (!!(widget as MetricWidget).metrics_queries.length) {
+      router.push(
+        `/organizations/${organization.slug}/dashboards/${paramDashboardId}/widget/${widget.id}/edit/?dataSet=metrics`
+      );
+
+      return;
+    }
+
     openAddDashboardWidgetModal({
       organization,
       dashboard,
