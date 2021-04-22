@@ -305,3 +305,18 @@ def get_user_subscriptions_for_groups(
             results[group.id] = (is_disabled, is_active, subscription)
 
     return results
+
+
+def get_settings_by_provider(
+    settings: Mapping[
+        NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]
+    ]
+) -> Mapping[ExternalProviders, Mapping[NotificationScopeType, NotificationSettingOptionValues]]:
+
+    output = defaultdict(dict)
+
+    for scope_type in settings:
+        for provider, value in settings[scope_type].items():
+            output[provider][scope_type] = value
+
+    return output
