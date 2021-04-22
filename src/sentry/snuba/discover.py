@@ -57,7 +57,8 @@ PreparedQuery = namedtuple("query", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 PerformanceFacetResult = namedtuple(
-    "PerformanceFacetResult", ["key", "value", "performance", "frequency", "comparison", "sumdelta"]
+    "PerformanceFacetResult",
+    ["key", "value", "performance", "count", "frequency", "comparison", "sumdelta"],
 )
 
 resolve_discover_column = resolve_column(Dataset.Discover)
@@ -776,6 +777,7 @@ def get_performance_facets(
     aggregate_column="duration",
     aggregate_function="avg",
     limit=20,
+    offset=None,
     referrer=None,
 ):
     """
@@ -813,7 +815,6 @@ def get_performance_facets(
             filter_keys=snuba_filter.filter_keys,
             orderby=["-count"],
             dataset=Dataset.Discover,
-            limit=limit,
             referrer="{}.{}".format(referrer, "all_transactions"),
         )
         counts = [r["count"] for r in key_names["data"]]
@@ -887,6 +888,8 @@ def get_performance_facets(
             sample=sample_rate,
             turbo=sample_rate is not None,
             limitby=[1, "tags_key"],
+            limit=limit,
+            offset=offset,
         )
         results.extend(
             [
@@ -894,6 +897,7 @@ def get_performance_facets(
                     key=r["tags_key"],
                     value=r["tags_value"],
                     performance=float(r["aggregate"]),
+                    count=float(r["cnt"]),
                     frequency=float((r["cnt"] / frequency_sample_rate) / transaction_count),
                     comparison=float(r["aggregate"] / transaction_aggregate),
                     sumdelta=float(r["sumdelta"]),

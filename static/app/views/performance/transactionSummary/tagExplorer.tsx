@@ -1,14 +1,11 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {Location, Query} from 'history';
 
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import GridEditable from 'app/components/gridEditable';
 import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
-import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -23,7 +20,15 @@ import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
-import {PerformanceDuration} from '../utils';
+import {
+  PerformanceDuration,
+  platformToPerformanceType,
+  PROJECT_PERFORMANCE_TYPE,
+} from '../utils';
+
+import {SpanOperationBreakdownFilter} from './filter';
+
+const TAGS_CURSOR_NAME = 'tags_cursor';
 
 const COLUMN_ORDER = [
   {
@@ -76,32 +81,55 @@ const COLUMN_ORDER = [
   },
 ];
 
-const DURATION_OPTIONS: DropdownOption[] = [
-  {
-    label: 'transaction.duration',
-    value: 'duration',
-  },
-  {
-    label: 'measurements.lcp',
-    value: 'measurements[lcp]',
-  },
-  {
-    label: 'spans.browser',
-    value: 'span_op_breakdowns[ops.browser]',
-  },
-  {
-    label: 'spans.db',
-    value: 'span_op_breakdowns[ops.db]',
-  },
-  {
-    label: 'spans.http',
-    value: 'span_op_breakdowns[ops.http]',
-  },
-  {
-    label: 'spans.resource',
-    value: 'span_op_breakdowns[ops.resource]',
-  },
-];
+const filterToField = {
+  [SpanOperationBreakdownFilter.Browser]: 'span_op_breakdowns[ops.browser]',
+  [SpanOperationBreakdownFilter.Http]: 'span_op_breakdowns[ops.db]',
+  [SpanOperationBreakdownFilter.Db]: 'span_op_breakdowns[ops.http]',
+  [SpanOperationBreakdownFilter.Resource]: 'span_op_breakdowns[ops.resource]',
+};
+
+const getTransactionField = (
+  currentFilter: SpanOperationBreakdownFilter,
+  projects: Project[],
+  projectIds: readonly number[]
+) => {
+  const fieldFromFilter = filterToField[currentFilter];
+  if (fieldFromFilter) {
+    return fieldFromFilter;
+  }
+
+  const performanceType = platformToPerformanceType(projects, projectIds);
+  if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
+    return 'measurements[lcp]';
+  }
+
+  return 'duration';
+};
+
+const getColumnsWithReplacedDuration = (
+  currentFilter: SpanOperationBreakdownFilter,
+  projects: Project[],
+  projectIds: readonly number[]
+) => {
+  const columns = COLUMN_ORDER.map(c => ({...c}));
+  const durationColumn = columns.find(c => c.key === 'aggregate');
+
+  if (!durationColumn) {
+    return columns;
+  }
+
+  const fieldFromFilter = filterToField[currentFilter];
+  if (fieldFromFilter) {
+    durationColumn.name = 'Avg Span Duration';
+  }
+
+  const performanceType = platformToPerformanceType(projects, projectIds);
+  if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
+    durationColumn.name = 'Avg LCP';
+  }
+
+  return columns;
+};
 
 const handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
   const queryString = decodeScalar(location.query.query);
@@ -156,11 +184,7 @@ const renderBodyCell = (
       text = `${pct} faster`;
     }
 
-    return (
-      <Tooltip title={PerformanceDuration({milliseconds: dataRow.aggregate})}>
-        {t(text)}
-      </Tooltip>
-    );
+    return t(text);
   }
   if (column.key === 'aggregate') {
     return <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />;
@@ -194,6 +218,7 @@ type Props = {
   location: Location;
   projects: Project[];
   transactionName: string;
+  currentFilter: SpanOperationBreakdownFilter;
 };
 
 type State = {
@@ -201,10 +226,6 @@ type State = {
 };
 
 class _TagExplorer extends React.Component<Props, State> {
-  state: State = {
-    aggregateColumn: DURATION_OPTIONS[0].value,
-  };
-
   setAggregateColumn(value: string) {
     this.setState({
       aggregateColumn: value,
@@ -212,14 +233,19 @@ class _TagExplorer extends React.Component<Props, State> {
   }
 
   render() {
-    const {eventView, organization, location} = this.props;
-    const {aggregateColumn} = this.state;
-    const handleCursor = () => {};
+    const {eventView, organization, location, currentFilter, projects} = this.props;
+    const aggregateColumn = getTransactionField(
+      currentFilter,
+      projects,
+      eventView.project
+    );
+    const columns = getColumnsWithReplacedDuration(
+      currentFilter,
+      projects,
+      eventView.project
+    );
 
-    const columnDropdownOptions = DURATION_OPTIONS;
-    const selectedColumn =
-      columnDropdownOptions.find(o => o.value === aggregateColumn) ||
-      columnDropdownOptions[0];
+    const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
 
     return (
       <SegmentExplorerQuery
@@ -228,29 +254,21 @@ class _TagExplorer extends React.Component<Props, State> {
         location={location}
         aggregateColumn={aggregateColumn}
         limit={5}
+        cursor={cursor}
       >
         {({isLoading, tableData, pageLinks}) => {
           return (
             <React.Fragment>
-              <TagsHeader
-                selectedColumn={selectedColumn}
-                columnOptions={columnDropdownOptions}
-                handleColumnDropdownChange={(v: string) => this.setAggregateColumn(v)}
-              />
+              <TagsHeader pageLinks={pageLinks} />
               <GridEditable
                 isLoading={isLoading}
                 data={tableData ? tableData : []}
-                columnOrder={COLUMN_ORDER}
+                columnOrder={columns}
                 columnSortBy={[]}
                 grid={{
                   renderBodyCell: renderBodyCellWithData(this.props) as any,
                 }}
                 location={location}
-              />
-              <StyledPagination
-                pageLinks={pageLinks}
-                onCursor={handleCursor}
-                size="small"
               />
             </React.Fragment>
           );
@@ -260,46 +278,22 @@ class _TagExplorer extends React.Component<Props, State> {
   }
 }
 
-type DropdownOption = {
-  label: string;
-  value: string;
-};
-
 type HeaderProps = {
-  selectedColumn: DropdownOption;
-  columnOptions: DropdownOption[];
-  handleColumnDropdownChange: (k: string) => void;
+  pageLinks: string | null;
 };
 function TagsHeader(props: HeaderProps) {
-  const {selectedColumn, columnOptions, handleColumnDropdownChange} = props;
+  const {pageLinks} = props;
+  const handleCursor = (cursor: string, pathname: string, query: Query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [TAGS_CURSOR_NAME]: cursor},
+    });
+  };
+
   return (
     <Header>
       <SectionHeading>{t('Suspect Tags')}</SectionHeading>
-      <DropdownControl
-        data-test-id="tag-column-performance"
-        button={({isOpen, getActorProps}) => (
-          <StyledDropdownButton
-            {...getActorProps()}
-            isOpen={isOpen}
-            prefix={t('Column')}
-            size="small"
-          >
-            {selectedColumn.label}
-          </StyledDropdownButton>
-        )}
-      >
-        {columnOptions.map(({value, label}) => (
-          <DropdownItem
-            data-test-id={`option-${value}`}
-            key={value}
-            onSelect={handleColumnDropdownChange}
-            eventKey={value}
-            isActive={value === selectedColumn.value}
-          >
-            {label}
-          </DropdownItem>
-        ))}
-      </DropdownControl>
+      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="small" />
     </Header>
   );
 }
@@ -316,16 +310,12 @@ export const SectionHeading = styled('h4')`
 `;
 
 const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0 0 ${space(1)} 0;
-`;
-const StyledDropdownButton = styled(DropdownButton)`
-  min-width: 145px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  margin-bottom: ${space(1)};
 `;
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 ${space(3)} 0;
+  margin: 0 0 0 ${space(1)};
 `;
 
 export const TagExplorer = _TagExplorer;
