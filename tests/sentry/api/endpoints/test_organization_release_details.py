@@ -67,6 +67,9 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["version"] == release.version
         assert response.data["newGroups"] == 5
 
+        # check for current project meta should be empty if project id is not provided
+        assert response.data["currentProjectMeta"] == {}
+
         # no access
         url = reverse(
             "sentry-api-0-organization-release-details",
@@ -131,6 +134,37 @@ class ReleaseDetailsTest(APITestCase):
 
         response = self.client.get(url, {"project": project.id})
         assert response.status_code == 200
+
+    def test_correct_project_contains_current_project_meta(self):
+        """
+        Test that shows when correct project id is passed to the request, `sessionsLowerBound`
+        and `sessionsUpperBound` are present in `currentProjectMeta` key
+        """
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team1], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+
+        response = self.client.get(url, {"project": project.id})
+        assert response.status_code == 200
+        assert "sessionsLowerBound" in response.data["currentProjectMeta"]
+        assert "sessionsUpperBound" in response.data["currentProjectMeta"]
 
 
 class UpdateReleaseDetailsTest(APITestCase):
