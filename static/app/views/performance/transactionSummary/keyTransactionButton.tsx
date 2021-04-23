@@ -104,7 +104,7 @@ class KeyTransactionButton extends React.Component<Props, State> {
     trackAnalyticsEvent({
       eventName: 'Performance Views: Key Transaction toggle',
       eventKey: 'performance_views.key_transaction.toggle',
-      orgId: parseInt(organization.id, 10),
+      organization_id: organization.id,
       action: isKeyTransaction ? 'remove' : 'add',
     });
 

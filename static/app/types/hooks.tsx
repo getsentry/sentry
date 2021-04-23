@@ -215,6 +215,7 @@ type AnalyticsTrackEvent = (opts: {
    * The English string used as the name of the event.
    */
   eventName: string;
+  organization_id: string | number | null;
   /**
    * Arbitrary data to track
    */
