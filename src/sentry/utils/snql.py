@@ -4,7 +4,7 @@ from typing import List, Mapping, NamedTuple, Optional, Set
 from sentry import options
 
 
-class SnQLOption(NamedTuple):
+class SNQLOption(NamedTuple):
     entity: str
     dryrun: bool = True
 
@@ -17,7 +17,7 @@ class ReferrerCheck(NamedTuple):
     by_entity: Mapping[str, str]
     is_dryrun: bool = True
 
-    def get_option(self, referrer: Optional[str]) -> Optional[SnQLOption]:
+    def get_option(self, referrer: Optional[str]) -> Optional[SNQLOption]:
         if not referrer or referrer in self.denylist:
             return None
 
@@ -38,7 +38,7 @@ class ReferrerCheck(NamedTuple):
             snql_rate = options.get(self.option)
             assert isinstance(snql_rate, float)
             if random.random() <= snql_rate:
-                return SnQLOption(entity, self.is_dryrun)
+                return SNQLOption(entity, self.is_dryrun)
 
         return None
 
@@ -75,7 +75,7 @@ snql_check = ReferrerCheck(
 )
 
 
-def should_use_snql(referrer: Optional[str]) -> Optional[SnQLOption]:
+def should_use_snql(referrer: Optional[str]) -> Optional[SNQLOption]:
     snql_option = snql_check.get_option(referrer)
     if snql_option:
         return snql_option

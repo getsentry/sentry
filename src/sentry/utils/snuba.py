@@ -39,7 +39,7 @@ from sentry.snuba.events import Columns
 from sentry.utils import json, metrics
 from sentry.utils.compat import map
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
-from sentry.utils.snql import SnQLOption, should_use_snql
+from sentry.utils.snql import SNQLOption, should_use_snql
 
 logger = logging.getLogger(__name__)
 
@@ -691,7 +691,7 @@ def bulk_raw_query(
     snuba_param_list: Sequence[SnubaQueryParams],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    snql_option: Optional[SnQLOption] = None,
+    snql_option: Optional[SNQLOption] = None,
 ) -> ResultSet:
     params = map(_prepare_query_params, snuba_param_list)
     return _apply_cache_and_build_results(
@@ -703,7 +703,7 @@ def _apply_cache_and_build_results(
     snuba_param_list: Sequence[SnubaQueryBody],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    snql_option: Optional[SnQLOption] = None,
+    snql_option: Optional[SNQLOption] = None,
 ) -> ResultSet:
     headers = {}
     if referrer:
@@ -746,7 +746,7 @@ def _apply_cache_and_build_results(
 def _bulk_snuba_query(
     snuba_param_list: Sequence[SnubaQueryBody],
     headers: Mapping[str, str],
-    snql_option: Optional[SnQLOption] = None,
+    snql_option: Optional[SNQLOption] = None,
 ) -> ResultSet:
     with sentry_sdk.start_span(
         op="start_snuba_query",
