@@ -6,6 +6,7 @@ import {LocationDescriptorObject} from 'history';
 import AsyncComponent from 'app/components/asyncComponent';
 import {DateTimeObject} from 'app/components/charts/utils';
 import SortLink, {Alignments, Directions} from 'app/components/gridEditable/sortLink';
+import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
@@ -30,6 +31,7 @@ type Props = {
     nextState: {
       sort?: string;
       query?: string;
+      cursor?: string;
     },
     options?: {willUpdateRouter?: boolean}
   ) => LocationDescriptorObject;
@@ -51,6 +53,8 @@ export enum SortBy {
 }
 
 class UsageStatsProjects extends AsyncComponent<Props, State> {
+  static MAX_ROWS_USAGE_TABLE = 25;
+
   componentDidUpdate(prevProps: Props) {
     const {dataDatetime: prevDateTime, dataCategory: prevDataCategory} = prevProps;
     const {dataDatetime: currDateTime, dataCategory: currDataCategory} = this.props;
@@ -128,6 +132,39 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     }
   }
 
+  get tableCursor() {
+    const {tableCursor} = this.props;
+    const offset = Number(tableCursor?.split(':')[1]);
+    return isNaN(offset) ? 0 : offset;
+  }
+
+  /**
+   * OrganizationStatsEndpointV2 does not have any performance issues. We use
+   * client-side pagination to limit the number of rows on the table so the
+   * page doesn't scroll too deeply for organizations with a lot of projects
+   */
+  get pageLink() {
+    const numRows = this.filteredProjects.length;
+    const offset = this.tableCursor;
+    const prevOffset = offset - UsageStatsProjects.MAX_ROWS_USAGE_TABLE;
+    const nextOffset = offset + UsageStatsProjects.MAX_ROWS_USAGE_TABLE;
+
+    return `<link>; rel="previous"; results="${prevOffset >= 0}"; cursor="0:${Math.max(
+      0,
+      prevOffset
+    )}:1", <link>; rel="next"; results="${
+      nextOffset < numRows
+    }"; cursor="0:${nextOffset}:0"`;
+  }
+
+  /**
+   * Filter projects if there's a query
+   */
+  get filteredProjects() {
+    const {projects, tableQuery} = this.props;
+    return tableQuery ? projects.filter(p => p.slug.includes(tableQuery)) : projects;
+  }
+
   get tableHeader() {
     const {key, direction} = this.tableSort;
 
@@ -192,7 +229,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     });
   }
 
-  getTableLink(project: Project) {
+  getProjectLink(project: Project) {
     const {dataCategory, getNextLocations, organization} = this.props;
     const {performance, projectDetail, settings} = getNextLocations(project);
 
@@ -233,6 +270,21 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     );
   };
 
+  handleSearch = (query: string) => {
+    const {handleChangeState, tableQuery} = this.props;
+
+    if (query === tableQuery) {
+      return;
+    }
+
+    if (!query) {
+      handleChangeState({query: undefined, cursor: undefined});
+      return;
+    }
+
+    handleChangeState({query, cursor: undefined});
+  };
+
   mapSeriesToTable(
     projectStats?: UsageSeries
   ): {
@@ -246,17 +298,14 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     const stats: Record<number, object> = {};
 
     try {
-      const {projects, tableQuery} = this.props;
-
       const baseStat: Partial<TableStat> = {
         [SortBy.TOTAL]: 0,
         [SortBy.ACCEPTED]: 0,
         [SortBy.FILTERED]: 0,
         [SortBy.DROPPED]: 0,
       };
-      const projectList = tableQuery
-        ? projects.filter(p => p.slug.includes(tableQuery))
-        : projects;
+
+      const projectList = this.filteredProjects;
       const projectSet = new Set(projectList.map(p => p.id));
 
       projectStats.groups.forEach(group => {
@@ -289,7 +338,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         const stat = stats[proj.id] ?? {...baseStat};
         return {
           project: {...proj},
-          ...this.getTableLink(proj),
+          ...this.getProjectLink(proj),
           ...stat,
         };
       });
@@ -305,7 +354,14 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           : a.project.slug.localeCompare(b.project.slug);
       });
 
-      return {tableStats};
+      const offset = this.tableCursor;
+
+      return {
+        tableStats: tableStats.slice(
+          offset,
+          offset + UsageStatsProjects.MAX_ROWS_USAGE_TABLE
+        ),
+      };
     } catch (err) {
       Sentry.withScope(scope => {
         scope.setContext('query', this.endpointQuery);
@@ -322,7 +378,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   renderComponent() {
     const {error, errors, loading} = this.state;
-    const {dataCategory, loadingProjects, tableQuery, handleChangeState} = this.props;
+    const {dataCategory, loadingProjects, tableQuery} = this.props;
     const {headers, tableStats} = this.tableData;
 
     return (
@@ -331,8 +387,8 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           <SearchBar
             defaultQuery=""
             query={tableQuery}
-            placeholder={t('Search your projects')}
-            onSearch={(query: string) => handleChangeState({query})}
+            placeholder={t('Filter your projects')}
+            onSearch={this.handleSearch}
           />
         </GridRow>
 
@@ -346,6 +402,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
             dataCategory={dataCategory}
             usageStats={tableStats}
           />
+          <Pagination pageLinks={this.pageLink} />
         </GridRow>
       </React.Fragment>
     );
