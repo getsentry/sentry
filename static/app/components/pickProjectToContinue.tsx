@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
@@ -14,7 +15,7 @@ type Props = {
   /**
    * Path used on the redirect router if the user did not select a project
    */
-  noProjectRedirectPath: string;
+  noProjectRedirectPath: LocationDescriptor;
   /**
    * Path used on the redirect router if the user did select a project
    */
