@@ -126,11 +126,13 @@ class BaseBuildCommand(Command):
 
         if node_version[2] is not None:
             log.info(f"using node ({node_version})")
-            yarn_cmd = ("yarn", )
+            yarn_cmd = ("yarn",)
             custom_node_modules = os.environ.get("NODE_PATH")
             if custom_node_modules is not None:
                 yarn_cmd += ("--modules-folder", custom_node_modules)
-            self._run_command(yarn_cmd + ("install", "--production", "--frozen-lockfile", "--quiet"))
+            self._run_command(
+                yarn_cmd + ("install", "--production", "--frozen-lockfile", "--quiet")
+            )
 
     def _run_command(self, cmd, env=None):
         cmd_str = " ".join(cmd)
