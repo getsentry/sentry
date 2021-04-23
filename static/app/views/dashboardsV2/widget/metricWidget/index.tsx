@@ -1,7 +1,7 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
@@ -217,6 +217,7 @@ class MetricWidget extends AsyncView<Props, State> {
             title={title}
             onChangeTitle={newTitle => this.handleFieldChange('title', newTitle)}
             onSave={this.handleSave}
+            disabled
           />
           <Layout.Body>
             <BuildSteps>

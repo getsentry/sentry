@@ -19,12 +19,13 @@ import {Organization, Project} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import getDynamicText from 'app/utils/getDynamicText';
 import theme from 'app/utils/theme';
+import {alertDetailsLink} from 'app/views/alerts/details';
 
 import {
   API_INTERVAL_POINTS_LIMIT,
   API_INTERVAL_POINTS_MIN,
 } from '../rules/details/constants';
-import {AlertRuleStatus, Incident, IncidentStats, IncidentStatus} from '../types';
+import {Incident, IncidentStats, IncidentStatus} from '../types';
 import {getIncidentMetricPreset, isIssueAlert} from '../utils';
 
 import SparkLine from './sparkLine';
@@ -146,12 +147,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
 
     const alertLink = hasRedesign
       ? {
-          pathname: `/organizations/${orgId}/alerts/rules/details/${
-            incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-            incident.alertRule.originalAlertRuleId
-              ? incident.alertRule.originalAlertRuleId
-              : incident.alertRule.id
-          }/`,
+          pathname: alertDetailsLink(organization, incident),
           query: {alert: incident.identifier},
         }
       : {

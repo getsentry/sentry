@@ -10,11 +10,12 @@ import {t} from 'app/locale';
 type Props = {
   title: string;
   orgSlug: string;
+  disabled: boolean;
   onChangeTitle: (title: string) => void;
   onSave: (event: React.MouseEvent) => void;
 };
 
-function Header({title, orgSlug, onChangeTitle, onSave}: Props) {
+function Header({title, orgSlug, disabled, onChangeTitle, onSave}: Props) {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -47,7 +48,12 @@ function Header({title, orgSlug, onChangeTitle, onSave}: Props) {
           >
             {t('Give Feedback')}
           </Button>
-          <Button priority="primary" onClick={onSave}>
+          <Button
+            priority="primary"
+            onClick={onSave}
+            disabled={disabled}
+            title={disabled ? t('This feature is not yet available') : undefined}
+          >
             {t('Save Widget')}
           </Button>
         </ButtonBar>

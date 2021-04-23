@@ -1,7 +1,7 @@
 import React from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {Modal as BoostrapModal} from 'react-bootstrap';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 
 import ModalActions from 'app/actions/modalActions';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
