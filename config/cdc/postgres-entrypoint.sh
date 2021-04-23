@@ -12,8 +12,6 @@
 
 set -e
 
-WAL2JSON_VERSION=0.0.1
-
 cdc_setup_hba_conf() {
     # Ensure pg-hba is properly configured to allow connections
     # to the replication slots.
@@ -31,21 +29,51 @@ cdc_setup_hba_conf() {
 }
 
 install_wal2json() {
-    # Install the pinned version of wal2json if it is not already
+    # Install the latest version of wal2json if it is not already
     # present in /wal2json
+    # If we cannot download the latest version from github the following
+    # attempts are made:
+    # - see if there is a valid version on the volume. Use that
+    # - see if for any reason there is already a version in the postgres
+    #   lib directory
+    # If not it is a bad day. And this stops the process.
+
+    set +e
 
     ARCH=$(uname -m)
     FILE_NAME="wal2json-Linux-$ARCH.so"
+    LATEST_VERSION=$(
+        wget "https://api.github.com/repos/getsentry/wal2json/releases/latest" -O - |
+        grep '"tag_name":' |
+        sed -E 's/.*"([^"]+)".*/\1/'
+    )
 
-    if [ ! -f "/wal2json/$WAL2JSON_VERSION/$FILE_NAME" ]; then
-        mkdir -p "/wal2json/$WAL2JSON_VERSION"
-        wget \
-            "https://github.com/getsentry/wal2json/releases/download/$WAL2JSON_VERSION/$FILE_NAME" \
-            -P "/wal2json/$WAL2JSON_VERSION/"
+    if [[ $LATEST_VERSION ]]; then
+        if [ ! -f "/wal2json/$LATEST_VERSION/$FILE_NAME" ]; then
+            mkdir -p "/wal2json/$LATEST_VERSION"
+            if wget \
+                "https://github.com/getsentry/wal2json/releases/download/$LATEST_VERSION/$FILE_NAME" \
+                -P "/wal2json/$LATEST_VERSION/"; then
+                echo "$LATEST_VERSION" > /wal2json/latest_version
+            fi
+        fi
+        cp "/wal2json/$LATEST_VERSION/$FILE_NAME" /usr/local/lib/postgresql/wal2json.so
+    elif [ -f /wal2json/latest_version ]; then
+        # We did not manage to detect the latest version or we failed at downloading.
+        # Try to failover
+        LATEST_VERSION=$(cat /wal2json/latest_version)
+        echo "Cannot download latest version. Found $LATEST_VERSION on disk"
+        cp "/wal2json/$LATEST_VERSION/$FILE_NAME" /usr/local/lib/postgresql/wal2json.so
+    elif [ -f "/usr/local/lib/postgresql/wal2json.so" ]; then
+        # Somehow our volume is not in a good state but there is still a version
+        # in the library directory. We take that one.
+        echo "Cannot download latest version. Found a version on disk"
+    else
+        echo "wal2json is not installed and cannot download latest version"
+        exit 1
     fi
 
-    cp "/wal2json/$WAL2JSON_VERSION/$FILE_NAME" /usr/local/lib/postgresql/wal2json.so
-
+    set -e
     echo "wal2json installed"
 }
 
