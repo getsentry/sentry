@@ -1,5 +1,5 @@
 import React from 'react';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
@@ -158,10 +158,17 @@ class RuleListRow extends React.Component<Props, State> {
 
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
     const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
-    const hasAlertList = organization.features.includes('alert-list');
+    const hasAlertList = organization.features.includes('alert-details-redesign');
     const alertLink = (
       <TitleLink to={hasRedesign ? detailsLink : editLink}>{rule.name}</TitleLink>
     );
+
+    const IssueStatusText: Record<IncidentStatus, string> = {
+      [IncidentStatus.CRITICAL]: t('Critical'),
+      [IncidentStatus.WARNING]: t('Warning'),
+      [IncidentStatus.CLOSED]: t('Resolved'),
+      [IncidentStatus.OPENED]: t('Resolved'),
+    };
 
     return (
       <ErrorBoundary>
@@ -174,11 +181,21 @@ class RuleListRow extends React.Component<Props, State> {
           <React.Fragment>
             <AlertNameWrapper isIncident={isIssueAlert(rule)}>
               <FlexCenter>
-                <AlertBadge
-                  status={rule?.latestIncident?.status}
-                  isIssue={isIssueAlert(rule)}
-                  hideText
-                />
+                <Tooltip
+                  title={
+                    isIssueAlert(rule)
+                      ? t('Issue Alert')
+                      : IssueStatusText[
+                          rule?.latestIncident?.status ?? IncidentStatus.CLOSED
+                        ]
+                  }
+                >
+                  <AlertBadge
+                    status={rule?.latestIncident?.status}
+                    isIssue={isIssueAlert(rule)}
+                    hideText
+                  />
+                </Tooltip>
               </FlexCenter>
               <AlertNameAndStatus>
                 <AlertName>{alertLink}</AlertName>
@@ -190,10 +207,12 @@ class RuleListRow extends React.Component<Props, State> {
         )}
 
         <FlexCenter>
-          <ProjectBadge
-            avatarSize={18}
-            project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
-          />
+          <ProjectBadgeContainer>
+            <ProjectBadge
+              avatarSize={18}
+              project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
+            />
+          </ProjectBadgeContainer>
         </FlexCenter>
         {hasAlertOwnership && (
           <FlexCenter>
@@ -348,6 +367,10 @@ const AlertNameAndStatus = styled('div')`
 
 const AlertName = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const ProjectBadgeContainer = styled('div')`
+  width: 100%;
 `;
 
 const ProjectBadge = styled(IdBadge)`
