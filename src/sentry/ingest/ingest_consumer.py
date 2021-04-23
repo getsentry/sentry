@@ -106,6 +106,9 @@ def _do_process_event(message, projects):
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
 
+    sentry_sdk.set_extra("event_id", event_id)
+    sentry_sdk.set_extra("len_attachments", len(attachments))
+
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr("internal.captured.ingest_consumer.unparsed")
 
