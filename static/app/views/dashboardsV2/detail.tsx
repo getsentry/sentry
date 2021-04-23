@@ -46,8 +46,8 @@ type State = {
 
 class DashboardDetail extends React.Component<Props, State> {
   state: State = {
-    dashboardState: this.isCreate() ? 'create' : 'view',
-    modifiedDashboard: this.isCreate() ? EMPTY_DASHBOARD : null,
+    dashboardState: this.getDashboardState(),
+    modifiedDashboard: this.getModifiedDashboard(),
   };
 
   componentDidMount() {
@@ -61,12 +61,18 @@ class DashboardDetail extends React.Component<Props, State> {
     window.removeEventListener('beforeunload', this.onUnload);
   }
 
-  isCreate() {
-    const {dashboardId} = this.props.params;
-    if (dashboardId === 'create') {
-      return true;
+  getDashboardState() {
+    if (this.props.location.state && this.props.location.state.dashboardState) {
+      return this.props.location.state.dashboardState;
     }
-    return false;
+    return 'view';
+  }
+
+  getModifiedDashboard() {
+    if (this.props.location.state && this.props.location.state.modifiedDashboard) {
+      return this.props.location.state.modifiedDashboard;
+    }
+    return null;
   }
 
   checkStateRoute() {
@@ -118,7 +124,11 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onRouteLeave = () => {
-    if (!['view', 'pending_delete'].includes(this.state.dashboardState)) {
+    const {dashboardState, modifiedDashboard} = this.state;
+    if (!['view', 'pending_delete'].includes(dashboardState)) {
+      if (isEqual(modifiedDashboard, EMPTY_DASHBOARD)) {
+        return undefined;
+      }
       return UNSAVED_MESSAGE;
     }
 

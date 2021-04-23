@@ -80,7 +80,17 @@ describe('Dashboards > Detail', function () {
     wrapper.find('PageHeader').find('Button').simulate('click');
     await tick();
     expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboards/create/',
+      pathname: '/organizations/org-slug/dashboards/',
+      state: {
+        dashboardState: 'create',
+        modifiedDashboard: {
+          createdBy: undefined,
+          dateCreated: '',
+          id: '',
+          title: 'Untitled dashboard',
+          widgets: [],
+        },
+      },
     });
   });
 });

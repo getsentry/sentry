@@ -2,7 +2,6 @@ import React from 'react';
 import * as ReactRouter from 'react-router';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Client} from 'app/api';
@@ -22,7 +21,9 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 
+import {EMPTY_DASHBOARD} from '../data';
 import {DashboardListItem} from '../types';
+import {cloneDashboard} from '../utils';
 
 import DashboardList from './dashboardList';
 
@@ -81,7 +82,7 @@ class ManageDashboards extends AsyncView<Props, State> {
           defaultQuery=""
           query={this.getQuery()}
           placeholder={t('Search Dashboards')}
-          onSearch={this.handleSearch}
+          onSearch={query => this.handleSearch(query)}
         />
       </StyledActions>
     );
@@ -105,14 +106,19 @@ class ManageDashboards extends AsyncView<Props, State> {
         organization={organization}
         pageLinks={dashboardsPageLinks}
         location={location}
-        onDashboardsChange={this.onDashboardsChange.bind(this)}
+        onDashboardsChange={() => this.onDashboardsChange()}
       />
     );
   }
 
-  onCreate(organization) {
+  onCreate() {
+    const {organization} = this.props;
     browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/create/`,
+      pathname: `/organizations/${organization.slug}/dashboards/`,
+      state: {
+        dashboardState: 'create',
+        modifiedDashboard: cloneDashboard(EMPTY_DASHBOARD),
+      },
     });
   }
 
@@ -148,7 +154,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                 data-test-id="dashboard-create"
                 onClick={event => {
                   event.preventDefault();
-                  this.onCreate(organization);
+                  this.onCreate();
                 }}
                 priority="primary"
                 icon={<IconAdd size="xs" isCircled />}

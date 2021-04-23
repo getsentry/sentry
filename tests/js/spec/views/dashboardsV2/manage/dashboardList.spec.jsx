@@ -75,7 +75,7 @@ describe('Dashboards > DashboardList', function () {
     deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/2/',
       method: 'DELETE',
-      statusCode: 204,
+      statusCode: 200,
     });
     dashboardUpdateMock = jest.fn();
   });
@@ -164,6 +164,6 @@ describe('Dashboards > DashboardList', function () {
     await wrapper.update();
 
     expect(deleteMock).toHaveBeenCalled();
-    // expect(dashboardUpdateMock).toHaveBeenCalled();
+    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 });
