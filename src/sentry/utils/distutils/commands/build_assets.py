@@ -130,7 +130,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         # TODO: Our JS builds should not require 4GB heap space
         env["NODE_OPTIONS"] = (env.get("NODE_OPTIONS", "") + " --max-old-space-size=4096").lstrip()
 
-        yarn_cmd = ("yarn", )
+        yarn_cmd = ("yarn",)
         custom_node_modules = os.environ.get("NODE_PATH")
         if custom_node_modules is not None:
             yarn_cmd += ("--modules-folder", custom_node_modules)
