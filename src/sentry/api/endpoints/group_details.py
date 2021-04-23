@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import features, tagstore, tsdb
+from sentry import tagstore, tsdb
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
@@ -262,11 +262,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, self, request, project)
-            has_inbox = features.has(
-                "organizations:inbox", project.organization, actor=request.user
-            )
             response = update_groups(
-                request, [group.id], [project], project.organization_id, search_fn, has_inbox
+                request, [group.id], [project], project.organization_id, search_fn
             )
 
             # if action was discard, there isn't a group to serialize anymore

@@ -128,25 +128,24 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["lastRelease"] == {"version": "1.1"}
 
     def test_group_expand_inbox(self):
-        with self.feature("organizations:inbox"):
-            self.login_as(user=self.user)
+        self.login_as(user=self.user)
 
-            event = self.store_event(
-                data={"timestamp": iso_format(before_now(minutes=3))},
-                project_id=self.project.id,
-            )
-            group = event.group
-            add_group_to_inbox(group, GroupInboxReason.NEW)
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=3))},
+            project_id=self.project.id,
+        )
+        group = event.group
+        add_group_to_inbox(group, GroupInboxReason.NEW)
 
-            url = f"/api/0/issues/{group.id}/?expand=inbox"
+        url = f"/api/0/issues/{group.id}/?expand=inbox"
 
-            response = self.client.get(url, format="json")
-            assert response.status_code == 200, response.content
-            assert response.data["inbox"] is not None
-            assert response.data["inbox"]["reason"] == GroupInboxReason.NEW.value
-            assert response.data["inbox"]["reason_details"] is None
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["inbox"] is not None
+        assert response.data["inbox"]["reason"] == GroupInboxReason.NEW.value
+        assert response.data["inbox"]["reason_details"] is None
 
-            remove_group_from_inbox(event.group)
-            response = self.client.get(url, format="json")
-            assert response.status_code == 200, response.content
-            assert response.data["inbox"] is None
+        remove_group_from_inbox(event.group)
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["inbox"] is None
