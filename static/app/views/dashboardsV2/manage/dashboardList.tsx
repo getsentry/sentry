@@ -10,7 +10,11 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
-import {deleteDashboard} from 'app/actionCreators/dashboards';
+import {
+  createDashboard,
+  deleteDashboard,
+  fetchDashboard,
+} from 'app/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -23,6 +27,7 @@ import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
 
+import {cloneDashboard} from '../utils';
 import {ContextMenu} from '../widgetCard';
 
 import DashboardCard from './dashboardCard';
@@ -70,10 +75,23 @@ function DashboardList({
         addSuccessMessage(t('Dashboard deleted'));
       })
       .catch(() => {
-        addErrorMessage(t('Dashboard deleted'));
+        addErrorMessage(t('Error deleting Dashboard'));
       });
 
     return promise;
+  }
+
+  function handleDuplicate(dashboard: DashboardListItem) {
+    fetchDashboard(api, organization.slug, dashboard.id)
+      .then(dashboardDetail => {
+        const newDashboard = cloneDashboard(dashboardDetail);
+        newDashboard.widgets.map(widget => (widget.id = undefined));
+        createDashboard(api, organization.slug, newDashboard, true).then(() => {
+          onDashboardsChange();
+          addSuccessMessage(t('Dashboard duplicated'));
+        });
+      })
+      .catch(() => {});
   }
 
   function renderMiniDashboards() {
@@ -119,6 +137,16 @@ function DashboardList({
                 }}
               >
                 {t('Delete')}
+              </MenuItem>
+              <MenuItem
+                data-test-id="dashboard-duplicate"
+                key="duplicate-dashboard"
+                onClick={event => {
+                  event.preventDefault();
+                  handleDuplicate(dashboard);
+                }}
+              >
+                {t('Duplicate')}
               </MenuItem>
             </ContextMenu>
           )}
