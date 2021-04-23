@@ -81,7 +81,7 @@ class ReleaseActivityNotification(ActivityNotification):
         return get_projects(self.projects, team_ids)
 
     def get_user_context(
-        self, user: User, reason: Optional[int] = None
+        self, user: User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         projects = self.get_projects(user)
         release_links = [
@@ -93,7 +93,7 @@ class ReleaseActivityNotification(ActivityNotification):
 
         resolved_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
         return {
-            **super().get_user_context(user, reason),
+            **super().get_user_context(user, extra_context),
             "projects": zip(projects, release_links, resolved_issue_counts),
             "project_count": len(projects),
         }
