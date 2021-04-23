@@ -1,8 +1,8 @@
 import React from 'react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 import {EChartOption} from 'echarts';
-import {withTheme} from 'emotion-theming';
 
 import BaseChart from 'app/components/charts/baseChart';
 import Legend from 'app/components/charts/components/legend';

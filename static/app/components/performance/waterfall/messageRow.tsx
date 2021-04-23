@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
-import {Row} from 'app/components/waterfallTree/row';
+import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
+import {Row} from 'app/components/performance/waterfall/row';
 import space from 'app/styles/space';
 
 export const MessageRow = styled(Row)`

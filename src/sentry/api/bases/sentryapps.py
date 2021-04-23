@@ -73,7 +73,7 @@ class SentryAppsPermission(SentryPermission):
             "member:read",
             "team:read",
         ),
-        "POST": ("org:read", "org:integrations", "org:write", "org:admin"),
+        "POST": ("org:write", "org:admin"),
     }
 
     def has_object_permission(self, request, view, organization):
@@ -168,7 +168,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 class SentryAppPermission(SentryPermission):
     unpublished_scope_map = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
-        "PUT": ("org:read", "org:integrations", "org:write", "org:admin"),
+        "PUT": ("org:write", "org:admin"),
         "POST": ("org:write", "org:admin"),  # used for publishing an app
         "DELETE": ("org:write", "org:admin"),
     }
@@ -379,8 +379,8 @@ class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
 
 class SentryInternalAppTokenPermission(SentryPermission):
     scope_map = {
-        "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
-        "POST": ("org:read", "org:integrations", "org:write", "org:admin"),
+        "GET": ("org:write", "org:admin"),
+        "POST": ("org:write", "org:admin"),
         "DELETE": ("org:write", "org:admin"),
     }
 

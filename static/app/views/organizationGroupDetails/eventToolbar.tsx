@@ -24,6 +24,8 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
 import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
 
+import EventQuickTrace from './eventQuickTrace';
+
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
   const hours = Math.floor(+duration / (60 * 60 * 1000));
@@ -81,7 +83,7 @@ class GroupEventToolbar extends React.Component<Props> {
                     onClick={() => this.handleTraceLink(organization)}
                   >
                     View Full Trace
-                    <FeatureBadge type="beta" />
+                    <FeatureBadge type="new" />
                   </Link>
                 </LinkContainer>
               )}
@@ -155,10 +157,11 @@ class GroupEventToolbar extends React.Component<Props> {
     const isOverLatencyThreshold =
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
+
     const hasQuickTraceView =
-      (organization.features.includes('trace-view-summary') ||
-        organization.features.includes('trace-view-quick')) &&
-      evt.contexts?.trace?.trace_id;
+      organization.features.includes('trace-view-summary') ||
+      organization.features.includes('trace-view-quick');
+    const hasTraceContext = evt.contexts?.trace?.trace_id;
 
     return (
       <Wrapper>
@@ -188,7 +191,10 @@ class GroupEventToolbar extends React.Component<Props> {
           />
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
-        {hasQuickTraceView && this.renderQuickTrace()}
+        {hasQuickTraceView && !hasTraceContext && (
+          <EventQuickTrace group={this.props.group} organization={organization} />
+        )}
+        {hasQuickTraceView && hasTraceContext && this.renderQuickTrace()}
       </Wrapper>
     );
   }

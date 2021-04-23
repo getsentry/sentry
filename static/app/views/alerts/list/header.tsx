@@ -66,7 +66,7 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          <Feature features={['alert-list']} organization={organization}>
+          <Feature features={['alert-details-redesign']} organization={organization}>
             {({hasFeature}) =>
               !hasFeature ? (
                 <React.Fragment>
