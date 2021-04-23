@@ -76,7 +76,7 @@ const IntegrationRow = (props: Props) => {
   };
 
   return (
-    <PanelItem p={0} flexDirection="column" data-test-id={slug}>
+    <PanelRow noPadding data-test-id={slug}>
       <FlexContainer>
         <PluginIcon size={36} pluginId={slug} />
         <Container>
@@ -119,9 +119,13 @@ const IntegrationRow = (props: Props) => {
           </Alert>
         </AlertContainer>
       )}
-    </PanelItem>
+    </PanelRow>
   );
 };
+
+const PanelRow = styled(PanelItem)`
+  flex-direction: column;
+`;
 
 const FlexContainer = styled('div')`
   display: flex;

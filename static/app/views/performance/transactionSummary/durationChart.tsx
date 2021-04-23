@@ -1,7 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 import {Location, Query} from 'history';
 
 import {Client} from 'app/api';

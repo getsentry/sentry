@@ -2,7 +2,7 @@ import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, useAnimation} from 'framer-motion';
+import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
 import Button from 'app/components/button';
 import Hook from 'app/components/hook';
@@ -308,7 +308,12 @@ ProgressStatus.defaultProps = {
   transition: testableTransition(),
 };
 
-const Back = styled(({className, animate, ...props}) => (
+type BackProps = Omit<React.ComponentProps<typeof Button>, 'icon' | 'priority'> & {
+  animate: MotionProps['animate'];
+  className?: string;
+};
+
+const Back = styled(({className, animate, ...props}: BackProps) => (
   <motion.div
     className={className}
     animate={animate}

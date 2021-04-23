@@ -1,5 +1,6 @@
 from django.utils import timezone
 
+from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
 from sentry.models import Rule
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
@@ -30,3 +31,40 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
             self.browser.snapshot("alert rules - list")
+
+    def test_alert_rules_alert_list(self):
+        self.create_alert_rule(
+            name="My Alert Rule",
+            projects=[self.project],
+            date_added=timezone.now(),
+            user=self.user,
+        )
+        alert_rule_critical = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="some rule [crit]",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule_critical, alert_threshold=100
+        )
+        crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
+        IncidentTrigger.objects.create(
+            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.ACTIVE.value
+        )
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:alert-details-redesign",
+                "organizations:team-alerts-ownership",
+            ]
+        ):
+            self.browser.get(self.path)
+            self.browser.wait_until_not(".loading-indicator")
+            self.browser.snapshot("alert rules - alert list")

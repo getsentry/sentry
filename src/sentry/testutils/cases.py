@@ -64,6 +64,7 @@ from sentry.models import (
     Dashboard,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetMetricsQuery,
     DashboardWidgetQuery,
     DeletedOrganization,
     GroupMeta,
@@ -1103,6 +1104,16 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert ds.fields == expected_ds["fields"]
             assert ds.conditions == expected_ds["conditions"]
 
+    def assert_widget_metrics_queries(self, widget_id, data):
+        result_queries = DashboardWidgetMetricsQuery.objects.filter(widget_id=widget_id).order_by(
+            "order"
+        )
+        for ds, expected_ds in zip(result_queries, data):
+            assert ds.name == expected_ds["name"]
+            assert ds.fields == expected_ds["fields"]
+            assert ds.conditions == expected_ds["conditions"]
+            assert ds.project_id == expected_ds["project_id"]
+
     def assert_widget(self, widget, order, title, display_type, queries=None):
         assert widget.order == order
         assert widget.display_type == display_type
@@ -1122,7 +1133,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 
         self.assert_widget_queries(data["id"], queries)
 
-    def assert_serialized_widget_query(self, data, widget_data_source):
+    def assert_serialized_base_widget_query(self, data, widget_data_source):
         if "id" in data:
             assert data["id"] == str(widget_data_source.id)
         if "name" in data:
@@ -1131,8 +1142,18 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["fields"] == widget_data_source.fields
         if "conditions" in data:
             assert data["conditions"] == widget_data_source.conditions
+
+    def assert_serialized_widget_query(self, data, widget_data_source):
+        self.assert_serialized_base_widget_query(data, widget_data_source)
         if "orderby" in data:
             assert data["orderby"] == widget_data_source.orderby
+
+    def assert_serialized_widget_metrics_query(self, data, widget_data_source):
+        self.assert_serialized_base_widget_query(data, widget_data_source)
+        if "groupby" in data:
+            assert data["groupby"] == widget_data_source.groupby
+        if "project_id" in data:
+            assert data["project_id"] == widget_data_source.project_id
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")

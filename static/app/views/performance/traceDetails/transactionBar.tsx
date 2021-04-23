@@ -1,23 +1,23 @@
 import React from 'react';
 import {Location} from 'history';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Tooltip from 'app/components/tooltip';
-import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
-import {Row, RowCell, RowCellContainer} from 'app/components/waterfallTree/row';
-import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
+import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
+import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
+import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {
   DividerLine,
   DividerLineGhostContainer,
-} from 'app/components/waterfallTree/rowDivider';
+} from 'app/components/performance/waterfall/rowDivider';
 import {
   OperationName,
   RowTitle,
   RowTitleContainer,
-} from 'app/components/waterfallTree/rowTitle';
+} from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
   StyledIconChevron,
@@ -25,12 +25,13 @@ import {
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
-} from 'app/components/waterfallTree/treeConnector';
+} from 'app/components/performance/waterfall/treeConnector';
 import {
   getDurationDisplay,
   getHumanDuration,
   toPercent,
-} from 'app/components/waterfallTree/utils';
+} from 'app/components/performance/waterfall/utils';
+import Tooltip from 'app/components/tooltip';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
@@ -53,6 +54,7 @@ type Props = {
   continuingDepths: TreeDepth[];
   isExpanded: boolean;
   isVisible: boolean;
+  hasGuideAnchor: boolean;
   toggleExpandedState: () => void;
   barColour?: string;
 };
@@ -370,7 +372,7 @@ class TransactionBar extends React.Component<Props, State> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
-    const {index} = this.props;
+    const {hasGuideAnchor, index} = this.props;
     const {showDetail} = this.state;
     const {dividerPosition} = dividerHandlerChildrenProps;
 
@@ -386,7 +388,9 @@ class TransactionBar extends React.Component<Props, State> {
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
         >
-          {this.renderTitle(scrollbarManagerChildrenProps)}
+          <GuideAnchor target="trace_view_guide_row" disabled={!hasGuideAnchor}>
+            {this.renderTitle(scrollbarManagerChildrenProps)}
+          </GuideAnchor>
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
@@ -403,7 +407,9 @@ class TransactionBar extends React.Component<Props, State> {
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
         >
-          {this.renderRectangle()}
+          <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
+            {this.renderRectangle()}
+          </GuideAnchor>
         </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
       </RowCellContainer>

@@ -703,7 +703,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 </Confirm>
               ) : null
             }
-            submitLabel={t('Save Rule')}
+            submitLabel={t('Create Rule')}
           >
             <Feature organization={organization} features={['alert-wizard']}>
               {({hasFeature}) =>
@@ -718,9 +718,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={dataset === Dataset.ERRORS}
                     />
-                    <StyledListItem>{t('Set Thesholds and Actions')}</StyledListItem>
+                    <StyledListItem>
+                      {t('Set thresholds to trigger alert')}
+                    </StyledListItem>
                     {triggerForm(hasAccess)}
-                    <StyledListItem>{t('Add a Name and Team')}</StyledListItem>
+                    <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
                     {ruleNameOwnerForm(hasAccess)}
                   </List>
                 ) : (
@@ -733,8 +735,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       thresholdChart={chart}
                       onFilterSearch={this.handleFilterUpdate}
                     />
-                    {triggerForm(hasAccess)}
-                    {ruleNameOwnerForm(hasAccess)}
+                    <List symbol="colored-numeric" initialCounterValue={2}>
+                      {triggerForm(hasAccess)}
+                      {ruleNameOwnerForm(hasAccess)}
+                    </List>
                   </React.Fragment>
                 )
               }
@@ -747,7 +751,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(1)};
+  margin: ${space(2)} 0 ${space(1)} 0;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const ChartHeader = styled('div')`
