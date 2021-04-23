@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
-import {getBackgroundColor} from 'app/components/waterfallTree/utils';
+import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
+import {getBackgroundColor} from 'app/components/performance/waterfall/utils';
 import {OmitHtmlDivProps} from 'app/utils';
 
 type RowProps = {

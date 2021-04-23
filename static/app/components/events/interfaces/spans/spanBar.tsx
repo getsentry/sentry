@@ -4,19 +4,18 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
-import Tooltip from 'app/components/tooltip';
-import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
-import {Row, RowCell, RowCellContainer} from 'app/components/waterfallTree/row';
-import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
+import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
+import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
+import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {
   DividerLine,
   DividerLineGhostContainer,
-} from 'app/components/waterfallTree/rowDivider';
+} from 'app/components/performance/waterfall/rowDivider';
 import {
   OperationName,
   RowTitle,
   RowTitleContainer,
-} from 'app/components/waterfallTree/rowTitle';
+} from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
   StyledIconChevron,
@@ -24,12 +23,13 @@ import {
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
-} from 'app/components/waterfallTree/treeConnector';
+} from 'app/components/performance/waterfall/treeConnector';
 import {
   getDurationDisplay,
   getHumanDuration,
   toPercent,
-} from 'app/components/waterfallTree/utils';
+} from 'app/components/performance/waterfall/utils';
+import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';

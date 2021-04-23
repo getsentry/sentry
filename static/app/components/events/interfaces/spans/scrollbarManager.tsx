@@ -1,6 +1,10 @@
 import React from 'react';
 
-import {clamp, rectOfContent, toPercent} from 'app/components/waterfallTree/utils';
+import {
+  clamp,
+  rectOfContent,
+  toPercent,
+} from 'app/components/performance/waterfall/utils';
 import getDisplayName from 'app/utils/getDisplayName';
 import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 
