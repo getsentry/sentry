@@ -6,10 +6,12 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
-from sentry.api.event_search import InvalidSearchQuery, get_filter, resolve_field_list
 from sentry.api.serializers import serialize
 from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Environment
+from sentry.search.events.fields import resolve_field_list
+from sentry.search.events.filter import get_filter
 from sentry.utils import metrics
 from sentry.utils.compat import map
 from sentry.utils.snuba import MAX_FIELDS

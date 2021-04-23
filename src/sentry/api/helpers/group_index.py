@@ -12,12 +12,13 @@ from rest_framework.response import Response
 from sentry import eventstream, features, search
 from sentry.api.base import audit_logger
 from sentry.api.fields import ActorField
-from sentry.api.issue_search import InvalidSearchQuery, convert_query_values, parse_search_query
+from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.app import ratelimiter
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
