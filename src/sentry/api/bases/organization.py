@@ -1,6 +1,7 @@
 import sentry_sdk
 from django.core.cache import cache
 from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -35,7 +36,7 @@ class OrganizationPermission(SentryPermission):
         "DELETE": ["org:admin"],
     }
 
-    def is_not_2fa_compliant(self, request, organization):
+    def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
         return (
             organization.flags.require_2fa
             and not Authenticator.objects.user_has_2fa(request.user)

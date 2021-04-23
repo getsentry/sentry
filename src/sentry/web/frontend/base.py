@@ -11,6 +11,7 @@ from django.template.context_processors import csrf
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
 from sudo.views import redirect_to_sudo
 
 from sentry import roles
@@ -108,7 +109,7 @@ class OrganizationMixin:
     def _is_org_member(self, user, organization):
         return OrganizationMember.objects.filter(user=user, organization=organization).exists()
 
-    def is_not_2fa_compliant(self, request, organization):
+    def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
         return (
             organization.flags.require_2fa
             and not Authenticator.objects.user_has_2fa(request.user)

@@ -1,9 +1,11 @@
 from rest_framework import permissions
+from rest_framework.request import Request
 
 from sentry.api.exceptions import SsoRequired, SuperuserRequired, TwoFactorRequired
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
+from sentry.models import Organization
 from sentry.utils import auth
 
 
@@ -58,7 +60,7 @@ class SuperuserPermission(permissions.BasePermission):
 
 
 class SentryPermission(ScopedPermission):
-    def is_not_2fa_compliant(self, request, organization):
+    def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
         return False
 
     def needs_sso(self, request, organization):
