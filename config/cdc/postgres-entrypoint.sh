@@ -24,7 +24,8 @@ cdc_setup_hba_conf() {
     if [ "$(grep -c -E "^host\s+replication" "$PGDATA"/pg_hba.conf)" -ge 0 ]; then
         echo "Replication config already present in pg_hba. Not changing anything."
     else
-        echo "host replication all all $POSTGRES_HOST_AUTH_METHOD" >> "$PGDATA/pg_hba.conf"
+        # Execute the same script we run on DB initialization
+        /docker-entrypoint-initdb.d/init_hba.sh
     fi
 }
 
@@ -57,13 +58,13 @@ install_wal2json() {
                 echo "$LATEST_VERSION" > /wal2json/latest_version
             fi
         fi
-        cp "/wal2json/$LATEST_VERSION/$FILE_NAME" /usr/local/lib/postgresql/wal2json.so
+        ln -s "/wal2json/$LATEST_VERSION/$FILE_NAME" /usr/local/lib/postgresql/wal2json.so
     elif [ -f /wal2json/latest_version ]; then
         # We did not manage to detect the latest version or we failed at downloading.
         # Try to failover
         LATEST_VERSION=$(cat /wal2json/latest_version)
         echo "Cannot download latest version. Found $LATEST_VERSION on disk"
-        cp "/wal2json/$LATEST_VERSION/$FILE_NAME" /usr/local/lib/postgresql/wal2json.so
+        ln -s "/wal2json/$LATEST_VERSION/$FILE_NAME" /usr/local/lib/postgresql/wal2json.so
     elif [ -f "/usr/local/lib/postgresql/wal2json.so" ]; then
         # Somehow our volume is not in a good state but there is still a version
         # in the library directory. We take that one.
