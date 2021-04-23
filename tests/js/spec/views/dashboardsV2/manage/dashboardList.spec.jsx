@@ -94,7 +94,7 @@ describe('Dashboards > DashboardList', function () {
     expect(content).toHaveLength(2);
   });
 
-  it('returns landing page url for dashboards', async function () {
+  it('returns landing page url for dashboards', function () {
     const wrapper = mountWithTheme(
       <DashboardList
         organization={organization}
@@ -108,7 +108,7 @@ describe('Dashboards > DashboardList', function () {
     expect(link.pathname).toEqual(`/organizations/org-slug/dashboards/2/`);
   });
 
-  it('persists global selection headers', async function () {
+  it('persists global selection headers', function () {
     const wrapper = mountWithTheme(
       <DashboardList
         organization={organization}
