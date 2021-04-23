@@ -175,16 +175,8 @@ const renderBodyCell = (
   if (column.key === 'comparison') {
     const localValue = dataRow.comparison;
 
-    let text = '';
-    if (localValue > 1) {
-      const pct = formatPercentage(localValue - 1, 0);
-      text = `+${pct} slower`;
-    } else {
-      const pct = formatPercentage(localValue - 1, 0);
-      text = `${pct} faster`;
-    }
-
-    return t(text);
+    const pct = formatPercentage(localValue - 1, 0);
+    return localValue > 1 ? t('+%s slower', pct) : t('%s faster', pct);
   }
   if (column.key === 'aggregate') {
     return <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />;
