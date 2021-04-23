@@ -77,7 +77,7 @@ export type TraceProps = {
 export type TraceRequestProps = DiscoverQueryProps & TraceProps;
 
 export type EmptyQuickTrace = {
-  type: 'empty';
+  type: 'empty' | 'missing';
   trace: QuickTraceEvent[];
 };
 
