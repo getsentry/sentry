@@ -1,7 +1,6 @@
 import itertools
 import logging
 from collections import defaultdict
-from enum import Enum
 from typing import Mapping, Set
 
 from django.utils import dateformat
