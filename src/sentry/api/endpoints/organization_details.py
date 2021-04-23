@@ -508,7 +508,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         """
         This method exists as a way for getsentry to override this endpoint with less duplication.
         """
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return self.respond({"detail": ERR_NO_USER}, status=401)
         if organization.is_default:
             return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
