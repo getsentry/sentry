@@ -371,12 +371,12 @@ class AlertRulesListContainer extends React.Component<Props> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.location.query?.sort !== this.props.location.query?.sort) {
+    const {router, location, selection} = this.props;
+    if (prevProps.location.query?.sort !== location.query?.sort) {
       this.trackView();
     }
 
-    const {router, location, selection} = this.props;
-    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+    if (!isEqual(prevProps.selection.projects, selection.projects)) {
       router.replace({
         pathname: location.pathname,
         query: {
