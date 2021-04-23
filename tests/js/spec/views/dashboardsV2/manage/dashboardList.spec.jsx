@@ -15,6 +15,7 @@ function clickMenuItem(card, selector) {
 describe('Dashboards > DashboardList', function () {
   let dashboards, widgets, deleteMock, dashboardUpdateMock;
   const organization = TestStubs.Organization({
+    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
     projects: [TestStubs.Project()],
   });
 
@@ -74,7 +75,7 @@ describe('Dashboards > DashboardList', function () {
     deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/2/',
       method: 'DELETE',
-      statusCode: '204',
+      statusCode: 204,
     });
     dashboardUpdateMock = jest.fn();
   });
@@ -111,7 +112,7 @@ describe('Dashboards > DashboardList', function () {
     expect(content).toHaveLength(2);
   });
 
-  it('returns landing page url for dashboards', async function () {
+  it('returns landing page url for dashboards', function () {
     const wrapper = mountWithTheme(
       <DashboardList
         organization={organization}
@@ -125,7 +126,7 @@ describe('Dashboards > DashboardList', function () {
     expect(link.pathname).toEqual(`/organizations/org-slug/dashboards/2/`);
   });
 
-  it('persists global selection headers', async function () {
+  it('persists global selection headers', function () {
     const wrapper = mountWithTheme(
       <DashboardList
         organization={organization}
@@ -143,7 +144,6 @@ describe('Dashboards > DashboardList', function () {
   it('can delete dashboards', async function () {
     const wrapper = mountWithTheme(
       <DashboardList
-        api={new MockApiClient()}
         organization={organization}
         dashboards={dashboards}
         pageLinks=""

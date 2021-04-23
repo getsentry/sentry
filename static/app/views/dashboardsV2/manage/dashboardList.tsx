@@ -20,6 +20,7 @@ import TimeSince from 'app/components/timeSince';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import withApi from 'app/utils/withApi';
 import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
 
 import {ContextMenu} from '../widgetCard';
@@ -222,4 +223,4 @@ const PaginationRow = styled(Pagination)`
   margin-bottom: ${space(3)};
 `;
 
-export default DashboardList;
+export default withApi(DashboardList);

@@ -105,7 +105,7 @@ class ManageDashboards extends AsyncView<Props, State> {
         organization={organization}
         pageLinks={dashboardsPageLinks}
         location={location}
-        onDashboardsChange={this.reloadData.bind(this)}
+        onDashboardsChange={this.onDashboardsChange.bind(this)}
       />
     );
   }
