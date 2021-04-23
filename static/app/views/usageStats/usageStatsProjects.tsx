@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
 
@@ -300,22 +301,28 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   renderComponent() {
-    const {error, errors, loading, projectStats} = this.state;
+    const {error, errors, loading} = this.state;
     const {dataCategory, loadingProjects} = this.props;
     const {headers, tableStats} = this.tableData;
 
     return (
-      <UsageTable
-        isLoading={loading || loadingProjects}
-        isError={error || !projectStats}
-        errors={errors as any} // TODO(ts)
-        isEmpty={tableStats.length === 0}
-        headers={headers}
-        dataCategory={dataCategory}
-        usageStats={tableStats}
-      />
+      <Wrapper>
+        <UsageTable
+          isLoading={loading || loadingProjects}
+          isError={error}
+          errors={errors as any} // TODO(ts)
+          isEmpty={tableStats.length === 0}
+          headers={headers}
+          dataCategory={dataCategory}
+          usageStats={tableStats}
+        />
+      </Wrapper>
     );
   }
 }
 
 export default withProjects(UsageStatsProjects);
+
+const Wrapper = styled('div')`
+  grid-column: 1 / -1;
+`;
