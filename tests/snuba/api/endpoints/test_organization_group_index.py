@@ -1401,7 +1401,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(
             qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
         )
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         # the previously resolved entry should not be included
         new_group1 = Group.objects.get(id=group1.id)
@@ -1443,7 +1443,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(
             qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
         )
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
         assert response.status_code == 200
 
     def test_bulk_resolve(self):
@@ -1462,7 +1462,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 100
 
         response = self.get_valid_response(qs_params={"status": "unresolved"}, status="resolved")
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         response = self.get_valid_response(query="is:unresolved", sort_by="date", method="get")
         assert len(response.data) == 0
@@ -1514,7 +1514,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 group = Group.objects.get(id=group.id)
                 assert group.status == GroupStatus.RESOLVED
 
-                assert response.data == {"status": "resolved", "statusDetails": {}}
+                assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
                 mock_sync_status_outbound.assert_called_once_with(
                     external_issue, True, group.project_id
                 )
@@ -1639,7 +1639,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             response = self.get_valid_response(
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
             )
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert new_group1.resolved_at is not None
@@ -1921,7 +1921,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.IGNORED
 
-        assert response.data == {"status": "ignored", "statusDetails": {}}
+        assert response.data == {"status": "ignored", "statusDetails": {}, "inbox": None}
 
     def test_snooze_duration(self):
         group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)

@@ -85,9 +85,6 @@ class GroupSerializerBase(Serializer):
         if self.expand is None:
             return False
 
-        if key == "inbox":
-            return False
-
         return key in self.expand
 
     def _collapse(self, key):
