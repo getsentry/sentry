@@ -55,8 +55,9 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
             validated_data.pop("id")
         if "provider" in validated_data:
             validated_data["provider"] = self.get_provider_id({**validated_data})
-        actor_id = self.get_actor_id({**validated_data})
-        setattr(self.instance, "actor_id", actor_id)
+        if self._actor_key in validated_data:
+            validated_data["actor_id"] = self.get_actor_id({**validated_data})
+
         for key, value in validated_data.items():
             setattr(self.instance, key, value)
         try:
