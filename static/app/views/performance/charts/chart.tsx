@@ -94,7 +94,16 @@ class Chart extends React.Component<Props> {
         ];
 
     const yAxes = disableMultiAxis
-      ? undefined
+      ? [
+          {
+            axisLabel: {
+              color: theme.chartLabel,
+              formatter(value: number) {
+                return axisLabelFormatter(value, data[0].seriesName);
+              },
+            },
+          },
+        ]
       : [
           {
             gridIndex: 0,
