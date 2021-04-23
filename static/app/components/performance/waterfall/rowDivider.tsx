@@ -6,6 +6,7 @@ import space from 'app/styles/space';
 
 export const DividerContainer = styled('div')`
   position: relative;
+  min-width: 1px;
 `;
 
 export const DividerLine = styled('div')<{showDetail?: boolean}>`
