@@ -10,9 +10,9 @@ import {t} from 'app/locale';
 type Props = {
   title: string;
   orgSlug: string;
-  disabled: boolean;
   onChangeTitle: (title: string) => void;
   onSave: (event: React.MouseEvent) => void;
+  disabled?: boolean;
 };
 
 function Header({title, orgSlug, disabled, onChangeTitle, onSave}: Props) {
