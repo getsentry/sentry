@@ -117,7 +117,7 @@ def split_participants_and_context(
 ) -> Tuple[Set[User], Mapping[int, Mapping[str, Any]]]:
     participants = set()
     extra_context = {}
-    for user, reason in participants_with_reasons:
+    for user, reason in participants_with_reasons.items():
         participants.add(user)
         extra_context[user.id] = {"reason": reason}
     return participants, extra_context

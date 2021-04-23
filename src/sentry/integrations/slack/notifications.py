@@ -68,7 +68,7 @@ def send_notification_as_slack(
     Send an "activity notification" to a Slack user which are workflow and deploy notification types
     """
 
-    external_actors_by_user = get_integrations_by_user_id(notification.organization, users.keys())
+    external_actors_by_user = get_integrations_by_user_id(notification.organization, users)
 
     client = SlackClient()
     for user in users:

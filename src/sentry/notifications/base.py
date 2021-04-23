@@ -33,10 +33,10 @@ class BaseNotification:
         return True
 
     def get_template(self) -> str:
-        return f"sentry/email/{self.get_filename()}.txt"
+        return f"sentry/emails/{self.get_filename()}.txt"
 
     def get_html_template(self) -> str:
-        return f"sentry/email/{self.get_filename()}.html"
+        return f"sentry/emails/{self.get_filename()}.html"
 
     def get_project_link(self) -> str:
         return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))

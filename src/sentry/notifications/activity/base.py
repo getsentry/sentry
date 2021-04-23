@@ -135,6 +135,9 @@ class ActivityNotification(BaseNotification):
     def get_title(self) -> str:
         return self.get_activity_name()
 
+    def get_reference(self) -> Any:
+        return self.group
+
     def send(self) -> None:
         if not self.should_email():
             return
