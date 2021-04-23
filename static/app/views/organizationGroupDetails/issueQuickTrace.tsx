@@ -77,7 +77,7 @@ class IssueQuickTrace extends React.Component<Props, State> {
           to={generateTraceTarget(event, organization)}
           onClick={() => this.handleTraceLink(organization)}
         >
-          View Full Trace
+          {t('View Full Trace')}
           <FeatureBadge type="new" />
         </Link>
       </LinkContainer>
@@ -116,7 +116,7 @@ class IssueQuickTrace extends React.Component<Props, State> {
               type: type === 'missing' ? t('transaction') : t('trace'),
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#troubleshooting">
-                  go to docs
+                  {t('go to docs')}
                 </ExternalLink>
               ),
             })}
