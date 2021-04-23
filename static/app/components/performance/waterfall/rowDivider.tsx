@@ -51,7 +51,7 @@ export const DividerLineGhostContainer = styled('div')`
 const BadgeBorder = styled('div')`
   position: absolute;
   margin: ${space(0.25)};
-  left: -11.5px;
+  left: -11px;
   background: ${p => p.theme.background};
   width: ${space(3)};
   height: ${space(3)};
