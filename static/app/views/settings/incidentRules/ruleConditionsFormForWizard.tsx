@@ -320,7 +320,7 @@ const ChartPanel = styled(Panel)`
 `;
 
 const ThresholdSelectField = styled(SelectField)`
-  margin-bottom: ${space(1)} !important;
+  margin-bottom: ${space(2)} !important;
 `;
 
 const StyledPanelBody = styled(PanelBody)`
@@ -341,6 +341,7 @@ const StyledSearchBar = styled(SearchBar)`
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
+  line-height: 1.3;
 `;
 
 const FormRow = styled('div')`
