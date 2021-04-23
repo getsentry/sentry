@@ -42,7 +42,13 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
       {...props}
     >
       {traceLiteResults => (
-        <TraceFullQuery traceId={traceId} start={start} end={end} {...props}>
+        <TraceFullQuery
+          eventId={event.id}
+          traceId={traceId}
+          start={start}
+          end={end}
+          {...props}
+        >
           {traceFullResults => {
             if (
               !traceFullResults.isLoading &&
