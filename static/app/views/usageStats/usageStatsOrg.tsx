@@ -218,11 +218,11 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         dropped: 0,
         invalid: 0,
         filtered: 0,
+        rate_limited: 0,
       };
 
       orgStats.groups.forEach(group => {
         const {outcome, category} = group.by;
-
         // HACK: The backend enum are singular, but the frontend enums are plural
         if (!dataCategory.includes(`${category}`)) {
           return;
@@ -232,7 +232,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         count[outcome] += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
-          if (outcome === Outcome.DROPPED || outcome === Outcome.INVALID) {
+          if (outcome === Outcome.RATE_LIMITED || outcome === Outcome.INVALID) {
             usageStats[i].dropped.total += stat;
           }
 
@@ -240,9 +240,11 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         });
       });
 
-      // Invalid data is dropped
+      // Invalid and rate_limited data is dropped
       count.dropped += count.invalid;
+      count.dropped += count.rate_limited;
       delete count.invalid;
+      delete count.rate_limited;
 
       usageStats.forEach(stat => {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
