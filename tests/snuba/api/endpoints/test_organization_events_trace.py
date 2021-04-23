@@ -938,7 +938,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         self.assert_event(root, self.root_event, "root")
 
-        # Because of snuba query orders by timestamp we should still root children
+        # Because of snuba query orders by timestamp we should still have all of the root's children
         assert len(root["children"]) == 3
         for i, gen1 in enumerate(root["children"]):
             self.assert_event(gen1, self.gen1_events[i], f"gen1_{i}")
