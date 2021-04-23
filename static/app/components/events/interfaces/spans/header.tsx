@@ -7,13 +7,13 @@ import {
   ScrollbarContainer,
   VirtualScrollbar,
   VirtualScrollbarGrip,
-} from 'app/components/waterfallTree/miniHeader';
+} from 'app/components/performance/waterfall/miniHeader';
 import {
   getHumanDuration,
   pickBarColour,
   rectOfContent,
   toPercent,
-} from 'app/components/waterfallTree/utils';
+} from 'app/components/performance/waterfall/utils';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';

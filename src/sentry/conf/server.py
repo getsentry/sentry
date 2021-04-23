@@ -134,6 +134,8 @@ SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 # here. This directory may not exist until that file is generated.
 CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
 
+CDC_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "cdc")
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -1554,6 +1556,9 @@ SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # store. MUST be a power of two.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
+# This flags activates the Change Data Capture backend in the development environment
+SENTRY_USE_CDC_DEV = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": {
 #         "image": "image-name:version",
@@ -1712,6 +1717,13 @@ SENTRY_DEVSERVICES = {
         },
         "ports": {"9090/tcp": 7901},
         "only_if": lambda settings, options: options.get("chart-rendering.enabled"),
+    },
+    "cdc": {
+        "image": "getsentry/cdc:nightly",
+        "pull": True,
+        "only_if": lambda settings, options: settings.SENTRY_USE_CDC_DEV,
+        "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
+        "volumes": {CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
     },
 }
 
@@ -2092,7 +2104,12 @@ SOUTH_MIGRATION_CONVERSIONS = (
 MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
-MIGRATIONS_LOCKFILE_APP_WHITELIST = ()
+MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "jira_ac",
+    "nodestore",
+    "sentry",
+    "social_auth",
+)
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 

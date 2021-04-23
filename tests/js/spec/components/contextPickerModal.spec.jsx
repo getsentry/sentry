@@ -9,7 +9,7 @@ import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('ContextPickerModal', function () {
-  let project, project2, org, org2;
+  let project, project2, project4, org, org2;
   const onFinish = jest.fn();
 
   beforeEach(function () {
@@ -24,6 +24,7 @@ describe('ContextPickerModal', function () {
       slug: 'org2',
       id: '21',
     });
+    project4 = TestStubs.Project({slug: 'project4', isMember: false});
   });
 
   afterEach(async function () {
@@ -121,7 +122,7 @@ describe('ContextPickerModal', function () {
     OrganizationStore.onUpdate(org);
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
-      body: [project, project2],
+      body: [project, project2, project4],
     });
     await tick();
 
@@ -141,9 +142,33 @@ describe('ContextPickerModal', function () {
     expect(wrapper.find('StyledSelectControl[name="organization"]').prop('value')).toBe(
       org.slug
     );
+
     expect(wrapper.find('StyledSelectControl[name="project"]').prop('options')).toEqual([
-      {value: project.slug, label: project.slug},
-      {value: project2.slug, label: project2.slug},
+      {
+        label: 'Projects I belong to',
+        options: [
+          {
+            value: project.slug,
+            label: project.slug,
+            isDisabled: false,
+          },
+          {
+            value: project2.slug,
+            label: project2.slug,
+            isDisabled: false,
+          },
+        ],
+      },
+      {
+        label: "Projects I don't belong to",
+        options: [
+          {
+            value: project4.slug,
+            label: project4.slug,
+            isDisabled: true,
+          },
+        ],
+      },
     ]);
 
     await tick();
@@ -196,8 +221,25 @@ describe('ContextPickerModal', function () {
     expect(fetchProjectsForOrg).toHaveBeenCalled();
 
     expect(wrapper.find('StyledSelectControl[name="project"]').prop('options')).toEqual([
-      {value: project2.slug, label: project2.slug},
-      {value: 'project3', label: 'project3'},
+      {
+        label: 'Projects I belong to',
+        options: [
+          {
+            value: project2.slug,
+            label: project2.slug,
+            isDisabled: false,
+          },
+          {
+            value: 'project3',
+            label: 'project3',
+            isDisabled: false,
+          },
+        ],
+      },
+      {
+        label: "Projects I don't belong to",
+        options: [],
+      },
     ]);
 
     // Select project3
