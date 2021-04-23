@@ -10,7 +10,10 @@ from sentry.notifications.base import BaseNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils.avatar import avatar_as_html
-from sentry.notifications.utils.participants import get_participants_for_group
+from sentry.notifications.utils.participants import (
+    get_participants_for_group,
+    split_participants_and_context,
+)
 from sentry.types.integrations import ExternalProviders
 
 
@@ -143,5 +146,6 @@ class ActivityNotification(BaseNotification):
         # Only calculate shared context once.
         shared_context = self.get_context()
 
-        for provider, participants in participants_by_provider.items():
-            notify(provider, self, participants, shared_context)
+        for provider, participants_with_reasons in participants_by_provider.items():
+            participants, extra_context = split_participants_and_context(participants_with_reasons)
+            notify(provider, self, participants, shared_context, extra_context)
