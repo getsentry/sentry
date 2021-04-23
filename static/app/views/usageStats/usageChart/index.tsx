@@ -438,7 +438,7 @@ export class UsageChart extends React.Component<Props, State> {
     const {footer} = this.props;
 
     return (
-      <Panel>
+      <Panel id="usage-chart">
         <ChartContainer>{this.renderChart()}</ChartContainer>
         {footer}
       </Panel>
