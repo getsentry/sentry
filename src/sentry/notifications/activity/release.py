@@ -45,7 +45,7 @@ class ReleaseActivityNotification(ActivityNotification):
         self.repos = get_repos(self.commit_list, users, self.organization)
         self.environment = get_environment_for_deploy(self.deploy)
         self.group_counts_by_project = get_group_counts_by_project(self.release, self.projects)
-        self.version = self.version
+        self.version = self.release.version
 
     def should_email(self) -> bool:
         return bool(self.release and self.deploy)
