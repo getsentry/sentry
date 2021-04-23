@@ -1,5 +1,5 @@
-from sentry.testutils import AcceptanceTestCase
 from sentry.models import Integration
+from sentry.testutils import AcceptanceTestCase
 
 
 class OrganizationExternalMappings(AcceptanceTestCase):
