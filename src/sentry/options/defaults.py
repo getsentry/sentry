@@ -123,7 +123,10 @@ register(
     "chart-rendering.storage.backend", default=None, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
 )
 register(
-    "chart-rendering.storage.options", default=None, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
+    "chart-rendering.storage.options",
+    type=Dict,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
 # Analytics
