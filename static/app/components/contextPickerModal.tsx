@@ -274,7 +274,7 @@ class ContextPickerModal extends React.Component<Props> {
 
     const projectOptions = [
       {
-        label: t('Projects I belong to'),
+        label: t('My Projects'),
         options: memberProjects.map(p => ({
           value: p.slug,
           label: t(`${p.slug}`),
@@ -282,7 +282,7 @@ class ContextPickerModal extends React.Component<Props> {
         })),
       },
       {
-        label: t("Projects I don't belong to"),
+        label: t('All Projects'),
         options: nonMemberProjects.map(p => ({
           value: p.slug,
           label: t(`${p.slug}`),
