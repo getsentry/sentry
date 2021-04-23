@@ -49,10 +49,10 @@ describe('UsageStats', function () {
     expect(orgAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
     expect(orgAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
     expect(orgAsync.props().chartTransform).toEqual(undefined);
-    expect(orgAsync.text()).toContain('Total Errors49');
+    expect(orgAsync.text()).toContain('Total Errors64');
     expect(orgAsync.text()).toContain('Accepted28');
     expect(orgAsync.text()).toContain('Filtered7');
-    expect(orgAsync.text()).toContain('Dropped14');
+    expect(orgAsync.text()).toContain('Dropped29');
 
     const orgChart = wrapper.find('UsageChart');
     expect(orgChart.props().dataCategory).toEqual(DataCategory.ERRORS);
@@ -107,8 +107,9 @@ describe('UsageStats', function () {
         query: {
           statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1d',
-          groupBy: ['category', 'outcome', 'project'],
+          groupBy: ['outcome', 'project'],
           field: ['sum(quantity)'],
+          category: 'error',
         },
       })
     );
@@ -205,7 +206,8 @@ describe('UsageStats', function () {
         query: {
           statsPeriod: ninetyDays,
           interval: '1d',
-          groupBy: ['category', 'outcome', 'project'],
+          groupBy: ['outcome', 'project'],
+          category: 'transaction',
           field: ['sum(quantity)'],
         },
       })
@@ -366,13 +368,25 @@ function getMockResponse() {
         {
           by: {
             category: 'error',
-            outcome: 'dropped',
+            outcome: 'rate_limited',
           },
           totals: {
             'sum(quantity)': 14,
           },
           series: {
             'sum(quantity)': [2, 2, 2, 2, 2, 2, 2],
+          },
+        },
+        {
+          by: {
+            category: 'error',
+            outcome: 'invalid',
+          },
+          totals: {
+            'sum(quantity)': 15,
+          },
+          series: {
+            'sum(quantity)': [2, 2, 2, 2, 2, 2, 3],
           },
         },
       ],
