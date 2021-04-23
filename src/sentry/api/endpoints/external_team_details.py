@@ -5,7 +5,11 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalTeamSerializer
+from sentry.api.bases.external_actor import (
+    ExternalActorEndpointMixin,
+    ExternalActorPermission,
+    ExternalTeamSerializer,
+)
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ExternalActor, Team
@@ -14,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):  # type: ignore
+    permission_classes = (ExternalActorPermission,)
+
     def convert_args(
         self,
         request: Request,

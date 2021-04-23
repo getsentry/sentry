@@ -5,7 +5,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalUserSerializer
+from sentry.api.bases.external_actor import (
+    ExternalActorEndpointMixin,
+    ExternalActorPermission,
+    ExternalUserSerializer,
+)
 from sentry.api.serializers import serialize
 from sentry.models import Organization
 
@@ -13,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):  # type: ignore
+    permission_classes = (ExternalActorPermission,)
+
     def post(self, request: Request, organization: Organization) -> Response:
         """
         Create an External User
