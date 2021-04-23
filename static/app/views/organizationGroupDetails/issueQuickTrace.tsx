@@ -171,7 +171,6 @@ const LinkContainer = styled('span')`
   margin-left: ${space(1)};
   padding-left: ${space(1)};
   position: relative;
-  font-weight: normal;
 
   &:before {
     display: block;
