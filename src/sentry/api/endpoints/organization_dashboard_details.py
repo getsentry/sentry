@@ -31,10 +31,6 @@ class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
         if prebuilt:
             return prebuilt
 
-        empty = Dashboard.get_empty(dashboard_id)
-        if empty:
-            return empty
-
         return Dashboard.objects.get(id=dashboard_id, organization_id=organization.id)
 
     def get(self, request, organization, dashboard):
