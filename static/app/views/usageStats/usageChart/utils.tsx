@@ -51,6 +51,10 @@ export function getXAxisDates(
   const start = moment(dateStart).startOf('h');
   const end = moment(dateEnd).startOf('h');
 
+  if (!start.isValid() || !end.isValid()) {
+    return range;
+  }
+
   const {period, periodLength} = parseStatsPeriod(interval) ?? {
     period: 1,
     periodLength: 'd',
