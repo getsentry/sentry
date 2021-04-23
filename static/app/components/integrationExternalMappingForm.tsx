@@ -26,11 +26,11 @@ export default class IntegrationExternalMappingForm extends React.Component<Prop
 
     return {
       externalName: '',
-      memberId: '',
+      userId: '',
       teamId: '',
       sentryName: '',
       provider: integration.provider.key,
-      ...pick(mapping, ['externalName', 'memberId', 'sentryName', 'teamId']),
+      ...pick(mapping, ['externalName', 'userId', 'sentryName', 'teamId']),
     };
   }
 
@@ -48,7 +48,7 @@ export default class IntegrationExternalMappingForm extends React.Component<Prop
     ];
     if (type === 'user') {
       fields.push({
-        name: 'memberId',
+        name: 'userId',
         type: 'select',
         required: true,
         label: tct('Sentry [type]', {type: capitalize(type)}),

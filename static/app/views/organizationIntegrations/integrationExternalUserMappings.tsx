@@ -38,7 +38,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
 
   handleDelete = async (mapping: ExternalActorMapping) => {
     const {organization} = this.props;
-    const endpoint = `/organizations/${organization.slug}/members/externaluser/${mapping.id}/`;
+    const endpoint = `/organizations/${organization.slug}/external-users/${mapping.id}/`;
     try {
       await this.api.requestPromise(endpoint, {
         method: 'DELETE',
@@ -62,11 +62,12 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
     const {integration} = this.props;
     const {members} = this.state;
     const externalUserMappings = members.reduce((acc, member) => {
-      const {externalUsers} = member;
+      const {externalUsers, user} = member;
+
       acc.push(
         ...externalUsers
           .filter(externalUser => externalUser.provider === integration.provider.key)
-          .map(externalUser => ({...externalUser, sentryName: member.name}))
+          .map(externalUser => ({...externalUser, sentryName: user.name}))
       );
       return acc;
     }, [] as ExternalActorMapping[]);
@@ -75,7 +76,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
 
   get sentryNames() {
     const {members} = this.state;
-    return members;
+    return members.map(member => member.user);
   }
 
   openModal = (mapping?: ExternalActorMapping) => {
@@ -95,7 +96,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
             sentryNames={this.sentryNames}
             type="user"
             onCancel={closeModal}
-            baseEndpoint={`/organizations/${organization.slug}/members/externaluser/`}
+            baseEndpoint={`/organizations/${organization.slug}/external-users/`}
           />
         </Body>
       </React.Fragment>

@@ -29,11 +29,11 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     try {
       const {organization} = this.props;
       const {teams} = this.state;
-      const team = teams.find(t => t.id === mapping.teamId);
+      const team = teams.find(item => item.id === mapping.teamId);
       if (!team) {
         throw new Error('Cannot find correct team slug.');
       }
-      const endpoint = `/teams/${organization.slug}/${team.slug}/externalteam/${mapping.id}/`;
+      const endpoint = `/teams/${organization.slug}/${team.slug}/external-teams/${mapping.id}/`;
 
       await this.api.requestPromise(endpoint, {
         method: 'DELETE',
@@ -83,13 +83,13 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     try {
       const {organization} = this.props;
       const {teams} = this.state;
-      const team = teams.find(t => t.id === data.teamId);
+      const team = teams.find(item => item.id === data.teamId);
 
       if (!team) {
         throw new Error('Cannot find team slug.');
       }
 
-      const baseEndpoint = `/teams/${organization.slug}/${team.slug}/externalteam/`;
+      const baseEndpoint = `/teams/${organization.slug}/${team.slug}/external-teams/`;
       const apiEndpoint = mapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint;
       const apiMethod = mapping ? 'PUT' : 'POST';
 
