@@ -33,7 +33,7 @@ function EditableText({
 
   const isEmpty = !inputValue.trim();
 
-  const innerWrapper = useRef<HTMLDivElement>(null);
+  const innerWrapperRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -41,7 +41,7 @@ function EditableText({
   const esc = useKeypress('Escape');
 
   // check to see if the user clicked outside of this component
-  useOnClickOutside(innerWrapper, () => {
+  useOnClickOutside(innerWrapperRef, () => {
     if (isEditing) {
       if (isEmpty) {
         displayStatusMessage('error');
@@ -121,17 +121,12 @@ function EditableText({
   }
 
   function handleEditClick() {
-    if (!isEditing) {
-      setIsEditing(true);
-      return;
-    }
-
-    inputRef.current?.focus();
+    setIsEditing(true);
   }
 
   return (
-    <Wrapper isDisabled={isDisabled}>
-      <InnerWrapper ref={innerWrapper}>
+    <Wrapper>
+      <InnerWrapper ref={innerWrapperRef} isDisabled={isDisabled} isEditing={isEditing}>
         {isEditing ? (
           <InputWrapper isEmpty={isEmpty} data-test-id="editable-text-input">
             <StyledField inline={false} flexibleControlStateSize stacked>
@@ -145,15 +140,17 @@ function EditableText({
             <InputLabel>{inputValue}</InputLabel>
           </InputWrapper>
         ) : (
-          <Label
-            onClick={isDisabled ? undefined : handleEditClick}
-            ref={labelRef}
-            data-test-id="editable-text-label"
-          >
-            <InnerLabel>{inputValue}</InnerLabel>
-          </Label>
+          <React.Fragment>
+            <Label
+              onClick={isDisabled ? undefined : handleEditClick}
+              ref={labelRef}
+              data-test-id="editable-text-label"
+            >
+              <InnerLabel>{inputValue}</InnerLabel>
+            </Label>
+            {!isDisabled && <StyledIconEdit />}
+          </React.Fragment>
         )}
-        <StyledIconEdit onClick={isDisabled ? undefined : handleEditClick} />
       </InnerWrapper>
     </Wrapper>
   );
@@ -163,51 +160,65 @@ export default EditableText;
 
 const Label = styled('div')`
   display: inline-block;
-  background: ${p => p.theme.gray100};
-  border: 1px solid transparent;
   border-radius: ${p => p.theme.borderRadius};
   text-align: left;
-  padding: 0 ${space(1.5)} 0 10px;
+  padding-left: 10px;
+  height: 40px;
   max-width: 100%;
 `;
 
 const InnerLabel = styled(TextOverflow)`
+  border-top: 1px solid transparent;
+  border-bottom: 1px dotted ${p => p.theme.gray200};
+  transition: border 150ms;
+  height: 40px;
   line-height: 38px;
 `;
 
 const StyledIconEdit = styled(IconEdit)`
-  margin-left: ${space(0.75)};
   height: 40px;
   position: absolute;
   right: 0;
-  cursor: pointer;
 `;
 
-const InnerWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  padding-right: 22px;
-  max-width: calc(100% - 22px);
-`;
-
-const Wrapper = styled('div')<{isDisabled: boolean}>`
+const Wrapper = styled('div')`
   display: flex;
   justify-content: flex-start;
   height: 40px;
+`;
+
+const InnerWrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+
   ${p =>
-    p.isDisabled &&
-    `
-      ${Label} {
-        background: none;
-      }
-      ${StyledIconEdit} {
-        cursor: default;
-        opacity: 0;
-      }
-      ${InnerWrapper} {
-        padding-right: 0;
-      }
-    `}
+    p.isDisabled
+      ? `
+          ${StyledIconEdit} {
+            cursor: default;
+          }
+
+          ${InnerLabel} {
+            border-bottom-color: transparent;
+          }
+        `
+      : `
+       ${!p.isEditing && `padding-right: 25px;`}
+        :hover {
+          padding-right: 0;
+          ${StyledIconEdit} {
+            display: none;
+          }
+          ${Label} {
+            background: ${p.theme.gray100};
+            padding: 0 14px 0 10px;
+          }
+          ${InnerLabel} {
+            border-bottom-color: transparent;
+          }
+        }
+      `}
 `;
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
@@ -221,11 +232,14 @@ const StyledField = styled(Field)`
   padding: 0;
   position: absolute;
   right: 0;
+  border-color: transparent;
 `;
 
 const StyledInput = styled(Input)`
   line-height: 40px;
   height: 40px;
+  border: none !important;
+  background: ${p => p.theme.gray100};
   &,
   &:focus,
   &:active,
@@ -236,6 +250,7 @@ const StyledInput = styled(Input)`
 
 const InputLabel = styled('div')`
   width: auto;
+  height: 40px;
   padding: ${space(1.5)};
   position: relative;
   z-index: -1;
