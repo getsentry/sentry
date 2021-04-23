@@ -221,17 +221,7 @@ type Props = {
   currentFilter: SpanOperationBreakdownFilter;
 };
 
-type State = {
-  aggregateColumn: string;
-};
-
-class _TagExplorer extends React.Component<Props, State> {
-  setAggregateColumn(value: string) {
-    this.setState({
-      aggregateColumn: value,
-    });
-  }
-
+class _TagExplorer extends React.Component<Props> {
   render() {
     const {eventView, organization, location, currentFilter, projects} = this.props;
     const aggregateColumn = getTransactionField(
