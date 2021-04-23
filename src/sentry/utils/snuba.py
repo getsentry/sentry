@@ -1642,7 +1642,7 @@ def is_duration_measurement(key):
 
 
 def is_span_op_breakdown(key):
-    return isinstance(key, str) and SPAN_OP_BREAKDOWNS_FIELD_RE.match(key)
+    return isinstance(key, str) and get_span_op_breakdown_name(key) is not None
 
 
 def get_measurement_name(measurement):
@@ -1652,7 +1652,12 @@ def get_measurement_name(measurement):
 
 def get_span_op_breakdown_name(breakdown):
     match = SPAN_OP_BREAKDOWNS_FIELD_RE.match(breakdown)
-    return f"ops.{match.group(1).lower()}" if match else None
+    if match:
+        breakdown_key = match.group(1).lower()
+        if breakdown_key == "total.time":
+            return breakdown_key
+        return f"ops.{breakdown_key}"
+    return None
 
 
 def get_array_column_alias(array_column):
