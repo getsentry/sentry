@@ -10,8 +10,10 @@ import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
 import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
 import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {
+  DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
+  ErrorBadge,
 } from 'app/components/performance/waterfall/rowDivider';
 import {
   OperationName,
@@ -34,12 +36,12 @@ import {
 import Tooltip from 'app/components/tooltip';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
+import {isTraceFullDetailed} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 
-import {DividerContainer, ErrorBadge, TransactionBarTitleContent} from './styles';
+import {TransactionBarTitleContent} from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
-import {isTraceFullDetailed} from './utils';
 
 const MARGIN_LEFT = 0;
 
@@ -214,7 +216,7 @@ class TransactionBar extends React.Component<Props, State> {
         </Projects>
         <TransactionBarTitleContent>
           <strong>
-            <OperationName spanErrors={transaction.errors}>
+            <OperationName errored={transaction.errors.length > 0}>
               {transaction['transaction.op']}
             </OperationName>
             {' \u2014 '}
@@ -225,7 +227,7 @@ class TransactionBar extends React.Component<Props, State> {
     ) : (
       <TransactionBarTitleContent>
         <strong>
-          <OperationName spanErrors={[]}>Trace</OperationName>
+          <OperationName errored={false}>Trace</OperationName>
           {' \u2014 '}
         </strong>
         {transaction.traceSlug}
@@ -320,13 +322,12 @@ class TransactionBar extends React.Component<Props, State> {
 
   renderErrorBadge() {
     const {transaction} = this.props;
-    const {showDetail} = this.state;
 
     if (!isTraceFullDetailed(transaction) || !transaction.errors.length) {
       return null;
     }
 
-    return <ErrorBadge showDetail={showDetail} />;
+    return <ErrorBadge />;
   }
 
   renderRectangle() {
