@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.api.endpoints.organization_events_trends import OrganizationEventsTrendsEndpointBase
 from sentry.api.event_search import get_filter

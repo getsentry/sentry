@@ -41,7 +41,7 @@ const mapIntegrationParams = analyticsParams => {
 export function trackIntegrationEvent<T extends IntegrationAnalyticsKey>(
   eventKey: T,
   analyticsParams: EventParameters[T],
-  org?: Organization,
+  org: Organization, // integration events should always be tied to an org
   options?: Parameters<typeof trackAdvancedAnalyticsEvent>[3]
 ) {
   return trackAdvancedAnalyticsEvent(

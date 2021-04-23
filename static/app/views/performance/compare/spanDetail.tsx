@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import DateTime from 'app/components/dateTime';
 import {SpanDetailContainer} from 'app/components/events/interfaces/spans/spanDetail';
 import {rawSpanKeys, SpanType} from 'app/components/events/interfaces/spans/types';
-import {getHumanDuration} from 'app/components/events/interfaces/spans/utils';
+import {getHumanDuration} from 'app/components/performance/waterfall/utils';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
 import {t} from 'app/locale';

@@ -1,6 +1,5 @@
 import logging
 
-from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
@@ -9,6 +8,7 @@ from django.http import (
 )
 from django.middleware.csrf import CsrfViewMiddleware
 from django.template.context_processors import csrf
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from sudo.views import redirect_to_sudo

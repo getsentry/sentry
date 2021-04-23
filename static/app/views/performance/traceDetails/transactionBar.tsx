@@ -1,51 +1,46 @@
 import React from 'react';
-import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Tooltip from 'app/components/tooltip';
-import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
-import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
+import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
+import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
+import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {
   DividerLine,
   DividerLineGhostContainer,
-} from 'app/components/waterfallTree/rowDivider';
+} from 'app/components/performance/waterfall/rowDivider';
 import {
   OperationName,
   RowTitle,
   RowTitleContainer,
-} from 'app/components/waterfallTree/rowTitle';
+} from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
   StyledIconChevron,
+  TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
-} from 'app/components/waterfallTree/treeConnector';
-import {getDurationDisplay} from 'app/components/waterfallTree/utils';
+} from 'app/components/performance/waterfall/treeConnector';
+import {
+  getDurationDisplay,
+  getHumanDuration,
+  toPercent,
+} from 'app/components/performance/waterfall/utils';
+import Tooltip from 'app/components/tooltip';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
-import {Theme} from 'app/utils/theme';
 
-import {
-  DividerContainer,
-  ErrorBadge,
-  TransactionBarTitleContent,
-  TransactionRow,
-  TransactionRowCell,
-  TransactionRowCellContainer,
-} from './styles';
+import {DividerContainer, ErrorBadge, TransactionBarTitleContent} from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
-import {getHumanDuration, isTraceFullDetailed, toPercent} from './utils';
+import {isTraceFullDetailed} from './utils';
 
-const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
-const TOGGLE_BUTTON_MAX_WIDTH = 30;
-export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
 const MARGIN_LEFT = 0;
 
 type Props = {
@@ -59,8 +54,9 @@ type Props = {
   continuingDepths: TreeDepth[];
   isExpanded: boolean;
   isVisible: boolean;
+  hasGuideAnchor: boolean;
   toggleExpandedState: () => void;
-  theme: Theme;
+  barColour?: string;
 };
 
 type State = {
@@ -334,10 +330,8 @@ class TransactionBar extends React.Component<Props, State> {
   }
 
   renderRectangle() {
-    const {transaction, traceInfo, theme} = this.props;
+    const {transaction, traceInfo, barColour} = this.props;
     const {showDetail} = this.state;
-
-    const palette = theme.charts.getColorPalette(traceInfo.maxGeneration);
 
     // Use 1 as the difference in the event that startTimestamp === endTimestamp
     const delta = Math.abs(traceInfo.endTimestamp - traceInfo.startTimestamp) || 1;
@@ -352,7 +346,7 @@ class TransactionBar extends React.Component<Props, State> {
       <RowRectangle
         spanBarHatch={false}
         style={{
-          backgroundColor: palette[transaction.generation % palette.length],
+          backgroundColor: barColour,
           left: `clamp(0%, ${toPercent(startPercentage || 0)}, calc(100% - 1px))`,
           width: toPercent(widthPercentage || 0),
         }}
@@ -378,13 +372,13 @@ class TransactionBar extends React.Component<Props, State> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
-    const {index} = this.props;
+    const {hasGuideAnchor, index} = this.props;
     const {showDetail} = this.state;
     const {dividerPosition} = dividerHandlerChildrenProps;
 
     return (
-      <TransactionRowCellContainer showDetail={showDetail}>
-        <TransactionRowCell
+      <RowCellContainer showDetail={showDetail}>
+        <RowCell
           data-test-id="transaction-row-title"
           data-type="span-row-cell"
           style={{
@@ -394,13 +388,15 @@ class TransactionBar extends React.Component<Props, State> {
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
         >
-          {this.renderTitle(scrollbarManagerChildrenProps)}
-        </TransactionRowCell>
+          <GuideAnchor target="trace_view_guide_row" disabled={!hasGuideAnchor}>
+            {this.renderTitle(scrollbarManagerChildrenProps)}
+          </GuideAnchor>
+        </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
           {this.renderErrorBadge()}
         </DividerContainer>
-        <TransactionRowCell
+        <RowCell
           data-test-id="transaction-row-duration"
           data-type="span-row-cell"
           showStriping={index % 2 !== 0}
@@ -411,10 +407,12 @@ class TransactionBar extends React.Component<Props, State> {
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
         >
-          {this.renderRectangle()}
-        </TransactionRowCell>
+          <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
+            {this.renderRectangle()}
+          </GuideAnchor>
+        </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
-      </TransactionRowCellContainer>
+      </RowCellContainer>
     );
   }
 
@@ -423,7 +421,7 @@ class TransactionBar extends React.Component<Props, State> {
     const {showDetail} = this.state;
 
     return (
-      <TransactionRow
+      <Row
         visible={isVisible}
         showBorder={showDetail}
         cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
@@ -449,7 +447,7 @@ class TransactionBar extends React.Component<Props, State> {
             transaction={transaction}
           />
         )}
-      </TransactionRow>
+      </Row>
     );
   }
 }
@@ -458,4 +456,4 @@ function getOffset(generation) {
   return generation * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 }
 
-export default withTheme(TransactionBar);
+export default TransactionBar;

@@ -10,9 +10,10 @@ import uuid
 from enum import Enum
 from typing import Any
 
+import sentry_sdk
 from django.utils.encoding import force_text
 from django.utils.functional import Promise
-from django.utils.html import mark_safe
+from django.utils.safestring import mark_safe
 from django.utils.timezone import is_aware
 from simplejson import JSONDecodeError, JSONEncoder, _default_decoder  # NOQA
 
@@ -105,7 +106,8 @@ def load(fp, **kwargs) -> str:
 
 
 def loads(value: str, **kwargs) -> JSONData:
-    return _default_decoder.decode(value)
+    with sentry_sdk.start_span(op="sentry.utils.json.loads"):
+        return _default_decoder.decode(value)
 
 
 def dumps_htmlsafe(value):

@@ -114,6 +114,19 @@ class GitHubClientMixin(ApiClient):
         repo_name = repo.name
         return self.head_cached(path=f"/repos/{repo_name}/contents/{path}", params={"ref": version})
 
+    def search_file(self, repo, filename):
+        query = f"filename:{filename}+repo:{repo}"
+        results = self.get(path="/search/code", params={"q": query})
+        return results
+
+    def get_file(self, repo, path):
+        from base64 import b64decode
+
+        # default ref will be the default_branch
+        contents = self.get(path=f"/repos/{repo}/contents/{path}")
+        encoded_content = contents["content"]
+        return b64decode(encoded_content)
+
 
 class GitHubAppsClient(GitHubClientMixin):
     def __init__(self, integration):

@@ -198,7 +198,7 @@ describe('OrganizationRuleList', () => {
   it('displays alert status', async () => {
     const ownershipOrg = {
       ...organization,
-      features: ['alert-list', 'incidents'],
+      features: ['alert-details-redesign'],
     };
     const wrapper = await createWrapper({organization: ownershipOrg});
     let row = wrapper.find('RuleListRow').at(1);
@@ -211,10 +211,10 @@ describe('OrganizationRuleList', () => {
     expect(wrapper.find('AlertIconWrapper').exists()).toBe(true);
   });
 
-  it('sorts by alert rule with alert-list', async () => {
+  it('sorts by alert rule with alert-details-redesign', async () => {
     const ownershipOrg = {
       ...organization,
-      features: ['alert-list', 'incidents'],
+      features: ['alert-details-redesign'],
     };
     await createWrapper({organization: ownershipOrg});
 

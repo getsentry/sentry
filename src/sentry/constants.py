@@ -74,7 +74,7 @@ SENTRY_APP_SLUG_MAX_LENGTH = 64
 MAX_ROLLUP_POINTS = 10000
 
 
-# Team slugs which may not be used. Generally these are top level URL patterns
+# Organization slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
 RESERVED_ORGANIZATION_SLUGS = frozenset(
     (

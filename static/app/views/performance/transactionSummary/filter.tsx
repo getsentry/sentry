@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
-import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
+import {pickBarColour} from 'app/components/performance/waterfall/utils';
 import Radio from 'app/components/radio';
 import {IconFilter} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -12,6 +12,8 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
+
+import {decodeHistogramZoom} from './latencyChart';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
@@ -111,7 +113,7 @@ class Filter extends React.Component<Props> {
                       onChangeFilter(filterOption);
                     }}
                   >
-                    <OperationDot backgroundColor={pickSpanBarColour(operationName)} />
+                    <OperationDot backgroundColor={pickBarColour(operationName)} />
                     <OperationName>{operationName}</OperationName>
                     <Radio radioSize="small" checked={filterOption === currentFilter} />
                   </ListItem>
@@ -235,12 +237,30 @@ export function filterToField(option: SpanOperationBreakdownFilter) {
   }
 }
 
-export function filterToSearchConditions(option: SpanOperationBreakdownFilter) {
+export function filterToSearchConditions(
+  option: SpanOperationBreakdownFilter,
+  location: Location
+) {
+  let field = filterToField(option);
+  if (!field) {
+    field = 'transaction.duration';
+  }
+
+  // Add duration search conditions implicitly
+
+  const {min, max} = decodeHistogramZoom(location);
+  let query = '';
+  if (typeof min === 'number') {
+    query = `${query} ${field}:>${min}ms`;
+  }
+  if (typeof max === 'number') {
+    query = `${query} ${field}:<${max}ms`;
+  }
   switch (option) {
     case SpanOperationBreakdownFilter.None:
-      return undefined;
+      return query ? query.trim() : undefined;
     default: {
-      return `has:${filterToField(option)}`;
+      return `${query} has:${filterToField(option)}`.trim();
     }
   }
 }
@@ -248,9 +268,9 @@ export function filterToSearchConditions(option: SpanOperationBreakdownFilter) {
 export function filterToColour(option: SpanOperationBreakdownFilter) {
   switch (option) {
     case SpanOperationBreakdownFilter.None:
-      return pickSpanBarColour('');
+      return pickBarColour('');
     default: {
-      return pickSpanBarColour(option);
+      return pickBarColour(option);
     }
   }
 }

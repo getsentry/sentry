@@ -87,21 +87,11 @@ steps:
         docker push $$DOCKER_REPO:$COMMIT_SHA
         docker tag $$SENTRY_IMAGE $$DOCKER_REPO:nightly
         docker push $$DOCKER_REPO:nightly
-  - name: 'node:12'
-    id: zeus-upload
-    waitFor:
-      - builder-run
-    secretEnv: ['ZEUS_HOOK_BASE']
-    entrypoint: 'bash'
-    args:
-      - '-e'
-      - '-c'
-      - |
-        # Only push to Zeus from releases/*
-        [[ ! "$BRANCH_NAME" =~ ^releases/ ]] && exit 0
-        npx -p "@zeus-ci/cli" zeus job update --build $BUILD_ID --job 1 --ref $COMMIT_SHA --build-label GCB --job-label "OSS Packages" --status passed
-        npx -p "@zeus-ci/cli" zeus upload --build $BUILD_ID --job 1 --type "application/x-pywheel+zip" dist/*.whl
 timeout: 2640s
+artifacts:
+  objects:
+    location: 'gs://sentryio-cloudbuild-opensource/getsentry/sentry/$COMMIT_SHA/'
+    paths: ['dist/*.whl']
 options:
   # We need more memory for Webpack builds & e2e onpremise tests
   machineType: 'N1_HIGHCPU_8'
@@ -119,8 +109,3 @@ secrets:
         CiQAE8gN7y3OMxn+a1kofmK4Bi8jQZtdRFj2lYYwaZHVeIIBUzMSTQA9tvn8XCv2vqj6u8CHoeSP
         TVW9pLvSCorKoeNtOp0eb+6V1yNJW/+JC07DNO1KLbTbodbuza6jKJHU5xeAJ4kGQI78UY5Vu1Gp
         QcMK
-      ZEUS_HOOK_BASE: |
-        CiQAE8gN75WxSPytiv8kAp3cOp3RJHMqnfwH2bPDLJnwRxjQUJYSpAEAPbb5/GE1N8kUiC2YLh2n
-        IinZi+rM5umfESVC5lhzDkDqBiGLEvAKtAHOvnbVbdm/Ui5KytpUUGb+QRajw9MFGZlavUz81wyu
-        QDOpuajIhRNhhTZsJIhvFDkpQQykSgM2A7uKSQtQTLI9+njyB4F+SQEgaB6SvC7gMCqhSqYH+qJB
-        r1OJiKninNgwred/uJU0ZcVnNERNZ/hOyC1p/lXS7LHooA==

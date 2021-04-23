@@ -5,8 +5,8 @@ import {
   generateRootSpan,
   isOrphanSpan,
   parseTrace,
-  toPercent,
 } from 'app/components/events/interfaces/spans/utils';
+import {toPercent} from 'app/components/performance/waterfall/utils';
 import {EventTransaction} from 'app/types/event';
 
 // Minimum threshold score for descriptions that are similar.

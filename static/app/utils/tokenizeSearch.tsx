@@ -107,6 +107,13 @@ export class QueryResults {
             formattedTokens.push(`${token.key}:${token.value}`);
           }
           break;
+        case TokenType.QUERY:
+          if (/[\s\(\)\\"]/g.test(token.value)) {
+            formattedTokens.push(`"${escapeDoubleQuotes(token.value)}"`);
+          } else {
+            formattedTokens.push(token.value);
+          }
+          break;
         default:
           formattedTokens.push(token.value);
       }
@@ -270,6 +277,10 @@ export class QueryResults {
     q.tagValues = {...this.tagValues};
     q.tokens = [...this.tokens];
     return q;
+  }
+
+  isEmpty() {
+    return this.tokens.length === 0;
   }
 }
 

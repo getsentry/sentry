@@ -245,6 +245,16 @@ describe('utils/tokenizeSearch', function () {
       results.query = ['x', 'y'];
       expect(results.formatString()).toEqual('a:a d:d x y');
       expect(results.query).toEqual(['x', 'y']);
+
+      results.query = ['a b c'];
+      expect(results.formatString()).toEqual('a:a d:d "a b c"');
+      expect(results.query).toEqual(['a b c']);
+
+      results.query = ['invalid literal for int() with base'];
+      expect(results.formatString()).toEqual(
+        'a:a d:d "invalid literal for int() with base"'
+      );
+      expect(results.query).toEqual(['invalid literal for int() with base']);
     });
 
     it('add ops to query object', function () {

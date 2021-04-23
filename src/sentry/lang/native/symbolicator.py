@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 import jsonschema
 import sentry_sdk
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from requests.exceptions import RequestException
 
 from sentry import features, options
