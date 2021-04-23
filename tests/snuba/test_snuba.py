@@ -125,7 +125,7 @@ class SnubaTest(TestCase, SnubaTestCase):
     def test_should_use_snql(self) -> None:
         base_time = datetime.utcnow()
 
-        with self.options({"snuba.snql.referrer-rate": 1.0}):
+        with self.options({"snuba.snql.snql_only": 1.0}):
             assert (
                 snuba.query(
                     start=base_time - timedelta(days=1),

@@ -10,19 +10,20 @@ class SnQLOption(NamedTuple):
 
 
 class ReferrerCheck(NamedTuple):
-    blacklist: Set[str]
-    whitelist: Set[str]
+    option: str
+    denylist: Set[str]
+    allowlist: Set[str]
     prefixes: List[str]
     by_entity: Mapping[str, str]
     is_dryrun: bool = True
 
     def get_option(self, referrer: Optional[str]) -> Optional[SnQLOption]:
-        if not referrer or referrer in self.blacklist:
+        if not referrer or referrer in self.denylist:
             return None
 
         use_snql = False
         entity = "auto"
-        if referrer in self.whitelist:
+        if referrer in self.allowlist:
             use_snql = True
         elif referrer in self.by_entity:
             use_snql = True
@@ -34,7 +35,7 @@ class ReferrerCheck(NamedTuple):
                     break
 
         if use_snql:
-            snql_rate = options.get("snuba.snql.referrer-rate")
+            snql_rate = options.get(self.option)
             assert isinstance(snql_rate, float)
             if random.random() <= snql_rate:
                 return SnQLOption(entity, self.is_dryrun)
@@ -43,8 +44,9 @@ class ReferrerCheck(NamedTuple):
 
 
 dryrun_check = ReferrerCheck(
-    blacklist=set(),
-    whitelist={
+    option="snuba.snql.referrer-rate",
+    denylist=set(),
+    allowlist={
         "eventstore.get_events",
         "group.filter_by_event_id",
         "incidents.get_incident_aggregates",
@@ -64,8 +66,9 @@ dryrun_check = ReferrerCheck(
 )
 
 snql_check = ReferrerCheck(
-    blacklist=set(),
-    whitelist={"sessions.stability-sort"},
+    option="snuba.snql.snql_only",
+    denylist=set(),
+    allowlist={"sessions.stability-sort"},
     prefixes=[],
     by_entity={},
     is_dryrun=False,
