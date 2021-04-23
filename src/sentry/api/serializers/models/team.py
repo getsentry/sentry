@@ -8,7 +8,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ExternalTeam,
+    ExternalActor,
     InviteStatus,
     OrganizationAccessRequest,
     OrganizationMember,
@@ -148,7 +148,8 @@ class TeamWithProjectsSerializer(TeamSerializer):
             .select_related("project")
         )
 
-        external_teams = list(ExternalTeam.objects.filter(team__in=item_list))
+        actor_mapping = {team.actor_id: team for team in item_list}
+        external_actors = list(ExternalActor.objects.filter(actor_id__in=actor_mapping.keys()))
 
         # TODO(dcramer): we should query in bulk for ones we're missing here
         orgs = {i.organization_id: i.organization for i in item_list}
@@ -166,9 +167,9 @@ class TeamWithProjectsSerializer(TeamSerializer):
             project_map[project_team.team_id].append(projects_by_id[project_team.project_id])
 
         external_teams_map = defaultdict(list)
-        for external_team in external_teams:
-            serialized = serialize(external_team, user)
-            external_teams_map[external_team.team_id].append(serialized)
+        serialized_list = serialize(external_actors, user, key="team")
+        for serialized in serialized_list:
+            external_teams_map[serialized["teamId"]].append(serialized)
 
         result = super().get_attrs(item_list, user)
         for team in item_list:

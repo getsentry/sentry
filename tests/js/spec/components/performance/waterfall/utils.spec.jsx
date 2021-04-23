@@ -1,4 +1,4 @@
-import {barColors, pickBarColour} from 'app/components/waterfallTree/utils';
+import {barColors, pickBarColour} from 'app/components/performance/waterfall/utils';
 import CHART_PALETTE from 'app/constants/chartPalette';
 
 describe('pickBarColour()', function () {

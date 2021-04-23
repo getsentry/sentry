@@ -1,8 +1,7 @@
 import React from 'react';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
-import moment from 'moment';
 
 import Access from 'app/components/acl/access';
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
@@ -10,6 +9,7 @@ import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
+import DateTime from 'app/components/dateTime';
 import DropdownLink from 'app/components/dropdownLink';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
@@ -21,6 +21,7 @@ import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
 import {Color} from 'app/utils/theme';
 import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
 
@@ -141,7 +142,6 @@ class RuleListRow extends React.Component<Props, State> {
       onDelete,
       userTeams,
     } = this.props;
-    const dateCreated = moment(rule.dateCreated).format('ll');
     const slug = rule.projects[0];
     const editLink = `/organizations/${orgId}/alerts/${
       isIssueAlert(rule) ? 'rules' : 'metric-rules'
@@ -158,10 +158,17 @@ class RuleListRow extends React.Component<Props, State> {
 
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
     const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
-    const hasAlertList = organization.features.includes('alert-list');
+    const hasAlertList = organization.features.includes('alert-details-redesign');
     const alertLink = (
       <TitleLink to={hasRedesign ? detailsLink : editLink}>{rule.name}</TitleLink>
     );
+
+    const IssueStatusText: Record<IncidentStatus, string> = {
+      [IncidentStatus.CRITICAL]: t('Critical'),
+      [IncidentStatus.WARNING]: t('Warning'),
+      [IncidentStatus.CLOSED]: t('Resolved'),
+      [IncidentStatus.OPENED]: t('Resolved'),
+    };
 
     return (
       <ErrorBoundary>
@@ -174,11 +181,21 @@ class RuleListRow extends React.Component<Props, State> {
           <React.Fragment>
             <AlertNameWrapper isIncident={isIssueAlert(rule)}>
               <FlexCenter>
-                <AlertBadge
-                  status={rule?.latestIncident?.status}
-                  isIssue={isIssueAlert(rule)}
-                  hideText
-                />
+                <Tooltip
+                  title={
+                    isIssueAlert(rule)
+                      ? t('Issue Alert')
+                      : IssueStatusText[
+                          rule?.latestIncident?.status ?? IncidentStatus.CLOSED
+                        ]
+                  }
+                >
+                  <AlertBadge
+                    status={rule?.latestIncident?.status}
+                    isIssue={isIssueAlert(rule)}
+                    hideText
+                  />
+                </Tooltip>
               </FlexCenter>
               <AlertNameAndStatus>
                 <AlertName>{alertLink}</AlertName>
@@ -190,10 +207,12 @@ class RuleListRow extends React.Component<Props, State> {
         )}
 
         <FlexCenter>
-          <ProjectBadge
-            avatarSize={18}
-            project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
-          />
+          <ProjectBadgeContainer>
+            <ProjectBadge
+              avatarSize={18}
+              project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
+            />
+          </ProjectBadgeContainer>
         </FlexCenter>
         {hasAlertOwnership && (
           <FlexCenter>
@@ -201,7 +220,15 @@ class RuleListRow extends React.Component<Props, State> {
           </FlexCenter>
         )}
         {!hasAlertList && <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>}
-        <FlexCenter>{dateCreated}</FlexCenter>
+        <FlexCenter>
+          <DateTime
+            date={getDynamicText({
+              value: rule.dateCreated,
+              fixed: new Date('2021-04-20'),
+            })}
+            format="ll"
+          />
+        </FlexCenter>
         <ActionsRow>
           <Access access={['alerts:write']}>
             {({hasAccess}) => (
@@ -340,6 +367,10 @@ const AlertNameAndStatus = styled('div')`
 
 const AlertName = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const ProjectBadgeContainer = styled('div')`
+  width: 100%;
 `;
 
 const ProjectBadge = styled(IdBadge)`

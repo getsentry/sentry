@@ -69,7 +69,7 @@ const AuditLogList = ({
 
           {hasEntries &&
             entries.map(entry => (
-              <StyledPanelItem alignItems="center" key={entry.id}>
+              <StyledPanelItem center key={entry.id}>
                 <UserInfo>
                   <div>
                     {entry.actor.email && (

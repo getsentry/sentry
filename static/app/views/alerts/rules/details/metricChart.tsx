@@ -27,15 +27,11 @@ import {AvatarProject, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
 import {getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
+import {alertDetailsLink} from 'app/views/alerts/details';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
-import {
-  AlertRuleStatus,
-  Incident,
-  IncidentActivityType,
-  IncidentStatus,
-} from '../../types';
+import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
 
 import {TimePeriodType} from './constants';
@@ -105,7 +101,7 @@ function createStatusAreaSeries(
 
 function createIncidentSeries(
   router: Props['router'],
-  orgSlug: string,
+  organization: Organization,
   lineColor: string,
   incidentTimestamp: number,
   incident: Incident,
@@ -123,12 +119,7 @@ function createIncidentSeries(
           xAxis: incidentTimestamp,
           onClick: () => {
             router.push({
-              pathname: `/organizations/${orgSlug}/alerts/rules/details/${
-                incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-                incident.alertRule.originalAlertRuleId
-                  ? incident.alertRule.originalAlertRuleId
-                  : incident.alertRule.id
-              }/`,
+              pathname: alertDetailsLink(organization, incident),
               query: {alert: incident.identifier},
             });
           },
@@ -509,7 +500,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 series.push(
                   createIncidentSeries(
                     router,
-                    organization.slug,
+                    organization,
                     incidentColor,
                     incidentStartDate,
                     incident,
@@ -614,7 +605,7 @@ class MetricChart extends React.PureComponent<Props, State> {
 
           return (
             <ChartPanel>
-              <PanelBody withPadding>
+              <StyledPanelBody withPadding>
                 <ChartHeader>
                   <ChartTitle>
                     <PresetName>
@@ -631,7 +622,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                   maxThresholdValue,
                   maxSeriesValue
                 )}
-              </PanelBody>
+              </StyledPanelBody>
               {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
             </ChartPanel>
           );
@@ -689,6 +680,11 @@ const StatItem = styled('div')`
   display: flex;
   align-items: center;
   margin: 0 ${space(2)} 0 0;
+`;
+
+/* Override padding to make chart appear centered */
+const StyledPanelBody = styled(PanelBody)`
+  padding-right: 6px;
 `;
 
 const StatCount = styled('span')`

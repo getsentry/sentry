@@ -16,21 +16,22 @@ import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import TimeSince from 'app/components/timeSince';
-import {MessageRow} from 'app/components/waterfallTree/messageRow';
+import {MessageRow} from 'app/components/performance/waterfall/messageRow';
 import {
   DividerSpacer,
   ScrollbarContainer,
   VirtualScrollbar,
   VirtualScrollbarGrip,
-} from 'app/components/waterfallTree/miniHeader';
-import {pickBarColour, toPercent} from 'app/components/waterfallTree/utils';
+} from 'app/components/performance/waterfall/miniHeader';
+import {pickBarColour, toPercent} from 'app/components/performance/waterfall/utils';
+import TimeSince from 'app/components/timeSince';
 import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
 import {TraceFullDetailed, TraceMeta} from 'app/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'app/utils/performance/quickTrace/utils';
 import Breadcrumb from 'app/views/performance/breadcrumb';
@@ -227,7 +228,10 @@ class TraceDetailsContent extends React.Component<Props, State> {
             2,
             true
           )}
-          subtext={<TimeSince date={(traceInfo.endTimestamp || 0) * 1000} />}
+          subtext={getDynamicText({
+            value: <TimeSince date={(traceInfo.endTimestamp || 0) * 1000} />,
+            fixed: '5 days ago',
+          })}
         />
       </TraceDetailHeader>
     );
@@ -483,7 +487,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             !isLastTransaction && hasChildren
               ? [{depth: 0, isOrphanDepth: isNextChildOrphaned}]
               : [],
-          hasGuideAnchor: true,
+          hasGuideAnchor: index === 0,
         });
 
         acc.index = result.lastIndex + 1;

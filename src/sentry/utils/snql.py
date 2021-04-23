@@ -45,17 +45,28 @@ class ReferrerCheck(NamedTuple):
 
 dryrun_check = ReferrerCheck(
     option="snuba.snql.referrer-rate",
-    denylist=set(),
-    allowlist={
-        "eventstore.get_events",
-        "group.filter_by_event_id",
-        "incidents.get_incident_aggregates",
-        "tagstore.get_tag_value_paginator_for_projects",
-        "api.serializer.projects.get_stats",
-        "tsdb-modelid:407",
-        "testing.test",
+    denylist={
+        "tsdb-modelid:4",
+        "tsdb-modelid:300",
+        "tsdb-modelid:200",
+        "tsdb-modelid:202",
+        "tsdb-modelid:100",
+        "eventstore.get_next_or_prev_event_id",
     },
-    prefixes=["outcomes.", "sessions.", "tsdb-modelid:6", "tsdb-modelid:5", "incidents."],
+    allowlist=set(),
+    prefixes=[
+        "outcomes.",
+        "sessions.",
+        "tsdb-modelid:",
+        "incidents.",
+        "tagstore.",
+        "group.",
+        "search.",
+        "serializers.",
+        "eventstore.",
+        "search_sample.",
+        "testing.test",
+    ],
     by_entity={
         "api.performance.durationpercentilechart": "discover_transactions",
         "api.performance.vital-detail": "discover_transactions",

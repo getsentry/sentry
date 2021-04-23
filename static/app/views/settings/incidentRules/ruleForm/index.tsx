@@ -722,7 +722,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       {t('Set thresholds to trigger alert')}
                     </StyledListItem>
                     {triggerForm(hasAccess)}
-                    <StyledListItem>{t('Add a name and team')}</StyledListItem>
+                    <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
                     {ruleNameOwnerForm(hasAccess)}
                   </List>
                 ) : (
@@ -735,8 +735,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       thresholdChart={chart}
                       onFilterSearch={this.handleFilterUpdate}
                     />
-                    {triggerForm(hasAccess)}
-                    {ruleNameOwnerForm(hasAccess)}
+                    <List symbol="colored-numeric" initialCounterValue={2}>
+                      {triggerForm(hasAccess)}
+                      {ruleNameOwnerForm(hasAccess)}
+                    </List>
                   </React.Fragment>
                 )
               }

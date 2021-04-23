@@ -49,7 +49,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const {params, location, organization} = this.props;
     const {query} = location;
 
-    if (organization.features.includes('alert-list')) {
+    if (organization.features.includes('alert-details-redesign')) {
       query.expand = ['latestIncident'];
     }
 
@@ -215,7 +215,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     };
     const {cursor: _cursor, page: _page, ...currentQuery} = query;
     const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
-    const hasAlertList = organization.features.includes('alert-list');
+    const hasAlertList = organization.features.includes('alert-details-redesign');
     const isAlertRuleSort =
       sort.field.includes('incident_status') || sort.field.includes('date_triggered');
     const sortArrow = (
@@ -355,7 +355,7 @@ class AlertRulesListContainer extends React.Component<Props> {
       query.team = ALERT_LIST_QUERY_DEFAULT_TEAMS;
     }
 
-    if (organization.features.includes('alert-list') && !query.sort) {
+    if (organization.features.includes('alert-details-redesign') && !query.sort) {
       query.sort = ['incident_status', 'date_triggered'];
     }
 
