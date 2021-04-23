@@ -6,7 +6,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('app/actionCreators/modal');
 
-describe('Events ActionCreator', () => {
+describe('navigation ActionCreator', () => {
   let router;
   beforeEach(() => {
     const initialData = initializeOrg({
