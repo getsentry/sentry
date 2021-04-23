@@ -167,7 +167,6 @@ def pytest_configure(config):
     settings.GITHUB_API_SECRET = "123"
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
-    settings.SENTRY_SDK_CONFIG = {}
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
