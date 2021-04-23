@@ -112,11 +112,11 @@ class IssueQuickTrace extends React.Component<Props, State> {
       return (
         <StyledAlert type="info" icon={<IconInfo size="sm" />}>
           <AlertContent>
-            {tct('The [type] for this error cannot be found. To see why, [link].', {
+            {tct('The [type] for this error cannot be found. [link]', {
               type: type === 'missing' ? t('transaction') : t('trace'),
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#troubleshooting">
-                  {t('go to docs')}
+                  {t('Read the docs to understand why.')}
                 </ExternalLink>
               ),
             })}
