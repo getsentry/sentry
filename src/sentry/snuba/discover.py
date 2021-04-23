@@ -897,7 +897,7 @@ def get_performance_facets(
                     key=r["tags_key"],
                     value=r["tags_value"],
                     performance=float(r["aggregate"]),
-                    count=float(r["cnt"]),
+                    count=int(r["cnt"]),
                     frequency=float((r["cnt"] / frequency_sample_rate) / transaction_count),
                     comparison=float(r["aggregate"] / transaction_aggregate),
                     sumdelta=float(r["sumdelta"]),
