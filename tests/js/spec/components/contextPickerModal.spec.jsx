@@ -145,7 +145,7 @@ describe('ContextPickerModal', function () {
 
     expect(wrapper.find('StyledSelectControl[name="project"]').prop('options')).toEqual([
       {
-        label: 'Projects I belong to',
+        label: 'My Projects',
         options: [
           {
             value: project.slug,
@@ -160,7 +160,7 @@ describe('ContextPickerModal', function () {
         ],
       },
       {
-        label: "Projects I don't belong to",
+        label: 'All Projects',
         options: [
           {
             value: project4.slug,
@@ -222,7 +222,7 @@ describe('ContextPickerModal', function () {
 
     expect(wrapper.find('StyledSelectControl[name="project"]').prop('options')).toEqual([
       {
-        label: 'Projects I belong to',
+        label: 'My Projects',
         options: [
           {
             value: project2.slug,
@@ -237,7 +237,7 @@ describe('ContextPickerModal', function () {
         ],
       },
       {
-        label: "Projects I don't belong to",
+        label: 'All Projects',
         options: [],
       },
     ]);
