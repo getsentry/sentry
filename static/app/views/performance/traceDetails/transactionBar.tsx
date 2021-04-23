@@ -216,7 +216,7 @@ class TransactionBar extends React.Component<Props, State> {
         </Projects>
         <TransactionBarTitleContent>
           <strong>
-            <OperationName spanErrors={transaction.errors}>
+            <OperationName errored={transaction.errors.length > 0}>
               {transaction['transaction.op']}
             </OperationName>
             {' \u2014 '}
@@ -227,7 +227,7 @@ class TransactionBar extends React.Component<Props, State> {
     ) : (
       <TransactionBarTitleContent>
         <strong>
-          <OperationName spanErrors={[]}>Trace</OperationName>
+          <OperationName errored={false}>Trace</OperationName>
           {' \u2014 '}
         </strong>
         {transaction.traceSlug}

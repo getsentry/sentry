@@ -191,7 +191,7 @@ class SpanBar extends React.Component<Props, State> {
 
     const operationName = getSpanOperation(span) ? (
       <strong>
-        <OperationName spanErrors={[]}>{getSpanOperation(span)}</OperationName>
+        <OperationName errored={false}>{getSpanOperation(span)}</OperationName>
         {` \u2014 `}
       </strong>
     ) : (

@@ -487,11 +487,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     errors: TraceError[]
   ) {
     const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
-    const {span, treeDepth} = this.props;
+    const {span, treeDepth, spanErrors} = this.props;
 
     const operationName = getSpanOperation(span) ? (
       <strong>
-        <OperationName spanErrors={errors}>{getSpanOperation(span)}</OperationName>
+        <OperationName errored={errors.length + spanErrors.length > 0}>
+          {getSpanOperation(span)}
+        </OperationName>
         {` \u2014 `}
       </strong>
     ) : (
