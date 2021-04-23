@@ -7,6 +7,8 @@ import SearchBar from 'app/components/events/searchBar';
 import SelectControl from 'app/components/forms/selectControl';
 import ListItem from 'app/components/list/listItem';
 import {Panel, PanelBody} from 'app/components/panels';
+import Tooltip from 'app/components/tooltip';
+import {IconQuestion} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Environment, Organization, SelectValue} from 'app/types';
@@ -281,10 +283,16 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
           </FormField>
         </FormRow>
         <StyledListItem>
-          <div>
-            {t('Select time interval')}
-            <StyledParagraph>Triggers are evaluated every minute.</StyledParagraph>
-          </div>
+          <StyledListTitle>
+            <div>{t('Select time interval')}</div>
+            <Tooltip
+              title={t(
+                'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
+              )}
+            >
+              <IconQuestion size="sm" color="gray200" />
+            </Tooltip>
+          </StyledListTitle>
         </StyledListItem>
         <ThresholdSelectField
           name="timeWindow"
@@ -308,10 +316,11 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
   }
 }
 
-const StyledParagraph = styled('p')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: 0;
+const StyledListTitle = styled('div')`
+  display: flex;
+  span {
+    margin-left: ${space(1)};
+  }
 `;
 
 const ChartPanel = styled(Panel)`
@@ -321,6 +330,7 @@ const ChartPanel = styled(Panel)`
 
 const ThresholdSelectField = styled(SelectField)`
   margin-bottom: ${space(2)} !important;
+  padding-top: 0 !important;
 `;
 
 const StyledPanelBody = styled(PanelBody)`
