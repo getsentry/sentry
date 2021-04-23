@@ -21,7 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Get and set up Node for front-end asset building
 ENV VOLTA_VERSION=0.8.1 \
   VOLTA_HOME=/.volta \
-  PATH=/.volta/bin:$PATH
+  PATH=/.volta/bin:$PATH \
+  NODE_ENV=production \
+  NODE_PATH=/js/node_modules
 
 RUN wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" \
   && tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin \

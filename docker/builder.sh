@@ -7,10 +7,6 @@ if [[ ! -f setup.py ]]; then
     exit 1
 fi
 
-mkdir -p ./node_modules
-echo "Populating node_modules cache..."
-cp -ur /js/node_modules/* ./node_modules/
-
 export YARN_CACHE_FOLDER="$(mktemp -d)"
 python setup.py bdist_wheel --build-number 0
 rm -r "$YARN_CACHE_FOLDER"
