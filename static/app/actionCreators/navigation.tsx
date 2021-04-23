@@ -13,11 +13,11 @@ export function navigateTo(to: string, router: InjectedRouter & {location?: Loca
   const needOrg = to.indexOf(':orgId') > -1;
   const needProject = to.indexOf(':projectId') > -1;
   const comingFromProjectId = router?.location?.query?.project;
-  const needProjectId = !comingFromProjectId;
+  const needProjectId = !comingFromProjectId || Array.isArray(comingFromProjectId);
 
   const projectById = ProjectsStore.getById(comingFromProjectId);
 
-  if (needOrg || (needProject && needProjectId)) {
+  if (needOrg || (needProject && (needProjectId || !projectById))) {
     openModal(
       modalProps => (
         <ContextPickerModal
