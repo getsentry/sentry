@@ -87,6 +87,10 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     );
   }
 
+  hasCodeOwners() {
+    return this.props.organization.features.includes('import-codeowners');
+  }
+
   onTabChange = (value: Tab) => {
     this.setState({tab: value});
   };
@@ -221,9 +225,10 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     const tabs = [
       ['repos', t('Repositories')],
       ['codeMappings', t('Code Mappings')],
-      ['userMappings', t('User Mappings')],
-      ['teamMappings', t('Team Mappings')],
-    ] as const;
+      ...(this.hasCodeOwners() ? [['userMappings', t('User Mappings')]] : []),
+      ...(this.hasCodeOwners() ? [['teamMappings', t('Team Mappings')]] : []),
+    ];
+
     return (
       <React.Fragment>
         <NavTabs underlined>
@@ -231,7 +236,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
             <li
               key={tabTuple[0]}
               className={this.tab === tabTuple[0] ? 'active' : ''}
-              onClick={() => this.onTabChange(tabTuple[0])}
+              onClick={() => this.onTabChange(tabTuple[0] as Tab)}
             >
               <CapitalizedLink>{tabTuple[1]}</CapitalizedLink>
             </li>

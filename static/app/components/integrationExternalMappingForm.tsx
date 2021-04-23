@@ -43,7 +43,7 @@ export default class IntegrationExternalMappingForm extends React.Component<Prop
         type: 'string',
         required: true,
         label: tct('External [type]', {type: capitalize(type)}),
-        placeholder: t(`External ${capitalize(type)}`),
+        placeholder: t(`${type === 'team' ? '@org/teamname' : '@username'}`),
       },
     ];
     if (type === 'user') {
@@ -52,7 +52,7 @@ export default class IntegrationExternalMappingForm extends React.Component<Prop
         type: 'select',
         required: true,
         label: tct('Sentry [type]', {type: capitalize(type)}),
-        placeholder: t(`Sentry ${capitalize(type)}`),
+        placeholder: t(`Choose your Sentry ${capitalize(type)}`),
         options,
         deprecatedSelectControl: false,
       });
