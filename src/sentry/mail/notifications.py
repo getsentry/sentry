@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Set
 
 from sentry import options
 from sentry.models import ProjectOption, User
@@ -58,8 +58,15 @@ def can_users_unsubscribe(notification: BaseNotification) -> bool:
     return bool(notification.group)
 
 
+def log_message(notification: BaseNotification, user: User) -> None:
+    pass
+
+
 def get_context(
-    notification, user: User, reason: int, shared_context: Mapping[str, Any]
+    notification: BaseNotification,
+    user: User,
+    shared_context: Mapping[str, Any],
+    extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
     """
     Compose the various levels of context and add email-specific fields. The
@@ -68,7 +75,7 @@ def get_context(
     """
     context = {
         **shared_context,
-        **notification.get_user_context(user, reason),
+        **notification.get_user_context(user, extra_context),
     }
     if can_users_unsubscribe(notification) and notification.group:
         context.update({"unsubscribe_link": get_unsubscribe_link(user.id, notification.group.id)})
@@ -79,17 +86,20 @@ def get_context(
 @register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: BaseNotification,
-    users: Mapping[User, int],
+    users: Set[User],
     shared_context: Mapping[str, Any],
+    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> None:
     headers = get_headers(notification)
     subject = get_subject_with_prefix(notification)
     type = get_email_type(notification)
 
-    for user, reason in users.items():
+    for user in users:
+        extra_context = (extra_context_by_user_id or {}).get(user.id, {})
+        log_message(notification, user)
         msg = MessageBuilder(
             subject=subject,
-            context=get_context(notification, user, reason, shared_context),
+            context=get_context(notification, user, shared_context, extra_context),
             template=notification.get_template(),
             html_template=notification.get_html_template(),
             headers=headers,
