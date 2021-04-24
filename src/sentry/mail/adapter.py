@@ -474,9 +474,10 @@ class MailAdapter:
 
     def notify_digest(self, project, digest, target_type, target_identifier=None):
         metrics.incr("mail_adapter.notify_digest")
-        user_ids = self.get_send_to(project, target_type, target_identifier)[
+        user_ids = self.get_send_to(project, target_type, target_identifier).get(
             ExternalProviders.EMAIL
-        ]
+        )
+
         logger.info(
             "mail.adapter.notify_digest",
             extra={
