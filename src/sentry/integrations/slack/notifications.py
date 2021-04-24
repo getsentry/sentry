@@ -58,7 +58,7 @@ def get_channel_and_token(
 
 
 @register_notification_provider(ExternalProviders.SLACK)
-def send_activity_notification_as_slack(
+def send_notification_as_slack(
     notification: BaseNotification,
     users: Set[User],
     shared_context: Mapping[str, Any],
