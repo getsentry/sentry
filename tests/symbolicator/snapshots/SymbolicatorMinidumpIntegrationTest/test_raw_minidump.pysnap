@@ -336,8 +336,7 @@ threads:
     id: 1636
     raw_stacktrace: null
     stacktrace: null
-  - crashed: false
-    id: 3580
+  - id: 3580
     raw_stacktrace: null
     stacktrace:
       frames:
@@ -392,8 +391,7 @@ threads:
         eip: '0x771e016c'
         esi: '0x13b4930'
         esp: '0x159f900'
-  - crashed: false
-    id: 2600
+  - id: 2600
     raw_stacktrace: null
     stacktrace:
       frames:
@@ -448,8 +446,7 @@ threads:
         eip: '0x771e016c'
         esi: '0x13b7a68'
         esp: '0x169f9f4'
-  - crashed: false
-    id: 2920
+  - id: 2920
     raw_stacktrace: null
     stacktrace:
       frames:

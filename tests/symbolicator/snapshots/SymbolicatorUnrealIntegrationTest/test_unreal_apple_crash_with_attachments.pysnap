@@ -280,8 +280,7 @@ sdk:
 stacktrace: null
 threads:
   values:
-  - crashed: false
-    id: 0
+  - id: 0
     stacktrace:
       frames:
       - data:
@@ -362,8 +361,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bc6c2a'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 1
+  - id: 1
     stacktrace:
       frames:
       - data:
@@ -383,8 +381,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bc85be'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 2
+  - id: 2
     stacktrace:
       frames:
       - data:
@@ -404,8 +401,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bc85be'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 3
+  - id: 3
     stacktrace:
       frames:
       - data:
@@ -420,8 +416,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bc85be'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 4
+  - id: 4
     stacktrace:
       frames:
       - data:
@@ -443,8 +438,7 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: true
     id: 5
-  - crashed: false
-    id: 6
+  - id: 6
     stacktrace:
       frames:
       - data:
@@ -495,8 +489,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bc6c2a'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 7
+  - id: 7
     stacktrace:
       frames:
       - data:
@@ -559,8 +552,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 8
+  - id: 8
     stacktrace:
       frames:
       - data:
@@ -623,8 +615,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 9
+  - id: 9
     stacktrace:
       frames:
       - data:
@@ -687,8 +678,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 10
+  - id: 10
     stacktrace:
       frames:
       - data:
@@ -751,8 +741,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 11
+  - id: 11
     stacktrace:
       frames:
       - data:
@@ -815,8 +804,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 12
+  - id: 12
     stacktrace:
       frames:
       - data:
@@ -879,8 +867,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 13
+  - id: 13
     stacktrace:
       frames:
       - data:
@@ -943,8 +930,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 14
+  - id: 14
     stacktrace:
       frames:
       - data:
@@ -1007,8 +993,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 15
+  - id: 15
     stacktrace:
       frames:
       - data:
@@ -1071,8 +1056,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 16
+  - id: 16
     stacktrace:
       frames:
       - data:
@@ -1141,8 +1125,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 17
+  - id: 17
     stacktrace:
       frames:
       - data:
@@ -1193,8 +1176,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 18
+  - id: 18
     stacktrace:
       frames:
       - data:
@@ -1245,8 +1227,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 19
+  - id: 19
     stacktrace:
       frames:
       - data:
@@ -1297,8 +1278,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 20
+  - id: 20
     stacktrace:
       frames:
       - data:
@@ -1349,8 +1329,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 21
+  - id: 21
     stacktrace:
       frames:
       - data:
@@ -1401,8 +1380,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 22
+  - id: 22
     stacktrace:
       frames:
       - data:
@@ -1422,8 +1400,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bc85be'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 23
+  - id: 23
     stacktrace:
       frames:
       - data:
@@ -1443,8 +1420,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bc85be'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 24
+  - id: 24
     stacktrace:
       frames:
       - data:
@@ -1464,8 +1440,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bc85be'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 25
+  - id: 25
     stacktrace:
       frames:
       - data:
@@ -1485,8 +1460,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bc85be'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 26
+  - id: 26
     stacktrace:
       frames:
       - data:
@@ -1537,8 +1511,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca876'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 27
+  - id: 27
     stacktrace:
       frames:
       - data:
@@ -1589,8 +1562,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 28
+  - id: 28
     stacktrace:
       frames:
       - data:
@@ -1641,8 +1613,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 29
+  - id: 29
     stacktrace:
       frames:
       - data:
@@ -1693,8 +1664,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 30
+  - id: 30
     stacktrace:
       frames:
       - data:
@@ -1745,8 +1715,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 31
+  - id: 31
     stacktrace:
       frames:
       - data:
@@ -1797,8 +1766,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 32
+  - id: 32
     stacktrace:
       frames:
       - data:
@@ -1849,8 +1817,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 33
+  - id: 33
     stacktrace:
       frames:
       - data:
@@ -1919,8 +1886,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 34
+  - id: 34
     stacktrace:
       frames:
       - data:
@@ -2031,8 +1997,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61c74969'
         package: /usr/lib/system/libsystem_platform.dylib
-  - crashed: false
-    id: 35
+  - id: 35
     stacktrace:
       frames:
       - data:
@@ -2089,8 +2054,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca876'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 36
+  - id: 36
     stacktrace:
       frames:
       - data:
@@ -2141,8 +2105,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 37
+  - id: 37
     stacktrace:
       frames:
       - data:
@@ -2193,8 +2156,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 38
+  - id: 38
     stacktrace:
       frames:
       - data:
@@ -2245,8 +2207,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 39
+  - id: 39
     stacktrace:
       frames:
       - data:
@@ -2297,8 +2258,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 40
+  - id: 40
     stacktrace:
       frames:
       - data:
@@ -2349,8 +2309,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 41
+  - id: 41
     stacktrace:
       frames:
       - data:
@@ -2401,8 +2360,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 42
+  - id: 42
     stacktrace:
       frames:
       - data:
@@ -2453,8 +2411,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 43
+  - id: 43
     stacktrace:
       frames:
       - data:
@@ -2505,8 +2462,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 44
+  - id: 44
     stacktrace:
       frames:
       - data:
@@ -2557,8 +2513,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 45
+  - id: 45
     stacktrace:
       frames:
       - data:
@@ -2609,8 +2564,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 46
+  - id: 46
     stacktrace:
       frames:
       - data:
@@ -2661,8 +2615,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 47
+  - id: 47
     stacktrace:
       frames:
       - data:
@@ -2713,8 +2666,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 48
+  - id: 48
     stacktrace:
       frames:
       - data:
@@ -2765,8 +2717,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 49
+  - id: 49
     stacktrace:
       frames:
       - data:
@@ -2817,8 +2768,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 50
+  - id: 50
     stacktrace:
       frames:
       - data:
@@ -2869,8 +2819,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 51
+  - id: 51
     stacktrace:
       frames:
       - data:
@@ -2921,8 +2870,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bca1b2'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 52
+  - id: 52
     stacktrace:
       frames:
       - data:
@@ -2961,8 +2909,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bc6c7e'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 53
+  - id: 53
     stacktrace:
       frames:
       - data:
@@ -3019,8 +2966,7 @@ threads:
         in_app: false
         instruction_addr: '0x7fff61bc6c2a'
         package: /usr/lib/system/libsystem_kernel.dylib
-  - crashed: false
-    id: 54
+  - id: 54
     stacktrace:
       frames:
       - data:
