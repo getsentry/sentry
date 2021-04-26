@@ -1,4 +1,5 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -142,8 +143,10 @@ describe('UsageStats', function () {
           query: {
             pagePeriod: ninetyDays,
             dataCategory: DataCategory.TRANSACTIONS,
-            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
             sort: '-project',
+            query: 'myProjectSlug',
+            cursor: '0:1:0',
           },
         }}
       />,
@@ -219,24 +222,26 @@ describe('UsageStats', function () {
         location={{
           query: {
             pagePeriod: ninetyDays,
-            dataCategory: DataCategory.TRANSACTIONS,
-            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            dataCategory: DataCategory.ERRORS,
+            transform: CHART_OPTIONS_DATA_TRANSFORM[0].value,
             sort: '-project',
+            query: 'myProjectSlug',
+            cursor: '0:0:0',
           },
         }}
         router={router}
       />,
-      router
+      routerContext
     );
 
     await tick();
     wrapper.update();
 
-    const optionPagePeriod = wrapper.find(`DropdownItem[eventKey="90d"]`);
-    optionPagePeriod.props().onSelect('90d');
+    const optionPagePeriod = wrapper.find(`DropdownItem[eventKey="30d"]`);
+    optionPagePeriod.props().onSelect('30d');
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        pagePeriod: '90d',
+        pagePeriod: '30d',
       }),
     });
 
@@ -250,8 +255,22 @@ describe('UsageStats', function () {
     optionChartTransform.props().onChange(CHART_OPTIONS_DATA_TRANSFORM[1].value);
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+        transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
       }),
+    });
+
+    const inputQuery = wrapper.find('SearchBar');
+    inputQuery.props().onSearch('someSearchQuery');
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        query: 'someSearchQuery',
+      }),
+    });
+
+    const paginate = wrapper.find('Pagination');
+    paginate.props().onCursor('0:100:0');
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({cursor: '0:100:0'}),
     });
   });
 
@@ -266,14 +285,16 @@ describe('UsageStats', function () {
             pagePeriod: ninetyDays,
             pageUtc: true,
             dataCategory: DataCategory.TRANSACTIONS,
-            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
             sort: '-project',
+            query: 'myProjectSlug',
+            cursor: '0:1:0',
             notAPageKey: 'hello', // Should not be removed
           },
         }}
         router={router}
       />,
-      router
+      routerContext
     );
 
     await tick();

@@ -33,8 +33,10 @@ const PAGE_QUERY_PARAMS = [
   'pagePeriod',
   'pageUtc',
   'dataCategory',
-  'chartTransform',
+  'transform',
   'sort',
+  'query',
+  'cursor',
 ];
 
 type Props = {
@@ -79,12 +81,20 @@ class OrganizationStats extends React.Component<Props> {
 
   // Validation and type-casting should be handled by chart
   get chartTransform(): string | undefined {
-    return this.props.location?.query?.chartTransform;
+    return this.props.location?.query?.transform;
   }
 
   // Validation and type-casting should be handled by table
   get tableSort(): string | undefined {
     return this.props.location?.query?.sort;
+  }
+
+  get tableQuery(): string | undefined {
+    return this.props.location?.query?.query;
+  }
+
+  get tableCursor(): string | undefined {
+    return this.props.location?.query?.cursor;
   }
 
   getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
@@ -128,8 +138,10 @@ class OrganizationStats extends React.Component<Props> {
     nextState: {
       dataCategory?: DataCategory;
       pagePeriod?: RelativePeriod;
-      chartTransform?: ChartDataTransform;
+      transform?: ChartDataTransform;
       sort?: string;
+      query?: string;
+      cursor?: string;
     },
     options: {
       willUpdateRouter?: boolean;
@@ -249,6 +261,8 @@ class OrganizationStats extends React.Component<Props> {
                 dataCategoryName={this.dataCategoryName}
                 dataDatetime={this.dataPeriod}
                 tableSort={this.tableSort}
+                tableQuery={this.tableQuery}
+                tableCursor={this.tableCursor}
                 handleChangeState={this.setStateOnUrl}
                 getNextLocations={this.getNextLocations}
               />
