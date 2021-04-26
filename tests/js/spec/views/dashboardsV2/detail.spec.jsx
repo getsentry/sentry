@@ -107,7 +107,7 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
 
       // Rename
-      const dashboardTitle = wrapper.find('DashboardTitle Content');
+      const dashboardTitle = wrapper.find('DashboardTitle Label');
       dashboardTitle.simulate('click');
 
       wrapper.find('StyledInput').simulate('change', {
