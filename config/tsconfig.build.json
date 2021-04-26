@@ -30,23 +30,38 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "jsx": "preserve",
-    "baseUrl": "../",
+    "baseUrl": "/js",
     "outDir": "../src/sentry/static/sentry/dist",
     "paths": {
-      "app/*": ["static/app/*"],
-      "sentry-test/*": ["tests/js/sentry-test/*"],
-      "sentry-images/*": ["static/images/*"],
-      "sentry-logos/*": ["src/sentry/static/sentry/images/logos/*"],
-      "sentry-fonts/*": ["static/fonts/*"],
+      "app/*": [
+        "/workspace/static/app/*"
+      ],
+      "sentry-test/*": [
+        "/workspace/tests/js/sentry-test/*"
+      ],
+      "sentry-images/*": [
+        "/workspace/static/images/*"
+      ],
+      "sentry-logos/*": [
+        "/workspace/src/sentry/static/sentry/images/logos/*"
+      ],
+      "sentry-fonts/*": [
+        "/workspace/static/fonts/*"
+      ],
       // Use the stub file for typechecking. Webpack resolver will use the real files
       // based on configuration.
       "integration-docs-platforms": [
-        "tests/fixtures/integration-docs/_platforms.json",
-        "src/sentry/integration-docs/_platforms.json"
+        "/workspace/tests/fixtures/integration-docs/_platforms.json",
+        "/workspace/src/sentry/integration-docs/_platforms.json"
       ]
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
-  "include": ["../static", "../tests/js"],
-  "exclude": ["../node_modules"]
+  "include": [
+    "/workspace/static",
+    "/workspace/tests/js"
+  ],
+  "exclude": [
+    "/js/node_modules"
+  ]
 }
