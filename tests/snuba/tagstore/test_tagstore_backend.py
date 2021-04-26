@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment
+from sentry.models import Environment, EventUser, GroupRelease, Release, ReleaseProjectEnvironment
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
@@ -323,6 +323,34 @@ class TagStorageTest(TestCase, SnubaTestCase):
         )
 
     def test_get_releases(self):
+        last_release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="100",
+            date_added=iso_format(self.now - timedelta(seconds=10)),
+        )
+        first_release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="200",
+            date_added=iso_format(self.now - timedelta(seconds=100)),
+        )
+        GroupRelease.objects.create(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            release_id=first_release.id,
+            environment="",
+            last_seen=first_release.date_added,
+            first_seen=first_release.date_added,
+        )
+
+        GroupRelease.objects.create(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            release_id=last_release.id,
+            environment="",
+            last_seen=last_release.date_added,
+            first_seen=last_release.date_added,
+        )
+
         assert (
             self.ts.get_first_release(project_id=self.proj1.id, group_id=self.proj1group1.id)
             == "200"

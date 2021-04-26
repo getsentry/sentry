@@ -8,7 +8,7 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_ALIAS
 from sentry.api.utils import default_start_end_dates
-from sentry.models import Project, ReleaseProjectEnvironment
+from sentry.models import GroupRelease, Project, Release, ReleaseProjectEnvironment
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
@@ -534,27 +534,17 @@ class SnubaTagStorage(TagStorage):
         return keys_with_counts
 
     def __get_release(self, project_id, group_id, first=True):
-        filters = {"project_id": get_project_list(project_id)}
-        conditions = [["tags[sentry:release]", "IS NOT NULL", None], DEFAULT_TYPE_CONDITION]
-        if group_id is not None:
-            filters["group_id"] = [group_id]
-        aggregations = [["min" if first else "max", SEEN_COLUMN, "seen"]]
-        orderby = "seen" if first else "-seen"
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            groupby=["tags[sentry:release]"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            limit=1,
-            orderby=orderby,
-            referrer="tagstore.__get_release",
-        )
-        if not result:
-            return None
+        # explain analyze select release_id from sentry_grouprelease where group_id = 2194385916 order by last_seen desc limit 1;
+        orderby = "first_seen" if first else "-first_seen"
+        group_releases = GroupRelease.objects.filter(
+            group_id=group_id,
+            project_id=project_id,
+        ).order_by(orderby)
+        if group_releases:
+            release = Release.objects.get(id=group_releases[0].release_id)
+            return release.version
         else:
-            return list(result.keys())[0]
+            return None
 
     def get_first_release(self, project_id, group_id):
         return self.__get_release(project_id, group_id, True)
