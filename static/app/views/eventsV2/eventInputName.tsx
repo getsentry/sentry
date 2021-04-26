@@ -60,6 +60,7 @@ function EventInputName({api, organization, eventView, savedQuery}: Props) {
       <StyledEditableText
         value={value}
         onChange={handleChange}
+        isDisabled={!eventView.id}
         errorMessage={t('Please set a name for this query')}
       />
     </StyledTitle>
