@@ -33,21 +33,11 @@
     "baseUrl": "/js",
     "outDir": "../src/sentry/static/sentry/dist",
     "paths": {
-      "app/*": [
-        "/workspace/static/app/*"
-      ],
-      "sentry-test/*": [
-        "/workspace/tests/js/sentry-test/*"
-      ],
-      "sentry-images/*": [
-        "/workspace/static/images/*"
-      ],
-      "sentry-logos/*": [
-        "/workspace/src/sentry/static/sentry/images/logos/*"
-      ],
-      "sentry-fonts/*": [
-        "/workspace/static/fonts/*"
-      ],
+      "app/*": ["/workspace/static/app/*"],
+      "sentry-test/*": ["/workspace/tests/js/sentry-test/*"],
+      "sentry-images/*": ["/workspace/static/images/*"],
+      "sentry-logos/*": ["/workspace/src/sentry/static/sentry/images/logos/*"],
+      "sentry-fonts/*": ["/workspace/static/fonts/*"],
       // Use the stub file for typechecking. Webpack resolver will use the real files
       // based on configuration.
       "integration-docs-platforms": [
@@ -57,11 +47,6 @@
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
-  "include": [
-    "/workspace/static",
-    "/workspace/tests/js"
-  ],
-  "exclude": [
-    "/js/node_modules"
-  ]
+  "include": ["/workspace/static", "/workspace/tests/js"],
+  "exclude": ["/js/node_modules"]
 }
