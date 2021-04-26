@@ -7,7 +7,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
 from sentry import features
-from sentry.api.bases import OrganizationPermission
+from sentry.api.bases import OrganizationPermission, TeamPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.integrations import validate_provider
 from sentry.models import ExternalActor, Organization, Team, User
@@ -103,7 +103,12 @@ class ExternalTeamSerializer(ExternalActorSerializerBase):
         fields = ["team_id", "external_name", "provider"]
 
 
-class ExternalActorPermission(OrganizationPermission):
+class ExternalActorTeamPermission(TeamPermission):  # type: ignore
+    def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
+        return False
+
+
+class ExternalActorPermission(OrganizationPermission):  # type: ignore
     def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
         return False
 

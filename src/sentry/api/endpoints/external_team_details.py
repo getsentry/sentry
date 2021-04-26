@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.external_actor import (
     ExternalActorEndpointMixin,
-    ExternalActorPermission,
+    ExternalActorTeamPermission,
     ExternalTeamSerializer,
 )
 from sentry.api.bases.team import TeamEndpoint
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):  # type: ignore
-    permission_classes = (ExternalActorPermission,)
+    permission_classes = (ExternalActorTeamPermission,)
 
     def convert_args(
         self,
