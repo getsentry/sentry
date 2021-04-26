@@ -7,6 +7,7 @@ import Checkbox from 'app/components/checkbox';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
+import {DEBUG_SOURCE_TYPES} from 'app/data/debugFileSources';
 import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -137,6 +138,32 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     });
   }
 
+  getFieldsSymbolSources() {
+    const {project} = this.props;
+
+    if (!project.features?.includes('app-store-connect')) {
+      return fields.symbolSources;
+    }
+
+    const fieldsSymbolSources = fields.symbolSources as any;
+
+    if (
+      !!fieldsSymbolSources.addDropdown.items.find(
+        item => item.value === 'appStoreConnect'
+      )
+    ) {
+      return fields.symbolSources;
+    }
+
+    fieldsSymbolSources.addDropdown.items.push({
+      value: 'appStoreConnect',
+      label: t(DEBUG_SOURCE_TYPES.appStoreConnect),
+      searchKey: t('apple store connect'),
+    });
+
+    return fieldsSymbolSources;
+  }
+
   renderBody() {
     const {organization, project, params} = this.props;
     const {
@@ -148,6 +175,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     } = this.state;
     const {orgId, projectId} = params;
     const {features, access} = organization;
+
+    const fieldsSymbolSources = this.getFieldsSymbolSources();
 
     const fieldProps = {
       organization,
@@ -188,7 +217,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
                 features={new Set(features)}
                 title={t('External Sources')}
                 disabled={!access.includes('project:write')}
-                fields={[fields.symbolSources, fields.builtinSymbolSources]}
+                fields={[fieldsSymbolSources, fields.builtinSymbolSources]}
                 additionalFieldProps={fieldProps}
               />
             </Form>

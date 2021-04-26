@@ -222,13 +222,11 @@ type DebugFileSourceModalOptions = {
 
 export async function openDebugFileSourceModal(options: DebugFileSourceModalOptions) {
   const mod = await import(
-    /* webpackChunkName: "DebugFileSourceModal" */ 'app/components/modals/debugFileSourceModal'
+    /* webpackChunkName: "DebugFileCustomRepository" */ 'app/components/modals/debugFileCustomRepository'
   );
   const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalClassName: 'debug-file-source',
-  });
+  openModal(deps => <Modal {...deps} {...options} />);
 }
 
 export async function openInviteMembersModal(options = {}) {
