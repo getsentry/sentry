@@ -68,7 +68,7 @@ def validate_type_option(type: Optional[str]) -> Optional[NotificationSettingTyp
 def validate_type(type: str, context: Optional[List[str]] = None) -> NotificationSettingTypes:
     try:
         return NotificationSettingTypes[type.upper()]
-    except ValueError:
+    except KeyError:
         raise ParameterValidationError(f"Unknown type: {type}", context)
 
 
@@ -77,7 +77,7 @@ def validate_scope_type(
 ) -> NotificationScopeType:
     try:
         return NotificationScopeType[scope_type.upper()]
-    except ValueError:
+    except KeyError:
         raise ParameterValidationError(f"Unknown scope_type: {scope_type}", context)
 
 
@@ -102,7 +102,7 @@ def validate_value(
 ) -> NotificationSettingOptionValues:
     try:
         value = NotificationSettingOptionValues[value_param.upper()]
-    except ValueError:
+    except KeyError:
         raise ParameterValidationError(f"Unknown value: {value_param}", context)
 
     if not helper_validate(type, value):
@@ -127,6 +127,7 @@ def validate(
     Validate some serialized notification settings. If invalid, raise an
     exception. Otherwise, return them as a list of tuples.
     """
+
     if not data:
         raise ParameterValidationError("Payload required")
 
@@ -169,7 +170,7 @@ def validate(
     validate_organizations(organization_ids_to_look_up, user=user, team=team)
 
     return {
-        (type, scope_type, scope_id, provider, value)
+        (provider, type, scope_type, scope_id, value)
         for (
             type,
             scope_type,
