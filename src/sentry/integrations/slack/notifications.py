@@ -2,7 +2,11 @@ import logging
 from typing import AbstractSet, Any, Mapping, Tuple
 
 from sentry.integrations.slack.client import SlackClient  # NOQA
-from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
+from sentry.integrations.slack.message_builder.notifications import (
+    build_issue_notification_attachment,
+    build_notification_attachment,
+)
+from sentry.mail.notify import register_issue_notification_provider
 from sentry.models import ExternalActor, Organization, User
 from sentry.notifications.activity.base import ActivityNotification
 from sentry.notifications.notify import register_notification_provider
@@ -51,11 +55,15 @@ def get_channel_and_token(
 
 
 @register_notification_provider(ExternalProviders.SLACK)
-def send_notification_as_slack(
+def send_activity_notification_as_slack(
     notification: ActivityNotification,
     users: Mapping[User, int],
     shared_context: Mapping[str, Any],
 ) -> None:
+    """
+    Send an "activity notification" to a Slack user which are workflow and deploy notification types
+    """
+
     external_actors_by_user = get_integrations_by_user_id(notification.organization, users.keys())
 
     client = SlackClient()
@@ -98,5 +106,67 @@ def send_notification_as_slack(
     metrics.incr(
         "activity.notifications.sent",
         instance="slack.activity.notification",
+        skip_internal=False,
+    )
+
+
+@register_issue_notification_provider(ExternalProviders.SLACK)
+def send_issue_notification_as_slack(
+    notification: Any,
+    user_ids: int,
+    context: Mapping[str, Any],
+) -> None:
+    """
+    Send an "issue notification" to a Slack user which are project level issue alerts
+    """
+    users = User.objects.filter(id__in=list(user_ids))
+    external_actors_by_user = get_integrations_by_user_id(context["project"].organization, users)
+
+    client = SlackClient()
+    for user in users:
+        try:
+            channel, token = get_channel_and_token(external_actors_by_user, user)
+        except AttributeError as e:
+            logger.info(
+                "notification.fail.invalid_slack",
+                extra={
+                    "error": str(e),
+                    "notification": "issue_alert",
+                    "user": user.id,
+                },
+            )
+            continue
+
+        attachment = [
+            build_issue_notification_attachment(
+                context["group"],
+                event=context["event"],
+                tags=context["tags"],
+                rules=context["rules"],
+            )
+        ]
+        payload = {
+            "token": token,
+            "channel": channel,
+            "link_names": 1,
+            "attachments": json.dumps(attachment),
+        }
+        try:
+            client.post("/chat.postMessage", data=payload, timeout=5)
+        except ApiError as e:
+            logger.info(
+                "notification.fail.slack_post",
+                extra={
+                    "error": str(e),
+                    "notification": "issue_alert",
+                    "user": user.id,
+                    "channel_id": channel,
+                },
+            )
+            continue
+
+    metrics.incr(
+        "issue_alert.notifications.sent",
+        instance="slack.issue_alert.notification",
         skip_internal=False,
     )
