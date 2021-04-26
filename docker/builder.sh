@@ -4,7 +4,11 @@ set -e
 
 # Ensure custom workspace
 echo $(pwd)
+ln -s . /js/workspace
 cd /js/workspace
+
+echo $(pwd)
+ls -lah
 
 if [[ ! -f setup.py ]]; then
     >&2 echo "Cannot find setup.py, make sure you have mounted your source dir to /workspace"
