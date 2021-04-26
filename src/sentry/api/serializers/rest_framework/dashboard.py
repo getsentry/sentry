@@ -3,19 +3,16 @@ from datetime import datetime, timedelta
 from django.db.models import Max
 from rest_framework import serializers
 
-from sentry.api.event_search import (
-    InvalidSearchQuery,
-    get_filter,
-    get_function_alias,
-    resolve_field_list,
-)
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Dashboard,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
 )
+from sentry.search.events.fields import get_function_alias, resolve_field_list
+from sentry.search.events.filter import get_filter
 from sentry.utils.dates import parse_stats_period
 
 

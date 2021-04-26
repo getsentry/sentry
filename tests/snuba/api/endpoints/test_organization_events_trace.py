@@ -915,6 +915,44 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "title": "this is a log message",
         } in root_event["errors"]
 
+    def test_pruning_root(self):
+        # Pruning shouldn't happen for the root event
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1, "event_id": self.root_event.event_id},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        self.assert_trace_data(response.data[0])
+
+    def test_pruning_event(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1, "event_id": self.gen2_events[0].event_id},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        root = response.data[0]
+
+        self.assert_event(root, self.root_event, "root")
+
+        # Because of snuba query orders by timestamp we should still have all of the root's children
+        assert len(root["children"]) == 3
+        for i, gen1 in enumerate(root["children"]):
+            self.assert_event(gen1, self.gen1_events[i], f"gen1_{i}")
+            if i == 0:
+                assert len(gen1["children"]) == 1
+
+                gen2 = gen1["children"][0]
+                self.assert_event(gen2, self.gen2_events[0], "gen2_0")
+                assert len(gen2["children"]) == 1
+                gen3 = gen2["children"][0]
+                self.assert_event(gen3, self.gen3_event, "gen3_0")
+            else:
+                assert len(gen1["children"]) == 0
+
 
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace-meta"
