@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
@@ -232,6 +232,10 @@ class BuildIncidentAttachmentTest(TestCase):
             "fallback": f"[{self.project.slug}] {event.title}",
             "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
+
+    def test_build_group_attachment_issue_alert(self):
+        issue_alert_group = self.create_group(project=self.project)
+        assert build_group_attachment(issue_alert_group, issue_alert=True)["actions"] == []
 
     def test_build_group_attachment_color_no_event_error_fallback(self):
         group_with_no_events = self.create_group(project=self.project)

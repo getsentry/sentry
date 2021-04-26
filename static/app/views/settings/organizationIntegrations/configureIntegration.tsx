@@ -104,6 +104,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           provider={provider}
           onInstall={this.onUpdateIntegration}
           account={integration.domainName}
+          organization={this.props.organization}
         >
           {onClick => (
             <Button

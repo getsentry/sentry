@@ -1,5 +1,5 @@
 import React from 'react';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 
 import {EditOwnershipRulesModalOptions, ModalRenderProps} from 'app/actionCreators/modal';
 import {t} from 'app/locale';

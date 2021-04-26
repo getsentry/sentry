@@ -64,6 +64,7 @@ default_manager.add("organizations:custom-event-title", OrganizationFeature)  # 
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:dashboards-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:dashboards-edit", OrganizationFeature)  # NOQA
+default_manager.add("organizations:dashboards-manage", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-basic", OrganizationFeature)  # NOQA
@@ -96,6 +97,7 @@ default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature) 
 default_manager.add("organizations:large-debug-files", OrganizationFeature)  # NOQA
 default_manager.add("organizations:metric-alert-builder-aggregate", OrganizationFeature)  # NOQA
 default_manager.add("organizations:metrics", OrganizationFeature)  # NOQA
+default_manager.add("organizations:metrics-extraction", OrganizationFeature)  # NOQA
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)  # NOQA
 default_manager.add("organizations:monitors", OrganizationFeature)  # NOQA
 default_manager.add("organizations:notification-platform", OrganizationFeature)  # NOQA

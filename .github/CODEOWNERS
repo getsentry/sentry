@@ -40,6 +40,8 @@ Makefile                    @getsentry/owners-sentry-dev
 .pre-commit-config.yaml     @getsentry/owners-sentry-dev
 .git-blame-ignore-revs      @getsentry/owners-sentry-dev
 
+mypy.ini @getsentry/python-typing
+
 # Build & Releases
 /.github/workflows/release.yml  @getsentry/releases
 /scripts/bump-version.sh        @getsentry/releases
@@ -126,22 +128,23 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/data_export/                                        @getsentry/visibility
 /tests/sentry/data_export/                                      @getsentry/visibility
 
-/static/app/views/eventsV2/                   @getsentry/visibility
+/static/app/views/eventsV2/                                     @getsentry/visibility
 /tests/js/spec/views/eventsV2/                                  @getsentry/visibility
-/static/app/views/discover/                   @getsentry/visibility
+/static/app/views/discover/                                     @getsentry/visibility
 /tests/js/spec/views/discover/                                  @getsentry/visibility
-/static/app/views/performance/                @getsentry/visibility
+/static/app/views/performance/                                  @getsentry/visibility
 /tests/js/spec/views/performance/                               @getsentry/visibility
-/static/app/utils/discover/                   @getsentry/visibility
+/static/app/utils/discover/                                     @getsentry/visibility
 /tests/js/spec/utils/discover/                                  @getsentry/visibility
-/static/app/utils/performance/                @getsentry/visibility
+/static/app/utils/performance/                                  @getsentry/visibility
 /tests/js/spec/utils/performance/                               @getsentry/visibility
-/static/app/views/dashboards/                 @getsentry/visibility
+/static/app/views/dashboards/                                   @getsentry/visibility
 /tests/js/spec/views/dashboards/                                @getsentry/visibility
-/static/app/views/dashboardsV2/               @getsentry/visibility
+/static/app/views/dashboardsV2/                                 @getsentry/visibility
 /tests/js/spec/views/dashboardsV2/                              @getsentry/visibility
-/static/app/components/events/interfaces/spans/               @getsentry/visibility
-/static/app/components/quickTrace/						@getsentry/visibility
+/static/app/components/events/interfaces/spans/                 @getsentry/visibility
+/static/app/components/performance/                             @getsentry/visibility
+/static/app/components/quickTrace/                              @getsentry/visibility
 ### Endof Perfomance/Discover ###
 
 

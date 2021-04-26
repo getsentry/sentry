@@ -1,6 +1,8 @@
 import React from 'react';
+import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
 
+import {createListeners} from 'sentry-test/createListeners';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
@@ -57,6 +59,7 @@ describe('Dashboards > Detail', function () {
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
           route={route}
+          location={location}
         />,
         initialData.routerContext
       );
@@ -81,6 +84,8 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can rename and save', async function () {
+      const fireEvent = createListeners('window');
+
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
         method: 'PUT',
@@ -102,8 +107,16 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
 
       // Rename
-      wrapper.find('DashboardTitle Input').simulate('blur', {
+      const dashboardTitle = wrapper.find('DashboardTitle Label');
+      dashboardTitle.simulate('click');
+
+      wrapper.find('StyledInput').simulate('change', {
         target: {innerText: 'Updated prebuilt', value: 'Updated prebuilt'},
+      });
+
+      act(() => {
+        // Press enter
+        fireEvent.keyDown('Enter');
       });
 
       wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');

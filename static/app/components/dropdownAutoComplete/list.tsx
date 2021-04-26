@@ -117,6 +117,9 @@ const List = ({
 
 export default List;
 
-const StyledList = styled(ReactVirtualizedList)`
+// XXX(ts): Emotion11 has some trouble with List's defaultProps
+const StyledList = styled(ReactVirtualizedList as any)<
+  React.ComponentProps<typeof ReactVirtualizedList>
+>`
   outline: none;
 `;

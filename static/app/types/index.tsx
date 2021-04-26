@@ -1,3 +1,8 @@
+// XXX(epurkhiser): When we switch to the new React JSX runtime (enabled in
+// React 17) we will no longer need this import and can drop
+// babel-preset-css-prop for babel-preset.
+/// <reference types="@emotion/react/types/css-prop" />
+
 import u2f from 'u2f-api';
 
 import Alert from 'app/components/alert';
@@ -84,7 +89,7 @@ export type ObjectStatus =
 
 export type Avatar = {
   avatarUuid: string | null;
-  avatarType: 'letter_avatar' | 'upload' | 'gravatar';
+  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background';
 };
 
 export type Actor = {
@@ -397,7 +402,7 @@ export type AvatarUser = {
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   options?: {
-    avatarType: string;
+    avatarType: Avatar['avatarType'];
   };
   lastSeen?: string;
 };
@@ -436,7 +441,7 @@ export type User = Omit<AvatarUser, 'options'> & {
     stacktraceOrder: number;
     language: string;
     clock24Hours: boolean;
-    avatarType: string;
+    avatarType: Avatar['avatarType'];
   };
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
@@ -2014,6 +2019,7 @@ export type CodeOwners = {
   dateCreated: string;
   dateUpdated: string;
   provider: 'github' | 'gitlab';
+  codeMapping?: RepositoryProjectPathConfig[];
 };
 
 export type KeyValueListData = {

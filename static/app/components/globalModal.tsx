@@ -2,9 +2,7 @@ import React from 'react';
 // eslint-disable-next-line no-restricted-imports
 import Modal from 'react-bootstrap/lib/Modal';
 import {browserHistory} from 'react-router';
-import {ClassNames} from '@emotion/core';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
+import {ClassNames} from '@emotion/react';
 
 import {closeModal, ModalOptions, ModalRenderProps} from 'app/actionCreators/modal';
 import Confirm from 'app/components/confirm';
@@ -23,7 +21,7 @@ type Props = DefaultProps & {
    * `closeModal`
    *
    */
-  children?: (renderProps: ModalRenderProps) => React.ReactNode;
+  children?: null | ((renderProps: ModalRenderProps) => React.ReactNode);
 
   /**
    * Note this is the callback for the main App container and
@@ -94,28 +92,31 @@ class GlobalModal extends React.Component<Props> {
   }
 }
 
-const GlobalModalContainer = createReactClass<Partial<Props>>({
-  displayName: 'GlobalModalContainer',
-  mixins: [Reflux.connect(ModalStore, 'modalStore') as any],
+type State = {
+  modalStore: ReturnType<typeof ModalStore.get>;
+};
 
-  getInitialState() {
-    return {
-      modalStore: {},
-      error: false,
-      busy: false,
-    };
-  },
+class GlobalModalContainer extends React.Component<Partial<Props>, State> {
+  state: State = {
+    modalStore: ModalStore.get(),
+  };
 
   componentDidMount() {
     // Listen for route changes so we can dismiss modal
     this.unlistenBrowserHistory = browserHistory.listen(() => closeModal());
-  },
+  }
 
   componentWillUnmount() {
-    if (this.unlistenBrowserHistory) {
-      this.unlistenBrowserHistory();
-    }
-  },
+    this.unlistenBrowserHistory?.();
+    this.unlistener?.();
+  }
+
+  unlistener = ModalStore.listen(
+    (modalStore: State['modalStore']) => this.setState({modalStore}),
+    undefined
+  );
+
+  unlistenBrowserHistory?: ReturnType<typeof browserHistory.listen>;
 
   render() {
     const {modalStore} = this.state;
@@ -126,7 +127,7 @@ const GlobalModalContainer = createReactClass<Partial<Props>>({
         {visible ? modalStore.renderer : null}
       </GlobalModal>
     );
-  },
-});
+  }
+}
 
 export default GlobalModalContainer;

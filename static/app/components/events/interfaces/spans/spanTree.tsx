@@ -2,7 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import {MessageRow} from 'app/components/waterfallTree/messageRow';
+import {MessageRow} from 'app/components/performance/waterfall/messageRow';
+import {pickBarColour} from 'app/components/performance/waterfall/utils';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
@@ -30,7 +31,6 @@ import {
   isEventFromBrowserJavaScriptSDK,
   isGapSpan,
   isOrphanSpan,
-  pickSpanBarColour,
   SpanBoundsType,
   SpanGeneratedBoundsType,
 } from './utils';
@@ -184,7 +184,7 @@ class SpanTree extends React.Component<PropType> {
   }): RenderedSpanTree => {
     const {orgId, event, spansWithErrors, organization} = this.props;
 
-    const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
+    const spanBarColour: string = pickBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
 
     // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.

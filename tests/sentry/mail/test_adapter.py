@@ -80,7 +80,9 @@ class MailAdapterGetSendToTest(BaseMailAdapterTest, TestCase):
     def test_get_send_to_with_team_owners(self):
         event = self.store_event(data=self.make_event_data("foo.py"), project_id=self.project.id)
         assert sorted({self.user.pk, self.user2.pk}) == sorted(
-            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)
+            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)[
+                ExternalProviders.EMAIL
+            ]
         )
 
         # Make sure that disabling mail alerts works as expected
@@ -93,12 +95,14 @@ class MailAdapterGetSendToTest(BaseMailAdapterTest, TestCase):
         )
         assert {self.user.pk} == self.adapter.get_send_to(
             self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
-        )
+        )[ExternalProviders.EMAIL]
 
     def test_get_send_to_with_user_owners(self):
         event = self.store_event(data=self.make_event_data("foo.cbl"), project_id=self.project.id)
         assert sorted({self.user.pk, self.user2.pk}) == sorted(
-            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)
+            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)[
+                ExternalProviders.EMAIL
+            ]
         )
 
         # Make sure that disabling mail alerts works as expected
@@ -111,25 +115,25 @@ class MailAdapterGetSendToTest(BaseMailAdapterTest, TestCase):
         )
         assert {self.user.pk} == self.adapter.get_send_to(
             self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
-        )
+        )[ExternalProviders.EMAIL]
 
     def test_get_send_to_with_user_owner(self):
         event = self.store_event(data=self.make_event_data("foo.jx"), project_id=self.project.id)
         assert {self.user2.pk} == self.adapter.get_send_to(
             self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
-        )
+        )[ExternalProviders.EMAIL]
 
     def test_get_send_to_with_fallthrough(self):
         event = self.store_event(data=self.make_event_data("foo.cpp"), project_id=self.project.id)
-        assert {self.user.pk, self.user2.pk} == set(
-            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)
-        )
+        assert {self.user.pk, self.user2.pk} == self.adapter.get_send_to(
+            self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
+        )[ExternalProviders.EMAIL]
 
     def test_get_send_to_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
         event = self.store_event(data=self.make_event_data("foo.cpp"), project_id=self.project.id)
-        assert set() == self.adapter.get_send_to(
-            self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
+        assert set() == set(
+            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)
         )
 
 
@@ -640,7 +644,9 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
         event_all_users = self.store_event(
             data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
-        assert self.adapter.get_send_to_owners(event_all_users, self.project) == {
+        assert self.adapter.get_send_to_owners(event_all_users, self.project)[
+            ExternalProviders.EMAIL
+        ] == {
             self.user.id,
             self.user2.id,
             self.user3.id,
@@ -650,7 +656,9 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
         event_team = self.store_event(
             data=self.make_event_data("foo.py"), project_id=self.project.id
         )
-        assert self.adapter.get_send_to_owners(event_team, self.project) == {
+        assert self.adapter.get_send_to_owners(event_team, self.project)[
+            ExternalProviders.EMAIL
+        ] == {
             self.user2.id,
             self.user3.id,
         }
@@ -659,7 +667,9 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
         event_single_user = self.store_event(
             data=self.make_event_data("foo.jx"), project_id=self.project.id
         )
-        assert self.adapter.get_send_to_owners(event_single_user, self.project) == {self.user2.id}
+        assert self.adapter.get_send_to_owners(event_single_user, self.project)[
+            ExternalProviders.EMAIL
+        ] == {self.user2.id}
 
     def test_disable_alerts_user_scope(self):
         event_all_users = self.store_event(

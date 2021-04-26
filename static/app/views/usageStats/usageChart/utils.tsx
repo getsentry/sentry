@@ -17,15 +17,20 @@ export const FORMAT_DATETIME_HOURLY = 'MMM D LT';
  * Used to generate X-axis data points and labels for UsageChart
  * Ensure that this method is idempotent and doesn't change the moment object
  * that is passed in
+ *
+ * If hours are not shown, this method will need to follow the server timezone
+ * (which is UTC) to avoid oddities caused by the user being ahead/behind UTC.
  */
 export function getDateFromMoment(m: moment.Moment, interval: IntervalPeriod = '1d') {
   const days = parsePeriodToHours(interval) / 24;
-  const localtime = moment(m).local();
-  const parsedInterval = parseStatsPeriod(interval);
+  if (days >= 1) {
+    return moment(m).utc().format(FORMAT_DATETIME_DAILY);
+  }
 
-  return days >= 1
-    ? localtime.format(FORMAT_DATETIME_DAILY)
-    : parsedInterval
+  const parsedInterval = parseStatsPeriod(interval);
+  const localtime = moment(m).local();
+
+  return parsedInterval
     ? `${localtime.format(FORMAT_DATETIME_HOURLY)} - ${localtime
         .add(parsedInterval.period as any, parsedInterval.periodLength as any)
         .format('LT')}`
@@ -45,6 +50,10 @@ export function getXAxisDates(
   const range: string[] = [];
   const start = moment(dateStart).startOf('h');
   const end = moment(dateEnd).startOf('h');
+
+  if (!start.isValid() || !end.isValid()) {
+    return range;
+  }
 
   const {period, periodLength} = parseStatsPeriod(interval) ?? {
     period: 1,

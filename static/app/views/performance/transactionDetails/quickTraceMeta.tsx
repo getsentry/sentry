@@ -27,6 +27,7 @@ type Props = Pick<
   organization: OrganizationSummary;
   quickTrace: QuickTraceQueryChildrenProps;
   traceMeta: TraceMeta | null;
+  anchor: 'left' | 'right';
 };
 
 function handleTraceLink(organization: OrganizationSummary) {
@@ -44,6 +45,7 @@ export default function QuickTraceMeta({
   organization,
   quickTrace: {isLoading, error, trace, type},
   traceMeta,
+  anchor,
   errorDest,
   transactionDest,
 }: Props) {
@@ -69,7 +71,7 @@ export default function QuickTraceMeta({
         quickTrace={{type, trace}}
         location={location}
         organization={organization}
-        anchor="right"
+        anchor={anchor}
         errorDest={errorDest}
         transactionDest={transactionDest}
       />
@@ -79,7 +81,7 @@ export default function QuickTraceMeta({
   return (
     <MetaData
       headingText={t('Quick Trace')}
-      beta
+      badge="new"
       tooltipText={t(
         'A minified version of the full trace. Related frontend and backend services can be added to provide further visibility.'
       )}

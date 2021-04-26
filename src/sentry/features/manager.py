@@ -124,7 +124,7 @@ class FeatureManager(RegisteredFeatureManager):
         except KeyError:
             raise FeatureNotRegistered(name)
 
-    def get(self, name, *args, **kwargs):
+    def get(self, name: str, *args, **kwargs):
         """
         Lookup a registered feature context scope given the feature name.
 
@@ -139,7 +139,7 @@ class FeatureManager(RegisteredFeatureManager):
         """
         self._entity_handler = handler
 
-    def has(self, name, *args, **kwargs):
+    def has(self, name: str, *args, **kwargs) -> bool:
         """
         Determine if a feature is enabled. If a handler returns None, then the next
         mechanism is used for feature checking.
@@ -190,7 +190,7 @@ class FeatureManager(RegisteredFeatureManager):
         # Features are by default disabled if no plugin or default enables them
         return False
 
-    def batch_has(self, feature_names, actor, projects=None, organization=None):
+    def batch_has(self, feature_names, actor=None, projects=None, organization=None):
         """
         Determine if multiple features are enabled. Unhandled flags will not be in
         the results if they cannot be handled.

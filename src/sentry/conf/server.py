@@ -4,7 +4,6 @@ These settings act as the default (base) settings for the Sentry-provided web-se
 
 import os
 import os.path
-import random
 import re
 import socket
 import sys
@@ -12,18 +11,11 @@ import tempfile
 from datetime import timedelta
 from urllib.parse import urlparse
 
-from celery.schedules import crontab
 from django.conf.global_settings import *  # NOQA
-from django.core.urlresolvers import reverse_lazy
-
-# Queue configuration
-from kombu import Exchange, Queue
 
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
-
-from .locale import CATALOGS
 
 
 def gettext_noop(s):
@@ -142,6 +134,8 @@ SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 # here. This directory may not exist until that file is generated.
 CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
 
+CDC_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "cdc")
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -259,6 +253,7 @@ LANGUAGES = (
     ("zh-tw", gettext_noop("Traditional Chinese")),
 )
 
+from .locale import CATALOGS
 
 LANGUAGES = tuple((code, name) for code, name in LANGUAGES if code in CATALOGS)
 
@@ -337,6 +332,7 @@ INSTALLED_APPS = (
     "django.contrib.sites",
     "crispy_forms",
     "rest_framework",
+    "manifest_loader",
     "sentry",
     "sentry.analytics",
     "sentry.incidents.apps.Config",
@@ -374,6 +370,17 @@ SILENCED_SYSTEM_CHECKS = (
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
+# webpack assets live at a different URL that is unversioned
+# as we configure webpack to include file content based hash in the filename
+STATIC_MANIFEST_URL = "/_static/dist/"
+
+# The webpack output directory, used by django-manifest-loader
+STATICFILES_DIRS = [
+    os.path.join(STATIC_ROOT, "sentry", "dist"),
+]
+
+# django-manifest-loader settings
+MANIFEST_LOADER = {"cache": True}
 
 # various middleware will use this to identify resources which should not access
 # cookies
@@ -404,6 +411,7 @@ CSRF_COOKIE_NAME = "sc"
 
 # Auth configuration
 
+from django.urls import reverse_lazy
 
 LOGIN_REDIRECT_URL = reverse_lazy("sentry-login-redirect")
 LOGIN_URL = reverse_lazy("sentry-login")
@@ -484,6 +492,8 @@ AUTH_PROVIDER_LABELS = {
     "visualstudio": "Visual Studio",
 }
 
+import random
+
 
 def SOCIAL_AUTH_DEFAULT_USERNAME():
     return random.choice(["Darth Vader", "Obi-Wan Kenobi", "R2-D2", "C-3PO", "Yoda"])
@@ -492,6 +502,8 @@ def SOCIAL_AUTH_DEFAULT_USERNAME():
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
+# Queue configuration
+from kombu import Exchange, Queue
 
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS = {}
@@ -622,6 +634,7 @@ def create_partitioned_queues(name):
 create_partitioned_queues("counters")
 create_partitioned_queues("triggers")
 
+from celery.schedules import crontab
 
 # XXX: Make sure to register the monitor_id for each job in `SENTRY_CELERYBEAT_MONITORS`!
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
@@ -880,6 +893,8 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable the new Metrics page
     "organizations:metrics": False,
+    # Automatically extract metrics during ingestion
+    "organizations:metrics-extraction": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
     # Enable integration functionality to create and link groups to issues on
@@ -908,10 +923,12 @@ SENTRY_FEATURES = {
     "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable readonly dashboards (dashboards 2)
-    "organizations:dashboards-basic": False,
-    # Enable custom editable dashboards (dashboards 2)
-    "organizations:dashboards-edit": False,
+    # Enable readonly dashboards
+    "organizations:dashboards-basic": True,
+    # Enable custom editable dashboards
+    "organizations:dashboards-edit": True,
+    # Enable dashboards manager.
+    "organizations:dashboards-manage": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -970,12 +987,12 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
-    # Add `assigned_or_suggested:me_or_none` to inbox tab query
+    # Add `assigned_or_suggested:[me, none]` to inbox tab query
     "organizations:inbox-owners-query": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
-    "organizations:images-loaded-v2": False,
+    "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
@@ -1543,6 +1560,9 @@ SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # store. MUST be a power of two.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
+# This flags activates the Change Data Capture backend in the development environment
+SENTRY_USE_CDC_DEV = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": {
 #         "image": "image-name:version",
@@ -1560,6 +1580,16 @@ SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 #         }
 #     }
 # }
+
+POSTGRES_INIT_DB_VOLUME = (
+    {
+        os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
+            "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
+        }
+    }
+    if SENTRY_USE_CDC_DEV
+    else {}
+)
 
 SENTRY_DEVSERVICES = {
     "redis": {
@@ -1584,7 +1614,22 @@ SENTRY_DEVSERVICES = {
         "pull": True,
         "ports": {"5432/tcp": 5432},
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
-        "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
+        "volumes": {
+            "postgres": {"bind": "/var/lib/postgresql/data"},
+            "wal2json": {"bind": "/wal2json"},
+            CDC_CONFIG_DIR: {"bind": "/cdc"},
+            **POSTGRES_INIT_DB_VOLUME,
+        },
+        "command": [
+            "postgres",
+            "-c",
+            "wal_level=logical",
+            "-c",
+            "max_replication_slots=1",
+            "-c",
+            "max_wal_senders=1",
+        ],
+        "entrypoint": "/cdc/postgres-entrypoint.sh" if SENTRY_USE_CDC_DEV else None,
         "healthcheck": {
             "test": ["CMD", "pg_isready", "-U", "postgres"],
             "interval": 30000000000,  # Test every 30 seconds (in ns).
@@ -1701,6 +1746,13 @@ SENTRY_DEVSERVICES = {
         },
         "ports": {"9090/tcp": 7901},
         "only_if": lambda settings, options: options.get("chart-rendering.enabled"),
+    },
+    "cdc": {
+        "image": "getsentry/cdc:nightly",
+        "pull": True,
+        "only_if": lambda settings, options: settings.SENTRY_USE_CDC_DEV,
+        "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
+        "volumes": {CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
     },
 }
 
@@ -2081,7 +2133,12 @@ SOUTH_MIGRATION_CONVERSIONS = (
 MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
-MIGRATIONS_LOCKFILE_APP_WHITELIST = ()
+MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "jira_ac",
+    "nodestore",
+    "sentry",
+    "social_auth",
+)
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 

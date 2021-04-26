@@ -11,8 +11,8 @@ import withApi from 'app/utils/withApi';
 type IncomingDataRow = {
   id: string;
   key: string;
-  topValues: TopValue[];
-  [key: string]: string | number | IncomingTopValue[];
+  value: TopValue;
+  [key: string]: string | number | IncomingTopValue;
 };
 
 type IncomingTopValue = {
@@ -20,11 +20,15 @@ type IncomingTopValue = {
   value: string;
   aggregate: number;
   count: number;
+  frequency: number;
   comparison: number;
+  sumdelta: number;
   isOther?: boolean;
 };
 
-type IncomingTableData = IncomingDataRow[];
+type IncomingTableData = {
+  data: IncomingDataRow[];
+};
 
 /**
  * An individual row in a Segment explorer result
@@ -32,9 +36,11 @@ type IncomingTableData = IncomingDataRow[];
 export type TableDataRow = IncomingDataRow & {
   aggregate: number;
   tagValue: TagHint;
+  count: number;
   frequency: number;
   comparison: number;
-  otherValues: TopValue[];
+  value: TopValue;
+  totalTimeLost: number;
 };
 
 export type TagHint = {
@@ -54,7 +60,6 @@ type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
 };
 
 type QueryProps = DiscoverQueryProps & {
-  tagOrder: string;
   aggregateColumn: string;
   children: (props: ChildrenProps) => React.ReactNode;
 };
@@ -66,44 +71,31 @@ type FacetQuery = LocationQuery &
   };
 
 export function getRequestFunction(_props: QueryProps) {
-  const {tagOrder, aggregateColumn} = _props;
+  const {aggregateColumn} = _props;
   function getTagExplorerRequestPayload(props: DiscoverQueryProps) {
     const {eventView} = props;
     const apiPayload: FacetQuery = eventView.getEventsAPIPayload(props.location);
-    apiPayload.order = tagOrder;
     apiPayload.aggregateColumn = aggregateColumn;
+    apiPayload.order = '-sumdelta';
     return apiPayload;
   }
   return getTagExplorerRequestPayload;
 }
 
 function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
-  return (
-    prevProps.tagOrder !== nextProps.tagOrder ||
-    prevProps.aggregateColumn !== nextProps.aggregateColumn
-  );
+  return prevProps.aggregateColumn !== nextProps.aggregateColumn;
 }
 
 function afterFetch(data: IncomingTableData) {
-  const newData = data as TableData;
+  const newData = data.data as TableData;
   return newData.map(row => {
-    const firstItem = row.topValues[0];
-    row.tagValue = firstItem;
-    row.aggregate = firstItem.aggregate;
-    row.frequency = firstItem.count;
-    row.comparison = firstItem.comparison;
-    row.otherValues = row.topValues.slice(0);
-    const otherEventValue = row.topValues.reduce((acc, curr) => acc - curr.count, 1);
-    if (otherEventValue > 0.01) {
-      row.otherValues.push({
-        name: 'other',
-        value: 'other',
-        isOther: true,
-        aggregate: 0,
-        count: otherEventValue,
-        comparison: 0,
-      });
-    }
+    const value = row.value;
+    row.tagValue = value;
+    row.aggregate = value.aggregate;
+    row.frequency = value.frequency;
+    row.count = value.count;
+    row.comparison = value.comparison;
+    row.totalTimeLost = value.sumdelta;
     return row;
   });
 }

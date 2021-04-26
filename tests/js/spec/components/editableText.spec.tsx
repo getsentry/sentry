@@ -1,45 +1,10 @@
 import React from 'react';
 import {act} from 'react-dom/test-utils';
 
+import {createListeners} from 'sentry-test/createListeners';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EditableText from 'app/components/editableText';
-
-const createListenersMock = (type: 'window' | 'document') => {
-  const eventTarget = type === 'window' ? window : document;
-
-  let listeners: Array<Record<string, any>> = [];
-
-  const handler = <K extends keyof GlobalEventHandlersEventMap>(
-    eventData: Record<string, any>,
-    event: K
-  ) => {
-    const filteredListeners = listeners.filter(listener =>
-      listener.hasOwnProperty(event)
-    );
-
-    if (eventData?.key === 'Escape') {
-      return filteredListeners[1]?.[event]?.(eventData);
-    }
-
-    return filteredListeners[0]?.[event]?.(eventData);
-  };
-
-  eventTarget.addEventListener = jest.fn((event, cb) => {
-    listeners.push({
-      [event]: cb,
-    });
-  });
-
-  eventTarget.removeEventListener = jest.fn(event => {
-    listeners = listeners.filter(listener => !listener.hasOwnProperty(event));
-  });
-
-  return {
-    mouseDown: (domEl: HTMLElement) => handler({target: domEl}, 'mousedown'),
-    keyDown: (key: KeyboardEvent['key']) => handler({key}, 'keydown'),
-  };
-};
 
 function renderedComponent(onChange: () => void, newValue = 'bar') {
   const currentValue = 'foo';
@@ -48,8 +13,8 @@ function renderedComponent(onChange: () => void, newValue = 'bar') {
     <EditableText value={currentValue} onChange={onChange} />
   );
 
-  let content = wrapper.find('Content');
-  expect(content.text()).toEqual(currentValue);
+  let label = wrapper.find('Label');
+  expect(label.text()).toEqual(currentValue);
 
   let inputWrapper = wrapper.find('InputWrapper');
   expect(inputWrapper.length).toEqual(0);
@@ -57,9 +22,9 @@ function renderedComponent(onChange: () => void, newValue = 'bar') {
   const styledIconEdit = wrapper.find('StyledIconEdit');
   expect(styledIconEdit).toBeTruthy();
 
-  content.simulate('click');
+  label.simulate('click');
 
-  content = wrapper.find('Content');
+  label = wrapper.find('Label');
   expect(inputWrapper.length).toEqual(0);
 
   inputWrapper = wrapper.find('InputWrapper');
@@ -80,7 +45,7 @@ describe('EditableText', function () {
   const newValue = 'bar';
 
   it('edit value and click outside of the component', function () {
-    const fireEvent = createListenersMock('document');
+    const fireEvent = createListeners('document');
     const handleChange = jest.fn();
 
     const wrapper = renderedComponent(handleChange);
@@ -94,14 +59,14 @@ describe('EditableText', function () {
 
     wrapper.update();
 
-    const updatedContent = wrapper.find('Content');
-    expect(updatedContent).toBeTruthy();
+    const updatedLabel = wrapper.find('Label');
+    expect(updatedLabel).toBeTruthy();
 
-    expect(updatedContent.text()).toEqual(newValue);
+    expect(updatedLabel.text()).toEqual(newValue);
   });
 
   it('edit value and press enter', function () {
-    const fireEvent = createListenersMock('window');
+    const fireEvent = createListeners('window');
     const handleChange = jest.fn();
 
     const wrapper = renderedComponent(handleChange);
@@ -115,14 +80,14 @@ describe('EditableText', function () {
 
     wrapper.update();
 
-    const updatedContent = wrapper.find('Content');
-    expect(updatedContent).toBeTruthy();
+    const updatedLabel = wrapper.find('Label');
+    expect(updatedLabel).toBeTruthy();
 
-    expect(updatedContent.text()).toEqual(newValue);
+    expect(updatedLabel.text()).toEqual(newValue);
   });
 
   it('edit value and press escape', function () {
-    const fireEvent = createListenersMock('window');
+    const fireEvent = createListeners('window');
     const handleChange = jest.fn();
 
     const wrapper = renderedComponent(handleChange);
@@ -136,14 +101,14 @@ describe('EditableText', function () {
 
     wrapper.update();
 
-    const updatedContent = wrapper.find('Content');
-    expect(updatedContent).toBeTruthy();
+    const updatedLabel = wrapper.find('Label');
+    expect(updatedLabel).toBeTruthy();
 
-    expect(updatedContent.text()).toEqual(currentValue);
+    expect(updatedLabel.text()).toEqual(currentValue);
   });
 
   it('clear value and show error message', function () {
-    const fireEvent = createListenersMock('window');
+    const fireEvent = createListeners('window');
     const handleChange = jest.fn();
 
     const wrapper = renderedComponent(handleChange, '');
@@ -159,6 +124,5 @@ describe('EditableText', function () {
 
     const fieldControlErrorWrapper = wrapper.find('FieldControlErrorWrapper');
     expect(fieldControlErrorWrapper).toBeTruthy();
-    expect(fieldControlErrorWrapper.text()).toEqual('Text required');
   });
 });

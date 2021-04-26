@@ -40,6 +40,7 @@ __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
     "query",
+    "prepare_discover_query",
     "timeseries_query",
     "top_events_timeseries",
     "get_facets",
@@ -52,10 +53,12 @@ __all__ = (
 
 logger = logging.getLogger(__name__)
 
+PreparedQuery = namedtuple("query", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 PerformanceFacetResult = namedtuple(
-    "PerformanceFacetResult", ["key", "value", "performance", "frequency", "comparison", "sumdelta"]
+    "PerformanceFacetResult",
+    ["key", "value", "performance", "count", "frequency", "comparison", "sumdelta"],
 )
 
 resolve_discover_column = resolve_column(Dataset.Discover)
@@ -113,10 +116,8 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(
-    results, function_alias_map, translated_columns, snuba_filter, selected_columns=None
-):
-    results = transform_data(results, translated_columns, snuba_filter, selected_columns)
+def transform_results(results, function_alias_map, translated_columns, snuba_filter):
+    results = transform_data(results, translated_columns, snuba_filter)
     results["meta"] = transform_meta(results, function_alias_map)
     return results
 
@@ -136,16 +137,13 @@ def transform_meta(results, function_alias_map):
     return meta
 
 
-def transform_data(result, translated_columns, snuba_filter, selected_columns=None):
+def transform_data(result, translated_columns, snuba_filter):
     """
     Transform internal names back to the public schema ones.
 
     When getting timeseries results via rollup, this function will
     zerofill the output results.
     """
-    if selected_columns is None:
-        selected_columns = []
-
     for col in result["meta"]:
         # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
@@ -219,6 +217,59 @@ def query(
     # We clobber this value throughout this code, so copy the value
     selected_columns = selected_columns[:]
 
+    snuba_query = prepare_discover_query(
+        selected_columns,
+        query,
+        params,
+        orderby,
+        auto_fields,
+        auto_aggregations,
+        use_aggregate_conditions,
+        conditions,
+        functions_acl,
+    )
+    snuba_filter = snuba_query.filter
+
+    with sentry_sdk.start_span(op="discover.discover", description="query.snuba_query"):
+        result = raw_query(
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            groupby=snuba_filter.groupby,
+            conditions=snuba_filter.conditions,
+            aggregations=snuba_filter.aggregations,
+            selected_columns=snuba_filter.selected_columns,
+            filter_keys=snuba_filter.filter_keys,
+            having=snuba_filter.having,
+            orderby=snuba_filter.orderby,
+            dataset=Dataset.Discover,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+        )
+
+    with sentry_sdk.start_span(
+        op="discover.discover", description="query.transform_results"
+    ) as span:
+        span.set_data("result_count", len(result.get("data", [])))
+        return transform_results(
+            result,
+            snuba_query.fields["functions"],
+            snuba_query.columns,
+            snuba_filter,
+        )
+
+
+def prepare_discover_query(
+    selected_columns,
+    query,
+    params,
+    orderby=None,
+    auto_fields=False,
+    auto_aggregations=False,
+    use_aggregate_conditions=False,
+    conditions=None,
+    functions_acl=None,
+):
     with sentry_sdk.start_span(
         op="discover.discover", description="query.filter_transform"
     ) as span:
@@ -230,8 +281,6 @@ def query(
                 not auto_aggregations
             ), "Auto aggregations cannot be used without enabling aggregate conditions"
             snuba_filter.having = []
-
-    function_translations = {}
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
         if orderby is not None:
@@ -249,9 +298,7 @@ def query(
         snuba_filter.update_with(resolved_fields)
 
         # Resolve the public aliases into the discover dataset names.
-        snuba_filter, translated_columns = resolve_discover_aliases(
-            snuba_filter, function_translations
-        )
+        snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
 
         # Make sure that any aggregate conditions are also in the selected columns
         for having_clause in snuba_filter.having:
@@ -298,30 +345,7 @@ def query(
         if conditions is not None:
             snuba_filter.conditions.extend(conditions)
 
-    with sentry_sdk.start_span(op="discover.discover", description="query.snuba_query"):
-        result = raw_query(
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            groupby=snuba_filter.groupby,
-            conditions=snuba_filter.conditions,
-            aggregations=snuba_filter.aggregations,
-            selected_columns=snuba_filter.selected_columns,
-            filter_keys=snuba_filter.filter_keys,
-            having=snuba_filter.having,
-            orderby=snuba_filter.orderby,
-            dataset=Dataset.Discover,
-            limit=limit,
-            offset=offset,
-            referrer=referrer,
-        )
-
-    with sentry_sdk.start_span(
-        op="discover.discover", description="query.transform_results"
-    ) as span:
-        span.set_data("result_count", len(result.get("data", [])))
-        return transform_results(
-            result, resolved_fields["functions"], translated_columns, snuba_filter, selected_columns
-        )
+    return PreparedQuery(snuba_filter, translated_columns, resolved_fields)
 
 
 def get_timeseries_snuba_filter(selected_columns, query, params, rollup, default_count=True):
@@ -530,7 +554,7 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_data(result, translated_columns, snuba_filter, selected_columns)
+        result = transform_data(result, translated_columns, snuba_filter)
 
         if "project" in selected_columns:
             translated_columns["project_id"] = "project"
@@ -753,6 +777,7 @@ def get_performance_facets(
     aggregate_column="duration",
     aggregate_function="avg",
     limit=20,
+    offset=None,
     referrer=None,
 ):
     """
@@ -790,11 +815,13 @@ def get_performance_facets(
             filter_keys=snuba_filter.filter_keys,
             orderby=["-count"],
             dataset=Dataset.Discover,
-            limit=limit,
             referrer="{}.{}".format(referrer, "all_transactions"),
         )
         counts = [r["count"] for r in key_names["data"]]
-        if len(counts) != 1 or counts[0] == 0:
+        aggregates = [r["aggregate"] for r in key_names["data"]]
+
+        # Return early to avoid doing more queries with 0 count transactions or aggregates for columns that dont exist
+        if len(counts) != 1 or counts[0] == 0 or aggregates[0] is None:
             return []
 
     results = []
@@ -805,12 +832,13 @@ def get_performance_facets(
 
     # Dynamically sample so at least 10000 transactions are selected
     transaction_count = key_names["data"][0]["count"]
-    sampling_enabled = transaction_count > 10000
-    # Log growth starting at 10,000
-    target_sample = 10000 * (math.log(transaction_count, 10) - 3)
+    sampling_enabled = transaction_count > 50000
+    # Log growth starting at 50,000
+    target_sample = 50000 * (math.log(transaction_count, 10) - 3)
 
     dynamic_sample_rate = 0 if transaction_count <= 0 else (target_sample / transaction_count)
-    sample_rate = dynamic_sample_rate if sampling_enabled else None
+    sample_rate = min(max(dynamic_sample_rate, 0), 1) if sampling_enabled else None
+    frequency_sample_rate = sample_rate if sample_rate else 1
 
     excluded_tags = [
         "tags_key",
@@ -859,7 +887,9 @@ def get_performance_facets(
             referrer="{}.{}".format(referrer, "tag_values"),
             sample=sample_rate,
             turbo=sample_rate is not None,
-            limitby=[5, "tags_key"],
+            limitby=[1, "tags_key"],
+            limit=limit,
+            offset=offset,
         )
         results.extend(
             [
@@ -867,7 +897,8 @@ def get_performance_facets(
                     key=r["tags_key"],
                     value=r["tags_value"],
                     performance=float(r["aggregate"]),
-                    frequency=float(r["cnt"] / transaction_count),
+                    count=int(r["cnt"]),
+                    frequency=float((r["cnt"] / frequency_sample_rate) / transaction_count),
                     comparison=float(r["aggregate"] / transaction_aggregate),
                     sumdelta=float(r["sumdelta"]),
                 )
