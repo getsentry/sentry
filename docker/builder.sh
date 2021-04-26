@@ -4,7 +4,7 @@ set -e
 
 # Ensure custom workspace
 echo $(pwd)
-ln -s $(pwd) /js/workspace
+ln -s $(pwd) /js/
 cd /js/workspace
 
 echo $(pwd)
