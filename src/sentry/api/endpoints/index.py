@@ -9,7 +9,7 @@ class IndexEndpoint(Endpoint):
     permission_classes = ()
 
     def get(self, request):
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             user = serialize(extract_lazy_object(request.user), request.user)
         else:
             user = None

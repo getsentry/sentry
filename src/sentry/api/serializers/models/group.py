@@ -231,7 +231,7 @@ class GroupSerializerBase(Serializer):
         # making unnecessary queries.
         attach_foreignkey(item_list, Group.project, related=("organization",))
 
-        if user.is_authenticated() and item_list:
+        if user.is_authenticated and item_list:
             bookmarks = set(
                 GroupBookmark.objects.filter(user=user, group__in=item_list).values_list(
                     "group_id", flat=True
@@ -485,7 +485,7 @@ class GroupSerializerBase(Serializer):
         if (
             is_superuser
             or is_valid_sentryapp
-            or (user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists())
+            or (user.is_authenticated and user.get_orgs().filter(id=obj.organization.id).exists())
         ):
             with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
                 return obj.get_absolute_url()
