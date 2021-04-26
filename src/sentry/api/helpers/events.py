@@ -1,8 +1,8 @@
 from rest_framework.response import Response
 
 from sentry import eventstore
-from sentry.api.event_search import get_filter
 from sentry.api.serializers import serialize
+from sentry.search.events.filter import get_filter
 from sentry.utils.validators import normalize_event_id
 
 

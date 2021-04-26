@@ -61,3 +61,7 @@ class NotRegistered(Exception):
 
 class ApiTokenLimitError(Exception):
     pass
+
+
+class InvalidSearchQuery(Exception):
+    pass

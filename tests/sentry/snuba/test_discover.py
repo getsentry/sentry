@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.api.event_search import InvalidSearchQuery
+from sentry.exceptions import InvalidSearchQuery
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

@@ -7,10 +7,10 @@ from django.utils import timezone
 from django.utils.encoding import force_text
 from rest_framework import serializers
 
-from sentry.api.event_search import InvalidSearchQuery
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,

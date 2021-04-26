@@ -3,8 +3,8 @@ from django.db import IntegrityError
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.tasks import assemble_download, merge_export_blobs
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import File
-from sentry.snuba.discover import InvalidSearchQuery
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch

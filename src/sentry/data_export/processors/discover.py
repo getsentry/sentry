@@ -1,8 +1,8 @@
 import logging
 
-from sentry.api.event_search import get_function_alias
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Environment, Group, Project
+from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
 from sentry.utils.compat import map
 

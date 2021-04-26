@@ -8,9 +8,11 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry import features
 from sentry.api.base import LINK_HEADER
 from sentry.api.bases import NoProjects, OrganizationEndpoint
-from sentry.api.event_search import InvalidSearchQuery, get_filter, get_function_alias
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
+from sentry.search.events.fields import get_function_alias
+from sentry.search.events.filter import get_filter
 from sentry.snuba import discover
 from sentry.utils import snuba
 from sentry.utils.dates import get_rollup_from_request

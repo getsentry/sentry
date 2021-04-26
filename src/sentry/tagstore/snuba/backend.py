@@ -6,9 +6,10 @@ from django.core.cache import cache
 from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
-from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_ALIAS
 from sentry.api.utils import default_start_end_dates
 from sentry.models import Project, ReleaseProjectEnvironment
+from sentry.search.events.constants import PROJECT_ALIAS, USER_DISPLAY_ALIAS
+from sentry.search.events.fields import FIELD_ALIASES
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
