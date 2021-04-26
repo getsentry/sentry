@@ -3,6 +3,7 @@
 set -e
 
 # Ensure custom workspace
+ln -s /workspace /js/workspace
 cd /js/workspace
 
 if [[ ! -f setup.py ]]; then
