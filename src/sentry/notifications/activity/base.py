@@ -1,14 +1,15 @@
 import re
-from typing import Any, Mapping, MutableMapping, Optional, Set, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.html import escape
 from django.utils.safestring import SafeString, mark_safe
 
-from sentry.models import Activity, GroupSubscription, User, UserOption
+from sentry.models import Activity, User
 from sentry.notifications.notify import notify
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils.avatar import avatar_as_html
+from sentry.notifications.utils.participants import get_participants_for_group
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
@@ -23,48 +24,6 @@ class ActivityNotification:
     def should_email(self) -> bool:
         return True
 
-    def get_providers_from_which_to_remove_user(
-        self,
-        user: User,
-        participants_by_provider: Mapping[ExternalProviders, Mapping[User, int]],
-    ) -> Set[ExternalProviders]:
-        """
-        Given a mapping of provider to mappings of users to why they should receive
-        notifications for an activity, return the set of providers where the user
-        has opted out of receiving notifications.
-        """
-
-        providers = {
-            provider
-            for provider, participants in participants_by_provider.items()
-            if user in participants
-        }
-        if (
-            providers
-            and UserOption.objects.get_value(user, key="self_notifications", default="0") == "0"
-        ):
-            return providers
-        return set()
-
-    def get_participants(self) -> Mapping[ExternalProviders, Mapping[User, int]]:
-        # TODO(dcramer): not used yet today except by Release's
-        if not self.group:
-            return {}
-
-        participants_by_provider: MutableMapping[
-            ExternalProviders, MutableMapping[User, int]
-        ] = GroupSubscription.objects.get_participants(self.group)
-        user_option = self.activity.user
-        if user_option:
-            # Optionally remove the actor that created the activity from the recipients list.
-            providers = self.get_providers_from_which_to_remove_user(
-                user_option, participants_by_provider
-            )
-            for provider in providers:
-                del participants_by_provider[provider][user_option]
-
-        return participants_by_provider
-
     def get_template(self) -> str:
         return "sentry/emails/activity/generic.txt"
 
@@ -77,6 +36,12 @@ class ActivityNotification:
     def get_group_link(self) -> str:
         referrer = re.sub("Notification$", "Email", self.__class__.__name__)
         return str(self.group.get_absolute_url(params={"referrer": referrer}))
+
+    def get_participants_with_group_subscription_reason(
+        self,
+    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
+        """ This is overridden by the activity subclasses. """
+        return get_participants_for_group(self.group, self.activity.user)
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         """ The most basic context shared by every notification type. """
@@ -184,7 +149,7 @@ class ActivityNotification:
         if not self.should_email():
             return
 
-        participants_by_provider = self.get_participants()
+        participants_by_provider = self.get_participants_with_group_subscription_reason()
         if not participants_by_provider:
             return
 
