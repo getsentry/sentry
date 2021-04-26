@@ -199,7 +199,7 @@ class SummaryContent extends React.Component<Props, State> {
 
     const durationTableTitle =
       spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
-        ? t('duration')
+        ? t('total duration')
         : `${spanOperationBreakdownFilter} duration`;
 
     return (

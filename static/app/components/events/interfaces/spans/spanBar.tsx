@@ -8,8 +8,10 @@ import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
 import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
 import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {
+  DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
+  ErrorBadge,
 } from 'app/components/performance/waterfall/rowDivider';
 import {
   OperationName,
@@ -39,6 +41,8 @@ import {defined} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
+import {TraceError} from 'app/utils/performance/quickTrace/types';
+import {isTraceFull} from 'app/utils/performance/quickTrace/utils';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -57,6 +61,7 @@ import {
   getSpanID,
   getSpanOperation,
   isEventFromBrowserJavaScriptSDK,
+  isGapSpan,
   isOrphanSpan,
   isOrphanTreeDepth,
   SpanBoundsType,
@@ -478,14 +483,17 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   renderTitle(
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps,
+    errors: TraceError[]
   ) {
     const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
     const {span, treeDepth, spanErrors} = this.props;
 
     const operationName = getSpanOperation(span) ? (
       <strong>
-        <OperationName spanErrors={spanErrors}>{getSpanOperation(span)}</OperationName>
+        <OperationName errored={errors.length + spanErrors.length > 0}>
+          {getSpanOperation(span)}
+        </OperationName>
         {` \u2014 `}
       </strong>
     ) : (
@@ -722,7 +730,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <DividerLine
           showDetail
           style={{
-            position: 'relative',
+            position: 'absolute',
           }}
         />
       );
@@ -734,7 +742,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       <DividerLine
         ref={addDividerLineRef()}
         style={{
-          position: 'relative',
+          position: 'absolute',
         }}
         onMouseEnter={() => {
           dividerHandlerChildrenProps.setHover(true);
@@ -755,6 +763,25 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
+  getRelatedErrors(quickTrace: QuickTraceContextChildrenProps): TraceError[] {
+    if (!quickTrace) {
+      return [];
+    }
+
+    const {span} = this.props;
+    const {currentEvent} = quickTrace;
+
+    if (isGapSpan(span) || !currentEvent || !isTraceFull(currentEvent)) {
+      return [];
+    }
+
+    return currentEvent.errors.filter(error => error.span === span.span_id);
+  }
+
+  renderErrorBadge(errors: TraceError[]): React.ReactNode {
+    return errors.length ? <ErrorBadge /> : null;
+  }
+
   renderWarningText({warningText}: {warningText?: string} = {}) {
     if (!warningText) {
       return null;
@@ -770,9 +797,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderHeader({
     scrollbarManagerChildrenProps,
     dividerHandlerChildrenProps,
+    quickTrace,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
+    quickTrace: QuickTraceContextChildrenProps;
   }) {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
@@ -783,6 +812,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
     const displaySpanBar = defined(bounds.left) && defined(bounds.width);
     const durationDisplay = getDurationDisplay(bounds);
+    const errors = this.getRelatedErrors(quickTrace);
 
     return (
       <RowCellContainer showDetail={this.state.showDetail}>
@@ -797,9 +827,12 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             this.toggleDisplayDetail();
           }}
         >
-          {this.renderTitle(scrollbarManagerChildrenProps)}
+          {this.renderTitle(scrollbarManagerChildrenProps, errors)}
         </RowCell>
-        {this.renderDivider(dividerHandlerChildrenProps)}
+        <DividerContainer>
+          {this.renderDivider(dividerHandlerChildrenProps)}
+          {this.renderErrorBadge(errors)}
+        </DividerContainer>
         <RowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
@@ -873,24 +906,29 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         showBorder={this.state.showDetail}
         data-test-id="span-row"
       >
-        <ScrollbarManager.Consumer>
-          {scrollbarManagerChildrenProps => {
-            return (
-              <DividerHandlerManager.Consumer>
-                {(
-                  dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-                ) =>
-                  this.renderHeader({
-                    dividerHandlerChildrenProps,
-                    scrollbarManagerChildrenProps,
-                  })
-                }
-              </DividerHandlerManager.Consumer>
-            );
-          }}
-        </ScrollbarManager.Consumer>
         <QuickTraceContext.Consumer>
-          {quickTrace => this.renderDetail({isVisible: isSpanVisible, quickTrace})}
+          {quickTrace => (
+            <React.Fragment>
+              <ScrollbarManager.Consumer>
+                {scrollbarManagerChildrenProps => {
+                  return (
+                    <DividerHandlerManager.Consumer>
+                      {(
+                        dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+                      ) =>
+                        this.renderHeader({
+                          dividerHandlerChildrenProps,
+                          scrollbarManagerChildrenProps,
+                          quickTrace,
+                        })
+                      }
+                    </DividerHandlerManager.Consumer>
+                  );
+                }}
+              </ScrollbarManager.Consumer>
+              {this.renderDetail({isVisible: isSpanVisible, quickTrace})}
+            </React.Fragment>
+          )}
         </QuickTraceContext.Consumer>
       </Row>
     );

@@ -176,11 +176,10 @@ export class UsageChart extends React.Component<Props, State> {
    */
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const {usageDateStart, usageDateEnd, usageDateInterval} = nextProps;
-    const xAxisDates = getXAxisDates(usageDateStart, usageDateEnd, usageDateInterval);
 
     return {
       ...prevState,
-      xAxisDates,
+      xAxisDates: getXAxisDates(usageDateStart, usageDateEnd, usageDateInterval),
     };
   }
 

@@ -152,6 +152,7 @@ PREBUILT_DASHBOARDS = {
                 {
                     "title": "Errors by Country",
                     "displayType": "world_map",
+                    "interval": "5m",
                     "queries": [
                         {
                             "name": "Error counts",

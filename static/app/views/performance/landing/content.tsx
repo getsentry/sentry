@@ -119,7 +119,7 @@ class LandingContent extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <SearchContainer>
-          <StyledSearchBar
+          <SearchBar
             organization={organization}
             projectIds={eventView.project}
             query={filterString}
@@ -131,24 +131,22 @@ class LandingContent extends React.Component<Props, State> {
             onSearch={handleSearch}
             maxQueryLength={MAX_QUERY_LENGTH}
           />
-          <ProjectTypeDropdown>
-            <DropdownControl
-              buttonProps={{prefix: t('Display')}}
-              label={currentLandingDisplay.label}
-            >
-              {LANDING_DISPLAYS.map(({label, field}) => (
-                <DropdownItem
-                  key={field}
-                  onSelect={this.handleLandingDisplayChange}
-                  eventKey={field}
-                  data-test-id={field}
-                  isActive={field === currentLandingDisplay.field}
-                >
-                  {label}
-                </DropdownItem>
-              ))}
-            </DropdownControl>
-          </ProjectTypeDropdown>
+          <DropdownControl
+            buttonProps={{prefix: t('Display')}}
+            label={currentLandingDisplay.label}
+          >
+            {LANDING_DISPLAYS.map(({label, field}) => (
+              <DropdownItem
+                key={field}
+                onSelect={this.handleLandingDisplayChange}
+                eventKey={field}
+                data-test-id={field}
+                isActive={field === currentLandingDisplay.field}
+              >
+                {label}
+              </DropdownItem>
+            ))}
+          </DropdownControl>
         </SearchContainer>
         {this.renderSelectedDisplay(currentLandingDisplay.field)}
       </React.Fragment>
@@ -288,7 +286,7 @@ class LandingContent extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        <StyledSearchBar
+        <SearchBar
           organization={organization}
           projectIds={eventView.project}
           query={filterString}
@@ -345,14 +343,7 @@ class LandingContent extends React.Component<Props, State> {
 const SearchContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content;
-`;
-
-const ProjectTypeDropdown = styled('div')`
-  margin-left: ${space(1)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
+  grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
 `;
 
