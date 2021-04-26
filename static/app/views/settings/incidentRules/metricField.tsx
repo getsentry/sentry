@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {
   Aggregation,
@@ -28,9 +27,9 @@ import FormModel from 'app/views/settings/components/forms/model';
 
 import {
   errorFieldConfig,
+  getWizardAlertFieldConfig,
   OptionConfig,
   transactionFieldConfig,
-  wizardAlertFieldConfig,
 } from './constants';
 import {PRESET_AGGREGATES} from './presets';
 import {Dataset} from './types';
@@ -58,7 +57,7 @@ const getFieldOptionConfig = ({
   let hideParameterSelector = false;
   if (organization.features.includes('alert-wizard')) {
     const alertType = getAlertTypeFromAggregateDataset({dataset, aggregate});
-    config = wizardAlertFieldConfig;
+    config = getWizardAlertFieldConfig(alertType);
     hidePrimarySelector = hidePrimarySelectorSet.has(alertType);
     hideParameterSelector = hideParameterSelectorSet.has(alertType);
   } else {
@@ -160,13 +159,6 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
 
       return (
         <React.Fragment>
-          {!inFieldLabels && (
-            <AggregateHeader>
-              <div>{t('Function')}</div>
-              {numParameters > 0 && <div>{t('Parameter')}</div>}
-              {numParameters > 1 && <div>{t('Value')}</div>}
-            </AggregateHeader>
-          )}
           <StyledQueryField
             filterPrimaryOptions={option => option.value.kind === FieldValueKind.FUNCTION}
             fieldOptions={fieldOptions}
@@ -192,18 +184,6 @@ const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: 
     css`
       width: ${p.gridColumns * p.columnWidth}px;
     `}
-`;
-
-const AggregateHeader = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  grid-gap: ${space(1)};
-  text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
-  font-weight: bold;
-  margin-bottom: ${space(1)};
 `;
 
 const PresetButton = styled(Button)<{disabled: boolean}>`
