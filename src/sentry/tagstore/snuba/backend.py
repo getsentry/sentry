@@ -534,8 +534,7 @@ class SnubaTagStorage(TagStorage):
         return keys_with_counts
 
     def __get_release(self, project_id, group_id, first=True):
-        # explain analyze select release_id from sentry_grouprelease where group_id = 2194385916 order by last_seen desc limit 1;
-        orderby = "first_seen" if first else "-first_seen"
+        orderby = "first_seen" if first else "-last_seen"
         group_releases = GroupRelease.objects.filter(
             group_id=group_id,
             project_id=project_id,
