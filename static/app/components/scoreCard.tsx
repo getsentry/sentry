@@ -29,9 +29,9 @@ function ScoreCard({title, score, help, trend, trendStatus, className}: Props) {
       <ScoreWrapper>
         <Score>{score ?? '\u2014'}</Score>
         {defined(trend) && (
-          <TextOverflow>
-            <Trend trendStatus={trendStatus}>{trend}</Trend>
-          </TextOverflow>
+          <Trend trendStatus={trendStatus}>
+            <TextOverflow>{trend}</TextOverflow>
+          </Trend>
         )}
       </ScoreWrapper>
     </StyledPanel>
@@ -71,9 +71,9 @@ const Title = styled('div')`
 
 const ScoreWrapper = styled('div')`
   display: flex;
-  align-items: baseline;
+  flex-direction: row;
+  align-items: flex-end;
   max-width: 100%;
-  overflow: hidden;
 `;
 
 const Score = styled('span')`
@@ -85,11 +85,11 @@ const Score = styled('span')`
 
 type TrendProps = {trendStatus: Props['trendStatus']};
 
-const Trend = styled('span')<TrendProps>`
-  flex-grow: 1;
+const Trend = styled('div')<TrendProps>`
   color: ${getTrendColor};
   margin-left: ${space(1)};
   line-height: 1;
+  overflow: hidden;
 `;
 
 export default ScoreCard;
