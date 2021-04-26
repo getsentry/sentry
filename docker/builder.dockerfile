@@ -44,7 +44,7 @@ RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
 COPY docker/builder.sh /builder.sh
 ENTRYPOINT [ "/builder.sh" ]
 
-WORKDIR /js/workspace
+WORKDIR /workspace
 
 ARG SOURCE_COMMIT
 ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
