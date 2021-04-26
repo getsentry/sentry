@@ -98,8 +98,37 @@ class ProjectMetricsTagsTest(APITestCase):
 
         # Check if intersection works:
         assert "environment" in response.data
-        assert "rating" in response.data  # from 'session' tags
-        assert "membership" in response.data  # from 'user' tags
+        assert "custom_session_tag" in response.data  # from 'session' tags
+        assert "custom_user_tag" in response.data  # from 'user' tags
+
+    def test_filtered_response(self):
+
+        response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, metric="session"
+        )
+
+        # Check that only tags from this metrics appear:
+        assert "environment" in response.data
+        assert "custom_session_tag" in response.data  # from 'session' tags
+        assert "custom_user_tag" not in response.data  # from 'user' tags
+
+    def test_two_filters(self):
+
+        response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, metric=["user", "session"]
+        )
+
+        # Check that only tags from this metrics appear:
+        assert "environment" in response.data
+        assert "custom_session_tag" not in response.data  # from 'session' tags
+        assert "custom_user_tag" not in response.data  # from 'user' tags
+
+    def test_bad_filter(self):
+        response = self.get_response(
+            self.project.organization.slug, self.project.slug, metric="bad"
+        )
+
+        assert response.status_code == 400
 
 
 class ProjectMetricsTagDetailsTest(APITestCase):
@@ -111,9 +140,11 @@ class ProjectMetricsTagDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
     def test_unknown_tag(self):
-        response = self.get_response(self.project.organization.slug, self.project.slug, "bar")
+        response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, "bar"
+        )
 
-        assert response.status_code == 404
+        assert response.data == []
 
     def test_existing_tag(self):
         response = self.get_valid_response(
@@ -126,6 +157,38 @@ class ProjectMetricsTagDetailsTest(APITestCase):
         assert isinstance(response.data, list)
         for item in response.data:
             assert isinstance(item, str), item
+
+        assert "production" in response.data
+
+    def test_filtered_response(self):
+
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            "custom_session_tag",
+            metric="session",
+        )
+
+        # Check that only tags from this metrics appear:
+        assert set(response.data) == {"foo", "bar"}
+
+    def test_two_filters(self):
+
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            "environment",
+            metric=["user", "session"],
+        )
+
+        assert set(response.data) == {"production", "staging"}
+
+    def test_bad_filter(self):
+        response = self.get_response(
+            self.project.organization.slug, self.project.slug, "environment", metric="bad"
+        )
+
+        assert response.status_code == 400
 
 
 class ProjectMetricsDataTest(APITestCase):

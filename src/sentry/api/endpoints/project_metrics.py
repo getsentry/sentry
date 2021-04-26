@@ -27,12 +27,22 @@ class ProjectMetricDetailsEndpoint(ProjectEndpoint):
 
 
 class ProjectMetricsTagsEndpoint(ProjectEndpoint):
-    """ Get all existing tag values for a metric """
+    """Get list of tag names for this project
+
+    If the ``metric`` query param is provided, only tags for a certain metric
+    are provided.
+
+    If the ``metric`` query param is provided more than once, the *intersection*
+    of available tags is used.
+
+    """
 
     def get(self, request, project):
 
+        metric_names = request.GET.getlist("metric") or None
+
         try:
-            tag_names = DATA_SOURCE.get_tag_names(project)
+            tag_names = DATA_SOURCE.get_tag_names(project, metric_names)
         except InvalidParams as exc:
             raise (ParseError(detail=str(exc)))
 
@@ -44,14 +54,16 @@ class ProjectMetricsTagDetailsEndpoint(ProjectEndpoint):
 
     def get(self, request, project, tag_name):
 
-        try:
-            tag_values = DATA_SOURCE.get_tag_values(project, tag_name)
-        except InvalidParams as exc:
-            raise (ParseError(detail=str(exc)))
+        metric_names = request.GET.getlist("metric") or None
 
-        if not tag_values:
-            # NOTE: this behavior might change once we have a true tag indexer
-            raise ResourceDoesNotExist(f"tag '{tag_name}'")
+        try:
+            tag_values = DATA_SOURCE.get_tag_values(project, tag_name, metric_names)
+        except InvalidParams as exc:
+            msg = str(exc)
+            if "Unknown tag" in msg:
+                raise ResourceDoesNotExist(f"tag '{tag_name}'")
+            else:
+                raise ParseError(msg)
 
         return Response(tag_values, status=200)
 
