@@ -1,35 +1,22 @@
-from typing import Any, Iterable, MutableMapping
+from typing import Any, MutableMapping
 
-from sentry.models import Activity, EventError, Mapping, NotificationSetting, User
+from sentry.models import Activity, Mapping, NotificationSetting, User
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.utils import summarize_issues
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityNotification
 
 
-def summarize_issues(issues: Iterable[Any]) -> Iterable[Mapping[str, str]]:
-    rv = []
-    for issue in issues:
-        extra_info = None
-        msg_d = dict(issue["data"])
-        msg_d["type"] = issue["type"]
-
-        if "image_path" in issue["data"]:
-            extra_info = issue["data"]["image_path"].rsplit("/", 1)[-1]
-            if "image_arch" in issue["data"]:
-                extra_info = "{} ({})".format(extra_info, issue["data"]["image_arch"])
-
-        rv.append({"message": EventError(msg_d).message, "extra_info": extra_info})
-    return rv
-
-
 class NewProcessingIssuesActivityNotification(ActivityNotification):
     def __init__(self, activity: Activity) -> None:
-        ActivityNotification.__init__(self, activity)
+        super().__init__(activity)
         self.issues = summarize_issues(self.activity.data["issues"])
 
-    def get_participants(self) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    def get_participants_with_group_subscription_reason(
+        self,
+    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
         users_by_provider = NotificationSetting.objects.get_notification_recipients(self.project)
         return {
             provider: {user: GroupSubscriptionReason.processing_issue for user in users}
