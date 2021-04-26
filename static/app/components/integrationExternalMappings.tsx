@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {capitalize} from 'lodash';
+import capitalize from 'lodash/capitalize';
 
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
