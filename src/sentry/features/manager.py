@@ -190,7 +190,7 @@ class FeatureManager(RegisteredFeatureManager):
         # Features are by default disabled if no plugin or default enables them
         return False
 
-    def batch_has(self, feature_names, actor, projects=None, organization=None):
+    def batch_has(self, feature_names, actor=None, projects=None, organization=None):
         """
         Determine if multiple features are enabled. Unhandled flags will not be in
         the results if they cannot be handled.

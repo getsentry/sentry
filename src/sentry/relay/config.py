@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import List
 
 from pytz import utc
 from sentry_sdk import Hub
@@ -15,10 +16,33 @@ from sentry.ingest.inbound_filters import (
     get_filter_key,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.models.projectkey import ProjectKeyStatus
+from sentry.models import Project, ProjectKeyStatus
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
+
+#: These features will be listed in the project config
+EXPOSABLE_FEATURES = [
+    "organizations:metrics-extraction",
+]
+
+
+def get_exposed_features(project: Project) -> List[str]:
+
+    active_features = []
+    for feature in EXPOSABLE_FEATURES:
+        if feature.startswith("organizations:"):
+            if features.has(feature, project.organization):
+                active_features.append(feature)
+
+        elif feature.startswith("projects:"):
+            if features.has(feature, project):
+                active_features.append(feature)
+
+        else:
+            raise RuntimeError("EXPOSABLE_FEATURES must start with 'organizations:' or 'projects:'")
+
+    return active_features
 
 
 def get_project_key_config(project_key):
@@ -124,6 +148,7 @@ def get_project_config(project, full_config=True, project_keys=None):
                 ],
                 "piiConfig": get_pii_config(project),
                 "datascrubbingSettings": get_datascrubbing_settings(project),
+                "features": get_exposed_features(project),
             },
             "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store

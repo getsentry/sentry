@@ -364,3 +364,16 @@ def test_relay_disabled_key(
     assert http_cfg == {"disabled": True}
 
     assert projectconfig_cache_set == [{str(default_projectkey.public_key): http_cfg}]
+
+
+@pytest.mark.django_db
+def test_exposes_features(call_endpoint, task_runner):
+    with Feature({"organizations:metrics-extraction": True}):
+        with task_runner():
+            result, status_code = call_endpoint(full_config=True)
+            assert status_code < 400
+
+        for config in result["configs"].values():
+            config = config["config"]
+            assert "features" in config
+            assert config["features"] == ["organizations:metrics-extraction"]

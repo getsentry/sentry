@@ -96,6 +96,7 @@ default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature) 
 default_manager.add("organizations:large-debug-files", OrganizationFeature)  # NOQA
 default_manager.add("organizations:metric-alert-builder-aggregate", OrganizationFeature)  # NOQA
 default_manager.add("organizations:metrics", OrganizationFeature)  # NOQA
+default_manager.add("organizations:metrics-extraction", OrganizationFeature)  # NOQA
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)  # NOQA
 default_manager.add("organizations:monitors", OrganizationFeature)  # NOQA
 default_manager.add("organizations:notification-platform", OrganizationFeature)  # NOQA
