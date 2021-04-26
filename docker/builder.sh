@@ -6,9 +6,7 @@ set -e
 echo $(pwd)
 ln -s $(pwd) /js/
 cd /js/workspace
-
-echo $(pwd)
-ls -lah
+rm package.json
 
 if [[ ! -f setup.py ]]; then
     >&2 echo "Cannot find setup.py, make sure you have mounted your source dir to /workspace"
