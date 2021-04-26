@@ -47,4 +47,4 @@ jobs:
           SENTRY_LOG_LEVEL: ERROR
           PGPASSWORD: postgres
         run: |
-          ./scripts/migration-check.sh
+          ./.github/workflows/scripts/migration-check.sh
