@@ -31,7 +31,6 @@ class IncidentProject(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_incidentproject"
-        unique_together = (("project", "incident"),)
 
 
 class IncidentSeen(Model):
