@@ -4,6 +4,7 @@ import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
 import color from 'color';
 import moment from 'moment';
+import momentTimezone from 'moment-timezone';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
@@ -63,7 +64,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
     options: {timezone},
   } = ConfigStore.get('user');
-  return moment.tz(date, timezone).format(format);
+  return momentTimezone.tz(date, timezone).format(format);
 }
 
 function createThresholdSeries(lineColor: string, threshold: number): LineChartSeries {
