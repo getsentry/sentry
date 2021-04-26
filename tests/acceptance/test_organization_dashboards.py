@@ -7,8 +7,9 @@ FEATURE_NAMES = [
     "organizations:discover-query",
     "organizations:dashboards-basic",
     "organizations:dashboards-edit",
-    "organizations:dashboards-manage",
 ]
+
+MANAGE_DASHBOARDS = ["organizations:dashboards-manage"]
 
 
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
@@ -31,6 +32,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
             self.browser.snapshot("dashboards - default overview")
+
+    def test_view_dashboard_with_manager(self):
+        with self.feature(FEATURE_NAMES + MANAGE_DASHBOARDS):
+            self.browser.get(self.default_path)
+            self.wait_until_loaded()
+            self.browser.snapshot("dashboards - default overview manage CTA")
 
     def test_edit_dashboard(self):
         with self.feature(FEATURE_NAMES):
@@ -103,7 +110,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def test_dashboard_manager(self):
-        with self.feature(FEATURE_NAMES):
+        with self.feature(FEATURE_NAMES + MANAGE_DASHBOARDS):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
             self.browser.snapshot("dashboards - manage overview")
