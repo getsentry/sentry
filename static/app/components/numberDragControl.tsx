@@ -47,6 +47,7 @@ class NumberDragControl extends React.Component<Props, State> {
           trackAnalyticsEvent({
             eventName: 'Number Drag Control: Clicked',
             eventKey: 'number_drag_control.clicked',
+            organization_id: null,
           });
 
           event.currentTarget.requestPointerLock();

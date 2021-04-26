@@ -57,12 +57,12 @@ class RelatedIssues extends React.Component<Props> {
     return (
       <React.Fragment>
         <ControlsWrapper>
-          <SectionHeading>
+          <StyledSectionHeading>
             {t('Related Issues')}
             <Tooltip title={t('Top issues containing events matching the metric.')}>
-              <IconInfo size="xs" />
+              <IconInfo size="xs" color="gray200" />
             </Tooltip>
-          </SectionHeading>
+          </StyledSectionHeading>
           <Button data-test-id="issues-open" size="small" to={issueSearch}>
             {t('Open in Issues')}
           </Button>
@@ -86,6 +86,11 @@ class RelatedIssues extends React.Component<Props> {
     );
   }
 }
+
+const StyledSectionHeading = styled(SectionHeading)`
+  display: flex;
+  align-items: center;
+`;
 
 const ControlsWrapper = styled('div')`
   display: flex;

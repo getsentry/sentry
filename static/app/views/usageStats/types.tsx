@@ -5,6 +5,7 @@ export enum Outcome {
   FILTERED = 'filtered',
   INVALID = 'invalid',
   DROPPED = 'dropped',
+  RATE_LIMITED = 'rate_limited',
 }
 
 /**

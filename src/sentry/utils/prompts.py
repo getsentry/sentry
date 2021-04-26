@@ -6,6 +6,7 @@ DEFAULT_PROMPTS = {
     "suggest_mobile_project": {"required_fields": ["organization_id"]},
     "stacktrace_link": {"required_fields": ["organization_id", "project_id"]},
     "distributed_tracing": {"required_fields": ["organization_id", "project_id"]},
+    "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},
 }
 
 

@@ -49,7 +49,7 @@ class IssueTrackingPlugin2Test(TestCase):
 class GetAuthForUserTest(TestCase):
     def _get_mock_user(self):
         user = mock.Mock(spec=User(id=1))
-        user.is_authenticated.return_value = False
+        user.is_authenticated = False
         return user
 
     def test_requires_auth_provider(self):

@@ -53,8 +53,8 @@ class JSONField(TextField):
 
     def value_to_string(self, obj):
         """Return value from object converted to string properly"""
-        return smart_text(self.get_prep_value(self._get_val_from_obj(obj)))
+        return smart_text(self.value_from_object(obj))
 
     def value_from_object(self, obj):
         """Return value dumped to string."""
-        return self.get_prep_value(self._get_val_from_obj(obj))
+        return self.get_prep_value(super().value_from_object(obj))
