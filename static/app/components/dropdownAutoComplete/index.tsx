@@ -15,7 +15,7 @@ const DropdownAutoComplete = ({allowActorToggle = false, children, ...props}: Pr
     {renderProps => {
       const {isOpen, actions, getActorProps} = renderProps;
       // Don't pass `onClick` from `getActorProps`
-      const {onClick: _onClick, ...actorProps} = getActorProps();
+      const {onClick: _onClick, ...actorProps} = getActorProps<HTMLDivElement>();
       return (
         <Actor
           isOpen={isOpen}
