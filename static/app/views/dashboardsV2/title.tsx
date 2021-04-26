@@ -37,7 +37,7 @@ export default DashboardTitle;
 const Container = styled('div')`
   ${overflowEllipsis};
   margin-right: ${space(1)};
-  margin-left: -12px;
+  margin-left: -11px;
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     margin-bottom: ${space(2)};
@@ -46,5 +46,5 @@ const Container = styled('div')`
 
 const StyledEditableText = styled(EditableText)`
   position: absolute;
-  width: calc(100% + 12px);
+  width: calc(100% + 11px);
 `;
