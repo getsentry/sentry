@@ -116,7 +116,7 @@ const defaultPositioning = ({mainRect, anchorRect}: PositioningStrategyOpts) => 
 });
 
 /**
- * Wrapper component that will render the wrapped content with a animated
+ * Wrapper component that will render the wrapped content with an animated
  * overlay.
  *
  * If children are given they will be placed behind the overlay and hidden from
