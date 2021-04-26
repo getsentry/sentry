@@ -29,7 +29,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         """
         from sentry.models import NotificationSetting
 
-        actor_mapping = {target.actor_id: target for target in item_list}
+        actor_mapping = {target.id: target for target in item_list}
         filter_kwargs = dict(target_ids=actor_mapping.keys())
 
         type_option = kwargs.get("type")
