@@ -15,8 +15,7 @@ export function createDashboard(
     `/organizations/${orgId}/dashboards/`,
     {
       method: 'POST',
-      data: {title, widgets},
-      query: {duplicate},
+      data: {title, widgets, duplicate},
     }
   );
 

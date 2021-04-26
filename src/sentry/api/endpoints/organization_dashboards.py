@@ -106,7 +106,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard = serializer.save()
                 return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            duplicate = request.GET.get("duplicate") == "true"
+            duplicate = request.data.get("duplicate", False)
             if duplicate and retry < MAX_RETRIES:
                 title = request.data["title"]
                 match = re.match(DUPLICATE_TITLE_PATTERN, title)
