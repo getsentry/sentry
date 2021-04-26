@@ -47,5 +47,4 @@ class GzippedDictField(TextField):
         return compress(pickle.dumps(value))
 
     def value_to_string(self, obj):
-        value = self._get_val_from_obj(obj)
-        return self.get_prep_value(value)
+        return self.get_prep_value(self.value_from_object(obj))
