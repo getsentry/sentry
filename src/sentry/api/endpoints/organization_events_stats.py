@@ -20,6 +20,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             span.set_data("organization", organization)
             if not self.has_feature(organization, request):
                 span.set_data("using_v1_results", True)
+                sentry_sdk.set_tag("stats.using_v1", organization.slug)
                 return self.get_v1_results(request, organization)
 
             top_events = 0
