@@ -64,8 +64,8 @@ describe('EventCauseEmpty', function () {
   it('doesnt render when event id starts with even char', async function () {
     const newEvent = {
       ...event,
-      id: '2',
-      eventID: '21098765432109876543210987654321',
+      id: 'A',
+      eventID: 'ABCDEFABCDEFABCDEFABCDEFABCDEFAB',
     };
     const wrapper = mountWithTheme(
       <EventCauseEmpty event={newEvent} organization={organization} project={project} />,

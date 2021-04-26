@@ -52,7 +52,11 @@ describe('EventQuickTrace', function () {
    * the show configure distributed tracing prompt.
    */
   it('doesnt render when event id starts with odd char', async function () {
-    const newEvent = TestStubs.Event();
+    const newEvent = {
+      ...event,
+      id: 'B',
+      eventID: 'BAFEDCBAFEDCBAFEDCBAFEDCBAFEDCBA',
+    };
     const wrapper = mountWithTheme(
       <EventQuickTrace event={newEvent} organization={organization} group={group} />,
       routerContext
