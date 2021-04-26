@@ -1639,7 +1639,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             response = self.get_valid_response(
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
             )
-        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
+        assert response.data == {"status": "resolved", "statusDetails": {}}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert new_group1.resolved_at is not None
