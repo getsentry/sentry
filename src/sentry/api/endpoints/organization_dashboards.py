@@ -39,7 +39,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 
-        dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        dashboards = Dashboard.objects.filter(organization_id=organization.id).select_related(
+            "created_by"
+        )
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
@@ -50,13 +52,17 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         def handle_results(results):
             serialized = []
+            dashboards = []
             for item in results:
                 if isinstance(item, dict):
                     cloned = item.copy()
-                    del cloned["widgets"]
+                    widgets = cloned.pop("widgets", [])
+                    cloned["widgetDisplay"] = [w["displayType"] for w in widgets]
                     serialized.append(cloned)
                 else:
-                    serialized.append(serialize(item, request.user, serializer=list_serializer))
+                    dashboards.append(item)
+
+            serialized.extend(serialize(dashboards, request.user, serializer=list_serializer))
             return serialized
 
         return self.paginate(

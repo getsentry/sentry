@@ -59,7 +59,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
     def assert_serialized_dashboard(self, data, dashboard):
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
-        assert data["createdBy"] == str(dashboard.created_by.id)
+        assert data["createdBy"]["id"] == str(dashboard.created_by.id)
 
 
 class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
