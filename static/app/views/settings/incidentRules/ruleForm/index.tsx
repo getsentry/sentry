@@ -703,7 +703,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 </Confirm>
               ) : null
             }
-            submitLabel={t('Create Rule')}
+            submitLabel={t('Save Rule')}
           >
             <Feature organization={organization} features={['alert-wizard']}>
               {({hasFeature}) =>

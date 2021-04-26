@@ -118,7 +118,7 @@ describe('Incident Rules Details', function () {
     wrapper.find('button[aria-label="Add Action"]').simulate('click');
 
     // Save Trigger
-    wrapper.find('button[aria-label="Create Rule"]').simulate('submit');
+    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
 
     expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     expect(editRule).toHaveBeenCalledWith(
@@ -180,7 +180,7 @@ describe('Incident Rules Details', function () {
       .simulate('change', {target: {value: ''}});
 
     // Save Trigger
-    wrapper.find('button[aria-label="Create Rule"]').simulate('submit');
+    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
 
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),

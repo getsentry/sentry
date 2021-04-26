@@ -2,6 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
+import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -369,9 +370,20 @@ class AlertRulesListContainer extends React.Component<Props> {
     this.trackView();
   }
 
-  componentDidUpdate(nextProps: Props) {
-    if (nextProps.location.query?.sort !== this.props.location.query?.sort) {
+  componentDidUpdate(prevProps: Props) {
+    const {router, location, selection} = this.props;
+    if (prevProps.location.query?.sort !== location.query?.sort) {
       this.trackView();
+    }
+
+    if (!isEqual(prevProps.selection.projects, selection.projects)) {
+      router.replace({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          project: selection.projects,
+        },
+      });
     }
   }
 
