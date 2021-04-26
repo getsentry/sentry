@@ -7,7 +7,7 @@ if [[ ! -f setup.py ]]; then
     exit 1
 fi
 
-// Tell tsc to look into our external node_modules folder
+# Tell tsc to look into our external node_modules folder
 sed -i 's|"baseUrl": "../"|"baseUrl": "'"$NODE_PATH"'"|' config/tsconfig.build.json
 export YARN_CACHE_FOLDER="$(mktemp -d)"
 python setup.py bdist_wheel --build-number 0
