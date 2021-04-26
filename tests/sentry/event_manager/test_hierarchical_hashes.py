@@ -11,27 +11,22 @@ from sentry.models import Group, GroupHash
 @pytest.fixture
 def fast_save(default_project):
     def inner(last_frame):
-        hierarchical_hashes = ["c" * 32, "d" * 32, "e" * 32, last_frame * 32]
-        data = {"timestamp": time.time(), "hierarchical_hashes": hierarchical_hashes}
+        data = {"timestamp": time.time()}
         evt = Event(
             default_project.id,
             uuid.uuid4().hex,
             data=data,
         )
 
-        group, is_new, is_regression = _save_aggregate(
+        return _save_aggregate(
             evt,
             flat_hashes=["a" * 32, "b" * 32],
-            hierarchical_hashes=hierarchical_hashes,
+            hierarchical_hashes=["c" * 32, "d" * 32, "e" * 32, last_frame * 32],
             release=None,
             data=data,
             level=10,
             culprit="",
         )
-
-        group.get_latest_event = lambda: evt
-
-        return group, is_new, is_regression
 
     return inner
 
