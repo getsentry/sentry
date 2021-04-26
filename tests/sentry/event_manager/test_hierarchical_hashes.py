@@ -3,7 +3,6 @@ import uuid
 
 import pytest
 
-from sentry.api.endpoints.group_split import _split_group, _unsplit_group
 from sentry.event_manager import _save_aggregate
 from sentry.eventstore.models import Event
 from sentry.models import Group, GroupHash
