@@ -41,8 +41,8 @@ RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
   && yarn install --frozen-lockfile --production --quiet \
   && rm -r "$YARN_CACHE_FOLDER"
 
-WORKDIR /workspace
-VOLUME ["/workspace/node_modules", "/workspace/build"]
+VOLUME /js/workdir
+WORKDIR /js/workspace
 COPY docker/builder.sh /builder.sh
 ENTRYPOINT [ "/builder.sh" ]
 
