@@ -6,6 +6,7 @@ on:
       - '**.py'
       - requirements*.txt
       - .github/workflows/check-if-migration-is-required.yml
+      - .github/workflows/scripts/migration-check.sh
 
 jobs:
   main:
