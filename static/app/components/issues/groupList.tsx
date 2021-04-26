@@ -1,8 +1,7 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
@@ -32,7 +31,7 @@ const defaultProps = {
   useFilteredStats: true,
 };
 
-type Props = {
+type Props = WithRouterProps & {
   api: Client;
   query: string;
   orgId: string;
@@ -60,10 +59,6 @@ type State = {
 };
 
 class GroupList extends React.Component<Props, State> {
-  static contextTypes = {
-    location: PropTypes.object,
-  };
-
   static defaultProps = defaultProps;
 
   state: State = {
@@ -147,9 +142,9 @@ class GroupList extends React.Component<Props, State> {
   }
 
   getQueryParams() {
-    const {query} = this.props;
+    const {location, query} = this.props;
 
-    const queryParams = this.context.location.query;
+    const queryParams = location.query;
     queryParams.limit = 50;
     queryParams.sort = 'new';
     queryParams.query = query;
@@ -265,4 +260,4 @@ class GroupList extends React.Component<Props, State> {
 
 export {GroupList};
 
-export default withApi(GroupList);
+export default withApi(withRouter(GroupList));
