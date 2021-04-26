@@ -67,8 +67,8 @@ def validate_type_option(type: Optional[str]) -> Optional[NotificationSettingTyp
 
 def validate_type(type: str, context: Optional[List[str]] = None) -> NotificationSettingTypes:
     try:
-        return NotificationSettingTypes(type)
-    except ValueError:
+        return NotificationSettingTypes[type.upper()]
+    except KeyError:
         raise ParameterValidationError(f"Unknown type: {type}", context)
 
 
@@ -76,8 +76,8 @@ def validate_scope_type(
     scope_type: str, context: Optional[List[str]] = None
 ) -> NotificationScopeType:
     try:
-        return NotificationScopeType(scope_type)
-    except ValueError:
+        return NotificationScopeType[scope_type.upper()]
+    except KeyError:
         raise ParameterValidationError(f"Unknown scope_type: {scope_type}", context)
 
 
@@ -101,8 +101,8 @@ def validate_value(
     type: NotificationSettingTypes, value_param: str, context: Optional[List[str]] = None
 ) -> NotificationSettingOptionValues:
     try:
-        value = NotificationSettingOptionValues(value_param)
-    except ValueError:
+        value = NotificationSettingOptionValues[value_param.upper()]
+    except KeyError:
         raise ParameterValidationError(f"Unknown value: {value_param}", context)
 
     if not helper_validate(type, value):

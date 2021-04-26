@@ -15,12 +15,12 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         self, item_list: Iterable[Any], user: Any, **kwargs: Any
     ) -> Mapping[Any, Iterable[Any]]:
         """
-        This takes a list of either Users or Teams (which we will refer to as
-        "targets") because both can have Notification Settings. The function
+        This takes a list of Actors (which are either Users or Teams,
+        because both can have Notification Settings). The function
         returns a mapping of targets to flat lists of object to be passed to the
         `serialize` function.
 
-        :param item_list: List of user or team objects whose notification
+        :param item_list: List of Actor objects whose notification
             settings should be serialized.
         :param user: The user who will be viewing the notification settings.
         :param kwargs: Dict of optional filter options:
@@ -29,7 +29,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         """
         from sentry.models import NotificationSetting
 
-        actor_mapping = {target.actor_id: target for target in item_list}
+        actor_mapping = {actor.id: actor for actor in item_list}
         filter_kwargs = dict(target_ids=actor_mapping.keys())
 
         type_option = kwargs.get("type")
