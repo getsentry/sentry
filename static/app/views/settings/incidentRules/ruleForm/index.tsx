@@ -617,7 +617,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       thresholdType,
     };
     const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
-    const wizardBuilderChart = ({footer}) => (
+    const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
         header={
@@ -628,7 +628,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             </AlertInfo>
           </ChartHeader>
         }
-        footer={footer}
       />
     );
     const chart = <TriggersChart {...chartProps} />;
@@ -703,7 +702,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 </Confirm>
               ) : null
             }
-            submitLabel={t('Create Rule')}
+            submitLabel={t('Save Rule')}
           >
             <Feature organization={organization} features={['alert-wizard']}>
               {({hasFeature}) =>
@@ -717,10 +716,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={dataset === Dataset.ERRORS}
+                      alertType={alertType}
                     />
-                    <StyledListItem>
-                      {t('Set thresholds to trigger alert')}
-                    </StyledListItem>
+                    <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
                     {triggerForm(hasAccess)}
                     <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
                     {ruleNameOwnerForm(hasAccess)}
@@ -753,6 +751,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const AlertListItem = styled(StyledListItem)`
+  margin-top: 0;
 `;
 
 const ChartHeader = styled('div')`
