@@ -16,6 +16,9 @@ steps:
     id: builder-run
     env:
       - 'SOURCE_COMMIT=$COMMIT_SHA'
+    volumes:
+      - name: '/workspace'
+        path: '/js/workspace'
     timeout: 600s
   - name: 'gcr.io/kaniko-project/executor:v1.5.1'
     id: runtime-image
