@@ -1,6 +1,7 @@
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.snuba.metrics import DATA_SOURCE, InvalidField, InvalidParams, QueryDefinition
@@ -10,6 +11,10 @@ class ProjectMetricsEndpoint(ProjectEndpoint):
     """ Get metric name, available operations and the metric unit """
 
     def get(self, request, project):
+
+        if not features.has("organizations:metrics", project.organization, actor=request.user):
+            return Response(status=404)
+
         metrics = DATA_SOURCE.get_metrics(project)
         return Response(metrics, status=200)
 
@@ -18,6 +23,10 @@ class ProjectMetricDetailsEndpoint(ProjectEndpoint):
     """ Get metric name, available operations, metric unit and available tags """
 
     def get(self, request, project, metric_name):
+
+        if not features.has("organizations:metrics", project.organization, actor=request.user):
+            return Response(status=404)
+
         try:
             metric = DATA_SOURCE.get_single_metric(project, metric_name)
         except InvalidParams:
@@ -39,7 +48,13 @@ class ProjectMetricsTagsEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
 
+        if not features.has("organizations:metrics", project.organization, actor=request.user):
+            return Response(status=404)
+
         metric_names = request.GET.getlist("metric") or None
+
+        if not features.has("organizations:metrics", project.organization, actor=request.user):
+            return Response(status=404)
 
         try:
             tag_names = DATA_SOURCE.get_tag_names(project, metric_names)
@@ -54,12 +69,16 @@ class ProjectMetricsTagDetailsEndpoint(ProjectEndpoint):
 
     def get(self, request, project, tag_name):
 
+        if not features.has("organizations:metrics", project.organization, actor=request.user):
+            return Response(status=404)
+
         metric_names = request.GET.getlist("metric") or None
 
         try:
             tag_values = DATA_SOURCE.get_tag_values(project, tag_name, metric_names)
         except InvalidParams as exc:
             msg = str(exc)
+            # TODO: Use separate error type once we have real data
             if "Unknown tag" in msg:
                 raise ResourceDoesNotExist(f"tag '{tag_name}'")
             else:
@@ -76,6 +95,9 @@ class ProjectMetricsDataEndpoint(ProjectEndpoint):
     """
 
     def get(self, request, project):
+
+        if not features.has("organizations:metrics", project.organization, actor=request.user):
+            return Response(status=404)
 
         try:
             query = QueryDefinition(request.GET, allow_minute_resolution=False)

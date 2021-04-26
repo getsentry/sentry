@@ -2,34 +2,46 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import ApiToken
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
+
+FEATURE_FLAG = "organizations:metrics"
 
 
 class ProjectMetricsPermissionTest(APITestCase):
+
+    endpoints = (
+        ("sentry-api-0-project-metrics-index",),
+        ("sentry-api-0-project-metric-details", "foo"),
+        ("sentry-api-0-project-metrics-tags",),
+        ("sentry-api-0-project-metrics-tag-details", "foo"),
+        ("sentry-api-0-project-metrics-data",),
+    )
+
     def send_get_request(self, token, endpoint, *args):
         url = reverse(endpoint, args=(self.project.organization.slug, self.project.slug) + args)
         return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
 
+    @with_feature(FEATURE_FLAG)
     def test_permissions(self):
-
-        endpoints = (
-            ("sentry-api-0-project-metrics-index",),
-            ("sentry-api-0-project-metric-details", "foo"),
-            ("sentry-api-0-project-metrics-tags",),
-            ("sentry-api-0-project-metrics-tag-details", "foo"),
-            ("sentry-api-0-project-metrics-data",),
-        )
 
         token = ApiToken.objects.create(user=self.user, scope_list=[])
 
-        for endpoint in endpoints:
+        for endpoint in self.endpoints:
             response = self.send_get_request(token, *endpoint)
             assert response.status_code == 403
 
         token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
 
-        for endpoint in endpoints:
+        for endpoint in self.endpoints:
             response = self.send_get_request(token, *endpoint)
             assert response.status_code in (200, 400, 404)
+
+    def test_feature_flag(self):
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+
+        for endpoint in self.endpoints:
+            response = self.send_get_request(token, *endpoint)
+            assert response.status_code == 404
 
 
 class ProjectMetricsTest(APITestCase):
@@ -40,6 +52,7 @@ class ProjectMetricsTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    @with_feature(FEATURE_FLAG)
     def test_response(self):
         response = self.get_valid_response(self.project.organization.slug, self.project.slug)
 
@@ -65,11 +78,13 @@ class ProjectMetricDetailsTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    @with_feature(FEATURE_FLAG)
     def test_unknown_metric(self):
         response = self.get_response(self.project.organization.slug, self.project.slug, "foo")
 
         assert response.status_code == 404
 
+    @with_feature(FEATURE_FLAG)
     def test_valid_response(self):
 
         response = self.get_success_response(
@@ -89,6 +104,7 @@ class ProjectMetricsTagsTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    @with_feature(FEATURE_FLAG)
     def test_response(self):
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
 
@@ -101,6 +117,7 @@ class ProjectMetricsTagsTest(APITestCase):
         assert "custom_session_tag" in response.data  # from 'session' tags
         assert "custom_user_tag" in response.data  # from 'user' tags
 
+    @with_feature(FEATURE_FLAG)
     def test_filtered_response(self):
 
         response = self.get_success_response(
@@ -112,6 +129,7 @@ class ProjectMetricsTagsTest(APITestCase):
         assert "custom_session_tag" in response.data  # from 'session' tags
         assert "custom_user_tag" not in response.data  # from 'user' tags
 
+    @with_feature(FEATURE_FLAG)
     def test_two_filters(self):
 
         response = self.get_success_response(
@@ -123,6 +141,7 @@ class ProjectMetricsTagsTest(APITestCase):
         assert "custom_session_tag" not in response.data  # from 'session' tags
         assert "custom_user_tag" not in response.data  # from 'user' tags
 
+    @with_feature(FEATURE_FLAG)
     def test_bad_filter(self):
         response = self.get_response(
             self.project.organization.slug, self.project.slug, metric="bad"
@@ -139,6 +158,7 @@ class ProjectMetricsTagDetailsTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    @with_feature(FEATURE_FLAG)
     def test_unknown_tag(self):
         response = self.get_success_response(
             self.project.organization.slug, self.project.slug, "bar"
@@ -146,6 +166,7 @@ class ProjectMetricsTagDetailsTest(APITestCase):
 
         assert response.data == []
 
+    @with_feature(FEATURE_FLAG)
     def test_existing_tag(self):
         response = self.get_valid_response(
             self.project.organization.slug, self.project.slug, "environment"
@@ -160,6 +181,7 @@ class ProjectMetricsTagDetailsTest(APITestCase):
 
         assert "production" in response.data
 
+    @with_feature(FEATURE_FLAG)
     def test_filtered_response(self):
 
         response = self.get_success_response(
@@ -172,6 +194,7 @@ class ProjectMetricsTagDetailsTest(APITestCase):
         # Check that only tags from this metrics appear:
         assert set(response.data) == {"foo", "bar"}
 
+    @with_feature(FEATURE_FLAG)
     def test_two_filters(self):
 
         response = self.get_success_response(
@@ -183,6 +206,7 @@ class ProjectMetricsTagDetailsTest(APITestCase):
 
         assert set(response.data) == {"production", "staging"}
 
+    @with_feature(FEATURE_FLAG)
     def test_bad_filter(self):
         response = self.get_response(
             self.project.organization.slug, self.project.slug, "environment", metric="bad"
@@ -199,6 +223,7 @@ class ProjectMetricsDataTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    @with_feature(FEATURE_FLAG)
     def test_missing_field(self):
         response = self.get_response(
             self.project.organization.slug,
@@ -207,6 +232,7 @@ class ProjectMetricsDataTest(APITestCase):
 
         assert response.status_code == 400
 
+    @with_feature(FEATURE_FLAG)
     def test_invalid_field(self):
 
         for field in ["", "(*&%", "foo(session", "foo(session)", "sum(bar)"]:
@@ -216,6 +242,7 @@ class ProjectMetricsDataTest(APITestCase):
 
             assert response.status_code == 400
 
+    @with_feature(FEATURE_FLAG)
     def test_valid_operation(self):
         response = self.get_response(
             self.project.organization.slug, self.project.slug, field="sum(session)"
@@ -227,6 +254,7 @@ class ProjectMetricsDataTest(APITestCase):
         groups = response.data["groups"]
         assert len(groups) == 1 and groups[0]["by"] == {}
 
+    @with_feature(FEATURE_FLAG)
     def test_groupby_single(self):
         response = self.get_response(
             self.project.organization.slug,
@@ -237,6 +265,7 @@ class ProjectMetricsDataTest(APITestCase):
 
         assert response.status_code == 200
 
+    @with_feature(FEATURE_FLAG)
     def test_groupby_multiple(self):
         response = self.get_response(
             self.project.organization.slug,
@@ -252,6 +281,7 @@ class ProjectMetricsDataTest(APITestCase):
             group["by"].keys() == {"environment", "session.status"} for group in groups
         )
 
+    @with_feature(FEATURE_FLAG)
     def test_invalid_filter(self):
 
         for query in [
@@ -269,6 +299,7 @@ class ProjectMetricsDataTest(APITestCase):
 
             assert response.status_code == 400, query
 
+    @with_feature(FEATURE_FLAG)
     def test_valid_filter(self):
 
         for query in [
