@@ -4,35 +4,45 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
-import Tooltip from 'app/components/tooltip';
-import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
-import {DurationPill, RowRectangle} from 'app/components/waterfallTree/rowBar';
+import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
+import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
+import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {
+  DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
-} from 'app/components/waterfallTree/rowDivider';
+  ErrorBadge,
+} from 'app/components/performance/waterfall/rowDivider';
 import {
   OperationName,
   RowTitle,
   RowTitleContainer,
-} from 'app/components/waterfallTree/rowTitle';
+} from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
   StyledIconChevron,
+  TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
-} from 'app/components/waterfallTree/treeConnector';
-import {getDurationDisplay} from 'app/components/waterfallTree/utils';
+} from 'app/components/performance/waterfall/treeConnector';
+import {
+  getDurationDisplay,
+  getHumanDuration,
+  toPercent,
+} from 'app/components/performance/waterfall/utils';
+import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
-import {defined, OmitHtmlDivProps} from 'app/utils';
+import {defined} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
+import {TraceError} from 'app/utils/performance/quickTrace/types';
+import {isTraceFull} from 'app/utils/performance/quickTrace/utils';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -43,22 +53,20 @@ import {
 } from './header';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanDetail from './spanDetail';
-import {SpanRow, zIndex} from './styles';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
 import {
   durationlessBrowserOps,
-  getHumanDuration,
   getMeasurementBounds,
   getMeasurements,
   getSpanID,
   getSpanOperation,
   isEventFromBrowserJavaScriptSDK,
+  isGapSpan,
   isOrphanSpan,
   isOrphanTreeDepth,
   SpanBoundsType,
   SpanGeneratedBoundsType,
   SpanViewBoundsType,
-  toPercent,
   unwrapTreeDepth,
 } from './utils';
 
@@ -170,29 +178,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
   1.0,
 ];
 
-const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
-const TOGGLE_BUTTON_MAX_WIDTH = 30;
-export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
 const MARGIN_LEFT = 0;
-
-export const getBackgroundColor = ({
-  showStriping,
-  showDetail,
-  theme,
-}: {
-  showStriping?: boolean;
-  showDetail?: boolean;
-  theme: any;
-}) => {
-  if (!theme) {
-    return theme.background;
-  }
-
-  if (showDetail) {
-    return theme.textColor;
-  }
-  return showStriping ? theme.backgroundSecondary : theme.background;
-};
 
 type SpanBarProps = {
   event: Readonly<EventTransaction>;
@@ -497,14 +483,17 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   renderTitle(
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps,
+    errors: TraceError[]
   ) {
     const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
     const {span, treeDepth, spanErrors} = this.props;
 
     const operationName = getSpanOperation(span) ? (
       <strong>
-        <OperationName spanErrors={spanErrors}>{getSpanOperation(span)}</OperationName>
+        <OperationName errored={errors.length + spanErrors.length > 0}>
+          {getSpanOperation(span)}
+        </OperationName>
         {` \u2014 `}
       </strong>
     ) : (
@@ -741,7 +730,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <DividerLine
           showDetail
           style={{
-            position: 'relative',
+            position: 'absolute',
           }}
         />
       );
@@ -753,7 +742,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       <DividerLine
         ref={addDividerLineRef()}
         style={{
-          position: 'relative',
+          position: 'absolute',
         }}
         onMouseEnter={() => {
           dividerHandlerChildrenProps.setHover(true);
@@ -774,6 +763,25 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
+  getRelatedErrors(quickTrace: QuickTraceContextChildrenProps): TraceError[] {
+    if (!quickTrace) {
+      return [];
+    }
+
+    const {span} = this.props;
+    const {currentEvent} = quickTrace;
+
+    if (isGapSpan(span) || !currentEvent || !isTraceFull(currentEvent)) {
+      return [];
+    }
+
+    return currentEvent.errors.filter(error => error.span === span.span_id);
+  }
+
+  renderErrorBadge(errors: TraceError[]): React.ReactNode {
+    return errors.length ? <ErrorBadge /> : null;
+  }
+
   renderWarningText({warningText}: {warningText?: string} = {}) {
     if (!warningText) {
       return null;
@@ -789,9 +797,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderHeader({
     scrollbarManagerChildrenProps,
     dividerHandlerChildrenProps,
+    quickTrace,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
+    quickTrace: QuickTraceContextChildrenProps;
   }) {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
@@ -802,10 +812,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
     const displaySpanBar = defined(bounds.left) && defined(bounds.width);
     const durationDisplay = getDurationDisplay(bounds);
+    const errors = this.getRelatedErrors(quickTrace);
 
     return (
-      <SpanRowCellContainer showDetail={this.state.showDetail}>
-        <SpanRowCell
+      <RowCellContainer showDetail={this.state.showDetail}>
+        <RowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
           style={{
@@ -816,10 +827,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             this.toggleDisplayDetail();
           }}
         >
-          {this.renderTitle(scrollbarManagerChildrenProps)}
-        </SpanRowCell>
-        {this.renderDivider(dividerHandlerChildrenProps)}
-        <SpanRowCell
+          {this.renderTitle(scrollbarManagerChildrenProps, errors)}
+        </RowCell>
+        <DividerContainer>
+          {this.renderDivider(dividerHandlerChildrenProps)}
+          {this.renderErrorBadge(errors)}
+        </DividerContainer>
+        <RowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
           showStriping={spanNumber % 2 !== 0}
@@ -851,7 +865,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           )}
           {this.renderMeasurements()}
           {this.renderCursorGuide()}
-        </SpanRowCell>
+        </RowCell>
         {!this.state.showDetail && (
           <DividerLineGhostContainer
             style={{
@@ -874,7 +888,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             />
           </DividerLineGhostContainer>
         )}
-      </SpanRowCellContainer>
+      </RowCellContainer>
     );
   }
 
@@ -886,65 +900,40 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
     return (
-      <SpanRow
+      <Row
         ref={this.spanRowDOMRef}
         visible={isSpanVisible}
         showBorder={this.state.showDetail}
         data-test-id="span-row"
       >
-        <ScrollbarManager.Consumer>
-          {scrollbarManagerChildrenProps => {
-            return (
-              <DividerHandlerManager.Consumer>
-                {(
-                  dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-                ) =>
-                  this.renderHeader({
-                    dividerHandlerChildrenProps,
-                    scrollbarManagerChildrenProps,
-                  })
-                }
-              </DividerHandlerManager.Consumer>
-            );
-          }}
-        </ScrollbarManager.Consumer>
         <QuickTraceContext.Consumer>
-          {quickTrace => this.renderDetail({isVisible: isSpanVisible, quickTrace})}
+          {quickTrace => (
+            <React.Fragment>
+              <ScrollbarManager.Consumer>
+                {scrollbarManagerChildrenProps => {
+                  return (
+                    <DividerHandlerManager.Consumer>
+                      {(
+                        dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+                      ) =>
+                        this.renderHeader({
+                          dividerHandlerChildrenProps,
+                          scrollbarManagerChildrenProps,
+                          quickTrace,
+                        })
+                      }
+                    </DividerHandlerManager.Consumer>
+                  );
+                }}
+              </ScrollbarManager.Consumer>
+              {this.renderDetail({isVisible: isSpanVisible, quickTrace})}
+            </React.Fragment>
+          )}
         </QuickTraceContext.Consumer>
-      </SpanRow>
+      </Row>
     );
   }
 }
-
-type SpanRowCellProps = OmitHtmlDivProps<{
-  showStriping?: boolean;
-  showDetail?: boolean;
-}>;
-
-export const SpanRowCell = styled('div')<SpanRowCellProps>`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  background-color: ${p => getBackgroundColor(p)};
-  transition: background-color 125ms ease-in-out;
-  color: ${p => (p.showDetail ? p.theme.background : 'inherit')};
-`;
-
-export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
-  display: flex;
-  position: relative;
-  height: ${ROW_HEIGHT}px;
-
-  /* for virtual scrollbar */
-  overflow: hidden;
-
-  user-select: none;
-
-  &:hover > div[data-type='span-row-cell'] {
-    background-color: ${p =>
-      p.showDetail ? p.theme.textColor : p.theme.backgroundSecondary};
-  }
-`;
 
 const CursorGuide = styled('div')`
   position: absolute;
@@ -967,7 +956,7 @@ const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
       ${p => (p.failedThreshold ? p.theme.red300 : 'black')} 4px 8px
     )
     80%/2px 100% no-repeat;
-  z-index: ${zIndex.dividerLine};
+  z-index: ${p => p.theme.zIndex.traceView.dividerLine};
   color: ${p => p.theme.textColor};
 `;
 

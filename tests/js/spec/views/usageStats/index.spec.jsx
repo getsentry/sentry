@@ -35,28 +35,28 @@ describe('UsageStats', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
+    expect(wrapper.text()).toContain('Organization Usage Stats');
 
     expect(wrapper.find('UsageChart')).toHaveLength(1);
     expect(wrapper.find('UsageTable')).toHaveLength(1);
     expect(wrapper.find('IconWarning')).toHaveLength(0);
 
-    const minAsync = wrapper.find('UsageStatsLastMin');
-    expect(minAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
-    expect(minAsync.text()).toContain('6'); // Display 2nd last value in series
-
     const orgAsync = wrapper.find('UsageStatsOrganization');
     expect(orgAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
     expect(orgAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
     expect(orgAsync.props().chartTransform).toEqual(undefined);
-    expect(orgAsync.text()).toContain('Total Errors49');
+    expect(orgAsync.text()).toContain('Total Errors64');
     expect(orgAsync.text()).toContain('Accepted28');
     expect(orgAsync.text()).toContain('Filtered7');
-    expect(orgAsync.text()).toContain('Dropped14');
+    expect(orgAsync.text()).toContain('Dropped29');
 
     const orgChart = wrapper.find('UsageChart');
     expect(orgChart.props().dataCategory).toEqual(DataCategory.ERRORS);
     expect(orgChart.props().dataTransform).toEqual(CHART_OPTIONS_DATA_TRANSFORM[1].value);
+
+    const minAsync = wrapper.find('UsageStatsPerMin');
+    expect(minAsync.props().dataCategory).toEqual(DataCategory.ERRORS);
+    expect(minAsync.text()).toContain('6'); // Display 2nd last value in series
 
     const projectAsync = wrapper.find('UsageStatsProjects');
     expect(projectAsync.props().dataDatetime.period).toEqual(DEFAULT_STATS_PERIOD);
@@ -69,28 +69,28 @@ describe('UsageStats', function () {
     // API calls with defaults
     expect(mock).toHaveBeenCalledTimes(3);
 
-    // From UsageStatsLastMin
+    // From UsageStatsOrg
     expect(mock).toHaveBeenNthCalledWith(
       1,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '5m',
-          interval: '1m',
+          statsPeriod: DEFAULT_STATS_PERIOD,
+          interval: '1h',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
         },
       })
     );
 
-    // From UsageStatsOrg
+    // From UsageStatsPerMin
     expect(mock).toHaveBeenNthCalledWith(
       2,
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: DEFAULT_STATS_PERIOD,
-          interval: '1h',
+          statsPeriod: '5m',
+          interval: '1m',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
         },
@@ -105,8 +105,9 @@ describe('UsageStats', function () {
         query: {
           statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1d',
-          groupBy: ['category', 'outcome', 'project'],
+          groupBy: ['outcome', 'project'],
           field: ['sum(quantity)'],
+          category: 'error',
         },
       })
     );
@@ -126,7 +127,7 @@ describe('UsageStats', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
+    expect(wrapper.text()).toContain('Organization Usage Stats');
 
     expect(wrapper.find('UsageChart')).toHaveLength(1);
     expect(wrapper.find('UsageTable')).toHaveLength(1);
@@ -177,8 +178,8 @@ describe('UsageStats', function () {
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: '5m',
-          interval: '1m',
+          statsPeriod: ninetyDays,
+          interval: '1d',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
         },
@@ -189,8 +190,8 @@ describe('UsageStats', function () {
       '/organizations/org-slug/stats_v2/',
       expect.objectContaining({
         query: {
-          statsPeriod: ninetyDays,
-          interval: '1d',
+          statsPeriod: '5m',
+          interval: '1m',
           groupBy: ['category', 'outcome'],
           field: ['sum(quantity)'],
         },
@@ -203,7 +204,8 @@ describe('UsageStats', function () {
         query: {
           statsPeriod: ninetyDays,
           interval: '1d',
-          groupBy: ['category', 'outcome', 'project'],
+          groupBy: ['outcome', 'project'],
+          category: 'transaction',
           field: ['sum(quantity)'],
         },
       })
@@ -230,17 +232,16 @@ describe('UsageStats', function () {
     await tick();
     wrapper.update();
 
-    const optionPagePeriod = wrapper.find('OptionSelector[title="Display"]');
-    const oneDay = Object.keys(DEFAULT_RELATIVE_PERIODS)[0];
-    optionPagePeriod.props().onChange(oneDay);
+    const optionPagePeriod = wrapper.find(`DropdownItem[eventKey="90d"]`);
+    optionPagePeriod.props().onSelect('90d');
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        pagePeriod: oneDay,
+        pagePeriod: '90d',
       }),
     });
 
-    const optionDataCategory = wrapper.find('OptionSelector[title="of"]');
-    optionDataCategory.props().onChange(DataCategory.ATTACHMENTS);
+    const optionDataCategory = wrapper.find('DropdownItem[eventKey="attachments"]');
+    optionDataCategory.props().onSelect(DataCategory.ATTACHMENTS);
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({dataCategory: DataCategory.ATTACHMENTS}),
     });
@@ -286,11 +287,14 @@ describe('UsageStats', function () {
       },
       projectDetail: {
         query: {project: 1, notAPageKey: 'hello'},
-        pathname: '/organizations/org-slug/projects/project',
+        pathname: '/organizations/org-slug/projects/project/',
       },
       issueList: {
         query: {project: 1, notAPageKey: 'hello'},
         pathname: '/organizations/org-slug/issues/',
+      },
+      settings: {
+        pathname: '/settings/org-slug/projects/project/',
       },
     });
   });
@@ -362,13 +366,25 @@ function getMockResponse() {
         {
           by: {
             category: 'error',
-            outcome: 'dropped',
+            outcome: 'rate_limited',
           },
           totals: {
             'sum(quantity)': 14,
           },
           series: {
             'sum(quantity)': [2, 2, 2, 2, 2, 2, 2],
+          },
+        },
+        {
+          by: {
+            category: 'error',
+            outcome: 'invalid',
+          },
+          totals: {
+            'sum(quantity)': 15,
+          },
+          series: {
+            'sum(quantity)': [2, 2, 2, 2, 2, 2, 3],
           },
         },
       ],

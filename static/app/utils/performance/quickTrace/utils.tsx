@@ -23,7 +23,7 @@ export function isTransaction(event: Event): event is EventTransaction {
  * An event can be an error or a transaction. We need to check whether the current
  * event id is in the list of errors as well
  */
-function isCurrentEvent(
+export function isCurrentEvent(
   event: TraceFull | QuickTraceEvent,
   currentEvent: Event
 ): boolean {
@@ -297,4 +297,12 @@ export function filterTrace(
     },
     []
   );
+}
+
+export function isTraceFull(transaction): transaction is TraceFull {
+  return Boolean((transaction as TraceFull).event_id);
+}
+
+export function isTraceFullDetailed(transaction): transaction is TraceFullDetailed {
+  return Boolean((transaction as TraceFullDetailed).event_id);
 }

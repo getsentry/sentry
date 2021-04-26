@@ -3,8 +3,9 @@ import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {getHumanDuration, parseTrace} from 'app/components/events/interfaces/spans/utils';
+import {parseTrace} from 'app/components/events/interfaces/spans/utils';
 import Link from 'app/components/links/link';
+import {getHumanDuration} from 'app/components/performance/waterfall/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';

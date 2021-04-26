@@ -1,6 +1,6 @@
 import React from 'react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 
 import {Client} from 'app/api';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';

@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import EventUser
 from sentry.testutils import APITestCase
@@ -65,7 +65,7 @@ class ProjectUsersTest(APITestCase):
         response = self.client.get(f"{self.path}?query=username:ba", format="json")
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
+        assert len(response.data) == 0
 
     def test_email_search(self):
         self.login_as(user=self.user)
@@ -78,8 +78,7 @@ class ProjectUsersTest(APITestCase):
 
         response = self.client.get(f"{self.path}?query=email:@example.com", format="json")
 
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2
+        assert response.status_code == 404, response.content
 
     def test_id_search(self):
         self.login_as(user=self.user)
@@ -92,8 +91,7 @@ class ProjectUsersTest(APITestCase):
 
         response = self.client.get(f"{self.path}?query=id:3", format="json")
 
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 0
+        assert response.status_code == 404, response.content
 
     def test_ip_search(self):
         self.login_as(user=self.user)
@@ -103,8 +101,3 @@ class ProjectUsersTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.euser2.id)
-
-        response = self.client.get(f"{self.path}?query=ip:0", format="json")
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2

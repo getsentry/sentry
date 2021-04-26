@@ -19,6 +19,7 @@ type Props = {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
+  paramDashboardId: string;
   selection: GlobalSelection;
   isEditing: boolean;
   /**
@@ -122,6 +123,7 @@ class Dashboard extends React.Component<Props> {
       onUpdate,
       dashboard: {widgets},
       organization,
+      paramDashboardId,
     } = this.props;
 
     const items = this.getWidgetIds();
@@ -148,6 +150,7 @@ class Dashboard extends React.Component<Props> {
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && (
               <AddWidget
+                dashboardId={paramDashboardId}
                 orgSlug={organization.slug}
                 orgFeatures={organization.features}
                 onClick={this.handleStartAdd}

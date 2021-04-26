@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint

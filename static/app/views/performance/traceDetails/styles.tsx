@@ -4,11 +4,9 @@ import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
-import {SpanRow} from 'app/components/events/interfaces/spans/styles';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
-import {IconFire} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -19,17 +17,10 @@ import {Theme} from 'app/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 export {
-  SpanRowCell as TransactionRowCell,
-  SpanRowCellContainer as TransactionRowCellContainer,
-} from 'app/components/events/interfaces/spans/spanBar';
-
-export {
   Row,
   SpanDetails as TransactionDetails,
   SpanDetailContainer as TransactionDetailsContainer,
 } from 'app/components/events/interfaces/spans/spanDetail';
-
-export {SpanRowMessage as TransactionRowMessage} from 'app/components/events/interfaces/spans/styles';
 
 export const SearchContainer = styled('div')`
   display: flex;
@@ -73,40 +64,9 @@ export const StyledPanel = styled(Panel)`
   overflow: hidden;
 `;
 
-export const TransactionRow = styled(SpanRow)<{cursor: 'pointer' | 'default'}>`
-  cursor: ${p => p.cursor};
-`;
-
 export const TransactionBarTitleContent = styled('span')`
   margin-left: ${space(0.75)};
 `;
-
-export const DividerContainer = styled('div')`
-  position: relative;
-`;
-
-const BadgeBorder = styled('div')<{showDetail: boolean}>`
-  position: absolute;
-  margin: ${space(0.25)};
-  left: -11.5px;
-  background: ${p => (p.showDetail ? p.theme.textColor : p.theme.background)};
-  width: ${space(3)};
-  height: ${space(3)};
-  border: 1px solid ${p => p.theme.red300};
-  border-radius: 50%;
-  z-index: ${p => p.theme.zIndex.traceView.dividerLine};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-export function ErrorBadge({showDetail}: {showDetail: boolean}) {
-  return (
-    <BadgeBorder showDetail={showDetail}>
-      <IconFire color="red300" size="xs" />
-    </BadgeBorder>
-  );
-}
 
 export const ErrorMessageTitle = styled('div')`
   display: flex;

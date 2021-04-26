@@ -1,4 +1,4 @@
-import {keyframes} from '@emotion/core';
+import {keyframes} from '@emotion/react';
 
 import {Theme} from 'app/utils/theme';
 

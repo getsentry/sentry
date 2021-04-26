@@ -1,10 +1,9 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {ClassNames} from '@emotion/core';
+import {ClassNames, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
-import {withTheme} from 'emotion-theming';
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';
@@ -813,7 +812,8 @@ class SmartSearchBar extends React.Component<Props, State> {
 
         const tagKeys = this.getTagKeys('');
         const recentSearches = await this.getRecentSearches();
-        this.updateAutoCompleteState(tagKeys, recentSearches, '', 'tag-key');
+
+        this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', 'tag-key');
         return;
       }
 
@@ -841,7 +841,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       this.setState({searchTerm: matchValue});
       this.updateAutoCompleteState(
         autoCompleteItems,
-        recentSearches,
+        recentSearches ?? [],
         matchValue,
         'tag-key'
       );
@@ -901,7 +901,12 @@ class SmartSearchBar extends React.Component<Props, State> {
       this.getRecentSearches(),
     ]);
 
-    this.updateAutoCompleteState(tagValues, recentSearches, tag.key, 'tag-value');
+    this.updateAutoCompleteState(
+      tagValues ?? [],
+      recentSearches ?? [],
+      tag.key,
+      'tag-value'
+    );
     return;
   };
 

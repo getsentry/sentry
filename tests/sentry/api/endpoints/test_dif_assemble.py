@@ -1,7 +1,7 @@
 from hashlib import sha1
 
 from django.core.files.base import ContentFile
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import ApiToken, File, FileBlob, FileBlobIndex, FileBlobOwner
 from sentry.models.debugfile import ProjectDebugFile

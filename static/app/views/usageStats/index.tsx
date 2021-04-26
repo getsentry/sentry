@@ -5,14 +5,13 @@ import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import Alert from 'app/components/alert';
 import {DateTimeObject} from 'app/components/charts/utils';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import ErrorBoundary from 'app/components/errorBoundary';
 import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconInfo} from 'app/icons';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {
@@ -22,9 +21,9 @@ import {
   Project,
   RelativePeriod,
 } from 'app/types';
+import {parsePeriodToHours} from 'app/utils/dates';
 
-import {ChartDataTransform} from './usageChart';
-import UsageStatsLastMin from './UsageStatsLastMin';
+import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
 
@@ -108,11 +107,14 @@ class OrganizationStats extends React.Component<Props> {
       },
       projectDetail: {
         ...nextLocation,
-        pathname: `/organizations/${organization.slug}/projects/${project.slug}`,
+        pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
       },
       issueList: {
         ...nextLocation,
         pathname: `/organizations/${organization.slug}/issues/`,
+      },
+      settings: {
+        pathname: `/settings/${organization.slug}/projects/${project.slug}/`,
       },
     };
   };
@@ -153,6 +155,64 @@ class OrganizationStats extends React.Component<Props> {
     return nextLocation;
   };
 
+  renderPageControl() {
+    const {period} = this.dataPeriod;
+
+    // Remove options for relative periods shorter than 1 week
+    const relativePeriods = Object.keys(DEFAULT_RELATIVE_PERIODS).reduce((acc, key) => {
+      const periodDays = parsePeriodToHours(key) / 24;
+      if (periodDays >= 7) {
+        acc[key] = DEFAULT_RELATIVE_PERIODS[key];
+      }
+      return acc;
+    }, {});
+
+    return (
+      <React.Fragment>
+        <DropdownDataCategory
+          label={
+            <DropdownLabel>
+              <span>{t('Usage Metrics: ')}</span>
+              <span>{this.dataCategoryName}</span>
+            </DropdownLabel>
+          }
+        >
+          {CHART_OPTIONS_DATACATEGORY.map(option => (
+            <DropdownItem
+              key={option.value}
+              eventKey={option.value}
+              onSelect={(val: string) =>
+                this.setStateOnUrl({dataCategory: val as DataCategory})
+              }
+            >
+              {option.label}
+            </DropdownItem>
+          ))}
+        </DropdownDataCategory>
+        <DropdownDate
+          label={
+            <DropdownLabel>
+              <span>{t('Date Range: ')}</span>
+              <span>{DEFAULT_RELATIVE_PERIODS[period || DEFAULT_STATS_PERIOD]}</span>
+            </DropdownLabel>
+          }
+        >
+          {Object.keys(relativePeriods).map(key => (
+            <DropdownItem
+              key={key}
+              eventKey={key}
+              onSelect={(val: string) =>
+                this.setStateOnUrl({pagePeriod: val as RelativePeriod})
+              }
+            >
+              {DEFAULT_RELATIVE_PERIODS[key]}
+            </DropdownItem>
+          ))}
+        </DropdownDate>
+      </React.Fragment>
+    );
+  }
+
   render() {
     const {organization} = this.props;
 
@@ -160,71 +220,40 @@ class OrganizationStats extends React.Component<Props> {
       <SentryDocumentTitle title="Usage Stats">
         <PageContent>
           <PageHeader>
-            <PageHeading>
-              {tct('Organization Usage Stats for [dataCategory]', {
-                dataCategory: this.dataCategoryName,
-              })}
-            </PageHeading>
+            <PageHeading>{t('Organization Usage Stats')}</PageHeading>
           </PageHeader>
 
-          <OrgTextWrapper>
-            <OrgText>
-              <p>
-                {t(
-                  'The chart below reflects events that Sentry has received across your entire organization. We collect usage metrics on three types of events: errors, transactions, and attachments. Sessions are not included in this chart.'
-                )}
-              </p>
-              <p>
-                {t(
-                  'Each type of event is broken down into three categories: accepted, filtered, and dropped. Accepted events were successfully processed by Sentry. Filtered events were blocked due to your project’s inbound data filter rules. Dropped events were discarded due to invalid data, rate limits, quotas, or spike protection.'
-                )}
-              </p>
-            </OrgText>
-            <OrgLastMin>
-              <ErrorBoundary mini>
-                <UsageStatsLastMin
-                  organization={organization}
-                  dataCategory={this.dataCategory}
-                  dataCategoryName={this.dataCategoryName}
-                />
-              </ErrorBoundary>
-            </OrgLastMin>
-          </OrgTextWrapper>
+          <p>
+            {t(
+              'We collect usage metrics on three types of events: errors, transactions and attachments. The charts below reflect events that Sentry have received across your entire organization. You can also find them broken down by project in the table.'
+            )}
+          </p>
 
-          <ErrorBoundary mini>
-            <UsageStatsOrg
-              organization={organization}
-              dataCategory={this.dataCategory}
-              dataCategoryName={this.dataCategoryName}
-              dataDatetime={this.dataPeriod}
-              chartTransform={this.chartTransform}
-              handleChangeState={this.setStateOnUrl}
-            />
-          </ErrorBoundary>
+          <PageGrid>
+            {this.renderPageControl()}
 
-          <PageHeader>
-            <PageHeading>
-              {tct('Project Usage Stats for [dataCategory]', {
-                dataCategory: this.dataCategoryName,
-              })}
-            </PageHeading>
-          </PageHeader>
-
-          <Alert type="info" icon={<IconInfo size="md" />}>
-            {t('Only usage stats for your projects are displayed here.')}
-          </Alert>
-
-          <ErrorBoundary mini>
-            <UsageStatsProjects
-              organization={organization}
-              dataCategory={this.dataCategory}
-              dataCategoryName={this.dataCategoryName}
-              dataDatetime={this.dataPeriod}
-              tableSort={this.tableSort}
-              handleChangeState={this.setStateOnUrl}
-              getNextLocations={this.getNextLocations}
-            />
-          </ErrorBoundary>
+            <ErrorBoundary mini>
+              <UsageStatsOrg
+                organization={organization}
+                dataCategory={this.dataCategory}
+                dataCategoryName={this.dataCategoryName}
+                dataDatetime={this.dataPeriod}
+                chartTransform={this.chartTransform}
+                handleChangeState={this.setStateOnUrl}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <UsageStatsProjects
+                organization={organization}
+                dataCategory={this.dataCategory}
+                dataCategoryName={this.dataCategoryName}
+                dataDatetime={this.dataPeriod}
+                tableSort={this.tableSort}
+                handleChangeState={this.setStateOnUrl}
+                getNextLocations={this.getNextLocations}
+              />
+            </ErrorBoundary>
+          </PageGrid>
         </PageContent>
       </SentryDocumentTitle>
     );
@@ -233,28 +262,45 @@ class OrganizationStats extends React.Component<Props> {
 
 export default OrganizationStats;
 
-const OrgTextWrapper = styled('div')`
+const PageGrid = styled('div')`
   display: grid;
-  grid-auto-flow: row;
+  grid-template-columns: 1fr;
+  grid-gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-auto-flow: column;
-    grid-template-columns: 75% 25%;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: repeat(4, 1fr);
   }
 `;
 
-const OrgText = styled('div')`
-  max-width: ${p => p.theme.breakpoints[0]};
+const StyledDropdown = styled(DropdownControl)`
+  button {
+    width: 100%;
+
+    > span {
+      display: flex;
+      justify-content: space-between;
+    }
+  }
+`;
+const DropdownDataCategory = styled(StyledDropdown)`
+  grid-column: auto / span 1;
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-column: auto / span 3;
+  }
+`;
+const DropdownDate = styled(StyledDropdown)`
+  grid-column: auto / span 1;
 `;
 
-const OrgLastMin = styled('div')`
-  display: flex;
-  justify-content: center;
-  padding: ${space(4)} 0;
+const DropdownLabel = styled('span')`
+  min-width: 100px;
+  text-align: left;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    justify-content: flex-end;
-    align-items: center;
-    padding: 0 0 ${space(4)};
+  > span:last-child {
+    font-weight: 400;
   }
 `;
