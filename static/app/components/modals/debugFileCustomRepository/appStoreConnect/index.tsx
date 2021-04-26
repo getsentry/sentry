@@ -1,5 +1,6 @@
 import {Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -57,66 +58,91 @@ function AppStoreConnect({
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const [
-    appStoreCredentialsData,
-    setAppStoreCredentialsData,
-  ] = useState<AppStoreCredentialsData>({
+  const appStoreCredentialsInitialData = {
     issuer: initialData?.appconnectIssuer,
     keyId: initialData?.appconnectKey,
     privateKey: undefined,
-    app: undefined,
-  });
+    app:
+      initialData?.appName && initialData?.appId
+        ? {
+            appId: initialData.appId,
+            name: initialData.appName,
+          }
+        : undefined,
+  };
 
-  const [
-    itunesCredentialsData,
-    setItunesCredentialsData,
-  ] = useState<ItunesCredentialsData>({
+  const iTunesCredentialsInitialData = {
     username: initialData?.itunesUser,
     password: undefined,
     authenticationCode: undefined,
-    org: undefined,
+    org:
+      initialData?.orgId && initialData?.orgName
+        ? {
+            organizationId: initialData.orgId,
+            name: initialData.appName,
+          }
+        : undefined,
     useSms: undefined,
     sessionContext: undefined,
-  });
+  };
+
+  const [
+    appStoreCredentialsData,
+    setAppStoreCredentialsData,
+  ] = useState<AppStoreCredentialsData>(appStoreCredentialsInitialData);
+
+  const [
+    iTunesCredentialsData,
+    setItunesCredentialsData,
+  ] = useState<ItunesCredentialsData>(iTunesCredentialsInitialData);
 
   async function handleSave() {
-    if (!itunesCredentialsData.org || !appStoreCredentialsData.app) {
-      return;
+    let endpoint = `/projects/${orgSlug}/${projectSlug}/appstoreconnect/`;
+    let successMessage = t('App Store Connect repository was successfully added');
+    let errorMessage = t(
+      'An error occured while adding the App Store Connect repository'
+    );
+
+    if (!!initialData) {
+      endpoint = `${endpoint}${initialData.id}/`;
+      successMessage = t('App Store Connect repository was successfully updated');
+      errorMessage = t(
+        'An error occured while updating the App Store Connect repository'
+      );
     }
 
     setIsLoading(true);
     try {
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/`,
-        {
-          method: 'POST',
-          data: {
-            appconnectIssuer: appStoreCredentialsData.issuer,
-            appconnectKey: appStoreCredentialsData.keyId,
-            appconnectPrivateKey: appStoreCredentialsData.privateKey,
-            appName: appStoreCredentialsData.app.name,
-            appId: appStoreCredentialsData.app.appId,
-            itunesUser: itunesCredentialsData.username,
-            itunesPassword: itunesCredentialsData.password,
-            orgId: itunesCredentialsData.org.organizationId,
-            orgName: itunesCredentialsData.org.name,
-            sessionContext: itunesCredentialsData.sessionContext,
-          },
-        }
-      );
-      addSuccessMessage('App Store Connect repository was successfully added');
+      const response = await api.requestPromise(endpoint, {
+        method: 'POST',
+        data: {
+          appconnectIssuer: appStoreCredentialsData.issuer,
+          appconnectKey: appStoreCredentialsData.keyId,
+          appconnectPrivateKey: appStoreCredentialsData.privateKey,
+          appName: appStoreCredentialsData.app?.name,
+          appId: appStoreCredentialsData.app?.appId,
+          itunesUser: iTunesCredentialsData.username,
+          itunesPassword: iTunesCredentialsData.password,
+          orgId: iTunesCredentialsData.org?.organizationId,
+          orgName: iTunesCredentialsData.org?.name,
+          sessionContext: iTunesCredentialsData.sessionContext,
+        },
+      });
+      addSuccessMessage(successMessage);
+      setIsLoading(false);
       onSubmit(response);
       closeModal();
     } catch {
       setIsLoading(false);
-      addErrorMessage(t('An error occured while saving the repository'));
+      addErrorMessage(errorMessage);
     }
   }
 
-  function isFormInvalid() {
-    const generalData = {...appStoreCredentialsData, ...itunesCredentialsData};
-    return Object.keys(generalData).some(key => {
-      const value = generalData[key];
+  const isUpdating = !!initialData;
+
+  function isDataInvalid(data: Record<string, any>) {
+    return Object.keys(data).some(key => {
+      const value = data[key];
 
       if (typeof value === 'string') {
         return !value.trim();
@@ -126,7 +152,43 @@ function AppStoreConnect({
     });
   }
 
-  const isUpdating = !!initialData;
+  function isAppStoreCredentialsDataInvalid() {
+    return isDataInvalid(appStoreCredentialsData);
+  }
+
+  function isItunesCredentialsDataInvalid() {
+    return isDataInvalid(iTunesCredentialsData);
+  }
+
+  function isFormInvalid() {
+    if (!!initialData) {
+      const isAppStoreCredentialsDataTheSame = isEqual(
+        appStoreCredentialsData,
+        appStoreCredentialsInitialData
+      );
+
+      const isItunesCredentialsDataTheSame = isEqual(
+        iTunesCredentialsData,
+        iTunesCredentialsInitialData
+      );
+
+      if (!isAppStoreCredentialsDataTheSame && !isItunesCredentialsDataTheSame) {
+        return isAppStoreCredentialsDataInvalid() && isItunesCredentialsDataInvalid();
+      }
+
+      if (!isAppStoreCredentialsDataTheSame) {
+        return isAppStoreCredentialsDataInvalid();
+      }
+
+      if (!isItunesCredentialsDataTheSame) {
+        return isItunesCredentialsDataInvalid();
+      }
+
+      return isAppStoreCredentialsDataTheSame && isItunesCredentialsDataTheSame;
+    }
+
+    return isAppStoreCredentialsDataInvalid() && isItunesCredentialsDataInvalid();
+  }
 
   return (
     <Fragment>
@@ -148,6 +210,7 @@ function AppStoreConnect({
                 projectSlug={projectSlug}
                 data={appStoreCredentialsData}
                 onChange={setAppStoreCredentialsData}
+                onReset={() => setAppStoreCredentialsData(appStoreCredentialsInitialData)}
                 isUpdating={isUpdating}
               />
             </ItemContent>
@@ -166,8 +229,9 @@ function AppStoreConnect({
                 api={api}
                 orgSlug={orgSlug}
                 projectSlug={projectSlug}
-                data={itunesCredentialsData}
+                data={iTunesCredentialsData}
                 onChange={setItunesCredentialsData}
+                onReset={() => setItunesCredentialsData(iTunesCredentialsInitialData)}
                 isUpdating={isUpdating}
               />
             </ItemContent>
