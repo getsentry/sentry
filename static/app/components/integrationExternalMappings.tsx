@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {capitalize} from 'lodash';
 
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
@@ -49,7 +50,7 @@ class IntegrationExternalMappings extends React.Component<Props, State> {
           <PanelBody>
             {!mappings.length && (
               <EmptyMessage icon={getIntegrationIcon(integration.provider.key, 'lg')}>
-                {tct('Set up External [type] Mappings.', {type})}
+                {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
               </EmptyMessage>
             )}
             {mappings.map(item => (
@@ -120,7 +121,7 @@ const HeaderLayout = styled(Layout)`
   align-items: center;
   margin: 0;
   margin-left: ${space(2)};
-  text-transform: capitalize;
+  text-transform: uppercase;
 `;
 
 const ConfigPanelItem = styled(PanelItem)``;
