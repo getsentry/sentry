@@ -13,7 +13,7 @@ function clickMenuItem(card, selector) {
 }
 
 describe('Dashboards > DashboardList', function () {
-  let dashboards, widgets, deleteMock, dashboardUpdateMock;
+  let dashboards, widgets, deleteMock, dashboardUpdateMock, createMock;
   const organization = TestStubs.Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
     projects: [TestStubs.Project()],
@@ -75,6 +75,40 @@ describe('Dashboards > DashboardList', function () {
     deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/2/',
       method: 'DELETE',
+      statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '2',
+        title: 'Dashboard Demo',
+        widgets: [
+          {
+            id: '1',
+            title: 'Errors',
+            displayType: 'big_number',
+            interval: '5m',
+          },
+          {
+            id: '2',
+            title: 'Transactions',
+            displayType: 'big_number',
+            interval: '5m',
+          },
+          {
+            id: '3',
+            title: 'p50 of /api/cat',
+            displayType: 'big_number',
+            interval: '5m',
+          },
+        ],
+      },
+    });
+    createMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      method: 'POST',
       statusCode: 200,
     });
     dashboardUpdateMock = jest.fn();
@@ -165,5 +199,31 @@ describe('Dashboards > DashboardList', function () {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(dashboardUpdateMock).toHaveBeenCalled();
+  });
+
+  it('can duplicate dashboards', async function () {
+    const wrapper = mountWithTheme(
+      <DashboardList
+        organization={organization}
+        dashboards={dashboards}
+        pageLinks=""
+        location={{query: {}}}
+        onDashboardsChange={dashboardUpdateMock}
+      />
+    );
+    let card = wrapper.find('DashboardCard').last();
+    expect(card.find('Title').text()).toEqual(dashboards[1].title);
+
+    openContextMenu(card);
+    wrapper.update();
+
+    card = wrapper.find('DashboardCard').last();
+    clickMenuItem(card, 'dashboard-duplicate');
+
+    // wait for request
+    await wrapper.update();
+
+    expect(createMock).toHaveBeenCalled();
+    // expect(dashboardUpdateMock).toHave BeenCalled();
   });
 });
