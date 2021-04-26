@@ -144,7 +144,7 @@ def handle_existing_identity(
     if not auth.login(
         request, user, after_2fa=request.build_absolute_uri(), organization_id=organization.id
     ):
-        return HttpResponseRedirect(auth.get_login_redirect(request))
+        return HttpResponseRedirect(auth.get_login_redirect(request, organization))
 
     state.clear()
     metrics.incr(
@@ -158,7 +158,7 @@ def handle_existing_identity(
         sample_rate=1.0,
     )
 
-    return HttpResponseRedirect(auth.get_login_redirect(request))
+    return HttpResponseRedirect(auth.get_login_redirect(request, organization))
 
 
 def handle_new_membership(auth_provider, organization, request, auth_identity):
@@ -333,8 +333,8 @@ def respond(template, organization, request, context=None, status=200):
     return render_to_response(template, default_context, request, status=status)
 
 
-def post_login_redirect(request):
-    response = HttpResponseRedirect(auth.get_login_redirect(request))
+def post_login_redirect(request, organization):
+    response = HttpResponseRedirect(auth.get_login_redirect(request, organization))
 
     # Always remove any pending invite cookies, pending invites will have been
     # accepted during the SSO flow.
@@ -399,7 +399,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
                 organization_id=organization.id,
             ):
                 if acting_user.has_usable_password():
-                    return post_login_redirect(request)
+                    return post_login_redirect(request, organization)
                 else:
                     acting_user = None
             else:
@@ -435,7 +435,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
                 after_2fa=request.build_absolute_uri(),
                 organization_id=organization.id,
             ):
-                return post_login_redirect(request)
+                return post_login_redirect(request, organization)
         else:
             auth.log_auth_failure(request, request.POST.get("username"))
     else:
@@ -480,11 +480,11 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
     if not auth.login(
         request, user, after_2fa=request.build_absolute_uri(), organization_id=organization.id
     ):
-        return post_login_redirect(request)
+        return post_login_redirect(request, organization)
 
     state.clear()
 
-    return post_login_redirect(request)
+    return post_login_redirect(request, organization)
 
 
 def handle_new_user(auth_provider, organization, request, identity):

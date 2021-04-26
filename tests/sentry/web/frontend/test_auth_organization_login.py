@@ -76,7 +76,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         ):
             resp = self.client.post(path, {"op": "newuser"}, follow=True)
             assert resp.redirect_chain == [
-                (reverse("sentry-login"), 302),
                 ("/organizations/foo/issues/", 302),
             ]
 
@@ -114,7 +113,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
             ("/organizations/foo/issues/", 302),
         ]
 
@@ -140,7 +138,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         path = reverse("sentry-auth-sso")
         resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
             ("/organizations/foo/issues/", 302),
         ]
 
@@ -165,7 +162,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
             ("/organizations/foo/issues/", 302),
         ]
 
@@ -257,10 +253,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [("/organizations/foo/issues/", 302)]
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
         new_user = auth_identity.user
@@ -300,7 +293,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
             ("/organizations/foo/issues/", 302),
         ]
 
@@ -346,10 +338,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [("/organizations/foo/issues/", 302)]
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 
@@ -394,7 +383,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
             ("/organizations/foo/issues/", 302),
         ]
 
@@ -449,7 +437,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             path, {"email": "bar@example.com", "id": "123", "email_verified": "1"}, follow=True
         )
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
             ("/organizations/foo/issues/", 302),
             ("/auth/login/foo/", 302),
         ]
@@ -607,7 +594,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # updated to be something else)
         resp = self.client.post(path, {"email": "adfadsf@example.com"}, follow=True)
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
             ("/organizations/foo/issues/", 302),
             ("/auth/login/foo/", 302),
         ]
@@ -646,10 +632,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(
             path, {"email": "foo@new-domain.com", "legacy_email": "foo@example.com"}, follow=True
         )
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [("/organizations/foo/issues/", 302)]
 
         # Ensure the ident was migrated from the legacy identity
         updated_ident = AuthIdentity.objects.get(id=user_ident.id)

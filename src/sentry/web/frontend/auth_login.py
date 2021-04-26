@@ -160,7 +160,7 @@ class AuthLoginView(BaseView):
 
                 return response
 
-            return self.redirect(auth.get_login_redirect(request))
+            return self.redirect(auth.get_login_redirect(request, organization))
 
         elif request.method == "POST":
             from sentry.app import ratelimiter
@@ -199,7 +199,7 @@ class AuthLoginView(BaseView):
                             organization=organization, email=user.email
                         )
                     except OrganizationMember.DoesNotExist:
-                        pass
+                        return self.redirect(auth.get_login_url())
                     else:
                         # XXX(jferge): if user is in 2fa removed state,
                         # dont redirect to org login page instead redirect to general login where
@@ -207,7 +207,7 @@ class AuthLoginView(BaseView):
                         if om.user is None:
                             return self.redirect(auth.get_login_url())
 
-                return self.redirect(auth.get_login_redirect(request))
+                return self.redirect(auth.get_login_redirect(request, organization))
             else:
                 metrics.incr(
                     "login.attempt", instance="failure", skip_internal=True, sample_rate=1.0

@@ -92,9 +92,11 @@ def get_org_redirect_url(request, active_organization):
     return "/organizations/new/"
 
 
-def get_login_redirect(request, default=None):
-    if default is None:
+def get_login_redirect(request, active_organization=None):
+    if active_organization is None:
         default = get_login_url()
+    else:
+        default = get_org_redirect_url(request, active_organization)
 
     # If there is a pending 2fa authentication bound to the session then
     # we need to go to the 2fa dialog.

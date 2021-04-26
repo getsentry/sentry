@@ -56,11 +56,9 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
             )
 
         active_org = self.get_active_organization(request)
-        redirect_url = auth.get_org_redirect_url(request, active_org)
-
         return Response(
             {
-                "nextUri": auth.get_login_redirect(request, redirect_url),
+                "nextUri": auth.get_login_redirect(request, active_org),
                 "user": serialize(user, user, DetailedUserSerializer()),
             }
         )
