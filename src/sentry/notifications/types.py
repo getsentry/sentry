@@ -173,3 +173,29 @@ SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.status_change: "changed_status",
     GroupSubscriptionReason.mentioned: "mentioned",
 }
+
+
+class ActionTargetType(Enum):
+    ISSUE_OWNERS = "IssueOwners"
+    TEAM = "Team"
+    MEMBER = "Member"
+
+
+ACTION_CHOICES = [
+    (ActionTargetType.ISSUE_OWNERS.value, "Issue Owners"),
+    (ActionTargetType.TEAM.value, "Team"),
+    (ActionTargetType.MEMBER.value, "Member"),
+]
+
+
+class AssigneeTargetType(Enum):
+    UNASSIGNED = "Unassigned"
+    TEAM = "Team"
+    MEMBER = "Member"
+
+
+ASSIGNEE_CHOICES = [
+    (AssigneeTargetType.UNASSIGNED.value, "Unassigned"),
+    (AssigneeTargetType.TEAM.value, "Team"),
+    (AssigneeTargetType.MEMBER.value, "Member"),
+]
