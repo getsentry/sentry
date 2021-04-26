@@ -12,7 +12,7 @@ class ReactivateAccountView(BaseView):
     @never_cache
     @transaction.atomic
     def handle(self, request):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return self.handle_auth_required(request)
 
         if request.POST.get("op") == "confirm":

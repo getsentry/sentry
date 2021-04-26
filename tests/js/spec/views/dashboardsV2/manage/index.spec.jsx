@@ -25,9 +25,6 @@ describe('Dashboards > Detail', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/create/',
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [],
     });

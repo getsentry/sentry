@@ -77,7 +77,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         :param array[string] events: the events to subscribe to
         :auth: required
         """
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return self.respond(status=401)
 
         if not self.has_feature(request, project):

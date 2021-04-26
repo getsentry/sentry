@@ -1,7 +1,5 @@
 import {Location} from 'history';
 
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {backend, frontend} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import {LightWeightOrganization, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -17,6 +15,7 @@ import {decodeScalar} from 'app/utils/queryString';
 
 import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
 import {Rectangle} from '../transactionVitals/types';
+import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
 
 export const LEFT_AXIS_QUERY_KEY = 'left';
 export const RIGHT_AXIS_QUERY_KEY = 'right';
@@ -100,9 +99,6 @@ export function getBackendFunction(
   }
 }
 
-const VITALS_FRONTEND_PLATFORMS: string[] = [...frontend];
-const VITALS_BACKEND_PLATFORMS: string[] = [...backend];
-
 export function getDefaultDisplayFieldForPlatform(
   projects: Project[],
   eventView?: EventView
@@ -111,31 +107,16 @@ export function getDefaultDisplayFieldForPlatform(
     return LandingDisplayField.ALL;
   }
   const projectIds = eventView.project;
-  if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
-    return LandingDisplayField.ALL;
-  }
-  const selectedProjects = projects.filter(p => projectIds.includes(parseInt(p.id, 10)));
-  if (selectedProjects.length === 0 || selectedProjects.some(p => !p.platform)) {
-    return LandingDisplayField.ALL;
-  }
 
-  if (
-    selectedProjects.every(project =>
-      VITALS_FRONTEND_PLATFORMS.includes(project.platform as string)
-    )
-  ) {
-    return LandingDisplayField.FRONTEND_PAGELOAD;
-  }
-
-  if (
-    selectedProjects.every(project =>
-      VITALS_BACKEND_PLATFORMS.includes(project.platform as string)
-    )
-  ) {
-    return LandingDisplayField.BACKEND;
-  }
-
-  return LandingDisplayField.ALL;
+  const performanceTypeToDisplay = {
+    [PROJECT_PERFORMANCE_TYPE.ANY]: LandingDisplayField.ALL,
+    [PROJECT_PERFORMANCE_TYPE.FRONTEND]: LandingDisplayField.FRONTEND_PAGELOAD,
+    [PROJECT_PERFORMANCE_TYPE.BACKEND]: LandingDisplayField.BACKEND,
+  };
+  const performanceType = platformToPerformanceType(projects, projectIds);
+  const landingField =
+    performanceTypeToDisplay[performanceType] ?? LandingDisplayField.ALL;
+  return landingField;
 }
 
 export const backendCardDetails = (organization: LightWeightOrganization) => {

@@ -1,4 +1,4 @@
-import {DurationDisplay} from 'app/components/waterfallTree/types';
+import {DurationDisplay} from 'app/components/performance/waterfall/types';
 import CHART_PALETTE from 'app/constants/chartPalette';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';

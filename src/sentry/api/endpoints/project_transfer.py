@@ -49,7 +49,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         if email is None:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         try:

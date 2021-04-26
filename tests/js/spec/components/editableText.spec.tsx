@@ -13,8 +13,8 @@ function renderedComponent(onChange: () => void, newValue = 'bar') {
     <EditableText value={currentValue} onChange={onChange} />
   );
 
-  let content = wrapper.find('Content');
-  expect(content.text()).toEqual(currentValue);
+  let label = wrapper.find('Label');
+  expect(label.text()).toEqual(currentValue);
 
   let inputWrapper = wrapper.find('InputWrapper');
   expect(inputWrapper.length).toEqual(0);
@@ -22,9 +22,9 @@ function renderedComponent(onChange: () => void, newValue = 'bar') {
   const styledIconEdit = wrapper.find('StyledIconEdit');
   expect(styledIconEdit).toBeTruthy();
 
-  content.simulate('click');
+  label.simulate('click');
 
-  content = wrapper.find('Content');
+  label = wrapper.find('Label');
   expect(inputWrapper.length).toEqual(0);
 
   inputWrapper = wrapper.find('InputWrapper');
@@ -59,10 +59,10 @@ describe('EditableText', function () {
 
     wrapper.update();
 
-    const updatedContent = wrapper.find('Content');
-    expect(updatedContent).toBeTruthy();
+    const updatedLabel = wrapper.find('Label');
+    expect(updatedLabel).toBeTruthy();
 
-    expect(updatedContent.text()).toEqual(newValue);
+    expect(updatedLabel.text()).toEqual(newValue);
   });
 
   it('edit value and press enter', function () {
@@ -80,10 +80,10 @@ describe('EditableText', function () {
 
     wrapper.update();
 
-    const updatedContent = wrapper.find('Content');
-    expect(updatedContent).toBeTruthy();
+    const updatedLabel = wrapper.find('Label');
+    expect(updatedLabel).toBeTruthy();
 
-    expect(updatedContent.text()).toEqual(newValue);
+    expect(updatedLabel.text()).toEqual(newValue);
   });
 
   it('edit value and press escape', function () {
@@ -101,10 +101,10 @@ describe('EditableText', function () {
 
     wrapper.update();
 
-    const updatedContent = wrapper.find('Content');
-    expect(updatedContent).toBeTruthy();
+    const updatedLabel = wrapper.find('Label');
+    expect(updatedLabel).toBeTruthy();
 
-    expect(updatedContent.text()).toEqual(currentValue);
+    expect(updatedLabel.text()).toEqual(currentValue);
   });
 
   it('clear value and show error message', function () {

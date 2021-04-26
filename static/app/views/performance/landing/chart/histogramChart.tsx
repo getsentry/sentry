@@ -102,12 +102,8 @@ export function HistogramChart(props: Props) {
             allSeries.push(series);
           }
 
-          const values = series.data.map(point => point.value);
-          const max = values.length ? Math.max(...values) : undefined;
-
           const yAxis = {
             type: 'value' as const,
-            max,
             axisLabel: {
               color: theme.chartLabel,
             },
