@@ -988,7 +988,7 @@ SENTRY_FEATURES = {
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
-    "organizations:images-loaded-v2": False,
+    "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
