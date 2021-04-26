@@ -4,7 +4,8 @@ from datetime import timedelta
 import sentry_sdk
 from django.utils import timezone
 
-from sentry.api.event_search import get_filter, resolve_field_list
+from sentry.search.events.fields import resolve_field_list
+from sentry.search.events.filter import get_filter
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
