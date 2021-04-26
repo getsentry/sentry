@@ -554,6 +554,45 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
 
         assert msg.subject.startswith("[Example prefix]")
 
+    @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
+    def test_notify_digest_user_does_not_exist(self, notify):
+        """Test that in the event a rule has been created with an action to send to a user who
+        no longer exists, we don't blow up when getting users in get_send_to
+        """
+        project = self.project
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            project_id=project.id,
+        )
+
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "Member",
+            "targetIdentifier": str(444),
+        }
+        rule = Rule.objects.create(
+            project=self.project,
+            label="a rule",
+            data={
+                "match": "all",
+                "actions": [action_data],
+            },
+        )
+
+        digest = build_digest(
+            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+        )
+
+        with self.tasks():
+            self.adapter.notify_digest(project, digest, ActionTargetType.MEMBER, 444)
+
+        assert notify.call_count == 0
+        assert len(mail.outbox) == 0
+
 
 class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
     def test_normal(self):
