@@ -279,6 +279,7 @@ class SummaryContent extends React.Component<Props, State> {
                 location={location}
                 projects={projects}
                 transactionName={transactionName}
+                currentFilter={spanOperationBreakdownFilter}
               />
             </Feature>
             <RelatedIssues
