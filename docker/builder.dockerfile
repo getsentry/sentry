@@ -41,9 +41,10 @@ RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
   && yarn install --frozen-lockfile --production --quiet \
   && rm -r "$YARN_CACHE_FOLDER"
 
-WORKDIR /js/workspace
 COPY docker/builder.sh /builder.sh
 ENTRYPOINT [ "/builder.sh" ]
+
+WORKDIR /js/workspace
 
 ARG SOURCE_COMMIT
 ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}

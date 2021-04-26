@@ -3,7 +3,7 @@
 set -e
 
 # Ensure custom workspace
-echo pwd
+echo $pwd
 ln -s . /js/workspace
 cd /js/workspace
 
