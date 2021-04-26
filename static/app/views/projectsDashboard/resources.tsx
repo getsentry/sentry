@@ -22,7 +22,7 @@ class Resources extends React.Component<Props> {
     trackAnalyticsEvent({
       eventKey: 'orgdash.resources_shown',
       eventName: 'Projects Dashboard: Resources Shown',
-      organization: organization.id,
+      organization_id: organization.id,
     });
   }
 

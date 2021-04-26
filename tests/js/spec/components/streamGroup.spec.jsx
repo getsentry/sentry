@@ -73,7 +73,7 @@ describe('StreamGroup', function () {
         groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
         firstSeen="2017-07-01T02:06:02Z"
-        query="is:unresolved is:for_review assigned_or_suggested:me_or_none"
+        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
         organization={organization}
         {...routerContext}
       />,
@@ -101,7 +101,7 @@ describe('StreamGroup', function () {
         groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
         firstSeen="2017-07-01T02:06:02Z"
-        query="is:unresolved is:for_review assigned_or_suggested:me_or_none"
+        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
         organization={organization}
         {...routerContext}
       />,

@@ -130,30 +130,60 @@ def build_action_text(group: Group, identity: Identity, action):
     )
 
 
-def build_rule_url(rule: Rule, group: Group, project: Project):
+def build_rule_url(rule: Rule, group: Group, project: Project, issue_alert: bool):
     org_slug = group.organization.slug
     project_slug = project.slug
+    if issue_alert:
+        return absolute_uri(rule[1])
     rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
     return absolute_uri(rule_url)
 
 
-def build_group_attachment(
-    group: Group,
-    event=None,
-    tags: Mapping[str, str] = None,
-    identity: Identity = None,
-    actions=None,
-    rules: List[Rule] = None,
-    link_to_event: bool = False,
-):
-    # XXX(dcramer): options are limited to 100 choices, even when nested
-    status = group.get_status()
+def build_footer(group: Group, issue_alert: bool, project: Project, rules=None):
+    footer = f"{group.qualified_short_id}"
 
+    if rules:
+        rule_url = build_rule_url(rules[0], group, project, issue_alert)
+        if issue_alert:
+            footer += f" via <{rule_url}|{rules[0][0]}>"
+        else:
+            footer += f" via <{rule_url}|{rules[0].label}>"
+
+        if len(rules) > 1:
+            footer += f" (+{len(rules) - 1} other)"
+
+    return footer
+
+
+def build_tag_fields(event_for_tags, tags: Mapping[str, str] = None):
+    fields = []
+    if tags:
+        event_tags = event_for_tags.tags if event_for_tags else []
+        for key, value in event_tags:
+            std_key = tagstore.get_standardized_key(key)
+            if std_key not in tags:
+                continue
+
+            labeled_value = tagstore.get_tag_value_label(key, value)
+            fields.append(
+                {
+                    "title": std_key.encode("utf-8"),
+                    "value": labeled_value.encode("utf-8"),
+                    "short": True,
+                }
+            )
+    return fields
+
+
+def build_actions(
+    group: Group, project: Project, text: str, color: str, actions=None, identity: Identity = None
+):
+    """
+    Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign
+    """
+    status = group.get_status()
     members = get_member_assignees(group)
     teams = get_team_assignees(group)
-
-    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-    text = build_attachment_text(group, event) or ""
 
     if actions is None:
         actions = []
@@ -168,8 +198,6 @@ def build_group_attachment(
     }
 
     ignore_button = {"name": "status", "value": "ignored", "type": "button", "text": "Ignore"}
-
-    project = Project.objects.get_from_cache(id=group.project_id)
 
     cache_key = "has_releases:2:%s" % (project.id)
     has_releases = cache.get(cache_key)
@@ -209,6 +237,31 @@ def build_group_attachment(
         },
     ]
 
+    if actions:
+        action_texts = [_f for _f in [build_action_text(group, identity, a) for a in actions] if _f]
+        text += "\n" + "\n".join(action_texts)
+
+        color = ACTIONED_ISSUE_COLOR
+        payload_actions = []
+
+    return payload_actions, text, color
+
+
+def build_group_attachment(
+    group: Group,
+    event=None,
+    tags: Mapping[str, str] = None,
+    identity: Identity = None,
+    actions=None,
+    rules: List[Rule] = None,
+    link_to_event: bool = False,
+    issue_alert: bool = False,
+):
+    # XXX(dcramer): options are limited to 100 choices, even when nested
+    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
+    text = build_attachment_text(group, event) or ""
+    project = Project.objects.get_from_cache(id=group.project_id)
+
     # If an event is unspecified, use the tags of the latest event (if one exists).
     event_for_tags = event if event else group.get_latest_event()
 
@@ -219,29 +272,7 @@ def build_group_attachment(
         else fallback_color
     )
 
-    fields = []
-    if tags:
-        event_tags = event_for_tags.tags if event_for_tags else []
-        for key, value in event_tags:
-            std_key = tagstore.get_standardized_key(key)
-            if std_key not in tags:
-                continue
-
-            labeled_value = tagstore.get_tag_value_label(key, value)
-            fields.append(
-                {
-                    "title": std_key.encode("utf-8"),
-                    "value": labeled_value.encode("utf-8"),
-                    "short": True,
-                }
-            )
-
-    if actions:
-        action_texts = [_f for _f in [build_action_text(group, identity, a) for a in actions] if _f]
-        text += "\n" + "\n".join(action_texts)
-
-        color = ACTIONED_ISSUE_COLOR
-        payload_actions = []
+    fields = build_tag_fields(event_for_tags, tags)
 
     ts = group.last_seen
 
@@ -249,20 +280,20 @@ def build_group_attachment(
         event_ts = event.datetime
         ts = max(ts, event_ts)
 
-    footer = f"{group.qualified_short_id}"
-
-    if rules:
-        rule_url = build_rule_url(rules[0], group, project)
-        footer += f" via <{rule_url}|{rules[0].label}>"
-
-        if len(rules) > 1:
-            footer += f" (+{len(rules) - 1} other)"
+    footer = build_footer(group, issue_alert, project, rules)
 
     obj = event if event is not None else group
     if event and link_to_event:
         title_link = group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
+    elif issue_alert:
+        title_link = group.get_absolute_url(params={"referrer": "IssueAlertSlack"})
     else:
         title_link = group.get_absolute_url(params={"referrer": "slack"})
+
+    if not issue_alert:
+        payload_actions, text, color = build_actions(group, project, text, color, actions, identity)
+    else:
+        payload_actions = []
 
     return {
         "fallback": f"[{project.slug}] {obj.title}",

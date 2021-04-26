@@ -2,9 +2,9 @@ from typing import Any, MutableMapping
 
 from django.db import IntegrityError
 from django.http import Http404
-from rest_framework import serializers  # type: ignore
-from rest_framework.exceptions import PermissionDenied  # type: ignore
-from rest_framework.request import Request  # type: ignore
+from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -53,6 +53,10 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         # Discard the object ID passed by the API.
         if "id" in validated_data:
             validated_data.pop("id")
+        if "provider" in validated_data:
+            validated_data["provider"] = self.get_provider_id({**validated_data})
+        if self._actor_key in validated_data:
+            validated_data["actor_id"] = self.get_actor_id({**validated_data})
 
         for key, value in validated_data.items():
             setattr(self.instance, key, value)

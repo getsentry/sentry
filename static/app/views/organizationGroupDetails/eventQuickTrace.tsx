@@ -10,10 +10,10 @@ import ButtonBar from 'app/components/buttonBar';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Organization, PromptActivity} from 'app/types';
+import {Group, Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getDocsPlatform} from 'app/utils/docs';
-import {snoozedDays} from 'app/utils/promptsActivity';
+import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 
 type Props = {
@@ -23,12 +23,12 @@ type Props = {
 };
 
 type State = {
-  shouldShow: boolean | undefined;
+  shouldShow: boolean | null;
 };
 
 class EventQuickTrace extends React.Component<Props, State> {
   state: State = {
-    shouldShow: undefined,
+    shouldShow: null,
   };
 
   componentDidMount() {
@@ -45,17 +45,7 @@ class EventQuickTrace extends React.Component<Props, State> {
       feature: 'distributed_tracing',
     });
 
-    this.setState({shouldShow: this.shouldShow(data ?? {})});
-  }
-
-  shouldShow({snoozedTime, dismissedTime}: PromptActivity) {
-    if (dismissedTime) {
-      return false;
-    }
-    if (snoozedTime) {
-      return snoozedDays(snoozedTime) > 7;
-    }
-    return true;
+    this.setState({shouldShow: !promptIsDismissed(data ?? {}, 30)});
   }
 
   trackAnalytics({eventKey, eventName}) {
@@ -130,7 +120,7 @@ class EventQuickTrace extends React.Component<Props, State> {
           </Button>
           <ButtonBar merged>
             <Button
-              title={t('Remind me next week')}
+              title={t('Remind me next month')}
               size="small"
               onClick={() =>
                 this.handleClick({

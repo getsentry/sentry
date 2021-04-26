@@ -1,10 +1,10 @@
 import 'zrender/lib/svg/svg';
 
 import React from 'react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
-import {withTheme} from 'emotion-theming';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import space from 'app/styles/space';

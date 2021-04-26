@@ -177,7 +177,8 @@ class SummaryContent extends React.Component<Props, State> {
     const totalCount = totalValues === null ? null : totalValues.count;
 
     const spanOperationBreakdownConditions = filterToSearchConditions(
-      spanOperationBreakdownFilter
+      spanOperationBreakdownFilter,
+      location
     );
 
     if (spanOperationBreakdownConditions) {
@@ -198,7 +199,7 @@ class SummaryContent extends React.Component<Props, State> {
 
     const durationTableTitle =
       spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
-        ? t('duration')
+        ? t('total duration')
         : `${spanOperationBreakdownFilter} duration`;
 
     return (
@@ -278,6 +279,7 @@ class SummaryContent extends React.Component<Props, State> {
                 location={location}
                 projects={projects}
                 transactionName={transactionName}
+                currentFilter={spanOperationBreakdownFilter}
               />
             </Feature>
             <RelatedIssues

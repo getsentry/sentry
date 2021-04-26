@@ -1,8 +1,8 @@
 import React from 'react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 import {EChartOption} from 'echarts';
-import {withTheme} from 'emotion-theming';
 
 import BaseChart from 'app/components/charts/baseChart';
 import Legend from 'app/components/charts/components/legend';
@@ -176,11 +176,10 @@ export class UsageChart extends React.Component<Props, State> {
    */
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const {usageDateStart, usageDateEnd, usageDateInterval} = nextProps;
-    const xAxisDates = getXAxisDates(usageDateStart, usageDateEnd, usageDateInterval);
 
     return {
       ...prevState,
-      xAxisDates,
+      xAxisDates: getXAxisDates(usageDateStart, usageDateEnd, usageDateInterval),
     };
   }
 

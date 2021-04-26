@@ -1,5 +1,7 @@
 import inspect
 
+import sentry_sdk
+
 from sentry import projectoptions
 from sentry.grouping.enhancer import Enhancements
 
@@ -77,7 +79,10 @@ class GroupingContext:
             raise RuntimeError(f"failed to dispatch interface {path} to strategy")
 
         kwargs["context"] = self
-        rv = strategy(interface, *args, **kwargs)
+        with sentry_sdk.start_span(
+            op="sentry.grouping.GroupingContext.get_grouping_component", description=path
+        ):
+            rv = strategy(interface, *args, **kwargs)
         assert isinstance(rv, dict)
 
         if self["variant"] is not None:

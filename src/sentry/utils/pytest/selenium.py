@@ -182,6 +182,9 @@ class Browser:
 
         return self
 
+    def find_element_by_name(self, name):
+        return self.driver.find_element_by_name(name)
+
     def move_to(self, selector=None):
         """
         Mouse move to ``selector``

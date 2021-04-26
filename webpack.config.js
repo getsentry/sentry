@@ -371,13 +371,6 @@ let appConfig = {
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
-      '@emotion/styled': path.join(staticPrefix, 'app', 'styled'),
-      '@original-emotion/styled': path.join(
-        __dirname,
-        'node_modules',
-        '@emotion',
-        'styled'
-      ),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
@@ -576,6 +569,19 @@ if (IS_PRODUCTION) {
   minificationPlugins.forEach(function (plugin) {
     appConfig.plugins.push(plugin);
   });
+}
+
+// Cache webpack builds
+if (env.WEBPACK_CACHE_PATH) {
+  appConfig.cache = {
+    type: 'filesystem',
+    cacheLocation: path.resolve(__dirname, env.WEBPACK_CACHE_PATH),
+    buildDependencies: {
+      // This makes all dependencies of this file - build dependencies
+      config: [__filename],
+      // By default webpack and loaders are build dependencies
+    },
+  };
 }
 
 if (env.MEASURE) {

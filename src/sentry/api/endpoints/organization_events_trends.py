@@ -7,8 +7,8 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.event_search import DateArg, parse_function
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.search.events.fields import DateArg, parse_function
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba import discover
 

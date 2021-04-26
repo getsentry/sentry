@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
 
@@ -40,17 +41,19 @@ export enum SortBy {
   FILTERED = 'filtered',
   DROPPED = 'dropped',
   INVALID = 'invalid',
+  RATE_LIMITED = 'rate_limited',
 }
 
 class UsageStatsProjects extends AsyncComponent<Props, State> {
   componentDidUpdate(prevProps: Props) {
-    const {dataDatetime: prevDateTime} = prevProps;
-    const {dataDatetime: currDateTime} = this.props;
+    const {dataDatetime: prevDateTime, dataCategory: prevDataCategory} = prevProps;
+    const {dataDatetime: currDateTime, dataCategory: currDataCategory} = this.props;
 
     if (
       prevDateTime.start !== currDateTime.start ||
       prevDateTime.end !== currDateTime.end ||
-      prevDateTime.period !== currDateTime.period
+      prevDateTime.period !== currDateTime.period ||
+      currDataCategory !== prevDataCategory
     ) {
       this.reloadData();
     }
@@ -66,14 +69,14 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   get endpointQuery() {
-    const {dataDatetime} = this.props;
-
+    const {dataDatetime, dataCategory} = this.props;
     // We do not need more granularity in the data so interval is '1d'
     return {
       statsPeriod: dataDatetime?.period || DEFAULT_STATS_PERIOD,
       interval: '1d',
-      groupBy: ['category', 'outcome', 'project'],
+      groupBy: ['outcome', 'project'],
       field: ['sum(quantity)'],
+      category: dataCategory.slice(0, -1), // backend is singular
     };
   }
 
@@ -234,7 +237,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     const stats: Record<number, object> = {};
 
     try {
-      const {dataCategory, projects} = this.props;
+      const {projects} = this.props;
 
       const baseStat: Partial<TableStat> = {
         [SortBy.TOTAL]: 0,
@@ -244,11 +247,8 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       };
 
       projectStats.groups.forEach(group => {
-        const {outcome, category, project} = group.by;
+        const {outcome, project} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
-        if (!dataCategory.includes(category as string)) {
-          return;
-        }
 
         if (!stats[project]) {
           stats[project] = {...baseStat};
@@ -256,8 +256,8 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
         stats[project].total += group.totals['sum(quantity)'];
 
-        // Combine invalid outcomes with dropped
-        if (outcome !== SortBy.INVALID) {
+        // Combine invalid outcomes with rate_limited as dropped
+        if (outcome !== SortBy.INVALID && outcome !== SortBy.RATE_LIMITED) {
           stats[project][outcome] += group.totals['sum(quantity)'];
         } else {
           stats[project][SortBy.DROPPED] += group.totals['sum(quantity)'];
@@ -301,22 +301,28 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   renderComponent() {
-    const {error, errors, loading, projectStats} = this.state;
+    const {error, errors, loading} = this.state;
     const {dataCategory, loadingProjects} = this.props;
     const {headers, tableStats} = this.tableData;
 
     return (
-      <UsageTable
-        isLoading={loading || loadingProjects}
-        isError={error || !projectStats}
-        errors={errors as any} // TODO(ts)
-        isEmpty={tableStats.length === 0}
-        headers={headers}
-        dataCategory={dataCategory}
-        usageStats={tableStats}
-      />
+      <Wrapper>
+        <UsageTable
+          isLoading={loading || loadingProjects}
+          isError={error}
+          errors={errors as any} // TODO(ts)
+          isEmpty={tableStats.length === 0}
+          headers={headers}
+          dataCategory={dataCategory}
+          usageStats={tableStats}
+        />
+      </Wrapper>
     );
   }
 }
 
 export default withProjects(UsageStatsProjects);
+
+const Wrapper = styled('div')`
+  grid-column: 1 / -1;
+`;

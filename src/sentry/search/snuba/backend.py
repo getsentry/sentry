@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
 from sentry import quotas
-from sentry.api.event_search import InvalidSearchQuery, equality_operators
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Group,
     GroupAssignee,
@@ -25,6 +25,7 @@ from sentry.models import (
     User,
 )
 from sentry.search.base import SearchBackend
+from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
 
 
@@ -269,7 +270,7 @@ class QCallbackCondition(Condition):
                 f"Operator {search_filter.operator} not valid for search {search_filter}"
             )
         queryset_method = (
-            queryset.filter if search_filter.operator in equality_operators else queryset.exclude
+            queryset.filter if search_filter.operator in EQUALITY_OPERATORS else queryset.exclude
         )
         queryset = queryset_method(q)
         return queryset
