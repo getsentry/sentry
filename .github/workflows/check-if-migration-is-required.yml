@@ -46,12 +46,4 @@ jobs:
           SENTRY_LOG_LEVEL: ERROR
           PGPASSWORD: postgres
         run: |
-          # This will fail if a migration or the lockfile are missing in the PR
-          output=$((sentry django makemigrations --check --dry-run --no-input) 2>&1)
-          exit_code=$?
-          echo "$output"
-          if [ "$exit_code" == 1 ]; then
-            echo >&2 "::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name> && git add migrations_lockfile.txt`" && exit 1
-          else:
-            echo >&2 "::error::Error: Migration lockfile mismatch -- run `sentry django makemigrations -n <some_name> && git add migrations_lockfile.txt`" && exit 1
-          fi
+          ./scripts/migration-check.sh
