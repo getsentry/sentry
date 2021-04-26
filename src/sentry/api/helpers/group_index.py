@@ -521,7 +521,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn, has_
     # so we won't have to requery for each group
     project_lookup = {p.id: p for p in projects}
 
-    acting_user = request.user if request.user.is_authenticated() else None
+    acting_user = request.user if request.user.is_authenticated else None
 
     if not group_ids:
         try:
@@ -656,7 +656,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn, has_
                         "release": release,
                         "type": res_type,
                         "status": res_status,
-                        "actor_id": request.user.id if request.user.is_authenticated() else None,
+                        "actor_id": request.user.id if request.user.is_authenticated else None,
                     }
                     resolution, created = GroupResolution.objects.get_or_create(
                         group=group, defaults=resolution_params
@@ -765,7 +765,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn, has_
                                 "user_window": ignore_user_window,
                                 "state": state,
                                 "actor_id": request.user.id
-                                if request.user.is_authenticated()
+                                if request.user.is_authenticated
                                 else None,
                             },
                         )

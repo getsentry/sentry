@@ -21,7 +21,7 @@ def generate_signed_link(user, viewname, referrer=None, args=None, kwargs=None):
     ID.
     """
     if hasattr(user, "is_authenticated"):
-        if not user.is_authenticated():
+        if not user.is_authenticated:
             raise RuntimeError("Need an authenticated user to sign a link.")
         user_id = user.id
     else:

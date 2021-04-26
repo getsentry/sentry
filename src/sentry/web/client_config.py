@@ -113,7 +113,7 @@ def get_client_config(request=None):
 
         # User identity is used by the sentry SDK
         user_identity = {"ip_address": request.META["REMOTE_ADDR"]}
-        if user and user.is_authenticated():
+        if user and user.is_authenticated:
             user_identity.update({"email": user.email, "id": user.id, "isStaff": user.is_staff})
             if user.name:
                 user_identity["name"] = user.name
@@ -178,7 +178,7 @@ def get_client_config(request=None):
         },
         "demoMode": settings.DEMO_MODE,
     }
-    if user and user.is_authenticated():
+    if user and user.is_authenticated:
         context.update(
             {"isAuthenticated": True, "user": serialize(user, user, DetailedUserSerializer())}
         )

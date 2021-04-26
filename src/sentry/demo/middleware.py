@@ -57,7 +57,7 @@ class DemoMiddleware:
 
         org_slug = view_kwargs["organization_slug"]
         # if authed, make sure it's the same org
-        if request.user.is_authenticated() and request.user.is_active:
+        if request.user.is_authenticated and request.user.is_active:
             # if already part of org, then quit
             if OrganizationMember.objects.filter(
                 organization__slug=org_slug, user=request.user

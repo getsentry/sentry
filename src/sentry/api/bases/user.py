@@ -60,7 +60,7 @@ class UserEndpoint(Endpoint):
     def convert_args(self, request, user_id, *args, **kwargs):
         try:
             if user_id == "me":
-                if not request.user.is_authenticated():
+                if not request.user.is_authenticated:
                     raise ResourceDoesNotExist
                 user_id = request.user.id
 

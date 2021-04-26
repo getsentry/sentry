@@ -32,7 +32,7 @@ class TeamManager(BaseManager):
             ProjectTeam,
         )
 
-        if not user.is_authenticated():
+        if not user.is_authenticated:
             return []
 
         base_team_qs = self.filter(organization=organization, status=TeamStatus.VISIBLE)

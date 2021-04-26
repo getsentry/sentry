@@ -76,7 +76,7 @@ class Superuser:
     @property
     def is_active(self):
         # if we've been logged out
-        if not self.request.user.is_authenticated():
+        if not self.request.user.is_authenticated:
             return False
         # if superuser status was changed
         if not self.request.user.is_superuser:

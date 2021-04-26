@@ -533,7 +533,7 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
                 return self._format_commits(repo, res["commits"])
 
     def get_installations(self, actor):
-        if not actor.is_authenticated():
+        if not actor.is_authenticated:
             raise PluginError(API_ERRORS[401])
 
         auth = UserSocialAuth.objects.filter(user=actor, provider="github_apps").first()

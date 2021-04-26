@@ -149,7 +149,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     organization=organization, user=request.user, team=team, sender=self.__class__
                 )
 
-            if request.user.is_authenticated():
+            if request.user.is_authenticated:
                 try:
                     member = OrganizationMember.objects.get(
                         user=request.user, organization=organization

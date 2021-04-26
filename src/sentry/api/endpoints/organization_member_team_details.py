@@ -71,7 +71,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         if is_active_superuser(request):
             return True
 
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return False
 
         if request.user.id == member.user_id:
@@ -135,7 +135,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         try:

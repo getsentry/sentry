@@ -35,7 +35,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             # disable stats
             stats_period = None
 
-        if request.auth and not request.user.is_authenticated():
+        if request.auth and not request.user.is_authenticated:
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
                 team_list = list(request.auth.project.teams.all())
@@ -53,7 +53,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         order_by = ["slug"]
 
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             queryset = queryset.extra(
                 select={
                     "is_bookmarked": """exists (

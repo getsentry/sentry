@@ -360,7 +360,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
     - Should I create a new user based on this identity?
     """
     op = request.POST.get("op")
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         # TODO(dcramer): its possible they have multiple accounts and at
         # least one is managed (per the check below)
         try:
@@ -412,13 +412,13 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
     elif acting_user and not acting_user.has_usable_password():
         acting_user = None
 
-    if op == "confirm" and request.user.is_authenticated():
+    if op == "confirm" and request.user.is_authenticated:
         auth_identity = handle_attach_identity(
             auth_provider, request, organization, provider, identity
         )
     elif op == "newuser":
         auth_identity = handle_new_user(auth_provider, organization, request, identity)
-    elif op == "login" and not request.user.is_authenticated():
+    elif op == "login" and not request.user.is_authenticated:
         # confirm authentication, login
         op = None
         if login_form.is_valid():
@@ -445,7 +445,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
         # A blank character is needed to prevent the HTML span from collapsing
         provider_name = auth_provider.get_provider().name if auth_provider else " "
 
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             return respond(
                 "sentry/auth-confirm-link.html",
                 organization,
@@ -608,7 +608,7 @@ class AuthHelper:
     def init_pipeline(self):
         self.state.regenerate(
             {
-                "uid": self.request.user.id if self.request.user.is_authenticated() else None,
+                "uid": self.request.user.id if self.request.user.is_authenticated else None,
                 "auth_provider": self.auth_provider.id if self.auth_provider else None,
                 "provider_key": self.provider.key,
                 "org_id": self.organization.id,
@@ -734,7 +734,7 @@ class AuthHelper:
             if not auth_identity.user.is_active:
                 # Current user is also not logged in, so we have to
                 # assume unknown.
-                if not self.request.user.is_authenticated():
+                if not self.request.user.is_authenticated:
                     return handle_unknown_identity(
                         self.request,
                         self.organization,
@@ -764,7 +764,7 @@ class AuthHelper:
         to the active user.
         """
         request = self.request
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return self.error(ERR_NOT_AUTHED)
 
         if request.user.id != self.state.uid:

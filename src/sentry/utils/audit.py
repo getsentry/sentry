@@ -12,7 +12,7 @@ from sentry.models import (
 
 
 def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
-    user = kwargs.pop("actor", request.user if request.user.is_authenticated() else None)
+    user = kwargs.pop("actor", request.user if request.user.is_authenticated else None)
     api_key = (
         request.auth if hasattr(request, "auth") and isinstance(request.auth, ApiKey) else None
     )

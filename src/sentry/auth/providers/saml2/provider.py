@@ -172,7 +172,7 @@ class SAML2SLSView(BaseView):
         auth = build_auth(request, saml_config)
 
         # No need to logout an anonymous user.
-        should_logout = request.user.is_authenticated()
+        should_logout = request.user.is_authenticated
 
         def force_logout():
             logout(request)

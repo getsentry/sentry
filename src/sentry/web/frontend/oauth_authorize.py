@@ -142,11 +142,11 @@ class OAuthAuthorizeView(AuthLoginView):
             "ru": redirect_uri,
             "sc": scopes,
             "st": state,
-            "uid": request.user.id if request.user.is_authenticated() else "",
+            "uid": request.user.id if request.user.is_authenticated else "",
         }
         request.session["oa2"] = payload
 
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return super().get(request, application=application)
 
         if not force_prompt:
@@ -224,10 +224,10 @@ class OAuthAuthorizeView(AuthLoginView):
                 {"error": mark_safe("Missing or invalid <em>client_id</em> parameter.")},
             )
 
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             response = super().post(request, application=application, **kwargs)
             # once they login, bind their user ID
-            if request.user.is_authenticated():
+            if request.user.is_authenticated:
                 request.session["oa2"]["uid"] = request.user.id
                 request.session.modified = True
             return response

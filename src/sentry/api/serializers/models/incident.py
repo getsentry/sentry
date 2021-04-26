@@ -103,7 +103,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
     def get_attrs(self, item_list, user, **kwargs):
         results = super().get_attrs(item_list, user=user, **kwargs)
         subscribed_incidents = set()
-        if user.is_authenticated():
+        if user.is_authenticated:
             subscribed_incidents = set(
                 IncidentSubscription.objects.filter(incident__in=item_list, user=user).values_list(
                     "incident_id", flat=True

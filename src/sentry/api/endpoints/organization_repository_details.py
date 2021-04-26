@@ -35,7 +35,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def put(self, request, organization, repo_id):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return Response(status=401)
 
         try:
@@ -83,7 +83,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         return Response(serialize(repo, request.user))
 
     def delete(self, request, organization, repo_id):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return Response(status=401)
 
         try:

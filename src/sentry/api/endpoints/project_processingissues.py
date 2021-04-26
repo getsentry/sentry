@@ -22,7 +22,7 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
     def get(self, request, project):
         token = None
 
-        if request.user_from_signed_request and request.user.is_authenticated():
+        if request.user_from_signed_request and request.user.is_authenticated:
             tokens = [
                 x
                 for x in ApiToken.objects.filter(user=request.user).all()

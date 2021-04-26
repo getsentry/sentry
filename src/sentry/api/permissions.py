@@ -38,7 +38,7 @@ class ScopedPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         # session-based auth has all scopes for a logged in user
         if not getattr(request, "auth", None):
-            return request.user.is_authenticated()
+            return request.user.is_authenticated
 
         allowed_scopes = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()
@@ -52,7 +52,7 @@ class SuperuserPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         if is_active_superuser(request):
             return True
-        if request.user.is_authenticated() and request.user.is_superuser:
+        if request.user.is_authenticated and request.user.is_superuser:
             raise SuperuserRequired
         return False
 
@@ -67,7 +67,7 @@ class SentryPermission(ScopedPermission):
     def determine_access(self, request, organization):
         from sentry.api.base import logger
 
-        if request.user and request.user.is_authenticated() and request.auth:
+        if request.user and request.user.is_authenticated and request.auth:
             request.access = access.from_request(
                 request, organization, scopes=request.auth.get_scopes()
             )
@@ -85,7 +85,7 @@ class SentryPermission(ScopedPermission):
                     "access.signed-sso-passthrough",
                     extra={"organization_id": organization.id, "user_id": request.user.id},
                 )
-            elif request.user.is_authenticated():
+            elif request.user.is_authenticated:
                 # session auth needs to confirm various permissions
                 if self.needs_sso(request, organization):
 
