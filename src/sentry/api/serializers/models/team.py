@@ -174,7 +174,7 @@ class TeamWithProjectsSerializer(TeamSerializer):
         result = super().get_attrs(item_list, user)
         for team in item_list:
             result[team]["projects"] = project_map[team.id]
-            result[team]["externalTeams"] = external_teams_map[team.id]
+            result[team]["externalTeams"] = external_teams_map[str(team.id)]
         return result
 
     def serialize(
