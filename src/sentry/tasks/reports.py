@@ -749,7 +749,7 @@ class DistributionType(NamedTuple):
 
 def build_project_breakdown_series(reports):
     def get_legend_data(report):
-        accepted_errors, accepted_transactions, filtered, rate_limited = report.series_outcomes
+        accepted_transactions, accepted_errors, filtered, rate_limited = report.series_outcomes
         return {
             "accepted_errors": accepted_errors,
             "accepted_transactions": accepted_transactions,
