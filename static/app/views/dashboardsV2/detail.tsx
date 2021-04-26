@@ -340,7 +340,7 @@ class DashboardDetail extends React.Component<Props, State> {
     reloadData,
     error,
   }: Parameters<OrgDashboards['props']['children']>[0]) {
-    const {organization, params, router} = this.props;
+    const {organization, params} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
@@ -385,7 +385,6 @@ class DashboardDetail extends React.Component<Props, State> {
                 organization={organization}
                 isEditing={this.isEditing}
                 onUpdate={this.onWidgetChange}
-                router={router}
               />
             ) : (
               <LoadingIndicator />

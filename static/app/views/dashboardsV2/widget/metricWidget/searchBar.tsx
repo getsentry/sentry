@@ -8,6 +8,8 @@ import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, Project, Tag} from 'app/types';
 
+import {Metric} from './types';
+
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
   'g'
@@ -15,15 +17,24 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 
 type Props = Pick<
   React.ComponentProps<typeof SmartSearchBar>,
-  'onSearch' | 'onBlur' | 'query'
+  'onChange' | 'onBlur' | 'query'
 > & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
+  metricName: Metric['name'];
   tags: string[];
 };
 
-function SearchQueryField({api, orgSlug, projectSlug, tags, onSearch, onBlur}: Props) {
+function SearchBar({
+  api,
+  orgSlug,
+  projectSlug,
+  metricName,
+  tags,
+  onChange,
+  onBlur,
+}: Props) {
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
    */
@@ -33,7 +44,7 @@ function SearchQueryField({api, orgSlug, projectSlug, tags, onSearch, onBlur}: P
 
   function fetchTagValues(tagKey: string) {
     return api.requestPromise(
-      `/projects/${orgSlug}/${projectSlug}/metrics/tags/${tagKey}/`,
+      `/projects/${orgSlug}/${projectSlug}/metrics/tags/${metricName}/${tagKey}/`,
       {
         method: 'GET',
       }
@@ -62,7 +73,7 @@ function SearchQueryField({api, orgSlug, projectSlug, tags, onSearch, onBlur}: P
           onGetTagValues={memoize(getTagValues, ({key}, query) => `${key}-${query}`)}
           supportedTags={supportedTags}
           prepareQuery={prepareQuery}
-          onSearch={onSearch}
+          onChange={onChange}
           onBlur={onBlur}
           useFormWrapper={false}
           excludeEnvironment
@@ -76,4 +87,4 @@ function SearchQueryField({api, orgSlug, projectSlug, tags, onSearch, onBlur}: P
   );
 }
 
-export default SearchQueryField;
+export default SearchBar;

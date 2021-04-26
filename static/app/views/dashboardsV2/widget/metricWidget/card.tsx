@@ -28,7 +28,7 @@ type Props = {
 };
 
 function Card({widget, api, location, router, organization, project, selection}: Props) {
-  const {groupings, searchQuery, title, displayType} = widget;
+  const {yAxis, queries, title} = widget;
 
   return (
     <ErrorBoundary
@@ -41,15 +41,14 @@ function Card({widget, api, location, router, organization, project, selection}:
           location={location}
           organization={organization}
           projectSlug={project.slug}
-          groupings={groupings}
-          searchQuery={searchQuery}
+          yAxis={yAxis}
+          queries={queries}
           environments={selection.environments}
           datetime={selection.datetime}
         >
           {({isLoading, errored, series}) => {
             return (
               <Chart
-                displayType={displayType}
                 series={series}
                 isLoading={isLoading}
                 errored={errored}

@@ -10,14 +10,14 @@ import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import {getInterval} from 'app/views/releases/detail/overview/chart/utils';
+import {
+  fillChartDataFromSessionsResponse,
+  getInterval,
+} from 'app/views/releases/detail/overview/chart/utils';
 import {roundDuration} from 'app/views/releases/utils';
 
 import {MetricQuery} from './types';
-import {fillChartDataFromMetricsResponse, getBreakdownChartData} from './utils';
-
-type FilteredGrouping = Required<Pick<MetricQuery, 'metricMeta' | 'aggregation'>> &
-  Omit<MetricQuery, 'metricMeta' | 'aggregation'>;
+import {getBreakdownChartData} from './utils';
 
 type RequestQuery = {
   field: string;
@@ -39,43 +39,44 @@ type Props = {
   api: Client;
   organization: Organization;
   projectSlug: Project['slug'];
+  queries: MetricQuery[];
   environments: GlobalSelection['environments'];
   datetime: GlobalSelection['datetime'];
   location: Location;
   children: (args: ChildrenArgs) => React.ReactElement;
-  groupings: MetricQuery[];
-  searchQuery?: string;
+  yAxis?: string;
 };
 
 function StatsRequest({
   api,
   organization,
   projectSlug,
-  groupings,
+  queries,
   environments,
   datetime,
   location,
   children,
-  searchQuery,
+  yAxis,
 }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [errored, setErrored] = useState(false);
   const [series, setSeries] = useState<Series[]>([]);
 
-  const filteredGroupings = groupings.filter(
-    ({aggregation, metricMeta}) => !!metricMeta?.name && !!aggregation
-  ) as FilteredGrouping[];
-
   useEffect(() => {
     fetchData();
-  }, [projectSlug, environments, datetime, groupings, searchQuery]);
+  }, [projectSlug, environments, datetime, queries, yAxis]);
 
   function fetchData() {
-    if (!filteredGroupings.length) {
+    if (!yAxis) {
       return;
     }
 
-    setErrored(false);
+    const queriesWithAggregation = queries.filter(({aggregation}) => !!aggregation);
+
+    if (!queriesWithAggregation.length) {
+      return;
+    }
+
     setIsLoading(true);
 
     const requestExtraParams = getParams(
@@ -85,15 +86,15 @@ function StatsRequest({
       )
     );
 
-    const promises = filteredGroupings.map(({metricMeta, aggregation, groupBy}) => {
+    const promises = queriesWithAggregation.map(({aggregation, groupBy, tags}) => {
       const query: RequestQuery = {
-        field: `${aggregation}(${metricMeta.name})`,
+        field: `${aggregation}(${yAxis})`,
         interval: getInterval(datetime),
         ...requestExtraParams,
       };
 
-      if (searchQuery) {
-        const tagsWithDoubleQuotes = searchQuery
+      if (tags) {
+        const tagsWithDoubleQuotes = tags
           .split(' ')
           .filter(tag => !!tag)
           .map(tag => {
@@ -137,27 +138,28 @@ function StatsRequest({
   }
 
   function getChartData(sessionReponses: SessionApiResponse[]) {
-    if (!sessionReponses.length) {
+    if (!sessionReponses.length || !yAxis) {
       setIsLoading(false);
       return;
     }
 
     const seriesData = sessionReponses.map((sessionResponse, index) => {
-      const {aggregation, legend, metricMeta} = filteredGroupings[index];
-      const field = `${aggregation}(${metricMeta.name})`;
+      const {aggregation, groupBy, legend} = queries[index];
+      const field = `${aggregation}(${yAxis})`;
 
       const breakDownChartData = getBreakdownChartData({
         response: sessionResponse,
-        sessionResponseIndex: index + 1,
-        legend,
+        legend: !!legend ? legend : `Query ${index + 1}`,
+        groupBy: !!groupBy?.length ? groupBy[0] : undefined,
       });
 
-      const chartData = fillChartDataFromMetricsResponse({
+      const chartData = fillChartDataFromSessionsResponse({
         response: sessionResponse,
         field,
+        groupBy: !!groupBy?.length ? groupBy[0] : null,
         chartData: breakDownChartData,
         valueFormatter:
-          metricMeta.name === 'session.duration'
+          yAxis === 'session.duration'
             ? duration => roundDuration(duration ? duration / 1000 : 0)
             : undefined,
       });

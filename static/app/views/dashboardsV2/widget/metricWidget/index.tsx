@@ -1,13 +1,16 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
+import {components, OptionProps} from 'react-select';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
+import Highlight from 'app/components/highlight';
 import * as Layout from 'app/components/layouts/thirds';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import PickProjectToContinue from 'app/components/pickProjectToContinue';
+import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -26,8 +29,14 @@ import {DataSet, DisplayType, displayTypes} from '../utils';
 
 import Card from './card';
 import Queries from './queries';
-import SearchQueryField from './searchQueryField';
-import {MetricMeta, MetricQuery} from './types';
+import {Metric, MetricQuery} from './types';
+
+const newQuery = {
+  tags: '',
+  groupBy: [],
+  aggregation: '',
+  legend: '',
+};
 
 type RouteParams = {
   dashboardId: string;
@@ -46,10 +55,9 @@ type Props = RouteComponentProps<RouteParams, {}> &
 type State = AsyncView['state'] & {
   title: string;
   displayType: DisplayType;
-  metricMetas: MetricMeta[] | null;
-  metricTags: string[] | null;
+  metrics: Metric[];
   queries: MetricQuery[];
-  searchQuery?: string;
+  metric?: Metric;
 };
 
 class MetricWidget extends AsyncView<Props, State> {
@@ -58,9 +66,8 @@ class MetricWidget extends AsyncView<Props, State> {
       ...super.getDefaultState(),
       title: t('Custom Widget'),
       displayType: DisplayType.LINE,
-      metricMetas: [],
-      metricTags: [],
-      queries: [{}],
+      metrics: [],
+      queries: [{...newQuery}],
     };
   }
 
@@ -79,13 +86,7 @@ class MetricWidget extends AsyncView<Props, State> {
       return [];
     }
 
-    const orgSlug = organization.slug;
-    const projectSlug = this.project.slug;
-
-    return [
-      ['metricMetas', `/projects/${orgSlug}/${projectSlug}/metrics/meta/`],
-      ['metricTags', `/projects/${orgSlug}/${projectSlug}/metrics/tags/`],
-    ];
+    return [['metrics', `/projects/${organization.slug}/${this.project.slug}/metrics/`]];
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -93,8 +94,8 @@ class MetricWidget extends AsyncView<Props, State> {
       this.reloadData();
     }
 
-    if (!prevState.metricMetas?.length && !!this.state.metricMetas?.length) {
-      this.handleChangeQuery(0, {metricMeta: this.state.metricMetas[0]});
+    if (!prevState.metrics.length && !!this.state.metrics.length) {
+      this.handleMetricChange(this.state.metrics[0]);
     }
 
     super.componentDidUpdate(prevProps, prevState);
@@ -102,6 +103,10 @@ class MetricWidget extends AsyncView<Props, State> {
 
   handleFieldChange = <F extends keyof State>(field: F, value: State[F]) => {
     this.setState(state => ({...state, [field]: value}));
+  };
+
+  handleMetricChange = (metric: Metric) => {
+    this.setState({metric, queries: [{...newQuery, aggregation: metric.operations[0]}]});
   };
 
   handleRemoveQuery = (index: number) => {
@@ -115,19 +120,12 @@ class MetricWidget extends AsyncView<Props, State> {
   handleAddQuery = () => {
     this.setState(state => {
       const newState = cloneDeep(state);
-      newState.queries.push({});
+      newState.queries.push(cloneDeep(newQuery));
       return newState;
     });
   };
 
   handleChangeQuery = (index: number, query: MetricQuery) => {
-    const isMetricNew =
-      this.state.queries[index].metricMeta?.name !== query.metricMeta?.name;
-
-    if (isMetricNew) {
-      query.aggregation = query.metricMeta ? query.metricMeta.operations[0] : undefined;
-    }
-
     this.setState(state => {
       const newState = cloneDeep(state);
       set(newState, `queries.${index}`, query);
@@ -172,16 +170,10 @@ class MetricWidget extends AsyncView<Props, State> {
       location,
       loadingProjects,
       params,
+      theme,
     } = this.props;
     const {dashboardId} = params;
-    const {
-      title,
-      metricTags,
-      searchQuery,
-      metricMetas,
-      queries,
-      displayType,
-    } = this.state;
+    const {title, metrics, metric, queries, displayType} = this.state;
     const orgSlug = organization.slug;
 
     if (loadingProjects) {
@@ -201,10 +193,6 @@ class MetricWidget extends AsyncView<Props, State> {
       );
     }
 
-    if (!metricTags || !metricMetas) {
-      return null;
-    }
-
     return (
       <GlobalSelectionHeader
         onUpdateProjects={this.handleProjectChange}
@@ -217,7 +205,6 @@ class MetricWidget extends AsyncView<Props, State> {
             title={title}
             onChangeTitle={newTitle => this.handleFieldChange('title', newTitle)}
             onSave={this.handleSave}
-            disabled
           />
           <Layout.Body>
             <BuildSteps>
@@ -230,19 +217,70 @@ class MetricWidget extends AsyncView<Props, State> {
                 <VisualizationWrapper>
                   <StyledSelectField
                     name="displayType"
-                    choices={[
-                      DisplayType.LINE,
-                      DisplayType.BAR,
-                      DisplayType.AREA,
-                    ].map(value => [value, displayTypes[value]])}
+                    choices={Object.keys(displayTypes).map(value => [
+                      value,
+                      displayTypes[value],
+                    ])}
                     value={displayType}
-                    onChange={value => {
-                      this.handleFieldChange('displayType', value);
+                    onChange={(option: {label: string; value: DisplayType}) => {
+                      const isDisabled = option.value !== DisplayType.LINE;
+
+                      if (isDisabled) {
+                        return;
+                      }
+
+                      this.handleFieldChange('displayType', option.value);
+                    }}
+                    styles={{
+                      option: (provided, state) => {
+                        if (state.isDisabled) {
+                          return {
+                            ...provided,
+                            cursor: 'not-allowed',
+                            color: theme.disabled,
+                            ':hover': {
+                              background: 'transparent',
+                            },
+                          };
+                        }
+                        return provided;
+                      },
+                    }}
+                    components={{
+                      Option: ({
+                        label,
+                        data,
+                        ...optionProps
+                      }: OptionProps<{
+                        label: string;
+                        value: string;
+                      }>) => {
+                        const {value} = data;
+                        const isDisabled = value !== DisplayType.LINE;
+
+                        return (
+                          <Tooltip
+                            title={t('This option is not yet available')}
+                            containerDisplayMode="block"
+                            disabled={!isDisabled}
+                          >
+                            <components.Option
+                              {...optionProps}
+                              label={label}
+                              data={data}
+                              isDisabled={isDisabled}
+                            >
+                              {label}
+                            </components.Option>
+                          </Tooltip>
+                        );
+                      },
                     }}
                     inline={false}
                     flexibleControlStateSize
                     stacked
                   />
+
                   <Card
                     router={router}
                     location={location}
@@ -252,37 +290,57 @@ class MetricWidget extends AsyncView<Props, State> {
                     project={project}
                     widget={{
                       title,
-                      searchQuery,
-                      displayType,
-                      groupings: queries,
+                      queries,
+                      yAxis: metric?.name,
                     }}
                   />
                 </VisualizationWrapper>
               </BuildStep>
               <ChooseDataSetStep value={DataSet.METRICS} onChange={onChangeDataSet} />
               <BuildStep
-                title={t('Begin your search')}
-                description={t('Select a query to compare projects, tags, etc.')}
+                title={t('Choose your y-axis metric')}
+                description={t('Determine what type of metric you want to graph by.')}
               >
-                <SearchQueryField
-                  api={this.api}
-                  tags={metricTags}
-                  orgSlug={orgSlug}
-                  projectSlug={project.slug}
-                  query={searchQuery}
-                  onSearch={newQuery => this.handleFieldChange('searchQuery', newQuery)}
-                  onBlur={newQuery => this.handleFieldChange('searchQuery', newQuery)}
+                <StyledSelectField
+                  name="metric"
+                  choices={metrics.map(m => [m, m.name])}
+                  placeholder={t('Select metric')}
+                  onChange={this.handleMetricChange}
+                  value={metric}
+                  components={{
+                    Option: ({
+                      label,
+                      ...optionProps
+                    }: OptionProps<{
+                      label: string;
+                      value: string;
+                    }>) => {
+                      const {selectProps} = optionProps;
+                      const {inputValue} = selectProps;
+
+                      return (
+                        <components.Option label={label} {...optionProps}>
+                          <Highlight text={inputValue ?? ''}>{label}</Highlight>
+                        </components.Option>
+                      );
+                    },
+                  }}
+                  inline={false}
+                  flexibleControlStateSize
+                  stacked
+                  allowClear
                 />
               </BuildStep>
               <BuildStep
-                title={t('Choose your grouping')}
-                description={t(
-                  'We’ll use this to determine what gets graphed in the y-axis and any additional overlays.'
-                )}
+                title={t('Begin your search')}
+                description={t('Add another query to compare projects, tags, etc.')}
               >
                 <Queries
-                  metricMetas={metricMetas}
-                  metricTags={metricTags}
+                  api={this.api}
+                  orgSlug={orgSlug}
+                  projectSlug={project.slug}
+                  metrics={metrics}
+                  metric={metric}
                   queries={queries}
                   onAddQuery={this.handleAddQuery}
                   onRemoveQuery={this.handleRemoveQuery}
