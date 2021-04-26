@@ -3,8 +3,7 @@
 set -e
 
 # Ensure custom workspace
-echo $pwd
-ln -s . /js/workspace
+echo $(pwd)
 cd /js/workspace
 
 if [[ ! -f setup.py ]]; then
