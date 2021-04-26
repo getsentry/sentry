@@ -17,7 +17,7 @@ def credentials_name():
     return "sentry:appleconnect_credentials"
 
 
-class AppStoreConnectCredentialsSerializer(serializers.Serilaizer):
+class AppStoreConnectCredentialsSerializer(serializers.Serializer):
     """
     Serializer for the App Store Connect (Rest) credentials
     """
