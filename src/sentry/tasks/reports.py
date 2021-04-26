@@ -355,18 +355,18 @@ def prepare_project_usage_outcomes(start__stop, project):
     data = raw_snql_query(query, referrer="reports.outcomes")["data"]
 
     return (
-        # accepted transactions
-        sum(
-            row["total"]
-            for row in data
-            if row["category"] == DataCategory.TRANSACTION and row["outcome"] == Outcome.ACCEPTED
-        ),
-        # Accepted errors
+        # accepted errors
         sum(
             row["total"]
             for row in data
             if row["category"] in DataCategory.error_categories()
             and row["outcome"] == Outcome.ACCEPTED
+        ),
+        # accepted transactions
+        sum(
+            row["total"]
+            for row in data
+            if row["category"] == DataCategory.TRANSACTION and row["outcome"] == Outcome.ACCEPTED
         ),
         # Filtered
         sum(row["total"] for row in data if row["outcome"] == Outcome.FILTERED),
@@ -749,7 +749,7 @@ class DistributionType(NamedTuple):
 
 def build_project_breakdown_series(reports):
     def get_legend_data(report):
-        accepted_transactions, accepted_errors, filtered, rate_limited = report.series_outcomes
+        accepted_errors, accepted_transactions, filtered, rate_limited = report.series_outcomes
         return {
             "accepted_errors": accepted_errors,
             "accepted_transactions": accepted_transactions,
