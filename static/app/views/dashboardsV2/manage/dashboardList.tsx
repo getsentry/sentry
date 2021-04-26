@@ -112,7 +112,7 @@ function DashboardList({
           renderWidgets={() => (
             <WidgetGrid>
               {dashboard.widgetDisplay.map((displayType, i) => {
-                return displayType === 'big_number' ? (
+                return displayType === DisplayType.BIG_NUMBER ? (
                   <BigNumberWidgetWrapper
                     key={`${i}-${displayType}`}
                     src={miniWidget(displayType)}

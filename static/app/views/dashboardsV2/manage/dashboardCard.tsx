@@ -14,7 +14,7 @@ type Props = {
   detail: React.ReactNode;
   to: React.ComponentProps<typeof Link>['to'];
   renderWidgets: () => React.ReactNode;
-  createdBy?: User | undefined;
+  createdBy?: User;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
   renderContextMenu?: () => void;

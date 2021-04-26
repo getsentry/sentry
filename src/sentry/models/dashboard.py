@@ -70,7 +70,6 @@ class DashboardTombstone(Model):
 #
 # All widgets and queries in prebuilt dashboards must not have id attributes defined,
 # or users will be unable to 'update' them with a forked version.
-
 PREBUILT_DASHBOARDS = {
     item["id"]: item
     for item in [
