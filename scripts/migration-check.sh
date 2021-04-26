@@ -3,6 +3,7 @@
 # that migrations and lockfiles are correct
 set -eu
 # This will fail if a migration or the lockfile are missing in the PR
+exit_code=0
 sentry django makemigrations --check --dry-run --no-input || exit_code=$?
 if [ "$exit_code" == 1 ]; then
     echo -e "::error::Error: Migration required -- to generate a migration, run:\n" \
