@@ -172,7 +172,9 @@ const IntegrationItemBox = styled('div')`
 `;
 
 const IntegrationStatus = withTheme(
-  (props: React.HTMLAttributes<HTMLElement> & {theme: Theme; status: ObjectStatus}) => {
+  (
+    props: React.HTMLAttributes<HTMLDivElement> & {theme: Theme; status: ObjectStatus}
+  ) => {
     const {theme, status, ...p} = props;
     const color = status === 'active' ? theme.success : theme.gray300;
     const titleText =

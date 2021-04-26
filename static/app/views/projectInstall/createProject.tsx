@@ -59,8 +59,8 @@ type State = {
 };
 
 class CreateProject extends React.Component<Props, State> {
-  constructor(props, ...args) {
-    super(props, ...args);
+  constructor(props, context) {
+    super(props, context);
 
     const {query} = props.location;
     const {teams} = props.organization;
