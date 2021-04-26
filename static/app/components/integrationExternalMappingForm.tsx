@@ -8,17 +8,15 @@ import {FieldFromConfig} from 'app/views/settings/components/forms';
 import Form from 'app/views/settings/components/forms/form';
 import {Field} from 'app/views/settings/components/forms/type';
 
-type Props = {
-  organization: Organization;
-  integration: Integration;
-  onSubmitSuccess: Form['props']['onSubmitSuccess'];
-  onCancel: Form['props']['onCancel'];
-  onSubmit?: Form['props']['onSubmit'];
-  mapping?: ExternalActorMapping;
-  sentryNames: {id: string; name: string}[];
-  type: 'user' | 'team';
-  baseEndpoint?: string;
-};
+type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> &
+  Partial<Pick<Form['props'], 'onSubmit'>> & {
+    organization: Organization;
+    integration: Integration;
+    mapping?: ExternalActorMapping;
+    sentryNames: {id: string; name: string}[];
+    type: 'user' | 'team';
+    baseEndpoint?: string;
+  };
 
 export default class IntegrationExternalMappingForm extends React.Component<Props> {
   get initialData() {
@@ -52,7 +50,7 @@ export default class IntegrationExternalMappingForm extends React.Component<Prop
         type: 'select',
         required: true,
         label: tct('Sentry [type]', {type: capitalize(type)}),
-        placeholder: t(`Choose your Sentry ${capitalize(type)}`),
+        placeholder: t(`Choose your Sentry User`),
         options,
         deprecatedSelectControl: false,
       });
@@ -63,7 +61,7 @@ export default class IntegrationExternalMappingForm extends React.Component<Prop
         type: 'select',
         required: true,
         label: tct('Sentry [type]', {type: capitalize(type)}),
-        placeholder: t(`Sentry ${capitalize(type)}`),
+        placeholder: t(`Choose your Sentry Team`),
         options,
         deprecatedSelectControl: false,
       });

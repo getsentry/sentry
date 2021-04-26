@@ -134,15 +134,13 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   renderBody() {
     const {integration} = this.props;
     return (
-      <React.Fragment>
-        <IntegrationExternalMappings
-          integration={integration}
-          type="team"
-          mappings={this.mappings}
-          onCreateOrEdit={this.openModal}
-          onDelete={this.handleDelete}
-        />
-      </React.Fragment>
+      <IntegrationExternalMappings
+        integration={integration}
+        type="team"
+        mappings={this.mappings}
+        onCreateOrEdit={this.openModal}
+        onDelete={this.handleDelete}
+      />
     );
   }
 }
