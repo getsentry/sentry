@@ -40,7 +40,7 @@ sudo-askpass() {
 init-docker() {
     # Need to start docker if it was freshly installed or updated
     # You will know that Docker is ready for devservices when the icon on the menu bar stops flashing
-    if [ ! -f /Library/PrivilegedHelperTools/com.docker.vmnetd ]; then
+    if query-mac && [ ! -f /Library/PrivilegedHelperTools/com.docker.vmnetd ]; then
         echo "Making some changes to complete Docker initialization"
         # allow the app to run without confirmation
         xattr -d -r com.apple.quarantine /Applications/Docker.app
