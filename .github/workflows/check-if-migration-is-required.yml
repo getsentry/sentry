@@ -5,6 +5,7 @@ on:
       # Matches all python files regardless of directory depth.
       - '**.py'
       - requirements*.txt
+      - .github/workflows/check-if-migration-is-required.yml
 
 jobs:
   main:
