@@ -75,23 +75,23 @@ class GroupMergedView extends React.Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupingChange, undefined);
 
   getEndpoint() {
-    const {params, organization} = this.props;
+    const {params, organization, location} = this.props;
     const {groupId} = params;
 
-    const features = new Set(organization?.features);
-    const hasGroupingTreeFeature = features.has('grouping-tree-ui');
+const hasGroupingTreeFeature = organization.features?.includes('grouping-tree-ui');
 
-    if (hasGroupingTreeFeature) {
+if (hasGroupingTreeFeature) {
       // TODO(markus): limits
       return `/issues/${groupId}/hashes/split/`;
-    } else {
-      const queryParams = {
-        ...this.props.location.query,
-        limit: 50,
-        query: this.state.query,
-      };
-      return `/issues/${groupId}/hashes/?${queryString.stringify(queryParams)}`;
     }
+
+    const queryParams = {
+      ...location.query,
+      limit: 50,
+      query: this.state.query,
+    };
+
+    return `/issues/${groupId}/hashes/?${queryString.stringify(queryParams)}`;
   }
 
   fetchData = () => {

@@ -47,10 +47,9 @@ type State = {
 
 type ScoreMap = Record<string, number | null>;
 
-export type ApiFingerprint = {
+type ApiFingerprint = {
   id: string;
   latestEvent: Event;
-
   state?: string;
   lastSeen?: string;
   eventCount?: number;
@@ -65,7 +64,6 @@ export type Fingerprint = {
   id: string;
   latestEvent: Event;
   eventCount: number;
-
   state?: string;
   lastSeen?: string;
   parentId?: string;
@@ -74,9 +72,8 @@ export type Fingerprint = {
   children: Array<ChildFingerprint>;
 };
 
-export type ChildFingerprint = {
+type ChildFingerprint = {
   childId: string;
-
   childLabel?: string;
   eventCount?: number;
   lastSeen?: string;
@@ -276,7 +273,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
 
     const responseProcessors: ResponseProcessors = {
       merged: items => {
-        const newItemsMap: {[key: string]: Fingerprint} = {};
+        const newItemsMap: Record<string, Fingerprint>  = {};
         const newItems: Fingerprint[] = [];
 
         items.forEach(item => {

@@ -119,7 +119,7 @@ class MergedToolbar extends React.Component<Props, State> {
           <Confirm
             onConfirm={onSplit}
             message={t(
-              'These events will be grouped into a new issue by more specific criteria (for instance more frames). Are you you want to split them out of the existing issue?'
+              'These events will be grouped into a new issue by more specific criteria (for instance more frames). Are you sure you want to split them out of the existing issue?'
             )}
           >
             <Button size="small" title={t(`Splitting out ${unmergeCount} events`)}>

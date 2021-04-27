@@ -80,17 +80,17 @@ class MergedItem extends React.Component<Props, State> {
     // we handle change via row click
   }
 
-  renderFingerprint = (label: string | undefined, id: string) => {
-    if (label) {
-      return (
-        <Tooltip title={id}>
-          <code>{label}</code>
-        </Tooltip>
-      );
-    } else {
+  renderFingerprint(id: string, label?: string) {
+    if (!label) {
       return id;
     }
-  };
+
+    return (
+      <Tooltip title={id}>
+        <code>{label}</code>
+      </Tooltip>
+    );
+  }
 
   render() {
     const {fingerprint, organization} = this.props;
@@ -136,7 +136,7 @@ class MergedItem extends React.Component<Props, State> {
               </EventDetails>
             )}
 
-            {children && (
+            {!!children?.length && (
               <ChildGroup>
                 {children.map(({childId, childLabel, latestEvent: childLatestEvent}) => (
                   <li key={childId}>
