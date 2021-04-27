@@ -80,7 +80,7 @@ class MergedItem extends React.Component<Props, State> {
     // we handle change via row click
   }
 
-  renderFingerprint(id: string, label?: string) {
+  renderFingerprint(id: string | undefined, label?: string) {
     if (!label) {
       return id;
     }
