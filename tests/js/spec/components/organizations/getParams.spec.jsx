@@ -129,18 +129,42 @@ describe('getParams', function () {
     ).toEqual({statsPeriod: '14d'});
   });
 
-  it('should use pageStart and pageEnd to override start and end', function () {
+  it('should use pageStart/pageEnd/pageUtc to override start/end/utc', function () {
     expect(
       getParams(
         {
           pageStart: '2021-10-23T04:28:49+0000',
           pageEnd: '2021-10-26T02:56:17+0000',
+          pageUtc: 'true',
           start: '2019-10-23T04:28:49+0000',
           end: '2019-10-26T02:56:17+0000',
+          utc: 'false',
         },
         {allowAbsolutePageDatetime: true}
       )
-    ).toEqual({start: '2021-10-23T04:28:49.000', end: '2021-10-26T02:56:17.000'});
+    ).toEqual({
+      start: '2021-10-23T04:28:49.000',
+      end: '2021-10-26T02:56:17.000',
+      utc: 'true',
+    });
+  });
+
+  it('should use pageStatsPeriod to override statsPeriod', function () {
+    expect(
+      getParams({
+        pageStart: '2021-10-23T04:28:49+0000',
+        pageEnd: '2021-10-26T02:56:17+0000',
+        pageUtc: 'true',
+        pageStatsPeriod: '90d',
+        start: '2019-10-23T04:28:49+0000',
+        end: '2019-10-26T02:56:17+0000',
+        utc: 'false',
+        statsPeriod: '14d',
+      })
+    ).toEqual({
+      utc: 'true',
+      statsPeriod: '90d',
+    });
   });
 
   it('does not return default statsPeriod if `allowEmptyPeriod` option is passed', function () {
