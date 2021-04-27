@@ -1,4 +1,5 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
@@ -33,6 +34,11 @@ import {getShortEventId} from 'app/utils/events';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
+import {
+  filterToLocationQuery,
+  SpanOperationBreakdownFilter,
+  stringToFilter,
+} from 'app/views/performance/transactionSummary/filter';
 
 import ArrayValue from './arrayValue';
 import {EventData, MetaType} from './eventView';
@@ -525,7 +531,10 @@ const spanOperationBreakdownRenderer = (field: string) => (
   );
 };
 
-const spanOperationRelativeBreakdownRenderer = (data: EventData): React.ReactNode => {
+const spanOperationRelativeBreakdownRenderer = (
+  data: EventData,
+  {location}: RenderFunctionBaggage
+): React.ReactNode => {
   if (
     !isDurationValue(data, 'spans.total.time') ||
     SPAN_OP_BREAKDOWN_FIELDS.every(field => !isDurationValue(data, field))
@@ -554,6 +563,21 @@ const spanOperationRelativeBreakdownRenderer = (data: EventData): React.ReactNod
                 spanBarHatch={false}
                 style={{
                   backgroundColor: pickBarColour(operationName),
+                  cursor: 'pointer',
+                }}
+                onClick={event => {
+                  event.stopPropagation();
+                  const filter = stringToFilter(operationName);
+                  if (filter === SpanOperationBreakdownFilter.None) {
+                    return;
+                  }
+                  browserHistory.push({
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      ...filterToLocationQuery(filter),
+                    },
+                  });
                 }}
               />
             </Tooltip>
