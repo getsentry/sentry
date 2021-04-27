@@ -9,7 +9,15 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody} from 'app/components/panels';
 import {IconCheckmark, IconNot} from 'app/icons';
 import {t} from 'app/locale';
-import {CodeOwners, Organization, Project, RepositoryProjectPathConfig} from 'app/types';
+import space from 'app/styles/space';
+import {
+  CodeOwners,
+  Integration,
+  Organization,
+  Project,
+  RepositoryProjectPathConfig,
+} from 'app/types';
+import {getIntegrationIcon} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';
 import Form from 'app/views/settings/components/forms/form';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -19,6 +27,7 @@ type Props = {
   organization: Organization;
   project: Project;
   codeMappings: RepositoryProjectPathConfig[];
+  integrations: Integration[];
   onSave: (data: CodeOwners) => void;
 } & ModalRenderProps;
 
@@ -103,7 +112,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
         <SourceFileBody>
           <IconCheckmark size="md" isCircled color="green200" />
           {codeownerFile.filepath}
-          <Button size="small" href={codeownerFile.html_url}>
+          <Button size="small" href={codeownerFile.html_url} target="_blank">
             {t('Preview File')}
           </Button>
         </SourceFileBody>
@@ -124,11 +133,9 @@ class AddCodeOwnerModal extends Component<Props, State> {
     const {codeMappingId, isLoading} = this.state;
     if (isLoading) {
       return (
-        <Panel>
-          <NoSourceFileBody>
-            <LoadingIndicator mini />
-          </NoSourceFileBody>
-        </Panel>
+        <Container>
+          <LoadingIndicator mini />
+        </Container>
       );
     }
     if (!codeMappingId) {
@@ -151,11 +158,34 @@ class AddCodeOwnerModal extends Component<Props, State> {
   render() {
     const {Header, Body, Footer} = this.props;
     const {codeownerFile, error, errorJSON} = this.state;
-    const {codeMappings} = this.props;
+    const {codeMappings, integrations, organization} = this.props;
+    const baseUrl = `/settings/${organization.slug}/integrations`;
+
     return (
       <Fragment>
         <Header closeButton>{t('Add Code Owner File')}</Header>
         <Body>
+          {!codeMappings.length && (
+            <React.Fragment>
+              <div>
+                {t(
+                  "Configure stack trace linking to add your CODEOWNERS file. Select the integration you'd like to use for mapping:"
+                )}
+              </div>
+              <IntegrationsList>
+                {integrations.map(integration => (
+                  <Button
+                    key={integration.id}
+                    type="button"
+                    to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
+                  >
+                    {getIntegrationIcon(integration.provider.key)}
+                    <IntegrationName>{integration.name}</IntegrationName>
+                  </Button>
+                ))}
+              </IntegrationsList>
+            </React.Fragment>
+          )}
           {codeMappings.length > 0 && (
             <Form
               apiMethod="POST"
@@ -213,13 +243,27 @@ const NoSourceFileBody = styled(PanelBody)`
   display: grid;
   padding: 12px;
   grid-template-columns: 30px 1fr;
-  align-items: flex-start;
-  min-height: 150px;
+  align-items: center;
 `;
 const SourceFileBody = styled(PanelBody)`
   display: grid;
   padding: 12px;
   grid-template-columns: 30px 1fr 100px;
-  align-items: flex-start;
-  min-height: 150px;
+  align-items: center;
+`;
+
+const IntegrationsList = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  justify-items: center;
+  margin-top: ${space(2)};
+`;
+
+const IntegrationName = styled('p')`
+  padding-left: 10px;
+`;
+
+const Container = styled('div')`
+  display: flex;
+  justify-content: center;
 `;

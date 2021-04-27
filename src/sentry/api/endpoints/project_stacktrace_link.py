@@ -39,8 +39,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     def get(self, request, project):
         # should probably feature gate
         filepath = request.GET.get("file")
-        if not filepath:
-            return Response({"detail": "Filepath is required"}, status=400)
 
         commitId = request.GET.get("commitId")
         platform = request.GET.get("platform")
@@ -55,6 +53,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 lambda i: i.has_feature(IntegrationFeatures.STACKTRACE_LINK), integrations
             )
         ]
+
+        # If the query does not have file, skip the remaining logic.
+        if not filepath:
+            return Response(result)
 
         # xxx(meredith): if there are ever any changes to this query, make
         # sure that we are still ordering by `id` because we want to make sure

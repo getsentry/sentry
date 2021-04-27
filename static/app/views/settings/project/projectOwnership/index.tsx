@@ -44,6 +44,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
         'codeMappings',
         `/organizations/${organization.slug}/code-mappings/?projectId=${project.id}`,
       ],
+      ['stacktrace', `/projects/${organization.slug}/${project.slug}/stacktrace-link/`],
     ];
     if (organization.features.includes('import-codeowners')) {
       endpoints.push([
@@ -55,13 +56,14 @@ class ProjectOwnership extends AsyncView<Props, State> {
   }
 
   handleAddCodeOwner = () => {
-    const {codeMappings} = this.state;
+    const {codeMappings, stacktrace} = this.state;
     openModal(modalProps => (
       <AddCodeOwnerModal
         {...modalProps}
         organization={this.props.organization}
         project={this.props.project}
         codeMappings={codeMappings}
+        integrations={stacktrace.integrations}
         onSave={this.handleCodeownerAdded}
       />
     ));

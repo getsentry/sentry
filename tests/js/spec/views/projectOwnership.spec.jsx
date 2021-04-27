@@ -82,6 +82,11 @@ describe('Add Codeowner File', function () {
       method: 'GET',
       body: [],
     });
+    Client.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      method: 'GET',
+      body: [],
+    });
   });
 
   describe('codeowner action button', function () {
