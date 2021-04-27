@@ -161,7 +161,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "post",
             self.url,
             data={"title": self.dashboard.title, "duplicate": True},
-            params={"duplicate": "true"},
         )
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy 1"

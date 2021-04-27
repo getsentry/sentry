@@ -222,8 +222,9 @@ describe('Dashboards > DashboardList', function () {
 
     // wait for request
     await wrapper.update();
+    await tick();
 
     expect(createMock).toHaveBeenCalled();
-    // expect(dashboardUpdateMock).toHaveBeenCalled();
+    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 });
