@@ -666,7 +666,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         member.user = None
         member.save()
         resp = self.client.post(
-            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
+            self.path, {"username": user.username, "password": "admin", "op": "login"}, follow=True
         )
         assert resp.redirect_chain == [("/auth/login/", 302), ("/organizations/new/", 302)]
 
@@ -677,14 +677,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.create_member(organization=self.organization, user=user)
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
         member.save()
-
         self.session["_next"] = reverse(
             "sentry-organization-settings", args=[self.organization.slug]
         )
         self.save_session()
-
         resp = self.client.post(
-            self.path, {"username": self.user, "password": "admin", "op": "login"}, follow=True
+            self.path, {"username": user.username, "password": "admin", "op": "login"}, follow=True
         )
         assert resp.redirect_chain == [
             (reverse("sentry-organization-settings", args=[self.organization.slug]), 302),
