@@ -273,7 +273,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
 
     const responseProcessors: ResponseProcessors = {
       merged: items => {
-        const newItemsMap: Record<string, Fingerprint>  = {};
+        const newItemsMap: Record<string, Fingerprint> = {};
         const newItems: Fingerprint[] = [];
 
         items.forEach(item => {
