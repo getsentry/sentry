@@ -78,9 +78,9 @@ class GroupMergedView extends React.Component<Props, State> {
     const {params, organization, location} = this.props;
     const {groupId} = params;
 
-const hasGroupingTreeFeature = organization.features?.includes('grouping-tree-ui');
+    const hasGroupingTreeFeature = organization.features?.includes('grouping-tree-ui');
 
-if (hasGroupingTreeFeature) {
+    if (hasGroupingTreeFeature) {
       // TODO(markus): limits
       return `/issues/${groupId}/hashes/split/`;
     }
