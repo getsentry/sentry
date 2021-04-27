@@ -87,8 +87,8 @@ const COLUMN_ORDER = [
 
 const filterToField = {
   [SpanOperationBreakdownFilter.Browser]: 'span_op_breakdowns[ops.browser]',
-  [SpanOperationBreakdownFilter.Http]: 'span_op_breakdowns[ops.db]',
-  [SpanOperationBreakdownFilter.Db]: 'span_op_breakdowns[ops.http]',
+  [SpanOperationBreakdownFilter.Http]: 'span_op_breakdowns[ops.http]',
+  [SpanOperationBreakdownFilter.Db]: 'span_op_breakdowns[ops.db]',
   [SpanOperationBreakdownFilter.Resource]: 'span_op_breakdowns[ops.resource]',
 };
 
@@ -125,6 +125,7 @@ const getColumnsWithReplacedDuration = (
   const fieldFromFilter = filterToField[currentFilter];
   if (fieldFromFilter) {
     durationColumn.name = 'Avg Span Duration';
+    return columns;
   }
 
   const performanceType = platformToPerformanceType(projects, projectIds);
