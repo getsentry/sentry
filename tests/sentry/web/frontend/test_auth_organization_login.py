@@ -211,10 +211,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [("/organizations/foo/issues/", 302)]
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
         new_user = auth_identity.user
