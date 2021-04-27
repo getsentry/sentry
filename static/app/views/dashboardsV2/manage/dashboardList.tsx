@@ -68,8 +68,7 @@ function DashboardList({
   }
 
   function handleDelete(dashboard: DashboardListItem) {
-    const promise = deleteDashboard(api, organization.slug, dashboard.id);
-    promise
+    deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
         onDashboardsChange();
         addSuccessMessage(t('Dashboard deleted'));
@@ -77,8 +76,6 @@ function DashboardList({
       .catch(() => {
         addErrorMessage(t('Error deleting Dashboard'));
       });
-
-    return promise;
   }
 
   function handleDuplicate(dashboard: DashboardListItem) {
