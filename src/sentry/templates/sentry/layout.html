@@ -49,9 +49,6 @@
   {% manifest_asset_url "sentry" "runtime.js" as asset_url %}
   {% script src=asset_url %}{% endscript %}
 
-  {% manifest_asset_url "sentry" "vendor.js" as asset_url %}
-  {% script src=asset_url %}{% endscript %}
-
   {% block scripts_main_entrypoint %}
     {% manifest_asset_url "sentry" "app.js" as asset_url %}
     {% script src=asset_url data-entry="true" %}{% endscript %}

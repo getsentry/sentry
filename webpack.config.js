@@ -175,7 +175,7 @@ supportedLocales
       );
 
     localeChunkGroups[group] = {
-      chunks: 'initial',
+      chunks: 'async',
       name: group,
       test: groupTest,
       enforce: true,
@@ -199,25 +199,6 @@ const localeRestrictionPlugins = [
     new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
   ),
 ];
-
-/**
- * Explicit codesplitting cache groups
- */
-const cacheGroups = {
-  defaultVendors: {
-    name: 'vendor',
-    // This `platformicons` check is required otherwise it will get put into this chunk instead
-    // of `sentry.css` bundle
-    // TODO(platformicons): Simplify this if we move platformicons into repo
-    test: module =>
-      !/platformicons/.test(module.resource) &&
-      /[\\/]node_modules[\\/]/.test(module.resource),
-    priority: -10,
-    enforce: true,
-    chunks: 'initial',
-  },
-  ...localeChunkGroups,
-};
 
 const babelOptions = {...babelConfig, cacheDirectory: true};
 const babelLoaderConfig = {
@@ -417,9 +398,11 @@ let appConfig = {
       // Which means the app will not load because we'd need these additional chunks to be loaded in our
       // django template.
       chunks: 'async',
-      maxInitialRequests: 5,
-      maxAsyncRequests: 7,
-      cacheGroups,
+      maxInitialRequests: 10, // (default: 30)
+      maxAsyncRequests: 10, // (default: 30)
+      cacheGroups: {
+        ...localeChunkGroups,
+      },
     },
 
     // This only runs in production mode
