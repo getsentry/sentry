@@ -108,6 +108,11 @@ type Props = ReactRouter.WithRouterProps & {
   utc: boolean | null;
 
   /**
+   * Replace the default calendar icon for label
+   */
+  label?: React.ReactNode;
+
+  /**
    * Callback when value changes
    */
   onChange: (data: ChangeData) => void;
@@ -116,6 +121,11 @@ type Props = ReactRouter.WithRouterProps & {
    * Callback when "Update" button is clicked
    */
   onUpdate: (data: ChangeData) => void;
+
+  /**
+   * Callback when opening/closing dropdown date selector
+   */
+  onToggleSelector?: (isOpen: boolean) => void;
 
   /**
    * Just used for metrics
@@ -163,6 +173,15 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       end,
       relative: props.relative,
     };
+  }
+
+  componentDidUpdate(_prevProps, prevState) {
+    const {onToggleSelector} = this.props;
+    const currState = this.state;
+
+    if (onToggleSelector && prevState.isOpen !== currState.isOpen) {
+      onToggleSelector(currState.isOpen);
+    }
   }
 
   callCallback = (callback: Props['onChange'], datetime: ChangeData) => {
@@ -332,7 +351,14 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {defaultPeriod, showAbsolute, showRelative, organization, hint} = this.props;
+    const {
+      defaultPeriod,
+      showAbsolute,
+      showRelative,
+      organization,
+      hint,
+      label,
+    } = this.props;
     const {start, end, relative} = this.state;
 
     const shouldShowAbsolute = showAbsolute;
@@ -359,7 +385,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
           <TimeRangeRoot {...getRootProps()}>
             <StyledHeaderItem
               data-test-id="global-header-timerange-selector"
-              icon={<IconCalendar />}
+              icon={label ?? <IconCalendar />}
               isOpen={isOpen}
               hasSelected={
                 (!!this.props.relative && this.props.relative !== defaultPeriod) ||
