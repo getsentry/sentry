@@ -8,6 +8,7 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.api.validators.external_actor import validate_external_id_option, validate_integration_id_option
 from sentry.api.validators.integrations import validate_provider
 from sentry.models import ExternalActor, Organization, OrganizationIntegration, Team, User
 from sentry.types.integrations import ExternalProviders, get_provider_choices
@@ -30,15 +31,8 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         return self.context["organization"]
 
     def validate_integration_id(self, integration_id: str) -> Optional[str]:
-        if not integration_id:
-            return None
+        return validate_integration_id_option(integration_id, self.organization)
 
-        integration_query = OrganizationIntegration.objects.filter(
-            organization=self.organization, integration_id=integration_id
-        )
-        if not integration_query.exists():
-            raise serializers.ValidationError("Integration does not exist for this organization")
-        return integration_id
 
     def validate_provider(self, provider_name_option: str) -> int:
         provider = validate_provider(provider_name_option, available_providers=AVAILABLE_PROVIDERS)
