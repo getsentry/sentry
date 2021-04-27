@@ -3,7 +3,11 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
 
-import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumn,
+  GridColumnOrder,
+} from 'app/components/gridEditable';
 import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
@@ -230,9 +234,9 @@ class _TagExplorer extends React.Component<Props, State> {
     this.setState({widths});
   };
 
-  getColumnOrder = (columns: GridColumn[]) => {
+  getColumnOrder = (columns: GridColumnOrder[]) => {
     const {widths} = this.state;
-    return columns.map((col: GridColumn, i: number) => {
+    return columns.map((col: GridColumnOrder, i: number) => {
       if (typeof widths[i] === 'number') {
         return {...col, width: widths[i]};
       }
