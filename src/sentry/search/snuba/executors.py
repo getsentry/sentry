@@ -8,14 +8,12 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry import options
-from sentry.api.event_search import (
-    DateArg,
-    InvalidSearchQuery,
-    convert_search_filter_to_snuba_query,
-)
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Group
+from sentry.search.events.fields import DateArg
+from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.utils import json, metrics, snuba
 
 

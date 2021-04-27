@@ -384,7 +384,7 @@ class OrganizationReleasesEndpoint(
                     ]
                 scope.set_tag("has_refs", bool(refs))
                 if refs:
-                    if not request.user.is_authenticated():
+                    if not request.user.is_authenticated:
                         scope.set_tag("failure_reason", "user_not_authenticated")
                         return Response(
                             {"refs": ["You must use an authenticated API token to fetch refs"]},

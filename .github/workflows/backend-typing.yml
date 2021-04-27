@@ -56,11 +56,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
 
+      # Since we don't call the setup-sentry action we need to install libxmlsec1-dev
       - name: Setup backend typing
         if: steps.changes.outputs.backend == 'true'
         env:
           SENTRY_LIGHT_BUILD: 1
         run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxmlsec1-dev
           python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have `wheel` installed by default
           pip install -U -e ".[dev]"

@@ -134,6 +134,8 @@ SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 # here. This directory may not exist until that file is generated.
 CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
 
+CDC_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "cdc")
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -889,6 +891,8 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable the new Metrics page
     "organizations:metrics": False,
+    # Automatically extract metrics during ingestion
+    "organizations:metrics-extraction": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
     # Enable integration functionality to create and link groups to issues on
@@ -981,12 +985,12 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
-    # Add `assigned_or_suggested:me_or_none` to inbox tab query
+    # Add `assigned_or_suggested:[me, none]` to inbox tab query
     "organizations:inbox-owners-query": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
-    "organizations:images-loaded-v2": False,
+    "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
@@ -1554,6 +1558,9 @@ SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # store. MUST be a power of two.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
+# This flags activates the Change Data Capture backend in the development environment
+SENTRY_USE_CDC_DEV = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": {
 #         "image": "image-name:version",
@@ -1571,6 +1578,16 @@ SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 #         }
 #     }
 # }
+
+POSTGRES_INIT_DB_VOLUME = (
+    {
+        os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
+            "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
+        }
+    }
+    if SENTRY_USE_CDC_DEV
+    else {}
+)
 
 SENTRY_DEVSERVICES = {
     "redis": {
@@ -1595,7 +1612,22 @@ SENTRY_DEVSERVICES = {
         "pull": True,
         "ports": {"5432/tcp": 5432},
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
-        "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
+        "volumes": {
+            "postgres": {"bind": "/var/lib/postgresql/data"},
+            "wal2json": {"bind": "/wal2json"},
+            CDC_CONFIG_DIR: {"bind": "/cdc"},
+            **POSTGRES_INIT_DB_VOLUME,
+        },
+        "command": [
+            "postgres",
+            "-c",
+            "wal_level=logical",
+            "-c",
+            "max_replication_slots=1",
+            "-c",
+            "max_wal_senders=1",
+        ],
+        "entrypoint": "/cdc/postgres-entrypoint.sh" if SENTRY_USE_CDC_DEV else None,
         "healthcheck": {
             "test": ["CMD", "pg_isready", "-U", "postgres"],
             "interval": 30000000000,  # Test every 30 seconds (in ns).
@@ -1712,6 +1744,13 @@ SENTRY_DEVSERVICES = {
         },
         "ports": {"9090/tcp": 7901},
         "only_if": lambda settings, options: options.get("chart-rendering.enabled"),
+    },
+    "cdc": {
+        "image": "getsentry/cdc:nightly",
+        "pull": True,
+        "only_if": lambda settings, options: settings.SENTRY_USE_CDC_DEV,
+        "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
+        "volumes": {CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
     },
 }
 
@@ -2092,7 +2131,12 @@ SOUTH_MIGRATION_CONVERSIONS = (
 MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
-MIGRATIONS_LOCKFILE_APP_WHITELIST = ()
+MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "jira_ac",
+    "nodestore",
+    "sentry",
+    "social_auth",
+)
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 

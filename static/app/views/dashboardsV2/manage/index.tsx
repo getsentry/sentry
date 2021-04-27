@@ -1,6 +1,5 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -8,11 +7,9 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Breadcrumbs from 'app/components/breadcrumbs';
-import Button from 'app/components/button';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import PageHeading from 'app/components/pageHeading';
 import SearchBar from 'app/components/searchBar';
-import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -21,9 +18,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 
-import {EMPTY_DASHBOARD} from '../data';
 import {DashboardListItem} from '../types';
-import {cloneDashboard} from '../utils';
 
 import DashboardList from './dashboardList';
 
@@ -111,17 +106,6 @@ class ManageDashboards extends AsyncView<Props, State> {
     );
   }
 
-  onCreate() {
-    const {organization} = this.props;
-    browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/`,
-      state: {
-        dashboardState: 'create',
-        modifiedDashboard: cloneDashboard(EMPTY_DASHBOARD),
-      },
-    });
-  }
-
   getTitle() {
     return t('Manage Dashboards');
   }
@@ -150,17 +134,6 @@ class ManageDashboards extends AsyncView<Props, State> {
             />
             <PageHeader>
               <PageHeading>{t('Manage Dashboards')}</PageHeading>
-              <Button
-                data-test-id="dashboard-create"
-                onClick={event => {
-                  event.preventDefault();
-                  this.onCreate();
-                }}
-                priority="primary"
-                icon={<IconAdd size="xs" isCircled />}
-              >
-                {t('Create Dashboard')}
-              </Button>
             </PageHeader>
             {this.renderActions()}
             {this.renderDashboards()}

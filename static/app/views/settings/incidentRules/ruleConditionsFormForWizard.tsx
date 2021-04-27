@@ -8,6 +8,7 @@ import SelectControl from 'app/components/forms/selectControl';
 import ListItem from 'app/components/list/listItem';
 import {Panel, PanelBody} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
+import {IconQuestion} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Environment, Organization, SelectValue} from 'app/types';
@@ -27,14 +28,14 @@ import {Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),
-  [TimeWindow.FIVE_MINUTES]: t('5 minute'),
-  [TimeWindow.TEN_MINUTES]: t('10 minute'),
-  [TimeWindow.FIFTEEN_MINUTES]: t('15 minute'),
-  [TimeWindow.THIRTY_MINUTES]: t('30 minute'),
+  [TimeWindow.FIVE_MINUTES]: t('5 minutes'),
+  [TimeWindow.TEN_MINUTES]: t('10 minutes'),
+  [TimeWindow.FIFTEEN_MINUTES]: t('15 minutes'),
+  [TimeWindow.THIRTY_MINUTES]: t('30 minutes'),
   [TimeWindow.ONE_HOUR]: t('1 hour'),
-  [TimeWindow.TWO_HOURS]: t('2 hour'),
-  [TimeWindow.FOUR_HOURS]: t('4 hour'),
-  [TimeWindow.ONE_DAY]: t('24 hour'),
+  [TimeWindow.TWO_HOURS]: t('2 hours'),
+  [TimeWindow.FOUR_HOURS]: t('4 hours'),
+  [TimeWindow.ONE_DAY]: t('24 hours'),
 };
 
 type Props = {
@@ -149,28 +150,6 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
                     inFieldLabels
                     required
                   />
-                  <FormRowText>{t('Time Interval')}</FormRowText>
-                  <Tooltip
-                    title={t(
-                      'Triggers are evaluated every minute regardless of this value.'
-                    )}
-                  >
-                    <SelectField
-                      name="timeWindow"
-                      style={{
-                        ...formElemBaseStyle,
-                        flex: 1,
-                        minWidth: 130,
-                      }}
-                      choices={Object.entries(TIME_WINDOW_MAP)}
-                      required
-                      isDisabled={disabled}
-                      getValue={value => Number(value)}
-                      setValue={value => `${value}`}
-                      inline={false}
-                      flexibleControlStateSize
-                    />
-                  </Tooltip>
                 </ChartFooter>
               ),
             })}
@@ -303,14 +282,55 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
             )}
           </FormField>
         </FormRow>
+        <StyledListItem>
+          <StyledListTitle>
+            <div>{t('Select time interval')}</div>
+            <Tooltip
+              title={t(
+                'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
+              )}
+            >
+              <IconQuestion size="sm" color="gray200" />
+            </Tooltip>
+          </StyledListTitle>
+        </StyledListItem>
+        <ThresholdSelectField
+          name="timeWindow"
+          style={{
+            ...formElemBaseStyle,
+            flex: '0 150px 0',
+            minWidth: 130,
+            maxWidth: 300,
+            marginBottom: 20,
+          }}
+          choices={Object.entries(TIME_WINDOW_MAP)}
+          required
+          isDisabled={disabled}
+          getValue={value => Number(value)}
+          setValue={value => `${value}`}
+          inline={false}
+          flexibleControlStateSize
+        />
       </React.Fragment>
     );
   }
 }
 
+const StyledListTitle = styled('div')`
+  display: flex;
+  span {
+    margin-left: ${space(1)};
+  }
+`;
+
 const ChartPanel = styled(Panel)`
   margin-bottom: ${space(4)};
   min-height: 335px;
+`;
+
+const ThresholdSelectField = styled(SelectField)`
+  margin-bottom: ${space(2)} !important;
+  padding-top: 0 !important;
 `;
 
 const StyledPanelBody = styled(PanelBody)`
@@ -331,6 +351,7 @@ const StyledSearchBar = styled(SearchBar)`
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
+  line-height: 1.3;
 `;
 
 const FormRow = styled('div')`
@@ -338,17 +359,11 @@ const FormRow = styled('div')`
   flex-direction: row;
   align-items: flex-end;
   flex-wrap: wrap;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(4)};
 `;
 
 const ChartFooter = styled(FormRow)`
   margin: 0;
-`;
-
-const FormRowText = styled('div')`
-  padding: ${space(0.5)};
-  /* Match the height of the select controls */
-  line-height: 36px;
 `;
 
 export default RuleConditionsFormForWizard;

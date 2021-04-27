@@ -1,5 +1,4 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -23,9 +22,6 @@ describe('Dashboards > Detail', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/create/',
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -60,37 +56,5 @@ describe('Dashboards > Detail', function () {
 
     const content = wrapper.find('DocumentTitle');
     expect(content.text()).toContain('You need at least one project to use this view');
-  });
-
-  it('creates new dashboard', async function () {
-    const org = TestStubs.Organization({
-      features: [
-        'global-views',
-        'dashboards-basic',
-        'dashboards-edit',
-        'discover-query',
-        'dashboards-manage',
-      ],
-      projects: [TestStubs.Project()],
-    });
-    const wrapper = mountWithTheme(
-      <ManageDashboards organization={org} location={{query: {}}} router={{}} />
-    );
-    await tick();
-    wrapper.find('PageHeader').find('Button').simulate('click');
-    await tick();
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboards/',
-      state: {
-        dashboardState: 'create',
-        modifiedDashboard: {
-          createdBy: undefined,
-          dateCreated: '',
-          id: '',
-          title: 'Untitled dashboard',
-          widgets: [],
-        },
-      },
-    });
   });
 });

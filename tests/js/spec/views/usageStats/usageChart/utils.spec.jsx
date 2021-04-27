@@ -70,4 +70,12 @@ describe('getXAxisDates', () => {
       'Jul 9 8:00 PM - 9:00 PM',
     ]);
   });
+
+  it('handles invalid date strings', () => {
+    const dates1 = getXAxisDates('', '');
+    expect(dates1).toEqual([]);
+
+    const dates2 = getXAxisDates('sentry', '2021-01-01');
+    expect(dates2).toEqual([]);
+  });
 });
