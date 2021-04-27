@@ -66,10 +66,6 @@ describe('Dashboards > DashboardList', function () {
     ];
   });
 
-  afterEach(function () {
-    MockApiClient.clearMockResponses();
-  });
-
   it('renders an empty list', function () {
     const wrapper = mountWithTheme(
       <DashboardList
