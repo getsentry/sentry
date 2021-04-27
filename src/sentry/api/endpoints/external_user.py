@@ -21,8 +21,9 @@ class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):  #
         :pparam string organization_slug: the slug of the organization the
                                           user belongs to.
         :param required string provider: enum("github", "gitlab", "slack")
-        :param required string external_name: the associated Github/Gitlab user name.
-        :param required int user_id: the User id.
+        :param required string external_name: the associated username for this provider.
+        :param required int user_id: the User ID in Sentry.
+        :param string external_id: the associated user ID for this provider
         :auth: required
         """
         self.assert_has_feature(request, organization)

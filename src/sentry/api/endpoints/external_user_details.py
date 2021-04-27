@@ -37,6 +37,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
                                           user belongs to.
         :pparam int user_id: the User id.
         :pparam string external_user_id: id of external_user object
+        :param string external_id: the associated user ID for this provider
         :param string external_name: the Github/Gitlab user name.
         :param string provider: enum("github","gitlab")
         :auth: required
