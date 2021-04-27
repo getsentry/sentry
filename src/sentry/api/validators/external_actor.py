@@ -4,17 +4,26 @@ from rest_framework import serializers
 
 from sentry.models import Organization, OrganizationIntegration
 
-EXTERNAL_ID_MIN_LENGTH = 1
-EXTERNAL_ID_MAX_LENGTH = 64
+EXTERNAL_ID_LENGTH_MIN = 1
+EXTERNAL_ID_LENGTH_MAX = 64
+
+
+def _out_of_range_string(param: str, minimum: int, maximum: int, actual: int) -> str:
+    return f"{param} has invalid length: {actual}. Length must be between {minimum} and {maximum}"
 
 
 def validate_external_id_option(external_id: Optional[str]) -> Optional[str]:
     if not external_id:
         return None
 
-    if not EXTERNAL_ID_MIN_LENGTH <= len(external_id) <= EXTERNAL_ID_MAX_LENGTH:
+    if not EXTERNAL_ID_LENGTH_MIN <= len(external_id) <= EXTERNAL_ID_LENGTH_MAX:
         raise serializers.ValidationError(
-            f"external_id has invalid length ({EXTERNAL_ID_MIN_LENGTH}, {EXTERNAL_ID_MAX_LENGTH})"
+            _out_of_range_string(
+                "external_id",
+                EXTERNAL_ID_LENGTH_MIN,
+                EXTERNAL_ID_LENGTH_MAX,
+                len(external_id),
+            )
         )
 
     return external_id
