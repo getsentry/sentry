@@ -244,7 +244,7 @@ class OrganizationStats extends React.Component<Props, State> {
             onUpdate={this.handleUpdateDatetime}
             onToggleSelector={isOpen => this.setState({isCalendarOpen: isOpen})}
             organization={organization}
-            defaultPeriod="14d"
+            defaultPeriod={DEFAULT_STATS_PERIOD}
           />
         </DropdownDate>
 
