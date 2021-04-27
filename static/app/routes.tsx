@@ -1177,6 +1177,13 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
           <Route
+            path="/organizations/:orgId/dashboards/new/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/create')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
               import(

@@ -1,5 +1,6 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
@@ -7,9 +8,11 @@ import pick from 'lodash/pick';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import Button from 'app/components/button';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import PageHeading from 'app/components/pageHeading';
 import SearchBar from 'app/components/searchBar';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -102,6 +105,14 @@ class ManageDashboards extends AsyncView<Props, State> {
     return t('Manage Dashboards');
   }
 
+  onCreate() {
+    const {organization, location} = this.props;
+    browserHistory.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/`,
+      query: {...location.query},
+    });
+  }
+
   renderBody() {
     const {organization} = this.props;
 
@@ -126,6 +137,17 @@ class ManageDashboards extends AsyncView<Props, State> {
             />
             <PageHeader>
               <PageHeading>{t('Manage Dashboards')}</PageHeading>
+              <Button
+                data-test-id="dashboard-create"
+                onClick={event => {
+                  event.preventDefault();
+                  this.onCreate();
+                }}
+                priority="primary"
+                icon={<IconAdd size="xs" isCircled />}
+              >
+                {t('Create Dashboard')}
+              </Button>
             </PageHeader>
             {this.renderActions()}
             {this.renderDashboards()}
