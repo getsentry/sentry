@@ -5,10 +5,10 @@ updates:
     schedule:
       # Going to start with a high interval, and then tone it back
       interval: daily
-      time: 12:00pm
+      time: 2:00pm
       timezone: America/Los_Angeles
     reviewers:
-      - @getsentry/owners-js-build
+      - "@getsentry/owners-js-build"
     ignore:
       # These are packages we're "stuck" on for now
       - dependecy-name: jquery
