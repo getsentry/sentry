@@ -976,9 +976,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
-    # Enable graph for subscription quota for errors, transactions and
-    # attachments
-    "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": True,
     # Enable the new alert details ux design
