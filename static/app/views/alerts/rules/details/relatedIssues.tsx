@@ -11,8 +11,8 @@ import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {OrganizationSummary, Project} from 'app/types';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
+import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 import {TimePeriodType} from './constants';
 
@@ -47,7 +47,12 @@ class RelatedIssues extends React.Component<Props> {
       groupStatsPeriod: 'auto',
       limit: 5,
       sort: rule.aggregate === 'count_unique(user)' ? 'user' : 'freq',
-      query: [rule.query, rule.eventTypes?.length ? `event.type:[${rule.eventTypes.join(`, `)}]` : DATASET_EVENT_TYPE_FILTERS[rule.dataset]],
+      query: [
+        rule.query,
+        rule.eventTypes?.length
+          ? `event.type:[${rule.eventTypes.join(`, `)}]`
+          : DATASET_EVENT_TYPE_FILTERS[rule.dataset],
+      ],
       project: projects.map(project => project.id),
     };
     const issueSearch = {
