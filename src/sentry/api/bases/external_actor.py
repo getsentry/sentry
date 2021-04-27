@@ -8,9 +8,12 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.api.validators.external_actor import validate_external_id_option, validate_integration_id_option
+from sentry.api.validators.external_actor import (
+    validate_external_id_option,
+    validate_integration_id_option,
+)
 from sentry.api.validators.integrations import validate_provider
-from sentry.models import ExternalActor, Organization, OrganizationIntegration, Team, User
+from sentry.models import ExternalActor, Organization, Team, User
 from sentry.types.integrations import ExternalProviders, get_provider_choices
 
 AVAILABLE_PROVIDERS = {
@@ -21,7 +24,7 @@ AVAILABLE_PROVIDERS = {
 
 
 class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
-    external_id = serializers.CharField()
+    external_id = serializers.CharField(required=False, allow_null=True)
     external_name = serializers.CharField(required=True)
     provider = serializers.ChoiceField(choices=get_provider_choices(AVAILABLE_PROVIDERS))
     integration_id = serializers.IntegerField(required=False, allow_null=True)
@@ -33,6 +36,8 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
     def validate_integration_id(self, integration_id: str) -> Optional[str]:
         return validate_integration_id_option(integration_id, self.organization)
 
+    def validate_external_id(self, external_id: str) -> Optional[str]:
+        return validate_external_id_option(external_id)
 
     def validate_provider(self, provider_name_option: str) -> int:
         provider = validate_provider(provider_name_option, available_providers=AVAILABLE_PROVIDERS)
@@ -87,7 +92,7 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
 
     class Meta:
         model = ExternalActor
-        fields = ["user_id", "external_name", "provider", "integration_id"]
+        fields = ["user_id", "external_id", "external_name", "provider", "integration_id"]
 
 
 class ExternalTeamSerializer(ExternalActorSerializerBase):
@@ -104,7 +109,7 @@ class ExternalTeamSerializer(ExternalActorSerializerBase):
 
     class Meta:
         model = ExternalActor
-        fields = ["team_id", "external_name", "provider", "integration_id"]
+        fields = ["team_id", "external_id", "external_name", "provider", "integration_id"]
 
 
 class ExternalActorEndpointMixin:
