@@ -87,7 +87,7 @@ function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
   const {options, message, type} = indicator;
   const {undo, disableDismiss} = options || {};
   const showUndo = typeof undo === 'function';
-  const handleClick = e => {
+  const handleClick = (e: React.MouseEvent) => {
     if (disableDismiss) {
       return;
     }
