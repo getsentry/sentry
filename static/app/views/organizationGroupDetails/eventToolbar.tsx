@@ -147,6 +147,7 @@ class GroupEventToolbar extends React.Component<Props> {
         </Tooltip>
         {hasQuickTraceView && !hasTraceContext && (
           <DistributedTracingPrompt
+            event={evt}
             group={this.props.group}
             organization={organization}
           />
