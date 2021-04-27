@@ -28,6 +28,7 @@ export default class IntegrationExternalMappingForm extends React.Component<Prop
       teamId: '',
       sentryName: '',
       provider: integration.provider.key,
+      integrationId: integration.id,
       ...pick(mapping, ['externalName', 'userId', 'sentryName', 'teamId']),
     };
   }
