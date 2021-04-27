@@ -403,7 +403,6 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         usageDateShowUtc={chartDateUtc}
         usageDateInterval={chartDateInterval}
         usageStats={chartStats}
-        chartHighlightAccepted={false}
       />
     );
   }

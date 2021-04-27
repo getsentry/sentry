@@ -90,11 +90,6 @@ type DefaultProps = {
   usageDateInterval: IntervalPeriod;
 
   /**
-   * Use higher contrast colors on either "accepted" or "dropped"
-   */
-  chartHighlightAccepted: boolean;
-
-  /**
    * Modify the usageStats using the transformation method selected.
    * 1. This must be a pure function!
    * 2. If the parent component will handle the data transformation, you should
@@ -152,7 +147,6 @@ export class UsageChart extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     usageDateShowUtc: true,
     usageDateInterval: '1d',
-    chartHighlightAccepted: true,
     handleDataTransformation: (stats, transform) => {
       const chartData: ChartStats = {
         accepted: [],
@@ -205,23 +199,17 @@ export class UsageChart extends React.Component<Props, State> {
   }
 
   get chartColors() {
-    const {dataCategory, chartHighlightAccepted} = this.props;
+    const {dataCategory} = this.props;
 
     if (dataCategory === DataCategory.ERRORS) {
-      return chartHighlightAccepted
-        ? [COLOR_ERRORS, COLOR_ERRORS_LIGHT, COLOR_PROJECTED]
-        : [COLOR_ERRORS_LIGHT, COLOR_ERRORS, COLOR_PROJECTED];
+      return [COLOR_ERRORS_LIGHT, COLOR_ERRORS, COLOR_PROJECTED];
     }
 
     if (dataCategory === DataCategory.ATTACHMENTS) {
-      return chartHighlightAccepted
-        ? [COLOR_ATTACHMENTS, COLOR_ATTACHMENTS_LIGHT, COLOR_PROJECTED]
-        : [COLOR_ATTACHMENTS_LIGHT, COLOR_ATTACHMENTS, COLOR_PROJECTED];
+      return [COLOR_ATTACHMENTS_LIGHT, COLOR_ATTACHMENTS, COLOR_PROJECTED];
     }
 
-    return chartHighlightAccepted
-      ? [COLOR_TRANSACTIONS, COLOR_TRANSACTIONS_LIGHT, COLOR_PROJECTED]
-      : [COLOR_TRANSACTIONS_LIGHT, COLOR_TRANSACTIONS, COLOR_PROJECTED];
+    return [COLOR_TRANSACTIONS_LIGHT, COLOR_TRANSACTIONS, COLOR_PROJECTED];
   }
 
   get chartMetadata(): {
