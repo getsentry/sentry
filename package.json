@@ -89,7 +89,7 @@
     "lodash": "^4.17.19",
     "marked": "0.7.0",
     "mini-css-extract-plugin": "^1.3.9",
-    "mobx": "^6.2.0",
+    "mobx": "^6.3.0",
     "mobx-react": "~7.1.0",
     "moment": "2.29.1",
     "moment-timezone": "0.5.33",
