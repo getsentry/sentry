@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      # Going to start with a high interval, and then tone it back
+      interval: daily
+      time: 12:00pm
+      timezone: America/Los_Angeles
+    reviewers:
+      - @getsentry/owners-js-build
+    ignore:
+      # These are packages we're "stuck" on for now
+      - dependecy-name: jquery
+      - dependecy-name: bootstrap
+      - dependecy-name: react-bootstrap
+      - dependecy-name: reflux
+      - dependecy-name: react-router
+      - dependecy-name: react-select
+      - dependecy-name: react-select-legacy
