@@ -161,7 +161,7 @@ function EditableText({
 export default EditableText;
 
 const Label = styled('div')`
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: ${space(1)};
 `;
@@ -170,6 +170,14 @@ const InnerLabel = styled(TextOverflow)`
   border-top: 1px solid transparent;
   border-bottom: 1px dotted ${p => p.theme.gray200};
   transition: border 150ms;
+`;
+
+const InputWrapper = styled('div')<{isEmpty: boolean}>`
+  display: inline-block;
+  min-width: 50px;
+  background: ${p => p.theme.gray100};
+  margin: -${space(0.5)} -${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
@@ -187,11 +195,10 @@ const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
       : `
        ${!p.isEditing}
         :hover {
-          padding-right: 0;
           ${IconEdit} {
             display: none;
           }
-          ${Label} {
+          ${InputWrapper} {
             background: ${p.theme.gray100};
           }
           ${InnerLabel} {
@@ -201,16 +208,11 @@ const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
       `}
 `;
 
-const InputWrapper = styled('div')<{isEmpty: boolean}>`
-  min-width: ${p => (p.isEmpty ? '100px' : '50px')};
-  margin: -10px;
-  background: ${p => p.theme.gray100};
-`;
-
 const StyledInput = styled(Input)`
   border: none !important;
   background: transparent;
   height: auto;
+  padding: ${space(0.5)} ${space(1)};
   &,
   &:focus,
   &:active,
