@@ -13,8 +13,11 @@ updates:
       # These are packages we're "stuck" on for now
       - dependency-name: jquery
       - dependency-name: bootstrap
-      - dependency-name: react-bootstrap
       - dependency-name: reflux
+      - dependency-name: react-bootstrap
+      - dependency-name: "@types/react-bootstrap"
       - dependency-name: react-router
+      - dependency-name: "@types/react-router"
       - dependency-name: react-select
+      - dependency-name: "@types/react-select"
       - dependency-name: react-select-legacy
