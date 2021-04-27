@@ -46,7 +46,12 @@ class ProjectStacktraceLinkTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.client.get(self.url, format="json")
-        assert response.status_code == 400, response.content
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "config": None,
+            "sourceUrl": None,
+            "integrations": [self._serialized_integration()],
+        }
 
     def test_no_configs(self):
         self.login_as(user=self.user)
