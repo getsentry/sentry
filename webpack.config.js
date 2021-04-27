@@ -396,7 +396,6 @@ let appConfig = {
       chunks: 'async',
       maxInitialRequests: 10, // (default: 30)
       maxAsyncRequests: 10, // (default: 30)
-      // enforceSizeThreshold: 20000000, // (default: 50,000)
       cacheGroups: {
         ...localeChunkGroups,
       },
