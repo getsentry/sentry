@@ -1,5 +1,5 @@
-async function integrationPipeline() {
-  return await import(/* webpackChunkName: "integrationPipelineInit" */ './init');
-}
+import 'focus-visible';
 
-integrationPipeline();
+import {initializePipelineView} from 'app/bootstrap/initializePipelineView';
+
+initializePipelineView(window.__initialData);
