@@ -94,9 +94,6 @@ class OrgDashboards extends AsyncComponent<Props, State> {
       query: {
         ...location.query,
       },
-      state: {
-        ...location.state,
-      },
     });
   }
 

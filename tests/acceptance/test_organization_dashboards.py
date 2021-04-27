@@ -7,7 +7,6 @@ FEATURE_NAMES = [
     "organizations:discover-query",
     "organizations:dashboards-basic",
     "organizations:dashboards-edit",
-    "organizations:dashboards-manage",
 ]
 
 MANAGE_DASHBOARDS = ["organizations:dashboards-manage"]
