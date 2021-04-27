@@ -77,12 +77,10 @@ const Content = ({
 
       <ProjectRows>
         <Collapsible
-          expandButton={({onExpand, numberOfCollapsedItems}) => (
+          expandButton={({onExpand, numberOfHiddenItems}) => (
             <ExpandButtonWrapper>
               <Button priority="primary" size="xsmall" onClick={onExpand}>
-                {tct('Show [numberOfCollapsedItems] More', {
-                  numberOfCollapsedItems,
-                })}
+                {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
               </Button>
             </ExpandButtonWrapper>
           )}

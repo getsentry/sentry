@@ -14,9 +14,7 @@ describe('Collapsible', function () {
     expect(wrapper.find('div').length).toBe(5);
     expect(wrapper.find('div').at(2).text()).toBe('Item 3');
 
-    expect(wrapper.find('button[aria-label="Show 2 collapsed items"]').text()).toBe(
-      'Show 2 collapsed items'
-    );
+    expect(wrapper.find('button[aria-label="Show 2 hidden items"]').exists()).toBe(true);
     expect(wrapper.find('button[aria-label="Collapse"]').exists()).toBeFalsy();
   });
 
@@ -24,7 +22,7 @@ describe('Collapsible', function () {
     const wrapper = mountWithTheme(<Collapsible>{items}</Collapsible>);
 
     // expand
-    wrapper.find('button[aria-label="Show 2 collapsed items"]').simulate('click');
+    wrapper.find('button[aria-label="Show 2 hidden items"]').simulate('click');
 
     expect(wrapper.find('div').length).toBe(7);
 

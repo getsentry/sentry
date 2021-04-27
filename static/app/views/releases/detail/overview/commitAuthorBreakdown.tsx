@@ -80,12 +80,12 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
       <Wrapper>
         <SectionHeading>{t('Commit Author Breakdown')}</SectionHeading>
         <Collapsible
-          expandButton={({onExpand, numberOfCollapsedItems}) => (
+          expandButton={({onExpand, numberOfHiddenItems}) => (
             <Button priority="link" onClick={onExpand}>
               {tn(
                 'Show %s collapsed author',
                 'Show %s collapsed authors',
-                numberOfCollapsedItems
+                numberOfHiddenItems
               )}
             </Button>
           )}
