@@ -74,11 +74,24 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 ],
                 ["minus", "transaction.duration"],
             ),
+            # TODO(wmak): remove this once we don't use this on the frontend
             "t_test()": Alias(
                 lambda aggregate_filter: [
                     "t_test",
                     aggregate_filter.operator,
                     aggregate_filter.value.value,
+                ],
+                None,
+            ),
+            "confidence()": Alias(
+                lambda aggregate_filter: [
+                    "t_test",
+                    CORRESPONDENCE_MAP[aggregate_filter.operator]
+                    if trend_type == REGRESSION
+                    else aggregate_filter.operator,
+                    -1 * aggregate_filter.value.value
+                    if trend_type == IMPROVED
+                    else aggregate_filter.value.value,
                 ],
                 None,
             ),
