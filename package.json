@@ -46,7 +46,7 @@
     "@types/react-dom": "~17.0.3",
     "@types/react-mentions": "3.3.0",
     "@types/react-router": "^3.0.22",
-    "@types/react-select": "3.0.8",
+    "@types/react-select": "4.0.15",
     "@types/react-sparklines": "^1.7.0",
     "@types/react-virtualized": "^9.21.11",
     "@types/reflux": "0.4.1",
