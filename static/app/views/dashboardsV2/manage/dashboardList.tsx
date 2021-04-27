@@ -10,40 +10,24 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
-import {deleteDashboard} from 'app/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import withApi from 'app/utils/withApi';
 import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
-
-import {ContextMenu} from '../widgetCard';
 
 import DashboardCard from './dashboardCard';
 
 type Props = {
-  api: Client;
   organization: Organization;
   location: Location;
   dashboards: DashboardListItem[] | null;
   pageLinks: string;
-  onDashboardsChange: () => void;
 };
 
-function DashboardList({
-  api,
-  organization,
-  location,
-  dashboards,
-  pageLinks,
-  onDashboardsChange,
-}: Props) {
+function DashboardList({organization, location, dashboards, pageLinks}: Props) {
   function miniWidget(displayType: DisplayType): string {
     switch (displayType) {
       case DisplayType.BAR:
@@ -60,20 +44,6 @@ function DashboardList({
       default:
         return WidgetLine;
     }
-  }
-
-  function handleDelete(dashboard: DashboardListItem) {
-    const promise = deleteDashboard(api, organization.slug, dashboard.id);
-    promise
-      .then(() => {
-        onDashboardsChange();
-        addSuccessMessage(t('Dashboard deleted'));
-      })
-      .catch(() => {
-        addErrorMessage(t('Dashboard deleted'));
-      });
-
-    return promise;
   }
 
   function renderMiniDashboards() {
@@ -107,20 +77,6 @@ function DashboardList({
                 );
               })}
             </WidgetGrid>
-          )}
-          renderContextMenu={() => (
-            <ContextMenu>
-              <MenuItem
-                data-test-id="dashboard-delete"
-                key="delete-dashboard"
-                onClick={event => {
-                  event.preventDefault();
-                  handleDelete(dashboard);
-                }}
-              >
-                {t('Delete')}
-              </MenuItem>
-            </ContextMenu>
           )}
         />
       );
@@ -223,4 +179,4 @@ const PaginationRow = styled(Pagination)`
   margin-bottom: ${space(3)};
 `;
 
-export default withApi(DashboardList);
+export default DashboardList;
