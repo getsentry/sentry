@@ -209,6 +209,10 @@ class SnubaUtilsTest(TestCase):
             get_snuba_column_name("spans.key", Dataset.Transactions)
             == "span_op_breakdowns[ops.key]"
         )
+        assert (
+            get_snuba_column_name("spans.total.time", Dataset.Transactions)
+            == "span_op_breakdowns[total.time]"
+        )
         assert get_snuba_column_name("spans.KEY", Dataset.Discover) == "span_op_breakdowns[ops.key]"
         assert (
             get_snuba_column_name("spans.KEY", Dataset.Transactions)
