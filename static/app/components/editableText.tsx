@@ -40,6 +40,16 @@ function EditableText({
   const enter = useKeypress('Enter');
   const esc = useKeypress('Escape');
 
+  function revertValueAndCloseEditor() {
+    if (value !== inputValue) {
+      setInputValue(value);
+    }
+
+    if (isEditing) {
+      setIsEditing(false);
+    }
+  }
+
   // check to see if the user clicked outside of this component
   useOnClickOutside(innerWrapperRef, () => {
     if (isEditing) {
@@ -73,16 +83,13 @@ function EditableText({
 
   const onEsc = useCallback(() => {
     if (esc) {
-      setInputValue(value);
-      setIsEditing(false);
+      revertValueAndCloseEditor();
     }
-  }, [esc, value]);
+  }, [esc]);
 
   useEffect(() => {
-    if (value !== inputValue) {
-      setInputValue(value);
-    }
-  }, [value]);
+    revertValueAndCloseEditor();
+  }, [isDisabled, value]);
 
   // focus the cursor in the input field on edit start
   useEffect(() => {
@@ -96,9 +103,9 @@ function EditableText({
 
   useEffect(() => {
     if (isEditing) {
-      // if Enter is pressed, save the text and close the editor
+      // if Enter is pressed, save the value and close the editor
       onEnter();
-      // if Escape is pressed, revert the text and close the editor
+      // if Escape is pressed, revert the value and close the editor
       onEsc();
     }
   }, [onEnter, onEsc, isEditing]); // watch the Enter and Escape key presses
