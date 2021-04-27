@@ -535,14 +535,15 @@ const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
   {location}: RenderFunctionBaggage
 ): React.ReactNode => {
+  const cumulativeSpanOpBreakdown = data['spans.total.time'];
+
   if (
     !isDurationValue(data, 'spans.total.time') ||
-    SPAN_OP_BREAKDOWN_FIELDS.every(field => !isDurationValue(data, field))
+    SPAN_OP_BREAKDOWN_FIELDS.every(field => !isDurationValue(data, field)) ||
+    cumulativeSpanOpBreakdown === 0
   ) {
     return FIELD_FORMATTERS.duration.renderFunc(SPAN_OP_RELATIVE_BREAKDOWN_FIELD, data);
   }
-
-  const cumulativeSpanOpBreakdown = data['spans.total.time'];
 
   let otherPercentage = 1;
 
@@ -554,7 +555,7 @@ const spanOperationRelativeBreakdownRenderer = (
         }
 
         const operationName = getSpanOperationName(field) ?? 'op';
-        const spanOpDuration = data[field];
+        const spanOpDuration: number = data[field];
         const widthPercentage = spanOpDuration / cumulativeSpanOpBreakdown;
         otherPercentage = otherPercentage - widthPercentage;
         if (widthPercentage === 0) {
