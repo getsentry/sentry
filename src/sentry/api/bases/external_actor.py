@@ -1,4 +1,4 @@
-from typing import Any, MutableMapping
+from typing import Any, MutableMapping, Optional
 
 from django.db import IntegrityError
 from django.http import Http404
@@ -29,7 +29,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
     def organization(self) -> Organization:
         return self.context["organization"]
 
-    def validate_integration_id(self, integration_id: str) -> str:
+    def validate_integration_id(self, integration_id: str) -> Optional[str]:
         if not integration_id:
             return None
 
