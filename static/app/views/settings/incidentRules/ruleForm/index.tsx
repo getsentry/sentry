@@ -448,9 +448,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       transaction.setTag('operation', !rule.id ? 'create' : 'edit');
       for (const trigger of sanitizedTriggers) {
         for (const action of trigger.actions) {
-          transaction.setTag(action.type, true);
-          if (action.integrationId) {
-            transaction.setTag(`integrationId:${action.integrationId}`, true);
+          if (action.type === 'slack') {
+            transaction.setTag(action.type, true);
+            if (action.integrationId) {
+              transaction.setTag(`integrationId:${action.integrationId}`, true);
+            }
           }
         }
       }

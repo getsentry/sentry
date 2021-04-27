@@ -26,7 +26,6 @@ import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
 import Timeline from 'app/views/alerts/rules/details/timeline';
-import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {
   AlertRuleThresholdType,
   Dataset,
@@ -110,7 +109,7 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <Filters>
-        <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>&nbsp;&nbsp;
+        <code>{extractEventTypeFilterFromRule(rule)}</code>&nbsp;&nbsp;
         {rule.query && <code>{rule.query}</code>}
       </Filters>
     );
@@ -382,7 +381,7 @@ export default class DetailsBody extends React.Component<Props> {
                           )}
                           start={timePeriod.start}
                           end={timePeriod.end}
-                          filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
+                          filter={extractEventTypeFilterFromRule(rule)}
                         />
                       )}
                     </ActivityWrapper>
