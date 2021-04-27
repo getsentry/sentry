@@ -38,10 +38,14 @@ def validate_association(
         # associations are ExternalActor objects
         sentry_items = [item.external_name for item in associations]
 
-    diff = {str(item) for item in raw_items if item not in sentry_items}
+    diff = [str(item) for item in raw_items if item not in sentry_items]
+    seen = set()
+    unique_diff = [x for x in diff if not (x in seen or seen.add(x))]
 
-    if len(diff):
-        return [f'The following {type} do not have an association in Sentry: {", ".join(diff)}.']
+    if len(unique_diff):
+        return [
+            f'The following {type} do not have an association in Sentry: {", ".join(unique_diff)}.'
+        ]
 
     return []
 
