@@ -549,6 +549,10 @@ const spanOperationRelativeBreakdownRenderer = (
   return (
     <RelativeOpsBreakdown>
       {SPAN_OP_BREAKDOWN_FIELDS.map(field => {
+        if (!isDurationValue(data, field)) {
+          return null;
+        }
+
         const operationName = getSpanOperationName(field) ?? 'op';
         const spanOpDuration = data[field];
         const widthPercentage = spanOpDuration / cumulativeSpanOpBreakdown;
