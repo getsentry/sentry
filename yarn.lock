@@ -2814,6 +2814,11 @@
     remark "^13.0.0"
     unist-util-find-all-after "^3.0.2"
 
+"@tsconfig/svelte@^1.0.0":
+  version "1.0.10"
+  resolved "https://registry.yarnpkg.com/@tsconfig/svelte/-/svelte-1.0.10.tgz#30ec7feeee0bdf38b12a50f0686f8a2e7b6b9dc0"
+  integrity sha512-EBrpH2iXXfaf/9z81koiDYkp2mlwW2XzFcAqn6qh7VKyP8zBvHHAQzNhY+W9vH5arAjmGAm5g8ElWq6YmXm3ig==
+
 "@types/anymatch@*":
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/@types/anymatch/-/anymatch-1.3.1.tgz#336badc1beecb9dacc38bea2cf32adf627a8421a"
@@ -13379,19 +13384,20 @@ ripemd160@^2.0.0, ripemd160@^2.0.1:
     hash-base "^3.0.0"
     inherits "^2.0.1"
 
-rrweb-player@^0.4.6:
-  version "0.4.6"
-  resolved "https://registry.yarnpkg.com/rrweb-player/-/rrweb-player-0.4.6.tgz#e58fc3fc670f03bf3f99238604e3c3ad53436f34"
-  integrity sha512-Jit+7Eq+Y0RzSfcI7UR+cacQhhflRfbA9tRmooUdudFzyKQTHlQiH9R3mQetkyP/WcI6D7x70s1eGnvgfRnDCg==
+rrweb-player@^0.7.1:
+  version "0.7.1"
+  resolved "https://registry.yarnpkg.com/rrweb-player/-/rrweb-player-0.7.1.tgz#9ad9eefa9765faa127bb73e06d5fb3e3529d10e9"
+  integrity sha512-9Lsj3yMpBjejftMoFW2TJD1H0TUt451KhMawVAv+wgWzAMw8QZ56XTWx7LGRRxw6H+yRT+n7aEqaTPMMt4fNoQ==
   dependencies:
-    rrweb "^0.7.32"
+    "@tsconfig/svelte" "^1.0.0"
+    rrweb "^0.9.14"
 
 rrweb-snapshot@^0.7.26:
   version "0.7.26"
   resolved "https://registry.yarnpkg.com/rrweb-snapshot/-/rrweb-snapshot-0.7.26.tgz#339769cdcfc53db4fec279501706ff6129671cb2"
   integrity sha512-z4k6swLNI5YPDFFcYp19Ggo2kE12cWG1OZCanlaMvwSOi82OOZ229ckYBCPYHbYQnCwuBF5KSMZi2i0CwpWHng==
 
-rrweb@^0.7.32, rrweb@^0.7.33:
+rrweb@^0.7.33, rrweb@^0.9.14:
   version "0.7.33"
   resolved "https://registry.yarnpkg.com/rrweb/-/rrweb-0.7.33.tgz#9505b3f94f9c5291377044a065f3148994081be6"
   integrity sha512-TJIkNlejmyBScUbnBRCzeSgRFANx2dX0kGRZLeWKz6ZkSbWs4UhWv0DuRHEPSXH4/BV1b4PVtKBOMsY9wvm0jg==
