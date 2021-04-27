@@ -10,6 +10,7 @@ import Detail from './detail';
 type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
   organization: Organization;
   children: React.ReactNode;
+  location: Location;
 };
 
 class DashboardsV2Container extends React.Component<Props> {
