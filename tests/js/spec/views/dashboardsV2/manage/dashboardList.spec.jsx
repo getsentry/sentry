@@ -194,8 +194,7 @@ describe('Dashboards > DashboardList', function () {
     card = wrapper.find('DashboardCard').last();
     clickMenuItem(card, 'dashboard-delete');
 
-    // wait for request
-    await wrapper.update();
+    await tick();
 
     expect(deleteMock).toHaveBeenCalled();
     expect(dashboardUpdateMock).toHaveBeenCalled();
@@ -220,8 +219,6 @@ describe('Dashboards > DashboardList', function () {
     card = wrapper.find('DashboardCard').last();
     clickMenuItem(card, 'dashboard-duplicate');
 
-    // wait for request
-    await wrapper.update();
     await tick();
 
     expect(createMock).toHaveBeenCalled();
