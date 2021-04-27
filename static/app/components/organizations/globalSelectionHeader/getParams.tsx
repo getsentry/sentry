@@ -202,7 +202,7 @@ export function getParams(
       end: coercedPeriod ? null : dateTimeEnd,
       // coerce utc into a string (it can be both: a string representation from router,
       // or a boolean from time range picker)
-      utc: getUtcValue(pageUtc || utc),
+      utc: getUtcValue(pageUtc ?? utc),
       ...otherParams,
     })
       // Filter null values
