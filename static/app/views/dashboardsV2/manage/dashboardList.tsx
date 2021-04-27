@@ -91,7 +91,7 @@ function DashboardList({
           addSuccessMessage(t('Dashboard duplicated'));
         });
       })
-      .catch(() => {});
+      .catch(() => addErrorMessage(t('Error duplicating Dashboard')));
   }
 
   function renderMiniDashboards() {

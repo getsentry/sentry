@@ -224,6 +224,6 @@ describe('Dashboards > DashboardList', function () {
     await wrapper.update();
 
     expect(createMock).toHaveBeenCalled();
-    // expect(dashboardUpdateMock).toHave BeenCalled();
+    // expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 });
