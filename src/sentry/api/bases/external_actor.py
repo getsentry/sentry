@@ -29,7 +29,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
     def organization(self) -> Organization:
         return self.context["organization"]
 
-    def validate_integration_id(self, integration_id):
+    def validate_integration_id(self, integration_id: str) -> str:
         if not integration_id:
             return None
 
@@ -40,7 +40,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
             raise serializers.ValidationError("Integration does not exist for this organization")
         return integration_id
 
-    def validate_provider(self, provider_name_option):
+    def validate_provider(self, provider_name_option: str) -> int:
         provider = validate_provider(provider_name_option, available_providers=AVAILABLE_PROVIDERS)
         return int(provider.value)
 
