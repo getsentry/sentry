@@ -3,7 +3,11 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
 
-import GridEditable from 'app/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumn,
+  GridColumnOrder,
+} from 'app/components/gridEditable';
 import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
@@ -213,7 +217,33 @@ type Props = {
   currentFilter: SpanOperationBreakdownFilter;
 };
 
-class _TagExplorer extends React.Component<Props> {
+type State = {
+  widths: number[];
+};
+
+class _TagExplorer extends React.Component<Props, State> {
+  state: State = {
+    widths: [],
+  };
+
+  handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
+    const widths: number[] = [...this.state.widths];
+    widths[columnIndex] = nextColumn.width
+      ? Number(nextColumn.width)
+      : COL_WIDTH_UNDEFINED;
+    this.setState({widths});
+  };
+
+  getColumnOrder = (columns: GridColumnOrder[]) => {
+    const {widths} = this.state;
+    return columns.map((col: GridColumnOrder, i: number) => {
+      if (typeof widths[i] === 'number') {
+        return {...col, width: widths[i]};
+      }
+      return col;
+    });
+  };
+
   render() {
     const {eventView, organization, location, currentFilter, projects} = this.props;
     const aggregateColumn = getTransactionField(
@@ -221,10 +251,8 @@ class _TagExplorer extends React.Component<Props> {
       projects,
       eventView.project
     );
-    const columns = getColumnsWithReplacedDuration(
-      currentFilter,
-      projects,
-      eventView.project
+    const columns = this.getColumnOrder(
+      getColumnsWithReplacedDuration(currentFilter, projects, eventView.project)
     );
 
     const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
@@ -249,6 +277,7 @@ class _TagExplorer extends React.Component<Props> {
                 columnSortBy={[]}
                 grid={{
                   renderBodyCell: renderBodyCellWithData(this.props) as any,
+                  onResizeColumn: this.handleResizeColumn as any,
                 }}
                 location={location}
               />
