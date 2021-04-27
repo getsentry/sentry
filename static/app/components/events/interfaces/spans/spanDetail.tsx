@@ -5,6 +5,7 @@ import map from 'lodash/map';
 
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
+import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import DiscoverButton from 'app/components/discoverButton';
 import FileSize from 'app/components/fileSize';
@@ -12,11 +13,19 @@ import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {
+  ErrorDot,
+  ErrorLevel,
+  ErrorMessageContent,
+  ErrorMessageTitle,
+  ErrorTitle,
+} from 'app/components/performance/waterfall/rowDetails';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
+import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
+import {IconChevron, IconWarning} from 'app/icons';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
@@ -25,7 +34,7 @@ import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
-import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceEvent, TraceError} from 'app/utils/performance/quickTrace/types';
 import withApi from 'app/utils/withApi';
 
 import * as SpanEntryContext from './context';
@@ -52,16 +61,19 @@ type Props = {
   trace: Readonly<ParsedTraceType>;
   totalNumberOfErrors: number;
   spanErrors: TableDataRow[];
-  quickTrace?: QuickTraceContextChildrenProps;
+  childTransactions: QuickTraceEvent[];
+  relatedErrors: TraceError[];
 };
 
 type State = {
   transactionResults?: TransactionResult[];
+  errorsOpened: boolean;
 };
 
 class SpanDetail extends React.Component<Props, State> {
   state: State = {
     transactionResults: undefined,
+    errorsOpened: false,
   };
 
   componentDidMount() {
@@ -90,7 +102,7 @@ class SpanDetail extends React.Component<Props, State> {
     spanID: string,
     traceID: string
   ): Promise<{data: TransactionResult[]}> {
-    const {api, organization, quickTrace, trace, event} = this.props;
+    const {api, organization, childTransactions, trace, event} = this.props;
 
     // Skip doing a request if the results will be behind a disabled button.
     if (!organization.features.includes('discover-basic')) {
@@ -99,16 +111,14 @@ class SpanDetail extends React.Component<Props, State> {
 
     // Quick trace found some results that we can use to link to child
     // spans without making additional queries.
-    if (quickTrace?.trace?.length) {
+    if (childTransactions.length) {
       return Promise.resolve({
-        data: quickTrace.trace
-          .filter(transaction => transaction.parent_span_id === spanID)
-          .map(child => ({
-            'project.name': child.project_slug,
-            transaction: child.transaction,
-            'trace.span': child.span_id,
-            id: child.event_id,
-          })),
+        data: childTransactions.map(child => ({
+          'project.name': child.project_slug,
+          transaction: child.transaction,
+          'trace.span': child.span_id,
+          id: child.event_id,
+        })),
       });
     }
 
@@ -306,6 +316,10 @@ class SpanDetail extends React.Component<Props, State> {
     );
   }
 
+  toggleErrors = () => {
+    this.setState(({errorsOpened}) => ({errorsOpened: !errorsOpened}));
+  };
+
   renderSpanErrorMessage() {
     const {
       orgId,
@@ -315,7 +329,45 @@ class SpanDetail extends React.Component<Props, State> {
       trace,
       organization,
       event,
+      relatedErrors,
     } = this.props;
+    const {errorsOpened} = this.state;
+
+    /**
+     * Use the related errors as the default and fall back to span errors if this is
+     * empty. This fall back can be removed once trace navigation rollout is complete.
+     */
+    if (relatedErrors.length) {
+      return (
+        <Alert system type="error" icon={<IconWarning size="md" />}>
+          <ErrorMessageTitle>
+            {tn(
+              'An error event occurred in this transaction.',
+              '%s error events occurred in this transaction.',
+              relatedErrors.length
+            )}
+            <Toggle priority="link" onClick={this.toggleErrors}>
+              <IconChevron direction={errorsOpened ? 'up' : 'down'} />
+            </Toggle>
+          </ErrorMessageTitle>
+          {errorsOpened && (
+            <ErrorMessageContent>
+              {relatedErrors.map(error => (
+                <React.Fragment key={error.event_id}>
+                  <ErrorDot level={error.level} />
+                  <ErrorLevel>{error.level}</ErrorLevel>
+                  <ErrorTitle>
+                    <Link to={generateIssueEventTarget(error, organization)}>
+                      {error.title}
+                    </Link>
+                  </ErrorTitle>
+                </React.Fragment>
+              ))}
+            </ErrorMessageContent>
+          )}
+        </Alert>
+      );
+    }
 
     if (spanErrors.length === 0 || totalNumberOfErrors === 0 || isGapSpan(span)) {
       return null;
@@ -578,6 +630,14 @@ const TextTr = ({children}) => (
     </ValueTd>
   </tr>
 );
+
+const Toggle = styled(Button)`
+  font-weight: bold;
+  color: ${p => p.theme.subText};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
 
 export const Row = ({
   title,
