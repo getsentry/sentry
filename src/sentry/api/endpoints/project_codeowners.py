@@ -39,8 +39,7 @@ def validate_association(
         sentry_items = [item.external_name for item in associations]
 
     diff = [str(item) for item in raw_items if item not in sentry_items]
-    seen = set()
-    unique_diff = [x for x in diff if not (x in seen or seen.add(x))]
+    unique_diff = list(dict.fromkeys(diff).keys())
 
     if len(unique_diff):
         return [
