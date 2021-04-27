@@ -253,12 +253,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         }
 
         count.total += group.totals['sum(quantity)'];
-
-        if (outcome in count) {
-          count[outcome] += group.totals['sum(quantity)'];
-        } else {
-          count.dropped += group.totals['sum(quantity)'];
-        }
+        count[outcome] += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
           if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
