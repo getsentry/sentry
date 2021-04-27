@@ -371,41 +371,38 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             == "<http://testserver/settings/account/notifications/?referrer=ReleaseActivitySlack|Notification Settings>"
         )
 
-    # @responses.activate
-    # @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_issue_notification)
-    # def test_issue_alert_user(self, mock_func):
-    #     """
-    #     Test that issue alerts are sent to a Slack user. This is commented out for now because
-    #     users can't set it up yet - once we update the front end we'll allow for this in get_send_to and need the test
-    #     """
-    #     from sentry.mail.adapter import ActionTargetType
-    #     from sentry.models import Rule
-    #     from sentry.plugins.base import Notification
+    @responses.activate
+    @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_issue_notification)
+    def test_issue_alert_user(self, mock_func):
+        """Test that issue alerts are sent to a Slack user."""
+        from sentry.mail.adapter import ActionTargetType
+        from sentry.models import Rule
+        from sentry.plugins.base import Notification
 
-    #     event = self.store_event(
-    #         data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-    #     )
-    #     action_data = {
-    #         "id": "sentry.mail.actions.NotifyEmailAction",
-    #         "targetType": "Member",
-    #         "targetIdentifier": str(self.user.id),
-    #     }
-    #     rule = Rule.objects.create(
-    #         project=self.project,
-    #         label="ja rule",
-    #         data={
-    #             "match": "all",
-    #             "actions": [action_data],
-    #         },
-    #     )
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "Member",
+            "targetIdentifier": str(self.user.id),
+        }
+        rule = Rule.objects.create(
+            project=self.project,
+            label="ja rule",
+            data={
+                "match": "all",
+                "actions": [action_data],
+            },
+        )
 
-    #     notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=rule)
 
-    #     with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-    #         self.adapter.notify(notification, ActionTargetType.MEMBER, self.user.id)
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.MEMBER, self.user.id)
 
-    #     attachment = get_attachment()
+        attachment = get_attachment()
 
-    #     assert attachment["title"] == "Hello world"
-    #     assert attachment["text"] == ""
-    #     assert attachment["footer"] == event.group.qualified_short_id
+        assert attachment["title"] == "Hello world"
+        assert attachment["text"] == ""
+        assert attachment["footer"] == event.group.qualified_short_id

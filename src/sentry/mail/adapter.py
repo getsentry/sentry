@@ -193,7 +193,10 @@ class MailAdapter:
         elif target_type == ActionTargetType.MEMBER:
             # TODO(ceo): this is set to just email for now, but when we update the alert rule UI
             # to allow you to choose "notification" rather than "email" this will need to change
-            return {ExternalProviders.EMAIL: self.get_send_to_member(project, target_identifier)}
+            print("~~~~~~~~~~~~~~~~~")
+            print(self.get_send_to_member(project, target_identifier))
+            return self.get_send_to_member(project, target_identifier)
+            # return {ExternalProviders.EMAIL: self.get_send_to_member(project, target_identifier)}
         elif target_type == ActionTargetType.TEAM:
             return {ExternalProviders.EMAIL: self.get_send_to_team(project, target_identifier)}
         return {}
@@ -311,8 +314,15 @@ class MailAdapter:
                 .get()
             )
         except User.DoesNotExist:
-            return set()
-        return {user.id}
+            return {}
+        user_by_provider = NotificationSetting.objects.filter_to_subscribed_users(project, [user])
+        output = {}
+        for provider, user_list in user_by_provider.items():
+            output[provider] = []
+            for user in user_list:
+                output[provider].append(user.id)
+        return output
+        ### there is a definitely a better way to do this, but it does work
 
     def get_send_to_all_in_project(self, project):
         cache_key = f"mail:send_to:{project.pk}"
@@ -438,6 +448,7 @@ class MailAdapter:
         )
 
         for provider, participants in participants_by_provider.items():
+
             notify_participants(self, provider, participants, context)
 
     @register_issue_notification_provider(ExternalProviders.EMAIL)
