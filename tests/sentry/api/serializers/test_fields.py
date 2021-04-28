@@ -41,9 +41,7 @@ class TestListField(TestCase):
         serializer = DummySerializer(data=data)
         assert not serializer.is_valid()
         assert serializer.errors == {
-            "a_field": {
-                {"d_field": [ErrorDetail(string="This field is required.", code="required")]}
-            }
+            "a_field": {"d_field": [ErrorDetail(string="This field is required.", code="required")]}
         }
 
 
