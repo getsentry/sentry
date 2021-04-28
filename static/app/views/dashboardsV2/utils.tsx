@@ -29,5 +29,6 @@ export function eventViewFromWidget(
     range: statsPeriod,
     start: start ? getUtcDateString(start) : undefined,
     end: end ? getUtcDateString(end) : undefined,
+    environment: selection.environments,
   });
 }

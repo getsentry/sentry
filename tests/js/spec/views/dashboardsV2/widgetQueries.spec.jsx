@@ -229,6 +229,19 @@ describe('Dashboards > WidgetQueries', function () {
     // Child should be rendered and 2 requests should be sent.
     expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
     expect(tableMock).toHaveBeenCalledTimes(1);
+    expect(tableMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/eventsv2/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:error',
+          name: 'SDK',
+          field: ['sdk.name'],
+          statsPeriod: '14d',
+          environment: ['prod'],
+          project: [1],
+        }),
+      })
+    );
     expect(childProps.timeseriesResults).toBeUndefined();
     expect(childProps.tableResults[0].data).toHaveLength(1);
     expect(childProps.tableResults[0].meta).toBeDefined();
