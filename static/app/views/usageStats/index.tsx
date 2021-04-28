@@ -4,33 +4,39 @@ import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
+import moment from 'moment';
 
 import {DateTimeObject} from 'app/components/charts/utils';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import ErrorBoundary from 'app/components/errorBoundary';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import TimeRangeSelector, {
+  ChangeData,
+} from 'app/components/organizations/timeRangeSelector';
 import PageHeading from 'app/components/pageHeading';
+import {Panel} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {
   DataCategory,
   DataCategoryName,
+  DateString,
   Organization,
   Project,
   RelativePeriod,
 } from 'app/types';
-import {parsePeriodToHours} from 'app/utils/dates';
 
 import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
 
 const PAGE_QUERY_PARAMS = [
+  'pageStatsPeriod',
   'pageStart',
   'pageEnd',
-  'pagePeriod',
   'pageUtc',
   'dataCategory',
   'transform',
@@ -43,7 +49,15 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-class OrganizationStats extends React.Component<Props> {
+type State = {
+  isCalendarOpen: boolean;
+};
+
+class OrganizationStats extends React.Component<Props, State> {
+  state = {
+    isCalendarOpen: false,
+  };
+
   get dataCategory(): DataCategory {
     const dataCategory = this.props.location?.query?.dataCategory;
 
@@ -62,21 +76,40 @@ class OrganizationStats extends React.Component<Props> {
     return DataCategoryName[dataCategory] ?? t('Unknown Data Category');
   }
 
-  get dataPeriod(): DateTimeObject {
-    const {pagePeriod, pageStart, pageEnd} = this.props.location?.query ?? {};
-    if (!pagePeriod && !pageStart && !pageEnd) {
+  get dataDatetime(): DateTimeObject {
+    const query = this.props.location?.query ?? {};
+
+    const {start, end, statsPeriod, utc: utcString} = getParams(query, {
+      allowEmptyPeriod: true,
+      allowAbsoluteDatetime: true,
+      allowAbsolutePageDatetime: true,
+    });
+
+    if (!statsPeriod && !start && !end) {
       return {period: DEFAULT_STATS_PERIOD};
     }
 
-    // Absolute date range is more specific than period
-    if (pageStart && pageEnd) {
-      return {start: pageStart, end: pageEnd};
+    // Following getParams, statsPeriod will take priority over start/end
+    if (statsPeriod) {
+      return {period: statsPeriod};
     }
 
-    const keys = Object.keys(DEFAULT_RELATIVE_PERIODS);
-    return pagePeriod && keys.includes(pagePeriod)
-      ? {period: pagePeriod}
-      : {period: DEFAULT_STATS_PERIOD};
+    const utc = utcString === 'true';
+    if (start && end) {
+      return utc
+        ? {
+            start: moment.utc(start).format(),
+            end: moment.utc(end).format(),
+            utc,
+          }
+        : {
+            start: moment(start).utc().format(),
+            end: moment(end).utc().format(),
+            utc,
+          };
+    }
+
+    return {period: DEFAULT_STATS_PERIOD};
   }
 
   // Validation and type-casting should be handled by chart
@@ -129,6 +162,28 @@ class OrganizationStats extends React.Component<Props> {
     };
   };
 
+  handleUpdateDatetime = (datetime: ChangeData): LocationDescriptorObject => {
+    const {start, end, relative, utc} = datetime;
+
+    if (start && end) {
+      const parser = utc ? moment.utc : moment;
+
+      return this.setStateOnUrl({
+        pageStatsPeriod: undefined,
+        pageStart: parser(start).format(),
+        pageEnd: parser(end).format(),
+        pageUtc: utc ?? undefined,
+      });
+    }
+
+    return this.setStateOnUrl({
+      pageStatsPeriod: (relative as RelativePeriod) || undefined,
+      pageStart: undefined,
+      pageEnd: undefined,
+      pageUtc: undefined,
+    });
+  };
+
   /**
    * TODO: Enable user to set dateStart/dateEnd
    *
@@ -137,7 +192,10 @@ class OrganizationStats extends React.Component<Props> {
   setStateOnUrl = (
     nextState: {
       dataCategory?: DataCategory;
-      pagePeriod?: RelativePeriod;
+      pageStatsPeriod?: RelativePeriod;
+      pageStart?: DateString;
+      pageEnd?: DateString;
+      pageUtc?: boolean | null;
       transform?: ChartDataTransform;
       sort?: string;
       query?: string;
@@ -167,24 +225,33 @@ class OrganizationStats extends React.Component<Props> {
     return nextLocation;
   };
 
-  renderPageControl() {
-    const {period} = this.dataPeriod;
+  renderPageControl = () => {
+    const {organization} = this.props;
+    const {isCalendarOpen} = this.state;
 
-    // Remove options for relative periods shorter than 1 week
-    const relativePeriods = Object.keys(DEFAULT_RELATIVE_PERIODS).reduce((acc, key) => {
-      const periodDays = parsePeriodToHours(key) / 24;
-      if (periodDays >= 7) {
-        acc[key] = DEFAULT_RELATIVE_PERIODS[key];
-      }
-      return acc;
-    }, {});
+    const {start, end, period, utc} = this.dataDatetime;
 
     return (
       <React.Fragment>
+        <DropdownDate isCalendarOpen={isCalendarOpen}>
+          <TimeRangeSelector
+            relative={period ?? ''}
+            start={start ?? null}
+            end={end ?? null}
+            utc={utc ?? null}
+            label={<DropdownLabel>{t('Date Range:')}</DropdownLabel>}
+            onChange={() => {}}
+            onUpdate={this.handleUpdateDatetime}
+            onToggleSelector={isOpen => this.setState({isCalendarOpen: isOpen})}
+            organization={organization}
+            defaultPeriod={DEFAULT_STATS_PERIOD}
+          />
+        </DropdownDate>
+
         <DropdownDataCategory
           label={
             <DropdownLabel>
-              <span>{t('Usage Metrics: ')}</span>
+              <span>{t('Event Type: ')}</span>
               <span>{this.dataCategoryName}</span>
             </DropdownLabel>
           }
@@ -201,29 +268,9 @@ class OrganizationStats extends React.Component<Props> {
             </DropdownItem>
           ))}
         </DropdownDataCategory>
-        <DropdownDate
-          label={
-            <DropdownLabel>
-              <span>{t('Date Range: ')}</span>
-              <span>{DEFAULT_RELATIVE_PERIODS[period || DEFAULT_STATS_PERIOD]}</span>
-            </DropdownLabel>
-          }
-        >
-          {Object.keys(relativePeriods).map(key => (
-            <DropdownItem
-              key={key}
-              eventKey={key}
-              onSelect={(val: string) =>
-                this.setStateOnUrl({pagePeriod: val as RelativePeriod})
-              }
-            >
-              {DEFAULT_RELATIVE_PERIODS[key]}
-            </DropdownItem>
-          ))}
-        </DropdownDate>
       </React.Fragment>
     );
-  }
+  };
 
   render() {
     const {organization} = this.props;
@@ -237,7 +284,7 @@ class OrganizationStats extends React.Component<Props> {
 
           <p>
             {t(
-              'We collect usage metrics on three types of events: errors, transactions and attachments. The charts below reflect events that Sentry have received across your entire organization. You can also find them broken down by project in the table.'
+              'We collect usage metrics on three types of events: errors, transactions, and attachments. The charts below reflect events that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
             )}
           </p>
 
@@ -249,7 +296,7 @@ class OrganizationStats extends React.Component<Props> {
                 organization={organization}
                 dataCategory={this.dataCategory}
                 dataCategoryName={this.dataCategoryName}
-                dataDatetime={this.dataPeriod}
+                dataDatetime={this.dataDatetime}
                 chartTransform={this.chartTransform}
                 handleChangeState={this.setStateOnUrl}
               />
@@ -259,7 +306,7 @@ class OrganizationStats extends React.Component<Props> {
                 organization={organization}
                 dataCategory={this.dataCategory}
                 dataCategoryName={this.dataCategoryName}
-                dataDatetime={this.dataPeriod}
+                dataDatetime={this.dataDatetime}
                 tableSort={this.tableSort}
                 tableQuery={this.tableQuery}
                 tableCursor={this.tableCursor}
@@ -289,9 +336,15 @@ const PageGrid = styled('div')`
   }
 `;
 
-const StyledDropdown = styled(DropdownControl)`
+const DropdownDataCategory = styled(DropdownControl)`
+  height: 42px;
+  grid-column: auto / span 1;
+  justify-self: stretch;
+  align-self: stretch;
+
   button {
     width: 100%;
+    height: 100%;
 
     > span {
       display: flex;
@@ -299,20 +352,42 @@ const StyledDropdown = styled(DropdownControl)`
     }
   }
 `;
-const DropdownDataCategory = styled(StyledDropdown)`
-  grid-column: auto / span 1;
+
+const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
+  grid-column: auto / span 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 42px;
+
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p =>
+    p.isCalendarOpen
+      ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
+      : p.theme.borderRadius};
+  padding: 0;
+  margin: 0;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.textColor};
+
+  > div {
+    flex-grow: 1;
+  }
+
+  > div > div:first-child {
+    padding: ${space(1)} ${space(2)};
+  }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     grid-column: auto / span 3;
   }
 `;
-const DropdownDate = styled(StyledDropdown)`
-  grid-column: auto / span 1;
-`;
 
 const DropdownLabel = styled('span')`
-  min-width: 100px;
   text-align: left;
+  font-weight: 600;
+  color: ${p => p.theme.textColor};
 
   > span:last-child {
     font-weight: 400;

@@ -13,6 +13,7 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
+import {parsePeriodToHours} from 'app/utils/dates';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -26,7 +27,7 @@ import UsageChart, {
   ChartStats,
 } from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
-import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
+import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
 type Props = {
   organization: Organization;
@@ -53,7 +54,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     if (
       prevDateTime.start !== currDateTime.start ||
       prevDateTime.end !== currDateTime.end ||
-      prevDateTime.period !== currDateTime.period
+      prevDateTime.period !== currDateTime.period ||
+      prevDateTime.utc !== currDateTime.utc
     ) {
       this.reloadData();
     }
@@ -71,9 +73,19 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   get endpointQuery() {
     const {dataDatetime} = this.props;
 
-    // TODO: Enable user to use dateStart/dateEnd
+    const queryDatetime =
+      dataDatetime.start && dataDatetime.end
+        ? {
+            start: dataDatetime.start,
+            end: dataDatetime.end,
+            utc: dataDatetime.utc,
+          }
+        : {
+            statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD,
+          };
+
     return {
-      statsPeriod: dataDatetime?.period || DEFAULT_STATS_PERIOD,
+      ...queryDatetime,
       interval: getInterval(dataDatetime),
       groupBy: ['category', 'outcome'],
       field: ['sum(quantity)'],
@@ -92,8 +104,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
     chartDateEnd: string;
+    chartDateUtc: boolean;
     chartDateStartDisplay: string;
     chartDateEndDisplay: string;
+    chartDateTimezoneDisplay: string;
     chartTransform: ChartDataTransform;
   } {
     const {orgStats} = this.state;
@@ -121,55 +135,59 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
     chartDateEnd: string;
+    chartDateUtc: boolean;
     chartDateStartDisplay: string;
     chartDateEndDisplay: string;
+    chartDateTimezoneDisplay: string;
   } {
     const {orgStats} = this.state;
+    const {dataDatetime} = this.props;
+
+    const interval = getInterval(dataDatetime);
 
     // Use fillers as loading/error states will not display datetime at all
     if (!orgStats || !orgStats.intervals || orgStats.intervals.length < 2) {
-      const {dataDatetime} = this.props;
-
       return {
-        chartDateInterval: getInterval(dataDatetime),
+        chartDateInterval: interval,
         chartDateStart: '',
         chartDateEnd: '',
+        chartDateUtc: true,
         chartDateStartDisplay: '',
         chartDateEndDisplay: '',
+        chartDateTimezoneDisplay: '',
       };
     }
 
-    // Calculate intervals using API data
     const {intervals} = orgStats;
-    const startTime = moment(intervals[0]);
-    const endTime = moment(intervals[intervals.length - 1]);
-    const intervalMinutes = moment(endTime).diff(startTime, 'm') / (intervals.length - 1);
+    const intervalHours = parsePeriodToHours(interval);
+
+    // Keep datetime in UTC until we want to display it to users
+    const startTime = moment(intervals[0]).utc();
+    const endTime = moment(intervals[intervals.length - 1]).utc();
+    const useUtc = isDisplayUtc(dataDatetime);
 
     // If interval is a day or more, use UTC to format date. Otherwise, the date
     // may shift ahead/behind when converting to the user's local time.
-    const isPerDay = intervalMinutes >= 24 * 60;
-    const FORMAT_DATETIME = isPerDay ? FORMAT_DATETIME_DAILY : FORMAT_DATETIME_HOURLY;
+    const FORMAT_DATETIME =
+      intervalHours >= 24 ? FORMAT_DATETIME_DAILY : FORMAT_DATETIME_HOURLY;
 
     const xAxisStart = moment(startTime);
     const xAxisEnd = moment(endTime);
-    const displayStart = isPerDay ? moment(startTime).utc() : moment(startTime).local();
-    const displayEnd = isPerDay
-      ? moment(endTime).utc()
-      : moment(endTime).local().add(intervalMinutes, 'm');
+    const displayStart = useUtc ? moment(startTime).utc() : moment(startTime).local();
+    const displayEnd = useUtc ? moment(endTime).utc() : moment(endTime).local();
 
-    const intervalString =
-      intervalMinutes < 60
-        ? `${intervalMinutes}m`
-        : intervalMinutes < 60 * 24
-        ? `${intervalMinutes / 60}h`
-        : `${intervalMinutes / (60 * 24)}d`;
+    if (intervalHours < 24) {
+      displayEnd.add(intervalHours, 'h');
+    }
 
     return {
-      chartDateInterval: intervalString as IntervalPeriod,
+      chartDateInterval: interval,
       chartDateStart: xAxisStart.format(),
       chartDateEnd: xAxisEnd.format(),
+      chartDateUtc: useUtc,
       chartDateStartDisplay: displayStart.format(FORMAT_DATETIME),
       chartDateEndDisplay: displayEnd.format(FORMAT_DATETIME),
+      chartDateTimezoneDisplay: displayStart.format('Z'),
     };
   }
 
@@ -203,13 +221,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     try {
       const {dataCategory} = this.props;
-      const {chartDateInterval} = this.chartDateRange;
+      const {chartDateInterval, chartDateUtc} = this.chartDateRange;
 
       const usageStats: UsageStat[] = orgStats.intervals.map(interval => {
         const dateTime = moment(interval);
 
         return {
-          date: getDateFromMoment(dateTime, chartDateInterval),
+          date: getDateFromMoment(dateTime, chartDateInterval, chartDateUtc),
           total: 0,
           accepted: 0,
           filtered: 0,
@@ -218,13 +236,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       });
 
       // Tally totals for card data
-      const count: any = {
+      const count: Record<'total' | Outcome, number> = {
         total: 0,
-        accepted: 0,
-        dropped: 0,
-        invalid: 0,
-        filtered: 0,
-        rate_limited: 0,
+        [Outcome.ACCEPTED]: 0,
+        [Outcome.FILTERED]: 0,
+        [Outcome.DROPPED]: 0,
+        [Outcome.INVALID]: 0, // Combined with dropped later
+        [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
       };
 
       orgStats.groups.forEach(group => {
@@ -238,19 +256,19 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         count[outcome] += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
-          if (outcome === Outcome.RATE_LIMITED || outcome === Outcome.INVALID) {
-            usageStats[i].dropped.total += stat;
+          if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
+            usageStats[i][outcome] += stat;
+            return;
           }
 
-          usageStats[i][outcome] += stat;
+          // Breaking down into reasons for dropped is not needed
+          usageStats[i].dropped.total += stat;
         });
       });
 
-      // Invalid and rate_limited data is dropped
-      count.dropped += count.invalid;
-      count.dropped += count.rate_limited;
-      delete count.invalid;
-      delete count.rate_limited;
+      // Invalid and rate_limited data is combined with dropped
+      count[Outcome.DROPPED] += count[Outcome.INVALID];
+      count[Outcome.DROPPED] += count[Outcome.RATE_LIMITED];
 
       usageStats.forEach(stat => {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
@@ -268,17 +286,17 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
             getFormatUsageOptions(dataCategory)
           ),
           accepted: formatUsageWithUnits(
-            count.accepted,
+            count[Outcome.ACCEPTED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
           dropped: formatUsageWithUnits(
-            count.dropped,
+            count[Outcome.DROPPED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
           filtered: formatUsageWithUnits(
-            count.filtered,
+            count[Outcome.FILTERED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
@@ -359,6 +377,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       chartDateInterval,
       chartDateStart,
       chartDateEnd,
+      chartDateUtc,
       chartTransform,
     } = this.chartData;
 
@@ -376,6 +395,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         dataTransform={chartTransform}
         usageDateStart={chartDateStart}
         usageDateEnd={chartDateEnd}
+        usageDateShowUtc={chartDateUtc}
         usageDateInterval={chartDateInterval}
         usageStats={chartStats}
       />
@@ -384,26 +404,28 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
   renderChartFooter = () => {
     const {handleChangeState} = this.props;
-    const {loading} = this.state;
+    const {loading, error} = this.state;
     const {
       chartDateInterval,
       chartTransform,
       chartDateStartDisplay,
       chartDateEndDisplay,
+      chartDateTimezoneDisplay,
     } = this.chartData;
 
     return (
       <Footer>
         <InlineContainer>
           <FooterDate>
-            <SectionHeading>{t('Date Range')}</SectionHeading>
+            <SectionHeading>{t('Date Range:')}</SectionHeading>
             <span>
-              {loading ? (
+              {loading || error ? (
                 <NotAvailable />
               ) : (
-                tct('[start] — [end] ([interval] interval)', {
+                tct('[start] — [end] ([timezone] UTC, [interval] interval)', {
                   start: chartDateStartDisplay,
                   end: chartDateEndDisplay,
+                  timezone: chartDateTimezoneDisplay,
                   interval: chartDateInterval,
                 })
               )}

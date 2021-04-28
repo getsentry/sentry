@@ -63,6 +63,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       prevDateTime.start !== currDateTime.start ||
       prevDateTime.end !== currDateTime.end ||
       prevDateTime.period !== currDateTime.period ||
+      prevDateTime.utc !== currDateTime.utc ||
       currDataCategory !== prevDataCategory
     ) {
       this.reloadData();
@@ -80,9 +81,21 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   get endpointQuery() {
     const {dataDatetime, dataCategory} = this.props;
+
+    const queryDatetime =
+      dataDatetime.start && dataDatetime.end
+        ? {
+            start: dataDatetime.start,
+            end: dataDatetime.end,
+            utc: dataDatetime.utc,
+          }
+        : {
+            statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD,
+          };
+
     // We do not need more granularity in the data so interval is '1d'
     return {
-      statsPeriod: dataDatetime?.period || DEFAULT_STATS_PERIOD,
+      ...queryDatetime,
       interval: '1d',
       groupBy: ['outcome', 'project'],
       field: ['sum(quantity)'],
