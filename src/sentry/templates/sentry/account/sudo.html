@@ -15,9 +15,9 @@
 
   {% script type="text/javascript" %}
   <script>
-    $(function() {
-      setTimeout(function(){
-          $("#id_password").focus();
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+          document.querySelector("#id_password").focus();
       }, 0);
     });
   </script>
