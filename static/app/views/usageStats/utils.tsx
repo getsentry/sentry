@@ -1,4 +1,11 @@
-import {DateTimeObject, getInterval} from 'app/components/charts/utils';
+import {
+  DateTimeObject,
+  getDiffInMinutes,
+  getInterval,
+  ONE_HOUR,
+  SIXTY_DAYS,
+  THIRTY_DAYS,
+} from 'app/components/charts/utils';
 import {DataCategory} from 'app/types';
 import {formatBytesBase10} from 'app/utils';
 import {parsePeriodToHours} from 'app/utils/dates';
@@ -101,4 +108,35 @@ export function isDisplayUtc(datetime: DateTimeObject): boolean {
   const interval = getInterval(datetime);
   const hours = parsePeriodToHours(interval);
   return hours >= 24;
+}
+
+/**
+ * Duplicate of getInterval from static/app/components/charts/utils
+ * except that we do not support <1h granularity for time ranges >6h
+ */
+export function getUsageInterval(datetimeObj: DateTimeObject) {
+  const diffInMinutes = getDiffInMinutes(datetimeObj);
+
+  if (diffInMinutes >= SIXTY_DAYS) {
+    // Greater than or equal to 60 days
+    return '1d';
+  }
+
+  if (diffInMinutes >= THIRTY_DAYS) {
+    // Greater than or equal to 30 days
+    return '4h';
+  }
+
+  if (diffInMinutes > ONE_HOUR * 6) {
+    // Between 6 hour and 30 days
+    return '1h';
+  }
+
+  if (diffInMinutes > ONE_HOUR) {
+    // Between 1 hour and 6 hours
+    return '15m';
+  }
+
+  // Less than or equal to 1 hour
+  return '5m';
 }
