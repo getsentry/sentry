@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Iterable, Mapping, MutableMapping, Optional, Set
+from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Tuple
 
 from sentry.models import (
     Group,
@@ -110,3 +110,14 @@ def get_participants_for_release(
             if reason_option:
                 users_to_reasons_by_provider[provider][user] = reason_option
     return users_to_reasons_by_provider
+
+
+def split_participants_and_context(
+    participants_with_reasons: Mapping[User, int]
+) -> Tuple[Set[User], Mapping[int, Mapping[str, Any]]]:
+    participants = set()
+    extra_context = {}
+    for user, reason in participants_with_reasons.items():
+        participants.add(user)
+        extra_context[user.id] = {"reason": reason}
+    return participants, extra_context
