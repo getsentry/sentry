@@ -193,19 +193,28 @@ class AuthLoginView(BaseView):
 
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
-                if organization and settings.SENTRY_SINGLE_ORGANIZATION:
-                    try:
-                        om = OrganizationMember.objects.get(
-                            organization=organization, email=user.email
-                        )
-                    except OrganizationMember.DoesNotExist:
-                        pass
-                    else:
-                        # XXX(jferge): if user is in 2fa removed state,
-                        # dont redirect to org login page instead redirect to general login where
-                        # they will be prompted to check their email
-                        if om.user is None:
-                            return self.redirect(auth.get_login_url())
+                if organization:
+                    if (
+                        self._is_org_member(user, organization)
+                        and request.auth is None
+                        and request.user
+                        and not is_active_superuser(request)
+                    ):
+                        request.session["activeorg"] = organization.slug
+
+                    if settings.SENTRY_SINGLE_ORGANIZATION:
+                        try:
+                            om = OrganizationMember.objects.get(
+                                organization=organization, email=user.email
+                            )
+                        except OrganizationMember.DoesNotExist:
+                            pass
+                        else:
+                            # XXX(jferge): if user is in 2fa removed state,
+                            # dont redirect to org login page instead redirect to general login where
+                            # they will be prompted to check their email
+                            if om.user is None:
+                                return self.redirect(auth.get_login_url())
 
                 return self.redirect(auth.get_login_redirect(request))
             else:

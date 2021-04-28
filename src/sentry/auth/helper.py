@@ -16,6 +16,7 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import MigratingIdentityId
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
@@ -158,6 +159,8 @@ def handle_existing_identity(
         sample_rate=1.0,
     )
 
+    if request.auth is None and request.user and not is_active_superuser(request):
+        request.session["activeorg"] = organization.slug
     return HttpResponseRedirect(auth.get_login_redirect(request))
 
 
