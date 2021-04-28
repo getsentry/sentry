@@ -1497,6 +1497,7 @@ export type SentryAppComponent = {
       | 'clickup'
       | 'clubhouse'
       | 'linear'
+      | 'komodor'
       | 'rookout'
       | 'spikesh'
       | 'teamwork'
