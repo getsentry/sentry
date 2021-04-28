@@ -2,7 +2,6 @@ import {
   DateTimeObject,
   getDiffInMinutes,
   getInterval,
-  ONE_HOUR,
   SIXTY_DAYS,
   THIRTY_DAYS,
 } from 'app/components/charts/utils';
@@ -127,16 +126,5 @@ export function getUsageInterval(datetimeObj: DateTimeObject) {
     return '4h';
   }
 
-  if (diffInMinutes > ONE_HOUR * 6) {
-    // Between 6 hour and 30 days
-    return '1h';
-  }
-
-  if (diffInMinutes > ONE_HOUR) {
-    // Between 1 hour and 6 hours
-    return '15m';
-  }
-
-  // Less than or equal to 1 hour
-  return '5m';
+  return '1h';
 }

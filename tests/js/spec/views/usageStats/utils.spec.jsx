@@ -137,9 +137,7 @@ describe('getUsageInterval', function () {
     expect(getUsageInterval({period: '29d'})).toBe('1h');
     expect(getUsageInterval({period: '7h'})).toBe('1h');
 
-    expect(getUsageInterval({period: '6h'})).toBe('15m');
-    expect(getUsageInterval({period: '2h'})).toBe('15m');
-
-    expect(getUsageInterval({period: '1h'})).toBe('5m');
+    expect(getUsageInterval({period: '6h'})).toBe('1h');
+    expect(getUsageInterval({period: '1h'})).toBe('1h');
   });
 });
