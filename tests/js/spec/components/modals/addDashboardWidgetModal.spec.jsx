@@ -48,7 +48,7 @@ async function setSearchConditions(el, query) {
   await el.update();
 
   el.find('input').simulate('keydown', {key: 'Enter'});
-};
+}
 
 describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
