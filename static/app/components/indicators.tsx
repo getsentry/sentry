@@ -1,9 +1,7 @@
 import React from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
 import {AnimatePresence} from 'framer-motion';
-import Reflux from 'reflux';
 
 import {Indicator, removeIndicator} from 'app/actionCreators/indicator';
 import ToastIndicator from 'app/components/alerts/toastIndicator';
@@ -54,15 +52,19 @@ class Indicators extends React.Component<Props> {
   }
 }
 
-const IndicatorsContainer = createReactClass<Omit<Props, 'items'>>({
-  displayName: 'IndicatorsContainer',
-  mixins: [Reflux.connect(IndicatorStore, 'items') as any],
+type State = {
+  items: Indicator[];
+};
 
-  getInitialState() {
-    return {
-      items: [],
-    };
-  },
+class IndicatorsContainer extends React.Component<Omit<Props, 'items'>, State> {
+  state: State = {items: IndicatorStore.get()};
+  componentWillUnmount() {
+    this.unlistener?.();
+  }
+
+  unlistener = IndicatorStore.listen((items: Indicator[]) => {
+    this.setState({items});
+  }, undefined);
 
   render() {
     // #NEW-SETTINGS - remove ThemeProvider here once new settings is merged
@@ -73,8 +75,8 @@ const IndicatorsContainer = createReactClass<Omit<Props, 'items'>>({
         <Indicators {...this.props} items={this.state.items} />
       </ThemeProvider>
     );
-  },
-});
+  }
+}
 
 export default IndicatorsContainer;
 export {Indicators};
