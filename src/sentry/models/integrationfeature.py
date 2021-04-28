@@ -66,7 +66,7 @@ class Feature:
         if feature == cls.ALERTS:
             return "Configure Sentry alerts to trigger notifications in %s." % name
         if feature == cls.DEPLOYMENT:
-            return "View issues and errors from Sentry on your services in %s." % name
+            return "Send Sentry issues to %s." % name
         # default
         return (
             "%s can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course)."
