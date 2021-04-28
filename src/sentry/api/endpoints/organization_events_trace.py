@@ -545,9 +545,12 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # on python 3.7.
         results_map: Dict[Optional[str], List[TraceEvent]] = OrderedDict()
         to_check: Deque[SnubaTransaction] = deque()
+        # The root of the tree we're currently navigating through
+        current_root = None
         if root:
-            parent_events[root["id"]] = TraceEvent(root, None, 0)
-            results_map[None] = [parent_events[root["id"]]]
+            current_root = TraceEvent(root, None, 0)
+            parent_events[root["id"]] = current_root
+            results_map[None] = [current_root]
             to_check.append(root)
 
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
@@ -569,6 +572,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     )
 
                     # not using a defaultdict here as a DefaultOrderedDict isn't worth the effort
+                    current_root = previous_event
                     if parent_span_id in results_map:
                         results_map[parent_span_id].append(previous_event)
                     else:
@@ -609,7 +613,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                             ]
                         )
                     # We need to connect back to an existing orphan trace
-                    if has_orphans and child["span_id"] in results_map:
+                    if (
+                        has_orphans
+                        and
+                        # The child event has already been checked
+                        child["span_id"] in results_map
+                        and current_root is not None
+                        and
+                        # In the case of a span loop popping the current root removes the orphan subtrace
+                        child["span_id"] != current_root.event["trace.parent_span"]
+                    ):
                         orphan_subtraces = results_map.pop(child["span_id"])
                         for orphan_subtrace in orphan_subtraces:
                             orphan_subtrace.parent_event_id = previous_event.event["id"]
