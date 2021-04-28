@@ -589,7 +589,7 @@ class ReleaseDeleteTest(APITestCase):
             },
         )
         assert response.status_code == 400
-        assert response.json() == {"commits": {"0": {"id": ["This field is required."]}}}
+        assert response.json() == {"commits": {"id": ["This field is required."]}}
 
 
 class ReleaseSerializerTest(unittest.TestCase):

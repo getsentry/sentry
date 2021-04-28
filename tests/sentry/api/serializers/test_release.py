@@ -467,7 +467,7 @@ class ReleaseRefsSerializerTest(TestCase):
 
         assert not serializer.is_valid()
         assert serializer.errors == {
-            "refs": {0: [ErrorDetail("This field may not be null.", code="null")]}
+            "refs": [ErrorDetail("This field may not be null.", code="null")]
         }
 
         # test good refs
