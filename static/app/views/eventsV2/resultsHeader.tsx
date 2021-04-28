@@ -131,7 +131,7 @@ const Subtitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
   color: ${p => p.theme.gray300};
-  margin: ${space(1)} 0 0 0;
+  margin: ${space(0.5)} 0 0 0;
 `;
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`

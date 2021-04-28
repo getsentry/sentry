@@ -212,20 +212,5 @@ const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
             border-bottom-color: transparent;
           }
         `
-      : `
-       ${!p.isEditing}
-        :hover {
-          ${IconEdit} {
-            display: none;
-          }
-
-          ${InputWrapper} {
-            background: ${p.theme.gray100};
-          }
-
-          ${InnerLabel} {
-            border-bottom-color: transparent;
-          }
-        }
-  `}
+      : null}
 `;
