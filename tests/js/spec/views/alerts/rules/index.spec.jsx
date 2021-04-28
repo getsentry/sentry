@@ -196,6 +196,31 @@ describe('OrganizationRuleList', () => {
     );
   });
 
+  it('uses empty team query parameter when removing all teams', async () => {
+    const ownershipOrg = {
+      ...organization,
+      features: ['team-alerts-ownership'],
+    };
+    const wrapper = await createWrapper({organization: ownershipOrg});
+
+    wrapper.setProps({
+      location: {query: {team: 'myteams'}, search: '?team=myteams`'},
+    });
+    wrapper.find('Button[data-test-id="filter-button"]').simulate('click');
+    // Uncheck myteams
+    const myTeamsItem = wrapper.find('Filter').find('ListItem').at(0);
+    expect(myTeamsItem.text()).toBe('My Teams');
+    myTeamsItem.simulate('click');
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          team: '',
+        },
+      })
+    );
+  });
+
   it('displays alert status', async () => {
     const ownershipOrg = {
       ...organization,
