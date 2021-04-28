@@ -251,6 +251,14 @@ from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
+from .endpoints.project_app_store_connect_credentials import (
+    AppStoreConnect2FactorAuthEndpoint,
+    AppStoreConnectAppsEndpoint,
+    AppStoreConnectCredentialsEndpoint,
+    AppStoreConnectCredentialsValidateEndpoint,
+    AppStoreConnectRequestSmsEndpoint,
+    AppStoreConnectStartAuthEndpoint,
+)
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
 from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
@@ -1802,6 +1810,36 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/repo-path-parsing/$",
                     ProjectRepoPathParsingEndpoint.as_view(),
                     name="sentry-api-0-project-repo-path-parsing",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/$",
+                    AppStoreConnectCredentialsEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-credentials",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/apps/$",
+                    AppStoreConnectAppsEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-apps",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/validate/$",
+                    AppStoreConnectCredentialsValidateEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-validate",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/start/$",
+                    AppStoreConnectStartAuthEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-start",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/requestSms/$",
+                    AppStoreConnectRequestSmsEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-requestSms",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/2fa/$",
+                    AppStoreConnect2FactorAuthEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-2fa",
                 ),
             ]
         ),

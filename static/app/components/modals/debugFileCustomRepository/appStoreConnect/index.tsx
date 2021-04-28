@@ -56,7 +56,7 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         `/projects/${orgSlug}/${projectSlug}/appstoreconnect/apps/`,
         {
           method: 'POST',
-          query: {
+          data: {
             appconnectIssuer: stepOneData.issuer,
             appconnectKey: stepOneData.keyId,
             appconnectPrivateKey: stepOneData.privateKey,

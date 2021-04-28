@@ -57,6 +57,7 @@ default_manager.add("organizations:alert-filters", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-wizard", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-list", OrganizationFeature)  # NOQA
 default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
+default_manager.add("organizations:app-store-connect", OrganizationFeature)  # NOQA
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:chart-unfurls", OrganizationFeature)  # NOQA
 default_manager.add("organizations:custom-event-title", OrganizationFeature)  # NOQA
