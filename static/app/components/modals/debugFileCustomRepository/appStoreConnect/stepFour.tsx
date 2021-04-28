@@ -15,39 +15,32 @@ type Props = {
   onChange: (data: StepThreeData) => void;
 };
 
-function StepThree({apps, onChange, data}: Props) {
+function StepFour({apps, onChange, data}: Props) {
   return (
     <StyledList symbol="colored-numeric" initialCounterValue={2}>
       <ListItem>
-        {t('Enter your iTunes authentication code')}
+        {t('Choose your app')}
         <ListItemContent>
-          <Field
-            label={t('iTunes authentication code')}
+          <StyledSelectField
+            name="app"
+            choices={apps.map(app => [app.appId, app.name])}
+            placeholder={t('Select app')}
+            onChange={appId => {
+              const selectedApp = apps.find(app => app.appId === appId);
+              onChange({...data, app: selectedApp});
+            }}
+            value={data.app?.appId ?? ''}
             inline={false}
             flexibleControlStateSize
             stacked
-            required
-          >
-            <Input
-              type="text"
-              name="itunes-authentication-code"
-              placeholder={t('iTunes authentication code')}
-              value={data.issuer}
-              onChange={e =>
-                onChange({
-                  ...data,
-                  issuer: e.target.value,
-                })
-              }
-            />
-          </Field>
+          />
         </ListItemContent>
       </ListItem>
     </StyledList>
   );
 }
 
-export default StepThree;
+export default StepFour;
 
 const StyledList = styled(List)`
   grid-gap: ${space(2)};

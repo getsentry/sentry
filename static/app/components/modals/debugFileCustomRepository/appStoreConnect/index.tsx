@@ -64,7 +64,7 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         }
       );
 
-      setApps(response);
+      setApps(response.apps);
       handleNext();
     } catch (error) {
       addErrorMessage(
@@ -81,7 +81,7 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         `/projects/${orgSlug}/${projectSlug}/appstoreconnect/start/`,
         {
           method: 'POST',
-          query: {
+          data: {
             itunesUser: stepTwoData.username,
             itunesPassword: stepTwoData.password,
           },
@@ -112,6 +112,8 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
     }
   }
 
+  console.log('apps', apps);
+
   function renderActiveStep() {
     switch (activeStep) {
       case 0:
@@ -119,7 +121,7 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
       case 1:
         return <StepTwo data={stepTwoData} onChange={setStepTwoData} />;
       case 2:
-        return <StepThree apps={apps} data={stepThree} onChange={setStepThree} />;
+        return null;
       default:
         return (
           <Alert type="error" icon={<IconWarning />}>
