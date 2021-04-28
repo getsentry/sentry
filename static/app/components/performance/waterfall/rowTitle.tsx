@@ -23,6 +23,6 @@ export const RowTitle = styled('div')`
   align-items: center;
 `;
 
-export const OperationName = styled('span')<{errored: boolean}>`
+export const RowTitleContent = styled('span')<{errored: boolean}>`
   color: ${p => (p.errored ? p.theme.error : 'inherit')};
 `;
