@@ -13,6 +13,7 @@ class Feature:
     INCIDENT_MANAGEMENT = 5
     FEATURE_FLAG = 6
     ALERTS = 7
+    DEPLOYMENT = 8
 
     @classmethod
     def as_choices(cls):
@@ -25,6 +26,7 @@ class Feature:
             (cls.INCIDENT_MANAGEMENT, "integrations-incident-management"),
             (cls.FEATURE_FLAG, "integrations-feature-flag"),
             (cls.ALERTS, "integrations-alert-rule"),
+            (cls.DEPLOYMENT, "integrations-deployment"),
         )
 
     @classmethod
@@ -43,6 +45,8 @@ class Feature:
             return "integrations-feature-flag"
         if feature == cls.ALERTS:
             return "integrations-alert-rule"
+        if feature == cls.DEPLOYMENT:
+            return "integrations-deployment"
         return "integrations-api"
 
     @classmethod
@@ -61,6 +65,8 @@ class Feature:
             return "%s allows organizations to **forward events to another service**." % name
         if feature == cls.ALERTS:
             return "Configure Sentry alerts to trigger notifications in %s." % name
+        if feature == cls.DEPLOYMENT:
+            return "View issues and errors from Sentry on your services in %s." % name
         # default
         return (
             "%s can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course)."
