@@ -11,9 +11,11 @@ updates:
       - "@getsentry/owners-js-build"
     ignore:
       # These are packages we're "stuck" on for now
-      - dependency-name: jquery
       - dependency-name: bootstrap
+      - dependency-name: jquery
+      - dependency-name: "@types/jquery"
       - dependency-name: reflux
+      - dependency-name: "@types/reflux"
       - dependency-name: react-bootstrap
       - dependency-name: "@types/react-bootstrap"
       - dependency-name: react-router
