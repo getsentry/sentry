@@ -146,6 +146,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "legal",
         "community",
         "referrals",
+        "demo",
     )
 )
 
