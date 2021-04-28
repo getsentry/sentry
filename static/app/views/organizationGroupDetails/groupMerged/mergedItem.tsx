@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import GroupingActions from 'app/actions/groupingActions';
 import Checkbox from 'app/components/checkbox';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import Tooltip from 'app/components/tooltip';
 import {IconChevron} from 'app/icons';
 import GroupingStore, {Fingerprint} from 'app/stores/groupingStore';
@@ -111,9 +113,9 @@ class MergedItem extends React.Component<Props, State> {
               onChange={this.handleCheckClick}
             />
 
-            <FingerprintComponent onClick={this.handleLabelClick} htmlFor={id}>
+            <FingerprintLabel onClick={this.handleLabelClick} htmlFor={id}>
               {this.renderFingerprint(label, id)}
-            </FingerprintComponent>
+            </FingerprintLabel>
           </ActionWrapper>
 
           <div>
@@ -139,10 +141,10 @@ class MergedItem extends React.Component<Props, State> {
             {!!children?.length && (
               <ChildGroup>
                 {children.map(({childId, childLabel, latestEvent: childLatestEvent}) => (
-                  <li key={childId}>
-                    <FingerprintComponent htmlFor={childId}>
+                  <ListItem key={childId}>
+                    <FingerprintLabel htmlFor={childId}>
                       {this.renderFingerprint(childLabel, childId)}
-                    </FingerprintComponent>
+                    </FingerprintLabel>
                     {childLatestEvent && (
                       <EventDetails className="event-details">
                         <EventOrGroupHeader
@@ -153,7 +155,7 @@ class MergedItem extends React.Component<Props, State> {
                         />
                       </EventDetails>
                     )}
-                  </li>
+                  </ListItem>
                 ))}
               </ChildGroup>
             )}
@@ -199,7 +201,7 @@ const Controls = styled('div')<{expanded: boolean}>`
   }
 `;
 
-const FingerprintComponent = styled('label')`
+const FingerprintLabel = styled('label')`
   font-family: ${p => p.theme.text.familyMono};
 
   ${/* sc-selector */ Controls} & {
@@ -226,7 +228,7 @@ const EventDetails = styled('div')`
   }
 `;
 
-const ChildGroup = styled('ul')`
+const ChildGroup = styled(List)`
   list-style: none;
   padding-left: ${space(4)};
   padding-top: ${space(0.5)};
