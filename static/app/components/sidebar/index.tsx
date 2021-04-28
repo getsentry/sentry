@@ -171,6 +171,8 @@ class Sidebar extends React.Component<Props, State> {
     evt: React.MouseEvent<HTMLAnchorElement>
   ) => {
     const globalSelectionRoutes = [
+      'alerts',
+      'alerts/rules',
       'dashboards',
       'issues',
       'releases',
