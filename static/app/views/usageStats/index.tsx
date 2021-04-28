@@ -239,7 +239,7 @@ class OrganizationStats extends React.Component<Props, State> {
             start={start ?? null}
             end={end ?? null}
             utc={utc ?? null}
-            label={<DropdownLabel>Date range:</DropdownLabel>}
+            label={<DropdownLabel>{t('Date Range:')}</DropdownLabel>}
             onChange={() => {}}
             onUpdate={this.handleUpdateDatetime}
             onToggleSelector={isOpen => this.setState({isCalendarOpen: isOpen})}
@@ -251,7 +251,7 @@ class OrganizationStats extends React.Component<Props, State> {
         <DropdownDataCategory
           label={
             <DropdownLabel>
-              <span>{t('Usage Metrics: ')}</span>
+              <span>{t('Event Type: ')}</span>
               <span>{this.dataCategoryName}</span>
             </DropdownLabel>
           }
@@ -284,7 +284,7 @@ class OrganizationStats extends React.Component<Props, State> {
 
           <p>
             {t(
-              'We collect usage metrics on three types of events: errors, transactions and attachments. The charts below reflect events that Sentry have received across your entire organization. You can also find them broken down by project in the table.'
+              'We collect usage metrics on three types of events: errors, transactions, and attachments. The charts below reflect events that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
             )}
           </p>
 

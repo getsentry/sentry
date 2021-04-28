@@ -236,13 +236,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       });
 
       // Tally totals for card data
-      const count: any = {
+      const count: Record<'total' | Outcome, number> = {
         total: 0,
-        accepted: 0,
-        dropped: 0,
-        invalid: 0,
-        filtered: 0,
-        rate_limited: 0,
+        [Outcome.ACCEPTED]: 0,
+        [Outcome.FILTERED]: 0,
+        [Outcome.DROPPED]: 0,
+        [Outcome.INVALID]: 0, // Combined with dropped later
+        [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
       };
 
       orgStats.groups.forEach(group => {
@@ -256,19 +256,19 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         count[outcome] += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
-          if (outcome === Outcome.RATE_LIMITED || outcome === Outcome.INVALID) {
-            usageStats[i].dropped.total += stat;
+          if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
+            usageStats[i][outcome] += stat;
+            return;
           }
 
-          usageStats[i][outcome] += stat;
+          // Breaking down into reasons for dropped is not needed
+          usageStats[i].dropped.total += stat;
         });
       });
 
-      // Invalid and rate_limited data is dropped
-      count.dropped += count.invalid;
-      count.dropped += count.rate_limited;
-      delete count.invalid;
-      delete count.rate_limited;
+      // Invalid and rate_limited data is combined with dropped
+      count[Outcome.DROPPED] += count[Outcome.INVALID];
+      count[Outcome.DROPPED] += count[Outcome.RATE_LIMITED];
 
       usageStats.forEach(stat => {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
@@ -286,17 +286,17 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
             getFormatUsageOptions(dataCategory)
           ),
           accepted: formatUsageWithUnits(
-            count.accepted,
+            count[Outcome.ACCEPTED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
           dropped: formatUsageWithUnits(
-            count.dropped,
+            count[Outcome.DROPPED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
           filtered: formatUsageWithUnits(
-            count.filtered,
+            count[Outcome.FILTERED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
@@ -417,7 +417,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       <Footer>
         <InlineContainer>
           <FooterDate>
-            <SectionHeading>{t('Date Range')}</SectionHeading>
+            <SectionHeading>{t('Date Range:')}</SectionHeading>
             <span>
               {loading || error ? (
                 <NotAvailable />
