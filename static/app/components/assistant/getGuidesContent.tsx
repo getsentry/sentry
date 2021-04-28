@@ -248,7 +248,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Transactions Details'),
           target: 'trace_view_guide_row_details',
           description: t(
-            `Afraid you're missing something? Click on any transaction fo' mo' details. FOMO no mo'!`
+            `Click on any transaction to see more details.`
           ),
         },
       ],
