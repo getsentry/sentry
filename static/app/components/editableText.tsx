@@ -161,7 +161,8 @@ function EditableText({
 export default EditableText;
 
 const Label = styled('div')`
-  display: inline-flex;
+  display: grid;
+  grid-auto-flow: column;
   align-items: center;
   gap: ${space(1)};
 `;
