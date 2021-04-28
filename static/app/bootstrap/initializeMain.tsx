@@ -9,6 +9,7 @@ import {metric} from 'app/utils/analytics';
 
 import {commonInitialization} from './commonInitialization';
 import {initializeSdk} from './initializeSdk';
+import {processInitQueue} from './processInitQueue';
 import {renderMain} from './renderMain';
 import {renderOnDomReady} from './renderOnDomReady';
 
@@ -20,4 +21,5 @@ export function initializeMain(config: Config) {
   // bundle was loaded by browser.
   metric.mark({name: 'sentry-app-init'});
   renderOnDomReady(renderMain);
+  processInitQueue();
 }

@@ -21,6 +21,18 @@ import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
 import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
+export type OnSentryInitConfiguration =
+  | {
+      name: 'passwordStrength';
+      input: string;
+      element: string;
+    }
+  | {
+      name: 'renderSystemAlerts' | 'renderIndicators';
+      container: string;
+      props?: Record<string, any>;
+    };
+
 declare global {
   interface Window {
     /**
@@ -36,6 +48,15 @@ declare global {
      * Pipeline
      */
     __pipelineInitialData: PipelineInitialData;
+
+    /**
+     * This allows our server-rendered templates to push configuration that should be
+     * run after we render our main application.
+     *
+     * An example of this is dynamically importing the `passwordStrength` module only
+     * on the organization login page.
+     */
+    __onSentryInit: OnSentryInitConfiguration[];
 
     /**
      * Sentrys version string
