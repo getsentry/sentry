@@ -5,8 +5,11 @@ import styled from '@emotion/styled';
 import {createDashboard} from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -19,8 +22,10 @@ import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import DashboardTitle from './title';
-import {DashboardDetails, Widget} from './types';
+import {DashboardDetails, DashboardState, Widget} from './types';
 import {cloneDashboard} from './utils';
+
+const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
 type Props = {
   api: Client;
@@ -30,12 +35,24 @@ type Props = {
 
 type State = {
   dashboard: DashboardDetails;
+  dashboardState: DashboardState;
 };
 
 class CreateDashboard extends React.Component<Props, State> {
   state: State = {
     dashboard: cloneDashboard(EMPTY_DASHBOARD),
+    dashboardState: 'create',
   };
+
+  componentDidMount() {
+    const {route, router} = this.props;
+    router.setRouteLeaveHook(route, this.onRouteLeave);
+    window.addEventListener('beforeunload', this.onUnload);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('beforeunload', this.onUnload);
+  }
 
   setModifiedDashboard = (dashboard: DashboardDetails) => {
     this.setState({
@@ -43,7 +60,22 @@ class CreateDashboard extends React.Component<Props, State> {
     });
   };
 
-  onCommit() {
+  onRouteLeave = () => {
+    if (this.state.dashboardState === 'create') {
+      return UNSAVED_MESSAGE;
+    }
+    return undefined;
+  };
+
+  onUnload = (event: BeforeUnloadEvent) => {
+    if (this.state.dashboardState === 'create') {
+      event.preventDefault();
+      event.returnValue = UNSAVED_MESSAGE;
+    }
+    return;
+  };
+
+  onCommit = () => {
     const {api, organization, location} = this.props;
     const {dashboard} = this.state;
 
@@ -56,6 +88,10 @@ class CreateDashboard extends React.Component<Props, State> {
           organization_id: parseInt(organization.id, 10),
         });
 
+        this.setState({
+          dashboardState: 'view',
+        });
+
         // redirect to new dashboard
         browserHistory.replace({
           pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
@@ -65,7 +101,7 @@ class CreateDashboard extends React.Component<Props, State> {
         });
       }
     );
-  }
+  };
 
   onWidgetChange = (widgets: Widget[]) => {
     this.setState((prevState: State) => {
@@ -79,7 +115,7 @@ class CreateDashboard extends React.Component<Props, State> {
     });
   };
 
-  onCancel() {
+  onCancel = () => {
     const {organization, location} = this.props;
     trackAnalyticsEvent({
       eventKey: 'dashboards2.create.cancel',
@@ -92,7 +128,7 @@ class CreateDashboard extends React.Component<Props, State> {
         ...location.query,
       },
     });
-  }
+  };
 
   onSaveWidget = (widgets: Widget[]) => {
     this.setState((prevState: State) => {
@@ -118,51 +154,67 @@ class CreateDashboard extends React.Component<Props, State> {
       : children;
   }
 
+  renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
+
   render() {
     const {organization} = this.props;
     const {dashboard} = this.state;
     return (
-      <GlobalSelectionHeader
-        skipLoadLastUsed={organization.features.includes('global-views')}
-        defaultSelection={{
-          datetime: {
-            start: null,
-            end: null,
-            utc: false,
-            period: DEFAULT_STATS_PERIOD,
-          },
-        }}
-      >
-        <PageContent>
+      <SentryDocumentTitle title={t('Create Dashboard')} orgSlug={organization.slug}>
+        <Feature
+          organization={organization}
+          features={['dashboards-edit']}
+          renderDisabled={this.renderNoAccess}
+        >
           <LightWeightNoProjectMessage organization={organization}>
-            <StyledPageHeader>
-              <DashboardTitle
-                dashboard={dashboard}
-                onUpdate={this.setModifiedDashboard}
-                isEditing
-              />
-              <Controls
-                organization={organization}
-                dashboard={dashboard}
-                dashboardState="create"
-                onCancel={() => this.onCancel()}
-                onCommit={() => this.onCommit()}
-                dashboards={[]}
-                onEdit={() => {}}
-                onCreate={() => {}}
-                onDelete={() => {}}
-              />
-            </StyledPageHeader>
-            <Dashboard
-              dashboard={dashboard}
-              paramDashboardId=""
-              organization={organization}
-              isEditing
-              onUpdate={this.onWidgetChange}
-            />
+            <GlobalSelectionHeader
+              skipLoadLastUsed={organization.features.includes('global-views')}
+              defaultSelection={{
+                datetime: {
+                  start: null,
+                  end: null,
+                  utc: false,
+                  period: DEFAULT_STATS_PERIOD,
+                },
+              }}
+            >
+              <PageContent>
+                <StyledPageHeader>
+                  <DashboardTitle
+                    dashboard={dashboard}
+                    onUpdate={this.setModifiedDashboard}
+                    isEditing
+                  />
+                  <Controls
+                    organization={organization}
+                    dashboard={dashboard}
+                    dashboardState="create"
+                    onCancel={this.onCancel}
+                    onCommit={this.onCommit}
+                    dashboards={[]}
+                    onEdit={() => {}}
+                    onCreate={() => {}}
+                    onDelete={() => {}}
+                  />
+                </StyledPageHeader>
+                <Dashboard
+                  dashboard={dashboard}
+                  paramDashboardId=""
+                  organization={organization}
+                  isEditing
+                  onUpdate={this.onWidgetChange}
+                />
+              </PageContent>
+            </GlobalSelectionHeader>
           </LightWeightNoProjectMessage>
-        </PageContent>
-      </GlobalSelectionHeader>
+        </Feature>
+      </SentryDocumentTitle>
     );
   }
 }
