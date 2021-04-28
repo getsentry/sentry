@@ -16,5 +16,9 @@ export type StepTwoData = {
 };
 
 export type StepThreeData = {
+  itunesAuthenticationCode?: string;
+};
+
+export type StepFourData = {
   app?: App;
 };

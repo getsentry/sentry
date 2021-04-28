@@ -14,7 +14,7 @@ import withApi from 'app/utils/withApi';
 import StepOne from './stepOne';
 import StepThree from './stepThree';
 import StepTwo from './stepTwo';
-import {App, StepOneData, StepThreeData, StepTwoData} from './types';
+import {App, StepFourData, StepOneData, StepThreeData, StepTwoData} from './types';
 
 type Props = Pick<ModalRenderProps, 'Body' | 'Footer' | 'closeModal'> & {
   api: Client;
@@ -38,7 +38,11 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
     password: undefined,
   });
 
-  const [stepThree, setStepThree] = useState<StepThreeData>({
+  const [stepThreeData, setStepThreeData] = useState<StepThreeData>({
+    itunesAuthenticationCode: undefined,
+  });
+
+  const [stepFourData, setStepThreeData] = useState<StepFourData>({
     app: undefined,
   });
 
@@ -111,8 +115,6 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         break;
     }
   }
-
-  console.log('apps', apps);
 
   function renderActiveStep() {
     switch (activeStep) {

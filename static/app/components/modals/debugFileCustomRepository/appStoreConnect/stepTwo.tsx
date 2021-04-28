@@ -17,7 +17,7 @@ type Props = {
 
 function StepTwo({onChange, data}: Props) {
   return (
-    <StyledList symbol="colored-numeric" initialCounterValue={2}>
+    <StyledList symbol="colored-numeric" initialCounterValue={1}>
       <ListItem>
         {t('Enter your itunes credentials')}
         <ListItemContent>

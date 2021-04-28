@@ -139,9 +139,9 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   }
 
   getFieldsSymbolSources() {
-    const {project} = this.props;
+    const {organization} = this.props;
 
-    if (!project.features?.includes('app-store-connect')) {
+    if (!organization.features?.includes('app-store-connect')) {
       return fields.symbolSources;
     }
 

@@ -5,6 +5,8 @@ import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import Input from 'app/views/settings/components/forms/controls/input';
+import Field from 'app/views/settings/components/forms/field';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
 import {App, StepThreeData} from './types';
