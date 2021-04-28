@@ -17,6 +17,7 @@ const validHookNames = new Set<HookName>([
   'component:header-date-range',
   'component:header-selector-items',
   'feature-disabled:alerts-page',
+  'feature-disabled:alert-wizard-performance',
   'feature-disabled:custom-inbound-filters',
   'feature-disabled:custom-symbol-sources',
   'feature-disabled:data-forwarding',

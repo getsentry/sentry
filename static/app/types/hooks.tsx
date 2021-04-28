@@ -114,6 +114,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:sso-rippling': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
+  'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
 };
 
 /**
