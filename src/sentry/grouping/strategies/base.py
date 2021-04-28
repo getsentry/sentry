@@ -420,7 +420,7 @@ def call_with_variants(
         with context:
             context["variant"] = variant.lstrip("!")
             rv_variants = f(*args, **kwargs)
-            assert len(variants) == 1
+            assert len(rv_variants) == 1
             component = rv_variants[variant.lstrip("!")]
 
         if component is None:
