@@ -204,15 +204,10 @@ const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
   display: flex;
 
   ${p =>
-    p.isDisabled
-      ? `
-          ${IconEdit} {
-            display: none;
-          }
-
-          ${InnerLabel} {
-            border-bottom-color: transparent;
-          }
-        `
-      : null}
+    p.isDisabled &&
+    `
+      ${InnerLabel} {
+        border-bottom-color: transparent;
+      }
+    `}
 `;

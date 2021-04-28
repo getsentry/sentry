@@ -437,7 +437,7 @@ const StyledPageHeader = styled('div')`
   color: ${p => p.theme.textColor};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: minmax(0, 1fr) max-content;
     height: 40px;
   }
