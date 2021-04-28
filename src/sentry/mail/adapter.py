@@ -177,7 +177,7 @@ class MailAdapter:
 
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
-        Returns a list of user IDs for the users that should receive
+        Returns a mapping of providers to a list of user IDs for the users that should receive
         notifications for the provided project.
         This result may come from cached data.
         """
@@ -191,14 +191,9 @@ class MailAdapter:
             else:
                 return self.get_send_to_owners(event, project)
         elif target_type == ActionTargetType.MEMBER:
-            # TODO(ceo): this is set to just email for now, but when we update the alert rule UI
-            # to allow you to choose "notification" rather than "email" this will need to change
-            print("~~~~~~~~~~~~~~~~~")
-            print(self.get_send_to_member(project, target_identifier))
             return self.get_send_to_member(project, target_identifier)
-            # return {ExternalProviders.EMAIL: self.get_send_to_member(project, target_identifier)}
         elif target_type == ActionTargetType.TEAM:
-            return {ExternalProviders.EMAIL: self.get_send_to_team(project, target_identifier)}
+            return self.get_send_to_team(project, target_identifier)
         return {}
 
     def get_send_to_owners(self, event, project):
@@ -283,27 +278,42 @@ class MailAdapter:
 
     def get_send_to_team(self, project, target_identifier):
         if target_identifier is None:
-            return []
+            return {}
         try:
             team = Team.objects.get(id=int(target_identifier), projectteam__project=project)
         except Team.DoesNotExist:
-            return set()
+            return {}
 
-        disabled_users = self.disabled_users_from_project(project).get(ExternalProviders.EMAIL)
+        disabled_users = self.disabled_users_from_project(project)
+        member_list = team.member_set.values_list("user_id", flat=True)
+        users = User.objects.filter(id__in=member_list)
+        team_members_by_provider = NotificationSetting.objects.filter_to_subscribed_users(
+            project, users
+        )
+        output = {provider: [] for provider in team_members_by_provider}
         if disabled_users:
-            return set(team.member_set.values_list("user_id", flat=True)) - disabled_users
+            for provider, users in team_members_by_provider.items():
+                if provider in disabled_users.keys():
+                    enabled_users = set(users) - disabled_users[provider]
+                    for user in enabled_users:
+                        output[provider].append(user.id)
+            return output
         else:
-            return set(team.member_set.values_list("user_id", flat=True))
+            for provider, team_members in team_members_by_provider.items():
+                for team_member in team_members:
+                    output[provider].append(team_member.id)
+            return output
 
     def get_send_to_member(self, project, target_identifier):
         """
         No checking for disabled users is done. If a user explicitly specifies a member
-        as a target to send to, it should overwrite the user's personal mail settings.
+        as a target to send to, it should overwrite the user's personal notification settings.
         :param target_identifier:
-        :return: Iterable[int] id of member that should be sent to.
+        :return: Mapping[ExternalProvider, Iterable[int]]
+        Mapping of provider to id of member that a notification should be sent to as a list.
         """
         if target_identifier is None:
-            return []
+            return {}
         try:
             user = (
                 User.objects.filter(
@@ -315,14 +325,9 @@ class MailAdapter:
             )
         except User.DoesNotExist:
             return {}
+
         user_by_provider = NotificationSetting.objects.filter_to_subscribed_users(project, [user])
-        output = {}
-        for provider, user_list in user_by_provider.items():
-            output[provider] = []
-            for user in user_list:
-                output[provider].append(user.id)
-        return output
-        ### there is a definitely a better way to do this, but it does work
+        return {provider: [user.id] for provider, user in user_by_provider.items()}
 
     def get_send_to_all_in_project(self, project):
         cache_key = f"mail:send_to:{project.pk}"
@@ -448,7 +453,6 @@ class MailAdapter:
         )
 
         for provider, participants in participants_by_provider.items():
-
             notify_participants(self, provider, participants, context)
 
     @register_issue_notification_provider(ExternalProviders.EMAIL)
@@ -487,9 +491,7 @@ class MailAdapter:
 
     def notify_digest(self, project, digest, target_type, target_identifier=None):
         metrics.incr("mail_adapter.notify_digest")
-        user_ids = self.get_send_to(project, target_type, target_identifier).get(
-            ExternalProviders.EMAIL
-        )
+        user_ids = self.get_send_to(project, target_type, target_identifier)
 
         logger.info(
             "mail.adapter.notify_digest",

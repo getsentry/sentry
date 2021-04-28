@@ -9,6 +9,7 @@ from sentry.integrations.slack.notifications import (
     send_issue_notification_as_slack,
 )
 from sentry.mail import mail_adapter
+from sentry.mail.adapter import ActionTargetType
 from sentry.models import (
     Activity,
     Deploy,
@@ -16,6 +17,7 @@ from sentry.models import (
     Integration,
     NotificationSetting,
     Release,
+    Rule,
     UserOption,
 )
 from sentry.notifications.activity import (
@@ -29,6 +31,7 @@ from sentry.notifications.activity import (
     UnassignedActivityNotification,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.plugins.base import Notification
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -375,10 +378,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
     @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_issue_notification)
     def test_issue_alert_user(self, mock_func):
         """Test that issue alerts are sent to a Slack user."""
-        from sentry.mail.adapter import ActionTargetType
-        from sentry.models import Rule
-        from sentry.plugins.base import Notification
-
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -402,6 +401,41 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             self.adapter.notify(notification, ActionTargetType.MEMBER, self.user.id)
 
         attachment = get_attachment()
+
+        assert attachment["title"] == "Hello world"
+        assert attachment["text"] == ""
+        assert attachment["footer"] == event.group.qualified_short_id
+
+    @responses.activate
+    @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_issue_notification)
+    def test_issue_alert_team(self, mock_func):
+        """Test that issue alerts are sent to members of a Sentry team in Slack."""
+        # another user
+        # add both to team
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "Team",
+            "targetIdentifier": str(self.user.id),  # team id
+        }
+        rule = Rule.objects.create(
+            project=self.project,
+            label="ja rule",
+            data={
+                "match": "all",
+                "actions": [action_data],
+            },
+        )
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.TEAM, self.user.id)  # team id
+
+        attachment = get_attachment()
+        # might have to change this to assert len of calls = num of users in team
 
         assert attachment["title"] == "Hello world"
         assert attachment["text"] == ""
