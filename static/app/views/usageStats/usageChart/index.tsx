@@ -80,6 +80,11 @@ export enum SeriesTypes {
 
 type DefaultProps = {
   /**
+   * Display datetime in UTC
+   */
+  usageDateShowUtc: boolean;
+
+  /**
    * Intervals between the x-axis values
    */
   usageDateInterval: IntervalPeriod;
@@ -111,6 +116,10 @@ type Props = DefaultProps & {
 
   usageDateStart: string;
   usageDateEnd: string;
+
+  /**
+   * Usage data to draw on chart
+   */
   usageStats: ChartStats;
 
   /**
@@ -136,6 +145,7 @@ export type ChartStats = {
 
 export class UsageChart extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
+    usageDateShowUtc: true,
     usageDateInterval: '1d',
     handleDataTransformation: (stats, transform) => {
       const chartData: ChartStats = {
@@ -175,11 +185,16 @@ export class UsageChart extends React.Component<Props, State> {
    * either covers day 16-30 or may not be available at all.
    */
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const {usageDateStart, usageDateEnd, usageDateInterval} = nextProps;
+    const {usageDateStart, usageDateEnd, usageDateShowUtc, usageDateInterval} = nextProps;
 
     return {
       ...prevState,
-      xAxisDates: getXAxisDates(usageDateStart, usageDateEnd, usageDateInterval),
+      xAxisDates: getXAxisDates(
+        usageDateStart,
+        usageDateEnd,
+        usageDateShowUtc,
+        usageDateInterval
+      ),
     };
   }
 
