@@ -4,17 +4,15 @@ import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
-import {IconFire} from 'app/icons';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {appendTagCondition} from 'app/utils/queryString';
-import {Theme} from 'app/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 export {
@@ -65,67 +63,8 @@ export const StyledPanel = styled(Panel)`
   overflow: hidden;
 `;
 
-export const TransactionBarTitleContent = styled('span')`
-  margin-left: ${space(0.75)};
-`;
-
-export const DividerContainer = styled('div')`
-  position: relative;
-`;
-
-const BadgeBorder = styled('div')<{showDetail: boolean}>`
-  position: absolute;
-  margin: ${space(0.25)};
-  left: -11.5px;
-  background: ${p => (p.showDetail ? p.theme.textColor : p.theme.background)};
-  width: ${space(3)};
-  height: ${space(3)};
-  border: 1px solid ${p => p.theme.red300};
-  border-radius: 50%;
-  z-index: ${p => p.theme.zIndex.traceView.dividerLine};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-export function ErrorBadge({showDetail}: {showDetail: boolean}) {
-  return (
-    <BadgeBorder showDetail={showDetail}>
-      <IconFire color="red300" size="xs" />
-    </BadgeBorder>
-  );
-}
-
-export const ErrorMessageTitle = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
-export const ErrorMessageContent = styled('div')`
-  display: grid;
-  align-items: center;
-  grid-template-columns: 16px 72px auto;
-  grid-gap: ${space(0.75)};
-  margin-top: ${space(0.75)};
-`;
-
-export const ErrorDot = styled('div')<{level: keyof Theme['level']}>`
-  background-color: ${p => p.theme.level[p.level]};
-  content: '';
-  width: ${space(1)};
-  min-width: ${space(1)};
-  height: ${space(1)};
-  margin-right: ${space(1)};
-  border-radius: 100%;
-  flex: 1;
-`;
-
-export const ErrorLevel = styled('span')`
-  width: 80px;
-`;
-
-export const ErrorTitle = styled('span')`
-  ${overflowEllipsis};
+export const StyledProjectBadge = styled(ProjectBadge)`
+  margin-right: ${space(0.75)};
 `;
 
 const StyledPills = styled(Pills)`

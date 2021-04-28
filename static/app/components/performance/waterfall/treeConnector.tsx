@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {ROW_HEIGHT} from 'app/components/waterfallTree/constants';
-import {getToggleTheme} from 'app/components/waterfallTree/utils';
+import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
+import {getToggleTheme} from 'app/components/performance/waterfall/utils';
 import {IconChevron} from 'app/icons';
 import space from 'app/styles/space';
 import {OmitHtmlDivProps} from 'app/utils';
@@ -56,6 +56,7 @@ export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean
 type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
   isExpanded: boolean;
   disabled: boolean;
+  errored: boolean;
 }>;
 
 export const TreeToggle = styled('div')<SpanTreeTogglerAndDivProps>`

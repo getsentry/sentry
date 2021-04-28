@@ -27,13 +27,13 @@ import {formatUsageWithUnits, GIGABYTE} from '../utils';
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
 
 const COLOR_ERRORS = ChartPalette[4][3];
-const COLOR_ERRORS_DROPPED = Color(COLOR_ERRORS).lighten(0.25).string();
+const COLOR_ERRORS_LIGHT = Color(COLOR_ERRORS).lighten(0.25).string();
 
 const COLOR_TRANSACTIONS = ChartPalette[4][2];
-const COLOR_TRANSACTIONS_DROPPED = Color(COLOR_TRANSACTIONS).lighten(0.25).string();
+const COLOR_TRANSACTIONS_LIGHT = Color(COLOR_TRANSACTIONS).lighten(0.25).string();
 
 const COLOR_ATTACHMENTS = ChartPalette[4][1];
-const COLOR_ATTACHMENTS_DROPPED = Color(COLOR_ATTACHMENTS).lighten(0.5).string();
+const COLOR_ATTACHMENTS_LIGHT = Color(COLOR_ATTACHMENTS).lighten(0.5).string();
 const COLOR_PROJECTED = commonTheme.gray200;
 
 export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
@@ -80,6 +80,11 @@ export enum SeriesTypes {
 
 type DefaultProps = {
   /**
+   * Display datetime in UTC
+   */
+  usageDateShowUtc: boolean;
+
+  /**
    * Intervals between the x-axis values
    */
   usageDateInterval: IntervalPeriod;
@@ -111,6 +116,10 @@ type Props = DefaultProps & {
 
   usageDateStart: string;
   usageDateEnd: string;
+
+  /**
+   * Usage data to draw on chart
+   */
   usageStats: ChartStats;
 
   /**
@@ -136,6 +145,7 @@ export type ChartStats = {
 
 export class UsageChart extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
+    usageDateShowUtc: true,
     usageDateInterval: '1d',
     handleDataTransformation: (stats, transform) => {
       const chartData: ChartStats = {
@@ -175,12 +185,16 @@ export class UsageChart extends React.Component<Props, State> {
    * either covers day 16-30 or may not be available at all.
    */
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const {usageDateStart, usageDateEnd, usageDateInterval} = nextProps;
-    const xAxisDates = getXAxisDates(usageDateStart, usageDateEnd, usageDateInterval);
+    const {usageDateStart, usageDateEnd, usageDateShowUtc, usageDateInterval} = nextProps;
 
     return {
       ...prevState,
-      xAxisDates,
+      xAxisDates: getXAxisDates(
+        usageDateStart,
+        usageDateEnd,
+        usageDateShowUtc,
+        usageDateInterval
+      ),
     };
   }
 
@@ -188,14 +202,14 @@ export class UsageChart extends React.Component<Props, State> {
     const {dataCategory} = this.props;
 
     if (dataCategory === DataCategory.ERRORS) {
-      return [COLOR_ERRORS, COLOR_ERRORS_DROPPED, COLOR_PROJECTED];
+      return [COLOR_ERRORS_LIGHT, COLOR_ERRORS, COLOR_PROJECTED];
     }
 
     if (dataCategory === DataCategory.ATTACHMENTS) {
-      return [COLOR_ATTACHMENTS, COLOR_ATTACHMENTS_DROPPED, COLOR_PROJECTED];
+      return [COLOR_ATTACHMENTS_LIGHT, COLOR_ATTACHMENTS, COLOR_PROJECTED];
     }
 
-    return [COLOR_TRANSACTIONS, COLOR_TRANSACTIONS_DROPPED, COLOR_PROJECTED];
+    return [COLOR_TRANSACTIONS_LIGHT, COLOR_TRANSACTIONS, COLOR_PROJECTED];
   }
 
   get chartMetadata(): {

@@ -92,7 +92,7 @@ const ReleaseHeader = ({
             <IconWrapper>
               <Clipboard value={version}>
                 <Tooltip title={version} containerDisplayMode="flex">
-                  <IconCopy size="xs" />
+                  <IconCopy />
                 </Tooltip>
               </Clipboard>
             </IconWrapper>
@@ -100,7 +100,7 @@ const ReleaseHeader = ({
               <IconWrapper>
                 <Tooltip title={url}>
                   <ExternalLink href={url}>
-                    <IconOpen size="xs" />
+                    <IconOpen />
                   </ExternalLink>
                 </Tooltip>
               </IconWrapper>

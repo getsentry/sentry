@@ -114,6 +114,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:sso-rippling': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
+  'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
 };
 
 /**
@@ -215,6 +216,7 @@ type AnalyticsTrackEvent = (opts: {
    * The English string used as the name of the event.
    */
   eventName: string;
+  organization_id: string | number | null;
   /**
    * Arbitrary data to track
    */

@@ -50,11 +50,9 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
           <PluginIcon size={36} pluginId={app.slug} />
           <SentryAppBox>
             <SentryAppName hideStatus={this.hideStatus()}>
-              <SentryAppLink
-                to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}
-              >
+              <Link to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}>
                 {app.name}
-              </SentryAppLink>
+              </Link>
             </SentryAppName>
             <SentryAppDetails>{this.renderStatus()}</SentryAppDetails>
           </SentryAppBox>
@@ -102,12 +100,7 @@ const SentryAppDetails = styled(Flex)`
 `;
 
 const SentryAppName = styled('div')<{hideStatus: boolean}>`
-  font-weight: bold;
   margin-top: ${p => (p.hideStatus ? '10px' : '0px')};
-`;
-
-const SentryAppLink = styled(Link)`
-  color: ${props => props.theme.textColor};
 `;
 
 const CenterFlex = styled(Flex)`
