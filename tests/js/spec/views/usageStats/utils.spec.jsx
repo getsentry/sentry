@@ -2,7 +2,6 @@ import {DataCategory} from 'app/types';
 import {
   BILLION,
   formatUsageWithUnits,
-  getUsageInterval,
   GIGABYTE,
   MILLION,
 } from 'app/views/usageStats/utils';
@@ -123,21 +122,5 @@ describe('formatUsageWithUnits', function () {
         useUnitScaling: true,
       })
     ).toBe('1.23 TB');
-  });
-});
-
-describe('getUsageInterval', function () {
-  it('calculates intervals for a period', function () {
-    expect(getUsageInterval({period: '90d'})).toBe('1d');
-    expect(getUsageInterval({period: '60d'})).toBe('1d');
-
-    expect(getUsageInterval({period: '59d'})).toBe('4h');
-    expect(getUsageInterval({period: '30d'})).toBe('4h');
-
-    expect(getUsageInterval({period: '29d'})).toBe('1h');
-    expect(getUsageInterval({period: '7h'})).toBe('1h');
-
-    expect(getUsageInterval({period: '6h'})).toBe('1h');
-    expect(getUsageInterval({period: '1h'})).toBe('1h');
   });
 });
