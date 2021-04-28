@@ -165,6 +165,7 @@ const Label = styled('div')`
   grid-auto-flow: column;
   align-items: center;
   gap: ${space(1)};
+  cursor: pointer;
 `;
 
 const InnerLabel = styled(TextOverflow)`
