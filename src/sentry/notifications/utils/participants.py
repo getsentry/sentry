@@ -146,8 +146,9 @@ def get_send_to(
     event: Optional[Any] = None,
 ) -> Mapping[ExternalProviders, Set[User]]:
     """
-    Returns a list of user IDs for the users that should receive notifications
-    for the provided project. This result may come from cached data.
+    Returns a mapping of providers to a list of user IDs for the users that
+    should receive notifications for the provided project. This result may come
+    from cached data.
     """
     if not (project and project.teams.exists()):
         logger.debug("Tried to send notification to invalid project: %r", project)
@@ -159,11 +160,9 @@ def get_send_to(
         else:
             return get_send_to_owners(event, project)
     elif target_type == ActionTargetType.MEMBER:
-        # TODO(ceo): this is set to just email for now, but when we update the alert rule UI
-        # to allow you to choose "notification" rather than "email" this will need to change
-        return {ExternalProviders.EMAIL: get_send_to_member(project, target_identifier)}
+        return get_send_to_member(project, target_identifier)
     elif target_type == ActionTargetType.TEAM:
-        return {ExternalProviders.EMAIL: get_send_to_team(project, target_identifier)}
+        return get_send_to_team(project, target_identifier)
     return {}
 
 
@@ -203,16 +202,11 @@ def get_send_to_owners(event: Any, project: Project) -> Mapping[ExternalProvider
     if user_ids_to_resolve:
         all_possible_users |= set(User.objects.filter(id__in=user_ids_to_resolve))
 
-    # get all users in teams
+    # Get all users in teams.
     if team_ids_to_resolve:
         all_possible_users |= get_users_for_teams_to_resolve(team_ids_to_resolve)
 
-    output: MutableMapping[ExternalProviders, Set[User]] = defaultdict(set)
-    disabled_users = disabled_users_from_project(project)
-
-    for provider in AVAILABLE_PROVIDERS:
-        output[provider] = all_possible_users - disabled_users[provider]
-    return output
+    return NotificationSetting.objects.filter_to_subscribed_users(project, all_possible_users)
 
 
 def get_users_for_teams_to_resolve(teams_to_resolve: Set[int]) -> Set[User]:
@@ -252,31 +246,42 @@ def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, 
     return output
 
 
-def get_send_to_team(project: Project, target_identifier: Optional[Union[str, int]]) -> Set[User]:
+def get_send_to_team(
+    project: Project, target_identifier: Optional[Union[str, int]]
+) -> Mapping[ExternalProviders, Set[User]]:
+    """
+    TODO(mgaeta): Use team notification settings instead of iterating over users.
+    :param project:
+    :param target_identifier: Optional. String or int representation of a team_id.
+    :returns: Mapping[ExternalProvider, Iterable[User]] A mapping of provider to
+        member that a notification should be sent to as a set.
+    """
     if target_identifier is None:
-        return set()
+        return {}
     try:
         team = Team.objects.get(id=int(target_identifier), projectteam__project=project)
     except Team.DoesNotExist:
-        return set()
+        return {}
 
-    user_ids = set(team.member_set.values_list("user_id", flat=True))
-    disabled_user = disabled_users_from_project(project)[ExternalProviders.EMAIL]
-    disabled_user_ids = {user.id for user in disabled_user}
-    users: Set[User] = set(User.objects.filter(id__in=user_ids - disabled_user_ids))
-    return users
+    member_list = team.member_set.values_list("user_id", flat=True)
+    users = User.objects.filter(id__in=member_list)
+    return NotificationSetting.objects.filter_to_subscribed_users(project, users)
 
 
-def get_send_to_member(project: Project, target_identifier: Optional[Union[int, str]]) -> Set[User]:
+def get_send_to_member(
+    project: Project, target_identifier: Optional[Union[int, str]]
+) -> Mapping[ExternalProviders, Set[User]]:
     """
-    No checking for disabled users is done. If a user explicitly specifies a member
-    as a target to send to, it should overwrite the user's personal mail settings.
+    No checking for disabled users is done. If a user explicitly specifies a
+    member as a target to send to, it should overwrite the user's personal mail
+    settings.
     :param project:
     :param target_identifier: Optional. String or int representation of a user_id.
-    :return: Iterable[int] id of member that should be sent to.
+    :returns: Mapping[ExternalProvider, Iterable[User]] A mapping of provider to
+        member that a notification should be sent to as a set.
     """
     if target_identifier is None:
-        return set()
+        return {}
     try:
         user = (
             User.objects.filter(
@@ -287,8 +292,17 @@ def get_send_to_member(project: Project, target_identifier: Optional[Union[int, 
             .get()
         )
     except User.DoesNotExist:
-        return set()
-    return {user}
+        return {}
+    notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+        NotificationSettingTypes.ISSUE_ALERTS, parent=project, users=[user]
+    )
+    if notification_settings:
+        return {
+            ExternalProviders(notification_setting.provider): {user}
+            for notification_setting in notification_settings
+        }
+    # Fall back to email if there are no settings.
+    return {ExternalProviders.EMAIL: {user}}
 
 
 def get_send_to_all_in_project(project: Project) -> Mapping[ExternalProviders, Set[User]]:
