@@ -191,14 +191,14 @@ const QuickTraceContainer = styled('div')`
 
 function EventID({event}: {event: Event}) {
   return (
-    <EventIDContainer>
-      <EventIDWrapper>{getShortEventId(event.eventID)}</EventIDWrapper>
-      <Tooltip title={event.eventID} position="top">
-        <Clipboard value={event.eventID}>
+    <Clipboard value={event.eventID}>
+      <EventIDContainer>
+        <EventIDWrapper>{getShortEventId(event.eventID)}</EventIDWrapper>
+        <Tooltip title={event.eventID} position="top">
           <IconCopy color="subText" />
-        </Clipboard>
-      </Tooltip>
-    </EventIDContainer>
+        </Tooltip>
+      </EventIDContainer>
+    </Clipboard>
   );
 }
 
