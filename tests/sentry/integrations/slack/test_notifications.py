@@ -32,6 +32,7 @@ from sentry.notifications.activity import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import Notification
+from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -470,13 +471,27 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert attachments[0]["text"] == ""
         assert attachments[0]["footer"] == event.group.qualified_short_id
 
-    def test_digests(self):
-        # mostly just here to remind myself to handle digests.
-        # we're not digesting slack notifications but if there is a digest option
-        # we still want to send the alerts normally
-        # but if there are email options, digest those
-        # user 1 has slack notifications
-        # user 2 has email notifications
-        # ensure only 1 slack notification is sent?
-        # ensure email is sent to user 2?
-        pass
+    @responses.activate
+    @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_issue_notification)
+    @mock.patch("sentry.mail.adapter.digests")
+    def test_digest_enabled(self, digests, mock_func):
+        """
+        Test that with digests enabled, but Slack notification settings
+        (and not email settings), we send a Slack notification
+        """
+        digests.enabled.return_value = True
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        rule = Rule.objects.create(project=self.project, label="my rule")
+
+        futures = [RuleFuture(rule, {})]
+        self.adapter.rule_notify(event, futures, ActionTargetType.MEMBER, self.user.id)
+
+        assert digests.call_count == 0
+
+        attachment = get_attachment()
+
+        assert attachment["title"] == "Hello world"
+        assert attachment["text"] == ""
+        assert attachment["footer"] == event.group.qualified_short_id
