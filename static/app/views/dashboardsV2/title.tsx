@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import EditableText from 'app/components/editableText';
 import {t} from 'app/locale';
@@ -14,7 +13,7 @@ type Props = {
 
 function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
   return (
-    <Container>
+    <div>
       {!dashboard ? (
         t('Dashboards')
       ) : (
@@ -26,10 +25,8 @@ function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
           successMessage={t('Dashboard title updated successfully')}
         />
       )}
-    </Container>
+    </div>
   );
 }
 
 export default DashboardTitle;
-
-const Container = styled('div')``;

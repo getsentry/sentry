@@ -174,13 +174,34 @@ const InnerLabel = styled(TextOverflow)`
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
   display: inline-block;
-  min-width: 50px;
   background: ${p => p.theme.gray100};
   margin: -${space(0.5)} -${space(1)};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
+const StyledInput = styled(Input)`
+  border: none !important;
+  background: transparent;
+  height: auto;
+  padding: ${space(0.5)} ${space(1)};
+  text-align: left;
+  &,
+  &:focus,
+  &:active,
+  &:hover {
+    box-shadow: none;
+  }
+`;
+
+const InputLabel = styled('div')`
+  height: 0;
+  opacity: 0;
+  padding: 0 ${space(1)};
+`;
+
 const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
+  display: flex;
+
   ${p =>
     p.isDisabled
       ? `
@@ -206,21 +227,4 @@ const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
           }
         }
       `}
-`;
-
-const StyledInput = styled(Input)`
-  border: none !important;
-  background: transparent;
-  height: auto;
-  padding: ${space(0.5)} ${space(1)};
-  &,
-  &:focus,
-  &:active,
-  &:hover {
-    box-shadow: none;
-  }
-`;
-
-const InputLabel = styled('div')`
-  display: none;
 `;
