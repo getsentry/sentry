@@ -96,7 +96,7 @@ def reprocess_group(
 
                     continue
 
-        if remaining_events_min_datetime is None or remaining_events_min_datetime < event.datetime:
+        if remaining_events_min_datetime is None or remaining_events_min_datetime > event.datetime:
             remaining_events_min_datetime = event.datetime
         if remaining_events_max_datetime is None or remaining_events_max_datetime < event.datetime:
             remaining_events_max_datetime = event.datetime
