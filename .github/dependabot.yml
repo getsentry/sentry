@@ -5,16 +5,21 @@ updates:
     schedule:
       # Going to start with a high interval, and then tone it back
       interval: daily
-      time: 12:00pm
       timezone: America/Los_Angeles
+      time: "15:30"
     reviewers:
-      - @getsentry/owners-js-build
+      - "@getsentry/owners-js-build"
     ignore:
       # These are packages we're "stuck" on for now
-      - dependecy-name: jquery
-      - dependecy-name: bootstrap
-      - dependecy-name: react-bootstrap
-      - dependecy-name: reflux
-      - dependecy-name: react-router
-      - dependecy-name: react-select
-      - dependecy-name: react-select-legacy
+      - dependency-name: bootstrap
+      - dependency-name: jquery
+      - dependency-name: "@types/jquery"
+      - dependency-name: reflux
+      - dependency-name: "@types/reflux"
+      - dependency-name: react-bootstrap
+      - dependency-name: "@types/react-bootstrap"
+      - dependency-name: react-router
+      - dependency-name: "@types/react-router"
+      - dependency-name: react-select
+      - dependency-name: "@types/react-select"
+      - dependency-name: react-select-legacy

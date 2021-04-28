@@ -63,6 +63,7 @@ type Props = {
   userTeamIds: Set<string>;
   ruleId?: string;
   sessionId?: string;
+  isCustomMetric?: boolean;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   } & AsyncComponent['props'];
@@ -448,9 +449,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       transaction.setTag('operation', !rule.id ? 'create' : 'edit');
       for (const trigger of sanitizedTriggers) {
         for (const action of trigger.actions) {
-          transaction.setTag(action.type, true);
-          if (action.integrationId) {
-            transaction.setTag(`integrationId:${action.integrationId}`, true);
+          if (action.type === 'slack') {
+            transaction.setTag(action.type, true);
+            if (action.integrationId) {
+              transaction.setTag(`integrationId:${action.integrationId}`, true);
+            }
           }
         }
       }
@@ -588,6 +591,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       onSubmitSuccess,
       project,
       userTeamIds,
+      isCustomMetric,
     } = this.props;
     const {
       query,
@@ -716,7 +720,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={dataset === Dataset.ERRORS}
-                      alertType={alertType}
+                      alertType={isCustomMetric ? 'custom' : alertType}
                     />
                     <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
                     {triggerForm(hasAccess)}

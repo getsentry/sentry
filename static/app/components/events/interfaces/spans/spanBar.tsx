@@ -14,9 +14,9 @@ import {
   ErrorBadge,
 } from 'app/components/performance/waterfall/rowDivider';
 import {
-  OperationName,
   RowTitle,
   RowTitleContainer,
+  RowTitleContent,
 } from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
@@ -447,7 +447,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  renderSpanTreeToggler({left}: {left: number}) {
+  renderSpanTreeToggler({left, errored}: {left: number; errored: boolean}) {
     const {numOfSpanChildren, isRoot, showSpanTree} = this.props;
 
     const chevron = <StyledIconChevron direction={showSpanTree ? 'up' : 'down'} />;
@@ -468,6 +468,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <TreeToggle
           disabled={!!isRoot}
           isExpanded={showSpanTree}
+          errored={errored}
           onClick={event => {
             event.stopPropagation();
 
@@ -494,10 +495,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     const operationName = getSpanOperation(span) ? (
       <strong>
-        <OperationName errored={errors.length + spanErrors.length > 0}>
-          {getSpanOperation(span)}
-        </OperationName>
-        {` \u2014 `}
+        {getSpanOperation(span)}
+        {' \u2014 '}
       </strong>
     ) : (
       ''
@@ -505,23 +504,24 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const description = span?.description ?? getSpanID(span);
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+    const errored = errors.length + spanErrors.length > 0;
 
     return (
       <RowTitleContainer
         data-debug-id="SpanBarTitleContainer"
         ref={generateContentSpanBarRef()}
       >
-        {this.renderSpanTreeToggler({left})}
+        {this.renderSpanTreeToggler({left, errored})}
         <RowTitle
           style={{
             left: `${left}px`,
             width: '100%',
           }}
         >
-          <span>
+          <RowTitleContent errored={errored}>
             {operationName}
             {description}
-          </span>
+          </RowTitleContent>
         </RowTitle>
       </RowTitleContainer>
     );
