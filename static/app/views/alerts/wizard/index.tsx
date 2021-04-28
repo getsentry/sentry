@@ -53,7 +53,7 @@ class AlertWizard extends React.Component<Props, State> {
     const {organization, project, location} = this.props;
     const {alertOption} = this.state;
     const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
-    const isTransactionDataset = alertOption !== 'issues';
+    const isMetricAlert = !!metricRuleTemplate?.dataset;
 
     const to = {
       pathname: `/organizations/${organization.slug}/alerts/${project.slug}/new/`,
@@ -82,7 +82,7 @@ class AlertWizard extends React.Component<Props, State> {
 
     return (
       <Feature
-        features={isTransactionDataset ? ['incidents'] : []}
+        features={isMetricAlert ? ['incidents'] : []}
         requireAll
         organization={organization}
         hookName="feature-disabled:alert-wizard-performance"
