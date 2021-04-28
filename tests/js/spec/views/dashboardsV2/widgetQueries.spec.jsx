@@ -231,7 +231,7 @@ describe('Dashboards > WidgetQueries', function () {
     await tick();
     await tick();
 
-    // Child should be rendered and 2 requests should be sent.
+    // Child should be rendered and 1 requests should be sent.
     expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
     expect(tableMock).toHaveBeenCalledTimes(1);
     expect(tableMock).toHaveBeenCalledWith(
@@ -352,7 +352,7 @@ describe('Dashboards > WidgetQueries', function () {
     await tick();
     await tick();
 
-    // Child should be rendered and 2 requests should be sent.
+    // Child should be rendered and 1 requests should be sent.
     expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
     expect(tableMock).toHaveBeenCalledTimes(1);
     expect(tableMock).toHaveBeenCalledWith(
@@ -391,7 +391,7 @@ describe('Dashboards > WidgetQueries', function () {
           title: 'SDK',
           interval: '5m',
           displayType: 'world_map',
-          queries: [{conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'}],
+          queries: [{conditions: 'event.type:error', fields: ['count()'], name: 'sdk'}],
         }}
         organization={initialData.organization}
         selection={selection}
@@ -406,7 +406,7 @@ describe('Dashboards > WidgetQueries', function () {
     await tick();
     await tick();
 
-    // Child should be rendered and 2 requests should be sent.
+    // Child should be rendered and 1 requests should be sent.
     expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
     expect(tableMock).toHaveBeenCalledTimes(1);
     expect(tableMock).toHaveBeenCalledWith(
@@ -416,7 +416,7 @@ describe('Dashboards > WidgetQueries', function () {
           referrer: 'api.dashboards.worldmapwidget',
           query: 'event.type:error',
           name: 'SDK',
-          field: ['sdk.name'],
+          field: ['count()'],
           statsPeriod: '14d',
           environment: ['prod'],
           project: [1],
