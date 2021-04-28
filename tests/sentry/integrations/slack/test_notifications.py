@@ -469,3 +469,14 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert attachments[0]["title"] == "Hello world"
         assert attachments[0]["text"] == ""
         assert attachments[0]["footer"] == event.group.qualified_short_id
+
+    def test_digests(self):
+        # mostly just here to remind myself to handle digests.
+        # we're not digesting slack notifications but if there is a digest option
+        # we still want to send the alerts normally
+        # but if there are email options, digest those
+        # user 1 has slack notifications
+        # user 2 has email notifications
+        # ensure only 1 slack notification is sent?
+        # ensure email is sent to user 2?
+        pass
