@@ -147,9 +147,9 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
             return Response(status=500)
 
         credentials = appstore_connect.AppConnectCredentials(
-            key_id=cred_dict.get("key"),
-            key=cred_dict.get("private_key"),
-            issuer_id=cred_dict.get("issuer"),
+            key_id=cred_dict.get("appconnectKey"),
+            key=cred_dict.get("appconnectPrivateKey"),
+            issuer_id=cred_dict.get("appconnectIssuer"),
         )
 
         session = requests.Session()
