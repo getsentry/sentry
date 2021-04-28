@@ -5,10 +5,11 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody} from 'app/components/panels';
 import {IconCheckmark, IconNot} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
   CodeOwners,
@@ -33,7 +34,7 @@ type Props = {
 
 type State = {
   codeownerFile: CodeOwnerFile | null;
-  codeMappingId: number | null;
+  codeMappingId: string | null;
   isLoading: boolean;
   error: boolean;
   errorJSON: {raw?: string} | null;
@@ -54,7 +55,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
     errorJSON: null,
   };
 
-  fetchFile = async (codeMappingId: number) => {
+  fetchFile = async (codeMappingId: string) => {
     const {organization} = this.props;
     this.setState({
       codeMappingId,
@@ -120,11 +121,33 @@ class AddCodeOwnerModal extends Component<Props, State> {
     );
   }
 
-  errorMessage() {
-    const {errorJSON} = this.state;
+  errorMessage(baseUrl) {
+    const {errorJSON, codeMappingId} = this.state;
+    const {codeMappings} = this.props;
+    const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
+    const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
     return (
       <Alert type="error" icon={<IconNot size="md" />}>
         <p>{errorJSON?.raw?.[0]}</p>
+        {codeMapping && (
+          <p>
+            {tct(
+              'Add the missing [userMappingsLink:User Mappings] and [teamMappingsLink:Team Mappings].',
+              {
+                userMappingsLink: (
+                  <Link
+                    to={`${baseUrl}/${provider?.key}/${integrationId}/?tab=userMappings&referrer=add-codeowners`}
+                  />
+                ),
+                teamMappingsLink: (
+                  <Link
+                    to={`${baseUrl}/${provider?.key}/${integrationId}/?tab=teamMappings&referrer=add-codeowners`}
+                  />
+                ),
+              }
+            )}
+          </p>
+        )}
       </Alert>
     );
   }
@@ -169,7 +192,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
             <React.Fragment>
               <div>
                 {t(
-                  "Configure stack trace linking to add your CODEOWNERS file. Select the integration you'd like to use for mapping:"
+                  "Configure code mapping to add your CODEOWNERS file. Select the integration you'd like to use for mapping:"
                 )}
               </div>
               <IntegrationsList>
@@ -209,7 +232,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
 
               <FileResult>
                 {codeownerFile ? this.sourceFile(codeownerFile) : this.noSourceFile()}
-                {error && errorJSON && this.errorMessage()}
+                {error && errorJSON && this.errorMessage(baseUrl)}
               </FileResult>
             </Form>
           )}
