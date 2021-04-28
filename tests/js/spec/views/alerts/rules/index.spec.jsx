@@ -190,6 +190,7 @@ describe('OrganizationRuleList', () => {
       expect.objectContaining({
         query: {
           name: testQuery,
+          team: ['myteams', 'unassigned'],
         },
       })
     );
@@ -218,12 +219,13 @@ describe('OrganizationRuleList', () => {
     };
     await createWrapper({organization: ownershipOrg});
 
-    expect(router.replace).toHaveBeenCalledWith(
+    expect(rulesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/combined-rules/',
       expect.objectContaining({
-        query: expect.objectContaining({
+        query: {
           expand: ['latestIncident'],
           sort: ['incident_status', 'date_triggered'],
-        }),
+        },
       })
     );
   });
