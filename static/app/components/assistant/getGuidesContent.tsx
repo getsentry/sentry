@@ -241,14 +241,14 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Transactions'),
           target: 'trace_view_guide_row',
           description: t(
-            `Get an overview of every transaction. You can quickly see the all the transactions in a trace alongside the project, transaction duration, and any related errors.`
+            `Get an overview of every transaction. You can quickly see all the transactions in a trace alongside the project, transaction duration, and any related errors.`
           ),
         },
         {
           title: t('Transactions Details'),
           target: 'trace_view_guide_row_details',
           description: t(
-            `Click on any transaction to get see more details and even go to its transaction details.`
+            `Afraid you're missing something? Click on any transaction fo' mo' details. FOMO no mo'!`
           ),
         },
       ],
