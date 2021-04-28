@@ -158,6 +158,7 @@ class Create extends React.Component<Props, State> {
                 wizardTemplate={wizardTemplate}
                 sessionId={this.sessionId}
                 project={project}
+                isCustomMetric={wizardAlertType === 'custom'}
               />
             )}
           </Layout.Main>

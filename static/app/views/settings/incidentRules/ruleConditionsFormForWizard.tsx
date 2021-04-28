@@ -296,6 +296,7 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
               inline={false}
               flexibleControlStateSize
               columnWidth={200}
+              alertType={alertType}
               required
             />
           )}

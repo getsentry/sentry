@@ -24,9 +24,10 @@ type Props = {
   organization: Organization;
   project: Project;
   eventView: EventView | undefined;
+  teams: Team[];
   wizardTemplate?: WizardRuleTemplate;
   sessionId?: string;
-  teams: Team[];
+  isCustomMetric?: boolean;
 } & RouteComponentProps<RouteParams, {}>;
 
 /**
