@@ -676,7 +676,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         user = self.create_user("foor@example.com")
         self.create_member(organization=self.organization, user=user)
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member.email = "foor@example.com"
         member.save()
+
         self.session["_next"] = reverse(
             "sentry-organization-settings", args=[self.organization.slug]
         )

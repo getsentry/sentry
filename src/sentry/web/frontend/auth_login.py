@@ -193,12 +193,14 @@ class AuthLoginView(BaseView):
 
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
-                if organization and settings.SENTRY_SINGLE_ORGANIZATION:
+                if organization:
                     try:
                         om = OrganizationMember.objects.get(
                             organization=organization, email=user.email
                         )
                     except OrganizationMember.DoesNotExist:
+                        # if they succesfully login but aren't a member of org
+                        # redirect back to main auth page
                         return self.redirect(auth.get_login_url())
                     else:
                         # XXX(jferge): if user is in 2fa removed state,
