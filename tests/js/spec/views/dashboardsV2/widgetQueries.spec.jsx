@@ -139,7 +139,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     const longSelection = {
       projects: [1],
-      environments: ['prod'],
+      environments: ['prod', 'dev'],
       datetime: {
         period: '90d',
       },
@@ -166,7 +166,7 @@ describe('Dashboards > WidgetQueries', function () {
         query: expect.objectContaining({
           interval: '4h',
           statsPeriod: '90d',
-          environment: ['prod'],
+          environment: ['prod', 'dev'],
           project: [1],
         }),
       })
