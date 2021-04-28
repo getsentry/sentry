@@ -163,7 +163,12 @@ describe('Dashboards > WidgetQueries', function () {
     expect(errorMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
-        query: expect.objectContaining({interval: '4h'}),
+        query: expect.objectContaining({
+          interval: '4h',
+          statsPeriod: '90d',
+          environment: ['prod'],
+          project: [1],
+        }),
       })
     );
   });
