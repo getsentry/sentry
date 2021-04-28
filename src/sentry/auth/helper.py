@@ -159,7 +159,7 @@ def handle_existing_identity(
         sample_rate=1.0,
     )
 
-    if request.auth is None and request.user and not is_active_superuser(request):
+    if request.user and not is_active_superuser(request):
         request.session["activeorg"] = organization.slug
     return HttpResponseRedirect(auth.get_login_redirect(request))
 

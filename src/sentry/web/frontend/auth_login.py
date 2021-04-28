@@ -196,7 +196,6 @@ class AuthLoginView(BaseView):
                 if organization:
                     if (
                         self._is_org_member(user, organization)
-                        and request.auth is None
                         and request.user
                         and not is_active_superuser(request)
                     ):
