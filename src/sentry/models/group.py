@@ -478,9 +478,24 @@ class Group(Model):
             project_id=self.project_id,
         )
 
+    def __get_release(self, project_id, group_id, first=True):
+        from sentry.models import GroupRelease, Release
+
+        orderby = "first_seen" if first else "-last_seen"
+        group_releases = list(
+            GroupRelease.objects.filter(group_id=group_id, project_id=project_id,).order_by(
+                orderby
+            )[:1]
+        )
+        if group_releases:
+            release = Release.objects.get(id=group_releases[0].release_id)
+            return release.version
+        else:
+            return None
+
     def get_first_release(self):
         if self.first_release_id is None:
-            first_release = tagstore.get_first_release(self.project_id, self.id)
+            first_release = self.__get_release(self.project_id, self.id, True)
             found = "hit" if first_release is not None else "miss"
             metrics.incr(f"group.get_first_release.tagstore.{found}")
             return first_release
@@ -488,7 +503,7 @@ class Group(Model):
         return self.first_release.version
 
     def get_last_release(self):
-        return tagstore.get_last_release(self.project_id, self.id)
+        return self.__get_release(self.project_id, self.id, False)
 
     def get_event_type(self):
         """
