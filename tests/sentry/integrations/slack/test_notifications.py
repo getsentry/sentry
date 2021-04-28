@@ -378,6 +378,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
     @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_issue_notification)
     def test_issue_alert_user(self, mock_func):
         """Test that issue alerts are sent to a Slack user."""
+
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -410,15 +411,31 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
     @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_issue_notification)
     def test_issue_alert_team(self, mock_func):
         """Test that issue alerts are sent to members of a Sentry team in Slack."""
-        # another user
-        # add both to team
+
+        user2 = self.create_user(is_superuser=False)
+        self.create_member(teams=[self.team], user=user2, organization=self.organization)
+        ExternalActor.objects.create(
+            actor=user2.actor,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="goma",
+            external_id="UXXXXXXX2",
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=user2,
+        )
+
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Team",
-            "targetIdentifier": str(self.user.id),  # team id
+            "targetIdentifier": str(self.team.id),
         }
         rule = Rule.objects.create(
             project=self.project,
@@ -428,15 +445,27 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
                 "actions": [action_data],
             },
         )
-
         notification = Notification(event=event, rule=rule)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.TEAM, self.user.id)  # team id
+            self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
 
-        attachment = get_attachment()
-        # might have to change this to assert len of calls = num of users in team
+        assert len(responses.calls) == 2
 
-        assert attachment["title"] == "Hello world"
-        assert attachment["text"] == ""
-        assert attachment["footer"] == event.group.qualified_short_id
+        # check that self.user got a notification
+        data = parse_qs(responses.calls[0].request.body)
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+        assert len(attachments) == 1
+        assert attachments[0]["title"] == "Hello world"
+        assert attachments[0]["text"] == ""
+        assert attachments[0]["footer"] == event.group.qualified_short_id
+
+        # check that user2 got a notification as well
+        data2 = parse_qs(responses.calls[1].request.body)
+        assert "attachments" in data2
+        attachments = json.loads(data2["attachments"][0])
+        assert len(attachments) == 1
+        assert attachments[0]["title"] == "Hello world"
+        assert attachments[0]["text"] == ""
+        assert attachments[0]["footer"] == event.group.qualified_short_id

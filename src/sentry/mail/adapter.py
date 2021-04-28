@@ -327,7 +327,7 @@ class MailAdapter:
             return {}
 
         user_by_provider = NotificationSetting.objects.filter_to_subscribed_users(project, [user])
-        return {provider: [user.id] for provider, user in user_by_provider.items()}
+        return {provider: [user[0].id] for provider, user in user_by_provider.items()}
 
     def get_send_to_all_in_project(self, project):
         cache_key = f"mail:send_to:{project.pk}"
