@@ -23,15 +23,11 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):
     """
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
-    issuer = serializers.CharField(
-        max_length=36, min_length=36, required=True, source="appconnectIssuer"
-    )
+    appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=True)
     # about 10 chars
-    key = serializers.CharField(max_length=20, min_length=2, required=True, source="appconnectKey")
+    appconnectKey = serializers.CharField(max_length=20, min_length=2, required=True)
     # 512 should fit a private key
-    private_key = serializers.CharField(
-        max_length=512, required=True, source="appconnectPrivateKey"
-    )
+    appconnectPrivateKey = serializers.CharField(max_length=512, required=True)
 
 
 class AppStoreConnectAppsEndpoint(ProjectEndpoint):
@@ -42,18 +38,25 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request):
+    def post(self, request, project):
         serializer = AppStoreConnectCredentialsSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        session = requests.Session()
         data = serializer.validated_data
         credentials = appstore_connect.AppConnectCredentials(
-            key_id=data.get("key"), key=data.get("private_key"), issuer_id=data.get("issuer")
+            key_id=data.get("appconnectKey"),
+            key=data.get("appconnectPrivateKey"),
+            issuer_id=data.get("appconnectIssuer"),
         )
-        apps = appstore_connect.get_apps(session, credentials)
+        session = requests.Session()
+
+        try:
+            apps = appstore_connect.get_apps(session, credentials)
+        except Exception as e:
+            return Response(repr(e), status=400)
+
         if apps is None:
             return Response("App connect authentication error", status=401)
 
@@ -69,24 +72,16 @@ class AppStoreFullCredentialsSerializer(serializers.Serializer):
     """
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
-    issuer = serializers.CharField(
-        max_length=36, min_length=36, required=True, source="appconnectIssuer"
-    )
+    appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=True)
     # about 10 chars
-    key = serializers.CharField(max_length=20, min_length=2, required=True, source="appconnectKey")
+    appconnectKey = serializers.CharField(max_length=20, min_length=2, required=True)
     # 512 should fit a private key
-    private_key = serializers.CharField(
-        max_length=512, required=True, source="appconnectPrivateKey"
-    )
-    itunes_user = serializers.CharField(
-        max_length=100, min_length=1, required=True, source="itunesUser"
-    )
-    itunes_password = serializers.CharField(
-        max_length=100, min_length=1, required=True, source="itunesPassword"
-    )
-    app_name = serializers.CharField(max_length=512, min_length=1, required=True, source="appName")
-    app_id = serializers.CharField(max_length=512, min_length=1, required=True, source="appId")
-    session_context = serializers.CharField(max_length=2000, source="sessionContext")
+    appconnectPrivateKey = serializers.CharField(max_length=512, required=True)
+    itunesUser = serializers.CharField(max_length=100, min_length=1, required=True)
+    itunesPassword = serializers.CharField(max_length=100, min_length=1, required=True)
+    appName = serializers.CharField(max_length=512, min_length=1, required=True)
+    appId = serializers.CharField(max_length=512, min_length=1, required=True)
+    sessionContext = serializers.CharField(min_length=1, required=True)
 
 
 class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
@@ -109,9 +104,9 @@ class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
             # probably stage 1 login was not called
             return Response("Invalid state", status=400)
 
-        credentials = encrypt.encrypt_object(serializer.validated_data)
+        credentials = serializer.validated_data
 
-        encrypted_context = credentials.pop("session_context")
+        encrypted_context = credentials.pop("sessionContext")
 
         try:
             validation_context = encrypt.decrypt_object(encrypted_context, key)
@@ -152,9 +147,9 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
             return Response(status=500)
 
         credentials = appstore_connect.AppConnectCredentials(
-            key_id=cred_dict.get("key"),
-            key=cred_dict.get("private_key"),
-            issuer_id=cred_dict.get("issuer"),
+            key_id=cred_dict.get("appconnectKey"),
+            key=cred_dict.get("appconnectPrivateKey"),
+            issuer_id=cred_dict.get("appconnectIssuer"),
         )
 
         session = requests.Session()
@@ -174,12 +169,8 @@ class AppStoreConnectStartAuthSerializer(serializers.Serializer):
     Serializer for the Itunes start connect operation
     """
 
-    itunes_user = serializers.CharField(
-        max_length=100, min_length=1, required=False, source="itunesUser"
-    )
-    itunes_password = serializers.CharField(
-        max_length=100, min_length=1, required=False, source="itunesPassword"
-    )
+    itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
+    itunesPassword = serializers.CharField(max_length=100, min_length=1, required=False)
 
 
 class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
@@ -195,8 +186,8 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        user_name = serializer.validated_data.get("itunes_user")
-        password = serializer.validated_data.get("itunes_password")
+        user_name = serializer.validated_data.get("itunesUser")
+        password = serializer.validated_data.get("itunesPassword")
 
         key = project.get_option(credentials_key_name())
 
@@ -212,18 +203,18 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
 
                 encrypted_credentials = project.get_option(credentials_name())
                 if key is None or encrypted_credentials is None:
-                    return Response(self.get_result(False, False, False), status=200)
+                    return Response("No credentials provided", status=400)
 
                 try:
                     cred_dict = encrypt.decrypt_object(encrypted_credentials, key)
                 except ValueError:
-                    return Response("invalid credentials state", status=500)
+                    return Response("Invalid credentials state", status=500)
 
                 user_name = cred_dict.get("itunes_user")
                 password = cred_dict.get("itunes_password")
 
                 if user_name is None or password is None:
-                    return Response("invalid credentials", status=500)
+                    return Response("Invalid credentials", status=500)
 
         session = requests.session()
 
@@ -256,9 +247,7 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
 
 
 class AppStoreConnectRequestSmsSerializer(serializers.Serializer):
-    session_context = serializers.CharField(
-        min_length=1, max_length=2000, source="sessionContext", required=True
-    )
+    sessionContext = serializers.CharField(min_length=1, required=True)
 
 
 class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
@@ -270,6 +259,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
+        return Response("Hello you", status=200)
         serializer = AppStoreConnectRequestSmsSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -321,10 +311,8 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
 
 class AppStoreConnect2FactorAuthSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=10, required=True)
-    use_sms = serializers.CharField(max_length=10, source="useSms", required=True)
-    session_context = serializers.CharField(
-        min_length=1, max_length=2000, source="sessionContext", required=True
-    )
+    useSms = serializers.BooleanField(required=True)
+    sessionContext = serializers.CharField(min_length=1, required=True)
 
 
 class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
@@ -336,13 +324,13 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
-        serializer = AppStoreConnectRequestSmsSerializer(data=request.data)
+        serializer = AppStoreConnect2FactorAuthSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        encrypted_context = serializer.validated_data.get("session_context")
+        encrypted_context = serializer.validated_data.get("sessionContext")
         key = project.get_option(credentials_key_name())
-        use_sms = serializer.validated_data.get("use_sms")
+        use_sms = serializer.validated_data.get("useSms")
         code = serializer.validated_data.get("code")
 
         if key is None:

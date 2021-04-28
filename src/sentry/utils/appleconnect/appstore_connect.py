@@ -96,7 +96,8 @@ def _get_appstore_info_paged_data(
     """
     while url is not None:
         response = _get_appstore_info(session, credentials, url)
-        yield from response["data"]
+        data = response["data"]
+        yield from data
         url = _get_next_page(response)
 
 
