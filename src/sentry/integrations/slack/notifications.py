@@ -64,9 +64,7 @@ def send_notification_as_slack(
     shared_context: Mapping[str, Any],
     extra_context_by_user_id: Mapping[str, Any],
 ) -> None:
-    """
-    Send an "activity notification" to a Slack user which are workflow and deploy notification types
-    """
+    """ Send an "activity" or "alert rule" notification to a Slack user. """
 
     external_actors_by_user = get_integrations_by_user_id(notification.organization, users)
 

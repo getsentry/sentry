@@ -1,4 +1,5 @@
 import re
+from abc import ABC
 from typing import Any, Mapping, MutableMapping, Tuple
 from urllib.parse import urlparse, urlunparse
 
@@ -17,7 +18,7 @@ from sentry.notifications.utils.participants import (
 from sentry.types.integrations import ExternalProviders
 
 
-class ActivityNotification(BaseNotification):
+class ActivityNotification(BaseNotification, ABC):
     def __init__(self, activity: Activity) -> None:
         self.activity = activity
         super().__init__(activity.project, activity.group)

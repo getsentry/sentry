@@ -1,6 +1,8 @@
 import itertools
 import logging
 
+from typing import Any, Optional, Sequence
+
 from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
@@ -47,7 +49,13 @@ class MailAdapter:
 
     mail_option_key = "mail:subject_prefix"
 
-    def rule_notify(self, event, futures, target_type, target_identifier=None):
+    def rule_notify(
+        self,
+        event: Any,
+        futures: Sequence[Any],
+        target_type: ActionTargetType,
+        target_identifier: Optional[int] = None,
+    ) -> None:
         metrics.incr("mail_adapter.rule_notify")
         rules = []
         extra = {
@@ -448,7 +456,13 @@ class MailAdapter:
             date=dateformat.format(date, "N j, Y, P e"),
         )
 
-    def notify_digest(self, project, digest, target_type, target_identifier=None):
+    def notify_digest(
+        self,
+        project: Project,
+        digest: Any,
+        target_type: ActionTargetType,
+        target_identifier: Optional[int] = None,
+    ) -> None:
         metrics.incr("mail_adapter.notify_digest")
         user_ids = self.get_send_to(project, target_type, target_identifier).get(
             ExternalProviders.EMAIL
