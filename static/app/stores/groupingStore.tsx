@@ -284,7 +284,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
               // lastSeen and latestEvent properties are correct
               // since the server returns items in
               // descending order of lastSeen
-              ...item
+              ...item,
             };
             // Check for locked items
             this.setStateForId(this.unmergeState, item.id, {
