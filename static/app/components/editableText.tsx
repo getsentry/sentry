@@ -169,7 +169,6 @@ const Label = styled('div')`
 const InnerLabel = styled(TextOverflow)`
   border-top: 1px solid transparent;
   border-bottom: 1px dotted ${p => p.theme.gray200};
-  transition: border 150ms;
 `;
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
@@ -184,7 +183,6 @@ const StyledInput = styled(Input)`
   background: transparent;
   height: auto;
   padding: ${space(0.5)} ${space(1)};
-  text-align: left;
   &,
   &:focus,
   &:active,
@@ -196,6 +194,7 @@ const StyledInput = styled(Input)`
 const InputLabel = styled('div')`
   height: 0;
   opacity: 0;
+  white-space: pre;
   padding: 0 ${space(1)};
 `;
 
@@ -206,7 +205,7 @@ const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
     p.isDisabled
       ? `
           ${IconEdit} {
-            cursor: default;
+            display: none;
           }
 
           ${InnerLabel} {
@@ -219,12 +218,14 @@ const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
           ${IconEdit} {
             display: none;
           }
+
           ${InputWrapper} {
             background: ${p.theme.gray100};
           }
+
           ${InnerLabel} {
             border-bottom-color: transparent;
           }
         }
-      `}
+  `}
 `;
