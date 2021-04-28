@@ -96,10 +96,10 @@ def reprocess_group(
 
                     continue
 
-        if remaining_events_min_datetime is None or remaining_events_min_datetime < event.timestamp:
-            remaining_events_min_datetime = event.timestamp
-        if remaining_events_max_datetime is None or remaining_events_max_datetime < event.timestamp:
-            remaining_events_max_datetime = event.timestamp
+        if remaining_events_min_datetime is None or remaining_events_min_datetime < event.datetime:
+            remaining_events_min_datetime = event.datetime
+        if remaining_events_max_datetime is None or remaining_events_max_datetime < event.datetime:
+            remaining_events_max_datetime = event.datetime
 
         # In case of errors while kicking of reprocessing or if max_events has
         # been exceeded, do the default action.
