@@ -1,5 +1,5 @@
 async function integrationPipeline() {
-  return await import(/* webpackChunkName: "integrationPipelineInit" */ './init');
+  return await import('./init');
 }
 
 integrationPipeline();
