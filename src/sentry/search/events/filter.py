@@ -56,6 +56,8 @@ def to_list(value):
 
 
 def convert_condition_to_function(cond):
+    if len(cond) != 3:
+        return cond
     function = OPERATOR_TO_FUNCTION.get(cond[1])
     if not function:
         # It's hard to make this error more specific without exposing internals to the end user
@@ -72,6 +74,8 @@ def convert_array_to_tree(operator, terms):
         return terms[0]
     elif len(terms) == 2:
         return [operator, terms]
+    elif terms[1] in ["IN", "NOT IN"]:
+        return terms
 
     return [operator, [terms[0], convert_array_to_tree(operator, terms[1:])]]
 
@@ -98,6 +102,8 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
 
 
 def convert_function_to_condition(func):
+    if len(func) != 2:
+        return func
     operator = FUNCTION_TO_OPERATOR.get(func[0])
     if not operator:
         return [func, "=", 1]

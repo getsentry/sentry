@@ -615,6 +615,58 @@ class ParseBooleanSearchQueryTest(TestCase):
             [["ifNull", ["organization.slug", "''"]], "=", f"{self.organization.slug}"]
         ]
 
+    def test_boolean_with_in_search(self):
+        result = get_filter(
+            'url:["a", "b"] AND release:test',
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            [["ifNull", ["url", "''"]], "IN", ["a", "b"]],
+            ["release", "=", "test"],
+        ]
+
+        result = get_filter(
+            'url:["a", "b"] OR release:test',
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            [
+                [
+                    "or",
+                    [
+                        [["ifNull", ["url", "''"]], "IN", ["a", "b"]],
+                        ["equals", ["release", "test"]],
+                    ],
+                ],
+                "=",
+                1,
+            ]
+        ]
+
+        result = get_filter(
+            'url:["a", "b"] AND url:["c", "d"] OR url:["e", "f"]',
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            [
+                [
+                    "or",
+                    [
+                        [
+                            "and",
+                            [
+                                [["ifNull", ["url", "''"]], "IN", ["a", "b"]],
+                                [["ifNull", ["url", "''"]], "IN", ["c", "d"]],
+                            ],
+                        ],
+                        [["ifNull", ["url", "''"]], "IN", ["e", "f"]],
+                    ],
+                ],
+                "=",
+                1,
+            ]
+        ]
+
 
 class GetSnubaQueryArgsTest(TestCase):
     def test_simple(self):
