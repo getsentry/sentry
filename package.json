@@ -38,7 +38,7 @@
     "@types/js-cookie": "^2.2.6",
     "@types/lodash": "^4.14.168",
     "@types/marked": "^0.7.2",
-    "@types/papaparse": "^4.5.11",
+    "@types/papaparse": "^5.2.5",
     "@types/react": "~17.0.3",
     "@types/react-bootstrap": "^0.32.19",
     "@types/react-date-range": "^1.1.4",
