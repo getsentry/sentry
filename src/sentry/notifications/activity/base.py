@@ -1,6 +1,6 @@
 import re
 from abc import ABC
-from typing import Any, Mapping, MutableMapping, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.html import escape
@@ -139,6 +139,9 @@ class ActivityNotification(BaseNotification, ABC):
 
     def get_reference(self) -> Any:
         return self.activity
+
+    def get_reply_reference(self) -> Optional[Any]:
+        return self.group
 
     def send(self) -> None:
         if not self.should_email():

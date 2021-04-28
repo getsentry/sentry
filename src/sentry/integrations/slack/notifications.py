@@ -8,8 +8,10 @@ from sentry.integrations.slack.message_builder.notifications import (
 )
 from sentry.mail.notify import register_issue_notification_provider
 from sentry.models import ExternalActor, Organization, User
+from sentry.notifications.activity.base import ActivityNotification
 from sentry.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
+from sentry.notifications.rules import AlertRuleNotification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
@@ -55,6 +57,15 @@ def get_channel_and_token(
     channel = external_actor.external_id
     token = external_actor.integration.metadata["access_token"]
     return channel, token
+
+
+def get_key(notification: BaseNotification) -> str:
+    if isinstance(notification, ActivityNotification):
+        return "activity"
+    elif isinstance(notification, AlertRuleNotification):
+        return "issue_alert"
+    else:
+        return ""
 
 
 @register_notification_provider(ExternalProviders.SLACK)
