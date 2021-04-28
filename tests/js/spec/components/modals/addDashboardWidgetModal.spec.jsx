@@ -38,7 +38,7 @@ function getDisplayType(wrapper) {
   return wrapper.find('input[name="displayType"]');
 }
 
-const setSearchConditions = async (el, query) => {
+async function setSearchConditions(el, query) {
   el.find('input')
     .simulate('change', {target: {value: query}})
     .getDOMNode()
