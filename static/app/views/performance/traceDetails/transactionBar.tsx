@@ -428,18 +428,16 @@ class TransactionBar extends React.Component<Props, State> {
         cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
       >
         <ScrollbarManager.Consumer>
-          {scrollbarManagerChildrenProps => {
-            return (
-              <DividerHandlerManager.Consumer>
-                {dividerHandlerChildrenProps =>
-                  this.renderHeader({
-                    dividerHandlerChildrenProps,
-                    scrollbarManagerChildrenProps,
-                  })
-                }
-              </DividerHandlerManager.Consumer>
-            );
-          }}
+          {scrollbarManagerChildrenProps => (
+            <DividerHandlerManager.Consumer>
+              {dividerHandlerChildrenProps =>
+                this.renderHeader({
+                  dividerHandlerChildrenProps,
+                  scrollbarManagerChildrenProps,
+                })
+              }
+            </DividerHandlerManager.Consumer>
+          )}
         </ScrollbarManager.Consumer>
         {isTraceFullDetailed(transaction) && isVisible && showDetail && (
           <TransactionDetail
