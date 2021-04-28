@@ -10,18 +10,6 @@ import Reflux from 'reflux';
 
 import plugins from 'app/plugins';
 
-// The password strength component is very heavyweight as it includes the
-// zxcvbn, a relatively byte-heavy password strength estimation library. Load
-// it on demand.
-async function loadPasswordStrength(callback: Function) {
-  try {
-    const module = await import('app/components/passwordStrength');
-    callback(module);
-  } catch (err) {
-    // Ignore if client can't load this, it enhances UX a bit, but is optional
-  }
-}
-
 const globals = {
   // The following globals are used in sentry-plugins webpack externals
   // configuration.
@@ -61,11 +49,8 @@ globals.SentryApp = {
   },
 
   // The following components are used in legacy django HTML views
-  passwordStrength: {load: loadPasswordStrength},
   U2fSign: require('app/components/u2f/u2fsign').default,
   ConfigStore: require('app/stores/configStore').default,
-  SystemAlerts: require('app/views/app/systemAlerts').default,
-  Indicators: require('app/components/indicators').default,
   SetupWizard: require('app/components/setupWizard').default,
   HookStore: require('app/stores/hookStore').default,
   Modal: require('app/actionCreators/modal'),
