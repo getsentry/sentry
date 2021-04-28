@@ -354,7 +354,7 @@ const DropdownDataCategory = styled(DropdownControl)`
 `;
 
 const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
-  grid-column: auto / span 3;
+  grid-column: auto / span 1;
   display: flex;
   justify-content: center;
   align-items: center;

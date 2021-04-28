@@ -1,4 +1,4 @@
-import {DateTimeObject, getInterval} from 'app/components/charts/utils';
+import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
 import {DataCategory} from 'app/types';
 import {formatBytesBase10} from 'app/utils';
 import {parsePeriodToHours} from 'app/utils/dates';
@@ -98,7 +98,7 @@ export function isDisplayUtc(datetime: DateTimeObject): boolean {
     return true;
   }
 
-  const interval = getInterval(datetime);
+  const interval = getSeriesApiInterval(datetime);
   const hours = parsePeriodToHours(interval);
   return hours >= 24;
 }

@@ -6,7 +6,7 @@ import moment from 'moment';
 import AsyncComponent from 'app/components/asyncComponent';
 import OptionSelector from 'app/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
-import {DateTimeObject, getInterval} from 'app/components/charts/utils';
+import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
 import NotAvailable from 'app/components/notAvailable';
 import ScoreCard from 'app/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -86,7 +86,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     return {
       ...queryDatetime,
-      interval: getInterval(dataDatetime),
+      interval: getSeriesApiInterval(dataDatetime),
       groupBy: ['category', 'outcome'],
       field: ['sum(quantity)'],
     };
@@ -143,7 +143,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     const {orgStats} = this.state;
     const {dataDatetime} = this.props;
 
-    const interval = getInterval(dataDatetime);
+    const interval = getSeriesApiInterval(dataDatetime);
 
     // Use fillers as loading/error states will not display datetime at all
     if (!orgStats || !orgStats.intervals || orgStats.intervals.length < 2) {

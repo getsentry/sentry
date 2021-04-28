@@ -2,6 +2,7 @@ import {
   canIncludePreviousPeriod,
   getDiffInMinutes,
   getInterval,
+  getSeriesApiInterval,
 } from 'app/components/charts/utils';
 
 describe('Chart Utils', function () {
@@ -42,6 +43,22 @@ describe('Chart Utils', function () {
       it('more than 90 days', function () {
         expect(getInterval({period: '90d'})).toBe('1d');
       });
+    });
+  });
+
+  describe('getUsageInterval', function () {
+    it('calculates intervals for a period', function () {
+      expect(getSeriesApiInterval({period: '90d'})).toBe('1d');
+      expect(getSeriesApiInterval({period: '60d'})).toBe('1d');
+
+      expect(getSeriesApiInterval({period: '59d'})).toBe('4h');
+      expect(getSeriesApiInterval({period: '30d'})).toBe('4h');
+
+      expect(getSeriesApiInterval({period: '29d'})).toBe('1h');
+      expect(getSeriesApiInterval({period: '7h'})).toBe('1h');
+
+      expect(getSeriesApiInterval({period: '6h'})).toBe('1h');
+      expect(getSeriesApiInterval({period: '1h'})).toBe('1h');
     });
   });
 
