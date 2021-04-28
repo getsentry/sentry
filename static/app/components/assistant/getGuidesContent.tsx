@@ -247,9 +247,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         {
           title: t('Transactions Details'),
           target: 'trace_view_guide_row_details',
-          description: t(
-            `Click on any transaction to see more details.`
-          ),
+          description: t(`Click on any transaction to see more details.`),
         },
       ],
     },
