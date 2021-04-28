@@ -8,7 +8,7 @@ sentry django makemigrations --check --dry-run --no-input || exit_code=$?
 if [ "$exit_code" == 1 ]; then
     echo -e "::error::Error: Migration required -- to generate a migration, run:\n" \
         "sentry django makemigrations -n <some_name> && git add migrations_lockfile.txt" >&2
-else
+elif [ "$exit_code" == 2 ]; then
     echo -e "::error::Error: Migration lockfile mismatch -- run:\n" \
         "sentry django makemigrations -n <some_name> && git add migrations_lockfile.txt" >&2
 fi
