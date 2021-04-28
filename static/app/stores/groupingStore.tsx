@@ -279,17 +279,12 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
         items.forEach(item => {
           if (!newItemsMap[item.id]) {
             const newItem = {
-              id: item.id,
-              label: item.label,
-              parentId: item.parentId,
-              parentLabel: item.parentLabel,
               eventCount: 0,
-
-              // Those properties are correct since the server returns items in
-              // descending order of lastSeen
-              lastSeen: item.lastSeen,
-              latestEvent: item.latestEvent,
               children: [],
+              // lastSeen and latestEvent properties are correct
+              // since the server returns items in
+              // descending order of lastSeen
+              ...item
             };
             // Check for locked items
             this.setStateForId(this.unmergeState, item.id, {
