@@ -302,7 +302,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
     return (
       <FieldFromConfig
-        deprecatedSelectControl={false}
         key={field.name}
         field={fieldToPass}
         data-test-id={field.name}
