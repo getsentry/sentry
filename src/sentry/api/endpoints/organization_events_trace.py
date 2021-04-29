@@ -652,9 +652,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         for index, result in enumerate(results_map.values()):
             for subtrace in result:
                 self.update_children(subtrace)
-            if index > 0 or root is None:
+            if index > 0 or len(roots) == 0:
                 orphans.extend(result)
-            elif root:
+            elif len(roots) > 0:
                 root_traces = result
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
         root_traces.sort(key=child_sort_key)
