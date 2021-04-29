@@ -143,7 +143,7 @@ class MergedItem extends React.Component<Props, State> {
                 {children.map(({childId, childLabel, latestEvent: childLatestEvent}) => (
                   <ListItem key={childId}>
                     <FingerprintLabel htmlFor={childId}>
-                      {this.renderFingerprint(childLabel, childId)}
+                      {this.renderFingerprint(childId, childLabel)}
                     </FingerprintLabel>
                     {childLatestEvent && (
                       <EventDetails className="event-details">
