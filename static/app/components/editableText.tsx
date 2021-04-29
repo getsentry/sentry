@@ -182,7 +182,7 @@ const InputWrapper = styled('div')<{isEmpty: boolean}>`
   background: ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
   margin: -${space(0.5)} -${space(1)};
-  max-width: 100%;
+  max-width: calc(100% + ${space(2)});
 `;
 
 const StyledInput = styled(Input)`
