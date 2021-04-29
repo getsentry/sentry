@@ -488,8 +488,11 @@ class Group(Model):
             )[:1]
         )
         if group_releases:
-            release = Release.objects.get(id=group_releases[0].release_id)
-            return release.version
+            try:
+                release = Release.objects.get(id=group_releases[0].release_id)
+                return release.version
+            except Release.DoesNotExist:
+                return None
         else:
             return None
 
