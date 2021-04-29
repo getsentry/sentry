@@ -13,7 +13,6 @@ from sentry.models import (
     ReleaseFile,
     ReleaseProject,
 )
-from sentry.snuba.sessions import get_release_sessions_time_bounds
 
 
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
@@ -65,8 +64,6 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         for project_id, platform in platforms:
             platforms_by_project[project_id].append(platform)
 
-        environments = set(request.GET.getlist("environment")) or None
-
         # This must match what is returned from the `Release` serializer
         projects = [
             {
@@ -76,12 +73,6 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "newGroups": pr["new_groups"],
                 "platform": pr["project__platform"],
                 "platforms": platforms_by_project.get(pr["project__id"]) or [],
-                **get_release_sessions_time_bounds(
-                    project_id=pr["project__id"],
-                    release=release.version,
-                    org_id=organization.id,
-                    environments=environments,
-                ),
             }
             for pr in project_releases
         ]
