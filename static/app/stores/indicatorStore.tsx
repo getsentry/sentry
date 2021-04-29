@@ -6,6 +6,7 @@ import {t} from 'app/locale';
 
 type IndicatorStoreInterface = {
   init: () => void;
+  get: () => Indicator[];
   addSuccess: (message: string) => Indicator;
   addError: (message?: string) => Indicator;
   /**
@@ -66,6 +67,10 @@ const storeConfig: Reflux.StoreDefinition & IndicatorStoreInterface & Internals 
     this.listenTo(IndicatorActions.replace, this.add);
     this.listenTo(IndicatorActions.remove, this.remove);
     this.listenTo(IndicatorActions.clear, this.clear);
+  },
+
+  get() {
+    return this.items;
   },
 
   addSuccess(message) {
