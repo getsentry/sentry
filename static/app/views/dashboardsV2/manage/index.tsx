@@ -2,9 +2,9 @@ import React from 'react';
 import * as ReactRouter from 'react-router';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Breadcrumbs from 'app/components/breadcrumbs';
@@ -17,6 +17,7 @@ import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 
@@ -25,6 +26,7 @@ import {DashboardListItem} from '../types';
 import DashboardList from './dashboardList';
 
 type Props = {
+  api: Client;
   organization: Organization;
   location: Location;
   router: ReactRouter.InjectedRouter;
@@ -52,14 +54,18 @@ class ManageDashboards extends AsyncView<Props, State> {
     ];
   }
 
-  handleSearch = (query: string) => {
+  onDashboardsChange() {
+    this.reloadData();
+  }
+
+  handleSearch(query: string) {
     const {location, router} = this.props;
 
     router.push({
       pathname: location.pathname,
       query: {...location.query, cursor: undefined, query},
     });
-  };
+  }
 
   getQuery() {
     const {query} = this.props.location.query;
@@ -74,7 +80,7 @@ class ManageDashboards extends AsyncView<Props, State> {
           defaultQuery=""
           query={this.getQuery()}
           placeholder={t('Search Dashboards')}
-          onSearch={this.handleSearch}
+          onSearch={query => this.handleSearch(query)}
         />
       </StyledActions>
     );
@@ -90,13 +96,15 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderDashboards() {
     const {dashboards, dashboardsPageLinks} = this.state;
-    const {organization, location} = this.props;
+    const {organization, location, api} = this.props;
     return (
       <DashboardList
+        api={api}
         dashboards={dashboards}
         organization={organization}
         pageLinks={dashboardsPageLinks}
         location={location}
+        onDashboardsChange={() => this.onDashboardsChange()}
       />
     );
   }
@@ -174,4 +182,4 @@ const StyledActions = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export default withOrganization(ManageDashboards);
+export default withApi(withOrganization(ManageDashboards));
