@@ -101,7 +101,7 @@ class EventWidget extends AsyncView<Props, State> {
   handleRemoveQuery = (index: number) => {
     this.setState(state => {
       const newState = cloneDeep(state);
-      newState.queries.splice(index, index + 1);
+      newState.queries.splice(index, 1);
       return {...newState, widgetErrors: undefined};
     });
   };

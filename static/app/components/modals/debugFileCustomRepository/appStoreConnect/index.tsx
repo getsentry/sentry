@@ -1,6 +1,6 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
@@ -11,6 +11,7 @@ import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 
+import StepFour from './stepFour';
 import StepOne from './stepOne';
 import StepThree from './stepThree';
 import StepTwo from './stepTwo';
@@ -26,6 +27,8 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
   const [activeStep, setActiveStep] = useState(0);
   const [apps, setApps] = useState<App[]>([]);
   const [sessionContext, setSessionContext] = useState('');
+  const [twoFASessionContext, setTwoFASessionContext] = useState('');
+  const [useSms, setUseSms] = useState(false);
 
   const [stepOneData, setStepOneData] = useState<StepOneData>({
     issuer: undefined,
@@ -42,9 +45,15 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
     itunesAuthenticationCode: undefined,
   });
 
-  const [stepFourData, setStepThreeData] = useState<StepFourData>({
+  const [stepFourData, setStepFourData] = useState<StepFourData>({
     app: undefined,
   });
+
+  useEffect(() => {
+    if (useSms) {
+      startSmsAuthentication();
+    }
+  }, [useSms]);
 
   function handleNext() {
     setActiveStep(prevActiveStep => prevActiveStep + 1);
@@ -92,7 +101,7 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         }
       );
 
-      setSessionContext(response);
+      setSessionContext(response.sessionContext);
       handleNext();
     } catch (error) {
       addErrorMessage(
@@ -101,15 +110,80 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
     }
   }
 
-  function handleSave() {
+  async function startTwoFactorAuthentication() {
+    try {
+      const response = await api.requestPromise(
+        `projects/${orgSlug}/${projectSlug}/appstoreconnect/2fa/`,
+        {
+          method: 'POST',
+          data: {
+            code: stepThreeData.itunesAuthenticationCode,
+            useSms,
+            sessionContext,
+          },
+        }
+      );
+
+      setTwoFASessionContext(response);
+      handleNext();
+    } catch (error) {
+      addErrorMessage(
+        t('The two factor authentication failed. Please check the entered code.')
+      );
+    }
+  }
+
+  async function startSmsAuthentication() {
+    try {
+      await api.requestPromise(
+        `projects/${orgSlug}/${projectSlug}/appstoreconnect/requestSms/`,
+        {
+          method: 'POST',
+          data: {sessionContext},
+        }
+      );
+    } catch (error) {
+      addErrorMessage(t('An error occured while sending the SMS. Please try again'));
+    }
+  }
+
+  async function persistData() {
+    try {
+      await api.requestPromise(`projects/${orgSlug}/${projectSlug}/appstoreconnect/`, {
+        method: 'POST',
+        data: {
+          appName: stepFourData.app?.name,
+          appId: stepFourData.app?.appId,
+          itunesUser: stepTwoData.username,
+          itunesPassword: stepTwoData.password,
+          appconnectIssuer: stepOneData.issuer,
+          appconnectKey: stepOneData.keyId,
+          appconnectPrivateKey: stepOneData.privateKey,
+          sessionContext: twoFASessionContext,
+        },
+      });
+
+      closeModal();
+      addSuccessMessage('App Store Connect repository was successfully added');
+    } catch (error) {
+      addErrorMessage(t('An error occured while saving the repository'));
+    }
+  }
+
+  function handleSaveAction() {
     switch (activeStep) {
       case 0:
         checkAppStoreConnectCredentials();
         break;
       case 1:
         startItunesAuthentication();
+        setUseSms(false);
         break;
       case 2:
+        startTwoFactorAuthentication();
+        break;
+      case 3:
+        persistData();
         break;
       default:
         break;
@@ -123,7 +197,16 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
       case 1:
         return <StepTwo data={stepTwoData} onChange={setStepTwoData} />;
       case 2:
-        return null;
+        return (
+          <StepThree
+            data={stepThreeData}
+            onChange={setStepThreeData}
+            useSms={useSms}
+            onSendCodeViaSms={() => setUseSms(true)}
+          />
+        );
+      case 3:
+        return <StepFour apps={apps} data={stepFourData} onChange={setStepFourData} />;
       default:
         return (
           <Alert type="error" icon={<IconWarning />}>
@@ -153,7 +236,11 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         <ButtonBar gap={1.5}>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           {activeStep !== 0 && <Button onClick={handleBack}>{t('Back')}</Button>}
-          <Button priority="primary" onClick={handleSave} disabled={isFormInValid()}>
+          <Button
+            priority="primary"
+            onClick={handleSaveAction}
+            disabled={isFormInValid()}
+          >
             {activeStep === 3 ? t('Save') : t('Next')}
           </Button>
         </ButtonBar>

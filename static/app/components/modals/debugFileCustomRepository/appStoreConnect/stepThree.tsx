@@ -1,30 +1,33 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
-import SelectField from 'app/views/settings/components/forms/selectField';
 
-import {App, StepThreeData} from './types';
+import {StepThreeData} from './types';
 
 type Props = {
-  apps: App[];
   data: StepThreeData;
+  useSms: boolean;
   onChange: (data: StepThreeData) => void;
+  onSendCodeViaSms: () => void;
 };
 
-function StepThree({apps, onChange, data}: Props) {
+function StepThree({data, useSms, onChange, onSendCodeViaSms}: Props) {
   return (
     <StyledList symbol="colored-numeric" initialCounterValue={2}>
       <ListItem>
-        {t('Enter your iTunes authentication code')}
+        {useSms
+          ? t('Enter the code you have received via Sms')
+          : t('Enter your iTunes authentication code')}
         <ListItemContent>
-          <Field
-            label={t('iTunes authentication code')}
+          <StyledField
+            label={t('Two Factor authentication code')}
             inline={false}
             flexibleControlStateSize
             stacked
@@ -32,17 +35,20 @@ function StepThree({apps, onChange, data}: Props) {
           >
             <Input
               type="text"
-              name="itunes-authentication-code"
-              placeholder={t('iTunes authentication code')}
-              value={data.issuer}
+              name="two-factor-authentication-code"
+              placeholder={t('Enter your code')}
+              value={data.itunesAuthenticationCode}
               onChange={e =>
                 onChange({
                   ...data,
-                  issuer: e.target.value,
+                  itunesAuthenticationCode: e.target.value,
                 })
               }
             />
-          </Field>
+          </StyledField>
+          <Button priority="link" onClick={onSendCodeViaSms}>
+            {useSms ? t('Resend sms code') : t('Send code via sms')}
+          </Button>
         </ListItemContent>
       </ListItem>
     </StyledList>
@@ -59,6 +65,6 @@ const ListItemContent = styled('div')`
   padding-top: ${space(2)};
 `;
 
-const StyledSelectField = styled(SelectField)`
-  padding-right: 0;
+const StyledField = styled(Field)`
+  padding-bottom: ${space(1)};
 `;

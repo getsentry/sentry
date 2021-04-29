@@ -7,12 +7,12 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
-import {App, StepThreeData} from './types';
+import {App, StepFourData} from './types';
 
 type Props = {
   apps: App[];
-  data: StepThreeData;
-  onChange: (data: StepThreeData) => void;
+  data: StepFourData;
+  onChange: (data: StepFourData) => void;
 };
 
 function StepFour({apps, onChange, data}: Props) {
