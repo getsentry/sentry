@@ -15,6 +15,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 
@@ -47,7 +48,14 @@ class AlertWizard extends React.Component<Props, State> {
   };
 
   handleChangeAlertOption = (alertOption: AlertType) => {
+    const {organization} = this.props;
     this.setState({alertOption});
+    trackAnalyticsEvent({
+      eventKey: 'alert_wizard.option_viewed',
+      eventName: 'Alert Wizard: Option Viewed',
+      organization_id: organization.id,
+      alert_type: alertOption,
+    });
   };
 
   renderCreateAlertButton() {
@@ -89,7 +97,16 @@ class AlertWizard extends React.Component<Props, State> {
         renderDisabled={renderNoAccess}
       >
         {({hasFeature}) => (
-          <WizardButtonContainer>
+          <WizardButtonContainer
+            onClick={() =>
+              trackAnalyticsEvent({
+                eventKey: 'alert_wizard.option_selected',
+                eventName: 'Alert Wizard: Option Selected',
+                organization_id: organization.id,
+                alert_type: alertOption,
+              })
+            }
+          >
             <CreateAlertButton
               organization={organization}
               projectSlug={project.slug}
