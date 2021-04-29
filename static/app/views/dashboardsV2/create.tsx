@@ -168,7 +168,7 @@ class CreateDashboard extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization} = this.props;
+    const {organization, router} = this.props;
     const {dashboard} = this.state;
     return (
       <SentryDocumentTitle title={t('Create Dashboard')} orgSlug={organization.slug}>
@@ -214,6 +214,7 @@ class CreateDashboard extends React.Component<Props, State> {
                   organization={organization}
                   isEditing={this.isEditing}
                   onUpdate={this.onWidgetChange}
+                  router={router}
                 />
               </PageContent>
             </GlobalSelectionHeader>
