@@ -341,6 +341,7 @@ const DropdownDataCategory = styled(DropdownControl)`
   grid-column: auto / span 1;
   justify-self: stretch;
   align-self: stretch;
+  z-index: -1; // Hide it below the dropdown from DropdownDate
 
   button {
     width: 100%;
@@ -350,6 +351,13 @@ const DropdownDataCategory = styled(DropdownControl)`
       display: flex;
       justify-content: space-between;
     }
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: auto / span 2;
+  }
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-column: auto / span 1;
   }
 `;
 
@@ -379,6 +387,9 @@ const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
     padding: ${space(1)} ${space(2)};
   }
 
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: auto / span 2;
+  }
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     grid-column: auto / span 3;
   }
