@@ -3,7 +3,9 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import CreateAlertButton from 'app/components/createAlertButton';
+import Hovercard from 'app/components/hovercard';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
@@ -52,9 +54,7 @@ class AlertWizard extends React.Component<Props, State> {
     const {organization, project, location} = this.props;
     const {alertOption} = this.state;
     const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
-    const disabled =
-      !organization.features.includes('performance-view') &&
-      metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
+    const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
     const to = {
       pathname: `/organizations/${organization.slug}/alerts/${project.slug}/new/`,
@@ -64,17 +64,45 @@ class AlertWizard extends React.Component<Props, State> {
         referrer: location?.query?.referrer,
       },
     };
-    return (
-      <CreateAlertButton
-        organization={organization}
-        projectSlug={project.slug}
-        priority="primary"
-        to={to}
-        disabled={disabled}
-        hideIcon
+
+    const noFeatureMessage = t('Requires performance feature.');
+    const renderNoAccess = p => (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            features={p.features}
+            hideHelpToggle
+            message={noFeatureMessage}
+            featureName={noFeatureMessage}
+          />
+        }
       >
-        {t('Set Conditions')}
-      </CreateAlertButton>
+        {p.children(p)}
+      </Hovercard>
+    );
+
+    return (
+      <Feature
+        features={isTransactionDataset ? ['performance-view'] : []}
+        organization={organization}
+        hookName="feature-disabled:alert-wizard-performance"
+        renderDisabled={renderNoAccess}
+      >
+        {({hasFeature}) => (
+          <WizardButtonContainer>
+            <CreateAlertButton
+              organization={organization}
+              projectSlug={project.slug}
+              disabled={!hasFeature}
+              priority="primary"
+              to={to}
+              hideIcon
+            >
+              {t('Set Conditions')}
+            </CreateAlertButton>
+          </WizardButtonContainer>
+        )}
+      </Feature>
     );
   }
 
@@ -144,7 +172,7 @@ class AlertWizard extends React.Component<Props, State> {
                         </ExampleList>
                       </PanelBody>
                     </div>
-                    <WizardButton>{this.renderCreateAlertButton()}</WizardButton>
+                    <WizardFooter>{this.renderCreateAlertButton()}</WizardFooter>
                   </WizardPanelBody>
                 </WizardPanel>
               </WizardBody>
@@ -236,9 +264,14 @@ const OptionsWrapper = styled('div')`
   }
 `;
 
-const WizardButton = styled('div')`
+const WizardFooter = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(1.5)};
+`;
+
+const WizardButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 export default AlertWizard;

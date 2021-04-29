@@ -249,7 +249,7 @@ class RuleListRow extends React.Component<Props, State> {
                       />
                     }
                   >
-                    <MenuItemActionLink href={editLink} title={t('Edit')}>
+                    <MenuItemActionLink to={editLink} title={t('Edit')}>
                       {t('Edit')}
                     </MenuItemActionLink>
                     <Confirm

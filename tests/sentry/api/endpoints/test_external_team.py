@@ -116,3 +116,29 @@ class ExternalTeamTest(APITestCase):
         assert response.data == {
             "integrationId": ["Integration does not exist for this organization"]
         }
+
+    def test_create_with_external_id(self):
+        data = {
+            "externalId": "YU287RFO30",
+            "externalName": "@getsentry/ecosystem",
+            "provider": "slack",
+        }
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.get_success_response(self.organization.slug, self.team.slug, **data)
+        assert response.data == {
+            "id": str(response.data["id"]),
+            "teamId": str(self.team.id),
+            "externalName": data["externalName"],
+            "externalId": data["externalId"],
+            "provider": data["provider"],
+        }
+        assert ExternalActor.objects.get(id=response.data["id"]).external_id == "YU287RFO30"
+
+    def test_create_with_invalid_external_id(self):
+        data = {
+            "externalId": "",
+            "externalName": "@getsentry/ecosystem",
+            "provider": "slack",
+        }
+        with self.feature({"organizations:import-codeowners": True}):
+            self.get_error_response(self.organization.slug, self.team.slug, **data)
