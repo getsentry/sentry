@@ -131,9 +131,13 @@ function EditableText({
   }
 
   return (
-    <Wrapper ref={innerWrapperRef} isDisabled={isDisabled} isEditing={isEditing}>
+    <Wrapper isDisabled={isDisabled} isEditing={isEditing}>
       {isEditing ? (
-        <InputWrapper isEmpty={isEmpty} data-test-id="editable-text-input">
+        <InputWrapper
+          ref={innerWrapperRef}
+          isEmpty={isEmpty}
+          data-test-id="editable-text-input"
+        >
           <StyledInput
             name={name}
             ref={inputRef}
