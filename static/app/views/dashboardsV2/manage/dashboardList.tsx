@@ -27,8 +27,8 @@ import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
 
+import {ContextMenu} from '../contextMenu';
 import {cloneDashboard} from '../utils';
-import {ContextMenu} from '../widgetCard';
 
 import DashboardCard from './dashboardCard';
 
@@ -127,7 +127,6 @@ function DashboardList({
             <ContextMenu>
               <MenuItem
                 data-test-id="dashboard-delete"
-                key="delete-dashboard"
                 onClick={event => {
                   event.preventDefault();
                   handleDelete(dashboard);
@@ -137,7 +136,6 @@ function DashboardList({
               </MenuItem>
               <MenuItem
                 data-test-id="dashboard-duplicate"
-                key="duplicate-dashboard"
                 onClick={event => {
                   event.preventDefault();
                   handleDuplicate(dashboard);
