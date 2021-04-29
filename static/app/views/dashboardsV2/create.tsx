@@ -142,6 +142,11 @@ class CreateDashboard extends React.Component<Props, State> {
     });
   };
 
+  get isEditing() {
+    const {dashboardState} = this.state;
+    return dashboardState === 'create';
+  }
+
   renderWidgetBuilder() {
     const {children} = this.props;
     const {dashboard} = this.state;
@@ -189,7 +194,7 @@ class CreateDashboard extends React.Component<Props, State> {
                   <DashboardTitle
                     dashboard={dashboard}
                     onUpdate={this.setModifiedDashboard}
-                    isEditing
+                    isEditing={this.isEditing}
                   />
                   <Controls
                     organization={organization}
@@ -207,7 +212,7 @@ class CreateDashboard extends React.Component<Props, State> {
                   dashboard={dashboard}
                   paramDashboardId=""
                   organization={organization}
-                  isEditing
+                  isEditing={this.isEditing}
                   onUpdate={this.onWidgetChange}
                 />
               </PageContent>
