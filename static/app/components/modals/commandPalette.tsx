@@ -61,7 +61,7 @@ class CommandPalette extends Component<Props> {
 export default withTheme(CommandPalette);
 
 export const modalCss = css`
-  .modal-content {
+  [role='document'] {
     padding: 0;
   }
 `;

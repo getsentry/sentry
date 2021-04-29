@@ -175,6 +175,7 @@ const StyledIssueDiff = styled('div', {
     `
         background-color: ${p.theme.background};
         justify-content: center;
+        align-items: center;
       `};
 `;
 

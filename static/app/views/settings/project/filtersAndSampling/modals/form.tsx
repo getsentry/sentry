@@ -329,9 +329,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
 
     return (
       <React.Fragment>
-        <Header closeButton onHide={closeModal}>
-          {this.getModalTitle()}
-        </Header>
+        <Header closeButton>{this.getModalTitle()}</Header>
         <Body>
           <Alert type="info" icon={<IconInfo size="md" />}>
             {t('A new rule may take a few minutes to propagate.')}

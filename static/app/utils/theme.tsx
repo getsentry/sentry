@@ -92,6 +92,16 @@ const lightAliases = {
   innerBorder: colors.gray100,
 
   /**
+   * Border around modals
+   */
+  modalBorder: 'none',
+
+  /**
+   * Box shadow on the modal
+   */
+  modalBoxShadow: 'none',
+
+  /**
    * A color that denotes a "success", or something good
    */
   success: colors.green300,
@@ -557,6 +567,8 @@ const darkAliases = {
   backgroundSecondary: colors.gray500,
   border: colors.gray400,
   innerBorder: colors.gray500,
+  modalBorder: `1px solid ${colors.gray400}`,
+  modalBoxShadow: '0 15px 40px 0 rgb(67 62 75 / 30%), 0 1px 15px 0 rgb(67 61 74 / 15%)',
   textColor: colors.white,
   subText: colors.gray200,
   linkColor: colors.blue200,
