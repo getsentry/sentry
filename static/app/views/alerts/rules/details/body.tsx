@@ -19,14 +19,13 @@ import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconFire, IconInfo, IconUser, IconWarning} from 'app/icons';
+import {IconCheckmark, IconFire, IconInfo, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
 import Timeline from 'app/views/alerts/rules/details/timeline';
-import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {
   AlertRuleThresholdType,
   Dataset,
@@ -36,7 +35,7 @@ import {
 import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
 import AlertBadge from '../../alertBadge';
-import {Incident, IncidentStatus} from '../../types';
+import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';
 
 import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';
 import MetricChart from './metricChart';
@@ -110,7 +109,7 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <Filters>
-        <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>&nbsp;&nbsp;
+        <code>{extractEventTypeFilterFromRule(rule)}</code>&nbsp;&nbsp;
         {rule.query && <code>{rule.query}</code>}
       </Filters>
     );
@@ -123,21 +122,27 @@ export default class DetailsBody extends React.Component<Props> {
       return null;
     }
 
-    const icon =
+    const status =
       trigger.label === 'critical' ? (
-        <IconFire color="red300" size="sm" />
+        <StatusWrapper>
+          <IconFire color="red300" size="sm" /> Critical
+        </StatusWrapper>
       ) : trigger.label === 'warning' ? (
-        <IconWarning color="yellow300" size="sm" />
+        <StatusWrapper>
+          <IconWarning color="yellow300" size="sm" /> Warning
+        </StatusWrapper>
       ) : (
-        <IconCheckmark color="green300" size="sm" isCircled />
+        <StatusWrapper>
+          <IconCheckmark color="green300" size="sm" isCircled /> Resolved
+        </StatusWrapper>
       );
 
     const thresholdTypeText =
-      rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Above') : t('Below');
+      rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('above') : t('below');
 
     return (
       <TriggerCondition>
-        {icon}
+        {status}
         <TriggerText>{`${thresholdTypeText} ${trigger.alertThreshold}`}</TriggerText>
       </TriggerCondition>
     );
@@ -158,48 +163,54 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <SidebarHeading>{t('Metric')}</SidebarHeading>
-        <RuleText>{this.getMetricText()}</RuleText>
+        <SidebarGroup>
+          <SidebarHeading>{t('Metric')}</SidebarHeading>
+          <RuleText>{this.getMetricText()}</RuleText>
+        </SidebarGroup>
 
-        <SidebarHeading>{t('Environment')}</SidebarHeading>
-        <RuleText>{rule.environment ?? 'All'}</RuleText>
+        <SidebarGroup>
+          <SidebarHeading>{t('Environment')}</SidebarHeading>
+          <RuleText>{rule.environment ?? 'All'}</RuleText>
+        </SidebarGroup>
 
-        <SidebarHeading>{t('Filters')}</SidebarHeading>
-        {this.getFilter()}
+        <SidebarGroup>
+          <SidebarHeading>{t('Filters')}</SidebarHeading>
+          {this.getFilter()}
+        </SidebarGroup>
 
-        <SidebarHeading>{t('Conditions')}</SidebarHeading>
-        {criticalTrigger && this.renderTrigger(criticalTrigger)}
-        {warningTrigger && this.renderTrigger(warningTrigger)}
+        <SidebarGroup>
+          <SidebarHeading>{t('Conditions')}</SidebarHeading>
+          {criticalTrigger && this.renderTrigger(criticalTrigger)}
+          {warningTrigger && this.renderTrigger(warningTrigger)}
+        </SidebarGroup>
 
-        <SidebarHeading>{t('Other Details')}</SidebarHeading>
-        <KeyValueTable>
-          <Feature features={['organizations:team-alerts-ownership']}>
-            <KeyValueTableRow
-              keyName={t('Team')}
-              value={
-                teamActor ? (
-                  <ActorAvatar actor={teamActor} size={24} />
-                ) : (
-                  <IconUser size="20px" color="gray400" />
-                )
-              }
-            />
-          </Feature>
+        <SidebarGroup>
+          <SidebarHeading>{t('Other Details')}</SidebarHeading>
+          <KeyValueTable>
+            <Feature features={['organizations:team-alerts-ownership']}>
+              <KeyValueTableRow
+                keyName={t('Team')}
+                value={
+                  teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
+                }
+              />
+            </Feature>
 
-          {rule.createdBy && (
-            <KeyValueTableRow
-              keyName={t('Created By')}
-              value={<CreatedBy>{rule.createdBy.name ?? '-'}</CreatedBy>}
-            />
-          )}
+            {rule.createdBy && (
+              <KeyValueTableRow
+                keyName={t('Created By')}
+                value={<CreatedBy>{rule.createdBy.name ?? '-'}</CreatedBy>}
+              />
+            )}
 
-          {rule.dateModified && (
-            <KeyValueTableRow
-              keyName={t('Last Modified')}
-              value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
-            />
-          )}
-        </KeyValueTable>
+            {rule.dateModified && (
+              <KeyValueTableRow
+                keyName={t('Last Modified')}
+                value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
+              />
+            )}
+          </KeyValueTable>
+        </SidebarGroup>
       </React.Fragment>
     );
   }
@@ -281,13 +292,16 @@ export default class DetailsBody extends React.Component<Props> {
           return initiallyLoaded ? (
             <React.Fragment>
               <StyledLayoutBody>
-                <StyledAlert type="info" icon={<IconInfo size="md" />}>
-                  {t(
-                    'You’re viewing the new alert details page. To view the old experience, select an alert on the chart or in the history.'
+                {selectedIncident &&
+                  selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
+                    <StyledAlert type="warning" icon={<IconInfo size="md" />}>
+                      {t(
+                        'Alert Rule settings have been updated since this alert was triggered.'
+                      )}
+                    </StyledAlert>
                   )}
-                </StyledAlert>
               </StyledLayoutBody>
-              <Layout.Body>
+              <StyledLayoutBodyWrapper>
                 <Layout.Main>
                   <HeaderContainer>
                     <HeaderGrid>
@@ -322,7 +336,7 @@ export default class DetailsBody extends React.Component<Props> {
                               'This is the time period which the metric is evaluated by.'
                             )}
                           >
-                            <IconInfo size="xs" />
+                            <IconInfo size="xs" color="gray200" />
                           </Tooltip>
                         </SidebarHeading>
 
@@ -367,7 +381,7 @@ export default class DetailsBody extends React.Component<Props> {
                           )}
                           start={timePeriod.start}
                           end={timePeriod.end}
-                          filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
+                          filter={extractEventTypeFilterFromRule(rule)}
                         />
                       )}
                     </ActivityWrapper>
@@ -378,7 +392,7 @@ export default class DetailsBody extends React.Component<Props> {
                   <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
                   {this.renderRuleDetails()}
                 </Layout.Side>
-              </Layout.Body>
+              </StyledLayoutBodyWrapper>
             </React.Fragment>
           ) : (
             <Placeholder height="200px" />
@@ -389,12 +403,24 @@ export default class DetailsBody extends React.Component<Props> {
   }
 }
 
+const SidebarGroup = styled('div')`
+  margin-bottom: ${space(3)};
+`;
+
 const DetailWrapper = styled('div')`
   display: flex;
   flex: 1;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     flex-direction: column-reverse;
+  }
+`;
+
+const StatusWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  svg {
+    margin-right: ${space(0.5)};
   }
 `;
 
@@ -407,7 +433,7 @@ const HeaderContainer = styled('div')`
 const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
-  align-items: center;
+  align-items: flex-start;
   gap: ${space(4)};
 `;
 
@@ -417,6 +443,10 @@ const StyledLayoutBody = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: auto;
   }
+`;
+
+const StyledLayoutBodyWrapper = styled(Layout.Body)`
+  margin-bottom: -${space(3)};
 `;
 
 const StyledAlert = styled(Alert)`
@@ -450,6 +480,7 @@ const SidebarHeading = styled(SectionHeading)<{noMargin?: boolean}>`
   grid-template-columns: auto auto;
   justify-content: flex-start;
   margin-top: ${p => (p.noMargin ? 0 : space(2))};
+  margin-bottom: ${space(0.5)};
   line-height: 1;
   gap: ${space(1)};
 `;
@@ -481,7 +512,7 @@ const TriggerCondition = styled('div')`
 `;
 
 const TriggerText = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${space(0.5)};
   white-space: nowrap;
 `;
 

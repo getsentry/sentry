@@ -488,8 +488,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
             {
                 "by": {"session.status": "errored"},
-                "series": {"sum(session)": [3]},
-                "totals": {"sum(session)": 3},
+                "series": {"sum(session)": [2]},
+                "totals": {"sum(session)": 2},
             },
             {
                 "by": {"session.status": "healthy"},

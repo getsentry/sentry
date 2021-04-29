@@ -5,16 +5,16 @@ from collections import namedtuple
 import sentry_sdk
 
 from sentry import options
-from sentry.api.event_search import (
+from sentry.models import Group
+from sentry.search.events.fields import (
     FIELD_ALIASES,
     InvalidSearchQuery,
-    get_filter,
     get_function_alias,
     get_json_meta_type,
     is_function,
     resolve_field_list,
 )
-from sentry.models import Group
+from sentry.search.events.filter import get_filter
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
 from sentry.utils.math import nice_int
@@ -57,7 +57,8 @@ PreparedQuery = namedtuple("query", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 PerformanceFacetResult = namedtuple(
-    "PerformanceFacetResult", ["key", "value", "performance", "frequency", "comparison", "sumdelta"]
+    "PerformanceFacetResult",
+    ["key", "value", "performance", "count", "frequency", "comparison", "sumdelta"],
 )
 
 resolve_discover_column = resolve_column(Dataset.Discover)
@@ -776,6 +777,7 @@ def get_performance_facets(
     aggregate_column="duration",
     aggregate_function="avg",
     limit=20,
+    offset=None,
     referrer=None,
 ):
     """
@@ -813,7 +815,6 @@ def get_performance_facets(
             filter_keys=snuba_filter.filter_keys,
             orderby=["-count"],
             dataset=Dataset.Discover,
-            limit=limit,
             referrer="{}.{}".format(referrer, "all_transactions"),
         )
         counts = [r["count"] for r in key_names["data"]]
@@ -836,7 +837,7 @@ def get_performance_facets(
     target_sample = 50000 * (math.log(transaction_count, 10) - 3)
 
     dynamic_sample_rate = 0 if transaction_count <= 0 else (target_sample / transaction_count)
-    sample_rate = dynamic_sample_rate if sampling_enabled else None
+    sample_rate = min(max(dynamic_sample_rate, 0), 1) if sampling_enabled else None
     frequency_sample_rate = sample_rate if sample_rate else 1
 
     excluded_tags = [
@@ -887,6 +888,8 @@ def get_performance_facets(
             sample=sample_rate,
             turbo=sample_rate is not None,
             limitby=[1, "tags_key"],
+            limit=limit,
+            offset=offset,
         )
         results.extend(
             [
@@ -894,6 +897,7 @@ def get_performance_facets(
                     key=r["tags_key"],
                     value=r["tags_value"],
                     performance=float(r["aggregate"]),
+                    count=int(r["cnt"]),
                     frequency=float((r["cnt"] / frequency_sample_rate) / transaction_count),
                     comparison=float(r["aggregate"] / transaction_aggregate),
                     sumdelta=float(r["sumdelta"]),

@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import throttle from 'lodash/throttle';
 import zxcvbn from 'zxcvbn';
@@ -55,7 +55,6 @@ const PasswordStrength = ({
   const styles = css`
     background: ${colors[score]};
     width: ${percent}%;
-    height: 100%;
   `;
 
   return (
@@ -66,7 +65,7 @@ const PasswordStrength = ({
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div css={styles} />
+        <StrengthProgressBar css={styles} />
       </StrengthProgress>
       <StrengthLabel>
         {tct('Strength: [textScore]', {
@@ -82,6 +81,10 @@ const StrengthProgress = styled('div')`
   height: 8px;
   border-radius: 2px;
   overflow: hidden;
+`;
+
+const StrengthProgressBar = styled('div')`
+  height: 100%;
 `;
 
 const StrengthLabel = styled('div')`

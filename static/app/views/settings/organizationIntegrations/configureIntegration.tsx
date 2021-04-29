@@ -17,6 +17,8 @@ import AsyncView from 'app/views/asyncView';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import IntegrationAlertRules from 'app/views/organizationIntegrations/integrationAlertRules';
 import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrationCodeMappings';
+import IntegrationExternalTeamMappings from 'app/views/organizationIntegrations/integrationExternalTeamMappings';
+import IntegrationExternalUserMappings from 'app/views/organizationIntegrations/integrationExternalUserMappings';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
 import IntegrationServerlessFunctions from 'app/views/organizationIntegrations/integrationServerlessFunctions';
@@ -33,7 +35,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
-type Tab = 'repos' | 'codeMappings';
+type Tab = 'repos' | 'codeMappings' | 'userMappings' | 'teamMappings';
 
 type State = AsyncView['state'] & {
   config: {providers: IntegrationProvider[]};
@@ -78,10 +80,15 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   }
 
   hasStacktraceLinking(provider: IntegrationProvider) {
+    // CodeOwners will only work if the provider has StackTrace Linking
     return (
       provider.features.includes('stacktrace-link') &&
       this.props.organization.features.includes('integrations-stacktrace-link')
     );
+  }
+
+  hasCodeOwners() {
+    return this.props.organization.features.includes('import-codeowners');
   }
 
   onTabChange = (value: Tab) => {
@@ -210,7 +217,6 @@ class ConfigureIntegration extends AsyncView<Props, State> {
 
   //renders everything below header
   renderMainContent(provider: IntegrationProvider) {
-    const {integration} = this.state;
     //if no code mappings, render the single tab
     if (!this.hasStacktraceLinking(provider)) {
       return this.renderMainTab(provider);
@@ -219,7 +225,10 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     const tabs = [
       ['repos', t('Repositories')],
       ['codeMappings', t('Code Mappings')],
-    ] as const;
+      ...(this.hasCodeOwners() ? [['userMappings', t('User Mappings')]] : []),
+      ...(this.hasCodeOwners() ? [['teamMappings', t('Team Mappings')]] : []),
+    ];
+
     return (
       <React.Fragment>
         <NavTabs underlined>
@@ -227,19 +236,31 @@ class ConfigureIntegration extends AsyncView<Props, State> {
             <li
               key={tabTuple[0]}
               className={this.tab === tabTuple[0] ? 'active' : ''}
-              onClick={() => this.onTabChange(tabTuple[0])}
+              onClick={() => this.onTabChange(tabTuple[0] as Tab)}
             >
               <CapitalizedLink>{tabTuple[1]}</CapitalizedLink>
             </li>
           ))}
         </NavTabs>
-        {this.tab === 'codeMappings' ? (
-          <IntegrationCodeMappings integration={integration} />
-        ) : (
-          this.renderMainTab(provider)
-        )}
+        {this.renderTabContent(this.tab, provider)}
       </React.Fragment>
     );
+  }
+
+  renderTabContent(tab: Tab, provider: IntegrationProvider) {
+    const {integration} = this.state;
+    switch (tab) {
+      case 'codeMappings':
+        return <IntegrationCodeMappings integration={integration} />;
+      case 'repos':
+        return this.renderMainTab(provider);
+      case 'userMappings':
+        return <IntegrationExternalUserMappings integration={integration} />;
+      case 'teamMappings':
+        return <IntegrationExternalTeamMappings integration={integration} />;
+      default:
+        return this.renderMainTab(provider);
+    }
   }
 }
 

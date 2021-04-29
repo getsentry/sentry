@@ -5,14 +5,9 @@ import {Location} from 'history';
 import moment from 'moment-timezone';
 
 import DateTime from 'app/components/dateTime';
-import ErrorBoundary from 'app/components/errorBoundary';
-import FeatureBadge from 'app/components/featureBadge';
 import FileSize from 'app/components/fileSize';
 import ExternalLink from 'app/components/links/externalLink';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
-import Placeholder from 'app/components/placeholder';
-import QuickTrace from 'app/components/quickTrace';
-import {generateTraceTarget} from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -22,7 +17,9 @@ import {Group, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
-import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+
+import DistributedTracingPrompt from './eventQuickTrace';
+import QuickTrace from './issueQuickTrace';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -64,47 +61,6 @@ class GroupEventToolbar extends React.Component<Props> {
       organization_id: parseInt(organization.id, 10),
       source: 'issues',
     });
-  }
-
-  renderQuickTrace() {
-    const {event, organization, location} = this.props;
-
-    return (
-      <ErrorBoundary mini>
-        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-          {results => (
-            <React.Fragment>
-              {!results.isLoading && results.error === null && results.trace !== null && (
-                <LinkContainer>
-                  <Link
-                    to={generateTraceTarget(event, organization)}
-                    onClick={() => this.handleTraceLink(organization)}
-                  >
-                    View Full Trace
-                    <FeatureBadge type="beta" />
-                  </Link>
-                </LinkContainer>
-              )}
-              <QuickTraceWrapper>
-                {results.isLoading ? (
-                  <Placeholder height="24px" />
-                ) : results.error || results.trace === null ? null : (
-                  <QuickTrace
-                    event={event}
-                    quickTrace={results}
-                    location={location}
-                    organization={organization}
-                    anchor="left"
-                    errorDest="issue"
-                    transactionDest="performance"
-                  />
-                )}
-              </QuickTraceWrapper>
-            </React.Fragment>
-          )}
-        </QuickTraceQuery>
-      </ErrorBoundary>
-    );
   }
 
   getDateTooltip() {
@@ -155,10 +111,11 @@ class GroupEventToolbar extends React.Component<Props> {
     const isOverLatencyThreshold =
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
+
     const hasQuickTraceView =
-      (organization.features.includes('trace-view-summary') ||
-        organization.features.includes('trace-view-quick')) &&
-      evt.contexts?.trace?.trace_id;
+      organization.features.includes('trace-view-summary') ||
+      organization.features.includes('trace-view-quick');
+    const hasTraceContext = evt.contexts?.trace?.trace_id;
 
     return (
       <Wrapper>
@@ -188,7 +145,16 @@ class GroupEventToolbar extends React.Component<Props> {
           />
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
-        {hasQuickTraceView && this.renderQuickTrace()}
+        {hasQuickTraceView && !hasTraceContext && (
+          <DistributedTracingPrompt
+            event={evt}
+            group={this.props.group}
+            organization={organization}
+          />
+        )}
+        {hasQuickTraceView && hasTraceContext && (
+          <QuickTrace organization={organization} event={evt} location={location} />
+        )}
       </Wrapper>
     );
   }
@@ -254,10 +220,6 @@ const DescriptionList = styled('dl')`
   margin: 0;
   min-width: 200px;
   max-width: 250px;
-`;
-
-const QuickTraceWrapper = styled('div')`
-  margin-top: ${space(0.5)};
 `;
 
 export default GroupEventToolbar;

@@ -1,3 +1,7 @@
+// XXX(epurkhiser): When we switch to the new React JSX runtime we will no
+// longer need this import and can drop babel-preset-css-prop for babel-preset.
+/// <reference types="@emotion/react/types/css-prop" />
+
 import u2f from 'u2f-api';
 
 import Alert from 'app/components/alert';
@@ -305,6 +309,7 @@ export type Team = {
   isPending: boolean;
   memberCount: number;
   avatar: Avatar;
+  externalTeams: ExternalTeam[];
 };
 
 export type TeamWithProjects = Team & {projects: Project[]};
@@ -2014,6 +2019,7 @@ export type CodeOwners = {
   dateCreated: string;
   dateUpdated: string;
   provider: 'github' | 'gitlab';
+  codeMapping?: RepositoryProjectPathConfig[];
 };
 
 export type KeyValueListData = {
@@ -2024,3 +2030,25 @@ export type KeyValueListData = {
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
 }[];
+
+export type ExternalActorMapping = {
+  id: string;
+  externalName: string;
+  memberId?: string;
+  teamId?: string;
+  sentryName: string;
+};
+
+export type ExternalUser = {
+  id: string;
+  memberId: string;
+  externalName: string;
+  provider: string;
+};
+
+export type ExternalTeam = {
+  id: string;
+  teamId: string;
+  externalName: string;
+  provider: string;
+};

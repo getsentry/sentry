@@ -1,13 +1,17 @@
 import React from 'react';
 import {Location} from 'history';
 
+import {
+  ScrollbarManagerChildrenProps,
+  withScrollbarManager,
+} from 'app/components/events/interfaces/spans/scrollbarManager';
 import {Organization} from 'app/types';
 import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 
 import TransactionBar from './transactionBar';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
 
-type Props = {
+type Props = ScrollbarManagerChildrenProps & {
   location: Location;
   organization: Organization;
   transaction: TraceRoot | TraceFullDetailed;
@@ -17,6 +21,7 @@ type Props = {
   isLast: boolean;
   index: number;
   isVisible: boolean;
+  hasGuideAnchor: boolean;
   renderedChildren: React.ReactNode[];
   barColour?: string;
 };
@@ -29,6 +34,12 @@ class TransactionGroup extends React.Component<Props, State> {
   state = {
     isExpanded: true,
   };
+
+  componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (prevState.isExpanded !== this.state.isExpanded) {
+      this.props.updateScrollState();
+    }
+  }
 
   toggleExpandedState = () => {
     this.setState(({isExpanded}) => ({isExpanded: !isExpanded}));
@@ -45,6 +56,7 @@ class TransactionGroup extends React.Component<Props, State> {
       isLast,
       index,
       isVisible,
+      hasGuideAnchor,
       renderedChildren,
       barColour,
     } = this.props;
@@ -64,6 +76,7 @@ class TransactionGroup extends React.Component<Props, State> {
           isExpanded={isExpanded}
           toggleExpandedState={this.toggleExpandedState}
           isVisible={isVisible}
+          hasGuideAnchor={hasGuideAnchor}
           barColour={barColour}
         />
         {isExpanded && renderedChildren}
@@ -72,4 +85,4 @@ class TransactionGroup extends React.Component<Props, State> {
   }
 }
 
-export default TransactionGroup;
+export default withScrollbarManager(TransactionGroup);

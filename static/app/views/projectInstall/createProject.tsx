@@ -59,8 +59,8 @@ type State = {
 };
 
 class CreateProject extends React.Component<Props, State> {
-  constructor(props, ...args) {
-    super(props, ...args);
+  constructor(props, context) {
+    super(props, context);
 
     const {query} = props.location;
     const {teams} = props.organization;
@@ -351,6 +351,7 @@ const ProjectNameInput = styled('div')`
   align-items: center;
 
   input {
+    background: ${p => p.theme.background};
     border: 0;
     outline: 0;
     flex: 1;

@@ -2,12 +2,18 @@
 module.exports = {
   presets: [
     '@babel/preset-react',
-    '@babel/preset-env',
+    [
+      '@babel/preset-env',
+      {
+        useBuiltIns: 'usage',
+        corejs: '3.11',
+      },
+    ],
     '@babel/preset-typescript',
     [
       '@emotion/babel-preset-css-prop',
       {
-        autoLabel: true,
+        autoLabel: 'always',
         sourceMap: false,
         labelFormat: '[local]',
       },
@@ -46,7 +52,7 @@ module.exports = {
         [
           '@emotion/babel-preset-css-prop',
           {
-            autoLabel: true,
+            autoLabel: 'always',
             sourceMap: false,
           },
         ],

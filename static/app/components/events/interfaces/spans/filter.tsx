@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
-import {pickBarColour} from 'app/components/waterfallTree/utils';
+import {pickBarColour} from 'app/components/performance/waterfall/utils';
 import {IconFilter} from 'app/icons';
 import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -190,8 +190,6 @@ const Wrapper = styled('div')`
 const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: boolean}>`
   white-space: nowrap;
   max-width: 200px;
-
-  z-index: ${p => p.theme.zIndex.dropdown};
 
   &:hover,
   &:active {

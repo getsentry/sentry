@@ -59,6 +59,7 @@ describe('Dashboards > Detail', function () {
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
           route={route}
+          location={location}
         />,
         initialData.routerContext
       );
@@ -106,7 +107,7 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
 
       // Rename
-      const dashboardTitle = wrapper.find('DashboardTitle Content');
+      const dashboardTitle = wrapper.find('DashboardTitle Label');
       dashboardTitle.simulate('click');
 
       wrapper.find('StyledInput').simulate('change', {
@@ -323,6 +324,53 @@ describe('Dashboards > Detail', function () {
       const modal = await mountGlobalModal();
 
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+    });
+
+    it('hides and shows manage dashboards based on feature', async function () {
+      wrapper = mountWithTheme(
+        <DashboardDetail
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(
+        wrapper.find('Controls Button[data-test-id="dashboard-manage"]').exists()
+      ).toBe(false);
+
+      const newOrg = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboards-manage',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <DashboardDetail
+          organization={newOrg.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={newOrg.router}
+          location={newOrg.router.location}
+        />,
+        newOrg.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(
+        wrapper.find('Controls Button[data-test-id="dashboard-manage"]').exists()
+      ).toBe(true);
     });
   });
 });

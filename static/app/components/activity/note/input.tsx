@@ -1,7 +1,7 @@
 import React from 'react';
-import {Mention, MentionsInput} from 'react-mentions';
+import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 
 import Button from 'app/components/button';
 import NavTabs from 'app/components/navTabs';
@@ -122,7 +122,7 @@ class NoteInputComponent extends React.Component<Props, State> {
     this.submitForm();
   };
 
-  handleChange = (e: MentionChangeEvent) => {
+  handleChange: MentionsInputProps['onChange'] = e => {
     this.setState({value: e.target.value});
 
     if (this.props.onChange) {
@@ -130,7 +130,7 @@ class NoteInputComponent extends React.Component<Props, State> {
     }
   };
 
-  handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+  handleKeyDown: MentionsInputProps['onKeyDown'] = e => {
     // Auto submit the form on [meta] + Enter
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       this.submitForm();

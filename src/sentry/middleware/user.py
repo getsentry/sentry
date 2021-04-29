@@ -27,7 +27,7 @@ class UserActiveMiddleware:
         if path.startswith(self.disallowed_paths):
             return
 
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return
 
         now = timezone.now()

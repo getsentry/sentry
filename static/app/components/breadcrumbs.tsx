@@ -9,6 +9,12 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
+const BreadcrumbList = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${space(1)} 0;
+`;
+
 export type Crumb = {
   /**
    * Label of the crumb
@@ -33,7 +39,7 @@ export type Crumb = {
   key?: string;
 };
 
-type Props = React.HTMLAttributes<HTMLDivElement> & {
+type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
   /**
    * Array of crumbs that will be rendered
    */
@@ -95,12 +101,6 @@ const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
   &:last-child {
     color: ${p.theme.textColor};
   }
-`;
-
-const BreadcrumbList = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)} 0;
 `;
 
 type BreadcrumbLinkProps = {

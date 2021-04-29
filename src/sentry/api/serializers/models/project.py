@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import timedelta
+from typing import Any, List, MutableMapping, Optional, Sequence
 
 import sentry_sdk
 from django.db import connection
@@ -29,6 +30,7 @@ from sentry.models import (
     ProjectStatus,
     ProjectTeam,
     Release,
+    User,
     UserReport,
 )
 from sentry.notifications.helpers import transform_to_notification_settings_by_parent_id
@@ -57,6 +59,90 @@ _PROJECT_SCOPE_PREFIX = "projects:"
 LATEST_DEPLOYS_KEY = "latestDeploys"
 
 
+def get_access_by_project(
+    projects: Sequence[Project], user: User
+) -> MutableMapping[Project, MutableMapping[str, Any]]:
+    request = env.request
+
+    project_teams = list(ProjectTeam.objects.filter(project__in=projects).select_related("team"))
+
+    project_team_map = defaultdict(list)
+
+    for pt in project_teams:
+        project_team_map[pt.project_id].append(pt.team)
+
+    team_memberships = get_team_memberships([pt.team for pt in project_teams], user)
+    org_roles = get_org_roles({i.organization_id for i in projects}, user)
+
+    is_superuser = request and is_active_superuser(request) and request.user == user
+    result = {}
+    for project in projects:
+        is_member = any(t.id in team_memberships for t in project_team_map.get(project.id, []))
+        org_role = org_roles.get(project.organization_id)
+        if is_member:
+            has_access = True
+        elif is_superuser:
+            has_access = True
+        elif project.organization.flags.allow_joinleave:
+            has_access = True
+        elif org_role and roles.get(org_role).is_global:
+            has_access = True
+        else:
+            has_access = False
+        result[project] = {"is_member": is_member, "has_access": has_access}
+    return result
+
+
+def get_features_for_projects(
+    all_projects: Sequence[Project], user: User
+) -> MutableMapping[Project, List[str]]:
+    # Arrange to call features.has_for_batch rather than features.has
+    # for performance's sake
+    projects_by_org = defaultdict(list)
+    for project in all_projects:
+        projects_by_org[project.organization].append(project)
+
+    features_by_project = defaultdict(list)
+    project_features = [
+        feature
+        for feature in features.all(feature_type=ProjectFeature).keys()
+        if feature.startswith(_PROJECT_SCOPE_PREFIX)
+    ]
+
+    batch_checked = set()
+    for (organization, projects) in projects_by_org.items():
+        batch_features = features.batch_has(
+            project_features, actor=user, projects=projects, organization=organization
+        )
+
+        # batch_has has found some features
+        if batch_features:
+            for project in projects:
+                for feature_name, active in batch_features.get(f"project:{project.id}", {}).items():
+                    if active:
+                        features_by_project[project].append(
+                            feature_name[len(_PROJECT_SCOPE_PREFIX) :]
+                        )
+
+                    batch_checked.add(feature_name)
+
+    for feature_name in project_features:
+        if feature_name in batch_checked:
+            continue
+        abbreviated_feature = feature_name[len(_PROJECT_SCOPE_PREFIX) :]
+        for (organization, projects) in projects_by_org.items():
+            result = features.has_for_batch(feature_name, organization, projects, user)
+            for (project, flag) in result.items():
+                if flag:
+                    features_by_project[project].append(abbreviated_feature)
+
+    for project in all_projects:
+        if project.flags.has_releases:
+            features_by_project[project].append("releases")
+
+    return features_by_project
+
+
 @register(Project)
 class ProjectSerializer(Serializer):
     """
@@ -64,7 +150,12 @@ class ProjectSerializer(Serializer):
     such as "show all projects for this organization", and its attributes be kept to a minimum.
     """
 
-    def __init__(self, environment_id=None, stats_period=None, transaction_stats=None):
+    def __init__(
+        self,
+        environment_id: Optional[str] = None,
+        stats_period: Optional[str] = None,
+        transaction_stats: Optional[str] = None,
+    ) -> None:
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
 
@@ -72,40 +163,9 @@ class ProjectSerializer(Serializer):
         self.stats_period = stats_period
         self.transaction_stats = transaction_stats
 
-    def get_access_by_project(self, item_list, user):
-        request = env.request
-
-        project_teams = list(
-            ProjectTeam.objects.filter(project__in=item_list).select_related("team")
-        )
-
-        project_team_map = defaultdict(list)
-
-        for pt in project_teams:
-            project_team_map[pt.project_id].append(pt.team)
-
-        team_memberships = get_team_memberships([pt.team for pt in project_teams], user)
-        org_roles = get_org_roles([i.organization_id for i in item_list], user)
-
-        is_superuser = request and is_active_superuser(request) and request.user == user
-        result = {}
-        for project in item_list:
-            is_member = any(t.id in team_memberships for t in project_team_map.get(project.id, []))
-            org_role = org_roles.get(project.organization_id)
-            if is_member:
-                has_access = True
-            elif is_superuser:
-                has_access = True
-            elif project.organization.flags.allow_joinleave:
-                has_access = True
-            elif org_role and roles.get(org_role).is_global:
-                has_access = True
-            else:
-                has_access = False
-            result[project] = {"is_member": is_member, "has_access": has_access}
-        return result
-
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self, item_list: Sequence[Project], user: User, **kwargs: Any
+    ) -> MutableMapping[Project, MutableMapping[str, Any]]:
         def measure_span(op_tag):
             span = sentry_sdk.start_span(op=f"serialize.get_attrs.project.{op_tag}")
             span.set_data("Object Count", len(item_list))
@@ -113,7 +173,7 @@ class ProjectSerializer(Serializer):
 
         with measure_span("preamble"):
             project_ids = [i.id for i in item_list]
-            if user.is_authenticated() and item_list:
+            if user.is_authenticated and item_list:
                 bookmarks = set(
                     ProjectBookmark.objects.filter(
                         user=user, project_id__in=project_ids
@@ -158,10 +218,10 @@ class ProjectSerializer(Serializer):
             platforms_by_project[project_id].append(platform)
 
         with measure_span("access"):
-            result = self.get_access_by_project(item_list, user)
+            result = get_access_by_project(item_list, user)
 
         with measure_span("features"):
-            features_by_project = self._get_features_for_projects(item_list, user)
+            features_by_project = get_features_for_projects(item_list, user)
             for project, serialized in result.items():
                 serialized["features"] = features_by_project[project]
 
@@ -222,56 +282,6 @@ class ProjectSerializer(Serializer):
             results[project_id] = serialized
         return results
 
-    @staticmethod
-    def _get_features_for_projects(all_projects, user):
-        # Arrange to call features.has_for_batch rather than features.has
-        # for performance's sake
-        projects_by_org = defaultdict(list)
-        for project in all_projects:
-            projects_by_org[project.organization].append(project)
-
-        features_by_project = defaultdict(list)
-        project_features = [
-            feature
-            for feature in features.all(feature_type=ProjectFeature).keys()
-            if feature.startswith(_PROJECT_SCOPE_PREFIX)
-        ]
-
-        batch_checked = set()
-        for (organization, projects) in projects_by_org.items():
-            batch_features = features.batch_has(
-                project_features, actor=user, projects=projects, organization=organization
-            )
-
-            # batch_has has found some features
-            if batch_features:
-                for project in projects:
-                    for feature_name, active in batch_features.get(
-                        f"project:{project.id}", {}
-                    ).items():
-                        if active:
-                            features_by_project[project].append(
-                                feature_name[len(_PROJECT_SCOPE_PREFIX) :]
-                            )
-
-                        batch_checked.add(feature_name)
-
-        for feature_name in project_features:
-            if feature_name in batch_checked:
-                continue
-            abbreviated_feature = feature_name[len(_PROJECT_SCOPE_PREFIX) :]
-            for (organization, projects) in projects_by_org.items():
-                result = features.has_for_batch(feature_name, organization, projects, user)
-                for (project, flag) in result.items():
-                    if flag:
-                        features_by_project[project].append(abbreviated_feature)
-
-        for project in all_projects:
-            if project.flags.has_releases:
-                features_by_project[project].append("releases")
-
-        return features_by_project
-
     def serialize(self, obj, attrs, user):
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
@@ -309,7 +319,9 @@ class ProjectSerializer(Serializer):
 
 
 class ProjectWithOrganizationSerializer(ProjectSerializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(
+        self, item_list: Sequence[Project], user: User, **kwargs: Any
+    ) -> MutableMapping[Project, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
         orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
@@ -324,7 +336,9 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
 
 
 class ProjectWithTeamSerializer(ProjectSerializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(
+        self, item_list: Sequence[Project], user: User, **kwargs: Any
+    ) -> MutableMapping[Project, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
         project_teams = list(
@@ -420,7 +434,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
 
         return deploys_by_project
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(
+        self, item_list: Sequence[Project], user: User, **kwargs: Any
+    ) -> MutableMapping[Project, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
         projects_with_user_reports = set(
@@ -588,7 +604,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         ]
     )
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(
+        self, item_list: Sequence[Project], user: User, **kwargs: Any
+    ) -> MutableMapping[Project, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
         project_ids = [i.id for i in item_list]

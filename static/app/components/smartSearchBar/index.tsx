@@ -1,12 +1,10 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {ClassNames} from '@emotion/core';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {ClassNames, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
-import {withTheme} from 'emotion-theming';
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -140,7 +138,7 @@ const ThemedCreateSavedSearchButton = withTheme(
   )
 );
 
-type Props = {
+type Props = WithRouterProps & {
   api: Client;
   organization: LightWeightOrganization;
   dropdownClassName?: string;
@@ -304,10 +302,6 @@ class SmartSearchBar extends React.Component<Props, State> {
    */
   static getQueryTerms = (query: string, cursor: number) =>
     query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
-
-  static contextTypes = {
-    router: PropTypes.object,
-  };
 
   static defaultProps = {
     defaultQuery: '',
@@ -622,7 +616,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         return [];
       }
 
-      const {location} = this.context.router;
+      const {location} = this.props;
       const endpointParams = getParams(location.query);
 
       this.setState({loading: true});
@@ -747,8 +741,7 @@ class SmartSearchBar extends React.Component<Props, State> {
    * if an error is encountered.
    */
   fetchReleases = async (releaseVersion: string): Promise<any[]> => {
-    const {api, organization} = this.props;
-    const {location} = this.context.router;
+    const {api, location, organization} = this.props;
 
     const project = location && location.query ? location.query.projectId : undefined;
 
@@ -948,14 +941,13 @@ class SmartSearchBar extends React.Component<Props, State> {
   onTogglePinnedSearch = async (evt: React.MouseEvent) => {
     const {
       api,
+      location,
       organization,
       savedSearchType,
       hasPinnedSearch,
       pinnedSearch,
       sort,
     } = this.props;
-
-    const {router} = this.context;
 
     evt.preventDefault();
     evt.stopPropagation();
@@ -965,7 +957,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     // eslint-disable-next-line no-unused-vars
-    const {cursor: _cursor, page: _page, ...currentQuery} = router.location.query;
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
     trackAnalyticsEvent({
       eventKey: 'search.pin',
@@ -979,7 +971,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     if (!!pinnedSearch) {
       unpinSearch(api, organization.slug, savedSearchType, pinnedSearch).then(() => {
         browserHistory.push({
-          ...router.location,
+          ...location,
           pathname: `/organizations/${organization.slug}/issues/`,
           query: {
             ...currentQuery,
@@ -1004,7 +996,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     browserHistory.push({
-      ...router.location,
+      ...location,
       pathname: `/organizations/${organization.slug}/issues/searches/${resp.id}/`,
       query: currentQuery,
     });
@@ -1080,7 +1072,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         this.searchInput.current.focus();
       }
 
-      // then update the autocomplete box with new contextTypes
+      // then update the autocomplete box with new items
       this.updateAutoCompleteItems();
       this.props.onChange?.(newQuery, new MouseEvent('click') as any);
     });
@@ -1305,7 +1297,7 @@ const SmartSearchBarContainer = createReactClass<Props>({
   },
 });
 
-export default withApi(withOrganization(SmartSearchBarContainer));
+export default withApi(withRouter(withOrganization(SmartSearchBarContainer)));
 export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`

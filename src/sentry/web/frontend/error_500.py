@@ -20,7 +20,7 @@ class Error500View(View):
             return
 
         result = {"dsn": projectkey.dsn_public, "eventId": request.sentry["id"]}
-        if hasattr(request, "user") and request.user.is_authenticated():
+        if hasattr(request, "user") and request.user.is_authenticated:
             try:
                 result.update({"userName": request.user.name, "userEmail": request.user.email})
             except Exception:

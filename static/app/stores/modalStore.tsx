@@ -10,11 +10,23 @@ type ModalStoreState = {
   options: ModalOptions;
 };
 
-const ModalStore = Reflux.createStore({
+type ModalStoreInterface = {
+  init: () => void;
+  get: () => ModalStoreState;
+  reset: () => void;
+  onCloseModal: () => void;
+  onOpenModal: (renderer: Renderer, options: ModalOptions) => void;
+};
+
+const storeConfig: Reflux.StoreDefinition & ModalStoreInterface = {
   init() {
     this.reset();
     this.listenTo(ModalActions.closeModal, this.onCloseModal);
     this.listenTo(ModalActions.openModal, this.onOpenModal);
+  },
+
+  get() {
+    return this.state;
   },
 
   reset() {
@@ -33,7 +45,10 @@ const ModalStore = Reflux.createStore({
     this.state = {renderer, options};
     this.trigger(this.state);
   },
-});
+};
 
-// TODO(ts): This should be properly typed
-export default ModalStore as any;
+type ModalStore = Reflux.Store & ModalStoreInterface;
+
+const ModalStore = Reflux.createStore(storeConfig) as ModalStore;
+
+export default ModalStore;
