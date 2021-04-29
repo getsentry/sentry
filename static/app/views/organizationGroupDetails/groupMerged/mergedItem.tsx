@@ -230,8 +230,7 @@ const EventDetails = styled('div')`
 
 const ChildGroup = styled(List)`
   list-style: none;
-  padding-left: ${space(4)};
-  padding-top: ${space(0.5)};
+  padding: ${space(0.5)} 0 0 ${space(4)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
