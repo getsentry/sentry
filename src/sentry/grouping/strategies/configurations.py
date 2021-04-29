@@ -65,6 +65,9 @@ BASE_STRATEGY = create_strategy_configuration(
         "use_package_fallback": False,
         # Remove platform differences in native frames
         "native_fuzzing": False,
+        # Ignore exception types for native if they are platform specific error
+        # codes.
+        "discard_native_error_codes": False,
     },
 )
 
@@ -160,6 +163,7 @@ register_strategy_config(
         "discard_native_filename": True,
         "use_package_fallback": True,
         "native_fuzzing": True,
+        "discard_native_error_codes": True,
     },
     enhancements_base="mobile:2021-04-02",
 )

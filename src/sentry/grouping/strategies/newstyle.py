@@ -48,6 +48,17 @@ RECURSION_COMPARISON_FIELDS = [
     "colno",
 ]
 
+_discard_native_error_code_re = re.compile(
+    r"""(
+    ^EXC_ |
+    ^EXCEPTION_ |
+    ^SIG |
+    ^KERN_ |
+    ^ILL_
+)""",
+    re.X,
+)
+
 
 def is_recursion_v1(frame1, frame2):
     "Returns a boolean indicating whether frames are recursive calls."
@@ -513,12 +524,16 @@ def single_exception(exception, context, **meta):
         values=[exception.type] if exception.type else [],
         similarity_encoder=ident_encoder,
     )
+    system_type_component = type_component.shallow_copy()
 
     ns_error_component = None
 
     if exception.mechanism:
         if exception.mechanism.synthetic:
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
+            system_type_component.update(
+                contributes=False, hint="ignored because exception is synthetic"
+            )
         if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
             ns_error_component = GroupingComponent(
                 id="ns-error",
@@ -526,6 +541,16 @@ def single_exception(exception, context, **meta):
                     exception.mechanism.meta["ns_error"].get("domain"),
                     exception.mechanism.meta["ns_error"].get("code"),
                 ],
+            )
+
+        if context["discard_native_error_codes"] and _discard_native_error_code_re.match(
+            exception.type
+        ):
+            # Do not update type component of system variant, such that regex
+            # can be continuously modified without unnecessarily creating new
+            # groups.
+            type_component.update(
+                contributes=False, hint="ignored because type is platform-specific"
             )
 
     if exception.stacktrace is not None:
@@ -540,7 +565,10 @@ def single_exception(exception, context, **meta):
     rv = {}
 
     for variant, stacktrace_component in stacktrace_variants.items():
-        values = [stacktrace_component, type_component]
+        values = [
+            stacktrace_component,
+            system_type_component if variant == "system" else type_component,
+        ]
 
         if ns_error_component is not None:
             values.append(ns_error_component)

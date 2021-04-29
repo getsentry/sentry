@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:25.894570Z'
+created: '2021-04-29T11:10:03.380722Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,7 +18,7 @@ app-depth-1:
               "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
             package (ignored because function takes precedence)
               "d3d11.dll"
-        type (ignored because exception is synthetic)
+        type (ignored because type is platform-specific)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
