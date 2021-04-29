@@ -27,13 +27,13 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
     external_id = serializers.CharField(required=False, allow_null=True)
     external_name = serializers.CharField(required=True)
     provider = serializers.ChoiceField(choices=get_provider_choices(AVAILABLE_PROVIDERS))
-    integration_id = serializers.IntegerField(required=False, allow_null=True)
+    integration_id = serializers.IntegerField(required=True)
 
     @property
     def organization(self) -> Organization:
         return self.context["organization"]
 
-    def validate_integration_id(self, integration_id: str) -> Optional[str]:
+    def validate_integration_id(self, integration_id: str) -> str:
         return validate_integration_id_option(integration_id, self.organization)
 
     def validate_external_id(self, external_id: str) -> Optional[str]:

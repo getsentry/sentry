@@ -31,9 +31,7 @@ def validate_external_id_option(external_id: Optional[str]) -> Optional[str]:
 
 def validate_integration_id_option(
     integration_id: Optional[str], organization: Organization
-) -> Optional[str]:
-    if not integration_id:
-        return None
+) -> str:
 
     integration_query = OrganizationIntegration.objects.filter(
         organization=organization, integration_id=integration_id
