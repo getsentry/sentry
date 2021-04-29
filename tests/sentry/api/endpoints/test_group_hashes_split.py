@@ -124,3 +124,55 @@ def test_basic(client, default_project, store_stacktrace, default_user, reset_sn
     # TODO: When split/unsplit in Snuba is properly supported, we should also
     # see existing events moving.
     assert _check_merged() != group_id
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_split_everything(client, default_project, store_stacktrace, default_user, reset_snuba):
+    """
+    We have two events in one group, one has a stacktrace that is a suffix of
+    the other. This presents an edgecase where it is legitimate to split up the
+    *last hash* of an event as that just happens to not be the last hash of
+    some other event. In that case we need to ignore the split for events that
+    don't have a next hash to group by.
+    """
+
+    event = store_stacktrace(["foo"])
+    event2 = store_stacktrace(["bar", "foo"])
+    assert event2.group_id == event.group_id
+
+    assert event.data["hierarchical_hashes"] == ["bab925683e73afdb4dc4047397a7b36b"]
+
+    url = f"/api/0/issues/{event.group_id}/hashes/split/"
+    response = client.get(url, format="json")
+    assert response.status_code == 200
+    assert response.data == [
+        {
+            "childId": None,
+            "eventCount": 1,
+            "id": "bab925683e73afdb4dc4047397a7b36b",
+            "label": "<entire stacktrace>",
+            "latestEvent": response.data[0]["latestEvent"],
+            "parentId": None,
+        },
+        {
+            "childId": "aa1c4037371150958f9ea22adb110bbc",
+            "eventCount": 1,
+            "id": "bab925683e73afdb4dc4047397a7b36b",
+            "label": "foo",
+            "childLabel": "<entire stacktrace>",
+            "latestEvent": response.data[1]["latestEvent"],
+            "parentId": None,
+        },
+    ]
+
+    response = client.put(
+        f"/api/0/issues/{event.group_id}/hashes/split/?id=bab925683e73afdb4dc4047397a7b36b",
+    )
+    assert response.status_code == 200
+
+    event3 = store_stacktrace(["foo"])
+    assert event3.group_id == event.group_id
+
+    event4 = store_stacktrace(["bar", "foo"])
+    assert event4.group_id not in (event.group_id, event2.group_id, event3.group_id)

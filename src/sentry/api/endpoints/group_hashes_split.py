@@ -131,12 +131,11 @@ def _split_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequence
         if grouphash is not None:
             break
     else:
-        return
+        raise NoHierarchicalHash()
 
-    # Mark one hierarchical hash as SPLIT, dissociate it from the group
-    # such that group retention won't accidentally delete it.
+    # Mark one hierarchical hash as SPLIT. Note this also prevents it from
+    # being deleted in group deletion.
     grouphash.state = GroupHash.State.SPLIT
-    grouphash.group_id = None
     grouphash.save()
 
 
@@ -323,7 +322,7 @@ def _render_trees(group: Group, user):
             except Exception:
                 sentry_sdk.capture_exception()
 
-    rv.sort(key=lambda tree: (tree["parentId"], tree["id"], tree["childId"]))
+    rv.sort(key=lambda tree: (tree["parentId"] or "", tree["id"] or "", tree["childId"] or ""))
 
     return rv
 
