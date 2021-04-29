@@ -448,6 +448,14 @@ class ReleaseSerializer(Serializer):
                 rv["healthData"] = expose_health_data(project["health_data"])
             return rv
 
+        def expose_current_project_meta(current_project_meta):
+            rv = {}
+            if "sessions_lower_bound" in current_project_meta:
+                rv["sessionsLowerBound"] = current_project_meta["sessions_lower_bound"]
+            if "sessions_upper_bound" in current_project_meta:
+                rv["sessionsUpperBound"] = current_project_meta["sessions_upper_bound"]
+            return rv
+
         d = {
             "version": obj.version,
             "status": ReleaseStatus.to_string(obj.status),
@@ -468,5 +476,8 @@ class ReleaseSerializer(Serializer):
             "projects": [expose_project(p) for p in attrs.get("projects", [])],
             "firstEvent": attrs.get("first_seen"),
             "lastEvent": attrs.get("last_seen"),
+            "currentProjectMeta": expose_current_project_meta(
+                kwargs.get("current_project_meta", {})
+            ),
         }
         return d

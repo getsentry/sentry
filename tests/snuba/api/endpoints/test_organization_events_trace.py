@@ -299,6 +299,59 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
     def test_multiple_roots(self):
         self.load_trace()
+        second_root = self.create_event(
+            trace=self.trace_id,
+            transaction="/second_root",
+            spans=[],
+            parent_span_id=None,
+            project_id=self.project.id,
+        )
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"event_id": second_root.event_id, "project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        event = response.data[0]
+        assert event["generation"] == 0
+        assert event["parent_event_id"] is None
+        assert event["parent_span_id"] is None
+
+    def test_root_event(self):
+        self.load_trace()
+        root_event_id = self.root_event.event_id
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"event_id": root_event_id, "project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 4
+        events = {item["event_id"]: item for item in response.data}
+
+        assert root_event_id in events
+        event = events[root_event_id]
+        assert event["generation"] == 0
+        assert event["parent_event_id"] is None
+        assert event["parent_span_id"] is None
+
+        for i, child_event in enumerate(self.gen1_events):
+            child_event_id = child_event.event_id
+            assert child_event_id in events
+            event = events[child_event_id]
+            assert event["generation"] == 1
+            assert event["parent_event_id"] == root_event_id
+            assert event["parent_span_id"] == self.root_span_ids[i]
+
+    def test_root_with_multiple_roots(self):
+        self.load_trace()
+        root_event_id = self.root_event.event_id
         self.create_event(
             trace=self.trace_id,
             transaction="/second_root",
@@ -310,19 +363,6 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             response = self.client.get(
                 self.url,
                 data={"event_id": self.root_event.event_id},
-                format="json",
-            )
-
-        assert response.status_code == 200, response.content
-
-    def test_root_event(self):
-        self.load_trace()
-        root_event_id = self.root_event.event_id
-
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"event_id": root_event_id, "project": -1},
                 format="json",
             )
 
@@ -350,6 +390,49 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         root_event_id = self.root_event.event_id
         current_event = self.gen1_events[0].event_id
         child_event_id = self.gen2_events[0].event_id
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"event_id": current_event, "project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        assert len(response.data) == 3
+        events = {item["event_id"]: item for item in response.data}
+
+        assert root_event_id in events
+        event = events[root_event_id]
+        assert event["generation"] == 0
+        assert event["parent_event_id"] is None
+        assert event["parent_span_id"] is None
+
+        assert current_event in events
+        event = events[current_event]
+        assert event["generation"] == 1
+        assert event["parent_event_id"] == root_event_id
+        assert event["parent_span_id"] == self.root_span_ids[0]
+
+        assert child_event_id in events
+        event = events[child_event_id]
+        assert event["generation"] == 2
+        assert event["parent_event_id"] == current_event
+        assert event["parent_span_id"] == self.gen1_span_ids[0]
+
+    def test_direct_parent_with_children_and_multiple_root(self):
+        self.load_trace()
+        root_event_id = self.root_event.event_id
+        current_event = self.gen1_events[0].event_id
+        child_event_id = self.gen2_events[0].event_id
+        self.create_event(
+            trace=self.trace_id,
+            transaction="/second_root",
+            spans=[],
+            parent_span_id=None,
+            project_id=self.project.id,
+        )
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -452,7 +535,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
                 spans=[],
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
-                duration=500,
+                duration=525,
             ).event_id,
         ]
 
@@ -745,7 +828,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             project_id=self.project.id,
             duration=300,
         )
-
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -754,6 +836,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
 
         assert response.status_code == 200, response.content
+
         assert len(response.data) == 1
         # There really isn't a right answer to which orphan is the "root" since this loops, but the current
         # implementation will make the older event the root
@@ -762,6 +845,40 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(root["children"]) == 1
         child = root["children"][0]
         self.assert_event(child, orphan_child, "child")
+
+    def test_multiple_roots(self):
+        trace_id = uuid4().hex
+        first_root = self.create_event(
+            trace=trace_id,
+            transaction="/first_root",
+            spans=[],
+            parent_span_id=None,
+            project_id=self.project.id,
+            duration=500,
+        )
+        second_root = self.create_event(
+            trace=trace_id,
+            transaction="/second_root",
+            spans=[],
+            parent_span_id=None,
+            project_id=self.project.id,
+            duration=1000,
+        )
+        self.url = reverse(
+            self.url_name,
+            kwargs={"organization_slug": self.project.organization.slug, "trace_id": trace_id},
+        )
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        self.assert_event(response.data[0], first_root, "first_root")
+        self.assert_event(response.data[1], second_root, "second_root")
 
     def test_sibling_transactions(self):
         """ More than one transaction can share a parent_span_id """

@@ -260,7 +260,7 @@ export class UsageChart extends React.Component<Props, State> {
     // Use hours as common units
     const dataPeriod = statsPeriodToDays(undefined, usageDateStart, usageDateEnd) * 24;
     const barPeriod = parsePeriodToHours(usageDateInterval);
-    if (dataPeriod === 0 || barPeriod === -1) {
+    if (dataPeriod < 0 || barPeriod < 0) {
       throw new Error('UsageChart: Unable to parse data time period');
     }
 
@@ -304,7 +304,7 @@ export class UsageChart extends React.Component<Props, State> {
     const {chartSeries} = this.props;
     const {chartData} = this.chartMetadata;
 
-    const series: EChartOption.Series[] = [
+    let series: EChartOption.Series[] = [
       barSeries({
         name: SeriesTypes.ACCEPTED,
         data: chartData.accepted as any, // TODO(ts)
@@ -329,7 +329,7 @@ export class UsageChart extends React.Component<Props, State> {
 
     // Additional series passed by parent component
     if (chartSeries) {
-      series.concat(chartSeries as EChartOption.Series[]);
+      series = series.concat(chartSeries as EChartOption.Series[]);
     }
 
     return series;

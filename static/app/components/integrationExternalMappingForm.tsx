@@ -53,7 +53,6 @@ export default class IntegrationExternalMappingForm extends React.Component<Prop
         label: tct('Sentry [type]', {type: capitalize(type)}),
         placeholder: t(`Choose your Sentry User`),
         options,
-        deprecatedSelectControl: false,
       });
     }
     if (type === 'team') {
@@ -64,7 +63,6 @@ export default class IntegrationExternalMappingForm extends React.Component<Prop
         label: tct('Sentry [type]', {type: capitalize(type)}),
         placeholder: t(`Choose your Sentry Team`),
         options,
-        deprecatedSelectControl: false,
       });
     }
     return fields;
