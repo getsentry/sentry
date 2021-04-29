@@ -6,7 +6,7 @@ import {openDiffModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
@@ -111,7 +111,10 @@ class MergedToolbar extends React.Component<Props, State> {
               'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
             )}
           >
-            <Button size="small" title={t(`Unmerging ${unmergeCount} events`)}>
+            <Button
+              size="small"
+              title={tct('Unmerging [unmergeCount] events', {unmergeCount})}
+            >
               {t('Unmerge')} ({unmergeCount || 0})
             </Button>
           </Confirm>
@@ -122,7 +125,10 @@ class MergedToolbar extends React.Component<Props, State> {
               'These events will be grouped into a new issue by more specific criteria (for instance more frames). Are you sure you want to split them out of the existing issue?'
             )}
           >
-            <Button size="small" title={tct('Splitting out [unmergeCount] events', {unmergeCount})}>
+            <Button
+              size="small"
+              title={tct('Splitting out [unmergeCount] events', {unmergeCount})}
+            >
               {t('Split')} ({unmergeCount || 0})
             </Button>
           </Confirm>
