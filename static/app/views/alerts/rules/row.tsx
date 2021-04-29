@@ -249,9 +249,9 @@ class RuleListRow extends React.Component<Props, State> {
                       />
                     }
                   >
-                    <MenuItemActionLink href={editLink} title={t('Edit')}>
-                      {t('Edit')}
-                    </MenuItemActionLink>
+                    <li>
+                      <Link to={editLink}>{t('Edit')}</Link>
+                    </li>
                     <Confirm
                       disabled={!hasAccess || !canEdit}
                       message={tct(

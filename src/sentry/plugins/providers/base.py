@@ -81,7 +81,7 @@ class ProviderMixin:
             if has_auth:
                 return False
 
-        if not user.is_authenticated():
+        if not user.is_authenticated:
             return True
 
         return not UserSocialAuth.objects.filter(user=user, provider=self.auth_provider).exists()
@@ -103,7 +103,7 @@ class ProviderMixin:
             else:
                 return auth
 
-        if not user.is_authenticated():
+        if not user.is_authenticated:
             return None
 
         return UserSocialAuth.objects.filter(user=user, provider=self.auth_provider).first()

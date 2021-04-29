@@ -18,6 +18,7 @@ from typing import (
 
 import sentry_sdk
 from django.http import Http404, HttpRequest, HttpResponse
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
@@ -178,7 +179,10 @@ class TraceEvent:
                     result["measurements"] = self.nodestore_event.data.get("measurements")
                 result["_meta"] = {}
                 result["tags"], result["_meta"]["tags"] = get_tags_with_meta(self.nodestore_event)
-        result["children"] = [child.full_dict(detailed) for child in self.children]
+        # Only add children that have nodestore events, which may be missing if we're pruning for quick trace
+        result["children"] = [
+            child.full_dict(detailed) for child in self.children if child.nodestore_event
+        ]
         return result
 
 
@@ -200,8 +204,9 @@ def child_sort_key(item: TraceEvent) -> List[int]:
             item.nodestore_event.data["start_timestamp"],
             item.nodestore_event.data["timestamp"],
         ]
+    # The sorting of items without nodestore events doesn't matter cause we drop them
     else:
-        raise Exception("Not all events in trace are retrievable from nodestore")
+        return [0]
 
 
 def query_trace_data(
@@ -330,8 +335,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
         except NoProjects:
             return Response(status=404)
 
-        detailed = request.GET.get("detailed", "0") == "1"
-        event_id = request.GET.get("event_id")
+        detailed: bool = request.GET.get("detailed", "0") == "1"
+        event_id: Optional[str] = request.GET.get("event_id")
 
         # Only need to validate event_id as trace_id is validated in the URL
         if event_id and not is_event_id(event_id):
@@ -350,24 +355,22 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
 
         warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization}
 
-        root = transactions[0] if is_root(transactions[0]) else None
-
-        # Look for extra roots
-        extra_roots = 0
-        for item in transactions[1:]:
+        # Look for the roots
+        roots: List[SnubaTransaction] = []
+        for item in transactions:
             if is_root(item):
-                extra_roots += 1
+                roots.append(item)
             else:
                 break
-        if extra_roots > 0:
+        if len(roots) > 1:
             sentry_sdk.set_tag("discover.trace-view.warning", "root.extra-found")
             logger.warning(
                 "discover.trace-view.root.extra-found",
-                {"extra_roots": extra_roots, **warning_extra},
+                {"extra_roots": len(roots), **warning_extra},
             )
 
         return Response(
-            self.serialize(transactions, errors, root, warning_extra, event_id, detailed)
+            self.serialize(transactions, errors, roots, warning_extra, event_id, detailed)
         )
 
 
@@ -425,12 +428,14 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         self,
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
-        root: Optional[SnubaTransaction],
+        roots: Sequence[SnubaTransaction],
         warning_extra: Dict[str, str],
-        event_id: str,
+        event_id: Optional[str],
         detailed: bool = False,
     ) -> Sequence[LightResponse]:
         """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
+        if event_id is None:
+            raise ParseError(detail="An event_id is required for the light trace")
         snuba_event, nodestore_event = self.get_current_transaction(transactions, errors, event_id)
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
@@ -439,31 +444,38 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         root_id: Optional[str] = None
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
-            # We might not be necessarily connected to the root if we're on an orphan event
-            if root is not None and root["id"] != snuba_event["id"]:
-                # Get the root event and see if the current event's span is in the root event
-                root_event = eventstore.get_event_by_id(root["project.id"], root["id"])
-                root_spans: NodeSpans = root_event.data.get("spans", [])
-                root_span = find_event(
-                    root_spans,
-                    lambda item: item is not None
-                    and item["span_id"] == snuba_event["trace.parent_span"],
-                )
+            # Going to nodestore is more expensive than looping twice so check if we're on the root first
+            for root in roots:
+                if root["id"] == snuba_event["id"]:
+                    current_generation = 0
+                    break
 
-                # We only know to add the root if its the direct parent
-                if root_span is not None:
-                    # For the light response, the parent will be unknown unless it is a direct descendent of the root
-                    root_id = root["id"]
-                    trace_results.append(
-                        TraceEvent(
-                            root,
-                            None,
-                            0,
+            if current_generation is None:
+                for root in roots:
+                    # We might not be necessarily connected to the root if we're on an orphan event
+                    if root["id"] != snuba_event["id"]:
+                        # Get the root event and see if the current event's span is in the root event
+                        root_event = eventstore.get_event_by_id(root["project.id"], root["id"])
+                        root_spans: NodeSpans = root_event.data.get("spans", [])
+                        root_span = find_event(
+                            root_spans,
+                            lambda item: item is not None
+                            and item["span_id"] == snuba_event["trace.parent_span"],
                         )
-                    )
-                    current_generation = 1
-            elif root is not None and root["id"] == snuba_event["id"]:
-                current_generation = 0
+
+                        # We only know to add the root if its the direct parent
+                        if root_span is not None:
+                            # For the light response, the parent will be unknown unless it is a direct descendent of the root
+                            root_id = root["id"]
+                            trace_results.append(
+                                TraceEvent(
+                                    root,
+                                    None,
+                                    0,
+                                )
+                            )
+                            current_generation = 1
+                            break
 
             current_event = TraceEvent(snuba_event, root_id, current_generation)
             trace_results.append(current_event)
@@ -520,12 +532,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         self,
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
-        root: Optional[SnubaTransaction],
+        roots: Sequence[SnubaTransaction],
         warning_extra: Dict[str, str],
-        event_id: str,
+        event_id: Optional[str],
         detailed: bool = False,
     ) -> Sequence[FullResponse]:
-        """ For the full event trace, we return the results as a graph instead of a flattened list """
+        """For the full event trace, we return the results as a graph instead of a flattened list
+
+        if event_id is passed, we prune any potential branches of the trace to make as few nodestore calls as
+        possible
+        """
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
         parent_events: Dict[str, TraceEvent] = {}
@@ -534,9 +550,10 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # on python 3.7.
         results_map: Dict[Optional[str], List[TraceEvent]] = OrderedDict()
         to_check: Deque[SnubaTransaction] = deque()
-        if root:
+        results_map[None] = []
+        for root in roots:
             parent_events[root["id"]] = TraceEvent(root, None, 0)
-            results_map[None] = [parent_events[root["id"]]]
+            results_map[None].append(parent_events[root["id"]])
             to_check.append(root)
 
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
@@ -565,6 +582,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 else:
                     current_event = to_check.popleft()
                     previous_event = parent_events[current_event["id"]]
+
+                # We've found the event for the quick trace so we can remove everything in the deque
+                # As they're unrelated ancestors now
+                if event_id and current_event["id"] == event_id:
+                    # Remove any remaining events so we don't think they're orphans
+                    while to_check:
+                        to_remove = to_check.popleft()
+                        if to_remove["trace.parent_span"] in parent_map:
+                            del parent_map[to_remove["trace.parent_span"]]
+                    to_check = deque()
 
                 # This is faster than doing a call to get_events, since get_event_by_id only makes a call to snuba
                 # when non transaction events are included.

@@ -36,7 +36,7 @@ describe('removeSpace()', function () {
 });
 
 describe('SmartSearchBar', function () {
-  let options, organization, supportedTags;
+  let location, options, organization, supportedTags;
   let environmentTagValuesMock;
   const tagValuesMock = jest.fn(() => Promise.resolve([]));
 
@@ -51,7 +51,7 @@ describe('SmartSearchBar', function () {
     };
     organization = TestStubs.Organization({id: '123'});
 
-    const location = {
+    location = {
       pathname: '/organizations/org-slug/recent-searches/',
       query: {
         projectId: '0',
@@ -91,6 +91,7 @@ describe('SmartSearchBar', function () {
       orgId: 'org-slug',
       projectId: '0',
       query: '',
+      location,
       organization,
       supportedTags,
       onGetTagValues: getTagValuesMock,
@@ -125,6 +126,7 @@ describe('SmartSearchBar', function () {
       orgId: 'org-slug',
       projectId: '0',
       query: '',
+      location,
       organization,
       supportedTags,
       onGetTagValues: getTagValuesMock,
@@ -159,6 +161,7 @@ describe('SmartSearchBar', function () {
       orgId: 'org-slug',
       projectId: '0',
       query: '',
+      location,
       organization,
       supportedTags,
       onGetTagValues: getTagValuesMock,
@@ -191,6 +194,7 @@ describe('SmartSearchBar', function () {
       orgId: 'org-slug',
       projectId: '0',
       query: '',
+      location,
       organization,
       supportedTags,
       onGetTagValues: getTagValuesMock,
@@ -227,6 +231,7 @@ describe('SmartSearchBar', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
+          location={location}
           supportedTags={supportedTags}
           query="one"
         />,
@@ -240,6 +245,7 @@ describe('SmartSearchBar', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
+          location={location}
           supportedTags={supportedTags}
           query="one"
         />,
@@ -255,6 +261,7 @@ describe('SmartSearchBar', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
+          location={location}
           supportedTags={supportedTags}
           query="one"
         />,
@@ -271,6 +278,7 @@ describe('SmartSearchBar', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
+          location={location}
           supportedTags={supportedTags}
           query="one"
         />,
@@ -319,6 +327,7 @@ describe('SmartSearchBar', function () {
     it('clears the query', function () {
       const props = {
         organization,
+        location,
         query: 'is:unresolved ruby',
         defaultQuery: 'is:unresolved',
         supportedTags,
@@ -333,6 +342,7 @@ describe('SmartSearchBar', function () {
     it('calls onSearch()', async function () {
       const props = {
         organization,
+        location,
         query: 'is:unresolved ruby',
         defaultQuery: 'is:unresolved',
         supportedTags,
@@ -350,6 +360,7 @@ describe('SmartSearchBar', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
+          location={location}
           supportedTags={supportedTags}
           onGetTagValues={tagValuesMock}
         />,
@@ -366,6 +377,7 @@ describe('SmartSearchBar', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
+          location={location}
           supportedTags={supportedTags}
           onGetTagValues={tagValuesMock}
           hasPinnedSearch
@@ -383,7 +395,11 @@ describe('SmartSearchBar', function () {
   describe('onQueryBlur()', function () {
     it('hides the drop down', function () {
       const searchBar = mountWithTheme(
-        <SmartSearchBar organization={organization} supportedTags={supportedTags} />,
+        <SmartSearchBar
+          organization={organization}
+          location={location}
+          supportedTags={supportedTags}
+        />,
         options
       ).instance();
       searchBar.state.dropdownVisible = true;
@@ -400,7 +416,11 @@ describe('SmartSearchBar', function () {
     describe('escape', function () {
       it('blurs the input', function () {
         const wrapper = mountWithTheme(
-          <SmartSearchBar organization={organization} supportedTags={supportedTags} />,
+          <SmartSearchBar
+            organization={organization}
+            location={location}
+            supportedTags={supportedTags}
+          />,
           options
         );
         wrapper.setState({dropdownVisible: true});
@@ -422,6 +442,7 @@ describe('SmartSearchBar', function () {
         <SmartSearchBar
           onSearch={stubbedOnSearch}
           organization={organization}
+          location={location}
           query="is:unresolved"
           supportedTags={supportedTags}
         />,
@@ -439,6 +460,7 @@ describe('SmartSearchBar', function () {
       jest.useRealTimers();
       const props = {
         organization,
+        location,
         query: 'is:unresolved',
         supportedTags,
         onSearch: jest.fn(),
@@ -458,6 +480,7 @@ describe('SmartSearchBar', function () {
           onSearch={stubbedOnSearch}
           organization={organization}
           query="is:unresolved"
+          location={location}
           supportedTags={supportedTags}
           hasPinnedSearch
         />,
@@ -475,6 +498,7 @@ describe('SmartSearchBar', function () {
       query: '',
       defaultQuery: 'is:unresolved',
       organization,
+      location,
       supportedTags,
     };
     const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
@@ -489,6 +513,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: '',
         organization,
+        location,
         supportedTags,
       };
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
@@ -502,6 +527,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: 'fu',
         organization,
+        location,
         supportedTags,
       };
       jest.useRealTimers();
@@ -521,6 +547,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: '!fu',
         organization,
+        location,
         supportedTags,
       };
       jest.useRealTimers();
@@ -540,6 +567,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: 'is:unresolved fu',
         organization,
+        location,
         supportedTags,
       };
       jest.useRealTimers();
@@ -560,6 +588,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: 'environment:production',
         excludeEnvironment: true,
+        location,
         organization,
         supportedTags,
       };
@@ -598,6 +627,7 @@ describe('SmartSearchBar', function () {
         orgId: 'org-slug',
         projectId: '0',
         query: 'firstRelease:',
+        location,
         organization,
         supportedTags,
       };
@@ -627,6 +657,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: 'event.type:error ',
         organization,
+        location,
         supportedTags,
       };
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
@@ -638,6 +669,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: 'id: event.type:error ',
         organization,
+        location,
         supportedTags,
       };
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
@@ -650,6 +682,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: 'event.type:error id:',
         organization,
+        location,
         supportedTags,
       };
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
@@ -663,6 +696,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: 'event.type:error id:',
         organization,
+        location,
         supportedTags,
       };
       const searchBar = mountWithTheme(
@@ -681,6 +715,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: '',
         organization,
+        location,
         supportedTags,
       };
       const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
@@ -698,6 +733,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: '',
         organization,
+        location,
         supportedTags,
       };
       const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
@@ -723,6 +759,7 @@ describe('SmartSearchBar', function () {
       const props = {
         query: '',
         organization,
+        location,
         supportedTags,
       };
       const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
@@ -770,6 +807,7 @@ describe('SmartSearchBar', function () {
           query=""
           supportedTags={supportedTags}
           savedSearchType={0}
+          location={location}
           hasPinnedSearch
         />,
         options
@@ -788,6 +826,7 @@ describe('SmartSearchBar', function () {
           query="is:unresolved"
           supportedTags={supportedTags}
           savedSearchType={0}
+          location={location}
           hasPinnedSearch
         />,
         options
@@ -808,6 +847,7 @@ describe('SmartSearchBar', function () {
           query="is:unresolved"
           supportedTags={supportedTags}
           savedSearchType={0}
+          location={location}
           pinnedSearch={pinnedSearch}
           hasPinnedSearch
         />,

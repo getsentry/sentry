@@ -15,7 +15,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     # an individual. Not sure if we'd want to allow an ApiKey
     # to delete/update other users' comments
     def delete(self, request, group, note_id):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
 
         try:
@@ -30,7 +30,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         return Response(status=204)
 
     def put(self, request, group, note_id):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")
 
         try:

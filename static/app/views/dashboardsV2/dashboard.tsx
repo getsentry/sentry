@@ -1,4 +1,5 @@
 import React from 'react';
+import {InjectedRouter} from 'react-router/lib/Router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -22,6 +23,7 @@ type Props = {
   paramDashboardId: string;
   selection: GlobalSelection;
   isEditing: boolean;
+  router: InjectedRouter;
   /**
    * Fired when widgets are added/removed/sorted.
    */
@@ -60,6 +62,13 @@ class Dashboard extends React.Component<Props> {
       selection,
       onAddWidget: this.handleAddComplete,
     });
+  };
+
+  handleOpenWidgetBuilder = () => {
+    const {router, paramDashboardId, organization} = this.props;
+    router.push(
+      `/organizations/${organization.slug}/dashboards/${paramDashboardId}/widget/new/?dataSet=events`
+    );
   };
 
   handleAddComplete = (widget: Widget) => {
@@ -123,7 +132,6 @@ class Dashboard extends React.Component<Props> {
       onUpdate,
       dashboard: {widgets},
       organization,
-      paramDashboardId,
     } = this.props;
 
     const items = this.getWidgetIds();
@@ -150,10 +158,9 @@ class Dashboard extends React.Component<Props> {
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && (
               <AddWidget
-                dashboardId={paramDashboardId}
-                orgSlug={organization.slug}
                 orgFeatures={organization.features}
-                onClick={this.handleStartAdd}
+                onAddWidget={this.handleStartAdd}
+                onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
               />
             )}
           </SortableContext>

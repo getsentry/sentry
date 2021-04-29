@@ -983,6 +983,7 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
                         "next_short_id.timeout",
                         tags={"platform": event.platform or "unknown"},
                     )
+                    sentry_sdk.capture_message("short_id.timeout")
                     raise HashDiscarded("Timeout when getting next_short_id")
 
                 # it's possible the release was deleted between

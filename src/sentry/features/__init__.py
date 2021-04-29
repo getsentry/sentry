@@ -77,8 +77,6 @@ default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:import-codeowners", OrganizationFeature)  # NOQA
 default_manager.add("organizations:inbox", OrganizationFeature)  # NOQA
-default_manager.add("organizations:inbox-owners-query", OrganizationFeature)  # NOQA
-default_manager.add("organizations:inbox-tab-default", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-alert-rule", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature)  # NOQA
@@ -96,6 +94,7 @@ default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature) 
 default_manager.add("organizations:large-debug-files", OrganizationFeature)  # NOQA
 default_manager.add("organizations:metric-alert-builder-aggregate", OrganizationFeature)  # NOQA
 default_manager.add("organizations:metrics", OrganizationFeature)  # NOQA
+default_manager.add("organizations:metrics-extraction", OrganizationFeature)  # NOQA
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)  # NOQA
 default_manager.add("organizations:monitors", OrganizationFeature)  # NOQA
 default_manager.add("organizations:notification-platform", OrganizationFeature)  # NOQA

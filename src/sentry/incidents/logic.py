@@ -7,7 +7,6 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry import analytics, quotas
-from sentry.api.event_search import get_filter, resolve_field
 from sentry.auth.access import SystemAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.incidents import tasks
@@ -35,6 +34,8 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models import Integration, PagerDutyService, Project, SentryApp
+from sentry.search.events.fields import resolve_field
+from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets

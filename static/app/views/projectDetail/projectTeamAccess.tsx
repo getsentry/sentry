@@ -46,13 +46,9 @@ function ProjectTeamAccess({organization, project}: Props) {
 
     return (
       <Collapsible
-        expandButton={({onExpand, numberOfCollapsedItems}) => (
+        expandButton={({onExpand, numberOfHiddenItems}) => (
           <Button priority="link" onClick={onExpand}>
-            {tn(
-              'Show %s collapsed team',
-              'Show %s collapsed teams',
-              numberOfCollapsedItems
-            )}
+            {tn('Show %s collapsed team', 'Show %s collapsed teams', numberOfHiddenItems)}
           </Button>
         )}
       >
