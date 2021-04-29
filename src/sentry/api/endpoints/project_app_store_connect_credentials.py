@@ -259,7 +259,6 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
-        return Response("Hello you", status=200)
         serializer = AppStoreConnectRequestSmsSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -267,7 +266,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
 
         session = requests.Session()
 
-        encrypted_context = serializer.validated_data.get("session_context")
+        encrypted_context = serializer.validated_data.get("sessionContext")
         key = project.get_option(credentials_key_name())
 
         if key is None:
