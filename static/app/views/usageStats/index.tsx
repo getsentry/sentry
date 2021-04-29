@@ -381,11 +381,17 @@ const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
   color: ${p => p.theme.textColor};
 
   > div {
-    flex-grow: 1;
+    width: 100%;
+    align-self: stretch;
   }
 
   > div > div:first-child {
-    padding: ${space(1)} ${space(2)};
+    padding: 0 ${space(2)};
+  }
+
+  > div > div:last-child {
+    /* Remove awkward 1px width difference on dropdown due to border */
+    box-sizing: content-box;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
