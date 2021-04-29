@@ -146,7 +146,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     const interval = getSeriesApiInterval(dataDatetime);
 
     // Use fillers as loading/error states will not display datetime at all
-    if (!orgStats || !orgStats.intervals || orgStats.intervals.length < 2) {
+    if (!orgStats || !orgStats.intervals) {
       return {
         chartDateInterval: interval,
         chartDateStart: '',
@@ -163,7 +163,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     // Keep datetime in UTC until we want to display it to users
     const startTime = moment(intervals[0]).utc();
-    const endTime = moment(intervals[intervals.length - 1]).utc();
+    const endTime =
+      intervals.length < 2
+        ? moment(startTime) // when statsPeriod and interval is the same value
+        : moment(intervals[intervals.length - 1]).utc();
     const useUtc = isDisplayUtc(dataDatetime);
 
     // If interval is a day or more, use UTC to format date. Otherwise, the date
