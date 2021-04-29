@@ -114,7 +114,7 @@ class MergedItem extends React.Component<Props, State> {
             />
 
             <FingerprintLabel onClick={this.handleLabelClick} htmlFor={id}>
-              {this.renderFingerprint(label, id)}
+              {this.renderFingerprint(id, label)}
             </FingerprintLabel>
           </ActionWrapper>
 
