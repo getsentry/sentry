@@ -983,10 +983,6 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": True,
-    # Set default tab to inbox
-    "organizations:inbox-tab-default": False,
-    # Add `assigned_or_suggested:[me, none]` to inbox tab query
-    "organizations:inbox-owners-query": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
