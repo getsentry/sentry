@@ -392,6 +392,7 @@ const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
   > div > div:last-child {
     /* Remove awkward 1px width difference on dropdown due to border */
     box-sizing: content-box;
+    font-size: 1em;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
