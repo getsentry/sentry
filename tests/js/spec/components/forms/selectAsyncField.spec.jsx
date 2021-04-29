@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByQuery, selectByValue} from 'sentry-test/select-new';
 
 import {Form, SelectAsyncField} from 'app/components/forms';
 
@@ -20,73 +21,62 @@ describe('SelectAsyncField', function () {
     });
   });
 
-  describe('deprecatedSelectControl', function () {
-    it('supports autocomplete arguments from an integration', async function () {
-      const wrapper = mountWithTheme(
-        <SelectAsyncField deprecatedSelectControl url="/foo/bar/" name="fieldName" />
-      );
+  it('supports autocomplete arguments from an integration', async function () {
+    const wrapper = mountWithTheme(<SelectAsyncField url="/foo/bar/" name="fieldName" />);
+    await selectByQuery(wrapper, 'baz', {control: true});
 
-      wrapper
-        .find('input[id="id-fieldName"]')
-        .simulate('change', {target: {value: 'baz'}});
+    expect(api).toHaveBeenCalled();
 
-      expect(api).toHaveBeenCalled();
+    await tick();
+    wrapper.update();
 
-      await tick();
-      wrapper.update();
-
-      // Is in select menu
-      expect(wrapper.find('Select').prop('options')).toEqual([
-        expect.objectContaining({
-          value: 'baz',
-          label: 'Baz Label',
-        }),
-      ]);
-    });
-
-    it('with Form context', async function () {
-      const submitMock = jest.fn();
-      const wrapper = mountWithTheme(
-        <Form onSubmit={submitMock}>
-          <SelectAsyncField deprecatedSelectControl url="/foo/bar/" name="fieldName" />
-        </Form>,
-        {}
-      );
-
-      wrapper
-        .find('input[id="id-fieldName"]')
-        .simulate('change', {target: {value: 'baz'}});
-
-      await tick();
-      wrapper.update();
-
-      // Is in select menu
-      expect(wrapper.find('Select').prop('options')).toEqual([
-        expect.objectContaining({
-          value: 'baz',
-          label: 'Baz Label',
-        }),
-      ]);
-
-      // Select item
-      wrapper.find('input[id="id-fieldName"]').simulate('keyDown', {keyCode: 13});
-
-      // SelectControl MUST have the value object, not just a simple value
-      // otherwise it means that selecting an item that has been populated in the menu by
-      // an async request will not work (nothing will appear selected).
-      expect(wrapper.find('SelectControl').prop('value')).toEqual({
+    // Is in select menu
+    expect(wrapper.find('Select').prop('options')).toEqual([
+      expect.objectContaining({
         value: 'baz',
-        label: expect.anything(),
-      });
+        label: 'Baz Label',
+      }),
+    ]);
+  });
 
-      wrapper.find('Form').simulate('submit');
-      expect(submitMock).toHaveBeenCalledWith(
-        {
-          fieldName: 'baz',
-        },
-        expect.anything(),
-        expect.anything()
-      );
+  it('with Form context', async function () {
+    const submitMock = jest.fn();
+    const wrapper = mountWithTheme(
+      <Form onSubmit={submitMock}>
+        <SelectAsyncField url="/foo/bar/" name="fieldName" />
+      </Form>,
+      {}
+    );
+    await selectByQuery(wrapper, 'baz', {control: true});
+    await tick();
+    wrapper.update();
+
+    // Is in select menu
+    expect(wrapper.find('Select').prop('options')).toEqual([
+      expect.objectContaining({
+        value: 'baz',
+        label: 'Baz Label',
+      }),
+    ]);
+
+    // Select item
+    selectByValue(wrapper, 'baz', {control: true});
+
+    // SelectControl MUST have the value object, not just a simple value
+    // otherwise it means that selecting an item that has been populated in the menu by
+    // an async request will not work (nothing will appear selected).
+    expect(wrapper.find('SelectControl').prop('value')).toEqual({
+      value: 'baz',
+      label: expect.anything(),
     });
+
+    wrapper.find('Form').simulate('submit');
+    expect(submitMock).toHaveBeenCalledWith(
+      {
+        fieldName: 'baz',
+      },
+      expect.anything(),
+      expect.anything()
+    );
   });
 });
