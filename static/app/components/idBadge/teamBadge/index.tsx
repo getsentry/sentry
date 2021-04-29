@@ -1,7 +1,5 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
-import Reflux from 'reflux';
 
 import TeamStore from 'app/stores/teamStore';
 import {Team} from 'app/types';
@@ -10,20 +8,14 @@ import Badge from './badge';
 
 type Props = React.ComponentProps<typeof Badge>;
 
-type ContainerState = {
+type State = {
   team: Team;
 };
 
-const TeamBadgeContainer = createReactClass<Props, ContainerState>({
-  displayName: 'TeamBadgeContainer',
-  mixins: [Reflux.listenTo(TeamStore, 'onTeamStoreUpdate') as any],
-  getInitialState() {
-    return {
-      team: this.props.team,
-    };
-  },
+class TeamBadgeContainer extends React.Component<Props, State> {
+  state: State = {team: this.props.team};
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (this.state.team === nextProps.team) {
       return;
     }
@@ -33,7 +25,16 @@ const TeamBadgeContainer = createReactClass<Props, ContainerState>({
     }
 
     this.setState({team: nextProps.team});
-  },
+  }
+
+  componentWillUnmount() {
+    this.unlistener?.();
+  }
+
+  unlistener = TeamStore.listen(
+    (team: Set<string>) => this.onTeamStoreUpdate(team),
+    undefined
+  );
 
   onTeamStoreUpdate(updatedTeam: Set<string>) {
     if (!updatedTeam.has(this.state.team.id)) {
@@ -46,11 +47,11 @@ const TeamBadgeContainer = createReactClass<Props, ContainerState>({
     }
 
     this.setState({team});
-  },
+  }
 
   render() {
     return <Badge {...this.props} team={this.state.team} />;
-  },
-});
+  }
+}
 
 export default TeamBadgeContainer;
