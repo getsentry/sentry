@@ -45,7 +45,37 @@ class GitHubClientMixin(ApiClient):
         return self.get("/search/repositories", params={"q": query})
 
     def get_assignees(self, repo):
-        return self.get(f"/repos/{repo}/assignees")
+        return self.get_with_pagination(f"/repos/{repo}/assignees")
+
+    def get_with_pagination(self, path, *args, **kwargs):
+        """
+        Github uses the Link header to provide pagination links. Github recommends using the provided link relations and not constructing our own URL.
+        https://docs.github.com/en/rest/guides/traversing-with-pagination
+        """
+        output = []
+        resp = self.get(path, params={"per_page": self.page_size})
+        output.extend(resp)
+
+        def get_next_link(resp):
+            link = resp.headers.get("link")
+            if link is None:
+                return None
+
+            # Should be a comma separated string of links
+            links = link.split(",")
+
+            for link in links:
+                # If there is a 'next' link return the URL between the angle brackets, or None
+                if 'rel="next"' in link:
+                    return link[link.find("<") + 1 : link.find(">")]
+
+            return None
+
+        while get_next_link(resp):
+            resp = self.get(get_next_link(resp))
+            output.extend(resp)
+
+        return output
 
     def get_issues(self, repo):
         return self.get(f"/repos/{repo}/issues")
