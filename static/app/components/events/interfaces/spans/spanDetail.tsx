@@ -1,6 +1,8 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 import map from 'lodash/map';
 
 import {Client} from 'app/api';
@@ -24,7 +26,7 @@ import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
 import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconChevron, IconWarning} from 'app/icons';
+import {IconAnchor, IconChevron, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -53,6 +55,7 @@ type TransactionResult = {
 
 type Props = {
   api: Client;
+  location: Location;
   orgId: string;
   organization: Organization;
   event: Readonly<EventTransaction>;
@@ -461,6 +464,26 @@ class SpanDetail extends React.Component<Props, State> {
     };
   }
 
+  scrollBarIntoView = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // do not use the default anchor behaviour because it will
+    // be hidden behind the minimap
+    e.preventDefault();
+
+    const {location, span} = this.props;
+
+    if (isGapSpan(span)) {
+      return;
+    }
+
+    // trigger a location change, and let the spanBar component
+    // handle the rest
+    const hash = `#span-${span.span_id}`;
+    browserHistory.push({
+      ...location,
+      hash,
+    });
+  };
+
   renderSpanDetails() {
     const {span, event, organization} = this.props;
 
@@ -499,7 +522,15 @@ class SpanDetail extends React.Component<Props, State> {
         <SpanDetails>
           <table className="table key-value">
             <tbody>
-              <Row title="Span ID" extra={this.renderTraversalButton()}>
+              <Row
+                title={
+                  <SpanIdTitle onClick={this.scrollBarIntoView}>
+                    Span ID
+                    <StyledIconAnchor />
+                  </SpanIdTitle>
+                }
+                extra={this.renderTraversalButton()}
+              >
                 {span.span_id}
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
@@ -639,15 +670,29 @@ const Toggle = styled(Button)`
   }
 `;
 
+const SpanIdTitle = styled('a')`
+  display: flex;
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const StyledIconAnchor = styled(IconAnchor)`
+  display: block;
+  color: ${p => p.theme.gray300};
+  margin-left: ${space(1)};
+`;
+
 export const Row = ({
   title,
   keep,
   children,
   extra = null,
 }: {
-  title: string;
+  title: React.ReactNode;
+  children: React.ReactNode;
   keep?: boolean;
-  children: JSX.Element | string | null;
   extra?: React.ReactNode;
 }) => {
   if (!keep && !children) {
