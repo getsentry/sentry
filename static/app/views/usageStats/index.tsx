@@ -342,7 +342,6 @@ const DropdownDataCategory = styled(DropdownControl)`
   grid-column: auto / span 1;
   justify-self: stretch;
   align-self: stretch;
-  z-index: -1; /* Hide it below the dropdown from DropdownDate */
 
   button {
     width: 100%;
@@ -379,6 +378,7 @@ const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
+  z-index: ${p => p.theme.zIndex.globalSelectionHeader};
 
   /* TimeRageRoot in TimeRangeSelector */
   > div {
