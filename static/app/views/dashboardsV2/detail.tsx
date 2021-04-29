@@ -431,14 +431,16 @@ class DashboardDetail extends React.Component<Props, State> {
 
 const StyledPageHeader = styled('div')`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-row-gap: ${space(2)};
   align-items: center;
-  grid-gap: ${space(2)};
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.textColor};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: minmax(0, 1fr) max-content;
+    grid-column-gap: ${space(2)};
     height: 40px;
   }
 `;

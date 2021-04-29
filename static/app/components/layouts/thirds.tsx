@@ -91,6 +91,7 @@ export const Title = styled('h2')`
  */
 export const Header = styled('div')`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background-color: transparent;
   border-bottom: 1px solid ${p => p.theme.border};

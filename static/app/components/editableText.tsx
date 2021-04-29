@@ -176,9 +176,12 @@ const InnerLabel = styled(TextOverflow)`
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
   display: inline-block;
   background: ${p => p.theme.gray100};
-  margin: -${space(0.5)} -${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   max-width: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin: -${space(0.5)} -${space(1)};
+  }
 `;
 
 const StyledInput = styled(Input)`
