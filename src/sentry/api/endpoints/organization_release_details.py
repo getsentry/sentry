@@ -14,7 +14,7 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.models import Activity, Project, Release, ReleaseCommitError
 from sentry.models.release import UnsafeReleaseDeletion
-from sentry.snuba.sessions import STATS_PERIODS
+from sentry.snuba.sessions import STATS_PERIODS, get_release_sessions_time_bounds
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -38,10 +38,13 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
         :pparam string version: the version identifier of the release.
         :auth: required
         """
+        # Dictionary responsible for storing selected project meta data
+        current_project_meta = {}
         project_id = request.GET.get("project")
         with_health = request.GET.get("health") == "1"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
         if health_stats_period and health_stats_period not in STATS_PERIODS:
@@ -62,6 +65,20 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
                 raise ParseError(detail="Invalid project")
             release._for_project_id = project.id
 
+        if project_id:
+            # Add sessions time bound to current project meta data
+            environments = set(request.GET.getlist("environment")) or None
+            current_project_meta.update(
+                {
+                    **get_release_sessions_time_bounds(
+                        project_id=int(project_id),
+                        release=release.version,
+                        org_id=organization.id,
+                        environments=environments,
+                    )
+                }
+            )
+
         return Response(
             serialize(
                 release,
@@ -69,6 +86,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
                 with_health_data=with_health,
                 summary_stats_period=summary_stats_period,
                 health_stats_period=health_stats_period,
+                current_project_meta=current_project_meta,
             )
         )
 
