@@ -380,15 +380,18 @@ const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
 
+  /* TimeRageRoot in TimeRangeSelector */
   > div {
     width: 100%;
     align-self: stretch;
   }
 
+  /* StyledItemHeader used to show selected value of TimeRangeSelector */
   > div > div:first-child {
     padding: 0 ${space(2)};
   }
 
+  /* Menu that dropdowns from TimeRangeSelector */
   > div > div:last-child {
     /* Remove awkward 1px width difference on dropdown due to border */
     box-sizing: content-box;
