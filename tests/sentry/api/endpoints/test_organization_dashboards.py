@@ -147,3 +147,20 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"title": self.dashboard.title})
         assert response.status_code == 409
         assert response.data == "Dashboard title already taken"
+
+    def test_duplicate_dashboard(self):
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": self.dashboard.title, "duplicate": True},
+        )
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == f"{self.dashboard.title} copy"
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": self.dashboard.title, "duplicate": True},
+        )
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == f"{self.dashboard.title} copy 1"

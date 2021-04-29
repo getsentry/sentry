@@ -10,24 +10,45 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
+import {
+  createDashboard,
+  deleteDashboard,
+  fetchDashboard,
+} from 'app/actionCreators/dashboards';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import withApi from 'app/utils/withApi';
 import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
+
+import ContextMenu from '../contextMenu';
+import {cloneDashboard} from '../utils';
 
 import DashboardCard from './dashboardCard';
 
 type Props = {
+  api: Client;
   organization: Organization;
   location: Location;
   dashboards: DashboardListItem[] | null;
   pageLinks: string;
+  onDashboardsChange: () => void;
 };
 
-function DashboardList({organization, location, dashboards, pageLinks}: Props) {
+function DashboardList({
+  api,
+  organization,
+  location,
+  dashboards,
+  pageLinks,
+  onDashboardsChange,
+}: Props) {
   function miniWidget(displayType: DisplayType): string {
     switch (displayType) {
       case DisplayType.BAR:
@@ -44,6 +65,30 @@ function DashboardList({organization, location, dashboards, pageLinks}: Props) {
       default:
         return WidgetLine;
     }
+  }
+
+  function handleDelete(dashboard: DashboardListItem) {
+    deleteDashboard(api, organization.slug, dashboard.id)
+      .then(() => {
+        onDashboardsChange();
+        addSuccessMessage(t('Dashboard deleted'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Error deleting Dashboard'));
+      });
+  }
+
+  function handleDuplicate(dashboard: DashboardListItem) {
+    fetchDashboard(api, organization.slug, dashboard.id)
+      .then(dashboardDetail => {
+        const newDashboard = cloneDashboard(dashboardDetail);
+        newDashboard.widgets.map(widget => (widget.id = undefined));
+        createDashboard(api, organization.slug, newDashboard, true).then(() => {
+          onDashboardsChange();
+          addSuccessMessage(t('Dashboard duplicated'));
+        });
+      })
+      .catch(() => addErrorMessage(t('Error duplicating Dashboard')));
   }
 
   function renderMiniDashboards() {
@@ -77,6 +122,28 @@ function DashboardList({organization, location, dashboards, pageLinks}: Props) {
                 );
               })}
             </WidgetGrid>
+          )}
+          renderContextMenu={() => (
+            <ContextMenu>
+              <MenuItem
+                data-test-id="dashboard-delete"
+                onClick={event => {
+                  event.preventDefault();
+                  handleDelete(dashboard);
+                }}
+              >
+                {t('Delete')}
+              </MenuItem>
+              <MenuItem
+                data-test-id="dashboard-duplicate"
+                onClick={event => {
+                  event.preventDefault();
+                  handleDuplicate(dashboard);
+                }}
+              >
+                {t('Duplicate')}
+              </MenuItem>
+            </ContextMenu>
           )}
         />
       );
@@ -179,4 +246,4 @@ const PaginationRow = styled(Pagination)`
   margin-bottom: ${space(3)};
 `;
 
-export default DashboardList;
+export default withApi(DashboardList);

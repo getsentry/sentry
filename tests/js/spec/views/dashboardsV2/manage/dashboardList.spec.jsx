@@ -4,10 +4,18 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DashboardList from 'app/views/dashboardsV2/manage/dashboardList';
 
+function openContextMenu(card) {
+  card.find('DropdownMenu MoreOptions svg').simulate('click');
+}
+
+function clickMenuItem(card, selector) {
+  card.find(`DropdownMenu MenuItem[data-test-id="${selector}"]`).simulate('click');
+}
+
 describe('Dashboards > DashboardList', function () {
-  let dashboards, widgets;
+  let dashboards, widgets, deleteMock, dashboardUpdateMock, createMock;
   const organization = TestStubs.Organization({
-    features: ['dashboards-manage'],
+    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
     projects: [TestStubs.Project()],
   });
 
@@ -64,6 +72,50 @@ describe('Dashboards > DashboardList', function () {
         widgetDisplay: ['line', 'table'],
       }),
     ];
+    deleteMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/',
+      method: 'DELETE',
+      statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '2',
+        title: 'Dashboard Demo',
+        widgets: [
+          {
+            id: '1',
+            title: 'Errors',
+            displayType: 'big_number',
+            interval: '5m',
+          },
+          {
+            id: '2',
+            title: 'Transactions',
+            displayType: 'big_number',
+            interval: '5m',
+          },
+          {
+            id: '3',
+            title: 'p50 of /api/cat',
+            displayType: 'big_number',
+            interval: '5m',
+          },
+        ],
+      },
+    });
+    createMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      method: 'POST',
+      statusCode: 200,
+    });
+    dashboardUpdateMock = jest.fn();
+  });
+
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
   });
 
   it('renders an empty list', function () {
@@ -121,5 +173,55 @@ describe('Dashboards > DashboardList', function () {
     const link = card.find('Link').last().prop('to');
     expect(link.pathname).toEqual(`/organizations/org-slug/dashboards/2/`);
     expect(link.query).toEqual({statsPeriod: '7d'});
+  });
+
+  it('can delete dashboards', async function () {
+    const wrapper = mountWithTheme(
+      <DashboardList
+        organization={organization}
+        dashboards={dashboards}
+        pageLinks=""
+        location={{query: {}}}
+        onDashboardsChange={dashboardUpdateMock}
+      />
+    );
+    let card = wrapper.find('DashboardCard').last();
+    expect(card.find('Title').text()).toEqual(dashboards[1].title);
+
+    openContextMenu(card);
+    wrapper.update();
+
+    card = wrapper.find('DashboardCard').last();
+    clickMenuItem(card, 'dashboard-delete');
+
+    await tick();
+
+    expect(deleteMock).toHaveBeenCalled();
+    expect(dashboardUpdateMock).toHaveBeenCalled();
+  });
+
+  it('can duplicate dashboards', async function () {
+    const wrapper = mountWithTheme(
+      <DashboardList
+        organization={organization}
+        dashboards={dashboards}
+        pageLinks=""
+        location={{query: {}}}
+        onDashboardsChange={dashboardUpdateMock}
+      />
+    );
+    let card = wrapper.find('DashboardCard').last();
+    expect(card.find('Title').text()).toEqual(dashboards[1].title);
+
+    openContextMenu(card);
+    wrapper.update();
+
+    card = wrapper.find('DashboardCard').last();
+    clickMenuItem(card, 'dashboard-duplicate');
+
+    await tick();
+
+    expect(createMock).toHaveBeenCalled();
+    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 });
