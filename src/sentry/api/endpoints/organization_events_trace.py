@@ -355,7 +355,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
 
         warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization}
 
-        # Look for extra roots
+        # Look for the roots
         roots: List[SnubaTransaction] = []
         for item in transactions:
             if is_root(item):
@@ -366,7 +366,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             sentry_sdk.set_tag("discover.trace-view.warning", "root.extra-found")
             logger.warning(
                 "discover.trace-view.root.extra-found",
-                {"extra_roots": roots, **warning_extra},
+                {"extra_roots": len(roots), **warning_extra},
             )
 
         return Response(
