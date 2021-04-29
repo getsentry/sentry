@@ -141,7 +141,7 @@ describe('UsageStats', function () {
         organization={organization}
         location={{
           query: {
-            pagePeriod: ninetyDays,
+            pageStatsPeriod: ninetyDays,
             dataCategory: DataCategory.TRANSACTIONS,
             transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
             sort: '-project',
@@ -221,7 +221,7 @@ describe('UsageStats', function () {
         organization={organization}
         location={{
           query: {
-            pagePeriod: ninetyDays,
+            pageStatsPeriod: ninetyDays,
             dataCategory: DataCategory.ERRORS,
             transform: CHART_OPTIONS_DATA_TRANSFORM[0].value,
             sort: '-project',
@@ -237,11 +237,22 @@ describe('UsageStats', function () {
     await tick();
     wrapper.update();
 
-    const optionPagePeriod = wrapper.find(`DropdownItem[eventKey="30d"]`);
-    optionPagePeriod.props().onSelect('30d');
+    const optionpagePeriod = wrapper.find(`TimeRangeSelector`);
+    optionpagePeriod.props().onUpdate({relative: '30d'});
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        pagePeriod: '30d',
+        pageStatsPeriod: '30d',
+      }),
+    });
+
+    optionpagePeriod
+      .props()
+      .onUpdate({start: '2021-01-01', end: '2021-01-31', utc: true});
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        pageStart: '2021-01-01T00:00:00Z',
+        pageEnd: '2021-01-31T00:00:00Z',
+        pageUtc: true,
       }),
     });
 
@@ -282,7 +293,7 @@ describe('UsageStats', function () {
           query: {
             pageStart: '2021-01-01T00:00:00Z',
             pageEnd: '2021-01-07T00:00:00Z',
-            pagePeriod: ninetyDays,
+            pageStatsPeriod: ninetyDays,
             pageUtc: true,
             dataCategory: DataCategory.TRANSACTIONS,
             transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
