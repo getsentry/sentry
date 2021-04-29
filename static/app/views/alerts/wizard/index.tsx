@@ -16,6 +16,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
+import {Dataset} from 'app/views/settings/incidentRules/types';
 
 import {
   AlertType,
@@ -53,7 +54,8 @@ class AlertWizard extends React.Component<Props, State> {
     const {organization, project, location} = this.props;
     const {alertOption} = this.state;
     const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
-    const isMetricAlert = !!metricRuleTemplate?.dataset;
+    const isMetricAlert = !!metricRuleTemplate;
+    const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
     const to = {
       pathname: `/organizations/${organization.slug}/alerts/${project.slug}/new/`,
@@ -82,7 +84,13 @@ class AlertWizard extends React.Component<Props, State> {
 
     return (
       <Feature
-        features={isMetricAlert ? ['incidents'] : []}
+        features={
+          isTransactionDataset
+            ? ['incidents', 'performance-view']
+            : isMetricAlert
+            ? ['incidents']
+            : []
+        }
         requireAll
         organization={organization}
         hookName="feature-disabled:alert-wizard-performance"
