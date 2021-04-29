@@ -991,8 +991,6 @@ SENTRY_FEATURES = {
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
     "organizations:alert-wizard": False,
-    # Enable new alert rules + incidents view
-    "organizations:alert-list": False,
     # Enable App Store Connect in debug files settings
     "projects:app-store-connect": False,
     # Adds additional filters and a new section to issue alert rules.
