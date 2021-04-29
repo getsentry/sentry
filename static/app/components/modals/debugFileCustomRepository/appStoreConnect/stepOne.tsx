@@ -1,27 +1,25 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Textarea from 'app/views/settings/components/forms/controls/textarea';
 import Field from 'app/views/settings/components/forms/field';
 
+import StepContent from './stepContent';
 import {StepOneData} from './types';
 
 type Props = {
   data: StepOneData;
   onChange: (data: StepOneData) => void;
+  isActive: boolean;
 };
 
-function StepOne({onChange, data}: Props) {
+function StepOne({onChange, data, isActive}: Props) {
   return (
-    <StyledList symbol="colored-numeric">
-      <ListItem>
-        {t('Enter your App Store Connect credentials')}
-        <ListItemContent>
+    <React.Fragment>
+      {t('Enter your App Store Connect credentials')}
+      {isActive && (
+        <StepContent>
           <Field
             label={t('Issuer')}
             inline={false}
@@ -82,18 +80,10 @@ function StepOne({onChange, data}: Props) {
               }
             />
           </Field>
-        </ListItemContent>
-      </ListItem>
-    </StyledList>
+        </StepContent>
+      )}
+    </React.Fragment>
   );
 }
 
 export default StepOne;
-
-const StyledList = styled(List)`
-  grid-gap: ${space(2)};
-`;
-
-const ListItemContent = styled('div')`
-  padding-top: ${space(2)};
-`;

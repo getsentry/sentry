@@ -1,26 +1,24 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
+import StepContent from './stepContent';
 import {StepTwoData} from './types';
 
 type Props = {
   data: StepTwoData;
   onChange: (data: StepTwoData) => void;
+  isActive: boolean;
 };
 
-function StepTwo({onChange, data}: Props) {
+function StepTwo({onChange, data, isActive}: Props) {
   return (
-    <StyledList symbol="colored-numeric" initialCounterValue={1}>
-      <ListItem>
-        {t('Enter your itunes credentials')}
-        <ListItemContent>
+    <React.Fragment>
+      {t('Enter your itunes credentials')}
+      {isActive && (
+        <StepContent>
           <Field
             label={t('Username')}
             inline={false}
@@ -49,18 +47,10 @@ function StepTwo({onChange, data}: Props) {
               onChange={e => onChange({...data, password: e.target.value})}
             />
           </Field>
-        </ListItemContent>
-      </ListItem>
-    </StyledList>
+        </StepContent>
+      )}
+    </React.Fragment>
   );
 }
 
 export default StepTwo;
-
-const StyledList = styled(List)`
-  grid-gap: ${space(2)};
-`;
-
-const ListItemContent = styled('div')`
-  padding-top: ${space(2)};
-`;

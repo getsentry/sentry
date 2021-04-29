@@ -1,26 +1,25 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
+import StepContent from './stepContent';
 import {App, StepFourData} from './types';
 
 type Props = {
   apps: App[];
   data: StepFourData;
   onChange: (data: StepFourData) => void;
+  isActive: boolean;
 };
 
-function StepFour({apps, onChange, data}: Props) {
+function StepFour({apps, onChange, data, isActive}: Props) {
   return (
-    <StyledList symbol="colored-numeric" initialCounterValue={2}>
-      <ListItem>
-        {t('Choose your app')}
-        <ListItemContent>
+    <React.Fragment>
+      {t('Choose your app')}
+      {isActive && (
+        <StepContent>
           <StyledSelectField
             name="app"
             choices={apps.map(app => [app.appId, app.name])}
@@ -34,21 +33,13 @@ function StepFour({apps, onChange, data}: Props) {
             flexibleControlStateSize
             stacked
           />
-        </ListItemContent>
-      </ListItem>
-    </StyledList>
+        </StepContent>
+      )}
+    </React.Fragment>
   );
 }
 
 export default StepFour;
-
-const StyledList = styled(List)`
-  grid-gap: ${space(2)};
-`;
-
-const ListItemContent = styled('div')`
-  padding-top: ${space(2)};
-`;
 
 const StyledSelectField = styled(SelectField)`
   padding-right: 0;

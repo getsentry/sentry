@@ -76,6 +76,7 @@ const ProjectContext = createReactClass<Props, State>({
   },
 
   getChildContext() {
+    console.log(this.state.project);
     return {
       project: this.state.project,
     };
