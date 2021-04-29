@@ -982,7 +982,7 @@ SENTRY_FEATURES = {
     # attachments
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
-    "organizations:inbox": False,
+    "organizations:inbox": True,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
