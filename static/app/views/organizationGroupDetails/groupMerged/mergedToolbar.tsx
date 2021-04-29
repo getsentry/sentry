@@ -10,8 +10,10 @@ import {t, tct} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
+  organization?: Organization;
   orgId: Organization['slug'];
   project: Project;
   groupId: Group['id'];
@@ -92,7 +94,8 @@ class MergedToolbar extends React.Component<Props, State> {
   };
 
   render() {
-    const {onUnmerge, onSplit, onToggleCollapse} = this.props;
+    const {onUnmerge, onSplit, onToggleCollapse, organization} = this.props;
+    const hasGroupingTreeFeature = organization?.features?.includes('grouping-tree-ui');
     const {
       unmergeList,
       unmergeLastCollapsed,
@@ -119,19 +122,21 @@ class MergedToolbar extends React.Component<Props, State> {
             </Button>
           </Confirm>
 
-          <Confirm
-            onConfirm={onSplit}
-            message={t(
-              'These events will be grouped into a new issue by more specific criteria (for instance more frames). Are you sure you want to split them out of the existing issue?'
-            )}
-          >
-            <Button
-              size="small"
-              title={tct('Splitting out [unmergeCount] events', {unmergeCount})}
+          {hasGroupingTreeFeature && (
+            <Confirm
+              onConfirm={onSplit}
+              message={t(
+                'These events will be grouped into a new issue by more specific criteria (for instance more frames). Are you sure you want to split them out of the existing issue?'
+              )}
             >
-              {t('Split')} ({unmergeCount || 0})
-            </Button>
-          </Confirm>
+              <Button
+                size="small"
+                title={tct('Splitting out [unmergeCount] events', {unmergeCount})}
+              >
+                {t('Split')} ({unmergeCount || 0})
+              </Button>
+            </Confirm>
+          )}
 
           <CompareButton
             size="small"
@@ -149,7 +154,7 @@ class MergedToolbar extends React.Component<Props, State> {
   }
 }
 
-export default MergedToolbar;
+export default withOrganization(MergedToolbar);
 
 const CompareButton = styled(Button)`
   margin-left: ${space(1)};
