@@ -94,6 +94,18 @@ def test_get_json_meta_type():
         )
         == "duration"
     )
+    assert (
+        get_json_meta_type(
+            "percentile_spans_total_time_0_5",
+            "Nullable(Float64)",
+            FunctionDetails(
+                "percentile(spans.total.time, 0.5)",
+                FUNCTIONS["percentile"],
+                {"column": "spans.total.time", "percentile": 0.5},
+            ),
+        )
+        == "duration"
+    )
 
 
 def test_parse_function():
@@ -111,6 +123,11 @@ def test_parse_function():
     assert parse_function("p75(spans.http)") == (
         "p75",
         ["spans.http"],
+        None,
+    )
+    assert parse_function("p75(spans.total.time)") == (
+        "p75",
+        ["spans.total.time"],
         None,
     )
     assert parse_function("apdex(300)") == ("apdex", ["300"], None)

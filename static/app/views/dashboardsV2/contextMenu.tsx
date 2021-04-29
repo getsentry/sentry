@@ -20,7 +20,7 @@ const ContextMenu = ({children}) => (
           })}
         >
           <DropdownTarget
-            {...getActorProps({
+            {...getActorProps<HTMLDivElement>({
               onClick: (event: MouseEvent) => {
                 event.stopPropagation();
                 event.preventDefault();

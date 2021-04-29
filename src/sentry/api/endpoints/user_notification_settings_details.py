@@ -88,7 +88,8 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
         :auth required:
         """
         validate_has_feature(user)
-        notification_settings = validate(request.data)
-        NotificationSetting.objects.update_settings_bulk(notification_settings, user=user)
+
+        notification_settings = validate(request.data, user=user)
+        NotificationSetting.objects.update_settings_bulk(notification_settings, user.actor_id)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

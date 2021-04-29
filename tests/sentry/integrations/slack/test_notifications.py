@@ -5,8 +5,8 @@ from django.utils import timezone
 from exam import fixture
 
 from sentry.integrations.slack.notifications import (
-    send_activity_notification_as_slack,
     send_issue_notification_as_slack,
+    send_notification_as_slack,
 )
 from sentry.mail import mail_adapter
 from sentry.models import (
@@ -39,7 +39,7 @@ from tests.sentry.mail.activity import ActivityTestCase
 
 def send_notification(*args):
     args_list = list(args)[1:]
-    send_activity_notification_as_slack(*args_list)
+    send_notification_as_slack(*args_list)
 
 
 def send_issue_notification(*args):

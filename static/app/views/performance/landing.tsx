@@ -232,6 +232,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     if (isNavigatingAwayFromTrends) {
       // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
       conditions.removeTag('tpm()');
+      conditions.removeTag('confidence()');
       conditions.removeTag('transaction.duration');
 
       newQuery.query = stringifyQueryObject(conditions);

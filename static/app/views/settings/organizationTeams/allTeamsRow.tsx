@@ -65,7 +65,13 @@ class AllTeamsRow extends React.Component<Props, State> {
     });
   };
 
-  joinTeam = ({successMessage, errorMessage}) => {
+  joinTeam = ({
+    successMessage,
+    errorMessage,
+  }: {
+    successMessage: React.ReactNode;
+    errorMessage: React.ReactNode;
+  }) => {
     const {api, organization, team} = this.props;
 
     this.setState({
