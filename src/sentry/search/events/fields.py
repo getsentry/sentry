@@ -1350,6 +1350,13 @@ FUNCTIONS = {
             column=["abs", [["minus", [ArgValue("column"), ArgValue("target")]]], None],
             default_result_type="duration",
         ),
+        # Currently only being used by performance facets
+        Function(
+            "sum_delta",
+            required_args=[DurationColumnNoLookup("column"), NumberRange("target", 0, None)],
+            column=["sum", [["minus", [ArgValue("column"), ArgValue("target")]]], None],
+            default_result_type="duration",
+        ),
         # These range functions for performance trends, these aren't If functions
         # to avoid allowing arbitrary if statements
         # Not yet supported in Discover, and shouldn't be added to fields.tsx
