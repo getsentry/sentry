@@ -398,7 +398,11 @@ def detect_dif_from_path(path, name=None, debug_id=None):
             logger.warning("bcsymbolmap.bad-file", exc_info=True)
             raise BadDif("Invalid BCSymbolMap: %s" % e)
         else:
-            return [DifMeta(file_format="bcsymbolmap", arch="any", debug_id=debug_id, path=path)]
+            return [
+                DifMeta(
+                    file_format="bcsymbolmap", arch="any", debug_id=debug_id, name=name, path=path
+                )
+            ]
     elif dif_kind == DifKind.PList:
         try:
             UuidMapping.from_plist(debug_id, path)
@@ -406,7 +410,9 @@ def detect_dif_from_path(path, name=None, debug_id=None):
             logger.warning("plist.bad-file", exc_info=True)
             raise BadDif("Invalid PList: %s" % e)
         else:
-            return [DifMeta(file_format="plist", arch="any", debug_id=debug_id, path=path)]
+            return [
+                DifMeta(file_format="plist", arch="any", debug_id=debug_id, name=name, path=path)
+            ]
     else:
         # native debug information files (MachO, ELF or Breakpad)
         try:
