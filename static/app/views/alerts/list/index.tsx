@@ -279,7 +279,10 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <React.Fragment>
-                  <Feature features={['alert-list']} organization={organization}>
+                  <Feature
+                    features={['alert-details-redesign']}
+                    organization={organization}
+                  >
                     <Alert icon={<IconInfo />}>
                       {t('This page only shows metric alerts that have been triggered.')}
                     </Alert>
