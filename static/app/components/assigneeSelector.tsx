@@ -296,22 +296,46 @@ class AssigneeSelector extends React.Component<Props, State> {
   renderNewDropdownItems(): ItemsBeforeFilter {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
+    const suggestedAssignees = new Set(this.renderSuggestedAssigneeNodes() ?? []);
+    const assigneesSearchKey: string[] = [];
+    const filteredTeams: ItemsBeforeFilter = [];
+    const filteredMembers: ItemsBeforeFilter = [];
+
+    // filter out duplicates of Team/Member if also a Suggested Assignee
+    if ([...suggestedAssignees].length) {
+      [...suggestedAssignees].filter(assignee =>
+        assigneesSearchKey.push(assignee.searchKey)
+      );
+      teams.filter(team => {
+        return assigneesSearchKey.includes(team.searchKey)
+          ? null
+          : filteredTeams.push(team);
+      });
+      members.filter(member => {
+        return assigneesSearchKey.includes(member.searchKey)
+          ? null
+          : filteredMembers.push(member);
+      });
+    }
 
     const dropdownItems: ItemsBeforeFilter = [
-      {label: this.renderDropdownGroupLabel(t('Teams')), id: 'team-header', items: teams},
+      {
+        label: this.renderDropdownGroupLabel(t('Teams')),
+        id: 'team-header',
+        items: filteredTeams.length ? filteredTeams : teams,
+      },
       {
         label: this.renderDropdownGroupLabel(t('People')),
         id: 'members-header',
-        items: members,
+        items: filteredMembers.length ? filteredMembers : members,
       },
     ];
 
-    const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
-    if (suggestedAssignees.length) {
+    if ([...suggestedAssignees].length) {
       dropdownItems.unshift({
         label: this.renderDropdownGroupLabel(t('Suggested')),
         id: 'suggested-header',
-        items: suggestedAssignees,
+        items: [...suggestedAssignees],
       });
     }
 
