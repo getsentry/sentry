@@ -21,9 +21,11 @@ NC='\033[0m'
 
 log_message "********* Taking the snapshot from Postgres *********"
 
+cd "$(dirname "$0")"
+
 docker run \
--v "$(pwd)"/config/cdc/configuration.yaml:/etc/cdc/configuration.yaml \
--v "$(pwd)"/config/cdc/cdc-snapshot-config.yaml:/etc/cdc/cdc-snapshot-config.yaml \
+-v "$(pwd)"/../config/cdc/configuration.yaml:/etc/cdc/configuration.yaml \
+-v "$(pwd)"/../config/cdc/cdc-snapshot-config.yaml:/etc/cdc/cdc-snapshot-config.yaml \
 -v /tmp/cdc-snapshots:/tmp/cdc-snapshots \
 --rm \
 --network sentry \
@@ -32,7 +34,7 @@ cdc -c /etc/cdc/configuration.yaml \
 snapshot --snapshot-config /etc/cdc/cdc-snapshot-config.yaml \
 2>&1 | tee /tmp/cdc-snapshots/snapshot.log
 
-SNAPSHOT_ID=$(awk '{ if($4=="Starting" && $5=="snapshot" && $6=="ID") print $7}' snapshot.log )
+SNAPSHOT_ID=$(awk '{ if($4=="Starting" && $5=="snapshot" && $6=="ID") print $7}' /tmp/cdc-snapshots/snapshot.log )
 SNAPSHOT_PATH="/tmp/cdc-snapshots/cdc_snapshot_snuba_$SNAPSHOT_ID"
 rm /tmp/cdc-snapshots/snapshot.log
 
