@@ -23,7 +23,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
-import {ContextMenu} from './contextMenu';
+import ContextMenu from './contextMenu';
 import {Widget} from './types';
 import {eventViewFromWidget} from './utils';
 import WidgetCardChart from './widgetCardChart';

@@ -27,7 +27,7 @@ import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
 
-import {ContextMenu} from '../contextMenu';
+import ContextMenu from '../contextMenu';
 import {cloneDashboard} from '../utils';
 
 import DashboardCard from './dashboardCard';

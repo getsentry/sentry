@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import DropdownMenu from 'app/components/dropdownMenu';
 import {IconEllipsis} from 'app/icons';
 
-export const ContextMenu = ({children}) => (
+const ContextMenu = ({children}) => (
   <DropdownMenu>
     {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
       const topLevelCx = classNames('dropdown', {
@@ -49,3 +49,5 @@ const DropdownTarget = styled('div')`
   display: flex;
   cursor: pointer;
 `;
+
+export default ContextMenu;
