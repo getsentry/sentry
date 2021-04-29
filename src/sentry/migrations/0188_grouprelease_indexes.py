@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0187_backfill_me_or_none copy"),
+        ("sentry", "0187_backfill_me_or_none"),
     ]
 
     operations = [
