@@ -177,17 +177,15 @@ const InputWrapper = styled('div')<{isEmpty: boolean}>`
   display: inline-block;
   background: ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
+  margin: -${space(0.5)} -${space(1)};
   max-width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin: -${space(0.5)} -${space(1)};
-  }
 `;
 
 const StyledInput = styled(Input)`
   border: none !important;
   background: transparent;
   height: auto;
+  min-height: 34px;
   padding: ${space(0.5)} ${space(1)};
   &,
   &:focus,
