@@ -6,11 +6,17 @@ import ManageDashboards from 'app/views/dashboardsV2/manage';
 
 describe('Dashboards > Detail', function () {
   const mockUnauthorizedOrg = TestStubs.Organization({
-    features: [],
+    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 
   const mockAuthorizedOrg = TestStubs.Organization({
-    features: ['dashboards-manage'],
+    features: [
+      'global-views',
+      'dashboards-basic',
+      'dashboards-edit',
+      'discover-query',
+      'dashboards-manage',
+    ],
   });
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -22,6 +28,10 @@ describe('Dashboards > Detail', function () {
       body: [],
     });
   });
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+  });
+
   it('denies access on missing feature', function () {
     const wrapper = mountWithTheme(
       <ManageDashboards

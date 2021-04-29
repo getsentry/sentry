@@ -997,6 +997,8 @@ SENTRY_FEATURES = {
     "organizations:alert-wizard": False,
     # Enable new alert rules + incidents view
     "organizations:alert-list": False,
+    # Enable App Store Connect in debug files settings
+    "projects:app-store-connect": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

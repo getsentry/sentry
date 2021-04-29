@@ -1,6 +1,6 @@
 /* global __dirname */
+import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
-import Adapter from 'enzyme-adapter-react-16';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
 
@@ -26,6 +26,11 @@ if (!SVGElement.prototype.getTotalLength) {
 
 /**
  * Enzyme configuration
+ *
+ * TODO(epurkhiser): We're using @wojtekmaj's react-17 enzyme adapter, until
+ * the offical adapter has been released.
+ *
+ * https://github.com/enzymejs/enzyme/issues/2429
  */
 Enzyme.configure({adapter: new Adapter()});
 
