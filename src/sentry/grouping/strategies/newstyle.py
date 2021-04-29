@@ -48,6 +48,9 @@ RECURSION_COMPARISON_FIELDS = [
     "colno",
 ]
 
+# Ignore all those kinds of exception types as they are platform specific
+# For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
+# the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS
 _discard_native_error_code_re = re.compile(
     r"""(
     ^EXC_ |
