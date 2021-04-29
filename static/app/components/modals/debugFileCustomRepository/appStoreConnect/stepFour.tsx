@@ -11,31 +11,25 @@ type Props = {
   apps: App[];
   data: StepFourData;
   onChange: (data: StepFourData) => void;
-  isActive: boolean;
 };
 
-function StepFour({apps, onChange, data, isActive}: Props) {
+function StepFour({apps, onChange, data}: Props) {
   return (
-    <React.Fragment>
-      {t('Choose your app')}
-      {isActive && (
-        <StepContent>
-          <StyledSelectField
-            name="app"
-            choices={apps.map(app => [app.appId, app.name])}
-            placeholder={t('Select app')}
-            onChange={appId => {
-              const selectedApp = apps.find(app => app.appId === appId);
-              onChange({...data, app: selectedApp});
-            }}
-            value={data.app?.appId ?? ''}
-            inline={false}
-            flexibleControlStateSize
-            stacked
-          />
-        </StepContent>
-      )}
-    </React.Fragment>
+    <StepContent>
+      <StyledSelectField
+        name="app"
+        choices={apps.map(app => [app.appId, app.name])}
+        placeholder={t('Select app')}
+        onChange={appId => {
+          const selectedApp = apps.find(app => app.appId === appId);
+          onChange({...data, app: selectedApp});
+        }}
+        value={data.app?.appId ?? ''}
+        inline={false}
+        flexibleControlStateSize
+        stacked
+      />
+    </StepContent>
   );
 }
 

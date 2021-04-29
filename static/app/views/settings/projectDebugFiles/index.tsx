@@ -176,18 +176,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     const {orgId, projectId} = params;
     const {features, access} = organization;
 
-    if (
-      organization.features?.includes('app-store-connect') &&
-      !(fields.symbolSources as any).addDropdown.items.find(
-        item => item.value === 'appStoreConnect'
-      )
-    ) {
-      (fields.symbolSources as any).addDropdown.items.push({
-        value: 'appStoreConnect',
-        label: t(DEBUG_SOURCE_TYPES.appStoreConnect),
-        searchKey: t('apple store connect'),
-      });
-    }
+    const fieldsSymbolSources = this.getFieldsSymbolSources();
 
     const fieldProps = {
       organization,

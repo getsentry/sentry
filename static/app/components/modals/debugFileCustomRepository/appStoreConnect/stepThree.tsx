@@ -15,43 +15,35 @@ type Props = {
   useSms: boolean;
   onChange: (data: StepThreeData) => void;
   onSendCodeViaSms: () => void;
-  isActive: boolean;
 };
 
-function StepThree({data, useSms, onChange, onSendCodeViaSms, isActive}: Props) {
+function StepThree({data, useSms, onChange, onSendCodeViaSms}: Props) {
   return (
-    <React.Fragment>
-      {useSms
-        ? t('Enter the code you have received via Sms')
-        : t('Enter your iTunes authentication code')}
-      {isActive && (
-        <StepContent>
-          <StyledField
-            label={t('Two Factor authentication code')}
-            inline={false}
-            flexibleControlStateSize
-            stacked
-            required
-          >
-            <Input
-              type="text"
-              name="two-factor-authentication-code"
-              placeholder={t('Enter your code')}
-              value={data.itunesAuthenticationCode}
-              onChange={e =>
-                onChange({
-                  ...data,
-                  itunesAuthenticationCode: e.target.value,
-                })
-              }
-            />
-          </StyledField>
-          <Button priority="link" onClick={onSendCodeViaSms}>
-            {useSms ? t('Resend sms code') : t('Send code via sms')}
-          </Button>
-        </StepContent>
-      )}
-    </React.Fragment>
+    <StepContent>
+      <StyledField
+        label={t('Two Factor authentication code')}
+        inline={false}
+        flexibleControlStateSize
+        stacked
+        required
+      >
+        <Input
+          type="text"
+          name="two-factor-authentication-code"
+          placeholder={t('Enter your code')}
+          value={data.itunesAuthenticationCode}
+          onChange={e =>
+            onChange({
+              ...data,
+              itunesAuthenticationCode: e.target.value,
+            })
+          }
+        />
+      </StyledField>
+      <Button priority="link" onClick={onSendCodeViaSms}>
+        {useSms ? t('Resend sms code') : t('Send code via sms')}
+      </Button>
+    </StepContent>
   );
 }
 
