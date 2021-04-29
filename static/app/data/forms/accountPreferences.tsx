@@ -18,7 +18,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'theme',
         type: 'select',
-        deprecatedSelectControl: false,
         label: t('Theme'),
         help: t(
           "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
@@ -33,7 +32,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'stacktraceOrder',
         type: 'select',
-        deprecatedSelectControl: false,
         required: false,
         choices: [
           [-1, t('Default (let Sentry decide)')],
@@ -47,7 +45,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'language',
         type: 'select',
-        deprecatedSelectControl: false,
         label: t('Language'),
         choices: languages,
         getData: transformOptions,
@@ -55,7 +52,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'timezone',
         type: 'select',
-        deprecatedSelectControl: false,
         label: t('Timezone'),
         choices: timezones,
         getData: transformOptions,

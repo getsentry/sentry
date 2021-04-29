@@ -14,7 +14,6 @@ export const route = '/settings/:orgId/projects/:projectId/issue-grouping/';
 const groupingConfigField: Field = {
   name: 'groupingConfig',
   type: 'select',
-  deprecatedSelectControl: false,
   label: t('Grouping Config'),
   saveOnBlur: false,
   saveMessageAlertType: 'info',

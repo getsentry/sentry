@@ -17,7 +17,6 @@ type Props = {
   url: string;
   onResults: (data: any) => Result[]; //TODO(ts): Improve data type
   onQuery: (query: string | undefined) => {};
-  deprecatedSelectControl?: boolean;
 } & Pick<ControlProps, 'value' | 'forwardedRef'>;
 
 type State = {
@@ -83,20 +82,8 @@ class SelectAsyncControl extends React.Component<Props> {
       });
     }).then(
       resp => {
-        const {onResults, deprecatedSelectControl} = this.props;
-
-        // react-select v3 expects a bare list, while v2 requires an object with `options`.
-        if (!deprecatedSelectControl) {
-          return typeof onResults === 'function' ? onResults(resp) : resp;
-        }
-
-        // Note `SelectControl` expects this data type:
-        // {
-        //   options: [{ label, value}],
-        // }
-        return {
-          options: typeof onResults === 'function' ? onResults(resp) : resp,
-        };
+        const {onResults} = this.props;
+        return typeof onResults === 'function' ? onResults(resp) : resp;
       },
       err => {
         addErrorMessage(t('There was a problem with the request.'));

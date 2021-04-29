@@ -27,7 +27,6 @@ export default [
       {
         name: 'storeCrashReports',
         type: 'select',
-        deprecatedSelectControl: false,
         label: t('Store Native Crash Reports'),
         help: ({organization}) =>
           tct(
