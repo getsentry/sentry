@@ -55,6 +55,7 @@ class ReleaseProject(Model):
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
     new_groups = BoundedPositiveIntegerField(null=True, default=0)
+    date_added = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         app_label = "sentry"
@@ -352,7 +353,9 @@ class Release(Model):
 
         try:
             with transaction.atomic():
-                ReleaseProject.objects.create(project=project, release=self)
+                ReleaseProject.objects.create(
+                    project=project, release=self, date_added=self.date_added
+                )
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
                     project.update(flags=F("flags").bitor(Project.flags.has_releases))
