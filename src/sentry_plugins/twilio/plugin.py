@@ -14,6 +14,7 @@ from .client import TwilioApiClient
 
 DEFAULT_REGION = "US"
 MAX_SMS_LENGTH = 160
+MAX_SENDER_CODE_length = 11
 
 DESCRIPTION = """
 Get notified of Sentry alerts via SMS.
@@ -35,10 +36,9 @@ def validate_phone(phone):
     return True
 
 def validate_alphanumeric_sender(code):
-    max_code_length = 11
     if not code:
         return False
-    if len(code) > max_code_length:
+    if len(code) > MAX_SENDER_CODE_length:
         return False
 
     return True
@@ -83,9 +83,8 @@ class TwilioConfigurationForm(forms.Form):
 
     def clean_sms_from(self):
         data = self.cleaned_data["sms_from"]
-        if is_sender_alphanumeric_code(data):
-            if not validate_alphanumeric_sender(data):
-                raise forms.ValidationError(f"{data} is not a valid sender ID.")
+        if is_sender_alphanumeric_code(data) and not validate_alphanumeric_sender(data):
+            raise forms.ValidationError(f"{data} is not a valid sender ID.")
         if not validate_phone(data):
             raise forms.ValidationError(f"{data} is not a valid phone number.")
         return clean_phone(data)
