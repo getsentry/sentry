@@ -182,9 +182,9 @@ def query_facet_performance(
         having.append(["aggregate", ">", aggregate_comparison])
 
         if orderby is None:
-            orderby = []
+            resolved_orderby: List[str] = []
         else:
-            orderby = [orderby]
+            resolved_orderby: List[str] = [orderby]
 
         snuba_filter.conditions.append([aggregate_column, "IS NOT NULL", None])
 
