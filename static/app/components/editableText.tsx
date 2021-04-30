@@ -147,16 +147,14 @@ function EditableText({
           <InputLabel>{inputValue}</InputLabel>
         </InputWrapper>
       ) : (
-        <React.Fragment>
-          <Label
-            onClick={isDisabled ? undefined : handleEditClick}
-            ref={labelRef}
-            data-test-id="editable-text-label"
-          >
-            <InnerLabel>{inputValue}</InnerLabel>
-            {!isDisabled && <IconEdit />}
-          </Label>
-        </React.Fragment>
+        <Label
+          onClick={isDisabled ? undefined : handleEditClick}
+          ref={labelRef}
+          data-test-id="editable-text-label"
+        >
+          <InnerLabel>{inputValue}</InnerLabel>
+          {!isDisabled && <IconEdit />}
+        </Label>
       )}
     </Wrapper>
   );
