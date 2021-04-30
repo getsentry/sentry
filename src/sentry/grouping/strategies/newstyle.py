@@ -52,13 +52,17 @@ RECURSION_COMPARISON_FIELDS = [
 # For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
 # the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS
 _discard_native_error_code_re = re.compile(
-    r"""(
-    ^EXC_ |
-    ^EXCEPTION_ |
-    ^SIG |
-    ^KERN_ |
-    ^ILL_
-)""",
+    r"""
+    ^
+    (
+        EXC_ |
+        EXCEPTION_ |
+        SIG |
+        KERN_ |
+        ILL_
+    ) [A-Z0-9_ /]+
+    $
+    """,
     re.X,
 )
 
