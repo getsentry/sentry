@@ -119,7 +119,7 @@ def query_tag_data(
             query=filter_query,
             params=params,
             orderby=["-count"],
-            referrer="{}.{}".format(referrer, "all_transactions"),
+            referrer=f"{referrer}.all_transactions",
         )
         counts = [r["count"] for r in tag_data["data"]]
         aggregates = [r["aggregate"] for r in tag_data["data"]]
