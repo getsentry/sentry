@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -50,32 +50,32 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
 
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
-                with self.handle_query_errors():
-                    referrer = "api.organization-events-facets-performance.top-tags"
-                    tag_data = query_tag_data(
-                        filter_query=filter_query,
-                        aggregate_column=aggregate_column,
-                        referrer=referrer,
-                        params=params,
-                    )
+                referrer = "api.organization-events-facets-performance.top-tags"
+                tag_data = query_tag_data(
+                    filter_query=filter_query,
+                    aggregate_column=aggregate_column,
+                    referrer=referrer,
+                    params=params,
+                )
 
-                    if not tag_data:
-                        return {"data": []}
+                if not tag_data:
+                    return {"data": []}
 
-                    results = query_facet_performance(
-                        tag_data=tag_data,
-                        filter_query=filter_query,
-                        aggregate_column=aggregate_column,
-                        referrer=referrer,
-                        limit=limit,
-                        offset=offset,
-                        params=params,
-                    )
+                results = query_facet_performance(
+                    tag_data=tag_data,
+                    filter_query=filter_query,
+                    aggregate_column=aggregate_column,
+                    referrer=referrer,
+                    orderby=self.get_orderby(request),
+                    limit=limit,
+                    offset=offset,
+                    params=params,
+                )
 
-                    if not results:
-                        return {"data": []}
+                if not results:
+                    return {"data": []}
 
-                    return results
+                return results
 
         with self.handle_query_errors():
             return self.paginate(
@@ -134,6 +134,7 @@ def query_facet_performance(
     tag_data: Mapping[str, Any],
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
+    orderby: Optional[str] = None,
     referrer: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
@@ -180,10 +181,7 @@ def query_facet_performance(
         having = [excluded_tags]
         having.append(["aggregate", ">", aggregate_comparison])
 
-        if snuba_filter.orderby is None:
-            resolved_orderby: List[str] = []
-        else:
-            resolved_orderby: List[str] = [snuba_filter.orderby]
+        resolved_orderby = [] if orderby is None else orderby
 
         snuba_filter.conditions.append([translated_aggregate_column, "IS NOT NULL", None])
 

@@ -26,20 +26,20 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
 
         self._transaction_count = 0
 
-        for i in range(4):
+        for i in range(5):
             self.store_transaction(
-                tags=[["color", "blue"]],
-                duration=2000,
+                tags=[["color", "blue"], ["many", "yes"]],
+                duration=4000,
             )
-        for i in range(2):
+        for i in range(14):
             self.store_transaction(
-                tags=[["color", "red"]],
+                tags=[["color", "red"], ["many", "yes"]],
                 duration=1000,
             )
         for i in range(1):
             self.store_transaction(
-                tags=[["color", "green"]],
-                duration=4000,
+                tags=[["color", "green"], ["many", "no"]],
+                duration=5000,
             )
 
         self.url = reverse(
@@ -78,16 +78,33 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         assert response.status_code == 200, response.content
 
         data = response.data["data"]
-        assert len(data) == 1
+        assert len(data) == 2
         assert data[0] == {
             "aggregate": 4000000.0,
-            "comparison": 2.0,
-            "count": 1,
-            "frequency": 0.14285714285714285,
-            "sumdelta": 2000000.0,
+            "comparison": 2.051282051282051,
+            "count": 5,
+            "frequency": 0.25,
+            "sumdelta": 10250000.0,
             "tags_key": "color",
-            "tags_value": "green",
+            "tags_value": "blue",
         }
+
+    def test_sort_frequency(self):
+        response = self.do_request(
+            {
+                "aggregateColumn": "transaction.duration",
+                "sort": "-frequency",
+                "per_page": 5,
+                "statsPeriod": "14d",
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["count"] == 5
+        assert data[0]["tags_key"] == "color"
+        assert data[0]["tags_value"] == "blue"
 
     def test_multiple_projects_without_global_view(self):
         response = self.do_request(
