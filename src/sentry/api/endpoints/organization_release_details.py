@@ -1,9 +1,14 @@
+from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.endpoints.organization_releases import get_stats_period_detail
+from sentry.api.endpoints.organization_releases import (
+    _release_suffix,
+    add_environment_to_queryset,
+    get_stats_period_detail,
+)
 from sentry.api.exceptions import ConflictError, InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
@@ -12,10 +17,18 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseSerializer,
 )
-from sentry.models import Activity, Project, Release, ReleaseCommitError
+from sentry.models import Activity, Project, Release, ReleaseCommitError, ReleaseStatus
 from sentry.models.release import UnsafeReleaseDeletion
-from sentry.snuba.sessions import STATS_PERIODS, get_release_sessions_time_bounds
+from sentry.snuba.sessions import (
+    STATS_PERIODS,
+    get_adjacent_releases_based_on_adoption,
+    get_release_sessions_time_bounds,
+)
 from sentry.utils.sdk import bind_organization_context, configure_scope
+
+
+class InvalidSortException(Exception):
+    pass
 
 
 class OrganizationReleaseSerializer(ReleaseSerializer):
@@ -25,7 +38,253 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
 
 
-class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
+def add_query_filter_to_queryset(queryset, query):
+    """
+    Function that adds a query filtering to a queryset
+    """
+    if query:
+        query_q = Q(version__icontains=query)
+
+        suffix_match = _release_suffix.match(query)
+        if suffix_match is not None:
+            query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
+
+        queryset = queryset.filter(query_q)
+    return queryset
+
+
+def add_date_added_filter_to_queryset(queryset, filter_params):
+    """
+    Function that adds date_added filters based on stats_period to a queryset
+    """
+    if filter_params["start"] and filter_params["end"]:
+        queryset = queryset.filter(
+            date_added__gte=filter_params["start"], date_added__lte=filter_params["end"]
+        )
+    return queryset
+
+
+def add_status_filter_to_queryset(queryset, status_filter):
+    """
+    Function that adds status filter on a queryset
+    """
+    try:
+        status_int = ReleaseStatus.from_string(status_filter)
+    except ValueError:
+        raise ParseError(detail="invalid value for status")
+
+    if status_int == ReleaseStatus.OPEN:
+        queryset = queryset.filter(Q(status=status_int) | Q(status=None))
+    else:
+        queryset = queryset.filter(status=status_int)
+    return queryset
+
+
+class OrganizationReleaseDetailsPaginationMixin:
+    @staticmethod
+    def __get_prev_release_date_query_q_and_order_by(release):
+        """
+        Method that takes a release and returns a dictionary containing a date query Q expression
+        and order by columns required to fetch previous release to that passed in release on date
+        sorting
+        """
+        return {
+            "date_query_q": [
+                Q(date_added__gte=release.date_added),
+                Q(date_added__gt=release.date_added) | Q(id__gt=release.id),
+            ],
+            "order_by": ["date_added", "id"],
+        }
+
+    @staticmethod
+    def __get_next_release_date_query_q_and_order_by(release):
+        """
+        Method that takes a release and returns a dictionary containing a date query Q expression
+        and order by columns required to fetch next release to that passed in release on date
+        sorting
+        """
+        return {
+            "date_query_q": [
+                Q(date_added__lte=release.date_added),
+                Q(date_added__lt=release.date_added) | Q(id__lt=release.id),
+            ],
+            "order_by": ["-date_added", "-id"],
+        }
+
+    @staticmethod
+    def __filter_down_snuba_primary_results_according_to_status_and_query(
+        org, project_ids, version_list, status_filter, query
+    ):
+        """
+        Helper function used to query Release model from the primary results of a snuba query
+        which happens when sorting on sessions, users, crash_free_users and crash_free_sessions
+        Inputs:-
+            * org: organization
+            * project_ids: list of project ids
+            * version_list: list of release versions
+            * status_filter: either open or archived
+            * query: query string
+        Returns:-
+            A list of filtered release versions in the same order it received it
+        """
+        queryset = Release.objects.filter(
+            organization=org, projects__id__in=project_ids, version__in=version_list
+        )
+
+        # Add status filter
+        queryset = add_status_filter_to_queryset(queryset, status_filter)
+
+        # Add query filter
+        queryset = add_query_filter_to_queryset(queryset, query)
+
+        # Required re ordering because django filter does not guarantee order of snuba primary order
+        release_list = list(queryset)
+        release_list.sort(key=lambda release: version_list.index(release.version))
+
+        return release_list
+
+    @staticmethod
+    def __get_release_according_to_filters_and_order_by_for_date_sort(
+        org,
+        filter_params,
+        status_filter,
+        query,
+        date_query_q,
+        order_by,
+    ):
+        """
+        Helper function that executes a query on Release table based on different filters
+        provided as inputs and orders that query based on `order_by` input provided
+        Inputs:-
+            * org: Organization object
+            * filter_params:
+            * status_filter: represents ReleaseStatus i.e. open, archived
+            * date_query_q: List that contains the Q expressions needed to sort based on date
+            * order_by: Contains columns that are used for ordering to sort based on date
+        Returns:-
+            Queryset that contains one element that represents either next or previous release
+            based on the inputs
+        """
+        queryset = Release.objects.filter(
+            organization=org,
+            projects__id__in=filter_params["project_id"],
+            *date_query_q,
+        )
+
+        # Add status filter
+        queryset = add_status_filter_to_queryset(queryset, status_filter)
+
+        # Add query filter
+        queryset = add_query_filter_to_queryset(queryset, query)
+
+        # Add env filter
+        queryset = add_environment_to_queryset(queryset, filter_params)
+
+        # Add stats_period filter
+        queryset = add_date_added_filter_to_queryset(queryset, filter_params)
+
+        # Orderby passed cols and limit to 1
+        queryset = queryset.order_by(*order_by)[:1]
+
+        return queryset
+
+    def get_adjacent_releases_to_current_release(
+        self, release, org, filter_params, status_filter, query, stats_period, sort
+    ):
+        """
+        Method that returns the prev and next release to a current release based on different
+        sort options
+        Inputs:-
+            * release: current release object
+            * org: organisation object
+            * filter_params
+            * status_filter
+            * query
+            * stats_period
+            * sort: sort option i.e. date, sessions, users, crash_free_users and crash_free_sessions
+        Returns:-
+            A dictionary of two keys `prev_release_version` and `next_release_version` representing
+            previous release and next release respectively
+        """
+        if sort == "date":
+            release_common_filters = {
+                "org": org,
+                "filter_params": filter_params,
+                "status_filter": status_filter,
+                "query": query,
+            }
+
+            # Get previous queryset of current release
+            prev_release_list = self.__get_release_according_to_filters_and_order_by_for_date_sort(
+                **release_common_filters,
+                **self.__get_prev_release_date_query_q_and_order_by(release),
+            )
+            # Get next queryset of current release
+            next_release_list = self.__get_release_according_to_filters_and_order_by_for_date_sort(
+                **release_common_filters,
+                **self.__get_next_release_date_query_q_and_order_by(release),
+            )
+
+        elif sort in (
+            "crash_free_sessions",
+            "crash_free_users",
+            "sessions",
+            "users",
+            "sessions_24h",
+            "users_24h",
+        ):
+            # Get primary results from snuba
+            prev_and_next_releases_list = get_adjacent_releases_based_on_adoption(
+                project_id=filter_params["project_id"][0],
+                org_id=org.id,
+                release=release.version,
+                scope=sort,
+                environments=filter_params.get("environment"),
+                stats_period=stats_period,
+            )
+
+            # Get previous queryset of current release
+            prev_release_list = (
+                self.__filter_down_snuba_primary_results_according_to_status_and_query(
+                    org=org.id,
+                    project_ids=filter_params["project_id"],
+                    version_list=prev_and_next_releases_list["prev_releases_list"],
+                    status_filter=status_filter,
+                    query=query,
+                )
+            )
+            # Get next queryset of current release
+            next_release_list = (
+                self.__filter_down_snuba_primary_results_according_to_status_and_query(
+                    org=org.id,
+                    project_ids=filter_params["project_id"],
+                    version_list=prev_and_next_releases_list["next_releases_list"],
+                    status_filter=status_filter,
+                    query=query,
+                )
+            )
+        else:
+            raise InvalidSortException
+
+        prev_release_version = None
+        if len(prev_release_list) > 0:
+            prev_release_version = prev_release_list[0].version
+
+        next_release_version = None
+        if len(next_release_list) > 0:
+            next_release_version = next_release_list[0].version
+
+        return {
+            "next_release_version": next_release_version,
+            "prev_release_version": prev_release_version,
+        }
+
+
+class OrganizationReleaseDetailsEndpoint(
+    OrganizationReleasesBaseEndpoint,
+    ReleaseAnalyticsMixin,
+    OrganizationReleaseDetailsPaginationMixin,
+):
     def get(self, request, organization, version):
         """
         Retrieve an Organization's Release
@@ -44,6 +303,10 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
         with_health = request.GET.get("health") == "1"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+        sort = request.GET.get("sort") or "date"
+        status_filter = request.GET.get("status", "open")
+        query = request.GET.get("query")
+        stats_period = request.GET.get("statsPeriod") or "14d"
 
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
@@ -78,6 +341,25 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
                     )
                 }
             )
+
+            # Get prev and next release to current release
+            try:
+                filter_params = self.get_filter_params(request, organization)
+                current_project_meta.update(
+                    {
+                        **self.get_adjacent_releases_to_current_release(
+                            org=organization,
+                            release=release,
+                            filter_params=filter_params,
+                            status_filter=status_filter,
+                            query=query,
+                            stats_period=stats_period,
+                            sort=sort,
+                        )
+                    }
+                )
+            except InvalidSortException:
+                return Response({"detail": "invalid sort"}, status=400)
 
         return Response(
             serialize(
