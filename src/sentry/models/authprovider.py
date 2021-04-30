@@ -30,7 +30,10 @@ class AuthProvider(Model):
     default_teams = models.ManyToManyField("sentry.Team", blank=True)
 
     flags = BitField(
-        flags=(("allow_unlinked", "Grant access to members who have not linked SSO accounts."),),
+        flags=(
+            ("allow_unlinked", "Grant access to members who have not linked SSO accounts."),
+            ("scim_enabled", "Enable SCIM for user and group provisioning and syncing"),
+        ),
         default=0,
     )
 

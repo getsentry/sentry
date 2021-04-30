@@ -264,6 +264,9 @@ class SAML2Provider(Provider):
     def get_setup_pipeline(self):
         return self.get_saml_setup_pipeline() + self.get_auth_pipeline()
 
+    def is_scim_enabled(self):
+        return False
+
     def get_saml_setup_pipeline(self):
         """
         Return a list of AuthViews to setup the SAML provider.
