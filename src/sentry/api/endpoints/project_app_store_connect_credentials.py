@@ -40,6 +40,11 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
     permission_classes = [StrictProjectPermission]
 
     def post(self, request, project):
+        if not features.has(
+            "organizations:app-store-connect", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
         serializer = AppStoreConnectCredentialsSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -53,13 +58,10 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
         )
         session = requests.Session()
 
-        try:
-            apps = appstore_connect.get_apps(session, credentials)
-        except Exception as e:
-            return Response(repr(e), status=400)
+        apps = appstore_connect.get_apps(session, credentials)
 
         if apps is None:
-            return Response("App connect authentication error", status=401)
+            return Response("App connect authentication error.", status=401)
 
         apps = [{"name": app.name, "bundleId": app.bundle_id, "appId": app.app_id} for app in apps]
         result = {"apps": apps}
@@ -105,7 +107,9 @@ class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
 
         if key is None:
             # probably stage 1 login was not called
-            return Response("Invalid state", status=400)
+            return Response(
+                "Invalid state. Must first call appstoreconnect/start/ endpoint.", status=400
+            )
 
         credentials = serializer.validated_data
 
@@ -118,14 +122,14 @@ class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
             encrypted_credentials = encrypt.encrypt_object(credentials, key)
             project.update_option(credentials_name(), encrypted_credentials)
         except ValueError:
-            return Response("Invalid validation context passed", status=400)
+            return Response("Invalid validation context passed.", status=400)
         return Response(status=204)
 
     def get(self, request, project):
         if not features.has(
             "organizations:app-store-connect", project.organization, actor=request.user
         ):
-            return Response(status=404)
+            return Response("", status=404)
 
         key = project.get_option(credentials_key_name())
         encrypted_credentials = project.get_option(credentials_name())
@@ -157,6 +161,11 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
         }
 
     def get(self, request, project):
+        if not features.has(
+            "organizations:app-store-connect", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
         key = project.get_option(credentials_key_name())
         encrypted_credentials = project.get_option(credentials_name())
         if key is None or encrypted_credentials is None:
@@ -201,7 +210,7 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
         if not features.has(
             "organizations:app-store-connect", project.organization, actor=request.user
         ):
-            return Response("Access denied", status=404)
+            return Response(status=404)
 
         serializer = AppStoreConnectStartAuthSerializer(data=request.data)
         if not serializer.is_valid():
@@ -224,36 +233,36 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
 
                 encrypted_credentials = project.get_option(credentials_name())
                 if key is None or encrypted_credentials is None:
-                    return Response("No credentials provided", status=400)
+                    return Response("No credentials provided.", status=400)
 
                 try:
                     cred_dict = encrypt.decrypt_object(encrypted_credentials, key)
                 except ValueError:
-                    return Response("Invalid credentials state", status=500)
+                    return Response("Invalid credentials state.", status=500)
 
                 user_name = cred_dict.get("itunes_user")
                 password = cred_dict.get("itunes_password")
 
                 if user_name is None or password is None:
-                    return Response("Invalid credentials", status=500)
+                    return Response("Invalid credentials.", status=500)
 
         session = requests.session()
 
         auth_key = itunes_connect.get_auth_service_key(session)
 
         if auth_key is None:
-            return Response("Could not contact itunes store", status=500)
+            return Response("Could not contact itunes store.", status=500)
 
         if user_name is None:
-            return Response("no user name provided", status=400)
+            return Response("No user name provided.", status=400)
         if password is None:
-            return Response("no password provided", status=400)
+            return Response("No password provided.", status=400)
 
         init_login_result = itunes_connect.initiate_login(
             session, service_key=auth_key, account_name=user_name, password=password
         )
         if init_login_result is None:
-            return Response("itunes login failed", status=400)
+            return Response("ITunes login failed.", status=401)
 
         # send session context to be used in next calls
         session_context = {
@@ -291,7 +300,9 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
         key = project.get_option(credentials_key_name())
 
         if key is None:
-            return Response("out of order call, call start auth first", status=400)
+            return Response(
+                "Invalid state. Must first call appstoreconnect/start/ endpoint.", status=400
+            )
 
         try:
             # recover the headers set in the first step authentication
@@ -302,7 +313,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
             auth_key = session_context.get("auth_key")
 
         except ValueError:
-            return Response("Invalid validation context passed", status=400)
+            return Response("Invalid validation context passed.", status=400)
 
         phone_info = itunes_connect.get_trusted_phone_info(
             session, service_key=auth_key, headers=headers
@@ -355,7 +366,9 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
 
         if key is None:
             # probably stage 1 login was not called
-            return Response("Invalid state", status=400)
+            return Response(
+                "Invalid state. Must first call appstoreconnect/start/ endpoint.", status=400
+            )
 
         try:
             # recover the headers set in the first step authentication
@@ -410,7 +423,7 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
 
                 return Response(response_body, status=200)
             else:
-                return Response("2FA failed", status=401)
+                return Response("2FA failed.", status=401)
 
         except ValueError:
-            return Response("Invalid validation context passed", status=400)
+            return Response("Invalid validation context passed.", status=400)
