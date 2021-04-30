@@ -340,7 +340,7 @@ class DashboardDetail extends React.Component<Props, State> {
     reloadData,
     error,
   }: Parameters<OrgDashboards['props']['children']>[0]) {
-    const {organization, params} = this.props;
+    const {organization, params, router} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
@@ -380,11 +380,12 @@ class DashboardDetail extends React.Component<Props, State> {
               <NotFound />
             ) : dashboard ? (
               <Dashboard
-                dashboard={modifiedDashboard || dashboard}
                 paramDashboardId={dashboardId}
+                dashboard={modifiedDashboard || dashboard}
                 organization={organization}
                 isEditing={this.isEditing}
                 onUpdate={this.onWidgetChange}
+                router={router}
               />
             ) : (
               <LoadingIndicator />
@@ -429,18 +430,18 @@ class DashboardDetail extends React.Component<Props, State> {
 }
 
 const StyledPageHeader = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-row-gap: ${space(2)};
   align-items: center;
-  justify-content: space-between;
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.textColor};
-  height: 40px;
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    flex-direction: column;
-    align-items: flex-start;
-    height: auto;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-column-gap: ${space(2)};
+    height: 40px;
   }
 `;
 

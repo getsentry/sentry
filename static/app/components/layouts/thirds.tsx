@@ -91,12 +91,13 @@ export const Title = styled('h2')`
  */
 export const Header = styled('div')`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background-color: transparent;
   border-bottom: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     padding: ${space(2)} ${space(4)} 0 ${space(4)};
   }
 `;

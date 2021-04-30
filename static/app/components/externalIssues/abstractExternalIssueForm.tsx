@@ -283,7 +283,6 @@ export default class AbstractExternalIssueForm<
                   .filter((field: FormField) => field.hasOwnProperty('name'))
                   .map(field => (
                     <FieldFromConfig
-                      deprecatedSelectControl={false}
                       disabled={this.state.reloading}
                       field={field}
                       flexibleControlStateSize

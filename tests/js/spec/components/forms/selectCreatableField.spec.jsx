@@ -1,154 +1,104 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {changeInputValue, openMenu} from 'sentry-test/select-new';
 
 import {Form, SelectCreatableField} from 'app/components/forms';
 
 describe('SelectCreatableField', function () {
-  describe('deprecatedSelectControl', function () {
-    it('can add user input into select field when using options', function () {
-      const wrapper = mountWithTheme(
-        <SelectCreatableField
-          deprecatedSelectControl
-          options={[{value: 'foo', label: 'Foo'}]}
-          name="fieldName"
-        />
-      );
+  it('can add user input into select field when using options', function () {
+    const wrapper = mountWithTheme(
+      <SelectCreatableField options={[{value: 'foo', label: 'Foo'}]} name="fieldName" />
+    );
 
-      wrapper
-        .find('input[id="id-fieldName"]')
-        .simulate('change', {target: {value: 'bar'}})
-        .simulate('keyDown', {keyCode: 13});
-      wrapper.update();
+    const input = wrapper.find('SelectControl input[type="text"]');
+    changeInputValue(input, 'bar');
+    wrapper.update();
 
-      // Is selected
-      expect(wrapper.find('.Select-value-label').text()).toBe('bar');
+    // Text is in input
+    expect(wrapper.find('SelectControl input[type="text"]').props().value).toBe('bar');
 
-      // Is in select menu
-      expect(wrapper.find('Select').prop('options')).toEqual([
-        expect.objectContaining({
-          value: 'bar',
-          label: 'bar',
-        }),
-        {
-          value: 'foo',
-          label: 'Foo',
-        },
-      ]);
-    });
+    // Click on create option
+    openMenu(wrapper, {control: true});
+    wrapper.find('SelectControl Option div').simulate('click');
 
-    it('can add user input into select field when using choices', function () {
-      const wrapper = mountWithTheme(
-        <SelectCreatableField
-          deprecatedSelectControl
-          choices={['foo']}
-          name="fieldName"
-        />
-      );
+    // Is active hidden input value
+    expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
+      'bar'
+    );
+  });
 
-      wrapper
-        .find('input[id="id-fieldName"]')
-        .simulate('change', {target: {value: 'bar'}})
-        .simulate('keyDown', {keyCode: 13});
-      wrapper.update();
+  it('can add user input into select field when using choices', function () {
+    const wrapper = mountWithTheme(
+      <SelectCreatableField choices={['foo']} name="fieldName" />
+    );
 
-      // Is selected
-      expect(wrapper.find('.Select-value-label').text()).toBe('bar');
+    const input = wrapper.find('SelectControl input[type="text"]');
+    changeInputValue(input, 'bar');
+    wrapper.update();
 
-      // Is in select menu
-      expect(wrapper.find('Select').prop('options')).toEqual([
-        expect.objectContaining({
-          value: 'bar',
-          label: 'bar',
-        }),
-        {
-          value: 'foo',
-          label: 'foo',
-        },
-      ]);
-    });
+    // Text is in input
+    expect(wrapper.find('SelectControl input[type="text"]').props().value).toBe('bar');
 
-    it('can add user input into select field when using paired choices', function () {
-      const wrapper = mountWithTheme(
-        <SelectCreatableField
-          deprecatedSelectControl
-          choices={[['foo', 'foo']]}
-          name="fieldName"
-        />
-      );
+    // Click on create option
+    openMenu(wrapper, {control: true});
+    wrapper.find('SelectControl Option div').simulate('click');
 
-      wrapper
-        .find('input[id="id-fieldName"]')
-        .simulate('change', {target: {value: 'bar'}})
-        .simulate('keyDown', {keyCode: 13});
-      wrapper.update();
+    // Is active hidden input value
+    expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
+      'bar'
+    );
+  });
 
-      // Is selected
-      expect(wrapper.find('.Select-value-label').text()).toBe('bar');
+  it('can add user input into select field when using paired choices', function () {
+    const wrapper = mountWithTheme(
+      <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />
+    );
 
-      // Is in select menu
-      expect(wrapper.find('Select').prop('options')).toEqual([
-        expect.objectContaining({
-          value: 'bar',
-          label: 'bar',
-        }),
-        {
-          value: 'foo',
-          label: 'foo',
-        },
-      ]);
-    });
+    const input = wrapper.find('SelectControl input[type="text"]');
+    changeInputValue(input, 'bar');
+    wrapper.update();
 
-    it('with Form context', function () {
-      const submitMock = jest.fn();
-      const wrapper = mountWithTheme(
-        <Form onSubmit={submitMock}>
-          <SelectCreatableField
-            deprecatedSelectControl
-            choices={[['foo', 'foo']]}
-            name="fieldName"
-          />
-        </Form>,
-        {}
-      );
+    // Text is in input
+    expect(wrapper.find('SelectControl input[type="text"]').props().value).toBe('bar');
 
-      wrapper
-        .find('input[id="id-fieldName"]')
-        .simulate('change', {target: {value: 'bar'}})
-        .simulate('keyDown', {keyCode: 13});
-      wrapper.update();
+    // Click on create option
+    openMenu(wrapper, {control: true});
+    wrapper.find('SelectControl Option div').simulate('click');
 
-      // Is selected
-      expect(wrapper.find('.Select-value-label').text()).toBe('bar');
+    // Is active hidden input value
+    expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
+      'bar'
+    );
+  });
 
-      // Is in select menu
-      expect(wrapper.find('Select').prop('options')).toEqual([
-        expect.objectContaining({
-          value: 'bar',
-          label: 'bar',
-        }),
-        {
-          value: 'foo',
-          label: 'foo',
-        },
-      ]);
+  it('with Form context', function () {
+    const submitMock = jest.fn();
+    const wrapper = mountWithTheme(
+      <Form onSubmit={submitMock}>
+        <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />
+      </Form>,
+      {}
+    );
 
-      // SelectControl should have the value object, not just a simple value
-      expect(wrapper.find('SelectControl').prop('value')).toEqual(
-        expect.objectContaining({
-          value: 'bar',
-          label: 'bar',
-        })
-      );
+    const input = wrapper.find('SelectControl input[type="text"]');
+    changeInputValue(input, 'bar');
+    wrapper.update();
 
-      wrapper.find('Form').simulate('submit');
-      expect(submitMock).toHaveBeenCalledWith(
-        {
-          fieldName: 'bar',
-        },
-        expect.anything(),
-        expect.anything()
-      );
-    });
+    // Text is in input
+    expect(wrapper.find('SelectControl input[type="text"]').props().value).toBe('bar');
+
+    // Click on create option
+    openMenu(wrapper, {control: true});
+    wrapper.find('SelectControl Option div').simulate('click');
+
+    wrapper.find('Form').simulate('submit');
+    expect(submitMock).toHaveBeenCalledWith(
+      {
+        fieldName: 'bar',
+      },
+      expect.anything(),
+      expect.anything()
+    );
   });
 });

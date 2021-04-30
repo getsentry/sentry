@@ -1,19 +1,20 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import PageHeading from 'app/components/pageHeading';
 import SearchBar from 'app/components/searchBar';
 import {t} from 'app/locale';
-import {PageContent, PageHeader} from 'app/styles/organization';
+import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 
@@ -22,6 +23,7 @@ import {DashboardListItem} from '../types';
 import DashboardList from './dashboardList';
 
 type Props = {
+  api: Client;
   organization: Organization;
   location: Location;
   router: ReactRouter.InjectedRouter;
@@ -49,14 +51,18 @@ class ManageDashboards extends AsyncView<Props, State> {
     ];
   }
 
-  handleSearch = (query: string) => {
+  onDashboardsChange() {
+    this.reloadData();
+  }
+
+  handleSearch(query: string) {
     const {location, router} = this.props;
 
     router.push({
       pathname: location.pathname,
       query: {...location.query, cursor: undefined, query},
     });
-  };
+  }
 
   getQuery() {
     const {query} = this.props.location.query;
@@ -71,7 +77,7 @@ class ManageDashboards extends AsyncView<Props, State> {
           defaultQuery=""
           query={this.getQuery()}
           placeholder={t('Search Dashboards')}
-          onSearch={this.handleSearch}
+          onSearch={query => this.handleSearch(query)}
         />
       </StyledActions>
     );
@@ -87,13 +93,15 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderDashboards() {
     const {dashboards, dashboardsPageLinks} = this.state;
-    const {organization, location} = this.props;
+    const {organization, location, api} = this.props;
     return (
       <DashboardList
+        api={api}
         dashboards={dashboards}
         organization={organization}
         pageLinks={dashboardsPageLinks}
         location={location}
+        onDashboardsChange={() => this.onDashboardsChange()}
       />
     );
   }
@@ -112,24 +120,31 @@ class ManageDashboards extends AsyncView<Props, State> {
         renderDisabled={this.renderNoAccess}
       >
         <LightWeightNoProjectMessage organization={organization}>
-          <PageContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: 'Dashboards',
-                  to: `/organizations/${organization.slug}/dashboards/`,
-                },
-                {
-                  label: 'Manage Dashboards',
-                },
-              ]}
-            />
-            <PageHeader>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  {
+                    label: 'Dashboards',
+                    to: `/organizations/${organization.slug}/dashboards/`,
+                  },
+                  {
+                    label: 'Manage Dashboards',
+                  },
+                ]}
+              />
+              <Layout.Title>{t('Manage Dashboards')}</Layout.Title>
+            </Layout.HeaderContent>
+            {/* <PageHeader>
               <PageHeading>{t('Manage Dashboards')}</PageHeading>
-            </PageHeader>
-            {this.renderActions()}
-            {this.renderDashboards()}
-          </PageContent>
+            </PageHeader> */}
+          </Layout.Header>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              {this.renderActions()}
+              {this.renderDashboards()}
+            </Layout.Main>
+          </Layout.Body>
         </LightWeightNoProjectMessage>
       </Feature>
     );
@@ -152,4 +167,4 @@ const StyledActions = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export default withOrganization(ManageDashboards);
+export default withApi(withOrganization(ManageDashboards));

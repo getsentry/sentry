@@ -351,7 +351,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             f"{self.path}?status=unresolved", data={"status": "resolved"}, format="json"
         )
         assert response.status_code == 200, response.data
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         # the previously resolved entry should not be included
         new_group1 = Group.objects.get(id=group1.id)
@@ -397,7 +397,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200, response.data
 
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
         response = self.client.get(f"{self.path}?sort_by=date&query=is:unresolved", format="json")
 
         assert len(response.data) == 0
@@ -580,7 +580,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         url = f"{self.path}?id={group1.id}&id={group2.id}&group4={group4.id}"
         response = self.client.put(url, data={"status": "resolved"}, format="json")
         assert response.status_code == 200
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert new_group1.resolved_at is not None
@@ -894,7 +894,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.IGNORED
 
-        assert response.data == {"status": "ignored", "statusDetails": {}}
+        assert response.data == {"status": "ignored", "statusDetails": {}, "inbox": None}
 
     def test_snooze_duration(self):
         group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)

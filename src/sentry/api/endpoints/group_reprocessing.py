@@ -10,10 +10,10 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         `````````````````
 
         This endpoint triggers reprocessing for all events in a group.
-        Currently this means duplicating the events with new event IDs and
-        bumped timestamps.
 
-        :pparam string issue_id: the ID of the issue to retrieve.
+        :pparam string issue_id: the numeric ID of the issue to reprocess. The
+            reprocessed events will be assigned to a new numeric ID. See comments
+            in sentry.reprocessing2.
         :auth: required
         """
 

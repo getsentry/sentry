@@ -355,24 +355,22 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
 
         warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization}
 
-        root = transactions[0] if is_root(transactions[0]) else None
-
-        # Look for extra roots
-        extra_roots = 0
-        for item in transactions[1:]:
+        # Look for the roots
+        roots: List[SnubaTransaction] = []
+        for item in transactions:
             if is_root(item):
-                extra_roots += 1
+                roots.append(item)
             else:
                 break
-        if extra_roots > 0:
+        if len(roots) > 1:
             sentry_sdk.set_tag("discover.trace-view.warning", "root.extra-found")
             logger.warning(
                 "discover.trace-view.root.extra-found",
-                {"extra_roots": extra_roots, **warning_extra},
+                {"extra_roots": len(roots), **warning_extra},
             )
 
         return Response(
-            self.serialize(transactions, errors, root, warning_extra, event_id, detailed)
+            self.serialize(transactions, errors, roots, warning_extra, event_id, detailed)
         )
 
 
@@ -430,7 +428,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         self,
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
-        root: Optional[SnubaTransaction],
+        roots: Sequence[SnubaTransaction],
         warning_extra: Dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
@@ -446,31 +444,38 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         root_id: Optional[str] = None
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
-            # We might not be necessarily connected to the root if we're on an orphan event
-            if root is not None and root["id"] != snuba_event["id"]:
-                # Get the root event and see if the current event's span is in the root event
-                root_event = eventstore.get_event_by_id(root["project.id"], root["id"])
-                root_spans: NodeSpans = root_event.data.get("spans", [])
-                root_span = find_event(
-                    root_spans,
-                    lambda item: item is not None
-                    and item["span_id"] == snuba_event["trace.parent_span"],
-                )
+            # Going to nodestore is more expensive than looping twice so check if we're on the root first
+            for root in roots:
+                if root["id"] == snuba_event["id"]:
+                    current_generation = 0
+                    break
 
-                # We only know to add the root if its the direct parent
-                if root_span is not None:
-                    # For the light response, the parent will be unknown unless it is a direct descendent of the root
-                    root_id = root["id"]
-                    trace_results.append(
-                        TraceEvent(
-                            root,
-                            None,
-                            0,
+            if current_generation is None:
+                for root in roots:
+                    # We might not be necessarily connected to the root if we're on an orphan event
+                    if root["id"] != snuba_event["id"]:
+                        # Get the root event and see if the current event's span is in the root event
+                        root_event = eventstore.get_event_by_id(root["project.id"], root["id"])
+                        root_spans: NodeSpans = root_event.data.get("spans", [])
+                        root_span = find_event(
+                            root_spans,
+                            lambda item: item is not None
+                            and item["span_id"] == snuba_event["trace.parent_span"],
                         )
-                    )
-                    current_generation = 1
-            elif root is not None and root["id"] == snuba_event["id"]:
-                current_generation = 0
+
+                        # We only know to add the root if its the direct parent
+                        if root_span is not None:
+                            # For the light response, the parent will be unknown unless it is a direct descendent of the root
+                            root_id = root["id"]
+                            trace_results.append(
+                                TraceEvent(
+                                    root,
+                                    None,
+                                    0,
+                                )
+                            )
+                            current_generation = 1
+                            break
 
             current_event = TraceEvent(snuba_event, root_id, current_generation)
             trace_results.append(current_event)
@@ -527,7 +532,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         self,
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
-        root: Optional[SnubaTransaction],
+        roots: Sequence[SnubaTransaction],
         warning_extra: Dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
@@ -545,9 +550,10 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # on python 3.7.
         results_map: Dict[Optional[str], List[TraceEvent]] = OrderedDict()
         to_check: Deque[SnubaTransaction] = deque()
-        if root:
+        results_map[None] = []
+        for root in roots:
             parent_events[root["id"]] = TraceEvent(root, None, 0)
-            results_map[None] = [parent_events[root["id"]]]
+            results_map[None].append(parent_events[root["id"]])
             to_check.append(root)
 
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
@@ -646,9 +652,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         for index, result in enumerate(results_map.values()):
             for subtrace in result:
                 self.update_children(subtrace)
-            if index > 0 or root is None:
+            if index > 0 or len(roots) == 0:
                 orphans.extend(result)
-            elif root:
+            elif len(roots) > 0:
                 root_traces = result
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
         root_traces.sort(key=child_sort_key)
