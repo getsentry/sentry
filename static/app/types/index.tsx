@@ -967,6 +967,11 @@ type BaseGroupStatusResolution = {
   statusDetails: ResolutionStatusDetails;
 };
 
+export type GroupRelease = {
+  firstRelease: Release;
+  lastRelease: Release;
+};
+
 // TODO(ts): incomplete
 export type BaseGroup = {
   id: string;
@@ -975,14 +980,12 @@ export type BaseGroup = {
   annotations: string[];
   assignedTo: Actor;
   culprit: string;
-  firstRelease: Release;
   firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  lastRelease: Release;
   lastSeen: string;
   level: Level;
   logger: string;
@@ -1005,11 +1008,13 @@ export type BaseGroup = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
-};
+} & GroupRelease;
 
 export type GroupReprocessing = BaseGroup & GroupStats & BaseGroupStatusReprocessing;
 export type GroupResolution = BaseGroup & GroupStats & BaseGroupStatusResolution;
 export type Group = GroupResolution | GroupReprocessing;
+export type GroupCollapseRelease = Omit<Group, keyof GroupRelease> &
+  Partial<GroupRelease>;
 
 export type GroupTombstone = {
   id: string;
