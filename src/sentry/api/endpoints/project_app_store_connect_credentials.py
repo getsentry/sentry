@@ -7,6 +7,7 @@ from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.utils import fernet_encrypt as encrypt
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
+from sentry.utils.safe import get_path
 
 
 def credentials_key_name():
@@ -82,6 +83,8 @@ class AppStoreFullCredentialsSerializer(serializers.Serializer):
     appName = serializers.CharField(max_length=512, min_length=1, required=True)
     appId = serializers.CharField(max_length=512, min_length=1, required=True)
     sessionContext = serializers.CharField(min_length=1, required=True)
+    orgId = serializers.IntegerField(required=True)
+    orgName = serializers.CharField(max_length=100, required=True)
 
 
 class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
@@ -123,6 +126,24 @@ class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
             "organizations:app-store-connect", project.organization, actor=request.user
         ):
             return Response(status=404)
+
+        key = project.get_option(credentials_key_name())
+        encrypted_credentials = project.get_option(credentials_name())
+        if key is None or encrypted_credentials is None:
+            return Response({}, status=200)
+
+        try:
+            cred_dict = encrypt.decrypt_object(encrypted_credentials, key)
+            user_credentials = {
+                "itunesUser": cred_dict.get("itunesUser"),
+                "appName": cred_dict.get("appName"),
+                "appId": cred_dict.get("appId"),
+                "orgId": cred_dict.get("orgId"),
+                "orgName": cred_dict.get("orgName"),
+            }
+            return Response(user_credentials, status=200)
+        except ValueError:
+            return Response(status=500)
 
 
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
@@ -363,15 +384,31 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
                 )
 
             if success:
+                session_info = itunes_connect.get_session_info(session)
+
+                if session_info is None:
+                    return Response("session info failed", status=500)
+
+                existing_providers = get_path(session_info, "availableProviders")
+                providers = [
+                    {"name": provider.get("name"), "organizationId": provider.get("providerId")}
+                    for provider in existing_providers
+                ]
+                prs_id = get_path(session_info, "user", "prsId")
+
                 itunes_session = itunes_connect.get_session_cookie(session)
                 session_context = {
                     "auth_key": auth_key,
                     "session_id": headers.session_id,
                     "scnt": headers.scnt,
                     "itunes_session": itunes_session,
+                    "itunes_person_id": prs_id,
                 }
                 encrypted_context = encrypt.encrypt_object(session_context, key)
-                return Response({"session_context": encrypted_context}, status=200)
+
+                response_body = {"sessionContext": encrypted_context, "organizations": providers}
+
+                return Response(response_body, status=200)
             else:
                 return Response("2FA failed", status=401)
 
