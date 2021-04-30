@@ -76,7 +76,10 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
 
   get sentryNames() {
     const {members} = this.state;
-    return members.map(member => member.user);
+    return members.map(({id, email, name, ...rest}) => {
+      const label = email !== name ? `${name} - ${email}` : `${email}`;
+      return {...rest, id, name: label, email};
+    });
   }
 
   openModal = (mapping?: ExternalActorMapping) => {
