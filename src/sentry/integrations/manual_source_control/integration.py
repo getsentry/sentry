@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
@@ -65,29 +67,21 @@ class ManualSourceControlIntegration(IntegrationInstallation, RepositoryMixin):
 
 class InstallationForm(forms.Form):
     name = forms.CharField(
-        label=_("Integration Name"),
+        label=_("Name"),
         help_text=_(
-            "The name for your integration. You will be able to edit this later."
+            "The name for your integration."
             "<br>"
             "If you are using GitHub, use the organization name."
         ),
-        widget=forms.TextInput(attrs={"placeholder": "Octokit"}),
     )
     url = forms.CharField(
-        label=_("Integration URL"),
+        label=_("URL"),
         help_text=_(
             "The base URL for your instance, including the host and protocol. "
             "<br>"
             "If using github.com, enter https://github.com/"
         ),
-        widget=forms.TextInput(attrs={"placeholder": "https://github/"}),
-    )
-    provider = forms.ChoiceField(
-        label=_("Provider"),
-        help_text=_("The source control provider: GitHub, GitLab, Other"),
-        required=False,
-        choices=(("github", "GitHub"), ("gitlab", "Gitlab"), ("other", "Other")),
-        widget=forms.Select(attrs={"class": "select"}),
+        widget=forms.TextInput(attrs={"placeholder": "https://github.com/"}),
     )
 
 
@@ -123,12 +117,16 @@ class ManualSourceControlIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         name = state["installation_data"]["name"]
-        domain_name = state["installation_data"]["url"]
-        provider = state["installation_data"]["provider"]
+        url = state["installation_data"]["url"]
+        # normally the external_id would be something unique
+        # across organizations, but for now there can just be
+        # separate integrations for separate organizations
+        external_id = uuid4().hex
+
         return {
             "name": name,
-            "external_id": "123",
-            "metadata": {"domain_name": domain_name, "provider": provider},
+            "external_id": external_id,
+            "metadata": {"domain_name": f"{url}{name}"},
         }
 
     def setup(self):
