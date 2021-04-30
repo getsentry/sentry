@@ -27,7 +27,6 @@ from sentry.models import (
 )
 from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.helpers import (
-    _get_setting_mapping_from_mapping,
     get_settings_by_provider,
     transform_to_notification_settings_by_user,
 )
@@ -291,11 +290,10 @@ class MailAdapter:
         team_members_by_provider = NotificationSetting.objects.filter_to_subscribed_users(
             project, users
         )
-        output = defaultdict(list)
-        for provider, team_members in team_members_by_provider.items():
-            for team_member in team_members:
-                output[provider].append(team_member.id)
-        return output
+        return {
+            provider: [user.id for user in team_members]
+            for provider, team_members in team_members_by_provider.items()
+        }
 
     def get_send_to_member(self, project, target_identifier):
         """
@@ -319,22 +317,16 @@ class MailAdapter:
         except User.DoesNotExist:
             return {}
 
-        user = User.objects.get(id=target_identifier)
         notification_settings = NotificationSetting.objects.get_for_users_by_parent(
             NotificationSettingTypes.ISSUE_ALERTS, parent=project, users=[user]
         )
-        notification_settings_by_user = transform_to_notification_settings_by_user(
-            notification_settings, [user]
-        )
-        mapping = _get_setting_mapping_from_mapping(
-            notification_settings_by_user,
-            user,
-            NotificationSettingTypes.ISSUE_ALERTS,
-        )
-        output = defaultdict(list)
-        for provider, value in mapping.items():
-            output[provider].append(user.id)
-        return output
+        if notification_settings:
+            return {
+                ExternalProviders(notification_setting.provider): [user.id]
+                for notification_setting in notification_settings
+            }
+        # fall back to email if there are no settings
+        return {ExternalProviders.EMAIL: [user.id]}
 
     def get_send_to_all_in_project(self, project):
         cache_key = f"mail:send_to:{project.pk}"
