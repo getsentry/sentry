@@ -1,5 +1,5 @@
 ---
-created: '2021-03-12T14:08:31.185984Z'
+created: '2021-04-30T12:13:39.788673Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,18 +8,6 @@ app-depth-1:
   tree_label: "call"
   component:
     app-depth-1*
-      stacktrace*
-        frame*
-          module (ignored java lambda)
-            "foo.bar.Baz$$Lambda$40/1673859467"
-          function*
-            "call"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "53b9e9679a8ea25880376080b76f98ad"
-  tree_label: "<entire stacktrace>"
-  component:
-    app-depth-2*
       stacktrace*
         frame*
           module (ignored java lambda)

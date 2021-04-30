@@ -1099,9 +1099,14 @@ def _find_existing_group_id(
                 all_grouphashes.append(group_hash)
 
         if root_hierarchical_hash is None:
-            # All hashes were split (should not be reachable from UI), so
-            # we group by most specific hash.
+            # All hashes were split, so we group by most specific hash. This is
+            # a legitimate usecase when there are events whose stacktraces are
+            # suffixes of other event's stacktraces.
             root_hierarchical_hash = hierarchical_hashes[-1]
+            group_hash = hierarchical_grouphashes.get(root_hierarchical_hash)
+
+            if group_hash is not None:
+                all_grouphashes.append(group_hash)
 
     if not found_split:
         # In case of a split we want to avoid accidentally finding the split-up

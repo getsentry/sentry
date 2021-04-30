@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:29.300570Z'
+created: '2021-04-30T12:13:36.681188Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,72 +13,6 @@ app-depth-1:
           frame*
             function*
               "stripped_application_code"
-        type (ignored because exception is synthetic)
-          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
-  tree_label: "<entire stacktrace>"
-  component:
-    app-depth-2*
-      exception*
-        stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "thread_start"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "_pthread_start"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
-          frame*
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            function*
-              "__dynamic_cast"
-            package (ignored because function takes precedence)
-              "libc++abi.dylib"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)

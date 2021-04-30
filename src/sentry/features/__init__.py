@@ -73,6 +73,7 @@ default_manager.add("organizations:event-attachments-viewer", OrganizationFeatur
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
+default_manager.add("organizations:grouping-tree-ui", OrganizationFeature)  # NOQA
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:import-codeowners", OrganizationFeature)  # NOQA
 default_manager.add("organizations:inbox", OrganizationFeature)  # NOQA

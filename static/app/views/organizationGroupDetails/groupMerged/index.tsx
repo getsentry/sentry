@@ -10,6 +10,7 @@ import {t} from 'app/locale';
 import GroupingStore, {Fingerprint} from 'app/stores/groupingStore';
 import {Group, Organization, Project} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import withOrganization from 'app/utils/withOrganization';
 
 import MergedList from './mergedList';
 
@@ -18,6 +19,7 @@ type Props = RouteComponentProps<
   {}
 > & {
   project: Project;
+  organization: Organization;
 };
 
 type State = {
@@ -73,11 +75,18 @@ class GroupMergedView extends React.Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupingChange, undefined);
 
   getEndpoint() {
-    const {params} = this.props;
+    const {params, organization, location} = this.props;
     const {groupId} = params;
 
+    const hasGroupingTreeFeature = organization?.features?.includes('grouping-tree-ui');
+
+    if (hasGroupingTreeFeature) {
+      // TODO(markus): limits
+      return `/issues/${groupId}/hashes/split/`;
+    }
+
     const queryParams = {
-      ...this.props.location.query,
+      ...location.query,
       limit: 50,
       query: this.state.query,
     };
@@ -101,6 +110,15 @@ class GroupMergedView extends React.Component<Props, State> {
       loadingMessage: t('Unmerging events\u2026'),
       successMessage: t('Events successfully queued for unmerging.'),
       errorMessage: t('Unable to queue events for unmerging.'),
+    });
+  };
+
+  handleSplit = () => {
+    GroupingActions.split({
+      groupId: this.props.params.groupId,
+      loadingMessage: t('Splitting fingerprints\u2026'),
+      successMessage: t('Fingerprints successfully queued for splitting.'),
+      errorMessage: t('Unable to queue fingerprints for splitting.'),
     });
   };
 
@@ -134,6 +152,7 @@ class GroupMergedView extends React.Component<Props, State> {
             pageLinks={mergedLinks}
             groupId={groupId}
             onUnmerge={this.handleUnmerge}
+            onSplit={this.handleSplit}
             onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
           />
         )}
@@ -144,4 +163,4 @@ class GroupMergedView extends React.Component<Props, State> {
 
 export {GroupMergedView};
 
-export default GroupMergedView;
+export default withOrganization(GroupMergedView);
