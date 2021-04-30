@@ -33,7 +33,6 @@ import {addRoutePerformanceContext, getTransactionName} from '../utils';
 import SummaryContent from './content';
 import {
   decodeFilterFromLocation,
-  filterToField,
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from './filter';
@@ -277,26 +276,13 @@ function generateSummaryEventView(
     .setTagValues('event.type', ['transaction'])
     .setTagValues('transaction', [transactionName]);
 
-  const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
-
   Object.keys(conditions.tagValues).forEach(field => {
     if (isAggregateField(field)) conditions.removeTag(field);
   });
 
-  let durationField = 'transaction.duration';
-
-  if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
-    durationField = filterToField(spanOperationBreakdownFilter)!;
-  }
-
   const fields = organization.features.includes('trace-view-summary')
-    ? ['id', 'user.display', durationField, 'trace', 'timestamp']
-    : ['id', 'user.display', durationField, 'timestamp'];
-
-  if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
-    // Add transaction.duration field so that the span op breakdown can be compared against it.
-    fields.push('transaction.duration');
-  }
+    ? ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp']
+    : ['id', 'user.display', 'transaction.duration', 'timestamp'];
 
   return EventView.fromNewQueryWithLocation(
     {
