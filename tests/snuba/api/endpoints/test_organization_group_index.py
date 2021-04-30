@@ -743,7 +743,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
-    def test_assigned_me_or_none(self):
+    def test_assigned_me_none(self):
         self.login_as(user=self.user)
         groups = []
         for i in range(5):
@@ -767,7 +767,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 5
 
         GroupAssignee.objects.assign(assigned_groups[1], self.create_user("other@user.com"))
-        response = self.get_response(limit=10, query="assigned:[me_or_none]")
+        response = self.get_response(limit=10, query="assigned:[me, none]")
         assert len(response.data) == 4
 
     def test_seen_stats(self):
