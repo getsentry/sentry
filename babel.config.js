@@ -1,7 +1,12 @@
 /*eslint-env node*/
 module.exports = {
   presets: [
-    '@babel/preset-react',
+    [
+      '@babel/preset-react',
+      {
+        runtime: 'automatic',
+      },
+    ],
     [
       '@babel/preset-env',
       {
@@ -20,6 +25,7 @@ module.exports = {
     ],
   ],
   plugins: [
+    ['@babel/plugin-transform-react-jsx', {runtime: 'automatic'}],
     '@babel/plugin-transform-runtime',
     // NOTE: The order of the decorator and class-property plugins is important
     // here. Decorators must be processed first before class properties, see:
