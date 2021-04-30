@@ -90,6 +90,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         }
 
     def test_sort_frequency(self):
+        # Descending
         response = self.do_request(
             {
                 "aggregateColumn": "transaction.duration",
@@ -105,6 +106,30 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         assert data[0]["count"] == 5
         assert data[0]["tags_key"] == "color"
         assert data[0]["tags_value"] == "blue"
+
+        assert data[1]["count"] == 1
+        assert data[1]["tags_key"] == "many"
+        assert data[1]["tags_value"] == "no"
+
+        # Ascending
+        response = self.do_request(
+            {
+                "aggregateColumn": "transaction.duration",
+                "sort": "frequency",
+                "per_page": 5,
+                "statsPeriod": "14d",
+            }
+        )
+
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["count"] == 1
+        assert data[0]["tags_key"] == "color"
+        assert data[0]["tags_value"] == "green"
+
+        assert data[1]["count"] == 1
+        assert data[1]["tags_key"] == "many"
+        assert data[1]["tags_value"] == "no"
 
     def test_multiple_projects_without_global_view(self):
         response = self.do_request(
