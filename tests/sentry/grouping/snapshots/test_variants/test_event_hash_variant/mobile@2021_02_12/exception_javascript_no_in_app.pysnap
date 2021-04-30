@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:24.895807Z'
+created: '2021-04-30T12:13:37.514797Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -28,34 +28,6 @@ app-depth-2:
   tree_label: "..."
   component:
     app-depth-2*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "app/components/modals/createTeamModal"
-            filename (module takes precedence)
-              "createteammodal.jsx"
-            context-line*
-              "onError(err);"
-          frame*
-            module*
-              "app/views/settings/components/forms/form"
-            filename (module takes precedence)
-              "form.jsx"
-            function (ignored because sourcemap used and context line available)
-              "onError"
-            context-line*
-              "this.model.submitError(error);"
-        type*
-          "TypeError"
-        value (ignored because stacktrace takes precedence)
-          "Cannot read property 'submitError' of null"
---------------------------------------------------------------------------
-app-depth-3:
-  hash: "26552f86ca2368e708afa1df6effc1c5"
-  tree_label: "<entire stacktrace>"
-  component:
-    app-depth-3*
       exception*
         stacktrace*
           frame*
