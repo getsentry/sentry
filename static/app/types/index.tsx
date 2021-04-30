@@ -1496,8 +1496,8 @@ export type SentryAppComponent = {
     slug:
       | 'clickup'
       | 'clubhouse'
-      | 'linear'
       | 'komodor'
+      | 'linear'
       | 'rookout'
       | 'spikesh'
       | 'teamwork'
