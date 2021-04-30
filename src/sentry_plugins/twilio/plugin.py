@@ -34,6 +34,14 @@ def validate_phone(phone):
         return False
     return True
 
+def validate_alphanumeric_sender(code):
+    max_code_length = 11
+    if not code:
+        return False
+    if len(code) > max_code_length:
+        return False
+
+    return True
 
 def clean_phone(phone):
     # This could raise, but should have been checked with validate_phone first
@@ -48,6 +56,8 @@ def clean_phone(phone):
 def split_sms_to(data):
     return set(filter(bool, re.split(r"\s*,\s*|\s+", data)))
 
+def is_sender_alphanumeric_code(data):
+    return data.upper().isupper()
 
 class TwilioConfigurationForm(forms.Form):
     account_sid = forms.CharField(
@@ -73,6 +83,9 @@ class TwilioConfigurationForm(forms.Form):
 
     def clean_sms_from(self):
         data = self.cleaned_data["sms_from"]
+        if is_sender_alphanumeric_code(data):
+            if not validate_alphanumeric_sender(data):
+                raise forms.ValidationError(f"{data} is not a valid sender ID.")
         if not validate_phone(data):
             raise forms.ValidationError(f"{data} is not a valid phone number.")
         return clean_phone(data)
