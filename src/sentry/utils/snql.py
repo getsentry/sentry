@@ -52,6 +52,7 @@ dryrun_check = ReferrerCheck(
         "tsdb-modelid:202",
         "tsdb-modelid:100",
         "eventstore.get_next_or_prev_event_id",
+        "tagstore.get_tag_value_paginator_for_projects",
     },
     allowlist=set(),
     prefixes=[
