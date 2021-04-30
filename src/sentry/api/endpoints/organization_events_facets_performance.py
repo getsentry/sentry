@@ -28,9 +28,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
             return Response([])
 
         filter_query = request.GET.get("query")
-        aggregate_column = request.GET.get("aggregateColumn", "")
-
-        orderby = request.GET.get("order", None)
+        aggregate_column = request.GET.get("aggregateColumn")
 
         ALLOWED_AGGREGATE_COLUMNS = {
             "transaction.duration",
@@ -41,8 +39,11 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
             "spans.resource",
         }
 
+        if not aggregate_column:
+            raise ParseError(detail="'aggregateColumn' must be provided.")
+
         if aggregate_column not in ALLOWED_AGGREGATE_COLUMNS:
-            raise ParseError(detail=f"{aggregate_column} is not a supported tags column.")
+            raise ParseError(detail=f"'{aggregate_column}' is not a supported tags column.")
 
         if len(params.get("project_id", [])) > 1:
             raise ParseError(detail="You cannot view facet performance for multiple projects.")
@@ -65,7 +66,6 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
                         tag_data=tag_data,
                         filter_query=filter_query,
                         aggregate_column=aggregate_column,
-                        orderby=orderby,
                         referrer=referrer,
                         limit=limit,
                         offset=offset,
@@ -134,7 +134,6 @@ def query_facet_performance(
     tag_data: Mapping[str, Any],
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
-    orderby: Optional[str] = None,
     referrer: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
@@ -181,10 +180,10 @@ def query_facet_performance(
         having = [excluded_tags]
         having.append(["aggregate", ">", aggregate_comparison])
 
-        if orderby is None:
+        if snuba_filter.orderby is None:
             resolved_orderby: List[str] = []
         else:
-            resolved_orderby: List[str] = [orderby]
+            resolved_orderby: List[str] = [snuba_filter.orderby]
 
         snuba_filter.conditions.append([translated_aggregate_column, "IS NOT NULL", None])
 
