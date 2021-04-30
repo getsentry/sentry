@@ -222,7 +222,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             attachment["footer"]
             == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=RegressionActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=RegressionActivitySlack|Notification Settings>"
         )
-        assert False
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)

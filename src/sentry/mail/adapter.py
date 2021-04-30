@@ -501,65 +501,64 @@ class MailAdapter:
         user_ids = self.get_send_to(project, target_type, target_identifier).get(
             ExternalProviders.EMAIL
         )
-        if user_ids:
+        if not user_ids:
+            return
 
-            logger.info(
-                "mail.adapter.notify_digest",
-                extra={
-                    "project_id": project.id,
-                    "target_type": target_type.value,
-                    "target_identifier": target_identifier,
-                    "user_ids": user_ids,
-                },
-            )
-            for user_id, digest in get_personalized_digests(
-                target_type, project.id, digest, user_ids
-            ):
-                start, end, counts = get_digest_metadata(digest)
+        logger.info(
+            "mail.adapter.notify_digest",
+            extra={
+                "project_id": project.id,
+                "target_type": target_type.value,
+                "target_identifier": target_identifier,
+                "user_ids": user_ids,
+            },
+        )
+        for user_id, digest in get_personalized_digests(target_type, project.id, digest, user_ids):
+            start, end, counts = get_digest_metadata(digest)
 
-                # If there is only one group in this digest (regardless of how many
-                # rules it appears in), we should just render this using the single
-                # notification template. If there is more than one record for a group,
-                # just choose the most recent one.
-                if len(counts) == 1:
-                    group = next(iter(counts))
-                    record = max(
-                        itertools.chain.from_iterable(
-                            groups.get(group, []) for groups in digest.values()
-                        ),
-                        key=lambda record: record.timestamp,
-                    )
-                    notification = Notification(record.value.event, rules=record.value.rules)
-                    return self.notify(notification, target_type, target_identifier)
-
-                context = {
-                    "start": start,
-                    "end": end,
-                    "project": project,
-                    "digest": digest,
-                    "counts": counts,
-                }
-
-                headers = {
-                    "X-Sentry-Project": project.slug,
-                    "X-SMTPAPI": json.dumps({"category": "digest_email"}),
-                }
-
+            # If there is only one group in this digest (regardless of how many
+            # rules it appears in), we should just render this using the single
+            # notification template. If there is more than one record for a group,
+            # just choose the most recent one.
+            if len(counts) == 1:
                 group = next(iter(counts))
-                subject = self.get_digest_subject(group, counts, start)
-
-                self.add_unsubscribe_link(context, user_id, project, "alert_digest")
-                self._send_mail(
-                    subject=subject,
-                    template="sentry/emails/digests/body.txt",
-                    html_template="sentry/emails/digests/body.html",
-                    project=project,
-                    reference=project,
-                    headers=headers,
-                    type="notify.digest",
-                    context=context,
-                    send_to=[user_id],
+                record = max(
+                    itertools.chain.from_iterable(
+                        groups.get(group, []) for groups in digest.values()
+                    ),
+                    key=lambda record: record.timestamp,
                 )
+                notification = Notification(record.value.event, rules=record.value.rules)
+                return self.notify(notification, target_type, target_identifier)
+
+            context = {
+                "start": start,
+                "end": end,
+                "project": project,
+                "digest": digest,
+                "counts": counts,
+            }
+
+            headers = {
+                "X-Sentry-Project": project.slug,
+                "X-SMTPAPI": json.dumps({"category": "digest_email"}),
+            }
+
+            group = next(iter(counts))
+            subject = self.get_digest_subject(group, counts, start)
+
+            self.add_unsubscribe_link(context, user_id, project, "alert_digest")
+            self._send_mail(
+                subject=subject,
+                template="sentry/emails/digests/body.txt",
+                html_template="sentry/emails/digests/body.html",
+                project=project,
+                reference=project,
+                headers=headers,
+                type="notify.digest",
+                context=context,
+                send_to=[user_id],
+            )
 
     def notify_about_activity(self, activity):
         metrics.incr("mail_adapter.notify_about_activity")
