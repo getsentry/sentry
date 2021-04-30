@@ -106,7 +106,7 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         if form.is_valid():
             auth_provider.flags.allow_unlinked = not form.cleaned_data["require_link"]
-            auth_provider.flags.scim_enabled = not form.cleaned_data["enable_scim"]
+            auth_provider.flags.scim_enabled = form.cleaned_data["enable_scim"]
             auth_provider.save()
 
             organization.default_role = form.cleaned_data["default_role"]
