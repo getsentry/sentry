@@ -259,3 +259,24 @@ export const hideParameterSelectorSet = new Set<AlertType>([
   'fid',
   'cls',
 ]);
+
+export function getFunctionHelpText(
+  alertType: AlertType
+): {labelText: string; timeWindowText?: string} {
+  const timeWindowText = t('over');
+  if (alertType === 'apdex') {
+    return {
+      labelText: t('Select apdex value and time interval'),
+      timeWindowText,
+    };
+  } else if (hidePrimarySelectorSet.has(alertType)) {
+    return {
+      labelText: t('Select time interval'),
+    };
+  } else {
+    return {
+      labelText: t('Select function and time interval'),
+      timeWindowText,
+    };
+  }
+}

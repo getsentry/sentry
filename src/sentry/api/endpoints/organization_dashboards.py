@@ -1,3 +1,5 @@
+import re
+
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
@@ -8,6 +10,9 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
 from sentry.models import Dashboard
+
+MAX_RETRIES = 10
+DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
 
 
 class OrganizationDashboardsPermission(OrganizationPermission):
@@ -39,7 +44,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 
-        dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        dashboards = Dashboard.objects.filter(organization_id=organization.id).select_related(
+            "created_by"
+        )
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
@@ -50,13 +57,17 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         def handle_results(results):
             serialized = []
+            dashboards = []
             for item in results:
                 if isinstance(item, dict):
                     cloned = item.copy()
-                    del cloned["widgets"]
+                    widgets = cloned.pop("widgets", [])
+                    cloned["widgetDisplay"] = [w["displayType"] for w in widgets]
                     serialized.append(cloned)
                 else:
-                    serialized.append(serialize(item, request.user, serializer=list_serializer))
+                    dashboards.append(item)
+
+            serialized.extend(serialize(dashboards, request.user, serializer=list_serializer))
             return serialized
 
         return self.paginate(
@@ -66,7 +77,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             on_results=handle_results,
         )
 
-    def post(self, request, organization):
+    def post(self, request, organization, retry=0):
         """
         Create a New Dashboard for an Organization
         ``````````````````````````````````````````
@@ -95,4 +106,20 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard = serializer.save()
                 return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            return Response("Dashboard title already taken", status=409)
+            duplicate = request.data.get("duplicate", False)
+            if duplicate and retry < MAX_RETRIES:
+                title = request.data["title"]
+                match = re.match(DUPLICATE_TITLE_PATTERN, title)
+                if match:
+                    partial_title = match.group(1)
+                    copy_counter = match.group(2)
+                    if copy_counter:
+                        request.data["title"] = f"{partial_title} copy {int(copy_counter) + 1}"
+                    else:
+                        request.data["title"] = f"{partial_title} copy 1"
+                else:
+                    request.data["title"] = f"{title} copy"
+
+                return self.post(request, organization, retry=retry + 1)
+            else:
+                return Response("Dashboard title already taken", status=409)

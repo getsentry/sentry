@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.api.event_search import InvalidSearchQuery
+from sentry.exceptions import InvalidSearchQuery
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -609,6 +609,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "spans.db",
                 "spans.resource",
                 "spans.browser",
+                "spans.total.time",
                 "spans.does_not_exist",
             ],
             query="event.type:transaction",
@@ -622,6 +623,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["spans.db"] == span_ops["ops.db"]["value"]
         assert data[0]["spans.resource"] == span_ops["ops.resource"]["value"]
         assert data[0]["spans.browser"] == span_ops["ops.browser"]["value"]
+        assert data[0]["spans.total.time"] == span_ops["total.time"]["value"]
         assert data[0]["spans.does_not_exist"] is None
 
 

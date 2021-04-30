@@ -249,12 +249,14 @@ class ActionsPanel extends React.PureComponent<Props> {
 
     return (
       <React.Fragment>
-        <PerformActionsListItem>{t('Perform actions')}</PerformActionsListItem>
-        <AlertParagraph>
-          {t(
-            'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
-          )}
-        </AlertParagraph>
+        <PerformActionsListItem>
+          {t('Perform actions')}
+          <AlertParagraph>
+            {t(
+              'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
+            )}
+          </AlertParagraph>
+        </PerformActionsListItem>
         {loading && <LoadingIndicator />}
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
           return (
@@ -357,8 +359,8 @@ const ActionSection = styled('div')`
 
 const AlertParagraph = styled('p')`
   color: ${p => p.theme.subText};
-  margin-left: ${space(4)};
   margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const PanelItemGrid = styled(PanelItem)`
@@ -394,6 +396,7 @@ const StyledListItem = styled(ListItem)`
 
 const PerformActionsListItem = styled(StyledListItem)`
   margin-bottom: 0;
+  line-height: 1.3;
 `;
 
 export default withOrganization(ActionsPanelWithSpace);

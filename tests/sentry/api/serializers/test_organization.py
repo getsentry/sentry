@@ -27,6 +27,8 @@ class OrganizationSerializerTest(TestCase):
             "discover-query",
             "event-attachments",
             "event-attachments-viewer",
+            "images-loaded-v2",
+            "inbox",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
             "integrations-event-hooks",

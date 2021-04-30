@@ -23,7 +23,7 @@ export type ItemProps = {
   transform?: Transform | null;
   listeners?: DraggableSyntheticListeners;
   sorting?: boolean;
-  transition?: string;
+  transition?: string | null;
   forwardRef?: React.Ref<HTMLElement>;
   attributes?: UseSortableOutputProps['attributes'];
   wrapperStyle?: React.CSSProperties;

@@ -53,6 +53,14 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       query.expand = ['latestIncident'];
     }
 
+    if (organization.features.includes('team-alerts-ownership')) {
+      query.team = this.getTeamQuery();
+    }
+
+    if (organization.features.includes('alert-details-redesign') && !query.sort) {
+      query.sort = ['incident_status', 'date_triggered'];
+    }
+
     return [
       [
         'ruleList',
@@ -62,6 +70,25 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
         },
       ],
     ];
+  }
+
+  getTeamQuery(): string[] {
+    const {
+      location: {query},
+    } = this.props;
+    if (query.team === undefined) {
+      return ALERT_LIST_QUERY_DEFAULT_TEAMS;
+    }
+
+    if (query.team === '') {
+      return [];
+    }
+
+    if (Array.isArray(query.team)) {
+      return query.team;
+    }
+
+    return [query.team];
   }
 
   tryRenderEmpty() {
@@ -89,11 +116,12 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   handleChangeFilter = (activeFilters: Set<string>) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+    const teams = [...activeFilters];
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        team: [...activeFilters],
+        team: teams.length ? teams : '',
       },
     });
   };
@@ -134,9 +162,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
   renderFilterBar() {
     const {teams, location} = this.props;
-    const teamQuery = location.query?.team;
-    const filteredTeams: Set<string> =
-      typeof teamQuery === 'string' ? new Set([teamQuery]) : new Set(teamQuery);
+    const filteredTeams = new Set(this.getTeamQuery());
     const additionalOptions = [
       {label: t('My Teams'), value: 'myteams'},
       {label: t('Unassigned'), value: 'unassigned'},
@@ -344,33 +370,12 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
 class AlertRulesListContainer extends React.Component<Props> {
   componentDidMount() {
-    const {organization, router, location, selection} = this.props;
-    const query: Record<string, string | number | string[] | number[]> = {
-      project: selection.projects,
-      // TODO(workflow): Support environments from global selection header
-      // environment: selection.environments,
-    };
-
-    if (organization.features.includes('team-alerts-ownership')) {
-      query.team = ALERT_LIST_QUERY_DEFAULT_TEAMS;
-    }
-
-    if (organization.features.includes('alert-details-redesign') && !query.sort) {
-      query.sort = ['incident_status', 'date_triggered'];
-    }
-
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...query,
-        ...location.query,
-      },
-    });
     this.trackView();
   }
 
-  componentDidUpdate(nextProps: Props) {
-    if (nextProps.location.query?.sort !== this.props.location.query?.sort) {
+  componentDidUpdate(prevProps: Props) {
+    const {location} = this.props;
+    if (prevProps.location.query?.sort !== location.query?.sort) {
       this.trackView();
     }
   }

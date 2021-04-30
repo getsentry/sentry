@@ -1,7 +1,6 @@
 from sentry.api.event_search import (
     AggregateFilter,
     AggregateKey,
-    InvalidSearchQuery,
     SearchFilter,
     SearchKey,
     SearchValue,
@@ -14,6 +13,7 @@ from sentry.api.issue_search import (
     parse_search_query,
     value_converters,
 )
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
 
@@ -197,14 +197,6 @@ class ConvertActorOrNoneValueTest(TestCase):
         assert convert_actor_or_none_value(
             ["me"], [self.project], self.user, None
         ) == convert_user_value(["me"], [self.project], self.user, None)
-
-    def test_me_or_none(self):
-        assert convert_actor_or_none_value(["me_or_none"], [self.project], self.user, None) == [
-            [
-                "me_or_none",
-                self.user,
-            ]
-        ]
 
     def test_none(self):
         assert convert_actor_or_none_value(["none"], [self.project], self.user, None) == [None]
