@@ -1,5 +1,5 @@
 import math
-from typing import Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -28,9 +28,21 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
             return Response([])
 
         filter_query = request.GET.get("query")
-        aggregate_column = request.GET.get("aggregateColumn", "duration")
+        aggregate_column = request.GET.get("aggregateColumn", "")
 
         orderby = request.GET.get("order", None)
+
+        ALLOWED_AGGREGATE_COLUMNS = {
+            "transaction.duration",
+            "measurements.lcp",
+            "spans.browser",
+            "spans.http",
+            "spans.db",
+            "spans.resource",
+        }
+
+        if aggregate_column not in ALLOWED_AGGREGATE_COLUMNS:
+            raise ParseError(detail=f"{aggregate_column} is not a supported tags column.")
 
         if len(params.get("project_id", [])) > 1:
             raise ParseError(detail="You cannot view facet performance for multiple projects.")
@@ -42,7 +54,6 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
                     tag_data = query_tag_data(
                         filter_query=filter_query,
                         aggregate_column=aggregate_column,
-                        orderby=orderby,
                         referrer=referrer,
                         params=params,
                     )
@@ -82,9 +93,13 @@ def query_tag_data(
     params: Mapping[str, str],
     filter_query: Optional[str] = None,
     aggregate_column: Optional[str] = None,
-    orderby: Optional[str] = None,
     referrer: Optional[str] = None,
-):
+) -> Optional[Dict]:
+    """
+    Fetch general data about tags to feed into the facet query
+    :return: Returns the row with aggregate and count if the query was successful
+             Returns None if query was not successful which causes the endpoint to return early
+    """
     with sentry_sdk.start_span(
         op="discover.discover", description="facets.filter_transform"
     ) as span:
@@ -94,23 +109,7 @@ def query_tag_data(
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
 
-    # TODO(k-fish): Remove this and pass aliases instead, we can convert them back for raw_query
-    column_map = {
-        "duration": "transaction.duration",
-        "measurements[lcp]": "measurements.lcp",
-        "span_op_breakdowns[ops.browser]": "spans.browser",
-        "span_op_breakdowns[ops.http]": "spans.http",
-        "span_op_breakdowns[ops.db]": "spans.db",
-        "span_op_breakdowns[ops.resource]": "spans.resource",
-    }
-
-    mapped_aggregate_column = column_map.get(aggregate_column)
-
-    # Only operate on allowed columns
-    if not mapped_aggregate_column:
-        return None
-
-    initial_selected_columns = ["count()", f"avg({mapped_aggregate_column}) as aggregate"]
+    initial_selected_columns = ["count()", f"avg({aggregate_column}) as aggregate"]
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         # Get the most relevant tag keys
@@ -134,14 +133,14 @@ def query_tag_data(
 
 def query_facet_performance(
     params: Mapping[str, str],
-    tag_data: Mapping[str, object],
+    tag_data: Mapping[str, Any],
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
     orderby: Optional[str] = None,
     referrer: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
-):
+) -> Dict:
     with sentry_sdk.start_span(
         op="discover.discover", description="facets.filter_transform"
     ) as span:
@@ -150,17 +149,20 @@ def query_facet_performance(
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
+    translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
 
     # Aggregate for transaction
     transaction_aggregate = tag_data["aggregate"]
 
     # Dynamically sample so at least 50000 transactions are selected
+    sample_start_count = 50000
     transaction_count = tag_data["count"]
-    sampling_enabled = transaction_count > 50000
+    sampling_enabled = transaction_count > sample_start_count
 
     # log-e growth starting at 50,000
     target_sample = max(
-        50000 * (math.log(transaction_count) - (math.log(50000) - 1)), transaction_count
+        sample_start_count * (math.log(transaction_count) - (math.log(sample_start_count) - 1)),
+        transaction_count,
     )
 
     dynamic_sample_rate = 0 if transaction_count <= 0 else (target_sample / transaction_count)
@@ -186,7 +188,7 @@ def query_facet_performance(
         else:
             orderby = [orderby]
 
-        snuba_filter.conditions.append([aggregate_column, "IS NOT NULL", None])
+        snuba_filter.conditions.append([translated_aggregate_column, "IS NOT NULL", None])
 
         tag_selected_columns = [
             [
@@ -194,7 +196,7 @@ def query_facet_performance(
                 [
                     "minus",
                     [
-                        aggregate_column,
+                        translated_aggregate_column,
                         str(transaction_aggregate),
                     ],
                 ],
@@ -213,7 +215,7 @@ def query_facet_performance(
                 "frequency",
             ],
             ["divide", ["aggregate", transaction_aggregate], "comparison"],
-            ["avg", [aggregate_column], "aggregate"],
+            ["avg", [translated_aggregate_column], "aggregate"],
         ]
 
         results = discover.raw_query(
@@ -237,4 +239,3 @@ def query_facet_performance(
         results["meta"] = discover.transform_meta(results, {})
 
         return results
-    return {"data": []}

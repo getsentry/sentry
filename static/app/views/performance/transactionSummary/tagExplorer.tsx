@@ -111,10 +111,10 @@ const COLUMN_ORDER: TagColumn[] = [
 ];
 
 const filterToField = {
-  [SpanOperationBreakdownFilter.Browser]: 'span_op_breakdowns[ops.browser]',
-  [SpanOperationBreakdownFilter.Http]: 'span_op_breakdowns[ops.http]',
-  [SpanOperationBreakdownFilter.Db]: 'span_op_breakdowns[ops.db]',
-  [SpanOperationBreakdownFilter.Resource]: 'span_op_breakdowns[ops.resource]',
+  [SpanOperationBreakdownFilter.Browser]: 'spans.browser',
+  [SpanOperationBreakdownFilter.Http]: 'spans.http',
+  [SpanOperationBreakdownFilter.Db]: 'spans.db',
+  [SpanOperationBreakdownFilter.Resource]: 'spans.resource',
 };
 
 const getTransactionField = (
@@ -129,10 +129,10 @@ const getTransactionField = (
 
   const performanceType = platformToPerformanceType(projects, projectIds);
   if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
-    return 'measurements[lcp]';
+    return 'measurements.lcp';
   }
 
-  return 'duration';
+  return 'transaction.duration';
 };
 
 const getColumnsWithReplacedDuration = (
