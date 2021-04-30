@@ -249,17 +249,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     isVisible,
     transactions,
     errors,
-    scrollFn,
   }: {
     isVisible: boolean;
     transactions: QuickTraceEvent[];
     errors: TraceError[];
-    scrollFn: () => void;
   }) {
-    if (!this.state.showDetail || !isVisible) {
-      return null;
-    }
-
     const {
       span,
       orgId,
@@ -272,19 +266,33 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     } = this.props;
 
     return (
-      <SpanDetail
-        span={span}
-        orgId={orgId}
-        organization={organization}
-        event={event}
-        isRoot={!!isRoot}
-        trace={trace}
-        totalNumberOfErrors={totalNumberOfErrors}
-        spanErrors={spanErrors}
-        childTransactions={transactions}
-        relatedErrors={errors}
-        scrollFn={scrollFn}
-      />
+      <AnchorLinkManager.Consumer>
+        {({registerScrollFn}) => {
+          const startScroll = isGapSpan(span)
+            ? undefined
+            : registerScrollFn(`#span-${span.span_id}`, this.scrollIntoView);
+
+          if (!this.state.showDetail || !isVisible) {
+            return null;
+          }
+
+          return (
+            <SpanDetail
+              span={span}
+              orgId={orgId}
+              organization={organization}
+              event={event}
+              isRoot={!!isRoot}
+              trace={trace}
+              totalNumberOfErrors={totalNumberOfErrors}
+              spanErrors={spanErrors}
+              childTransactions={transactions}
+              relatedErrors={errors}
+              scrollFn={startScroll ?? (() => undefined)}
+            />
+          );
+        }}
+      </AnchorLinkManager.Consumer>
     );
   }
 
@@ -924,61 +932,46 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   render() {
-    const {isCurrentSpanFilteredOut, span} = this.props;
+    const {isCurrentSpanFilteredOut} = this.props;
     const bounds = this.getBounds();
 
     const isSpanVisibleInView = bounds.isSpanVisibleInView;
     const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
     return (
-      <AnchorLinkManager.Consumer>
-        {({registerScrollFn}) => {
-          const scrollFn = isGapSpan(span)
-            ? undefined
-            : registerScrollFn(`#span-${span.span_id}`, this.scrollIntoView);
-
-          return (
-            <Row
-              ref={this.spanRowDOMRef}
-              visible={isSpanVisible}
-              showBorder={this.state.showDetail}
-              data-test-id="span-row"
-            >
-              <QuickTraceContext.Consumer>
-                {quickTrace => {
-                  const errors = this.getRelatedErrors(quickTrace);
-                  const transactions = this.getChildTransactions(quickTrace);
-                  return (
-                    <React.Fragment>
-                      <ScrollbarManager.Consumer>
-                        {scrollbarManagerChildrenProps => (
-                          <DividerHandlerManager.Consumer>
-                            {(
-                              dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-                            ) =>
-                              this.renderHeader({
-                                dividerHandlerChildrenProps,
-                                scrollbarManagerChildrenProps,
-                                errors,
-                              })
-                            }
-                          </DividerHandlerManager.Consumer>
-                        )}
-                      </ScrollbarManager.Consumer>
-                      {this.renderDetail({
-                        isVisible: isSpanVisible,
-                        transactions,
-                        errors,
-                        scrollFn: scrollFn ?? (() => undefined),
-                      })}
-                    </React.Fragment>
-                  );
-                }}
-              </QuickTraceContext.Consumer>
-            </Row>
-          );
-        }}
-      </AnchorLinkManager.Consumer>
+      <Row
+        ref={this.spanRowDOMRef}
+        visible={isSpanVisible}
+        showBorder={this.state.showDetail}
+        data-test-id="span-row"
+      >
+        <QuickTraceContext.Consumer>
+          {quickTrace => {
+            const errors = this.getRelatedErrors(quickTrace);
+            const transactions = this.getChildTransactions(quickTrace);
+            return (
+              <React.Fragment>
+                <ScrollbarManager.Consumer>
+                  {scrollbarManagerChildrenProps => (
+                    <DividerHandlerManager.Consumer>
+                      {(
+                        dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+                      ) =>
+                        this.renderHeader({
+                          dividerHandlerChildrenProps,
+                          scrollbarManagerChildrenProps,
+                          errors,
+                        })
+                      }
+                    </DividerHandlerManager.Consumer>
+                  )}
+                </ScrollbarManager.Consumer>
+                {this.renderDetail({isVisible: isSpanVisible, transactions, errors})}
+              </React.Fragment>
+            );
+          }}
+        </QuickTraceContext.Consumer>
+      </Row>
     );
   }
 }

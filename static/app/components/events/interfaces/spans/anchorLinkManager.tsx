@@ -15,6 +15,7 @@ type Props = WithRouterProps & {
 
 class AnchorLinkManagerProvider extends React.Component<Props> {
   componentDidMount() {
+    const {location} = this.props;
     this.scrollToHash(location.hash);
   }
 
@@ -32,6 +33,9 @@ class AnchorLinkManagerProvider extends React.Component<Props> {
 
       this.scrollToHash(hash);
       // make sure to update the location
+      //
+      // TODO(txiao): This is causing a rerender of the whole page,
+      // which can be slow.
       browserHistory.push({
         ...location,
         hash,
