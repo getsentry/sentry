@@ -49,6 +49,9 @@ def clean_phone(phone):
         phonenumbers.parse(phone, DEFAULT_REGION), phonenumbers.PhoneNumberFormat.E164
     )
 
+def clean_alphanumeric_code(data):
+    return data.strip()
+
 
 # XXX: can likely remove the dedupe here after notify_users has test coverage;
 #      in theory only cleaned data would make it to the plugin via the form,
@@ -83,12 +86,16 @@ class TwilioConfigurationForm(forms.Form):
 
     def clean_sms_from(self):
         data = self.cleaned_data["sms_from"]
+
         if is_sender_alphanumeric_code(data):
             if not validate_alphanumeric_sender(data):
                 raise forms.ValidationError(f"{data} is not a valid sender ID.")
-        else:
-            if not validate_phone(data):
-                raise forms.ValidationError(f"{data} is not a valid phone number.")
+
+            return clean_alphanumeric_code(data)
+
+        if not validate_phone(data):
+            raise forms.ValidationError(f"{data} is not a valid phone number.")
+
         return clean_phone(data)
 
     def clean_sms_to(self):
