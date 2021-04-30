@@ -690,8 +690,8 @@ export const Row = ({
   children,
   extra = null,
 }: {
-  title: React.ReactNode;
-  children: React.ReactNode;
+  title: JSX.Element | string | null;
+  children: JSX.Element | string | null;
   keep?: boolean;
   extra?: React.ReactNode;
 }) => {

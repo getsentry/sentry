@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
@@ -53,11 +54,11 @@ class SpanGroup extends React.Component<PropType, State> {
   };
 
   renderSpanChildren = () => {
-    if (!this.state.showSpanTree) {
-      return null;
-    }
-
-    return this.props.renderedSpanChildren;
+    return (
+      <SpanChildrenContainer visible={this.state.showSpanTree}>
+        {this.props.renderedSpanChildren}
+      </SpanChildrenContainer>
+    );
   };
 
   getSpanErrors(): TableDataRow[] {
@@ -128,10 +129,16 @@ class SpanGroup extends React.Component<PropType, State> {
           totalNumberOfErrors={this.getTotalNumberOfErrors()}
           spanErrors={this.getSpanErrors()}
         />
-        {this.renderSpanChildren()}
+        <SpanChildrenContainer visible={this.state.showSpanTree}>
+          {this.props.renderedSpanChildren}
+        </SpanChildrenContainer>
       </React.Fragment>
     );
   }
 }
+
+const SpanChildrenContainer = styled('div')<{visible: boolean}>`
+  display: ${p => (p.visible ? 'block' : 'none')};
+`;
 
 export default withScrollbarManager(SpanGroup);
