@@ -1,8 +1,7 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
 import map from 'lodash/map';
 
 import {Client} from 'app/api';
@@ -53,9 +52,8 @@ type TransactionResult = {
   id: string;
 };
 
-type Props = {
+type Props = WithRouterProps & {
   api: Client;
-  location: Location;
   orgId: string;
   organization: Organization;
   event: Readonly<EventTransaction>;
@@ -475,13 +473,14 @@ class SpanDetail extends React.Component<Props, State> {
       return;
     }
 
-    // trigger a location change, and let the spanBar component
-    // handle the rest
+    // make sure to update the location
     const hash = `#span-${span.span_id}`;
     browserHistory.push({
       ...location,
       hash,
     });
+    // trigger a hash change
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
   };
 
   renderSpanDetails() {
@@ -746,4 +745,4 @@ function generateSlug(result: TransactionResult): string {
   });
 }
 
-export default withApi(SpanDetail);
+export default withApi(withRouter(SpanDetail));

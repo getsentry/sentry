@@ -28,6 +28,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   isRoot?: boolean;
   isCurrentSpanFilteredOut: boolean;
   spansWithErrors: TableData | null | undefined;
+  generateSpanRowRef?: (spanId: string) => (instance: HTMLDivElement | null) => void;
 };
 
 type State = {
@@ -104,6 +105,7 @@ class SpanGroup extends React.Component<PropType, State> {
       orgId,
       organization,
       event,
+      generateSpanRowRef,
     } = this.props;
 
     return (
@@ -128,6 +130,7 @@ class SpanGroup extends React.Component<PropType, State> {
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
           totalNumberOfErrors={this.getTotalNumberOfErrors()}
           spanErrors={this.getSpanErrors()}
+          generateSpanRowRef={generateSpanRowRef}
         />
         <SpanChildrenContainer visible={this.state.showSpanTree}>
           {this.props.renderedSpanChildren}

@@ -1,7 +1,6 @@
 import 'intersection-observer'; // this is a polyfill
 
 import React from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
@@ -181,7 +180,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 
 const MARGIN_LEFT = 0;
 
-type SpanBarProps = WithRouterProps & {
+type SpanBarProps = {
   event: Readonly<EventTransaction>;
   orgId: string;
   organization: Organization;
@@ -201,6 +200,7 @@ type SpanBarProps = WithRouterProps & {
   isCurrentSpanFilteredOut: boolean;
   totalNumberOfErrors: number;
   spanErrors: TableDataRow[];
+  generateSpanRowRef?: (spanId: string) => (instance: HTMLDivElement | null) => void;
 };
 
 type SpanBarState = {
@@ -214,24 +214,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
   componentDidMount() {
     this._mounted = true;
-    if (this.spanRowDOMRef.current) {
+    if (this.spanRowDOM) {
       this.connectObservers();
-    }
-    this.scrollIntoView();
-  }
-
-  componentDidUpdate(prevProps: SpanBarProps) {
-    const {location: prevLocation} = prevProps;
-    const {location} = this.props;
-
-    // This has the caveat that clicking the same anchor twice
-    // in a row will not link to it the second time.
-    //
-    // e.g. Click the anchor on 1 span, scroll around and click
-    // the same anchor again. Only the first click will scroll
-    // the span to the top, the second one is a no op.
-    if (prevLocation.hash !== location.hash) {
-      this.scrollIntoView();
     }
   }
 
@@ -240,32 +224,20 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     this.disconnectObservers();
   }
 
-  spanRowDOMRef = React.createRef<HTMLDivElement>();
+  spanRowDOM: HTMLDivElement | null = null;
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
 
-  scrollIntoView() {
-    const {location, span} = this.props;
-    const element = this.spanRowDOMRef.current;
+  generateRef = (instance: HTMLDivElement | null) => {
+    const {generateSpanRowRef, span} = this.props;
 
-    if (!element || !location.hash || isGapSpan(span)) {
-      return;
+    this.spanRowDOM = instance;
+
+    if (!isGapSpan(span) && generateSpanRowRef) {
+      generateSpanRowRef(span.span_id)(instance);
     }
-
-    const [, hash] = location.hash.split('#');
-
-    if (hash !== `span-${span.span_id}`) {
-      return;
-    }
-
-    // make sure to account for the minimap height
-    const boundingRect = element.getBoundingClientRect();
-    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT;
-
-    // make sure to expand the details when the span is being scrolled into view
-    this.setState({showDetail: true}, () => window.scrollTo(0, offset));
-  }
+  };
 
   toggleDisplayDetail = () => {
     this.setState(state => ({
@@ -287,7 +259,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
 
     const {
-      location,
       span,
       orgId,
       organization,
@@ -300,7 +271,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <SpanDetail
-        location={location}
         span={span}
         orgId={orgId}
         organization={organization}
@@ -569,7 +539,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   connectObservers() {
-    if (!this.spanRowDOMRef.current) {
+    if (!this.spanRowDOM) {
       return;
     }
 
@@ -730,7 +700,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       }
     );
 
-    this.intersectionObserver.observe(this.spanRowDOMRef.current);
+    this.intersectionObserver.observe(this.spanRowDOM);
   }
 
   disconnectObservers() {
@@ -960,7 +930,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return (
       <Row
         id={isGapSpan(span) ? undefined : `span-${span.span_id}`}
-        ref={this.spanRowDOMRef}
+        ref={this.generateRef}
         visible={isSpanVisible}
         showBorder={this.state.showDetail}
         data-test-id="span-row"
@@ -1026,4 +996,4 @@ const StyledIconWarning = styled(IconWarning)`
   margin-bottom: ${space(0.25)};
 `;
 
-export default withRouter(SpanBar);
+export default SpanBar;
