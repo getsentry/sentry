@@ -38,7 +38,7 @@ def store_stacktrace(default_project, factories):
 @pytest.mark.django_db
 @pytest.mark.snuba
 def test_basic(client, default_project, store_stacktrace, default_user, reset_snuba):
-    def _check_merged():
+    def _check_merged(seq):
         event1 = store_stacktrace(["foo", "bar", "baz"])
         event2 = store_stacktrace(["foo", "bam", "baz"])
 
@@ -51,7 +51,7 @@ def test_basic(client, default_project, store_stacktrace, default_user, reset_sn
             {
                 "childId": "3d433234e3f52665a03e87b46e423534",
                 "childLabel": "bam | ...",
-                "eventCount": 1,
+                "eventCount": seq,
                 "id": "dc6e6375dcdf74132537129e6a182de7",
                 "label": "baz",
                 "latestEvent": response.data[0]["latestEvent"],
@@ -60,7 +60,7 @@ def test_basic(client, default_project, store_stacktrace, default_user, reset_sn
             {
                 "childId": "ce6d941a9829057608a96725c201e636",
                 "childLabel": "bar | ...",
-                "eventCount": 1,
+                "eventCount": seq,
                 "id": "dc6e6375dcdf74132537129e6a182de7",
                 "label": "baz",
                 "latestEvent": response.data[1]["latestEvent"],
@@ -70,7 +70,7 @@ def test_basic(client, default_project, store_stacktrace, default_user, reset_sn
 
         return event1.group_id
 
-    group_id = _check_merged()
+    group_id = _check_merged(1)
 
     response = client.put(
         f"/api/0/issues/{group_id}/hashes/split/?id=dc6e6375dcdf74132537129e6a182de7",
@@ -81,6 +81,7 @@ def test_basic(client, default_project, store_stacktrace, default_user, reset_sn
     event2 = store_stacktrace(["foo", "bam", "baz"])
 
     assert event1.group_id != event2.group_id
+    assert event1.group_id != group_id
 
     response = client.get(f"/api/0/issues/{event1.group_id}/hashes/split/", format="json")
     assert response.status_code == 200
@@ -121,7 +122,9 @@ def test_basic(client, default_project, store_stacktrace, default_user, reset_sn
     )
     assert response.status_code == 200
 
-    assert _check_merged() == group_id
+    # TODO: Once we start moving events, the old group should probably no
+    # longer exist.
+    assert _check_merged(2) == group_id
 
 
 @pytest.mark.django_db
