@@ -1,16 +1,31 @@
-from sentry.testutils import TestCase
-from sentry.models import NotificationSetting, UserOption, ExternalActor, Integration
-from sentry.notifications.helpers import *
-from sentry.notifications.helpers import _get_setting_mapping_from_mapping
-from sentry.types.integrations import ExternalProviders
+from sentry.models import ExternalActor, Integration, NotificationSetting, UserOption
+from sentry.notifications.helpers import (
+    _get_setting_mapping_from_mapping,
+    collect_groups_by_project,
+    get_deploy_values_by_provider,
+    get_groups_for_query,
+    get_scope,
+    get_scope_type,
+    get_settings_by_provider,
+    get_subscription_from_attributes,
+    get_target_id,
+    get_user_subscriptions_for_groups,
+    should_be_participating,
+    transform_to_notification_settings_by_parent_id,
+    transform_to_notification_settings_by_user,
+    validate,
+    where_should_be_participating,
+    where_should_user_be_notified,
+)
+from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
-    NOTIFICATION_SETTING_DEFAULTS,
-    SUBSCRIPTION_REASON_MAP,
-    VALID_VALUES_FOR_KEY,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.testutils import TestCase
+from sentry.types.integrations import ExternalProviders
+
 
 class NotificationHelpersTest(TestCase):
     def setUp(self):
@@ -22,7 +37,6 @@ class NotificationHelpersTest(TestCase):
         self.team = self.create_team(organization=self.org, members=[self.user1, self.user2])
 
         self.project = self.create_project(teams=[self.team], organization=self.org)
-        group = self.create_group(project=self.project)
         self.login_as(self.user1)
 
         NotificationSetting.objects.update_settings(
@@ -116,58 +130,229 @@ class NotificationHelpersTest(TestCase):
                 }
             }
         }
-        assert where_should_user_be_notified(notification_settings, self.user1) == [ExternalProviders.EMAIL]
+        assert where_should_user_be_notified(notification_settings, self.user1) == [
+            ExternalProviders.EMAIL
+        ]
 
     def test_where_should_user_be_notified_two_providers(self):
         notification_settings = {
             self.user1: {
                 NotificationScopeType.USER: {
                     ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
+                    ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS,
+                }
+            }
+        }
+        assert where_should_user_be_notified(notification_settings, self.user1) == [
+            ExternalProviders.EMAIL,
+            ExternalProviders.SLACK,
+        ]
+
+    def test_should_be_participating(self):
+        subscriptions_by_user_id = {ExternalProviders.EMAIL: {self.user1: -1}}
+        self.assertTrue(
+            should_be_participating(
+                subscriptions_by_user_id, self.user1, NotificationSettingOptionValues.ALWAYS
+            )
+        )
+
+    def test_where_should_be_participating(self):
+        subscriptions_by_user_id = {ExternalProviders.EMAIL: {self.user1: -1}}
+        notification_settings = {
+            self.user1: {
+                NotificationScopeType.USER: {
+                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS
+                }
+            }
+        }
+        assert (
+            where_should_be_participating(
+                self.user1,
+                subscriptions_by_user_id,
+                notification_settings,
+            )
+            == [ExternalProviders.EMAIL]
+        )
+
+    def test_get_deploy_values_by_provider(self):
+        notification_settings_by_scope = {
+            NotificationScopeType.ORGANIZATION: {
+                ExternalProviders.EMAIL: NotificationSettingOptionValues.COMMITTED_ONLY
+            },
+            NotificationScopeType.USER: {
+                ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS
+            },
+        }
+        values_by_provider = get_deploy_values_by_provider(
+            notification_settings_by_scope, notification_providers()
+        )
+        assert values_by_provider == {
+            ExternalProviders.EMAIL: NotificationSettingOptionValues.COMMITTED_ONLY,
+            ExternalProviders.SLACK: NotificationSettingOptionValues.COMMITTED_ONLY,
+        }
+
+    def test_transform_to_notification_settings_by_user(self):
+        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+            NotificationSettingTypes.WORKFLOW,
+            users=[self.user1],
+            parent=self.group.project,
+        )
+        notification_settings_by_user = transform_to_notification_settings_by_user(
+            notification_settings, [self.user1]
+        )
+        assert notification_settings_by_user == {
+            self.user1: {
+                NotificationScopeType.USER: {
                     ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS
                 }
             }
         }
-        assert where_should_user_be_notified(notification_settings, self.user1) == [ExternalProviders.EMAIL, ExternalProviders.SLACK]
-    
-    def test_should_be_participating(self):
-        subscriptions_by_user_id = {ExternalProviders.EMAIL: {self.user1: -1}}
-        assert should_be_participating(subscriptions_by_user_id, self.user1, NotificationSettingOptionValues.ALWAYS) == True
-
-    def test_where_should_be_participating(self):
-        pass
-
-    def test_get_deploy_values_by_provider(self):
-        pass
-
-    def test_transform_to_notification_settings_by_user(self):
-        pass
 
     def test_transform_to_notification_settings_by_parent_id(self):
-        pass
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user1,
+            project=self.project,
+        )
+        notification_settings = NotificationSetting.objects.get_for_user_by_projects(
+            NotificationSettingTypes.WORKFLOW,
+            self.user1,
+            [self.project],
+        )
+        (
+            notification_settings_by_project_id_by_provider,
+            default_subscribe_by_provider,
+        ) = transform_to_notification_settings_by_parent_id(
+            notification_settings, NotificationSettingOptionValues.ALWAYS
+        )
+        assert notification_settings_by_project_id_by_provider == {
+            ExternalProviders.SLACK: {15: NotificationSettingOptionValues.ALWAYS}
+        }
+        assert default_subscribe_by_provider == {
+            ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS
+        }
 
     def test_validate(self):
-        pass
+        self.assertTrue(
+            validate(NotificationSettingTypes.ISSUE_ALERTS, NotificationSettingOptionValues.ALWAYS)
+        )
+        self.assertTrue(
+            validate(NotificationSettingTypes.ISSUE_ALERTS, NotificationSettingOptionValues.NEVER)
+        )
+
+        self.assertTrue(
+            validate(NotificationSettingTypes.DEPLOY, NotificationSettingOptionValues.ALWAYS)
+        )
+        self.assertTrue(
+            validate(NotificationSettingTypes.DEPLOY, NotificationSettingOptionValues.NEVER)
+        )
+        self.assertTrue(
+            validate(
+                NotificationSettingTypes.DEPLOY, NotificationSettingOptionValues.COMMITTED_ONLY
+            )
+        )
+        self.assertFalse(
+            validate(
+                NotificationSettingTypes.DEPLOY, NotificationSettingOptionValues.SUBSCRIBE_ONLY
+            )
+        )
+
+        self.assertTrue(
+            validate(NotificationSettingTypes.WORKFLOW, NotificationSettingOptionValues.ALWAYS)
+        )
+        self.assertTrue(
+            validate(NotificationSettingTypes.WORKFLOW, NotificationSettingOptionValues.NEVER)
+        )
+        self.assertTrue(
+            validate(
+                NotificationSettingTypes.WORKFLOW, NotificationSettingOptionValues.SUBSCRIBE_ONLY
+            )
+        )
+        self.assertFalse(
+            validate(
+                NotificationSettingTypes.WORKFLOW, NotificationSettingOptionValues.COMMITTED_ONLY
+            )
+        )
 
     def test_get_scope_type(self):
-        pass
+        assert get_scope_type(NotificationSettingTypes.DEPLOY) == NotificationScopeType.ORGANIZATION
+        assert get_scope_type(NotificationSettingTypes.WORKFLOW) == NotificationScopeType.PROJECT
+        assert (
+            get_scope_type(NotificationSettingTypes.ISSUE_ALERTS) == NotificationScopeType.PROJECT
+        )
+        assert not get_scope_type(NotificationSettingTypes.DEPLOY) == NotificationScopeType.PROJECT
+        assert (
+            not get_scope_type(NotificationSettingTypes.WORKFLOW)
+            == NotificationScopeType.ORGANIZATION
+        )
+        assert (
+            not get_scope_type(NotificationSettingTypes.ISSUE_ALERTS)
+            == NotificationScopeType.ORGANIZATION
+        )
 
     def test_get_scope(self):
-        pass
+        scope_type, scope_identifier = get_scope(self.user1.id, project=None, organization=None)
+        assert scope_type == NotificationScopeType.USER
+        assert scope_identifier == self.user1.id
+
+        scope_type, scope_identifier = get_scope(
+            self.user1.id, project=self.project, organization=None
+        )
+        assert scope_type == NotificationScopeType.PROJECT
+        assert scope_identifier == self.project.id
+
+        scope_type, scope_identifier = get_scope(self.user1.id, project=None, organization=self.org)
+        assert scope_type == NotificationScopeType.ORGANIZATION
+        assert scope_identifier == self.org.id
 
     def test_get_target_id(self):
-        pass
+        assert get_target_id(self.user1) == self.user1.actor_id
+        assert get_target_id(self.team) == self.team.actor_id
 
     def test_get_subscription_from_attributes(self):
-        pass
+        attrs = {"subscription": (True, True, None)}
+        assert get_subscription_from_attributes(attrs) == (True, {"disabled": True})
+
+        attrs = {"subscription": (True, False, None)}
+        assert get_subscription_from_attributes(attrs) == (False, {"disabled": True})
 
     def test_get_groups_for_query(self):
-        pass
+        groups_by_project = {self.project: {self.group}}
+        notification_settings_by_key = {5: NotificationSettingOptionValues.ALWAYS}
+        global_default_workflow_option = NotificationSettingOptionValues.ALWAYS
+        query_groups = get_groups_for_query(
+            groups_by_project,
+            notification_settings_by_key,
+            global_default_workflow_option,
+        )
+        assert query_groups == {self.group}
 
     def test_collect_groups_by_project(self):
-        pass
+        assert collect_groups_by_project([self.group]) == {self.project: {self.group}}
 
     def test_get_user_subscriptions_for_groups(self):
-        pass
+        groups_by_project = {self.project: {self.group}}
+        notification_settings_by_key = {5: NotificationSettingOptionValues.ALWAYS}
+        subscriptions_by_group_id = {2: None}
+        global_default_workflow_option = NotificationSettingOptionValues.ALWAYS
+        subscriptions = get_user_subscriptions_for_groups(
+            groups_by_project,
+            notification_settings_by_key,
+            subscriptions_by_group_id,
+            global_default_workflow_option,
+        )
+        assert subscriptions == {self.group.id: (False, True, None)}
 
     def test_get_settings_by_provider(self):
-        pass
+        settings = {
+            NotificationScopeType.USER: {
+                ExternalProviders.EMAIL: NotificationSettingOptionValues.NEVER
+            }
+        }
+        assert get_settings_by_provider(settings) == {
+            ExternalProviders.EMAIL: {
+                NotificationScopeType.USER: NotificationSettingOptionValues.NEVER
+            }
+        }
