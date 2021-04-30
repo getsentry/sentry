@@ -550,8 +550,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # on python 3.7.
         results_map: Dict[Optional[str], List[TraceEvent]] = OrderedDict()
         to_check: Deque[SnubaTransaction] = deque()
-        # The root of the tree we're currently navigating through
-        current_root = None
+        # The root of the orphan tree we're currently navigating through
+        orphan_root: Optional[SnubaTransaction] = None
         if roots:
             results_map[None] = []
         for root in roots:
@@ -578,16 +578,15 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         current_event, None, 0
                     )
 
+                    # Used to avoid removing the orphan from results entirely if we loop
+                    orphan_root = current_event
                     # not using a defaultdict here as a DefaultOrderedDict isn't worth the effort
-                    current_root = previous_event
                     if parent_span_id in results_map:
                         results_map[parent_span_id].append(previous_event)
                     else:
                         results_map[parent_span_id] = [previous_event]
                 else:
                     current_event = to_check.popleft()
-                    if current_event in roots:
-                        current_root = current_event
                     previous_event = parent_events[current_event["id"]]
 
                 # We've found the event for the quick trace so we can remove everything in the deque
@@ -627,10 +626,10 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         and
                         # The child event has already been checked
                         child["span_id"] in results_map
-                        and current_root is not None
+                        and orphan_root is not None
                         and
                         # In the case of a span loop popping the current root removes the orphan subtrace
-                        child["span_id"] != current_root.event["trace.parent_span"]
+                        child["span_id"] != orphan_root["trace.parent_span"]
                     ):
                         orphan_subtraces = results_map.pop(child["span_id"])
                         for orphan_subtrace in orphan_subtraces:
