@@ -11,7 +11,11 @@ from urllib.parse import urlparse
 import pytest
 from django.utils.text import slugify
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, WebDriverException
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    SessionNotCreatedException,
+    WebDriverException,
+)
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
@@ -453,7 +457,16 @@ def pytest_configure(config):
 
 @TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,), log_original_error=True)
 def start_chrome(**chrome_args):
-    return webdriver.Chrome(**chrome_args)
+    try:
+        return webdriver.Chrome(**chrome_args)
+    except SessionNotCreatedException as e:
+        if "This version of ChromeDriver only supports Chrome version" in e.msg:
+            raise Exception(
+                """ChromeDriver version does not match Chrome version, update ChromeDriver (e.g. if you use `homebrew`):
+
+    brew upgrade --cask chromedriver
+    """
+            )
 
 
 @pytest.fixture(scope="function")
