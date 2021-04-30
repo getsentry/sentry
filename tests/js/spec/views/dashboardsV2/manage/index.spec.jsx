@@ -70,8 +70,10 @@ describe('Dashboards > Detail', function () {
       <ManageDashboards organization={org} location={{query: {}}} router={{}} />
     );
     await tick();
-    wrapper.find('PageHeader').find('Button').simulate('click');
+
+    wrapper.find('Button[data-test-id="dashboard-create"]').simulate('click');
     await tick();
+
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/dashboards/new/',
       query: {},

@@ -9,12 +9,13 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import PageHeading from 'app/components/pageHeading';
 import SearchBar from 'app/components/searchBar';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
-import {PageContent, PageHeader} from 'app/styles/organization';
+import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
@@ -131,35 +132,44 @@ class ManageDashboards extends AsyncView<Props, State> {
         renderDisabled={this.renderNoAccess}
       >
         <LightWeightNoProjectMessage organization={organization}>
-          <PageContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: 'Dashboards',
-                  to: `/organizations/${organization.slug}/dashboards/`,
-                },
-                {
-                  label: 'Manage Dashboards',
-                },
-              ]}
-            />
-            <PageHeader>
-              <PageHeading>{t('Manage Dashboards')}</PageHeading>
-              <Button
-                data-test-id="dashboard-create"
-                onClick={event => {
-                  event.preventDefault();
-                  this.onCreate();
-                }}
-                priority="primary"
-                icon={<IconAdd size="xs" isCircled />}
-              >
-                {t('Create Dashboard')}
-              </Button>
-            </PageHeader>
-            {this.renderActions()}
-            {this.renderDashboards()}
-          </PageContent>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  {
+                    label: t('Dashboards'),
+                    to: `/organizations/${organization.slug}/dashboards/`,
+                  },
+                  {
+                    label: t('Manage Dashboards'),
+                  },
+                ]}
+              />
+              <Layout.Title>{t('Manage Dashboards')}</Layout.Title>
+            </Layout.HeaderContent>
+
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <Button
+                  data-test-id="dashboard-create"
+                  onClick={event => {
+                    event.preventDefault();
+                    this.onCreate();
+                  }}
+                  priority="primary"
+                  icon={<IconAdd size="xs" isCircled />}
+                >
+                  {t('Create Dashboard')}
+                </Button>
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              {this.renderActions()}
+              {this.renderDashboards()}
+            </Layout.Main>
+          </Layout.Body>
         </LightWeightNoProjectMessage>
       </Feature>
     );

@@ -26,15 +26,11 @@ import {formatUsageWithUnits, GIGABYTE} from '../utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
 
-const COLOR_ERRORS = ChartPalette[4][3];
-const COLOR_ERRORS_LIGHT = Color(COLOR_ERRORS).lighten(0.25).string();
-
-const COLOR_TRANSACTIONS = ChartPalette[4][2];
-const COLOR_TRANSACTIONS_LIGHT = Color(COLOR_TRANSACTIONS).lighten(0.25).string();
-
-const COLOR_ATTACHMENTS = ChartPalette[4][1];
-const COLOR_ATTACHMENTS_LIGHT = Color(COLOR_ATTACHMENTS).lighten(0.5).string();
-const COLOR_PROJECTED = commonTheme.gray200;
+const COLOR_ERRORS = Color(ChartPalette[4][3]).lighten(0.25).string();
+const COLOR_TRANSACTIONS = Color(ChartPalette[4][2]).lighten(0.35).string();
+const COLOR_ATTACHMENTS = Color(ChartPalette[4][1]).lighten(0.65).string();
+const COLOR_DROPPED = commonTheme.red300;
+const COLOR_PROJECTED = commonTheme.gray100;
 
 export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
   {
@@ -202,14 +198,14 @@ export class UsageChart extends React.Component<Props, State> {
     const {dataCategory} = this.props;
 
     if (dataCategory === DataCategory.ERRORS) {
-      return [COLOR_ERRORS_LIGHT, COLOR_ERRORS, COLOR_PROJECTED];
+      return [COLOR_ERRORS, COLOR_DROPPED, COLOR_PROJECTED];
     }
 
     if (dataCategory === DataCategory.ATTACHMENTS) {
-      return [COLOR_ATTACHMENTS_LIGHT, COLOR_ATTACHMENTS, COLOR_PROJECTED];
+      return [COLOR_ATTACHMENTS, COLOR_DROPPED, COLOR_PROJECTED];
     }
 
-    return [COLOR_TRANSACTIONS_LIGHT, COLOR_TRANSACTIONS, COLOR_PROJECTED];
+    return [COLOR_TRANSACTIONS, COLOR_DROPPED, COLOR_PROJECTED];
   }
 
   get chartMetadata(): {
@@ -304,7 +300,7 @@ export class UsageChart extends React.Component<Props, State> {
     const {chartSeries} = this.props;
     const {chartData} = this.chartMetadata;
 
-    const series: EChartOption.Series[] = [
+    let series: EChartOption.Series[] = [
       barSeries({
         name: SeriesTypes.ACCEPTED,
         data: chartData.accepted as any, // TODO(ts)
@@ -329,7 +325,7 @@ export class UsageChart extends React.Component<Props, State> {
 
     // Additional series passed by parent component
     if (chartSeries) {
-      series.concat(chartSeries as EChartOption.Series[]);
+      series = series.concat(chartSeries as EChartOption.Series[]);
     }
 
     return series;
