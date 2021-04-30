@@ -57,20 +57,27 @@ package.json        @getsentry/owners-js-build
 babel.config.*      @getsentry/owners-js-build
 build-utils/        @getsentry/owners-js-build
 
-# Releases UI
-/static/app/views/releases/                   @getsentry/owners-releases-ui
-/tests/js/spec/views/releases/                                  @getsentry/owners-releases-ui
+# Design
+/static/app/icons/                                              @getsentry/design
+/static/fonts/                                                  @getsentry/design
+/static/images/                                                 @getsentry/design
+/docs-ui/components/                                            @getsentry/design
+
 
 # Owners by product feature
 
+# Releases UI
+/static/app/views/releases/                                     @getsentry/owners-releases-ui
+/tests/js/spec/views/releases/                                  @getsentry/owners-releases-ui
+
 ### Issue/Metric Alerts ###
-/static/app/views/settings/projectAlerts/     @getsentry/workflow
+/static/app/views/settings/projectAlerts/                       @getsentry/workflow
 /tests/js/spec/views/settings/projectAlerts/                    @getsentry/workflow
 
-/static/app/views/settings/incidentRules/     @getsentry/workflow
+/static/app/views/settings/incidentRules/                       @getsentry/workflow
 /tests/js/spec/views/settings/incidentRules/                    @getsentry/workflow
 
-/static/app/views/alerts/                     @getsentry/workflow
+/static/app/views/alerts/                                       @getsentry/workflow
 /tests/js/spec/views/alerts/                                    @getsentry/workflow
 
 /src/sentry/templates/sentry/emails/incidents/                  @getsentry/workflow
