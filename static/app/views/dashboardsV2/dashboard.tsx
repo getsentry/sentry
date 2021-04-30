@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
@@ -30,7 +30,7 @@ type Props = {
   onUpdate: (widgets: Widget[]) => void;
 };
 
-class Dashboard extends React.Component<Props> {
+class Dashboard extends Component<Props> {
   componentDidMount() {
     const {isEditing} = this.props;
     // Load organization tags when in edit mode.

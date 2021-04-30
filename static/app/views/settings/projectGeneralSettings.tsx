@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory, WithRouterProps} from 'react-router';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import ActivityAuthor from 'app/components/activity/author';
@@ -18,7 +18,7 @@ type Props = {
   className?: string;
 };
 
-class EventUserFeedback extends React.Component<Props> {
+class EventUserFeedback extends Component<Props> {
   getUrl() {
     const {report, orgId, issueId} = this.props;
 

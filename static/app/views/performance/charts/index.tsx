@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 
@@ -32,7 +32,7 @@ type Props = {
   router: ReactRouter.InjectedRouter;
 };
 
-class Container extends React.Component<Props> {
+class Container extends Component<Props> {
   getChartParameters() {
     const {location, organization} = this.props;
     const options = getAxisOptions(organization);
@@ -91,7 +91,7 @@ class Container extends React.Component<Props> {
             }
 
             return (
-              <React.Fragment>
+              <Fragment>
                 <DoubleHeaderContainer>
                   {axisOptions.map((option, i) => (
                     <div key={`${option.label}:${i}`}>
@@ -124,7 +124,7 @@ class Container extends React.Component<Props> {
                 ) : (
                   <LoadingPanel data-test-id="events-request-loading" />
                 )}
-              </React.Fragment>
+              </Fragment>
             );
           }}
         </EventsRequest>

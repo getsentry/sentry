@@ -1,4 +1,4 @@
-import React from 'react';
+import {memo} from 'react';
 
 import Highlight from 'app/components/highlight';
 import Tag from 'app/components/tag';
@@ -10,7 +10,7 @@ type Props = {
   searchTerm?: string;
 };
 
-const Level = React.memo(({level, searchTerm = ''}: Props) => {
+const Level = memo(({level, searchTerm = ''}: Props) => {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return (

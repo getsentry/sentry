@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import quickTraceExample from 'sentry-images/spot/performance-quick-trace.svg';
@@ -30,7 +30,7 @@ type State = {
   shouldShow: boolean | null;
 };
 
-class EventQuickTrace extends React.Component<Props, State> {
+class EventQuickTrace extends Component<Props, State> {
   state: State = {
     shouldShow: null,
   };

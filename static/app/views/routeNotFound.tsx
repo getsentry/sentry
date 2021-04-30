@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -11,7 +11,7 @@ type Props = {
   location: Location;
 };
 
-class RouteNotFound extends React.Component<Props> {
+class RouteNotFound extends Component<Props> {
   componentDidMount() {
     Sentry.withScope(scope => {
       scope.setFingerprint(['RouteNotFound']);

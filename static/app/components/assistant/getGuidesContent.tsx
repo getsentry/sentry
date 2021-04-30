@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {GuidesContent} from 'app/components/assistant/types';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';

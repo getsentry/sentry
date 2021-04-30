@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {components as selectComponents} from 'react-select';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';

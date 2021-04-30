@@ -1,7 +1,7 @@
 /**
  * Displays and formats absolute DateTime ranges
  */
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -14,7 +14,7 @@ type Props = {
   end: moment.MomentInput;
 };
 
-class DateSummary extends React.Component<Props> {
+class DateSummary extends Component<Props> {
   getFormattedDate(date: moment.MomentInput, format: string) {
     return moment(date).local().format(format);
   }
@@ -45,7 +45,7 @@ class DateSummary extends React.Component<Props> {
             {shouldShowTimes && <Time>{this.formatTime(start)}</Time>}
           </Date>
         </DateGroup>
-        <React.Fragment>
+        <Fragment>
           <DateRangeDivider>{t('to')}</DateRangeDivider>
 
           <DateGroup>
@@ -54,7 +54,7 @@ class DateSummary extends React.Component<Props> {
               {shouldShowTimes && <Time>{this.formatTime(end)}</Time>}
             </Date>
           </DateGroup>
-        </React.Fragment>
+        </Fragment>
       </DateGroupWrapper>
     );
   }

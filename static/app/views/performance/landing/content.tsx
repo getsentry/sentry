@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -52,7 +52,7 @@ type Props = {
 } & WithRouterProps;
 
 type State = {};
-class LandingContent extends React.Component<Props, State> {
+class LandingContent extends Component<Props, State> {
   componentDidMount() {
     const {organization} = this.props;
     trackAnalyticsEvent({
@@ -117,7 +117,7 @@ class LandingContent extends React.Component<Props, State> {
     const filterString = getTransactionSearchQuery(location, eventView.query);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SearchContainer>
           <SearchBar
             organization={organization}
@@ -149,7 +149,7 @@ class LandingContent extends React.Component<Props, State> {
           </DropdownControl>
         </SearchContainer>
         {this.renderSelectedDisplay(currentLandingDisplay.field)}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -181,7 +181,7 @@ class LandingContent extends React.Component<Props, State> {
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
     return (
-      <React.Fragment>
+      <Fragment>
         {isPageload && (
           <FrontendCards
             eventView={eventView}
@@ -207,7 +207,7 @@ class LandingContent extends React.Component<Props, State> {
           summaryConditions={eventView.getQueryWithAdditionalConditions()}
           columnTitles={columnTitles}
         />
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -220,7 +220,7 @@ class LandingContent extends React.Component<Props, State> {
     const columnTitles = BACKEND_COLUMN_TITLES;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <BackendCards
           eventView={eventView}
           organization={organization}
@@ -243,7 +243,7 @@ class LandingContent extends React.Component<Props, State> {
           summaryConditions={eventView.getQueryWithAdditionalConditions()}
           columnTitles={columnTitles}
         />
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -251,7 +251,7 @@ class LandingContent extends React.Component<Props, State> {
     const {organization, location, router, projects, eventView, setError} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Charts
           eventView={eventView}
           organization={organization}
@@ -266,7 +266,7 @@ class LandingContent extends React.Component<Props, State> {
           setError={setError}
           summaryConditions={eventView.getQueryWithAdditionalConditions()}
         />
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -285,7 +285,7 @@ class LandingContent extends React.Component<Props, State> {
     const summaryConditions = this.getSummaryConditions(filterString);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SearchBar
           organization={organization}
           projectIds={eventView.project}
@@ -321,7 +321,7 @@ class LandingContent extends React.Component<Props, State> {
           setError={setError}
           summaryConditions={summaryConditions}
         />
-      </React.Fragment>
+      </Fragment>
     );
   };
 

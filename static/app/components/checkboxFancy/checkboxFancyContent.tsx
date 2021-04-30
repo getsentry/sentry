@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {IconCheckmark, IconSubtract} from 'app/icons';
 
 type Props = {

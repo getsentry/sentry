@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import InputField from 'app/components/forms/inputField';
 import Tooltip from 'app/components/tooltip';

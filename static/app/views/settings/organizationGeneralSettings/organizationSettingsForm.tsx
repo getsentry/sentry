@@ -1,4 +1,3 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 

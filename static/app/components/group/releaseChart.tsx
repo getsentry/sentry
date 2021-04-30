@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import {t} from 'app/locale';

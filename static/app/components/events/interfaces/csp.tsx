@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -26,7 +26,7 @@ type Props = {
   data: Record<string, any>;
 };
 
-export default class CspInterface extends React.Component<Props> {
+export default class CspInterface extends Component<Props> {
   state = {view: 'report'};
 
   toggleView = value => {

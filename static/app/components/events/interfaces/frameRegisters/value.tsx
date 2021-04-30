@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
@@ -18,7 +18,7 @@ type State = {
   view: number;
 };
 
-class Value extends React.Component<Props, State> {
+class Value extends Component<Props, State> {
   state: State = {view: 0};
 
   toggleView = () => {

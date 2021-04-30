@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {defined} from 'app/utils';
 
 type Props = {

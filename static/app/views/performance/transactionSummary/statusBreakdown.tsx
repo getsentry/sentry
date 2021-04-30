@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -30,7 +30,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
     .withSorts([{kind: 'desc', field: 'count'}]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <SectionHeading>
         {t('Status Breakdown')}
         <QuestionTooltip
@@ -68,7 +68,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
           return <BreakdownBars data={points} />;
         }}
       </DiscoverQuery>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

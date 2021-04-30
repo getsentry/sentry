@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -30,7 +30,7 @@ type State = {
   team: string | null;
 };
 
-class MissingProjectMembership extends React.Component<Props, State> {
+class MissingProjectMembership extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 

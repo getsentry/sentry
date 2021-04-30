@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
@@ -58,7 +58,7 @@ type State = {
 // as React.ReactText
 type TotalValues = Record<string, number>;
 
-class TransactionSummary extends React.Component<Props, State> {
+class TransactionSummary extends Component<Props, State> {
   state: State = {
     spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
     eventView: generateSummaryEventView(
