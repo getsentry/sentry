@@ -81,42 +81,22 @@ class MailAdapter:
         extra["project_id"] = project.id
 
         if digests.enabled(project):
-            # we don't digest notifications that are not sent to email (e.g. Slack)
-            # so pop out the target_id to send an email digest to, and then notify
-            # normally for other providers
-            participants_by_provider = self.get_send_to(
-                project=project,
-                target_type=target_type,
-                target_identifier=target_identifier,
-                event=event,
-            )
-            email_to = None
-            if participants_by_provider:
-                if participants_by_provider.get(ExternalProviders.EMAIL):
-                    email_to = participants_by_provider.pop(ExternalProviders.EMAIL)
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
 
-            if email_to:
-                digest_key = unsplit_key(event.group.project, target_type, email_to)
-                extra["digest_key"] = digest_key
-                immediate_delivery = digests.add(
-                    digest_key,
-                    event_to_record(event, rules),
-                    increment_delay=get_digest_option("increment_delay"),
-                    maximum_delay=get_digest_option("maximum_delay"),
-                )
-                if immediate_delivery:
-                    deliver_digest.delay(digest_key)
-                else:
-                    log_event = "digested"
-
-            if participants_by_provider:
-                # check if there are non-email notifications left to be sent, and send them
-                notification = Notification(event=event, rules=rules)
-                for provider in participants_by_provider:
-                    self.notify(notification, target_type, participants_by_provider[provider][0])
+            digest_key = unsplit_key(event.group.project, target_type, target_identifier)
+            extra["digest_key"] = digest_key
+            immediate_delivery = digests.add(
+                digest_key,
+                event_to_record(event, rules),
+                increment_delay=get_digest_option("increment_delay"),
+                maximum_delay=get_digest_option("maximum_delay"),
+            )
+            if immediate_delivery:
+                deliver_digest.delay(digest_key)
+            else:
+                log_event = "digested"
 
         else:
             notification = Notification(event=event, rules=rules)
