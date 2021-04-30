@@ -5,9 +5,9 @@ from rest_framework.response import Response
 from sentry.plugins import providers
 
 
-class ManualSourceControlRepositoryProvider(providers.IntegrationRepositoryProvider):
-    name = "ManualSourceControl"
-    logger = logging.getLogger("sentry.integrations.manual_source_control")
+class CustomSCMRepositoryProvider(providers.IntegrationRepositoryProvider):
+    name = "CustomSCM"
+    logger = logging.getLogger("sentry.integrations.custom_scm")
 
     def repository_external_slug(self, repo):
         return repo.name

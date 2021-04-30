@@ -15,10 +15,10 @@ from sentry.models.repository import Repository
 from sentry.pipeline import PipelineView
 from sentry.web.helpers import render_to_response
 
-from .repository import ManualSourceControlRepositoryProvider
+from .repository import CustomSCMRepositoryProvider
 
 DESCRIPTION = """
-Manual Source Code Control
+Custom Source Control Management (SCM)
 """
 
 FEATURES = [
@@ -42,12 +42,12 @@ metadata = IntegrationMetadata(
     author="The Sentry Team",
     noun=_("Installation"),
     issue_url="https://github.com/getsentry/sentry/issues/",
-    source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/manual_source_control",
+    source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/custom_scm",
     aspects={},
 )
 
 
-class ManualSourceControlIntegration(IntegrationInstallation, RepositoryMixin):
+class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
     def get_client(self):
         pass
 
@@ -99,17 +99,17 @@ class InstallationConfigView(PipelineView):
             form = InstallationForm()
 
         return render_to_response(
-            template="sentry/integrations/manual-source-control-config.html",
+            template="sentry/integrations/custom-scm-config.html",
             context={"form": form},
             request=request,
         )
 
 
-class ManualSourceControlIntegrationProvider(IntegrationProvider):
-    key = "manual_source_control"
-    name = "Manual Source Control"
+class CustomSCMIntegrationProvider(IntegrationProvider):
+    key = "custom_scm"
+    name = "Custom Source Control Management (SCM)"
     metadata = metadata
-    integration_cls = ManualSourceControlIntegration
+    integration_cls = CustomSCMIntegration
     features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.STACKTRACE_LINK])
 
     def get_pipeline_views(self):
@@ -134,6 +134,6 @@ class ManualSourceControlIntegrationProvider(IntegrationProvider):
 
         bindings.add(
             "integration-repository.provider",
-            ManualSourceControlRepositoryProvider,
-            id="integrations:manual_source_control",
+            CustomSCMRepositoryProvider,
+            id="integrations:custom_scm",
         )
