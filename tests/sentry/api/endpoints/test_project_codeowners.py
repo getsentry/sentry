@@ -147,7 +147,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         }
 
     def test_cannot_find_external_team_name_association(self):
-        self.data["raw"] = "docs/*  @getsentry/frontend"
+        self.data["raw"] = "docs/*  @getsentry/frontend\nstatic/* @getsentry/frontend"
         with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
