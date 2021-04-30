@@ -127,6 +127,7 @@ const BreadcrumbLink = styled(
 
 const BreadcrumbItem = styled('span')`
   ${getBreadcrumbListItemStyles}
+  max-width: 400px;
 `;
 
 const BreadcrumbDividerIcon = styled(IconChevron)`
