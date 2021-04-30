@@ -9,6 +9,7 @@ import momentTimezone from 'moment-timezone';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
+import ChartZoom from 'app/components/charts/chartZoom';
 import Graphic from 'app/components/charts/components/graphic';
 import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
@@ -24,7 +25,7 @@ import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {AvatarProject, Organization, Project} from 'app/types';
+import {AvatarProject, DateString, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
 import {getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
@@ -53,6 +54,7 @@ type Props = WithRouterProps & {
   filter: React.ReactNode;
   query: string;
   orgId: string;
+  handleZoom: (start: DateString, end: DateString) => void;
 };
 
 type State = {
@@ -311,65 +313,76 @@ class MetricChart extends React.PureComponent<Props, State> {
     maxThresholdValue: number,
     maxSeriesValue: number
   ) {
-    const {interval} = this.props;
+    const {router, interval, handleZoom, timePeriod: {start, end}} = this.props;
     const {dateModified, timeWindow} = this.props.rule || {};
+
     return (
-      <LineChart
-        isGroupedByDate
-        showTimeInTooltip
-        forwardedRef={this.handleRef}
-        grid={{
-          left: 0,
-          right: space(2),
-          top: space(2),
-          bottom: 0,
-        }}
-        yAxis={maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined}
-        series={[...series, ...areaSeries]}
-        graphic={Graphic({
-          elements: this.getRuleChangeThresholdElements(data),
-        })}
-        tooltip={{
-          formatter: seriesParams => {
-            // seriesParams can be object instead of array
-            const pointSeries = Array.isArray(seriesParams)
-              ? seriesParams
-              : [seriesParams];
-            const {marker, data: pointData, seriesName} = pointSeries[0];
-            const [pointX, pointY] = pointData as [number, number];
-            const isModified = dateModified && pointX <= new Date(dateModified).getTime();
+      <ChartZoom
+        router={router}
+        start={start}
+        end={end}
+        onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+      >
+        {zoomRenderProps => (
+          <LineChart
+            {...zoomRenderProps}
+            isGroupedByDate
+            showTimeInTooltip
+            forwardedRef={this.handleRef}
+            grid={{
+              left: 0,
+              right: space(2),
+              top: space(2),
+              bottom: 0,
+            }}
+            yAxis={maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined}
+            series={[...series, ...areaSeries]}
+            graphic={Graphic({
+              elements: this.getRuleChangeThresholdElements(data),
+            })}
+            tooltip={{
+              formatter: seriesParams => {
+                // seriesParams can be object instead of array
+                const pointSeries = Array.isArray(seriesParams)
+                  ? seriesParams
+                  : [seriesParams];
+                const {marker, data: pointData, seriesName} = pointSeries[0];
+                const [pointX, pointY] = pointData as [number, number];
+                const isModified = dateModified && pointX <= new Date(dateModified).getTime();
 
-            const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
-            const {period, periodLength} = parseStatsPeriod(interval) ?? {
-              periodLength: 'm',
-              period: `${timeWindow}`,
-            };
-            const endTime = formatTooltipDate(
-              moment(pointX).add(parseInt(period, 10), periodLength as StatsPeriodType),
-              'MMM D LT'
-            );
-            const title = isModified
-              ? `<strong>${t('Alert Rule Modified')}</strong>`
-              : `${marker} <strong>${seriesName}</strong>`;
-            const value = isModified
-              ? `${seriesName} ${pointY.toLocaleString()}`
-              : pointY.toLocaleString();
+                const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
+                const {period, periodLength} = parseStatsPeriod(interval) ?? {
+                  periodLength: 'm',
+                  period: `${timeWindow}`,
+                };
+                const endTime = formatTooltipDate(
+                  moment(pointX).add(parseInt(period, 10), periodLength as StatsPeriodType),
+                  'MMM D LT'
+                );
+                const title = isModified
+                  ? `<strong>${t('Alert Rule Modified')}</strong>`
+                  : `${marker} <strong>${seriesName}</strong>`;
+                const value = isModified
+                  ? `${seriesName} ${pointY.toLocaleString()}`
+                  : pointY.toLocaleString();
 
-            return [
-              `<div class="tooltip-series"><div>`,
-              `<span class="tooltip-label">${title}</span>${value}`,
-              `</div></div>`,
-              `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
-              `<div class="tooltip-arrow"></div>`,
-            ].join('');
-          },
-        }}
-        onFinished={() => {
-          // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
-          // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-          this.updateDimensions();
-        }}
-      />
+                return [
+                  `<div class="tooltip-series"><div>`,
+                  `<span class="tooltip-label">${title}</span>${value}`,
+                  `</div></div>`,
+                  `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
+                  `<div class="tooltip-arrow"></div>`,
+                ].join('');
+              },
+            }}
+            onFinished={() => {
+              // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
+              // any graphics related to the triggers (e.g. the threshold areas + boundaries)
+              this.updateDimensions();
+            }}
+          />
+        )}
+      </ChartZoom>
     );
   }
 
