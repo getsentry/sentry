@@ -26,8 +26,8 @@
 {% block title %} {% trans "Manual Source Control Setup" %} | {{ block.super }} {% endblock %}
 
 {% block main %}
-<h3>{% trans "Setup A Manual Source Control Integration" %}</h3>
-  <p>{% trans "Add your source control information in order to create an integration." %}</p>
+<h3>{% trans "Custom Source Code Integration" %}</h3>
+  <p>{% trans "Add your basic source code control information in order to create an integration. You will be able to edit this information later." %}</p>
   <form action="" method="post" class="form-stacked">
     {% csrf_token %}
     <input type="hidden" name="provider" value="manual_source_control" />
