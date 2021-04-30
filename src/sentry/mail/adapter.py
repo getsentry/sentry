@@ -1,7 +1,5 @@
 import itertools
 import logging
-from collections import defaultdict
-from typing import Mapping, Set
 
 from django.utils import dateformat
 from django.utils.encoding import force_text
@@ -18,7 +16,6 @@ from sentry.models import (
     GroupSubscription,
     Integration,
     NotificationSetting,
-    Project,
     ProjectOption,
     ProjectOwnership,
     Release,
@@ -26,21 +23,15 @@ from sentry.models import (
     User,
 )
 from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
-from sentry.notifications.helpers import (
-    get_settings_by_provider,
-    transform_to_notification_settings_by_user,
-)
 from sentry.notifications.types import (
     ActionTargetType,
     GroupSubscriptionReason,
-    NotificationScopeType,
-    NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
 from sentry.plugins.base import plugins
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
@@ -231,13 +222,11 @@ class MailAdapter:
         # get all users in teams
         if teams_to_resolve:
             all_possible_user_ids |= self.get_user_ids_for_teams_to_resolve(teams_to_resolve)
-
-        output = defaultdict(set)
-        disabled_users = self.disabled_users_from_project(project)
-
-        for provider in EXTERNAL_PROVIDERS.keys():
-            output[provider] = all_possible_user_ids - disabled_users[provider]
-        return output
+        users = User.objects.filter(id__in=all_possible_user_ids)
+        owners_by_provider = NotificationSetting.objects.filter_to_subscribed_users(project, users)
+        return {
+            provider: {user.id for user in users} for provider, users in owners_by_provider.items()
+        }
 
     def get_user_ids_for_teams_to_resolve(self, teams_to_resolve):
         return {
@@ -247,35 +236,6 @@ class MailAdapter:
                 sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
             ).values_list("id", flat=True)
         }
-
-    @staticmethod
-    def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, Set[int]]:
-        """ Get a set of users that have disabled Issue Alert notifications for a given project. """
-        user_ids = project.member_set.values_list("user", flat=True)
-        users = User.objects.filter(id__in=user_ids)
-        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
-            type=NotificationSettingTypes.ISSUE_ALERTS,
-            parent=project,
-            users=users,
-        )
-        notification_settings_by_user = transform_to_notification_settings_by_user(
-            notification_settings, users
-        )
-        # Although this can be done with dict comprehension, looping for clarity.
-        output = defaultdict(set)
-        for user in users:
-            settings = notification_settings_by_user.get(user)
-            if settings:
-                settings_by_provider = get_settings_by_provider(settings)
-                for provider, settings_value_by_scope in settings_by_provider.items():
-                    project_setting = settings_value_by_scope.get(NotificationScopeType.PROJECT)
-                    user_setting = settings_value_by_scope.get(NotificationScopeType.USER)
-                    if project_setting == NotificationSettingOptionValues.NEVER or (
-                        not project_setting
-                        and user_setting == NotificationSettingOptionValues.NEVER
-                    ):
-                        output[provider].add(user.id)
-        return output
 
     def get_send_to_team(self, project, target_identifier):
         if target_identifier is None:
