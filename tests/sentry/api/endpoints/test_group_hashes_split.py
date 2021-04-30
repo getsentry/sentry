@@ -121,9 +121,7 @@ def test_basic(client, default_project, store_stacktrace, default_user, reset_sn
     )
     assert response.status_code == 200
 
-    # TODO: When split/unsplit in Snuba is properly supported, we should also
-    # see existing events moving.
-    assert _check_merged() != group_id
+    assert _check_merged() == group_id
 
 
 @pytest.mark.django_db
