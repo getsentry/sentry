@@ -120,7 +120,6 @@ def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
         frames.extend(post_frames)
 
         if len(prev_variant.values) == len(frames):
-            all_variants[key] = main_variant
             break
 
         tree_label = _compute_tree_label(prev_variant, frames)

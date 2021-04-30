@@ -17,6 +17,7 @@ type Props = {
   createdBy?: User;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
+  renderContextMenu?: () => void;
 };
 
 function DashboardCard({
@@ -27,6 +28,7 @@ function DashboardCard({
   dateStatus,
   to,
   onEventClick,
+  renderContextMenu,
 }: Props) {
   function onClick() {
     onEventClick?.();
@@ -59,6 +61,7 @@ function DashboardCard({
               <DateStatus />
             )}
           </DateSelected>
+          {renderContextMenu && renderContextMenu()}
         </CardFooter>
       </StyledDashboardCard>
     </Link>

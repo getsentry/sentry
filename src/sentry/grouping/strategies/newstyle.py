@@ -60,7 +60,9 @@ _discard_native_error_code_re = re.compile(
         SIG |
         KERN_ |
         ILL_
-    ) [A-Z0-9_ /]+
+
+    # e.g. "EXC_BAD_ACCESS / 0x00000032"
+    ) [A-Z0-9_ /x]+
     $
     """,
     re.X,

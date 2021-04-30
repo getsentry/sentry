@@ -17,6 +17,7 @@ install-py-dev :
 	@./scripts/do.sh $@
 
 build-platform-assets \
+direnv-help \
 upgrade-pip \
 setup-git-config :
 	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@

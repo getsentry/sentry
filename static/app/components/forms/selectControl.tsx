@@ -18,8 +18,6 @@ import {Choices, SelectValue} from 'app/types';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 import {Theme} from 'app/utils/theme';
 
-import SelectControlLegacy from './selectControlLegacy';
-
 function isGroupedOptions<OptionType>(
   maybe:
     | ReturnType<typeof convertFromSelect2Choices>
@@ -70,10 +68,6 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    */
   choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
   /**
-   * Use react-select v2. Deprecated, don't make more of this.
-   */
-  deprecatedSelectControl?: boolean;
-  /**
    * Used by MultiSelectControl.
    */
   multiple?: boolean;
@@ -102,8 +96,6 @@ type WrappedControlProps<OptionType> = ControlProps<OptionType> & {
   forwardedRef: React.Ref<ReactSelect>;
 };
 
-type LegacyProps = React.ComponentProps<typeof SelectControlLegacy>;
-
 // TODO(ts) The exported component uses forwardRef.
 // This means we cannot fill the SelectValue generic
 // at the call site. We use `any` here to avoid type errors with select
@@ -113,14 +105,6 @@ export type GeneralSelectValue = SelectValue<any>;
 function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
   props: WrappedControlProps<OptionType>
 ) {
-  // TODO(epurkhiser): We should remove all SelectControls (and SelectFields,
-  // SelectAsyncFields, etc) that are using this prop, before we can remove the
-  // v1 react-select component.
-  if (props.deprecatedSelectControl) {
-    const {deprecatedSelectControl: _, ...legacyProps} = props;
-    return <SelectControlLegacy {...((legacyProps as unknown) as LegacyProps)} />;
-  }
-
   const {theme} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
@@ -372,7 +356,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     />
   );
 }
-SelectControl.propTypes = SelectControlLegacy.propTypes;
 
 const SelectControlWithTheme = withTheme(SelectControl);
 
@@ -413,8 +396,6 @@ function SelectPicker<OptionType>({
   return <Component ref={forwardedRef} {...props} />;
 }
 
-SelectPicker.propTypes = SelectControl.propTypes;
-
 // The generics need to be filled here as forwardRef can't expose generics.
 const RefForwardedSelectControl = React.forwardRef<
   ReactSelect<GeneralSelectValue>,
@@ -422,8 +403,5 @@ const RefForwardedSelectControl = React.forwardRef<
 >(function RefForwardedSelectControl(props, ref) {
   return <SelectControlWithTheme forwardedRef={ref} {...props} />;
 });
-
-// TODO(ts): Needed because <SelectField> uses this
-RefForwardedSelectControl.propTypes = SelectControl.propTypes;
 
 export default RefForwardedSelectControl;
