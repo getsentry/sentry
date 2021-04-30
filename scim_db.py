@@ -15,7 +15,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.mediators.sentry_apps import InternalCreator
+from sentry.mediators.sentry_apps import Destroyer, InternalCreator
 from sentry.models import (
     Integration,
     Organization,
@@ -25,7 +25,6 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     User,
 )
-from sentry.mediators.sentry_apps import Destroyer
 
 logger = logging.getLogger("sentry.auth.scim")
 
