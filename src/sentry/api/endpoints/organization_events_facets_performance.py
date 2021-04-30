@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -109,12 +109,10 @@ def query_tag_data(
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
 
-    initial_selected_columns = ["count()", f"avg({aggregate_column}) as aggregate"]
-
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         # Get the most relevant tag keys
         tag_data = discover.query(
-            selected_columns=initial_selected_columns,
+            selected_columns=["count()", f"avg({aggregate_column}) as aggregate"],
             query=filter_query,
             params=params,
             orderby=["-count"],
@@ -224,7 +222,7 @@ def query_facet_performance(
             start=snuba_filter.start,
             end=snuba_filter.end,
             filter_keys=snuba_filter.filter_keys,
-            orderby=orderby + ["tags_key"],
+            orderby=resolved_orderby + ["tags_key"],
             groupby=["tags_key", "tags_value"],
             having=having,
             dataset=Dataset.Discover,
