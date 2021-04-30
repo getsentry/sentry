@@ -9,7 +9,7 @@ import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
-import {MINIMAP_CONTAINER_HEIGHT} from './constants';
+import * as AnchorLinkManager from './anchorLinkManager';
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
 import SpanGroup from './spanGroup';
@@ -56,12 +56,6 @@ type PropType = {
 };
 
 class SpanTree extends React.Component<PropType> {
-  componentDidMount() {
-    // this doesnt work on load yet
-    // this.scrollToHashTarget();
-    window.addEventListener('hashchange', this.scrollToHashTarget);
-  }
-
   shouldComponentUpdate(nextProps: PropType) {
     if (nextProps.dragProps.isDragging || nextProps.dragProps.isWindowSelectionDragging) {
       return false;
@@ -69,31 +63,6 @@ class SpanTree extends React.Component<PropType> {
 
     return true;
   }
-
-  spanRows: Map<string, HTMLDivElement> = new Map();
-
-  generateSpanRowRef = spanId => (instance: HTMLDivElement | null) => {
-    const key = `#span-${spanId}`;
-    if (instance === null) {
-      // delete any old refs if instance is null
-      this.spanRows.delete(key);
-    } else {
-      // override any existing refs
-      this.spanRows.set(key, instance);
-    }
-  };
-
-  scrollToHashTarget = () => {
-    const element = this.spanRows.get(location.hash);
-
-    if (!element) {
-      return;
-    }
-
-    const boundingRect = element.getBoundingClientRect();
-    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT;
-    window.scrollTo(0, offset);
-  };
 
   generateInfoMessage(input: {
     isCurrentSpanHidden: boolean;
@@ -373,7 +342,6 @@ class SpanTree extends React.Component<PropType> {
             isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
             spanBarHatch={false}
             spansWithErrors={spansWithErrors}
-            generateSpanRowRef={this.generateSpanRowRef}
           />
         </React.Fragment>
       ),
@@ -431,7 +399,7 @@ class SpanTree extends React.Component<PropType> {
 
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
-        {spanTree}
+        <AnchorLinkManager.Provider>{spanTree}</AnchorLinkManager.Provider>
         <GuideAnchorWrapper>
           <GuideAnchor target="span_tree" position="bottom" />
         </GuideAnchorWrapper>

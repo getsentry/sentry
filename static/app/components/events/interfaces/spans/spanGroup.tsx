@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
@@ -28,7 +27,6 @@ type PropType = ScrollbarManagerChildrenProps & {
   isRoot?: boolean;
   isCurrentSpanFilteredOut: boolean;
   spansWithErrors: TableData | null | undefined;
-  generateSpanRowRef?: (spanId: string) => (instance: HTMLDivElement | null) => void;
 };
 
 type State = {
@@ -55,11 +53,11 @@ class SpanGroup extends React.Component<PropType, State> {
   };
 
   renderSpanChildren = () => {
-    return (
-      <SpanChildrenContainer visible={this.state.showSpanTree}>
-        {this.props.renderedSpanChildren}
-      </SpanChildrenContainer>
-    );
+    if (!this.state.showSpanTree) {
+      return null;
+    }
+
+    return this.props.renderedSpanChildren;
   };
 
   getSpanErrors(): TableDataRow[] {
@@ -105,7 +103,6 @@ class SpanGroup extends React.Component<PropType, State> {
       orgId,
       organization,
       event,
-      generateSpanRowRef,
     } = this.props;
 
     return (
@@ -130,18 +127,11 @@ class SpanGroup extends React.Component<PropType, State> {
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
           totalNumberOfErrors={this.getTotalNumberOfErrors()}
           spanErrors={this.getSpanErrors()}
-          generateSpanRowRef={generateSpanRowRef}
         />
-        <SpanChildrenContainer visible={this.state.showSpanTree}>
-          {this.props.renderedSpanChildren}
-        </SpanChildrenContainer>
+        {this.renderSpanChildren()}
       </React.Fragment>
     );
   }
 }
-
-const SpanChildrenContainer = styled('div')<{visible: boolean}>`
-  display: ${p => (p.visible ? 'block' : 'none')};
-`;
 
 export default withScrollbarManager(SpanGroup);

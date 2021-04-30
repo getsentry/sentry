@@ -44,6 +44,7 @@ import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/q
 import {QuickTraceEvent, TraceError} from 'app/utils/performance/quickTrace/types';
 import {isTraceFull} from 'app/utils/performance/quickTrace/utils';
 
+import * as AnchorLinkManager from './anchorLinkManager';
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
@@ -200,7 +201,6 @@ type SpanBarProps = {
   isCurrentSpanFilteredOut: boolean;
   totalNumberOfErrors: number;
   spanErrors: TableDataRow[];
-  generateSpanRowRef?: (spanId: string) => (instance: HTMLDivElement | null) => void;
 };
 
 type SpanBarState = {
@@ -214,7 +214,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
   componentDidMount() {
     this._mounted = true;
-    if (this.spanRowDOM) {
+    if (this.spanRowDOMRef.current) {
       this.connectObservers();
     }
   }
@@ -224,20 +224,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     this.disconnectObservers();
   }
 
-  spanRowDOM: HTMLDivElement | null = null;
+  spanRowDOMRef = React.createRef<HTMLDivElement>();
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
-
-  generateRef = (instance: HTMLDivElement | null) => {
-    const {generateSpanRowRef, span} = this.props;
-
-    this.spanRowDOM = instance;
-
-    if (!isGapSpan(span) && generateSpanRowRef) {
-      generateSpanRowRef(span.span_id)(instance);
-    }
-  };
 
   toggleDisplayDetail = () => {
     this.setState(state => ({
@@ -245,14 +235,26 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }));
   };
 
+  scrollIntoView = () => {
+    const element = this.spanRowDOMRef.current;
+    if (!element) {
+      return;
+    }
+    const boundingRect = element.getBoundingClientRect();
+    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT;
+    this.setState({showDetail: true}, () => window.scrollTo(0, offset));
+  };
+
   renderDetail({
     isVisible,
     transactions,
     errors,
+    scrollFn,
   }: {
     isVisible: boolean;
     transactions: QuickTraceEvent[];
     errors: TraceError[];
+    scrollFn: () => void;
   }) {
     if (!this.state.showDetail || !isVisible) {
       return null;
@@ -281,6 +283,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         spanErrors={spanErrors}
         childTransactions={transactions}
         relatedErrors={errors}
+        scrollFn={scrollFn}
       />
     );
   }
@@ -539,7 +542,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   connectObservers() {
-    if (!this.spanRowDOM) {
+    if (!this.spanRowDOMRef.current) {
       return;
     }
 
@@ -700,7 +703,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       }
     );
 
-    this.intersectionObserver.observe(this.spanRowDOM);
+    this.intersectionObserver.observe(this.spanRowDOMRef.current);
   }
 
   disconnectObservers() {
@@ -928,40 +931,54 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
     return (
-      <Row
-        id={isGapSpan(span) ? undefined : `span-${span.span_id}`}
-        ref={this.generateRef}
-        visible={isSpanVisible}
-        showBorder={this.state.showDetail}
-        data-test-id="span-row"
-      >
-        <QuickTraceContext.Consumer>
-          {quickTrace => {
-            const errors = this.getRelatedErrors(quickTrace);
-            const transactions = this.getChildTransactions(quickTrace);
-            return (
-              <React.Fragment>
-                <ScrollbarManager.Consumer>
-                  {scrollbarManagerChildrenProps => (
-                    <DividerHandlerManager.Consumer>
-                      {(
-                        dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-                      ) =>
-                        this.renderHeader({
-                          dividerHandlerChildrenProps,
-                          scrollbarManagerChildrenProps,
-                          errors,
-                        })
-                      }
-                    </DividerHandlerManager.Consumer>
-                  )}
-                </ScrollbarManager.Consumer>
-                {this.renderDetail({isVisible: isSpanVisible, transactions, errors})}
-              </React.Fragment>
-            );
-          }}
-        </QuickTraceContext.Consumer>
-      </Row>
+      <AnchorLinkManager.Consumer>
+        {({registerScrollFn}) => {
+          const scrollFn = isGapSpan(span)
+            ? undefined
+            : registerScrollFn(`#span-${span.span_id}`, this.scrollIntoView);
+
+          return (
+            <Row
+              ref={this.spanRowDOMRef}
+              visible={isSpanVisible}
+              showBorder={this.state.showDetail}
+              data-test-id="span-row"
+            >
+              <QuickTraceContext.Consumer>
+                {quickTrace => {
+                  const errors = this.getRelatedErrors(quickTrace);
+                  const transactions = this.getChildTransactions(quickTrace);
+                  return (
+                    <React.Fragment>
+                      <ScrollbarManager.Consumer>
+                        {scrollbarManagerChildrenProps => (
+                          <DividerHandlerManager.Consumer>
+                            {(
+                              dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+                            ) =>
+                              this.renderHeader({
+                                dividerHandlerChildrenProps,
+                                scrollbarManagerChildrenProps,
+                                errors,
+                              })
+                            }
+                          </DividerHandlerManager.Consumer>
+                        )}
+                      </ScrollbarManager.Consumer>
+                      {this.renderDetail({
+                        isVisible: isSpanVisible,
+                        transactions,
+                        errors,
+                        scrollFn: scrollFn ?? (() => undefined),
+                      })}
+                    </React.Fragment>
+                  );
+                }}
+              </QuickTraceContext.Consumer>
+            </Row>
+          );
+        }}
+      </AnchorLinkManager.Consumer>
     );
   }
 }

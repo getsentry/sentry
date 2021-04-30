@@ -1,5 +1,4 @@
 import React from 'react';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import map from 'lodash/map';
@@ -52,7 +51,7 @@ type TransactionResult = {
   id: string;
 };
 
-type Props = WithRouterProps & {
+type Props = {
   api: Client;
   orgId: string;
   organization: Organization;
@@ -64,6 +63,7 @@ type Props = WithRouterProps & {
   spanErrors: TableDataRow[];
   childTransactions: QuickTraceEvent[];
   relatedErrors: TraceError[];
+  scrollFn: () => void;
 };
 
 type State = {
@@ -463,24 +463,10 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   scrollBarIntoView = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // do not use the default anchor behaviour because it will
-    // be hidden behind the minimap
+    // do not use the default anchor behaviour
+    // because it will be hidden behind the minimap
     e.preventDefault();
-
-    const {location, span} = this.props;
-
-    if (isGapSpan(span)) {
-      return;
-    }
-
-    // make sure to update the location
-    const hash = `#span-${span.span_id}`;
-    browserHistory.push({
-      ...location,
-      hash,
-    });
-    // trigger a hash change
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    this.props.scrollFn();
   };
 
   renderSpanDetails() {
@@ -745,4 +731,4 @@ function generateSlug(result: TransactionResult): string {
   });
 }
 
-export default withApi(withRouter(SpanDetail));
+export default withApi(SpanDetail);
