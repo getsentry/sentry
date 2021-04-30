@@ -8,6 +8,9 @@ SelectIdP = make_simple_setup(URLMetadataForm, "sentry_auth_okta/select-idp.html
 class OktaSAML2Provider(SAML2Provider):
     name = "Okta"
 
+    def is_scim_enabled(self):
+        return True
+
     def get_saml_setup_pipeline(self):
         return [SelectIdP()]
 

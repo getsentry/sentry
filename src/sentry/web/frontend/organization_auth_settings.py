@@ -32,6 +32,12 @@ class AuthProviderSettingsForm(forms.Form):
         required=False,
     )
 
+    enable_scim = forms.BooleanField(
+        label=_("Enable SCIM"),
+        help_text=_("Enable SCIM to manage Users and Groups via your Provider"),
+        required=False,
+    )
+
     default_role = forms.ChoiceField(
         label=_("Default Role"),
         choices=roles.get_choices(),
@@ -93,12 +99,14 @@ class OrganizationAuthSettingsView(OrganizationView):
             data=request.POST if request.POST.get("op") == "settings" else None,
             initial={
                 "require_link": not auth_provider.flags.allow_unlinked,
+                "enable_scim": bool(auth_provider.flags.scim_enabled),
                 "default_role": organization.default_role,
             },
         )
 
         if form.is_valid():
             auth_provider.flags.allow_unlinked = not form.cleaned_data["require_link"]
+            auth_provider.flags.scim_enabled = not form.cleaned_data["enable_scim"]
             auth_provider.save()
 
             organization.default_role = form.cleaned_data["default_role"]
@@ -145,7 +153,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             "provider_name": provider.name,
             "content": response,
         }
-
+        print(form)
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
     @transaction.atomic
