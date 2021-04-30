@@ -118,7 +118,7 @@ def query_tag_data(
             query=filter_query,
             params=params,
             orderby=["-count"],
-            referrer="{}.{}".format(referrer, "all_transactions"),
+            referrer=f"{referrer}.all_transactions",
         )
         counts = [r["count"] for r in tag_data["data"]]
         aggregates = [r["aggregate"] for r in tag_data["data"]]
@@ -184,9 +184,9 @@ def query_facet_performance(
         having.append(["aggregate", ">", aggregate_comparison])
 
         if orderby is None:
-            orderby = []
+            resolved_orderby: List[str] = []
         else:
-            orderby = [orderby]
+            resolved_orderby: List[str] = [orderby]
 
         snuba_filter.conditions.append([translated_aggregate_column, "IS NOT NULL", None])
 
