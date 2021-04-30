@@ -10,6 +10,10 @@ from sentry.db.models import (
     sane_repr,
 )
 
+from sentry.models import SentryAppInstallationForProvider
+
+SCIM_ENABLED_PROVIDERS = ["okta", "activedirectory"]
+
 
 class AuthProvider(Model):
     __core__ = True
@@ -50,6 +54,18 @@ class AuthProvider(Model):
         from sentry.auth import manager
 
         return manager.get(self.provider, **self.config)
+
+    def get_scim_token(self):
+        if self.flags.scim_enabled:
+            sentry_app_installation = SentryAppInstallationForProvider.objects.get(
+                organization=self.organization, provider=f"{self.provider}_scim"
+            )
+            scim_auth_token = sentry_app_installation.get_token(
+                self.organization_id, provider=f"{self.provider}_scim"
+            )
+            return scim_auth_token
+        else:
+            return None
 
     def get_audit_log_data(self):
         return {"provider": self.provider, "config": self.config}

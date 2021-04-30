@@ -15,8 +15,6 @@ class AuthProviderSerializer(Serializer):
         ).count()
 
         login_url = organization.get_url()
-        print(obj.flags.enable_scim)
-        print(not obj.flags.allow_unlinked)
         return {
             "id": str(obj.id),
             "provider_name": obj.provider,
@@ -24,5 +22,5 @@ class AuthProviderSerializer(Serializer):
             "login_url": absolute_uri(login_url),
             "default_role": organization.default_role,
             "require_link": not obj.flags.allow_unlinked,
-            "enable_scim": obj.flags.enable_scim,
+            "enable_scim": bool(obj.flags.scim_enabled),
         }

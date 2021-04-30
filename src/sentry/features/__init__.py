@@ -115,6 +115,7 @@ default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-migration", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:sso-scim", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:team-alerts-ownership", OrganizationFeature)  # NOQA
 default_manager.add("organizations:trace-view-quick", OrganizationFeature)  # NOQA
