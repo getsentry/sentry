@@ -31,8 +31,18 @@ function PickProjectToContinue({
   projects,
 }: Props) {
   let navigating = false;
+  let path = `${nextPath}?project=`;
 
-  const path = nextPath.includes('?') ? `${nextPath}&project=` : `${nextPath}?project=`;
+  if (nextPath.includes('?')) {
+    const [location, search] = nextPath.split('?');
+    const filteredSearchParameteres = search.split('&').filter(searchParameter => {
+      const [key, _value] = searchParameter.split('=');
+      return key !== 'project';
+    });
+
+    filteredSearchParameteres.push('project=');
+    path = `${location}?${filteredSearchParameteres.join('&')}`;
+  }
 
   // if the project in URL is missing, but this release belongs to only one project, redirect there
   if (projects.length === 1) {

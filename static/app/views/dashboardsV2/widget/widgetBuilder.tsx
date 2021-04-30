@@ -38,7 +38,6 @@ function WidgetBuilder({
   const [dataSet, setDataSet] = useState<DataSet | undefined>(DataSet.EVENTS);
   const isEditing = !!widget;
 
-  console.log('isEditing', isEditing);
   const {widgetId, orgId, dashboardId} = params;
 
   const goBackLocation = {

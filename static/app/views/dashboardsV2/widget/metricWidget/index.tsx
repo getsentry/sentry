@@ -58,8 +58,8 @@ class MetricWidget extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      title: t('Custom Widget'),
-      displayType: DisplayType.LINE,
+      title: t('Custom %s Widget', displayTypes[DisplayType.AREA]),
+      displayType: DisplayType.AREA,
       metricMetas: [],
       metricTags: [],
       queries: [{}],
@@ -207,7 +207,7 @@ class MetricWidget extends AsyncView<Props, State> {
         <PickProjectToContinue
           router={router}
           projects={projects.map(project => ({id: project.id, slug: project.slug}))}
-          nextPath={location.pathname}
+          nextPath={`${location.pathname}${location.search}`}
           noProjectRedirectPath={goBackLocation}
         />
       );
