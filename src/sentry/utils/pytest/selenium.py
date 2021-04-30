@@ -464,7 +464,7 @@ def start_chrome(**chrome_args):
             raise Exception(
                 """ChromeDriver version does not match Chrome version, update ChromeDriver (e.g. if you use `homebrew`):
 
-    brew cask upgrade chromedriver
+    brew upgrade --cask chromedriver
     """
             )
 
