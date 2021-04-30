@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:29.384272Z'
+created: '2021-04-30T12:13:39.987512Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,49 +15,6 @@ app-depth-1:
               "log_demo::main"
             package (ignored because function takes precedence)
               "log_demo"
-        type*
-          "log_demo"
-        value (ignored because stacktrace takes precedence)
-          "Holy shit everything is on fire!"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "eb87c1031dba55b67df86fb9fff59dc6"
-  tree_label: "<entire stacktrace>"
-  component:
-    app-depth-2*
-      exception*
-        stacktrace*
-          frame (ignored by stack trace rule (function:log_demo::* -group))
-            function*
-              "_main"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
-            function*
-              "std::rt::lang_start_internal"
-            package (ignored because function takes precedence)
-              "std"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
-            function*
-              "___rust_maybe_catch_panic"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
-            function*
-              "std::panicking::try::do_call"
-            package (ignored because function takes precedence)
-              "std"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "std::rt::lang_start::{{closure}}"
-            package (ignored because function takes precedence)
-              "std"
-          frame*
-            function*
-              "log_demo::main"
-            package (ignored because function takes precedence)
-              "log_demo"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
-            function*
-              "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type*
           "log_demo"
         value (ignored because stacktrace takes precedence)

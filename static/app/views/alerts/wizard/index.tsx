@@ -15,6 +15,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 
@@ -47,13 +48,21 @@ class AlertWizard extends React.Component<Props, State> {
   };
 
   handleChangeAlertOption = (alertOption: AlertType) => {
+    const {organization} = this.props;
     this.setState({alertOption});
+    trackAnalyticsEvent({
+      eventKey: 'alert_wizard.option_viewed',
+      eventName: 'Alert Wizard: Option Viewed',
+      organization_id: organization.id,
+      alert_type: alertOption,
+    });
   };
 
   renderCreateAlertButton() {
     const {organization, project, location} = this.props;
     const {alertOption} = this.state;
     const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
+    const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
     const to = {
@@ -65,7 +74,7 @@ class AlertWizard extends React.Component<Props, State> {
       },
     };
 
-    const noFeatureMessage = t('Requires performance feature.');
+    const noFeatureMessage = t('Requires incidents feature.');
     const renderNoAccess = p => (
       <Hovercard
         body={
@@ -83,13 +92,29 @@ class AlertWizard extends React.Component<Props, State> {
 
     return (
       <Feature
-        features={isTransactionDataset ? ['performance-view'] : []}
+        features={
+          isTransactionDataset
+            ? ['incidents', 'performance-view']
+            : isMetricAlert
+            ? ['incidents']
+            : []
+        }
+        requireAll
         organization={organization}
         hookName="feature-disabled:alert-wizard-performance"
         renderDisabled={renderNoAccess}
       >
         {({hasFeature}) => (
-          <WizardButtonContainer>
+          <WizardButtonContainer
+            onClick={() =>
+              trackAnalyticsEvent({
+                eventKey: 'alert_wizard.option_selected',
+                eventName: 'Alert Wizard: Option Selected',
+                organization_id: organization.id,
+                alert_type: alertOption,
+              })
+            }
+          >
             <CreateAlertButton
               organization={organization}
               projectSlug={project.slug}
