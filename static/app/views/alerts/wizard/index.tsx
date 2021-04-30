@@ -54,6 +54,7 @@ class AlertWizard extends React.Component<Props, State> {
     const {organization, project, location} = this.props;
     const {alertOption} = this.state;
     const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
+    const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
     const to = {
@@ -65,7 +66,7 @@ class AlertWizard extends React.Component<Props, State> {
       },
     };
 
-    const noFeatureMessage = t('Requires performance feature.');
+    const noFeatureMessage = t('Requires incidents feature.');
     const renderNoAccess = p => (
       <Hovercard
         body={
@@ -83,7 +84,14 @@ class AlertWizard extends React.Component<Props, State> {
 
     return (
       <Feature
-        features={isTransactionDataset ? ['performance-view'] : []}
+        features={
+          isTransactionDataset
+            ? ['incidents', 'performance-view']
+            : isMetricAlert
+            ? ['incidents']
+            : []
+        }
+        requireAll
         organization={organization}
         hookName="feature-disabled:alert-wizard-performance"
         renderDisabled={renderNoAccess}

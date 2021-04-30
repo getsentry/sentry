@@ -59,18 +59,10 @@ export default class SelectCreatableField extends SelectField {
   }
 
   getField() {
-    const {
-      deprecatedSelectControl,
-      placeholder,
-      disabled,
-      required,
-      clearable,
-      name,
-    } = this.props;
+    const {placeholder, disabled, required, clearable, name} = this.props;
 
     return (
       <StyledSelectControl
-        deprecatedSelectControl={deprecatedSelectControl}
         creatable
         id={this.getId()}
         options={this.options}

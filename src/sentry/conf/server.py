@@ -984,11 +984,7 @@ SENTRY_FEATURES = {
     # attachments
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
-    "organizations:inbox": False,
-    # Set default tab to inbox
-    "organizations:inbox-tab-default": False,
-    # Add `assigned_or_suggested:[me, none]` to inbox tab query
-    "organizations:inbox-owners-query": False,
+    "organizations:inbox": True,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
@@ -997,8 +993,6 @@ SENTRY_FEATURES = {
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
     "organizations:alert-wizard": False,
-    # Enable new alert rules + incidents view
-    "organizations:alert-list": False,
     # Enable App Store Connect in debug files settings
     "projects:app-store-connect": False,
     # Adds additional filters and a new section to issue alert rules.

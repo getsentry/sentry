@@ -14,6 +14,7 @@ import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 import StepFour from './stepFour';
@@ -21,6 +22,15 @@ import StepOne from './stepOne';
 import StepThree from './stepThree';
 import StepTwo from './stepTwo';
 import {App, StepFourData, StepOneData, StepThreeData, StepTwoData} from './types';
+
+const steps = [
+  t('Enter your App Store Connect credentials'),
+  t('Enter your itunes credentials'),
+  t('Enter your authentication code'),
+  t('Choose your app'),
+];
+
+type Status = 'waiting' | 'active' | 'finished';
 
 type Props = Pick<ModalRenderProps, 'Body' | 'Footer' | 'closeModal'> & {
   api: Client;
@@ -37,15 +47,6 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
   const [useSms, setUseSms] = useState(false);
 
   const listRef = useRef<HTMLOListElement>(null);
-
-  const steps = [
-    t('Enter your App Store Connect credentials'),
-    t('Enter your itunes credentials'),
-    useSms
-      ? t('Enter the code you have received via Sms')
-      : t('Enter your iTunes authentication code'),
-    t('Choose your app'),
-  ];
 
   const [stepOneData, setStepOneData] = useState<StepOneData>({
     issuer: undefined,
@@ -65,12 +66,6 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
   const [stepFourData, setStepFourData] = useState<StepFourData>({
     app: undefined,
   });
-
-  useEffect(() => {
-    if (useSms) {
-      startSmsAuthentication();
-    }
-  }, [useSms]);
 
   useEffect(() => {
     calcStepContentHeights();
@@ -115,6 +110,20 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
     }
   }
 
+  function handleSendVerificationCode() {
+    if (useSms) {
+      setUseSms(false);
+    }
+    startItunesAuthentication();
+  }
+
+  function handleSendSmsCode() {
+    if (!useSms) {
+      setUseSms(true);
+    }
+    startSmsAuthentication();
+  }
+
   async function checkAppStoreConnectCredentials() {
     setIsLoading(true);
     try {
@@ -134,6 +143,7 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
       setIsLoading(false);
       goNext();
     } catch (error) {
+      setIsLoading(false);
       addErrorMessage(
         t(
           'We could not establish a connection with App Store Connect. Please check the entered App Store Connect credentials.'
@@ -160,6 +170,7 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
       setIsLoading(false);
       goNext();
     } catch (error) {
+      setIsLoading(false);
       addErrorMessage(
         t('The iTunes authentication failed. Please check the entered credentials.')
       );
@@ -181,10 +192,11 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         }
       );
 
-      setSessionContext(response.sessionContext);
+      setSessionContext(response.session_context);
       setIsLoading(false);
-      // goNext();
+      goNext();
     } catch (error) {
+      setIsLoading(false);
       addErrorMessage(
         t('The two factor authentication failed. Please check the entered code.')
       );
@@ -201,6 +213,7 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         }
       );
     } catch (error) {
+      setIsLoading(false);
       addErrorMessage(t('An error occured while sending the SMS. Please try again'));
     }
   }
@@ -222,10 +235,10 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         },
       });
 
-      //closeModal();
-      setIsLoading(false);
       addSuccessMessage('App Store Connect repository was successfully added');
+      closeModal();
     } catch (error) {
+      setIsLoading(false);
       addErrorMessage(t('An error occured while saving the repository'));
     }
   }
@@ -256,8 +269,8 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
           <StepThree
             data={stepThreeData}
             onChange={setStepThreeData}
-            useSms={useSms}
-            onSendCodeViaSms={() => setUseSms(true)}
+            onSendVerificationCode={handleSendVerificationCode}
+            onSendCodeViaSms={handleSendSmsCode}
           />
         );
       case 3:
@@ -284,8 +297,7 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
             return (
               <StyledItem
                 key={step}
-                isWaiting={activeStep < index}
-                isActive={isActive}
+                status={activeStep < index ? 'waiting' : isActive ? 'active' : 'finished'}
                 height={stepHeights[index]}
               >
                 {steps[index]}
@@ -299,14 +311,18 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         <ButtonBar gap={1.5}>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           {activeStep !== 0 && <Button onClick={handleBack}>{t('Back')}</Button>}
-          <Button
+          <StyledButton
             priority="primary"
             onClick={handleSaveAction}
-            disabled={isFormInValid()}
-            icon={isLoading && <LoadingIndicator mini />}
+            disabled={isFormInValid() || isLoading}
           >
+            {isLoading && (
+              <LoadingIndicatorWrapper>
+                <LoadingIndicator mini />
+              </LoadingIndicatorWrapper>
+            )}
             {activeStep === 3 ? t('Save') : t('Next')}
-          </Button>
+          </StyledButton>
         </ButtonBar>
       </Footer>
     </React.Fragment>
@@ -321,10 +337,8 @@ const StyledList = styled(List, {
   grid-gap: 0;
   & > li {
     transition: height 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
-    ${p => p.defineItemHeight && `height:32px;`}
     :not(:last-child) {
-      ${p => p.defineItemHeight && `height:52px;`}
-      padding-bottom: ${space(4)};
+      padding-bottom: ${space(2)};
       :after {
         content: ' ';
         height: calc(100% - 24px - ${space(1)});
@@ -335,32 +349,61 @@ const StyledList = styled(List, {
         left: ${space(1.5)};
       }
     }
+
+    ${p =>
+      p.defineItemHeight &&
+      `
+        height: 32px;
+        :not(:last-child) {
+          height: 52px;
+          padding-bottom: 0;
+        }
+      `}
   }
 `;
 
-const StyledItem = styled(ListItem)<{
-  isActive: boolean;
-  height?: number;
-  isWaiting?: boolean;
-}>`
-  ${p =>
-    p.isWaiting &&
-    `
-      &&:before {
-        background-color: ${p.theme.disabled};
-        color: ${p.theme.white};
-      }
-      color: ${p.theme.disabled};
-    `}
-  ${p =>
-    p.isActive &&
-    `
+const getStatusStyle = (theme: Theme, status: Status, height: number) => {
+  if (status === 'active') {
+    const heightStyle = height ? `height: ${height}px;` : '';
+    return `
       && {
         :not(:last-child) {
-          padding-bottom: ${space(3)};
-          height: ${p.height}px;
+          ${heightStyle}
+          padding-bottom: 0;
         }
-        height: ${p.height}px;
+        ${heightStyle}
       }
-    `}
+    `;
+  }
+
+  if (status === 'waiting') {
+    return `
+      &&:before {
+        background-color: ${theme.disabled};
+        color: ${theme.white};
+      }
+      color: ${theme.disabled};
+    `;
+  }
+
+  return '';
+};
+
+const StyledItem = styled(ListItem)<{status: Status; height: number}>`
+  ${p => getStatusStyle(p.theme, p.status, p.height)}
+`;
+
+const StyledButton = styled(Button)`
+  position: relative;
+`;
+
+const LoadingIndicatorWrapper = styled('div')`
+  height: 100%;
+  position: absolute;
+  width: 100%;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;

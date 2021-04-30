@@ -1,7 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import {IconInfo, IconMobile, IconRefresh} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -12,14 +15,38 @@ import {StepThreeData} from './types';
 
 type Props = {
   data: StepThreeData;
-  useSms: boolean;
   onChange: (data: StepThreeData) => void;
   onSendCodeViaSms: () => void;
+  onSendVerificationCode: () => void;
 };
 
-function StepThree({data, useSms, onChange, onSendCodeViaSms}: Props) {
+function StepThree({data, onChange, onSendVerificationCode, onSendCodeViaSms}: Props) {
   return (
     <StepContent>
+      <Alert type="info">
+        <AlertContent>
+          <IconInfo />
+          {t('Did not get a verification code?')}
+          <ButtonBar gap={1}>
+            <Button
+              size="small"
+              title={t('Get a new verification code')}
+              onClick={onSendVerificationCode}
+              icon={<IconRefresh />}
+            >
+              {t('Resend code')}
+            </Button>
+            <Button
+              size="small"
+              title={t('Get a text message with a code')}
+              onClick={onSendCodeViaSms}
+              icon={<IconMobile />}
+            >
+              {t('Text me')}
+            </Button>
+          </ButtonBar>
+        </AlertContent>
+      </Alert>
       <StyledField
         label={t('Two Factor authentication code')}
         inline={false}
@@ -40,9 +67,6 @@ function StepThree({data, useSms, onChange, onSendCodeViaSms}: Props) {
           }
         />
       </StyledField>
-      <Button priority="link" onClick={onSendCodeViaSms}>
-        {useSms ? t('Resend sms code') : t('Send code via sms')}
-      </Button>
     </StepContent>
   );
 }
@@ -51,4 +75,11 @@ export default StepThree;
 
 const StyledField = styled(Field)`
   padding-bottom: ${space(1)};
+`;
+
+const AlertContent = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  align-items: center;
+  grid-gap: ${space(1)};
 `;
