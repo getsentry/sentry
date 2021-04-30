@@ -1,5 +1,5 @@
 import logging
-from typing import AbstractSet, Any, Mapping, Tuple
+from typing import AbstractSet, Any, Mapping, Set, Tuple
 
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import (
@@ -8,7 +8,7 @@ from sentry.integrations.slack.message_builder.notifications import (
 )
 from sentry.mail.notify import register_issue_notification_provider
 from sentry.models import ExternalActor, Organization, User
-from sentry.notifications.activity.base import ActivityNotification
+from sentry.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
@@ -19,12 +19,15 @@ SLACK_TIMEOUT = 5
 
 
 def get_context(
-    notification, user: User, reason: int, shared_context: Mapping[str, Any]
+    notification: BaseNotification,
+    user: User,
+    shared_context: Mapping[str, Any],
+    extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
     """ Compose the various levels of context and add slack-specific fields. """
     return {
         **shared_context,
-        **notification.get_user_context(user, reason),
+        **notification.get_user_context(user, extra_context),
     }
 
 
@@ -55,19 +58,21 @@ def get_channel_and_token(
 
 
 @register_notification_provider(ExternalProviders.SLACK)
-def send_activity_notification_as_slack(
-    notification: ActivityNotification,
-    users: Mapping[User, int],
+def send_notification_as_slack(
+    notification: BaseNotification,
+    users: Set[User],
     shared_context: Mapping[str, Any],
+    extra_context_by_user_id: Mapping[str, Any],
 ) -> None:
     """
     Send an "activity notification" to a Slack user which are workflow and deploy notification types
     """
 
-    external_actors_by_user = get_integrations_by_user_id(notification.organization, users.keys())
+    external_actors_by_user = get_integrations_by_user_id(notification.organization, users)
 
     client = SlackClient()
-    for user, reason in users.items():
+    for user in users:
+        extra_context = (extra_context_by_user_id or {}).get(user.id, {})
         try:
             channel, token = get_channel_and_token(external_actors_by_user, user)
         except AttributeError as e:
@@ -81,7 +86,7 @@ def send_activity_notification_as_slack(
             )
             continue
 
-        context = get_context(notification, user, reason, shared_context)
+        context = get_context(notification, user, shared_context, extra_context)
         attachment = [build_notification_attachment(notification, context)]
         payload = {
             "token": token,

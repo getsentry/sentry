@@ -8,12 +8,24 @@ text_type = type("")
 
 # git usurbs your bin path for hooks and will always run system python
 if "VIRTUAL_ENV" in os.environ:
-    site_packages = glob("%s/lib/*/site-packages" % os.environ["VIRTUAL_ENV"])[0]
-    sys.path.insert(0, site_packages)
+    # If pre-commit is not installed outside of the virtualenv, glob will return []
+    try:
+        site_packages = glob("%s/lib/*/site-packages" % os.environ["VIRTUAL_ENV"])[0]
+        sys.path.insert(0, site_packages)
+    except IndexError:
+        pass
 
 
 def main():
-    from sentry.lint.engine import get_modified_files, run
+    try:
+        from sentry.lint.engine import get_modified_files, run
+    except ModuleNotFoundError as e:
+        if "VIRTUAL_ENV" not in os.environ:
+            sys.stderr.write(
+                "ERROR: You're executing outside of the venv. Try this command: direnv allow\n"
+            )
+            sys.exit(1)
+        raise (e)
 
     files_modified = [text_type(f) for f in get_modified_files(os.getcwd()) if os.path.exists(f)]
 

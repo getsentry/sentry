@@ -285,7 +285,7 @@ class IssueListOverview extends React.Component<Props, State> {
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
-    const {savedSearch, organization, location} = this.props;
+    const {savedSearch, location} = this.props;
     if (savedSearch) {
       return savedSearch.query;
     }
@@ -294,13 +294,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (query !== undefined) {
       return query as string;
-    }
-
-    if (
-      organization.features.includes('inbox') &&
-      organization.features.includes('inbox-tab-default')
-    ) {
-      return Query.FOR_REVIEW;
     }
 
     return DEFAULT_QUERY;
@@ -314,15 +307,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (location.query.sort) {
       return location.query.sort as string;
-    }
-
-    const {organization} = this.props;
-    if (
-      organization.features.includes('inbox') &&
-      organization.features.includes('inbox-tab-default') &&
-      this.getQuery() === Query.FOR_REVIEW
-    ) {
-      return IssueSortOptions.INBOX;
     }
 
     return DEFAULT_SORT;
