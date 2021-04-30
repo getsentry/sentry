@@ -313,7 +313,12 @@ class MetricChart extends React.PureComponent<Props, State> {
     maxThresholdValue: number,
     maxSeriesValue: number
   ) {
-    const {router, interval, handleZoom, timePeriod: {start, end}} = this.props;
+    const {
+      router,
+      interval,
+      handleZoom,
+      timePeriod: {start, end},
+    } = this.props;
     const {dateModified, timeWindow} = this.props.rule || {};
 
     return (
@@ -335,7 +340,9 @@ class MetricChart extends React.PureComponent<Props, State> {
               top: space(2),
               bottom: 0,
             }}
-            yAxis={maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined}
+            yAxis={
+              maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined
+            }
             series={[...series, ...areaSeries]}
             graphic={Graphic({
               elements: this.getRuleChangeThresholdElements(data),
@@ -348,7 +355,8 @@ class MetricChart extends React.PureComponent<Props, State> {
                   : [seriesParams];
                 const {marker, data: pointData, seriesName} = pointSeries[0];
                 const [pointX, pointY] = pointData as [number, number];
-                const isModified = dateModified && pointX <= new Date(dateModified).getTime();
+                const isModified =
+                  dateModified && pointX <= new Date(dateModified).getTime();
 
                 const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
                 const {period, periodLength} = parseStatsPeriod(interval) ?? {
@@ -356,7 +364,10 @@ class MetricChart extends React.PureComponent<Props, State> {
                   period: `${timeWindow}`,
                 };
                 const endTime = formatTooltipDate(
-                  moment(pointX).add(parseInt(period, 10), periodLength as StatsPeriodType),
+                  moment(pointX).add(
+                    parseInt(period, 10),
+                    periodLength as StatsPeriodType
+                  ),
                   'MMM D LT'
                 );
                 const title = isModified
