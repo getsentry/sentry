@@ -83,10 +83,12 @@ class TwilioConfigurationForm(forms.Form):
 
     def clean_sms_from(self):
         data = self.cleaned_data["sms_from"]
-        if is_sender_alphanumeric_code(data) and not validate_alphanumeric_sender(data):
-            raise forms.ValidationError(f"{data} is not a valid sender ID.")
-        if not validate_phone(data):
-            raise forms.ValidationError(f"{data} is not a valid phone number.")
+        if is_sender_alphanumeric_code(data):
+            if not validate_alphanumeric_sender(data):
+                raise forms.ValidationError(f"{data} is not a valid sender ID.")
+        else:
+            if not validate_phone(data):
+                raise forms.ValidationError(f"{data} is not a valid phone number.")
         return clean_phone(data)
 
     def clean_sms_to(self):
