@@ -8,7 +8,13 @@ import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {CodeOwners, Organization, Project, RepositoryProjectPathConfig} from 'app/types';
+import {
+  CodeOwners,
+  Integration,
+  Organization,
+  Project,
+  RepositoryProjectPathConfig,
+} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -28,6 +34,7 @@ type State = {
   ownership: null | any;
   codeMappings: RepositoryProjectPathConfig[];
   codeowners?: CodeOwners[];
+  integrations: Integration[];
 } & AsyncView['state'];
 
 class ProjectOwnership extends AsyncView<Props, State> {
@@ -44,26 +51,31 @@ class ProjectOwnership extends AsyncView<Props, State> {
         'codeMappings',
         `/organizations/${organization.slug}/code-mappings/?projectId=${project.id}`,
       ],
-      ['stacktrace', `/projects/${organization.slug}/${project.slug}/stacktrace-link/`],
+      [
+        'integrations',
+        `/organizations/${organization.slug}/integrations/`,
+        {query: {features: ['codeowners']}},
+      ],
     ];
     if (organization.features.includes('import-codeowners')) {
       endpoints.push([
         'codeowners',
-        `/projects/${organization.slug}/${project.slug}/codeowners/?expand=codeMapping`,
+        `/projects/${organization.slug}/${project.slug}/codeowners/`,
+        {query: {expand: ['codeMapping']}},
       ]);
     }
     return endpoints;
   }
 
   handleAddCodeOwner = () => {
-    const {codeMappings, stacktrace} = this.state;
+    const {codeMappings, integrations} = this.state;
     openModal(modalProps => (
       <AddCodeOwnerModal
         {...modalProps}
         organization={this.props.organization}
         project={this.props.project}
         codeMappings={codeMappings}
-        integrations={stacktrace.integrations}
+        integrations={integrations}
         onSave={this.handleCodeownerAdded}
       />
     ));

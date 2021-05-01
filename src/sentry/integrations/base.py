@@ -95,6 +95,7 @@ class IntegrationFeatures(Enum):
     SERVERLESS = "serverless"
     TICKET_RULES = "ticket-rules"
     STACKTRACE_LINK = "stacktrace-link"
+    CODEOWNERS = "codeowners"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
