@@ -20,6 +20,7 @@ import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrat
 import IntegrationExternalTeamMappings from 'app/views/organizationIntegrations/integrationExternalTeamMappings';
 import IntegrationExternalUserMappings from 'app/views/organizationIntegrations/integrationExternalUserMappings';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
+import IntegrationMainSettings from 'app/views/organizationIntegrations/integrationMainSettings';
 import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
 import IntegrationServerlessFunctions from 'app/views/organizationIntegrations/integrationServerlessFunctions';
 import Form from 'app/views/settings/components/forms/form';
@@ -35,7 +36,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
-type Tab = 'repos' | 'codeMappings' | 'userMappings' | 'teamMappings';
+type Tab = 'repos' | 'codeMappings' | 'userMappings' | 'teamMappings' | 'settings';
 
 type State = AsyncView['state'] & {
   config: {providers: IntegrationProvider[]};
@@ -232,6 +233,10 @@ class ConfigureIntegration extends AsyncView<Props, State> {
       ...(this.hasCodeOwners() ? [['userMappings', t('User Mappings')]] : []),
       ...(this.hasCodeOwners() ? [['teamMappings', t('Team Mappings')]] : []),
     ];
+    // TODO(meredith): Needs Feature Gating
+    if (this.hasCodeOwners()) {
+      tabs.unshift(['settings', t('Settings')]);
+    }
 
     return (
       <Fragment>
@@ -253,6 +258,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
 
   renderTabContent(tab: Tab, provider: IntegrationProvider) {
     const {integration} = this.state;
+    const {organization} = this.props;
     switch (tab) {
       case 'codeMappings':
         return <IntegrationCodeMappings integration={integration} />;
@@ -262,6 +268,14 @@ class ConfigureIntegration extends AsyncView<Props, State> {
         return <IntegrationExternalUserMappings integration={integration} />;
       case 'teamMappings':
         return <IntegrationExternalTeamMappings integration={integration} />;
+      case 'settings':
+        return (
+          <IntegrationMainSettings
+            onUpdate={this.onUpdateIntegration}
+            organization={organization}
+            integration={integration}
+          />
+        );
       default:
         return this.renderMainTab(provider);
     }
