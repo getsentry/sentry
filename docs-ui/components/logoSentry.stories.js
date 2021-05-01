@@ -7,4 +7,9 @@ export default {
   component: LogoSentry,
 };
 
-export const Logo = () => <LogoSentry />;
+export const Logo = () => (
+  <div>
+    <LogoSentry />
+    <LogoSentry showWordmark={false} />
+  </div>
+);
