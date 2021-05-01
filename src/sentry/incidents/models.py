@@ -171,6 +171,7 @@ class Incident(Model):
     date_detected = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
     date_closed = models.DateTimeField(null=True)
+    mycol = models.DateTimeField()
 
     class Meta:
         app_label = "sentry"
