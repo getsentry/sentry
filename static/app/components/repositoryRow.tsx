@@ -2,13 +2,15 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {cancelDeleteRepository, deleteRepository} from 'app/actionCreators/integrations';
+import {openModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {PanelItem} from 'app/components/panels';
+import RepositoryEditForm from 'app/components/repositoryEditForm';
 import Tooltip from 'app/components/tooltip';
-import {IconDelete} from 'app/icons';
+import {IconDelete, IconEdit} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Repository, RepositoryStatus} from 'app/types';
@@ -68,9 +70,64 @@ class RepositoryRow extends Component<Props> {
     );
   };
 
+  handleEditRepo = (data: Repository) => {
+    const {onRepositoryChange} = this.props;
+    if (onRepositoryChange) {
+      onRepositoryChange(data);
+    }
+  };
+
   get isActive() {
     return this.props.repository.status === RepositoryStatus.ACTIVE;
   }
+
+  renderDeleteButton(hasAccess) {
+    const {repository} = this.props;
+    const isActive = this.isActive;
+    return (
+      <Tooltip
+        title={t(
+          'You must be an organization owner, manager or admin to remove a repository.'
+        )}
+        disabled={hasAccess}
+      >
+        <Confirm
+          disabled={
+            !hasAccess || (!isActive && repository.status !== RepositoryStatus.DISABLED)
+          }
+          onConfirm={this.deleteRepo}
+          message={t(
+            'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
+          )}
+        >
+          <StyledButton
+            size="xsmall"
+            icon={<IconDelete size="xs" />}
+            label={t('delete')}
+            disabled={!hasAccess}
+          />
+        </Confirm>
+      </Tooltip>
+    );
+  }
+
+  openModal = () => {
+    const {repository, orgId} = this.props;
+    openModal(({Body, Header, closeModal}) => (
+      <React.Fragment>
+        <Header closeButton>{t('Edit Repository')}</Header>
+        <Body>
+          <RepositoryEditForm
+            orgSlug={orgId}
+            repository={repository}
+            onSubmitSuccess={this.handleEditRepo}
+            closeModal={closeModal}
+            onCancel={closeModal}
+          />
+        </Body>
+      </React.Fragment>
+    ));
+  };
 
   render() {
     const {repository, showProvider} = this.props;
@@ -105,31 +162,21 @@ class RepositoryRow extends Component<Props> {
                 )}
               </div>
             </RepositoryTitleAndUrl>
-
-            <Tooltip
-              title={t(
-                'You must be an organization owner, manager or admin to remove a repository.'
-              )}
-              disabled={hasAccess}
-            >
-              <Confirm
-                disabled={
-                  !hasAccess ||
-                  (!isActive && repository.status !== RepositoryStatus.DISABLED)
-                }
-                onConfirm={this.deleteRepo}
-                message={t(
-                  'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
-                )}
-              >
-                <Button
+            {repository.provider.id === 'integrations:custom_scm' ? (
+              // TODO(meredith): Feature Gate this as well ^
+              <EditAndDelete>
+                <StyledButton
                   size="xsmall"
-                  icon={<IconDelete size="xs" />}
-                  label={t('delete')}
+                  icon={<IconEdit size="xs" />}
+                  label={t('add')}
                   disabled={!hasAccess}
+                  onClick={() => this.openModal()}
                 />
-              </Confirm>
-            </Tooltip>
+                {this.renderDeleteButton(hasAccess)}
+              </EditAndDelete>
+            ) : (
+              this.renderDeleteButton(hasAccess)
+            )}
           </StyledPanelItem>
         )}
       </Access>
@@ -163,6 +210,11 @@ const StyledButton = styled(Button)`
 const RepositoryTitleAndUrl = styled('div')`
   display: flex;
   flex-direction: column;
+`;
+
+const EditAndDelete = styled('div')`
+  display: flex;
+  margin-left: ${space(1)};
 `;
 
 const RepositoryTitle = styled('div')`

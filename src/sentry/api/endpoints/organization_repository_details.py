@@ -28,6 +28,8 @@ class RepositorySerializer(serializers.Serializer):
             ("active", "active"),
         )
     )
+    name = serializers.CharField(required=False)
+    url = serializers.URLField(required=False, allow_blank=True)
     integrationId = EmptyIntegerField(required=False, allow_null=True)
 
 
@@ -68,6 +70,13 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
             update_kwargs["integration_id"] = integration.id
             update_kwargs["provider"] = f"integrations:{integration.provider}"
+
+        # TODO(meredith): Feature gate this as well
+        if repo.provider == "integrations:custom_scm":
+            if result.get("name"):
+                update_kwargs["name"] = result.get("name")
+            if result.get("url"):
+                update_kwargs["url"] = result.get("url")
 
         if update_kwargs:
             old_status = repo.status

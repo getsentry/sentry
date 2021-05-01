@@ -68,6 +68,9 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     itemList.forEach(item => {
       if (item.id === data.id) {
         item.status = data.status;
+        // possible to update name and url for manual source control repos
+        item.url = data.url || item.url;
+        item.name = data.name || item.name;
       }
     });
     this.setState({itemList});
