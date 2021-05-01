@@ -17,6 +17,7 @@ type AlertType = {
   message: React.ReactNode;
   type: 'success' | 'error' | 'warning' | 'info';
   url?: string;
+  onClose?: () => void;
 };
 
 type Props = {
@@ -45,7 +46,7 @@ const AlertMessage = ({alert, system}: Props) => {
       <StyledCloseButton
         icon={<IconClose size="md" isCircled />}
         aria-label={t('Close')}
-        onClick={handleCloseAlert}
+        onClick={alert.onClose ?? handleCloseAlert}
         size="zero"
         borderless
       />
