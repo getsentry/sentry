@@ -296,23 +296,23 @@ class AssigneeSelector extends React.Component<Props, State> {
   renderNewDropdownItems(): ItemsBeforeFilter {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
-    const suggestedAssignees = new Set(this.renderSuggestedAssigneeNodes() ?? []);
-    const assigneesSearchKey: string[] = [];
+    const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
+    const assigneeIds = new Set();
     const filteredTeams: ItemsBeforeFilter = [];
     const filteredMembers: ItemsBeforeFilter = [];
 
     // filter out duplicates of Team/Member if also a Suggested Assignee
-    if ([...suggestedAssignees].length) {
-      [...suggestedAssignees].filter(assignee =>
-        assigneesSearchKey.push(assignee.searchKey)
+    if (suggestedAssignees.length) {
+      suggestedAssignees.filter(assignee =>
+        assigneeIds.add(`${assignee.value.type}:${assignee.value.assignee.id}`)
       );
       teams.filter(team => {
-        return assigneesSearchKey.includes(team.searchKey)
+        return assigneeIds.has(`${team.value.type}:${team.value.assignee.id}`)
           ? null
           : filteredTeams.push(team);
       });
       members.filter(member => {
-        return assigneesSearchKey.includes(member.searchKey)
+        return assigneeIds.has(`${member.value.type}:${member.value.assignee.id}`)
           ? null
           : filteredMembers.push(member);
       });
@@ -331,11 +331,11 @@ class AssigneeSelector extends React.Component<Props, State> {
       },
     ];
 
-    if ([...suggestedAssignees].length) {
+    if (suggestedAssignees.length) {
       dropdownItems.unshift({
         label: this.renderDropdownGroupLabel(t('Suggested')),
         id: 'suggested-header',
-        items: [...suggestedAssignees],
+        items: suggestedAssignees,
       });
     }
 
