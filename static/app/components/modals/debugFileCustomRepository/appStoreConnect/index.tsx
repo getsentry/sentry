@@ -21,13 +21,20 @@ import StepFour from './stepFour';
 import StepOne from './stepOne';
 import StepThree from './stepThree';
 import StepTwo from './stepTwo';
-import {App, StepFourData, StepOneData, StepThreeData, StepTwoData} from './types';
+import {
+  App,
+  AppleStoreOrg,
+  StepFourData,
+  StepOneData,
+  StepThreeData,
+  StepTwoData,
+} from './types';
 
 const steps = [
   t('Enter your App Store Connect credentials'),
   t('Enter your itunes credentials'),
   t('Enter your authentication code'),
-  t('Choose your app'),
+  t('Choose an organization and application'),
 ];
 
 type Status = 'waiting' | 'active' | 'finished';
@@ -36,13 +43,23 @@ type Props = Pick<ModalRenderProps, 'Body' | 'Footer' | 'closeModal'> & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
+  onSubmit: (data: Record<string, string>) => void;
 };
 
-function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: Props) {
+function AppStoreConnect({
+  Body,
+  Footer,
+  closeModal,
+  api,
+  orgSlug,
+  projectSlug,
+  onSubmit,
+}: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [stepHeights, setStepHeights] = useState<number[]>([]);
-  const [apps, setApps] = useState<App[]>([]);
+  const [appStoreApps, setAppStoreApps] = useState<App[]>([]);
+  const [appStoreOrgs, setAppStoreOrgs] = useState<AppleStoreOrg[]>([]);
   const [sessionContext, setSessionContext] = useState('');
   const [useSms, setUseSms] = useState(false);
 
@@ -60,16 +77,179 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
   });
 
   const [stepThreeData, setStepThreeData] = useState<StepThreeData>({
-    itunesAuthenticationCode: undefined,
+    authenticationCode: undefined,
   });
 
   const [stepFourData, setStepFourData] = useState<StepFourData>({
+    org: undefined,
     app: undefined,
   });
 
   useEffect(() => {
     calcStepContentHeights();
   }, []);
+
+  async function checkAppStoreConnectCredentials() {
+    setIsLoading(true);
+    try {
+      const response = await api.requestPromise(
+        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/apps/`,
+        {
+          method: 'POST',
+          data: {
+            appconnectIssuer: stepOneData.issuer,
+            appconnectKey: stepOneData.keyId,
+            appconnectPrivateKey: stepOneData.privateKey,
+          },
+        }
+      );
+
+      setAppStoreApps(response.apps);
+      setIsLoading(false);
+      goNext();
+    } catch (error) {
+      setIsLoading(false);
+      addErrorMessage(
+        t(
+          'We could not establish a connection with App Store Connect. Please check the entered App Store Connect credentials.'
+        )
+      );
+    }
+  }
+
+  async function startItunesAuthentication(shouldGoNext = true) {
+    setIsLoading(true);
+    if (useSms) {
+      setUseSms(false);
+    }
+    try {
+      const response = await api.requestPromise(
+        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/start/`,
+        {
+          method: 'POST',
+          data: {
+            itunesUser: stepTwoData.username,
+            itunesPassword: stepTwoData.password,
+          },
+        }
+      );
+
+      setSessionContext(response.sessionContext);
+      setIsLoading(false);
+      if (shouldGoNext) {
+        goNext();
+      }
+    } catch (error) {
+      setIsLoading(false);
+      addErrorMessage(
+        t('The iTunes authentication failed. Please check the entered credentials.')
+      );
+    }
+  }
+
+  async function startSmsAuthentication() {
+    setIsLoading(true);
+    if (!useSms) {
+      setUseSms(true);
+    }
+    try {
+      const response = await api.requestPromise(
+        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/requestSms/`,
+        {
+          method: 'POST',
+          data: {sessionContext},
+        }
+      );
+
+      setIsLoading(false);
+      setSessionContext(response.sessionContext);
+    } catch (error) {
+      setIsLoading(false);
+      addErrorMessage(t('An error occured while sending the SMS. Please try again'));
+    }
+  }
+
+  async function startTwoFactorAuthentication() {
+    setIsLoading(true);
+    try {
+      const response = await api.requestPromise(
+        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/2fa/`,
+        {
+          method: 'POST',
+          data: {
+            code: stepThreeData.authenticationCode,
+            useSms,
+            sessionContext,
+          },
+        }
+      );
+      setIsLoading(false);
+      const {organizations, sessionContext: newSessionContext} = response;
+      setStepFourData({org: organizations[0], app: appStoreApps[0]});
+      setAppStoreOrgs(organizations);
+      setSessionContext(newSessionContext);
+      goNext();
+    } catch (error) {
+      setIsLoading(false);
+      addErrorMessage(
+        t('The two factor authentication failed. Please check the entered code.')
+      );
+    }
+  }
+
+  async function persistData() {
+    if (!stepFourData.app || !stepFourData.org || !stepTwoData.username) {
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await api.requestPromise(`/projects/${orgSlug}/${projectSlug}/appstoreconnect/`, {
+        method: 'POST',
+        data: {
+          itunesUser: stepTwoData.username,
+          itunesPassword: stepTwoData.password,
+          appconnectIssuer: stepOneData.issuer,
+          appconnectKey: stepOneData.keyId,
+          appconnectPrivateKey: stepOneData.privateKey,
+          appName: stepFourData.app.name,
+          appId: stepFourData.app.appId,
+          orgId: stepFourData.org.organizationId,
+          orgName: stepFourData.org.name,
+          sessionContext,
+        },
+      });
+      addSuccessMessage('App Store Connect repository was successfully added');
+      onSubmit({
+        itunesUser: stepTwoData.username,
+        appName: stepFourData.app.name,
+        appId: stepFourData.app.appId,
+        orgId: String(stepFourData.org.organizationId),
+        orgName: stepFourData.org.name,
+        name: 'App Store Connect',
+      });
+      closeModal();
+    } catch (error) {
+      setIsLoading(false);
+      addErrorMessage(t('An error occured while saving the repository'));
+    }
+  }
+
+  function isFormInValid() {
+    switch (activeStep) {
+      case 0:
+        return Object.keys(stepOneData).some(key => !stepOneData[key]?.trim());
+      case 1:
+        return Object.keys(stepTwoData).some(key => !stepTwoData[key]?.trim());
+      case 2: {
+        return Object.keys(stepThreeData).some(key => !stepThreeData[key]);
+      }
+      case 3: {
+        return Object.keys(stepFourData).some(key => !stepFourData[key]);
+      }
+      default:
+        return false;
+    }
+  }
 
   function calcStepContentHeights() {
     const listElement = listRef.current;
@@ -97,7 +277,6 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         break;
       case 1:
         startItunesAuthentication();
-        setUseSms(false);
         break;
       case 2:
         startTwoFactorAuthentication();
@@ -107,154 +286,6 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         break;
       default:
         break;
-    }
-  }
-
-  function handleSendVerificationCode() {
-    if (useSms) {
-      setUseSms(false);
-    }
-    startItunesAuthentication();
-  }
-
-  function handleSendSmsCode() {
-    if (!useSms) {
-      setUseSms(true);
-    }
-    startSmsAuthentication();
-  }
-
-  async function checkAppStoreConnectCredentials() {
-    setIsLoading(true);
-    try {
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/apps/`,
-        {
-          method: 'POST',
-          data: {
-            appconnectIssuer: stepOneData.issuer,
-            appconnectKey: stepOneData.keyId,
-            appconnectPrivateKey: stepOneData.privateKey,
-          },
-        }
-      );
-
-      setApps(response.apps);
-      setIsLoading(false);
-      goNext();
-    } catch (error) {
-      setIsLoading(false);
-      addErrorMessage(
-        t(
-          'We could not establish a connection with App Store Connect. Please check the entered App Store Connect credentials.'
-        )
-      );
-    }
-  }
-
-  async function startItunesAuthentication() {
-    setIsLoading(true);
-    try {
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/start/`,
-        {
-          method: 'POST',
-          data: {
-            itunesUser: stepTwoData.username,
-            itunesPassword: stepTwoData.password,
-          },
-        }
-      );
-
-      setSessionContext(response.sessionContext);
-      setIsLoading(false);
-      goNext();
-    } catch (error) {
-      setIsLoading(false);
-      addErrorMessage(
-        t('The iTunes authentication failed. Please check the entered credentials.')
-      );
-    }
-  }
-
-  async function startTwoFactorAuthentication() {
-    setIsLoading(true);
-    try {
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/2fa/`,
-        {
-          method: 'POST',
-          data: {
-            code: stepThreeData.itunesAuthenticationCode,
-            useSms,
-            sessionContext,
-          },
-        }
-      );
-
-      setSessionContext(response.session_context);
-      setIsLoading(false);
-      goNext();
-    } catch (error) {
-      setIsLoading(false);
-      addErrorMessage(
-        t('The two factor authentication failed. Please check the entered code.')
-      );
-    }
-  }
-
-  async function startSmsAuthentication() {
-    try {
-      await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/requestSms/`,
-        {
-          method: 'POST',
-          data: {sessionContext},
-        }
-      );
-    } catch (error) {
-      setIsLoading(false);
-      addErrorMessage(t('An error occured while sending the SMS. Please try again'));
-    }
-  }
-
-  async function persistData() {
-    setIsLoading(true);
-    try {
-      await api.requestPromise(`/projects/${orgSlug}/${projectSlug}/appstoreconnect/`, {
-        method: 'POST',
-        data: {
-          appName: stepFourData.app?.name,
-          appId: stepFourData.app?.appId,
-          itunesUser: stepTwoData.username,
-          itunesPassword: stepTwoData.password,
-          appconnectIssuer: stepOneData.issuer,
-          appconnectKey: stepOneData.keyId,
-          appconnectPrivateKey: stepOneData.privateKey,
-          sessionContext,
-        },
-      });
-
-      addSuccessMessage('App Store Connect repository was successfully added');
-      closeModal();
-    } catch (error) {
-      setIsLoading(false);
-      addErrorMessage(t('An error occured while saving the repository'));
-    }
-  }
-
-  function isFormInValid() {
-    switch (activeStep) {
-      case 0:
-        return Object.keys(stepOneData).some(key => !stepOneData[key]?.trim());
-      case 1:
-        return Object.keys(stepTwoData).some(key => !stepTwoData[key]?.trim());
-      case 2:
-        return Object.keys(StepThree).some(key => !StepThree[key]);
-      case 3:
-        return Object.keys(stepFourData).some(key => !stepFourData[key]);
-      default:
-        return false;
     }
   }
 
@@ -269,12 +300,19 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
           <StepThree
             data={stepThreeData}
             onChange={setStepThreeData}
-            onSendVerificationCode={handleSendVerificationCode}
-            onSendCodeViaSms={handleSendSmsCode}
+            onSendVerificationCode={() => startItunesAuthentication(false)}
+            onSendCodeViaSms={() => startSmsAuthentication()}
           />
         );
       case 3:
-        return <StepFour apps={apps} data={stepFourData} onChange={setStepFourData} />;
+        return (
+          <StepFour
+            orgs={appStoreOrgs}
+            apps={appStoreApps}
+            data={stepFourData}
+            onChange={setStepFourData}
+          />
+        );
       default:
         return (
           <Alert type="error" icon={<IconWarning />}>

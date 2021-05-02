@@ -58,11 +58,11 @@ function StepThree({data, onChange, onSendVerificationCode, onSendCodeViaSms}: P
           type="text"
           name="two-factor-authentication-code"
           placeholder={t('Enter your code')}
-          value={data.itunesAuthenticationCode}
+          value={data.authenticationCode}
           onChange={e =>
             onChange({
               ...data,
-              itunesAuthenticationCode: e.target.value,
+              authenticationCode: e.target.value,
             })
           }
         />

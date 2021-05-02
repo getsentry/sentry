@@ -16,10 +16,16 @@ export type StepTwoData = {
 };
 
 export type StepThreeData = {
-  itunesAuthenticationCode?: string;
+  authenticationCode?: string;
   smsCode?: string;
 };
 
+export type AppleStoreOrg = {
+  name: string;
+  organizationId: number;
+};
+
 export type StepFourData = {
+  org?: AppleStoreOrg;
   app?: App;
 };
