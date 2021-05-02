@@ -38,7 +38,7 @@ type State = {
   dashboardState: DashboardState;
 };
 
-class CreateDashboard extends React.Component<Props, State> {
+class EditDashboard extends React.Component<Props, State> {
   state: State = {
     dashboard: cloneDashboard(EMPTY_DASHBOARD),
     dashboardState: 'create',
@@ -229,4 +229,4 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-export default withApi(withOrganization(CreateDashboard));
+export default withApi(withOrganization(EditDashboard));

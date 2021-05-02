@@ -1166,33 +1166,43 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
-
-          <Route
-            path="/organizations/:orgId/dashboards/manage/"
-            componentPromise={() =>
-              import(
-                /* webpackChunkName: "ManageDashboards" */ 'app/views/dashboardsV2/manage'
-              )
-            }
-            component={errorHandler(LazyLoad)}
-          />
-          <Route
-            path="/organizations/:orgId/dashboards/new/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/create')
-            }
-            component={errorHandler(LazyLoad)}
-          />
           <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "DashboardsV2Container" */ 'app/views/dashboardsV2'
+                /* webpackChunkName: "DashboardsV2Container" */ 'app/views/dashboardsV2/'
               )
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "ManageDashboards" */ 'app/views/dashboardsV2/manage'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="/organizations/:orgId/dashboards/manage/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "ManageDashboards" */ 'app/views/dashboardsV2/manage'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="/organizations/:orgId/dashboards/new/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/create'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="/organizations/:orgId/dashboards/:dashboardId/"
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'

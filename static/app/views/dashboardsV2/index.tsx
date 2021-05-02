@@ -5,8 +5,6 @@ import Feature from 'app/components/acl/feature';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
-import Detail from './detail';
-
 type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
   organization: Organization;
   children: React.ReactNode;
@@ -14,11 +12,11 @@ type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
 
 class DashboardsV2Container extends React.Component<Props> {
   render() {
-    const {organization, ...props} = this.props;
+    const {organization, children} = this.props;
 
     return (
       <Feature features={['dashboards-basic']} organization={organization}>
-        <Detail {...props} organization={organization} />
+        {children}
       </Feature>
     );
   }
