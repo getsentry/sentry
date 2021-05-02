@@ -6,7 +6,7 @@ using the old (itunes) api
 import logging
 from collections import namedtuple
 from http import HTTPStatus
-from typing import NewType, Optional
+from typing import Any, NewType, Optional
 
 from requests import Session
 
@@ -40,25 +40,27 @@ def get_session_cookie(session: Session) -> Optional[str]:
     return session.cookies.get(_session_cookie_name())
 
 
-def is_session_valid(session: Session) -> bool:
+def get_session_info(session: Session) -> Optional[Any]:
     """
-    Checks if the current session can be used for itunes calls or it needs to log in.
+    Returns the itunes session info (if valid).
 
     Note: port of fastlane.spaceship.client.Spaceship.Client.fetch_olympus_session
 
-    :return: True if the session is valid and no login is necessary False if we need to
+    :return: The session information (a json) if the session is valid and no login is necessary None if we need to
     login
     """
-    logger.debug("GET https://appstoreconnect.apple.com/olympus/v1/session")
-    session_response = session.get("https://appstoreconnect.apple.com/olympus/v1/session")
+    url = " https://appstoreconnect.apple.com/olympus/v1/session"
+    logger.debug(f"GET {url}")
+    session_response = session.get(url)
 
-    try:
-        data = session_response.json()
-        if data.get("provider"):
-            return True
-        return False
-    except ValueError:
-        return False
+    if session_response.ok:
+        try:
+            data = session_response.json()
+        except ValueError:
+            return None
+        return data
+
+    return None
 
 
 ITunesServiceKey = NewType("ITunesServiceKey", str)
@@ -138,10 +140,11 @@ def get_trusted_phone_info(
     Will return the trusted phone info for the account
     :return: TrustedPhoneInfo if the call was successful
     """
-    logger.debug("GET https://idmsa.apple.com/appleauth/auth")
+    url = "https://idmsa.apple.com/appleauth/auth"
+    logger.debug(f"GET {url}")
 
     auth_response = session.get(
-        "https://idmsa.apple.com/appleauth/auth",
+        url,
         headers={
             "scnt": headers.scnt,
             "X-Apple-Id-Session-Id": headers.session_id,
@@ -176,10 +179,11 @@ def initiate_phone_login(
     """
     Start phone 2 factor authentication by requesting an SMS to be send to the trusted phone
     """
-    logger.debug("PUT https://idmsa.apple.com/appleauth/auth/verify/phone")
+    url = "https://idmsa.apple.com/appleauth/auth/verify/phone"
+    logger.debug(f"PUT {url}")
 
     phone_auth_response = session.put(
-        "https://idmsa.apple.com/appleauth/auth/verify/phone",
+        url,
         json={"phoneNumber": {"id": phone_id}, "mode": push_mode},
         headers={
             "scnt": headers.scnt,
@@ -204,10 +208,11 @@ def send_phone_authentication_confirmation_code(
     Sends the confirmation code received by the trusted phone and completes the two factor authentication
     :return: True if successful False otherwise
     """
-    logger.debug("PUT https://idmsa.apple.com/appleauth/auth/verify/phone/securitycode")
+    url = "https://idmsa.apple.com/appleauth/auth/verify/phone/securitycode"
+    logger.debug("PUT {url}")
 
     phone_security_code_response = session.post(
-        "https://idmsa.apple.com/appleauth/auth/verify/phone/securitycode",
+        url,
         json={
             "securityCode": {"code": security_code},
             "phoneNumber": {"id": phone_id},
@@ -248,10 +253,11 @@ def send_authentication_confirmation_code(
 
     :return: True if successful False otherwise
     """
-    logger.debug("POST https://idmsa.apple.com/appleauth/auth/verify/trusteddevice/securitycode")
+    url = "https://idmsa.apple.com/appleauth/auth/verify/trusteddevice/securitycode"
+    logger.debug(f"POST {url}")
 
     response = session.post(
-        "https://idmsa.apple.com/appleauth/auth/verify/trusteddevice/securitycode",
+        url,
         json={
             "securityCode": {
                 "code": security_code,
@@ -266,6 +272,20 @@ def send_authentication_confirmation_code(
     )
 
     return response.ok
+
+
+def set_provider(session: Session, content_provider_id: int, user_id: str):
+    url = "https://appstoreconnect.apple.com//WebObjects/iTunesConnect.woa/ra/v1/session/webSession"
+    logger.debug(f"POST {url}")
+
+    select_provider_response = session.post(
+        url,
+        json={
+            "contentProviderId": content_provider_id,
+            "dsId": user_id,
+        },
+    )
+    return select_provider_response
 
 
 def get_dsym_url(

@@ -1,3 +1,4 @@
+import logging
 import time
 from collections import namedtuple
 from typing import Any, Generator, List, Mapping, Optional
@@ -6,6 +7,8 @@ import jwt
 from requests import Session
 
 from sentry.utils import safe
+
+logger = logging.getLogger(__name__)
 
 AppConnectCredentials = namedtuple("AppConnectCredentials", ["key_id", "key", "issuer_id"])
 
@@ -55,6 +58,7 @@ def _get_appstore_info(
     else:
         full_url = ""
     full_url += url
+    logger.debug(f"GET {full_url}")
     response = session.get(full_url, headers=headers)
     if not response.ok:
         raise ValueError("Request failed", full_url, response.status_code, response.text)
