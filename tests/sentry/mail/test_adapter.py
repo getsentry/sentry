@@ -766,7 +766,9 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
 
 class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
     def test_send_to_team(self):
-        assert {self.user.id} == self.adapter.get_send_to_team(self.project, str(self.team.id))
+        assert {ExternalProviders.EMAIL: [self.user.id]} == self.adapter.get_send_to_team(
+            self.project, str(self.team.id)
+        )
 
     def test_send_disabled(self):
         NotificationSetting.objects.update_settings(
@@ -776,30 +778,36 @@ class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
             user=self.user,
             project=self.project,
         )
-        assert set() == self.adapter.get_send_to_team(self.project, str(self.team.id))
+        assert {} == self.adapter.get_send_to_team(self.project, str(self.team.id))
 
     def test_invalid_team(self):
-        assert set() == self.adapter.get_send_to_team(self.project, "900001")
+        assert {} == self.adapter.get_send_to_team(self.project, "900001")
 
     def test_other_project_team(self):
         user_2 = self.create_user()
         team_2 = self.create_team(self.organization, members=[user_2])
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
-        assert {user_2.id} == self.adapter.get_send_to_team(project_2, str(team_2.id))
-        assert set() == self.adapter.get_send_to_team(self.project, str(team_2.id))
+        assert {ExternalProviders.EMAIL: [user_2.id]} == self.adapter.get_send_to_team(
+            project_2, str(team_2.id)
+        )
+        assert {} == self.adapter.get_send_to_team(self.project, str(team_2.id))
 
     def test_other_org_team(self):
         org_2 = self.create_organization()
         user_2 = self.create_user()
         team_2 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
-        assert {user_2.id} == self.adapter.get_send_to_team(project_2, str(team_2.id))
-        assert set() == self.adapter.get_send_to_team(self.project, str(team_2.id))
+        assert {ExternalProviders.EMAIL: [user_2.id]} == self.adapter.get_send_to_team(
+            project_2, str(team_2.id)
+        )
+        assert {} == self.adapter.get_send_to_team(self.project, str(team_2.id))
 
 
 class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
     def test_send_to_user(self):
-        assert {self.user.id} == self.adapter.get_send_to_member(self.project, str(self.user.id))
+        assert {ExternalProviders.EMAIL: [self.user.id]} == self.adapter.get_send_to_member(
+            self.project, str(self.user.id)
+        )
 
     def test_send_disabled_still_sends(self):
         NotificationSetting.objects.update_settings(
@@ -809,10 +817,12 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
             user=self.user,
             project=self.project,
         )
-        assert {self.user.id} == self.adapter.get_send_to_member(self.project, str(self.user.id))
+        assert {ExternalProviders.EMAIL: [self.user.id]} == self.adapter.get_send_to_member(
+            self.project, str(self.user.id)
+        )
 
     def test_invalid_user(self):
-        assert set() == self.adapter.get_send_to_member(self.project, "900001")
+        assert {} == self.adapter.get_send_to_member(self.project, "900001")
 
     def test_other_org_user(self):
         org_2 = self.create_organization()
@@ -820,8 +830,10 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
         team_2 = self.create_team(org_2, members=[user_2])
         team_3 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2, team_3])
-        assert {user_2.id} == self.adapter.get_send_to_member(project_2, str(user_2.id))
-        assert set() == self.adapter.get_send_to_member(self.project, str(user_2.id))
+        assert {ExternalProviders.EMAIL: [user_2.id]} == self.adapter.get_send_to_member(
+            project_2, str(user_2.id)
+        )
+        assert {} == self.adapter.get_send_to_member(self.project, str(user_2.id))
 
     def test_no_project_access(self):
         org_2 = self.create_organization()
@@ -830,8 +842,10 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
         user_3 = self.create_user()
         self.create_team(org_2, members=[user_3])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
-        assert {user_2.id} == self.adapter.get_send_to_member(project_2, str(user_2.id))
-        assert set() == self.adapter.get_send_to_member(self.project, str(user_3.id))
+        assert {ExternalProviders.EMAIL: [user_2.id]} == self.adapter.get_send_to_member(
+            project_2, str(user_2.id)
+        )
+        assert {} == self.adapter.get_send_to_member(self.project, str(user_3.id))
 
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):

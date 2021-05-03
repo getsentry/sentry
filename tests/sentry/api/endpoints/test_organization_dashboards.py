@@ -74,6 +74,41 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def test_get_sortby(self):
+        Dashboard.objects.create(title="A", created_by=self.user, organization=self.organization)
+
+        sort_options = {
+            "dateCreated": True,
+            "-dateCreated": False,
+            "title": True,
+            "-title": False,
+        }
+        for sorting, forward_sort in sort_options.items():
+            response = self.client.get(self.url, data={"sort": sorting})
+            assert response.status_code == 200
+
+            # Ignoring the prebuilt query (date created is empty)
+            values = [row[sorting.strip("-")] for row in response.data if row["dateCreated"]]
+            if not forward_sort:
+                values = list(reversed(values))
+            assert list(sorted(values)) == values
+
+    def test_get_sortby_mydashboards(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(title="A", created_by=user_1, organization=self.organization)
+        Dashboard.objects.create(title="B", created_by=user_2, organization=self.organization)
+
+        response = self.client.get(self.url, data={"sort": "mydashboards"})
+        assert response.status_code == 200, response.content
+
+        values = [int(row["createdBy"]["id"]) for row in response.data if row["dateCreated"]]
+        assert values == [self.user.id, self.user.id, user_1.id, user_2.id]
+
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
@@ -147,3 +182,20 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"title": self.dashboard.title})
         assert response.status_code == 409
         assert response.data == "Dashboard title already taken"
+
+    def test_duplicate_dashboard(self):
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": self.dashboard.title, "duplicate": True},
+        )
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == f"{self.dashboard.title} copy"
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": self.dashboard.title, "duplicate": True},
+        )
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == f"{self.dashboard.title} copy 1"

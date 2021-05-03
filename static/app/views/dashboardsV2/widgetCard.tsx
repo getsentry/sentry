@@ -1,21 +1,19 @@
-import React, {MouseEvent} from 'react';
+import React from 'react';
 import * as ReactRouter from 'react-router';
 import {browserHistory} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import {HeaderTitle} from 'app/components/charts/styles';
-import DropdownMenu from 'app/components/dropdownMenu';
 import ErrorBoundary from 'app/components/errorBoundary';
 import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import {IconDelete, IconEdit, IconEllipsis, IconGrabbable} from 'app/icons';
+import {IconDelete, IconEdit, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -25,6 +23,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
+import ContextMenu from './contextMenu';
 import {Widget} from './types';
 import {eventViewFromWidget} from './utils';
 import WidgetCardChart from './widgetCardChart';
@@ -278,51 +277,6 @@ const WidgetHeader = styled('div')`
   width: 100%;
   display: flex;
   justify-content: space-between;
-`;
-
-const ContextMenu = ({children}) => (
-  <DropdownMenu>
-    {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-      const topLevelCx = classNames('dropdown', {
-        'anchor-right': true,
-        open: isOpen,
-      });
-
-      return (
-        <MoreOptions
-          {...getRootProps({
-            className: topLevelCx,
-          })}
-        >
-          <DropdownTarget
-            {...getActorProps<HTMLDivElement>({
-              onClick: (event: MouseEvent) => {
-                event.stopPropagation();
-                event.preventDefault();
-              },
-            })}
-          >
-            <IconEllipsis data-test-id="context-menu" size="md" />
-          </DropdownTarget>
-          {isOpen && (
-            <ul {...getMenuProps({})} className={classNames('dropdown-menu')}>
-              {children}
-            </ul>
-          )}
-        </MoreOptions>
-      );
-    }}
-  </DropdownMenu>
-);
-
-const MoreOptions = styled('span')`
-  display: flex;
-  color: ${p => p.theme.textColor};
-`;
-
-const DropdownTarget = styled('div')`
-  display: flex;
-  cursor: pointer;
 `;
 
 const ContextWrapper = styled('div')`

@@ -103,6 +103,11 @@ type Props = ReactRouter.WithRouterProps & {
   relative: string;
 
   /**
+   * Override defaults from DEFAULT_RELATIVE_PERIODS
+   */
+  relativeOptions?: Record<string, string>;
+
+  /**
    * Default initial value for using UTC
    */
   utc: boolean | null;
@@ -358,6 +363,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       organization,
       hint,
       label,
+      relativeOptions,
     } = this.props;
     const {start, end, relative} = this.state;
 
@@ -399,17 +405,17 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}
             </StyledHeaderItem>
-
             {isOpen && (
               <Menu {...getMenuProps()} isAbsoluteSelected={isAbsoluteSelected}>
                 <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
                   <SelectorItemsHook
+                    handleSelectRelative={this.handleSelectRelative}
+                    handleAbsoluteClick={this.handleAbsoluteClick}
                     isAbsoluteSelected={isAbsoluteSelected}
                     relativeSelected={relativeSelected}
-                    shouldShowRelative={shouldShowRelative}
+                    relativePeriods={relativeOptions}
                     shouldShowAbsolute={shouldShowAbsolute}
-                    handleAbsoluteClick={this.handleAbsoluteClick}
-                    handleSelectRelative={this.handleSelectRelative}
+                    shouldShowRelative={shouldShowRelative}
                   />
                 </SelectorList>
                 {isAbsoluteSelected && (

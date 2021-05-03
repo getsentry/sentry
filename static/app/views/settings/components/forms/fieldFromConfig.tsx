@@ -30,7 +30,6 @@ type Props = {
   inline?: boolean;
   onBlur?: (value, event) => void;
   access?: Set<Scope>;
-  deprecatedSelectControl?: boolean;
   noOptionsMessage?: () => string;
 };
 
