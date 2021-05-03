@@ -23,14 +23,6 @@ import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 import DebugFileRow from './debugFileRow';
 
-type AppStoreConnect = {
-  itunesUser: string;
-  appName: string;
-  appId: string;
-  orgId: number;
-  orgName: string;
-};
-
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
   project: Project;
@@ -38,7 +30,6 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 
 type State = AsyncView['state'] & {
   debugFiles: DebugFile[] | null;
-  appStoreConnect: AppStoreConnect | null;
   showDetails: boolean;
   builtinSymbolSources?: BuiltinSymbolSource[] | null;
 };
@@ -73,7 +64,6 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           },
         },
       ],
-      ['appStoreConnect', `/projects/${orgId}/${projectId}/appstoreconnect/`],
     ];
 
     if (!builtinSymbolSources && organization.features.includes('symbol-sources')) {
