@@ -292,6 +292,26 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               organization={organization}
               eventView={transactionsListEventView}
+              generateDiscoverEventView={() => {
+                const {selected} = getTransactionsListSort(location, {
+                  p95: totalValues?.p95 ?? 0,
+                  spanOperationBreakdownFilter,
+                });
+                const sortedEventView = transactionsListEventView.withSorts([
+                  selected.sort,
+                ]);
+
+                if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+                  const fields = [
+                    // Remove the extra field columns
+                    ...sortedEventView.fields.slice(0, transactionsListTitles.length),
+                  ];
+                  // omit "Operation Duration" column
+                  fields.splice(2, 1);
+                  sortedEventView.fields = fields;
+                }
+                return sortedEventView;
+              }}
               titles={transactionsListTitles}
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
