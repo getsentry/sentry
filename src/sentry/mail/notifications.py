@@ -70,7 +70,7 @@ def log_message(notification: BaseNotification, user: User) -> None:
         "user_id": user.id,
     }
     if notification.group:
-        extra.update({"group": notification.group.id})
+        extra.update({"group_id": notification.group.id})
 
     if isinstance(notification, AlertRuleNotification):
         extra.update(
@@ -79,6 +79,9 @@ def log_message(notification: BaseNotification, user: User) -> None:
                 "target_identifier": notification.target_identifier,
             }
         )
+        if len(notification.rules):
+            extra.update({"rule_id": notification.rules[0].id})
+
     elif isinstance(notification, ActivityNotification):
         extra.update({"activity": notification.activity})
 
