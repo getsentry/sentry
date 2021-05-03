@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class ExternalTeam(DefaultFieldsModel):
     __core__ = False
 
-    team = FlexibleForeignKey("sentry.Team")
+    team = FlexibleForeignKey("sentry.Team", db_constraint=False)
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.UNUSED_GH, "github"),
