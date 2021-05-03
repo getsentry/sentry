@@ -52,15 +52,14 @@ def better_default_encoder(o):
 
 class DefaultJSONEncoder(JSONEncoder):
     def __init__(self, *args, **kwargs):
-        super().__init__(
-            # upstream: (', ', ': ')
-            # Ours eliminates whitespace.
-            separators=(",", ":"),
-            # upstream: False
-            # True makes nan, inf, -inf serialize as null in compliance with ECMA-262.
-            ignore_nan=True,
-            default=better_default_encoder,
-        )
+        # upstream: (', ', ': ')
+        # Ours eliminates whitespace.
+        kwargs["separators"] = (",", ":")
+        # upstream: False
+        # True makes nan, inf, -inf serialize as null in compliance with ECMA-262.
+        kwargs["ignore_nan"] = True
+        kwargs["default"] = better_default_encoder
+        super().__init__(*args, **kwargs)
 
 
 class JSONEncoderForHTML(JSONEncoder):
