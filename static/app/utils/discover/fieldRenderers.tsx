@@ -8,6 +8,7 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
+import {ROW_HEIGHT, ROW_PADDING} from 'app/components/performance/waterfall/constants';
 import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {
   getDurationDisplay,
@@ -507,11 +508,12 @@ const spanOperationBreakdownRenderer = (field: string) => (
   const operationName = getSpanOperationName(field) ?? 'op';
 
   return (
-    <div style={{position: 'relative'}}>
+    <RowRectangleContainer>
       <RowRectangle
         spanBarHatch={false}
         style={{
           backgroundColor: pickBarColour(operationName),
+          top: 0,
           left: 0,
           width: toPercent(widthPercentage || 0),
         }}
@@ -527,9 +529,14 @@ const spanOperationBreakdownRenderer = (field: string) => (
           {getHumanDuration(spanOpDuration / 1000)}
         </DurationPill>
       </RowRectangle>
-    </div>
+    </RowRectangleContainer>
   );
 };
+
+const RowRectangleContainer = styled('div')`
+  height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
+  position: relative;
+`;
 
 const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
