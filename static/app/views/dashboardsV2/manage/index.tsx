@@ -110,7 +110,10 @@ class ManageDashboards extends AsyncView<Props, State> {
           placeholder={t('Search Dashboards')}
           onSearch={query => this.handleSearch(query)}
         />
-        <DropdownControl buttonProps={{prefix: t('Sort By')}} label={activeSort.label}>
+        <StyledDropdownControl
+          buttonProps={{prefix: t('Sort By')}}
+          label={activeSort.label}
+        >
           {SORT_OPTIONS.map(({label, value}) => (
             <DropdownItem
               key={value}
@@ -121,7 +124,7 @@ class ManageDashboards extends AsyncView<Props, State> {
               {label}
             </DropdownItem>
           ))}
-        </DropdownControl>
+        </StyledDropdownControl>
       </StyledActions>
     );
   }
@@ -194,6 +197,11 @@ class ManageDashboards extends AsyncView<Props, State> {
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
   margin-right: ${space(2)};
+  margin-bottom: ${space(3)};
+`;
+
+const StyledDropdownControl = styled(DropdownControl)`
+  margin-bottom: ${space(3)};
 `;
 
 const StyledActions = styled('div')`
@@ -206,7 +214,6 @@ const StyledActions = styled('div')`
   }
 
   align-items: center;
-  margin-bottom: ${space(3)};
 `;
 
 export default withApi(withOrganization(ManageDashboards));
