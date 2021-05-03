@@ -46,10 +46,12 @@ import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
   Container,
+  FlexContainer,
   NumberContainer,
   OverflowLink,
   StyledDateTime,
   StyledShortId,
+  UserIcon,
   VersionContainer,
 } from './styles';
 
@@ -192,6 +194,7 @@ type SpecialFields = {
   project: SpecialField;
   user: SpecialField;
   'user.display': SpecialField;
+  'count_unique(user)': SpecialField;
   'issue.id': SpecialField;
   'error.handled': SpecialField;
   issue: SpecialField;
@@ -326,6 +329,24 @@ const SPECIAL_FIELDS: SpecialFields = {
 
         const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
         return <Container>{badge}</Container>;
+      }
+
+      return <Container>{emptyValue}</Container>;
+    },
+  },
+  'count_unique(user)': {
+    sortField: 'count_unique(user)',
+    renderFunc: data => {
+      const count = data.count_unique_user;
+      if (typeof count === 'number') {
+        return (
+          <FlexContainer>
+            <NumberContainer>
+              <Count value={count} />
+            </NumberContainer>
+            <UserIcon size="20" />
+          </FlexContainer>
+        );
       }
 
       return <Container>{emptyValue}</Container>;
