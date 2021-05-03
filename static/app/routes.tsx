@@ -1885,14 +1885,18 @@ function routes() {
             <Route
               path="widget/new/"
               componentPromise={() =>
-                import(/* webpackChunkName: "Widget" */ 'app/views/dashboardsV2/widget')
+                import(
+                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget'
+                )
               }
               component={errorHandler(LazyLoad)}
             />
             <Route
               path="widget/:widgetId/edit/"
               componentPromise={() =>
-                import(/* webpackChunkName: "Widget" */ 'app/views/dashboardsV2/widget')
+                import(
+                  /* webpackChunkName: "WidgetEdit" */ 'app/views/dashboardsV2/widget'
+                )
               }
               component={errorHandler(LazyLoad)}
             />

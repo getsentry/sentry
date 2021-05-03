@@ -207,7 +207,10 @@ class MetricWidget extends AsyncView<Props, State> {
         <PickProjectToContinue
           router={router}
           projects={projects.map(project => ({id: project.id, slug: project.slug}))}
-          nextPath={`${location.pathname}${location.search}`}
+          nextPath={{
+            pathname: location.pathname,
+            query: location.query,
+          }}
           noProjectRedirectPath={goBackLocation}
         />
       );

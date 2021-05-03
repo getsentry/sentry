@@ -305,9 +305,11 @@ class ReleasesDetailContainer extends AsyncComponent<
             slug,
           }))}
           router={router}
-          nextPath={`/organizations/${organization.slug}/releases/${encodeURIComponent(
-            params.release
-          )}/`}
+          nextPath={{
+            pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+              params.release
+            )}/`,
+          }}
           noProjectRedirectPath={`/organizations/${organization.slug}/releases/`}
         />
       );
