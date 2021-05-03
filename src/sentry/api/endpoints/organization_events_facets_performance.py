@@ -223,7 +223,7 @@ def query_facet_performance(
             groupby=["tags_key", "tags_value"],
             having=having,
             dataset=Dataset.Discover,
-            referrer="{}.{}".format(referrer, "tag_values"),
+            referrer=f"{referrer}.tag_values".format(referrer, "tag_values"),
             sample=sample_rate,
             turbo=sample_rate is not None,
             limitby=[1, "tags_key"],
