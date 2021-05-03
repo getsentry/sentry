@@ -3,7 +3,7 @@ import logging
 from sentry import analytics, features
 from sentry.app import locks
 from sentry.exceptions import PluginError
-from sentry.signals import event_processed, issue_unignored
+from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -206,24 +206,24 @@ def post_process_group(
 
         is_transaction_event = not bool(event.group_id)
 
+        from sentry.models import EventDict, Organization, Project
+
+        # Re-bind node data to avoid renormalization. We only want to
+        # renormalize when loading old data from the database.
+        event.data = EventDict(event.data, skip_renormalization=True)
+
+        # Re-bind Project and Org since we're reading the Event object
+        # from cache which may contain stale parent models.
+        event.project = Project.objects.get_from_cache(id=event.project_id)
+        event.project._organization_cache = Organization.objects.get_from_cache(
+            id=event.project.organization_id
+        )
+
         # Simplified post processing for transaction events.
         # This should eventually be completely removed and transactions
         # will not go through any post processing.
         if is_transaction_event:
-            from sentry.models import EventDict, Organization, Project
-
-            # Re-bind node data to avoid renormalization. We only want to
-            # renormalize when loading old data from the database.
-            event.data = EventDict(event.data, skip_renormalization=True)
-
-            # Re-bind Project and Org since we're reading the Event object
-            # from cache which may contain stale parent models.
-            event.project = Project.objects.get_from_cache(id=event.project_id)
-            event.project._organization_cache = Organization.objects.get_from_cache(
-                id=event.project.organization_id
-            )
-
-            event_processed.send_robust(
+            transaction_processed.send_robust(
                 sender=post_process_group,
                 project=event.project,
                 event=event,
@@ -238,23 +238,12 @@ def post_process_group(
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
-        from sentry.models import Commit, EventDict, GroupInboxReason, Organization, Project
+        from sentry.models import Commit, GroupInboxReason
         from sentry.models.group import get_group_with_redirect
         from sentry.models.groupinbox import add_group_to_inbox
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.groupowner import process_suspect_commits
         from sentry.tasks.servicehooks import process_service_hook
-
-        # Re-bind node data to avoid renormalization. We only want to
-        # renormalize when loading old data from the database.
-        event.data = EventDict(event.data, skip_renormalization=True)
-
-        # Re-bind Project and Org since we're reading the Event object
-        # from cache which may contain stale parent models.
-        event.project = Project.objects.get_from_cache(id=event.project_id)
-        event.project._organization_cache = Organization.objects.get_from_cache(
-            id=event.project.organization_id
-        )
 
         # Re-bind Group since we're reading the Event object
         # from cache, which may contain a stale group and project

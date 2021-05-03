@@ -53,6 +53,9 @@ buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra",
 pending_delete = BetterSignal(providing_args=["instance", "actor"])
 event_processed = BetterSignal(providing_args=["project", "event"])
 
+# Should eventually be removed as transactions should not be post processed
+transaction_processed = BetterSignal(providing_args=["project", "event"])
+
 # DEPRECATED
 event_received = BetterSignal(providing_args=["ip", "project"])
 event_accepted = BetterSignal(providing_args=["ip", "data", "project"])
