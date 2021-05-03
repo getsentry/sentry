@@ -411,6 +411,23 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     const headers = tableTitles.map((title, index) => {
       const column = columnOrder[index];
       const align = fieldAlignment(column.name, column.type, tableMeta);
+
+      if (column.key === 'span_ops_breakdown.relative') {
+        return (
+          <HeadCellContainer key={index}>
+            <GuideAnchor target="span_op_relative_breakdowns">
+              <SortLink
+                align={align}
+                title={title}
+                direction={undefined}
+                canSort={false}
+                generateSortLink={generateSortLink}
+              />
+            </GuideAnchor>
+          </HeadCellContainer>
+        );
+      }
+
       return (
         <HeadCellContainer key={index}>
           <SortLink
