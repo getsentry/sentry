@@ -66,7 +66,6 @@ class Destroyer(Mediator):
             # if the error is from a request exception, log the error and continue
             except RequestException as exc:
                 self.log(error=exc)
-        print(self.install)
         self.install.delete()
 
     def audit(self):
