@@ -240,9 +240,6 @@ const PatternHeader = styled('div')`
 const StyledList = styled(List)`
   li {
     padding-left: ${space(3)};
-    :before {
-      top: 7px;
-    }
   }
 `;
 

@@ -217,12 +217,9 @@ const customPink = '#e7c0bc';
 
 const ErrorList = styled(List)`
   border-top: 1px solid ${customPink};
-  padding: ${space(1)} ${space(4)} ${space(0.5)} 40px;
-
-  > li:before {
-    top: 8px;
-  }
-
+  margin: 0 ${space(4)} 0 40px;
+  padding-top: ${space(1)};
+  padding-bottom: ${space(0.5)};
   pre {
     background: #f9eded;
     color: #381618;
