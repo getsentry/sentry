@@ -1,7 +1,7 @@
 from django.db.models import F
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import AuthProvider, OrganizationMember
+from sentry.models import AuthProvider, OrganizationMember  # SentryAppInstallationForProvider
 from sentry.utils.http import absolute_uri
 
 
@@ -15,6 +15,17 @@ class AuthProviderSerializer(Serializer):
         ).count()
 
         login_url = organization.get_url()
+
+        if obj.flags.scim_enabled:
+            sentry_app_installation = SentryAppInstallationForProvider.objects.get(
+                organization=obj.organization.id, provider=f"{obj.provider}_scim"
+            )
+            scim_api_token = sentry_app_installation.get_token(
+                self.organization_id, provider=f"{obj.provider}_scim"
+            )
+        else:
+            scim_api_token = None
+
         return {
             "id": str(obj.id),
             "provider_name": obj.provider,
@@ -23,4 +34,5 @@ class AuthProviderSerializer(Serializer):
             "default_role": organization.default_role,
             "require_link": not obj.flags.allow_unlinked,
             "enable_scim": bool(obj.flags.scim_enabled),
+            "scim_api_token": scim_api_token,
         }
