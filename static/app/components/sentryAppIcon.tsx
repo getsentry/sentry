@@ -4,6 +4,7 @@ import {
   IconClickup,
   IconClubhouse,
   IconGeneric,
+  IconKomodor,
   IconLinear,
   IconRookout,
   IconSpikesh,
@@ -22,6 +23,8 @@ const SentryAppIcon = ({slug}: Props) => {
       return <IconClickup size="md" />;
     case 'clubhouse':
       return <IconClubhouse size="md" />;
+    case 'komodor':
+      return <IconKomodor size="md" />;
     case 'linear':
       return <IconLinear size="md" />;
     case 'rookout':
