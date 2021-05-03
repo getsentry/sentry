@@ -721,3 +721,21 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.redirect_chain == [("/auth/login/", 302)]
         assert resp.status_code == 403
         self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
+
+    def test_multiorg_login_correct_redirect(self):
+        self.user.update(is_superuser=False)
+        org1 = self.create_organization(name="bar", owner=self.user)
+        # create a second org that the user belongs to
+        self.create_organization(name="zap", owner=self.user)
+
+        path = reverse("sentry-auth-organization", args=[org1.slug])
+        self.client.get(path)
+        resp = self.client.post(
+            path,
+            {"username": self.user.username, "password": "admin", "op": "login"},
+            follow=True,
+        )
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            (f"/organizations/{org1.slug}/issues/", 302),
+        ]
