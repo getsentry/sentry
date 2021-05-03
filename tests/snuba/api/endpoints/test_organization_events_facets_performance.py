@@ -131,6 +131,23 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         assert data[1]["tags_key"] == "many"
         assert data[1]["tags_value"] == "no"
 
+    def test_basic_query(self):
+        response = self.do_request(
+            {
+                "aggregateColumn": "transaction.duration",
+                "sort": "-frequency",
+                "per_page": 5,
+                "statsPeriod": "14d",
+                "query": "(color:red or color:blue)",
+            }
+        )
+
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["count"] == 5
+        assert data[0]["tags_key"] == "color"
+        assert data[0]["tags_value"] == "blue"
+
     def test_multiple_projects_without_global_view(self):
         response = self.do_request(
             {
