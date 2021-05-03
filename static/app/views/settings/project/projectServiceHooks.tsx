@@ -1,6 +1,5 @@
 import React from 'react';
 import {Link, WithRouterProps} from 'react-router';
-import PropTypes from 'prop-types';
 
 import {
   addErrorMessage,
@@ -13,7 +12,8 @@ import Switch from 'app/components/switchButton';
 import Truncate from 'app/components/truncate';
 import {IconAdd, IconFlag} from 'app/icons';
 import {t} from 'app/locale';
-import {ServiceHook} from 'app/types';
+import {LightWeightOrganization, ServiceHook} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Field from 'app/views/settings/components/forms/field';
@@ -52,18 +52,15 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   );
 }
 
-type Props = WithRouterProps<{orgId: string; projectId: string}, {}>;
+type Props = WithRouterProps<{orgId: string; projectId: string}, {}> & {
+  organization: LightWeightOrganization;
+};
 
 type State = {
   hookList: null | ServiceHook[];
 } & AsyncView['state'];
 
-export default class ProjectServiceHooks extends AsyncView<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-    organization: PropTypes.object.isRequired,
-  };
-
+class ProjectServiceHooks extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     return [['hookList', `/projects/${orgId}/${projectId}/hooks/`]];
@@ -143,7 +140,7 @@ export default class ProjectServiceHooks extends AsyncView<Props, State> {
       hookList && hookList.length > 0 ? this.renderResults() : this.renderEmpty();
 
     const {orgId, projectId} = this.props.params;
-    const access = new Set(this.context.organization.access);
+    const access = new Set(this.props.organization.access);
 
     return (
       <React.Fragment>
@@ -168,3 +165,4 @@ export default class ProjectServiceHooks extends AsyncView<Props, State> {
     );
   }
 }
+export default withOrganization(ProjectServiceHooks);

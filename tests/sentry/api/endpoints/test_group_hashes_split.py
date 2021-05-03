@@ -2,6 +2,8 @@ import pytest
 
 from sentry.testutils.helpers import Feature
 
+pytestmark = pytest.mark.skip(reason="extremely flaky test")
+
 
 @pytest.fixture(autouse=True)
 def hierarchical_grouping_features():

@@ -10,6 +10,7 @@ import Alert from 'app/components/alert';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SearchBar from 'app/components/searchBar';
@@ -17,7 +18,8 @@ import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {Organization, SelectValue} from 'app/types';
+import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -25,6 +27,13 @@ import AsyncView from 'app/views/asyncView';
 import {DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
+
+const SORT_OPTIONS: SelectValue<string>[] = [
+  {label: t('My Dashboards'), value: 'mydashboards'},
+  {label: t('Dashboard Name (A-Z)'), value: 'title'},
+  {label: t('Date Created (Newest)'), value: '-dateCreated'},
+  {label: t('Date Created (Oldest)'), value: 'dateCreated'},
+];
 
 type Props = {
   api: Client;
@@ -47,12 +56,19 @@ class ManageDashboards extends AsyncView<Props, State> {
         `/organizations/${organization.slug}/dashboards/`,
         {
           query: {
-            ...pick(location.query, ['cursor', 'query']),
+            ...pick(location.query, ['cursor', 'query', 'sort']),
             per_page: '9',
           },
         },
       ],
     ];
+  }
+
+  getActiveSort() {
+    const {location} = this.props;
+
+    const urlSort = decodeScalar(location.query.sort, 'mydashboards');
+    return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
   }
 
   onDashboardsChange() {
@@ -68,6 +84,18 @@ class ManageDashboards extends AsyncView<Props, State> {
     });
   }
 
+  handleSortChange = (value: string) => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        sort: value,
+      },
+    });
+  };
+
   getQuery() {
     const {query} = this.props.location.query;
 
@@ -75,6 +103,8 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   renderActions() {
+    const activeSort = this.getActiveSort();
+
     return (
       <StyledActions>
         <StyledSearchBar
@@ -83,6 +113,21 @@ class ManageDashboards extends AsyncView<Props, State> {
           placeholder={t('Search Dashboards')}
           onSearch={query => this.handleSearch(query)}
         />
+        <StyledDropdownControl
+          buttonProps={{prefix: t('Sort By')}}
+          label={activeSort.label}
+        >
+          {SORT_OPTIONS.map(({label, value}) => (
+            <DropdownItem
+              key={value}
+              onSelect={this.handleSortChange}
+              eventKey={value}
+              isActive={value === activeSort.value}
+            >
+              {label}
+            </DropdownItem>
+          ))}
+        </StyledDropdownControl>
       </StyledActions>
     );
   }
@@ -178,18 +223,25 @@ class ManageDashboards extends AsyncView<Props, State> {
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
+  margin-right: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
+
+const StyledDropdownControl = styled(DropdownControl)`
+  margin-bottom: ${space(2)};
 `;
 
 const StyledActions = styled('div')`
   display: grid;
   grid-template-columns: auto max-content min-content;
+  width: 100%;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: auto;
   }
 
+  margin-bottom: ${space(1)};
   align-items: center;
-  margin-bottom: ${space(3)};
 `;
 
 export default withApi(withOrganization(ManageDashboards));
