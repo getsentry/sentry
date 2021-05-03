@@ -227,7 +227,6 @@ def post_process_group(
                 sender=post_process_group,
                 project=event.project,
                 event=event,
-                # primary_hash=kwargs.get("primary_hash"),
             )
 
             event_processing_store.delete_by_key(cache_key)
