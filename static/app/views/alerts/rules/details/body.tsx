@@ -23,7 +23,7 @@ import {IconCheckmark, IconFire, IconInfo, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Actor, Organization, Project} from 'app/types';
+import {Actor, DateString, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
 import Timeline from 'app/views/alerts/rules/details/timeline';
 import {
@@ -51,6 +51,7 @@ type Props = {
   organization: Organization;
   location: Location;
   handleTimePeriodChange: (value: string) => void;
+  handleZoom: (start: DateString, end: DateString) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
@@ -275,6 +276,7 @@ export default class DetailsBody extends React.Component<Props> {
       organization,
       timePeriod,
       selectedIncident,
+      handleZoom,
       params: {orgId},
     } = this.props;
 
@@ -357,6 +359,7 @@ export default class DetailsBody extends React.Component<Props> {
                     filter={this.getFilter()}
                     query={queryWithTypeFilter}
                     orgId={orgId}
+                    handleZoom={handleZoom}
                   />
                   <DetailWrapper>
                     <ActivityWrapper>
