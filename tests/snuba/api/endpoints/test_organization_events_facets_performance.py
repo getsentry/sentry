@@ -10,6 +10,7 @@ from sentry.utils.samples import load_data
 class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase):
     feature_list = (
         "organizations:discover-basic",
+        "organizations:global-views",
         "organizations:performance-tag-explorer",
     )
 
@@ -151,19 +152,12 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         assert data[0]["tags_value"] == "blue"
 
     def test_multiple_projects_not_allowed(self):
-        with self.feature(
-            [
-                "organizations:discover-basic",
-                "organizations:global-views",
-                "organizations:performance-tag-explorer",
-            ]
-        ):
-            response = self.do_request(
-                {
-                    "aggregateColumn": "transaction.duration",
-                    "project": [self.project.id, self.project2.id],
-                }
-            )
+        response = self.do_request(
+            {
+                "aggregateColumn": "transaction.duration",
+                "project": [self.project.id, self.project2.id],
+            }
+        )
         assert response.status_code == 400, response.content
         assert response.data == {
             "detail": "You cannot view facet performance for multiple projects."
