@@ -49,12 +49,12 @@ globals.SentryApp = {
   },
 
   // The following components are used in legacy django HTML views
-  U2fSign: require('app/components/u2f/u2fsign').default,
   ConfigStore: require('app/stores/configStore').default,
-  SetupWizard: require('app/components/setupWizard').default,
   HookStore: require('app/stores/hookStore').default,
   Modal: require('app/actionCreators/modal'),
 };
 
 // Make globals available on the window object
 Object.keys(globals).forEach(name => (window[name] = globals[name]));
+
+export default globals;

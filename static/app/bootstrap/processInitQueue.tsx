@@ -1,56 +1,99 @@
-/**
- * This allows server templates to push "tasks" to be run after application has initialized.
- * The global `window.__onSentryInit` is used for this.
- */
-export async function processInitQueue() {
-  if (!Array.isArray(window.__onSentryInit)) {
+import exportGlobals from 'app/bootstrap/exportGlobals';
+import {OnSentryInitConfiguration} from 'app/types';
+
+import {renderDom} from './renderDom';
+import {renderOnDomReady} from './renderOnDomReady';
+
+const COMPONENT_MAP = {
+  Indicators: () =>
+    import(/* webpackChunkName: "Indicators" */ 'app/components/indicators'),
+  SystemAlerts: () =>
+    import(/* webpackChunkName: "SystemAlerts" */ 'app/views/app/systemAlerts'),
+  SetupWizard: () =>
+    import(/* webpackChunkName: "SetupWizard" */ 'app/views/setupWizard'),
+  U2fSign: () => import(/* webpackChunkName: "U2fSign" */ 'app/components/u2f/u2fsign'),
+};
+
+async function processItem(initConfig: OnSentryInitConfiguration) {
+  /**
+   * Allows our auth pages to dynamically attach a client side password
+   * strength indicator The password strength component is very
+   * heavyweight as it includes the zxcvbn, a relatively byte-heavy
+   * password strength estimation library. Load it on demand.
+   */
+  if (initConfig.name === 'passwordStrength') {
+    const {input, element} = initConfig;
+    if (!input || !element) {
+      return;
+    }
+
+    const passwordStrength = await import(
+      /* webpackChunkName: "PasswordStrength" */ 'app/components/passwordStrength'
+    );
+
+    passwordStrength.attachTo({
+      input: document.querySelector(input),
+      element: document.querySelector(element),
+    });
+
     return;
   }
 
-  await Promise.all(
-    /**
-     * Be careful here as we can not guarantee type safety on `__onSentryInit` as
-     * these will be defined in server rendered templates
-     */
-    window.__onSentryInit.map(async initConfig => {
-      if (initConfig.name === 'passwordStrength') {
-        const {input, element} = initConfig;
-        if (!input || !element) {
-          return;
-        }
+  /**
+   * Allows server rendered templates to render a React component to DOM
+   * without exposing the component globally.
+   */
+  if (initConfig.name === 'renderReact') {
+    if (!COMPONENT_MAP.hasOwnProperty(initConfig.component)) {
+      return;
+    }
+    const {default: Component} = await COMPONENT_MAP[initConfig.component]();
 
-        // The password strength component is very heavyweight as it includes the
-        // zxcvbn, a relatively byte-heavy password strength estimation library. Load
-        // it on demand.
-        const passwordStrength = await import(
-          /* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength'
-        );
+    renderOnDomReady(() => renderDom(Component, initConfig.container, initConfig.props));
+  }
 
-        passwordStrength.attachTo({
-          input: document.querySelector(input),
-          element: document.querySelector(element),
-        });
+  /**
+   * Callback for when js bundle is loaded. Provide library + component references
+   * for downstream consumers to use.
+   */
+  if (initConfig.name === 'onReady' && typeof initConfig.onReady === 'function') {
+    initConfig.onReady(exportGlobals);
+  }
+}
 
-        return;
-      }
+/**
+ * This allows server templates to push "tasks" to be run after application has initialized.
+ * The global `window.__onSentryInit` is used for this.
+ *
+ * Be careful here as we can not guarantee type safety on `__onSentryInit` as
+ * these will be defined in server rendered templates
+ */
+export async function processInitQueue() {
+  // Currently, this is run *before* anything is queued in
+  // `window.__onSentryInit`. We want to provide a migration path for potential
+  // custom plugins that rely on `window.SentryApp` so they can start migrating
+  // their plugins ASAP, as `SentryApp` will be loaded async and will require
+  // callbacks to access it, instead of via `window` global.
+  if (
+    typeof window.__onSentryInit !== 'undefined' &&
+    !Array.isArray(window.__onSentryInit)
+  ) {
+    return;
+  }
 
-      if (initConfig.name === 'renderIndicators') {
-        const {renderIndicators} = await import(
-          /* webpackChunkName: "renderIndicators" */ 'app/bootstrap/renderIndicators'
-        );
-        renderIndicators(initConfig.container, initConfig.props);
+  const queued = window.__onSentryInit;
 
-        return;
-      }
+  // Stub future calls of `window.__onSentryInit.push` so that it is
+  // processed immediately (since bundle is loaded at this point and no
+  // longer needs to act as a queue)
+  //
+  window.__onSentryInit = {
+    push: processItem,
+  };
 
-      if (initConfig.name === 'renderSystemAlerts') {
-        const {renderSystemAlerts} = await import(
-          /* webpackChunkName: "renderSystemAlerts" */ 'app/bootstrap/renderSystemAlerts'
-        );
-        renderSystemAlerts(initConfig.container, initConfig.props);
-
-        return;
-      }
-    })
-  );
+  if (Array.isArray(queued)) {
+    // These are all side-effects, so no need to return a value, but allow consumer to
+    // wait for all initialization to finish
+    await Promise.all(queued.map(processItem));
+  }
 }

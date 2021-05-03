@@ -4,6 +4,7 @@
 
 import u2f from 'u2f-api';
 
+import exportGlobals from 'app/bootstrap/exportGlobals';
 import Alert from 'app/components/alert';
 import {getInterval} from 'app/components/charts/utils';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
@@ -28,9 +29,14 @@ export type OnSentryInitConfiguration =
       element: string;
     }
   | {
-      name: 'renderSystemAlerts' | 'renderIndicators';
+      name: 'renderReact';
+      component: 'Indicators' | 'SetupWizard' | 'SystemAlerts';
       container: string;
       props?: Record<string, any>;
+    }
+  | {
+      name: 'onReady';
+      onReady: (globals: typeof exportGlobals) => void;
     };
 
 declare global {
@@ -56,7 +62,11 @@ declare global {
      * An example of this is dynamically importing the `passwordStrength` module only
      * on the organization login page.
      */
-    __onSentryInit: OnSentryInitConfiguration[];
+    __onSentryInit:
+      | OnSentryInitConfiguration[]
+      | {
+          push: (config: OnSentryInitConfiguration) => void;
+        };
 
     /**
      * Sentrys version string
