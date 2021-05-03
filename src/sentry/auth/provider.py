@@ -115,7 +115,7 @@ class Provider:
         """
         raise NotImplementedError
 
-    def can_use_scim(self):
+    def can_use_scim(self, organization, user):
         """
         Controls whether or not a provider can have SCIM enabled to manage users
         and groups. default False, and only SAML2 Providers may implement SCIM

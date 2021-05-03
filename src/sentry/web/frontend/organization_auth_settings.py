@@ -109,16 +109,16 @@ class OrganizationAuthSettingsView(OrganizationView):
             data=request.POST if request.POST.get("op") == "settings" else None,
             initial={
                 "require_link": not auth_provider.flags.allow_unlinked,
-                "enable_scim": None,
+                "enable_scim": bool(auth_provider.flags.scim_enabled),
                 "default_role": organization.default_role,
             },
         )
 
         if form.is_valid():
             auth_provider.flags.allow_unlinked = not form.cleaned_data["require_link"]
-
-            if auth_provider.flags.scim_enabled != form.cleaned_data.get("enable_scim", False):
-                if form.cleaned_data.get("enable_scim", False) is True:
+            form_scim_enabled = form.cleaned_data.get("enable_scim", False)
+            if auth_provider.flags.scim_enabled != form_scim_enabled:
+                if form_scim_enabled is True:
                     auth_provider.enable_scim(request.user)
                 else:
                     auth_provider.disable_scim(request.user)
@@ -170,6 +170,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             "scim_api_token": auth_provider.get_scim_token(),
             "content": response,
         }
+
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
     @transaction.atomic
