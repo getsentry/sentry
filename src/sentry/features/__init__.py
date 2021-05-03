@@ -124,7 +124,7 @@ default_manager.add("organizations:trace-view-summary", OrganizationFeature)  # 
 default_manager.add("organizations:transaction-comparison", OrganizationFeature)  # NOQA
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
 default_manager.add("organizations:usage-stats-graph", OrganizationFeature)  # NOQA
-default_manager.add("organizations:prompt-test", OrganizationFeature)  # NOQA
+default_manager.add("organizations:prompt-dashboards", OrganizationFeature)  # NOQA
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
