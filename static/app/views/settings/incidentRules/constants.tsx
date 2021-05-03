@@ -5,7 +5,7 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
 } from 'app/views/alerts/utils';
-import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
+import {AlertType, WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 import {
   AlertRuleThresholdType,
   Dataset,
@@ -54,6 +54,26 @@ const commonAggregations: AggregationKey[] = [
   'p100',
 ];
 
+const allAggregations: AggregationKey[] = [
+  ...commonAggregations,
+  'failure_rate',
+  'apdex',
+  'count',
+];
+
+export function getWizardAlertFieldConfig(alertType: AlertType): OptionConfig {
+  // If user selected apdex we must include that in the OptionConfig as it has a user specified column
+  const aggregations =
+    alertType === 'apdex' || alertType === 'custom'
+      ? allAggregations
+      : commonAggregations;
+  return {
+    aggregations,
+    fields: ['transaction.duration'],
+    measurementKeys: Object.keys(WEB_VITAL_DETAILS),
+  };
+}
+
 /**
  * Allowed aggregations for alerts created from wizard
  */
@@ -67,7 +87,7 @@ export const wizardAlertFieldConfig: OptionConfig = {
  * Allowed transaction aggregations for alerts
  */
 export const transactionFieldConfig: OptionConfig = {
-  aggregations: [...commonAggregations, 'failure_rate', 'apdex', 'count'],
+  aggregations: allAggregations,
   fields: ['transaction.duration'],
   measurementKeys: Object.keys(WEB_VITAL_DETAILS),
 };

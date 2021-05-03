@@ -881,6 +881,8 @@ SENTRY_FEATURES = {
     "organizations:trace-view-summary": False,
     # Enable multi project selection
     "organizations:global-views": False,
+    # Enable experimental new version of Merged Issues where sub-hashes are shown
+    "organizations:grouping-tree-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
@@ -891,6 +893,8 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable the new Metrics page
     "organizations:metrics": False,
+    # Automatically extract metrics during ingestion
+    "organizations:metrics-extraction": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
     # Enable integration functionality to create and link groups to issues on
@@ -980,21 +984,15 @@ SENTRY_FEATURES = {
     # attachments
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
-    "organizations:inbox": False,
-    # Set default tab to inbox
-    "organizations:inbox-tab-default": False,
-    # Add `assigned_or_suggested:me_or_none` to inbox tab query
-    "organizations:inbox-owners-query": False,
+    "organizations:inbox": True,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
-    "organizations:images-loaded-v2": False,
+    "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
     "organizations:alert-wizard": False,
-    # Enable new alert rules + incidents view
-    "organizations:alert-list": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1577,6 +1575,16 @@ SENTRY_USE_CDC_DEV = False
 #     }
 # }
 
+POSTGRES_INIT_DB_VOLUME = (
+    {
+        os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
+            "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
+        }
+    }
+    if SENTRY_USE_CDC_DEV
+    else {}
+)
+
 SENTRY_DEVSERVICES = {
     "redis": {
         "image": "redis:5.0-alpine",
@@ -1600,7 +1608,22 @@ SENTRY_DEVSERVICES = {
         "pull": True,
         "ports": {"5432/tcp": 5432},
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
-        "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
+        "volumes": {
+            "postgres": {"bind": "/var/lib/postgresql/data"},
+            "wal2json": {"bind": "/wal2json"},
+            CDC_CONFIG_DIR: {"bind": "/cdc"},
+            **POSTGRES_INIT_DB_VOLUME,
+        },
+        "command": [
+            "postgres",
+            "-c",
+            "wal_level=logical",
+            "-c",
+            "max_replication_slots=1",
+            "-c",
+            "max_wal_senders=1",
+        ],
+        "entrypoint": "/cdc/postgres-entrypoint.sh" if SENTRY_USE_CDC_DEV else None,
         "healthcheck": {
             "test": ["CMD", "pg_isready", "-U", "postgres"],
             "interval": 30000000000,  # Test every 30 seconds (in ns).

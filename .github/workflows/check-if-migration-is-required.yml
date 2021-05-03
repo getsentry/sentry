@@ -5,6 +5,8 @@ on:
       # Matches all python files regardless of directory depth.
       - '**.py'
       - requirements*.txt
+      - .github/workflows/check-if-migration-is-required.yml
+      - .github/workflows/scripts/migration-check.sh
 
 jobs:
   main:
@@ -40,15 +42,9 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
 
-      - name: Check if a migration is required
+      - name: Migration & lockfile checks
         env:
           SENTRY_LOG_LEVEL: ERROR
           PGPASSWORD: postgres
         run: |
-          # Below will exit with non-zero status if model changes are missing migrations
-          sentry django makemigrations --check --dry-run --no-input
-          if [ "$?" == 1 ]; then
-            echo >&2 "::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name> && git add migrations_lockfile.txt`" && exit 1
-          else:
-            echo >&2 "::error::Error: Migration lockfile mismatch -- run `sentry django makemigrations -n <some_name> && git add migrations_lockfile.txt`" && exit 1
-          fi
+          ./.github/workflows/scripts/migration-check.sh

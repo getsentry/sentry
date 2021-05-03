@@ -21,7 +21,7 @@ class EventAttachmentDetailsPermission(ProjectPermission):
         if is_system_auth(request.auth) or is_active_superuser(request):
             return True
 
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return False
 
         organization = project.organization

@@ -38,8 +38,9 @@ sudo-askpass() {
 # After using homebrew to install docker, we need to do some magic to remove the need to interact with the GUI
 # See: https://github.com/docker/for-mac/issues/2359#issuecomment-607154849 for why we need to do things below
 init-docker() {
-    # Need to start docker if it was freshly installed (docker server is not running)
-    if query-mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
+    # Need to start docker if it was freshly installed or updated
+    # You will know that Docker is ready for devservices when the icon on the menu bar stops flashing
+    if query-mac && [ ! -f /Library/PrivilegedHelperTools/com.docker.vmnetd ]; then
         echo "Making some changes to complete Docker initialization"
         # allow the app to run without confirmation
         xattr -d -r com.apple.quarantine /Applications/Docker.app
@@ -212,4 +213,13 @@ reset-db() {
     drop-db
     create-db
     apply-migrations
+}
+
+direnv-help() {
+    cat >&2 <<EOF
+You can configure the behaviour of direnv by adding the following variables to a .env file:
+
+- SENTRY_DIRENV_DEBUG=1: This will allow printing debug messages
+- SENTRY_DEVENV_NO_REPORT=1: Do not report development environment errors to Sentry.io
+EOF
 }

@@ -17,7 +17,7 @@ logger = logging.getLogger("sentry.integrations.cloudflare")
 def requires_auth(func):
     @wraps(func)
     def wrapped(self, request, *args, **kwargs):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return Response({"proceed": False}, 401)
         return func(self, request, *args, **kwargs)
 
@@ -78,7 +78,7 @@ class CloudflareWebhookEndpoint(Endpoint):
         return None
 
     def on_preview(self, request, data, is_test):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return Response({"install": data["install"], "proceed": True})
 
         return self.on_account_change(request, data, is_test)
@@ -188,7 +188,7 @@ class CloudflareWebhookEndpoint(Endpoint):
         signature = request.META.get("HTTP_X_SIGNATURE_HMAC_SHA256_HEX")
         variant = request.META.get("HTTP_X_SIGNATURE_KEY_VARIANT")
         logging_data = {
-            "user_id": request.user.id if request.user.is_authenticated() else None,
+            "user_id": request.user.id if request.user.is_authenticated else None,
             "signature": signature,
             "variant": variant,
         }

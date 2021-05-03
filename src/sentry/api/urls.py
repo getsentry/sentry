@@ -91,6 +91,7 @@ from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEnd
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
+from .endpoints.group_hashes_split import GroupHashesSplitEndpoint
 from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
@@ -272,8 +273,10 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_metrics import (
+    ProjectMetricDetailsEndpoint,
     ProjectMetricsDataEndpoint,
     ProjectMetricsEndpoint,
+    ProjectMetricsTagDetailsEndpoint,
     ProjectMetricsTagsEndpoint,
 )
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
@@ -399,6 +402,7 @@ GROUP_URLS = [
         GroupNotesDetailsEndpoint.as_view(),
     ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/$", GroupHashesEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/hashes/split/$", GroupHashesSplitEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/reprocessing/$", GroupReprocessingEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/stats/$", GroupStatsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/$", GroupTagsEndpoint.as_view()),
@@ -1571,9 +1575,14 @@ urlpatterns = [
                     name="sentry-api-0-project-member-index",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/$",
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/meta/$",
                     ProjectMetricsEndpoint.as_view(),
                     name="sentry-api-0-project-metrics-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/meta/(?P<metric_name>[^/]+)/$",
+                    ProjectMetricDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-metric-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/data/$",
@@ -1581,9 +1590,14 @@ urlpatterns = [
                     name="sentry-api-0-project-metrics-data",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/tags/(?P<metric_name>[^/]+)/(?P<tag_name>[^/]+)/$",
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/tags/$",
                     ProjectMetricsTagsEndpoint.as_view(),
                     name="sentry-api-0-project-metrics-tags",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/tags/(?P<tag_name>[^/]+)/$",
+                    ProjectMetricsTagDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-metrics-tag-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/$",

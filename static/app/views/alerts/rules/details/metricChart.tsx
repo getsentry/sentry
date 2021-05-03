@@ -4,6 +4,7 @@ import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
 import color from 'color';
 import moment from 'moment';
+import momentTimezone from 'moment-timezone';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
@@ -28,11 +29,12 @@ import {ReactEchartsRef} from 'app/types/echarts';
 import {getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {alertDetailsLink} from 'app/views/alerts/details';
+import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
-import {getIncidentRuleMetricPreset} from '../../utils';
 
 import {TimePeriodType} from './constants';
 
@@ -41,13 +43,12 @@ const VERTICAL_PADDING = 22;
 
 type Props = WithRouterProps & {
   api: Client;
-  rule?: IncidentRule;
+  rule: IncidentRule;
   incidents?: Incident[];
   timePeriod: TimePeriodType;
   selectedIncident?: Incident | null;
   organization: Organization;
   projects: Project[] | AvatarProject[];
-  metricText: React.ReactNode;
   interval: string;
   filter: React.ReactNode;
   query: string;
@@ -63,7 +64,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
     options: {timezone},
   } = ConfigStore.get('user');
-  return moment.tz(date, timezone).format(format);
+  return momentTimezone.tz(date, timezone).format(format);
 }
 
 function createThresholdSeries(lineColor: string, threshold: number): LineChartSeries {
@@ -164,11 +165,6 @@ class MetricChart extends React.PureComponent<Props, State> {
   };
 
   ref: null | ReactEchartsRef = null;
-
-  get metricPreset() {
-    const {rule} = this.props;
-    return rule ? getIncidentRuleMetricPreset(rule) : undefined;
-  }
 
   /**
    * Syncs component state with the chart's width/heights
@@ -295,7 +291,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           </SummaryStats>
         </ChartSummary>
         <Feature features={['discover-basic']}>
-          <Button size="small" disabled={!rule} {...props}>
+          <Button size="small" {...props}>
             {buttonText}
           </Button>
         </Feature>
@@ -392,14 +388,10 @@ class MetricChart extends React.PureComponent<Props, State> {
       selectedIncident,
       projects,
       interval,
-      metricText,
       filter,
       query,
       incidents,
     } = this.props;
-    if (!rule) {
-      return this.renderEmpty();
-    }
 
     const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
     const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
@@ -608,10 +600,7 @@ class MetricChart extends React.PureComponent<Props, State> {
               <StyledPanelBody withPadding>
                 <ChartHeader>
                   <ChartTitle>
-                    <PresetName>
-                      {this.metricPreset?.name ?? t('Custom metric')}
-                    </PresetName>
-                    {metricText}
+                    {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
                   </ChartTitle>
                   {filter}
                 </ChartHeader>
@@ -645,11 +634,6 @@ const ChartHeader = styled('div')`
 const ChartTitle = styled('header')`
   display: flex;
   flex-direction: row;
-`;
-
-const PresetName = styled('div')`
-  text-transform: capitalize;
-  margin-right: ${space(0.5)};
 `;
 
 const ChartActions = styled(PanelFooter)`

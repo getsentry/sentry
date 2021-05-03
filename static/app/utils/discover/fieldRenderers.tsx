@@ -1,4 +1,5 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
@@ -14,6 +15,7 @@ import {
   pickBarColour,
   toPercent,
 } from 'app/components/performance/waterfall/utils';
+import Tooltip from 'app/components/tooltip';
 import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
 import {t} from 'app/locale';
@@ -23,12 +25,20 @@ import {
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
+  isRelativeSpanOperationBreakdownField,
   isSpanOperationBreakdownField,
+  SPAN_OP_BREAKDOWN_FIELDS,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
 import {getShortEventId} from 'app/utils/events';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
+import {
+  filterToLocationQuery,
+  SpanOperationBreakdownFilter,
+  stringToFilter,
+} from 'app/views/performance/transactionSummary/filter';
 
 import ArrayValue from './arrayValue';
 import {EventData, MetaType} from './eventView';
@@ -501,10 +511,14 @@ export function getSortField(
   return null;
 }
 
+const isDurationValue = (data: EventData, field: string): boolean => {
+  return field in data && typeof data[field] === 'number';
+};
+
 const spanOperationBreakdownRenderer = (field: string) => (
   data: EventData
 ): React.ReactNode => {
-  if (!('transaction.duration' in data)) {
+  if (!isDurationValue(data, 'transaction.duration') || !isDurationValue(data, field)) {
     return FIELD_FORMATTERS.duration.renderFunc(field, data);
   }
   const transactionDuration = data['transaction.duration'];
@@ -538,6 +552,88 @@ const spanOperationBreakdownRenderer = (field: string) => (
   );
 };
 
+const spanOperationRelativeBreakdownRenderer = (
+  data: EventData,
+  {location}: RenderFunctionBaggage
+): React.ReactNode => {
+  const cumulativeSpanOpBreakdown = data['spans.total.time'];
+
+  if (
+    !isDurationValue(data, 'spans.total.time') ||
+    SPAN_OP_BREAKDOWN_FIELDS.every(field => !isDurationValue(data, field)) ||
+    cumulativeSpanOpBreakdown === 0
+  ) {
+    return FIELD_FORMATTERS.duration.renderFunc(SPAN_OP_RELATIVE_BREAKDOWN_FIELD, data);
+  }
+
+  let otherPercentage = 1;
+
+  return (
+    <RelativeOpsBreakdown>
+      {SPAN_OP_BREAKDOWN_FIELDS.map(field => {
+        if (!isDurationValue(data, field)) {
+          return null;
+        }
+
+        const operationName = getSpanOperationName(field) ?? 'op';
+        const spanOpDuration: number = data[field];
+        const widthPercentage = spanOpDuration / cumulativeSpanOpBreakdown;
+        otherPercentage = otherPercentage - widthPercentage;
+        if (widthPercentage === 0) {
+          return null;
+        }
+        return (
+          <div key={operationName} style={{width: toPercent(widthPercentage || 0)}}>
+            <Tooltip title={<div>{operationName}</div>} containerDisplayMode="block">
+              <RectangleRelativeOpsBreakdown
+                spanBarHatch={false}
+                style={{
+                  backgroundColor: pickBarColour(operationName),
+                  cursor: 'pointer',
+                }}
+                onClick={event => {
+                  event.stopPropagation();
+                  const filter = stringToFilter(operationName);
+                  if (filter === SpanOperationBreakdownFilter.None) {
+                    return;
+                  }
+                  browserHistory.push({
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      ...filterToLocationQuery(filter),
+                    },
+                  });
+                }}
+              />
+            </Tooltip>
+          </div>
+        );
+      })}
+      <div key="other" style={{width: toPercent(otherPercentage || 0)}}>
+        <Tooltip title={<div>{t('Other')}</div>} containerDisplayMode="block">
+          <OtherRelativeOpsBreakdown spanBarHatch={false} />
+        </Tooltip>
+      </div>
+    </RelativeOpsBreakdown>
+  );
+};
+
+const RelativeOpsBreakdown = styled('div')`
+  position: relative;
+  display: flex;
+`;
+
+const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
+  position: relative;
+  top: 0;
+  width: 100%;
+`;
+
+const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
+  background-color: ${p => p.theme.gray100};
+`;
+
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -551,6 +647,10 @@ export function getFieldRenderer(
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
+  }
+
+  if (isRelativeSpanOperationBreakdownField(field)) {
+    return spanOperationRelativeBreakdownRenderer;
   }
 
   if (isSpanOperationBreakdownField(field)) {

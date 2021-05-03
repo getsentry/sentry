@@ -1,7 +1,3 @@
-// These imports (core-js and regenerator-runtime) are replacements for deprecated `@babel/polyfill`
-import 'core-js/stable';
-import 'regenerator-runtime/runtime';
-
 import {Config} from 'app/types';
 
 const BOOTSTRAP_URL = '/api/client-config/';

@@ -9,7 +9,6 @@ import {defined} from 'app/utils';
 import useKeypress from 'app/utils/useKeyPress';
 import useOnClickOutside from 'app/utils/useOnClickOutside';
 import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
 
 type Props = {
   value: string;
@@ -33,26 +32,34 @@ function EditableText({
 
   const isEmpty = !inputValue.trim();
 
-  const inputWrapper = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const innerWrapperRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const enter = useKeypress('Enter');
   const esc = useKeypress('Escape');
 
+  function revertValueAndCloseEditor() {
+    if (value !== inputValue) {
+      setInputValue(value);
+    }
+
+    if (isEditing) {
+      setIsEditing(false);
+    }
+  }
+
   // check to see if the user clicked outside of this component
-  useOnClickOutside(inputWrapper, () => {
+  useOnClickOutside(innerWrapperRef, () => {
     if (isEditing) {
       if (isEmpty) {
         displayStatusMessage('error');
         return;
       }
-
       if (inputValue !== value) {
         onChange(inputValue);
         displayStatusMessage('success');
       }
-
       setIsEditing(false);
     }
   });
@@ -75,16 +82,13 @@ function EditableText({
 
   const onEsc = useCallback(() => {
     if (esc) {
-      setInputValue(value);
-      setIsEditing(false);
+      revertValueAndCloseEditor();
     }
-  }, [esc, value]);
+  }, [esc]);
 
   useEffect(() => {
-    if (value !== inputValue) {
-      setInputValue(value);
-    }
-  }, [value]);
+    revertValueAndCloseEditor();
+  }, [isDisabled, value]);
 
   // focus the cursor in the input field on edit start
   useEffect(() => {
@@ -98,9 +102,9 @@ function EditableText({
 
   useEffect(() => {
     if (isEditing) {
-      // if Enter is pressed, save the text and close the editor
+      // if Enter is pressed, save the value and close the editor
       onEnter();
-      // if Escape is pressed, revert the text and close the editor
+      // if Escape is pressed, revert the value and close the editor
       onEsc();
     }
   }, [onEnter, onEsc, isEditing]); // watch the Enter and Escape key presses
@@ -122,39 +126,35 @@ function EditableText({
     setInputValue(event.target.value);
   }
 
-  function handleContentClick() {
+  function handleEditClick() {
     setIsEditing(true);
   }
 
   return (
-    <Wrapper isDisabled={isDisabled}>
+    <Wrapper isDisabled={isDisabled} isEditing={isEditing}>
       {isEditing ? (
         <InputWrapper
-          ref={inputWrapper}
+          ref={innerWrapperRef}
           isEmpty={isEmpty}
           data-test-id="editable-text-input"
         >
-          <StyledField inline={false} flexibleControlStateSize stacked>
-            <StyledInput
-              name={name}
-              ref={inputRef}
-              value={inputValue}
-              onChange={handleInputChange}
-            />
-          </StyledField>
+          <StyledInput
+            name={name}
+            ref={inputRef}
+            value={inputValue}
+            onChange={handleInputChange}
+          />
           <InputLabel>{inputValue}</InputLabel>
         </InputWrapper>
       ) : (
-        <Content
-          onClick={isDisabled ? undefined : handleContentClick}
-          ref={contentRef}
+        <Label
+          onClick={isDisabled ? undefined : handleEditClick}
+          ref={labelRef}
           data-test-id="editable-text-label"
         >
-          <Label>
-            <InnerLabel>{inputValue}</InnerLabel>
-          </Label>
-          <StyledIconEdit />
-        </Content>
+          <InnerLabel>{inputValue}</InnerLabel>
+          {!isDisabled && <IconEdit />}
+        </Label>
       )}
     </Wrapper>
   );
@@ -162,85 +162,33 @@ function EditableText({
 
 export default EditableText;
 
-const Content = styled('div')`
-  height: 40px;
-  position: relative;
-  max-width: calc(100% - 22px);
-  padding-right: 22px;
-`;
-
 const Label = styled('div')`
-  display: inline-block;
-  border: 1px solid transparent;
-  border-radius: ${p => p.theme.borderRadius};
-  transition: border 150ms;
-  text-align: left;
-  padding: 0 10px;
-  height: 40px;
-  max-width: 100%;
-`;
-
-const InnerLabel = styled(TextOverflow)`
-  border-bottom: 1px dotted ${p => p.theme.gray200};
-  transition: border 150ms;
-  height: 39px;
-  line-height: 39px;
-`;
-
-const StyledIconEdit = styled(IconEdit)`
-  opacity: 0;
-  transition: opacity 150ms;
-  margin-left: ${space(0.75)};
-  height: 40px;
-  position: absolute;
-  right: 0;
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: ${space(1)};
   cursor: pointer;
 `;
 
-const Wrapper = styled('div')<{isDisabled: boolean}>`
-  display: flex;
-  justify-content: flex-start;
-  height: 40px;
-  ${p =>
-    p.isDisabled
-      ? `
-          ${StyledIconEdit} {
-            cursor: default;
-          }
-
-          ${InnerLabel} {
-            border-bottom-color: transparent;
-          }
-        `
-      : `
-          :hover {
-            ${StyledIconEdit} {
-              opacity: 1;
-            }
-            ${Label} {
-              border-color: ${p.theme.gray300};
-            }
-            ${InnerLabel} {
-              border-bottom-color: transparent;
-            }
-          }
-        `}
+const InnerLabel = styled(TextOverflow)`
+  border-top: 1px solid transparent;
+  border-bottom: 1px dotted ${p => p.theme.gray200};
 `;
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
-  position: relative;
-  max-width: 100%;
-  min-width: ${p => (p.isEmpty ? '100px' : '50px')};
-`;
-
-const StyledField = styled(Field)`
-  width: 100%;
-  padding: 0;
-  position: absolute;
-  right: 0;
+  display: inline-block;
+  background: ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
+  margin: -${space(0.5)} -${space(1)};
+  max-width: calc(100% + ${space(2)});
 `;
 
 const StyledInput = styled(Input)`
+  border: none !important;
+  background: transparent;
+  height: auto;
+  min-height: 34px;
+  padding: ${space(0.5)} ${space(1)};
   &,
   &:focus,
   &:active,
@@ -250,10 +198,20 @@ const StyledInput = styled(Input)`
 `;
 
 const InputLabel = styled('div')`
-  width: auto;
+  height: 0;
   opacity: 0;
-  padding: ${space(1.5)};
-  height: 40px;
-  position: relative;
-  z-index: -1;
+  white-space: pre;
+  padding: 0 ${space(1)};
+`;
+
+const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
+  display: flex;
+
+  ${p =>
+    p.isDisabled &&
+    `
+      ${InnerLabel} {
+        border-bottom-color: transparent;
+      }
+    `}
 `;
