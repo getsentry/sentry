@@ -487,6 +487,8 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
 
     state.clear()
 
+    if not is_active_superuser(request):
+        request.session["activeorg"] = organization.slug
     return post_login_redirect(request)
 
 
