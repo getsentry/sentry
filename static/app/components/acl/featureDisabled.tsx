@@ -61,7 +61,7 @@ class FeatureDisabled extends React.Component<Props, State> {
     message: t('This feature is not enabled on your Sentry installation.'),
   };
 
-  state = {
+  state: State = {
     showHelp: false,
   };
 

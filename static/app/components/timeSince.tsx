@@ -59,7 +59,7 @@ class TimeSince extends React.PureComponent<Props, State> {
     suffix: 'ago',
   };
 
-  state = {
+  state: State = {
     relative: '',
   };
 

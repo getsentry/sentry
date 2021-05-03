@@ -53,7 +53,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     data: [],
   };
 
-  state = {
+  state: State = {
     width: -1,
     height: -1,
     yAxisMax: null,

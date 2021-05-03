@@ -40,7 +40,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
     makeObservable(this);
   }
 
-  state = {
+  state: State = {
     submitting: false,
   };
 

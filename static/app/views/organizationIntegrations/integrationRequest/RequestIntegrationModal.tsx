@@ -27,7 +27,7 @@ type State = {
  * lets the user attach an optional message to be included in the email.
  */
 export default class RequestIntegrationModal extends AsyncComponent<Props, State> {
-  state = {
+  state: State = {
     ...this.getDefaultState(),
     isSending: false,
     message: '',

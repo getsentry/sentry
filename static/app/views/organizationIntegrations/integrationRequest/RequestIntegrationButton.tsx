@@ -21,7 +21,7 @@ type State = {
 };
 
 export default class RequestIntegrationButton extends React.Component<Props, State> {
-  state = {
+  state: State = {
     isOpen: false,
     isSent: false,
   };

@@ -39,7 +39,7 @@ function VersionOption({
 }
 
 class CustomResolutionModal extends React.Component<Props, State> {
-  state = {
+  state: State = {
     version: '',
   };
 

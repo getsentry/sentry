@@ -62,7 +62,7 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
 }
 
 class GroupVariant extends React.Component<Props, State> {
-  state = {
+  state: State = {
     showNonContributing: false,
   };
 

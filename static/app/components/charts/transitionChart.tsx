@@ -20,7 +20,7 @@ type State = {
 class TransitionChart extends React.Component<Props, State> {
   static defaultProps = defaultProps;
 
-  state = {
+  state: State = {
     prevReloading: this.props.reloading,
     prevLoading: this.props.loading,
     key: 1,

@@ -29,7 +29,7 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
   > {
     static displayName = `withUsersTeams(${getDisplayName(WrappedComponent)})`;
 
-    state = {
+    state: InjectedTeamsProps = {
       teams: [],
       loadingTeams: true,
       error: null,

@@ -60,7 +60,7 @@ class InputInline extends React.Component<Props, State> {
     return event as React.FormEvent<HTMLInputElement>;
   }
 
-  state = {
+  state: State = {
     isFocused: false,
     isHovering: false,
   };

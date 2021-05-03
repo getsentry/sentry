@@ -84,7 +84,7 @@ type State = {
 };
 
 class VitalCard extends React.Component<Props, State> {
-  state = {
+  state: State = {
     refDataRect: null,
     refPixelRect: null,
   };

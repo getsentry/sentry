@@ -37,7 +37,7 @@ type State = {
 class TeamDetails extends React.Component<Props, State> {
   state = this.getInitialState();
 
-  getInitialState() {
+  getInitialState(): State {
     const team = TeamStore.getBySlug(this.props.params.teamId);
 
     return {

@@ -127,7 +127,7 @@ class Projects extends React.Component<Props, State> {
     passthroughPlaceholderProject: true,
   };
 
-  state = {
+  state: State = {
     fetchedProjects: [],
     projectsFromStore: [],
     initiallyLoaded: false,

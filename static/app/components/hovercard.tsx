@@ -91,7 +91,7 @@ class Hovercard extends React.Component<Props, State> {
     this.scheduleUpdate = null;
   }
 
-  state = {
+  state: State = {
     visible: false,
   };
 

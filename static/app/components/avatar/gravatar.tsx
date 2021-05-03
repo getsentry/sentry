@@ -20,7 +20,7 @@ type State = {
 };
 
 class Gravatar extends React.Component<Props, State> {
-  state = {
+  state: State = {
     MD5: undefined,
   };
 

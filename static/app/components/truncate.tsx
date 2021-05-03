@@ -31,7 +31,7 @@ class Truncate extends React.Component<Props, State> {
     expandDirection: 'right',
   };
 
-  state = {
+  state: State = {
     isExpanded: false,
   };
 

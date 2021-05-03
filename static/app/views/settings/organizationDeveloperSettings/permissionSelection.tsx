@@ -94,7 +94,7 @@ export default class PermissionSelection extends React.Component<Props, State> {
     form: PropTypes.object,
   };
 
-  state = {
+  state: State = {
     permissions: this.props.permissions,
   };
 

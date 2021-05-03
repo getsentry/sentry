@@ -18,7 +18,7 @@ type State = {
 };
 
 class RedirectToProjectModal extends React.Component<Props, State> {
-  state = {
+  state: State = {
     timer: 5,
   };
 

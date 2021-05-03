@@ -56,7 +56,7 @@ type State = {
  * at each duration bucket, showing the modality of the transaction.
  */
 class LatencyChart extends React.Component<Props, State> {
-  state = {
+  state: State = {
     zoomError: false,
   };
 

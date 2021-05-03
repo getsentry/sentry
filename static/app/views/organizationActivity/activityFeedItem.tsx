@@ -37,7 +37,7 @@ type State = {
 class ActivityItem extends React.Component<Props, State> {
   static defaultProps = defaultProps;
 
-  state = {
+  state: State = {
     clipped: this.props.defaultClipped,
   };
 

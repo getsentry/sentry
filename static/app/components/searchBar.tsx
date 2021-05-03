@@ -34,7 +34,7 @@ class SearchBar extends React.PureComponent<Props, State> {
     onSearch: function () {},
   };
 
-  state = {
+  state: State = {
     query: this.props.query || this.props.defaultQuery,
     dropdownVisible: false,
   };

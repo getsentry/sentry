@@ -9,6 +9,10 @@ type Props = {
   size?: number;
 };
 
+type State = {
+  imgSrc: Integration['icon'];
+};
+
 type IconProps = Pick<Props, 'size'>;
 
 const StyledIcon = styled('img')<IconProps>`
@@ -18,8 +22,8 @@ const StyledIcon = styled('img')<IconProps>`
   display: block;
 `;
 
-class Icon extends React.Component<Props> {
-  state = {
+class Icon extends React.Component<Props, State> {
+  state: State = {
     imgSrc: this.props.integration.icon,
   };
 

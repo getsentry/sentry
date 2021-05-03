@@ -17,7 +17,7 @@ type State = {
 };
 
 class SsoForm extends React.Component<Props, State> {
-  state = {
+  state: State = {
     errorMessage: null,
   };
 

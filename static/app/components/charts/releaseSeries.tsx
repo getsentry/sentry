@@ -86,7 +86,7 @@ type State = {
 };
 
 class ReleaseSeries extends React.Component<Props, State> {
-  state = {
+  state: State = {
     releases: null,
     releaseSeries: [],
   };

@@ -118,7 +118,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     disabled: false,
   };
 
-  state = {
+  state: State = {
     isNewQuery: true,
     isEditingQuery: false,
 

@@ -37,7 +37,7 @@ class PluginConfig extends React.Component<Props, State> {
     onDisablePlugin: () => {},
   };
 
-  state = {
+  state: State = {
     loading: !plugins.isLoaded(this.props.data),
     testResults: '',
   };

@@ -29,7 +29,7 @@ type State = {
 };
 
 class Row extends React.Component<Props, State> {
-  state = {
+  state: State = {
     loading: false,
   };
 
