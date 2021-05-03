@@ -206,7 +206,10 @@ def get_send_to_owners(event: Any, project: Project) -> Mapping[ExternalProvider
     if team_ids_to_resolve:
         all_possible_users |= get_users_for_teams_to_resolve(team_ids_to_resolve)
 
-    return NotificationSetting.objects.filter_to_subscribed_users(project, all_possible_users)
+    mapping: Mapping[
+        ExternalProviders, Set[User]
+    ] = NotificationSetting.objects.filter_to_subscribed_users(project, all_possible_users)
+    return mapping
 
 
 def get_users_for_teams_to_resolve(teams_to_resolve: Set[int]) -> Set[User]:
@@ -265,7 +268,11 @@ def get_send_to_team(
 
     member_list = team.member_set.values_list("user_id", flat=True)
     users = User.objects.filter(id__in=member_list)
-    return NotificationSetting.objects.filter_to_subscribed_users(project, users)
+
+    mapping: Mapping[
+        ExternalProviders, Set[User]
+    ] = NotificationSetting.objects.filter_to_subscribed_users(project, users)
+    return mapping
 
 
 def get_send_to_member(
