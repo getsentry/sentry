@@ -15,9 +15,7 @@ type Props = {
 export class Provider extends React.Component<Props> {
   componentDidMount() {
     this.scrollToHash(location.hash);
-    window.addEventListener('hashchange', () => {
-      this.scrollToHash(location.hash);
-    });
+    window.addEventListener('hashchange', () => this.scrollToHash(location.hash), false);
   }
 
   scrollFns: Map<string, () => void> = new Map();
