@@ -206,6 +206,8 @@ export const GridBodyCell = styled('td')`
   &:last-child {
     border-right: none;
   }
+
+  overflow: hidden;
 `;
 
 const GridStatusWrapper = styled(GridBodyCell)`
