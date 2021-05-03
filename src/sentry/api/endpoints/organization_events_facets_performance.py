@@ -85,7 +85,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
                     request, organization, params["project_id"], results
                 ),
                 default_per_page=5,
-                max_per_page=5,
+                max_per_page=20,
             )
 
 
@@ -96,7 +96,7 @@ def query_tag_data(
     referrer: Optional[str] = None,
 ) -> Optional[Dict]:
     """
-    Fetch general data about tags to feed into the facet query
+    Fetch general data about all the transactions with this transaction name to feed into the facet query
     :return: Returns the row with aggregate and count if the query was successful
              Returns None if query was not successful which causes the endpoint to return early
     """
@@ -110,19 +110,24 @@ def query_tag_data(
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
-        # Get the most relevant tag keys
+        # Get the average and count to use to filter the next request to facets
         tag_data = discover.query(
             selected_columns=["count()", f"avg({aggregate_column}) as aggregate"],
             query=filter_query,
             params=params,
             orderby=["-count"],
             referrer=f"{referrer}.all_transactions",
+            limit=1,
         )
+
+        if len(tag_data["data"]) != 1:
+            return None
+
         counts = [r["count"] for r in tag_data["data"]]
         aggregates = [r["aggregate"] for r in tag_data["data"]]
 
         # Return early to avoid doing more queries with 0 count transactions or aggregates for columns that dont exist
-        if len(counts) != 1 or counts[0] == 0 or aggregates[0] is None:
+        if counts[0] == 0 or aggregates[0] is None:
             return None
     if not tag_data["data"][0]:
         return None
@@ -149,7 +154,7 @@ def query_facet_performance(
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
     translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
 
-    # Aggregate for transaction
+    # Aggregate (avg) and count of all transactions for this query
     transaction_aggregate = tag_data["aggregate"]
 
     # Dynamically sample so at least 50000 transactions are selected
@@ -167,6 +172,7 @@ def query_facet_performance(
     sample_rate = min(max(dynamic_sample_rate, 0), 1) if sampling_enabled else None
     frequency_sample_rate = sample_rate if sample_rate else 1
 
+    # Exclude tags that have high cardinality are are generally unrelated to performance
     excluded_tags = [
         "tags_key",
         "NOT IN",

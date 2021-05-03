@@ -10,7 +10,6 @@ from sentry.utils.samples import load_data
 class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase):
     feature_list = (
         "organizations:discover-basic",
-        "organizations:global-views",
         "organizations:performance-tag-explorer",
     )
 
@@ -95,7 +94,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
             {
                 "aggregateColumn": "transaction.duration",
                 "sort": "-frequency",
-                "per_page": 5,
+                "per_page": 20,
                 "statsPeriod": "14d",
             }
         )
@@ -103,10 +102,13 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
 
         data = response.data["data"]
         assert len(data) == 2
+
+        # The first set of generated is the most frequent since the 14 transactions are excluded because of 1000 duration
         assert data[0]["count"] == 5
         assert data[0]["tags_key"] == "color"
         assert data[0]["tags_value"] == "blue"
 
+        # The 14 transactions with many=yes are excluded because of 1000 duration
         assert data[1]["count"] == 1
         assert data[1]["tags_key"] == "many"
         assert data[1]["tags_value"] == "no"
@@ -148,13 +150,20 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         assert data[0]["tags_key"] == "color"
         assert data[0]["tags_value"] == "blue"
 
-    def test_multiple_projects_without_global_view(self):
-        response = self.do_request(
-            {
-                "aggregateColumn": "transaction.duration",
-                "project": [self.project.id, self.project2.id],
-            }
-        )
+    def test_multiple_projects_not_allowed(self):
+        with self.feature(
+            [
+                "organizations:discover-basic",
+                "organizations:global-views",
+                "organizations:performance-tag-explorer",
+            ]
+        ):
+            response = self.do_request(
+                {
+                    "aggregateColumn": "transaction.duration",
+                    "project": [self.project.id, self.project2.id],
+                }
+            )
         assert response.status_code == 400, response.content
         assert response.data == {
             "detail": "You cannot view facet performance for multiple projects."
