@@ -318,7 +318,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
                     }
                 ],
             )
-            assert resp.data == {"projects": ["Invalid project"]}
+            assert resp.json() == {"projects": ["Invalid project"]}
 
     def test_no_feature(self):
         resp = self.get_response(self.organization.slug)

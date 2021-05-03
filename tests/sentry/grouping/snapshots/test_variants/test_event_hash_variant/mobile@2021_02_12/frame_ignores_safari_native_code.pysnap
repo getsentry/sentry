@@ -1,5 +1,5 @@
 ---
-created: '2021-03-12T14:08:30.181585Z'
+created: '2021-04-30T12:13:37.222895Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,18 +8,6 @@ app-depth-1:
   tree_label: "forEach"
   component:
     app-depth-1*
-      stacktrace*
-        frame*
-          filename (native code indicated by filename)
-            "[native code]"
-          function*
-            "forEach"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "30eb5001914d29dd8461898b5b8094fe"
-  tree_label: "<entire stacktrace>"
-  component:
-    app-depth-2*
       stacktrace*
         frame*
           filename (native code indicated by filename)
