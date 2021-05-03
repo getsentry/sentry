@@ -182,12 +182,9 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       builtinSymbolSources,
       debugFiles,
       debugFilesPageLinks,
-      appStoreConnect,
     } = this.state;
     const {orgId, projectId} = params;
     const {features, access} = organization;
-
-    console.log('appStoreConnect', appStoreConnect);
 
     const fieldsSymbolSources = this.getFieldsSymbolSources();
 
