@@ -1,5 +1,5 @@
 ---
-created: '2021-04-29T11:10:02.966473Z'
+created: '2021-05-03T12:50:46.615548Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,7 +18,7 @@ app-depth-1:
           frame*
             function*
               "application_frame"
-        type (ignored because type is platform-specific)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"

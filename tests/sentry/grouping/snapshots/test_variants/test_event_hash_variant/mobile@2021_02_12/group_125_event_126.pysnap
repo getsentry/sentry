@@ -1,5 +1,5 @@
 ---
-created: '2021-04-30T15:48:42.026027Z'
+created: '2021-05-03T12:50:43.768488Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,7 +18,7 @@ app-depth-1:
           frame*
             function*
               "stripped_application_code"
-        type (ignored because type is platform-specific)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / 0x00000032"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / <hex>"

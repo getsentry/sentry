@@ -48,10 +48,12 @@ RECURSION_COMPARISON_FIELDS = [
     "colno",
 ]
 
-# Ignore all those kinds of exception types as they are platform specific
+# Ignore all those kinds of exception types as they are produced from platform
+# specific error codes.
+#
 # For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
-# the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS
-_discard_native_error_code_re = re.compile(
+# the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
+_synthetic_exception_type_re = re.compile(
     r"""
     ^
     (
@@ -552,14 +554,15 @@ def single_exception(exception, context, **meta):
                 ],
             )
 
-        if context["discard_native_error_codes"] and _discard_native_error_code_re.match(
+        if context["detect_synthetic_exception_types"] and _synthetic_exception_type_re.match(
             exception.type
         ):
             # Do not update type component of system variant, such that regex
             # can be continuously modified without unnecessarily creating new
             # groups.
             type_component.update(
-                contributes=False, hint="ignored because type is platform-specific"
+                contributes=False,
+                hint="ignored because exception is synthetic (detected via exception type)",
             )
 
     if exception.stacktrace is not None:

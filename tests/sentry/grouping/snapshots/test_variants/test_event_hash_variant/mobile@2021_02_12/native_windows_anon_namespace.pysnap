@@ -1,5 +1,5 @@
 ---
-created: '2021-04-30T15:47:33.717947Z'
+created: '2021-05-03T12:50:47.764970Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,7 +15,7 @@ app-depth-1:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because type is platform-specific)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
@@ -37,7 +37,7 @@ app-depth-2:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because type is platform-specific)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
@@ -64,7 +64,7 @@ app-depth-3:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because type is platform-specific)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
