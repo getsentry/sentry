@@ -11,6 +11,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     TypeVar,
     cast,
@@ -22,7 +23,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
-from sentry import eventstore, features
+from sentry import analytics, eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
@@ -209,6 +210,17 @@ def child_sort_key(item: TraceEvent) -> List[int]:
         return [0]
 
 
+def group_length(length: int) -> str:
+    if length == 1:
+        return "1"
+    elif length < 10:
+        return "<10"
+    elif length < 100:
+        return "<100"
+    else:
+        return ">100"
+
+
 def query_trace_data(
     trace_id: str, params: Mapping[str, str]
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
@@ -325,6 +337,29 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             parent_map[item["trace.span"]].append(item)
         return parent_map
 
+    @staticmethod
+    def record_analytics(
+        transactions: Sequence[SnubaTransaction], user_id: int, org_id: int
+    ) -> None:
+        with sentry_sdk.start_span(op="recording.analytics"):
+            len_transactions = len(transactions)
+
+            sentry_sdk.set_tag("trace_view.transactions", len_transactions)
+            sentry_sdk.set_tag("trace_view.transactions.grouped", group_length(len_transactions))
+            projects: Set[int] = set()
+            for transaction in transactions:
+                projects.add(transaction["project.id"])
+
+            len_projects = len(projects)
+            if len_projects > 1:
+                analytics.record(
+                    "quick_trace.connected_services",
+                    projects=len_projects,
+                    organization_id=org_id,
+                )
+            sentry_sdk.set_tag("trace_view.projects", len_projects)
+            sentry_sdk.set_tag("trace_view.projects.grouped", group_length(len_projects))
+
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -346,12 +381,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             transactions, errors = query_trace_data(trace_id, params)
             if len(transactions) == 0:
                 return Response(status=404)
-            len_transactions = len(transactions)
-            sentry_sdk.set_tag("trace_view.transactions", len_transactions)
-            sentry_sdk.set_tag(
-                "trace_view.transactions.grouped",
-                "<10" if len_transactions < 10 else "<100" if len_transactions < 100 else ">100",
-            )
+            self.record_analytics(transactions, self.request.user.id, organization.id)
 
         warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization}
 
