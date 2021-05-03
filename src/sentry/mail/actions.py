@@ -7,8 +7,8 @@ from sentry.utils import metrics
 
 class NotifyEmailAction(EventAction):
     form_cls = NotifyEmailForm
-    label = "Send an email to {targetType}"
-    prompt = "Send an email"
+    label = "Send a notification to {targetType}"
+    prompt = "Send a notification"
     metrics_slug = "EmailAction"
 
     def __init__(self, *args, **kwargs):

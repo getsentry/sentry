@@ -9,7 +9,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
         if action.type == action.Type.EMAIL.value:
             if action.target:
                 if action.target_type == action.TargetType.USER.value:
-                    return "Send an email to " + action.target.email
+                    return "Send a notification to " + action.target.email
                 elif action.target_type == action.TargetType.TEAM.value:
                     return "Send an email to members of #" + action.target.slug
         elif action.type == action.Type.PAGERDUTY.value:
