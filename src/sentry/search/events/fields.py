@@ -661,7 +661,7 @@ class CountColumn(FunctionArg):
 
 
 class FieldColumn(CountColumn):
-    """ Allow any field column, of any type """
+    """Allow any field column, of any type"""
 
     def get_type(self, value):
         if is_duration_measurement(value) or is_span_op_breakdown(value):
@@ -945,7 +945,7 @@ class Function:
         return self.required_args + self.optional_args
 
     def alias_as(self, name):
-        """ Create a copy of this function to be used as an alias """
+        """Create a copy of this function to be used as an alias"""
         alias = deepcopy(self)
         alias.name = name
         return alias
