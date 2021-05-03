@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T11:30:02.658055Z'
+created: '2021-04-30T12:13:35.729213Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -21,26 +21,6 @@ app-depth-2:
   component:
     app-depth-2*
       stacktrace*
-        frame*
-          filename*
-            "dojo.js"
-          function*
-            "c"
-        frame*
-          filename*
-            "dojo.js"
-          function* (trimmed javascript function)
-            "_createDocumentViewModel"
---------------------------------------------------------------------------
-app-depth-3:
-  hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "<entire stacktrace>"
-  component:
-    app-depth-3*
-      stacktrace*
-        frame (ignored low quality javascript frame)
-          filename (anonymous filename discarded)
-            "<anonymous>"
         frame*
           filename*
             "dojo.js"
