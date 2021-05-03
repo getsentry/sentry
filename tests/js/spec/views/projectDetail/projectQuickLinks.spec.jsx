@@ -32,7 +32,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
       query: {project: '2'},
     });
 
-    expect(keyTransactions.text()).toBe('Key Transactions');
+    expect(keyTransactions.text()).toBe('View Transactions');
     expect(keyTransactions.prop('to')).toEqual({
       pathname: '/organizations/org-slug/performance/',
       query: {project: '2'},
