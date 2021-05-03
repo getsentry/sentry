@@ -54,7 +54,7 @@ function ReleaseStats({
   hasHealthData,
   getHealthData,
 }: Props) {
-  const {lastDeploy, dateCreated, newGroups, version} = release;
+  const {lastDeploy, dateCreated, version} = release;
 
   const crashCount = getHealthData.getCrashCount(
     version,
@@ -220,7 +220,7 @@ function ReleaseStats({
               <GlobalSelectionLink
                 to={getReleaseNewIssuesUrl(organization.slug, project.id, version)}
               >
-                <Count value={newGroups} />
+                <Count value={project.newGroups} />
               </GlobalSelectionLink>
             </Tooltip>
           </SectionContent>
