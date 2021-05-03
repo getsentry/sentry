@@ -52,6 +52,7 @@ function GroupByField({metricTags, groupBy = [], onChange}: Props) {
       }))}
       style={{
         width: '100%',
+        borderRadius: 0,
       }}
       maxHeight={110}
     >
