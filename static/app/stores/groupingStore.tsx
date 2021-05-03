@@ -53,7 +53,6 @@ type ApiFingerprint = {
   state?: string;
   lastSeen?: string;
   eventCount?: number;
-  parentId?: string;
   label?: string;
   parentLabel?: string;
   childId?: string;
@@ -66,7 +65,6 @@ export type Fingerprint = {
   eventCount: number;
   state?: string;
   lastSeen?: string;
-  parentId?: string;
   label?: string;
   parentLabel?: string;
   children: Array<ChildFingerprint>;
