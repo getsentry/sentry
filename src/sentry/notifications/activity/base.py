@@ -57,6 +57,7 @@ class ActivityNotification(BaseNotification):
         activity_link = urlunparse(parts)
 
         return {
+            "organization": self.group.project.organization,
             "group": self.group,
             "link": group_link,
             "activity_link": activity_link,
