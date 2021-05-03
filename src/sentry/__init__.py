@@ -52,5 +52,6 @@ __version__ = VERSION
 __build__ = get_revision()
 __docformat__ = "restructuredtext en"
 
-# This triggers monkey patches
+# This triggers monkey patches that don't require django initialization.
+# There are other monkey patches in sentry's runner initializer.
 __import__("sentry.monkey")

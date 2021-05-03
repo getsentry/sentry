@@ -79,7 +79,8 @@ class RelayAuthentication(BasicAuthentication):
 
 
 class ApiKeyAuthentication(QuietBasicAuthentication):
-    def authenticate_credentials(self, userid, password):
+    def authenticate_credentials(self, userid, password, request=None):
+        # We don't use request, but it needs to be passed through to DRF 3.7+.
         if password:
             return None
 
