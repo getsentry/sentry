@@ -88,7 +88,7 @@ function Queries({
       })}
       <div>
         <Button size="small" icon={<IconAdd isCircled />} onClick={onAddQuery}>
-          {t('Add Query')}
+          {t('Add query')}
         </Button>
       </div>
     </Wrapper>

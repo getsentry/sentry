@@ -1,7 +1,5 @@
 import itertools
 import logging
-from collections import defaultdict
-from typing import Mapping, Set
 
 from django.utils import dateformat
 from django.utils.encoding import force_text
@@ -18,7 +16,6 @@ from sentry.models import (
     GroupSubscription,
     Integration,
     NotificationSetting,
-    Project,
     ProjectOption,
     ProjectOwnership,
     Release,
@@ -26,21 +23,15 @@ from sentry.models import (
     User,
 )
 from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
-from sentry.notifications.helpers import (
-    get_settings_by_provider,
-    transform_to_notification_settings_by_user,
-)
 from sentry.notifications.types import (
     ActionTargetType,
     GroupSubscriptionReason,
-    NotificationScopeType,
-    NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
 from sentry.plugins.base import plugins
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
@@ -78,6 +69,7 @@ class MailAdapter:
 
         project = event.group.project
         extra["project_id"] = project.id
+
         if digests.enabled(project):
 
             def get_digest_option(key):
@@ -177,7 +169,7 @@ class MailAdapter:
 
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
-        Returns a list of user IDs for the users that should receive
+        Returns a mapping of providers to a list of user IDs for the users that should receive
         notifications for the provided project.
         This result may come from cached data.
         """
@@ -191,11 +183,9 @@ class MailAdapter:
             else:
                 return self.get_send_to_owners(event, project)
         elif target_type == ActionTargetType.MEMBER:
-            # TODO(ceo): this is set to just email for now, but when we update the alert rule UI
-            # to allow you to choose "notification" rather than "email" this will need to change
-            return {ExternalProviders.EMAIL: self.get_send_to_member(project, target_identifier)}
+            return self.get_send_to_member(project, target_identifier)
         elif target_type == ActionTargetType.TEAM:
-            return {ExternalProviders.EMAIL: self.get_send_to_team(project, target_identifier)}
+            return self.get_send_to_team(project, target_identifier)
         return {}
 
     def get_send_to_owners(self, event, project):
@@ -232,13 +222,11 @@ class MailAdapter:
         # get all users in teams
         if teams_to_resolve:
             all_possible_user_ids |= self.get_user_ids_for_teams_to_resolve(teams_to_resolve)
-
-        output = defaultdict(set)
-        disabled_users = self.disabled_users_from_project(project)
-
-        for provider in EXTERNAL_PROVIDERS.keys():
-            output[provider] = all_possible_user_ids - disabled_users[provider]
-        return output
+        users = User.objects.filter(id__in=all_possible_user_ids)
+        owners_by_provider = NotificationSetting.objects.filter_to_subscribed_users(project, users)
+        return {
+            provider: {user.id for user in users} for provider, users in owners_by_provider.items()
+        }
 
     def get_user_ids_for_teams_to_resolve(self, teams_to_resolve):
         return {
@@ -249,58 +237,34 @@ class MailAdapter:
             ).values_list("id", flat=True)
         }
 
-    @staticmethod
-    def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, Set[int]]:
-        """ Get a set of users that have disabled Issue Alert notifications for a given project. """
-        user_ids = project.member_set.values_list("user", flat=True)
-        users = User.objects.filter(id__in=user_ids)
-        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
-            type=NotificationSettingTypes.ISSUE_ALERTS,
-            parent=project,
-            users=users,
-        )
-        notification_settings_by_user = transform_to_notification_settings_by_user(
-            notification_settings, users
-        )
-        # Although this can be done with dict comprehension, looping for clarity.
-        output = defaultdict(set)
-        for user in users:
-            settings = notification_settings_by_user.get(user)
-            if settings:
-                settings_by_provider = get_settings_by_provider(settings)
-                for provider, settings_value_by_scope in settings_by_provider.items():
-                    project_setting = settings_value_by_scope.get(NotificationScopeType.PROJECT)
-                    user_setting = settings_value_by_scope.get(NotificationScopeType.USER)
-                    if project_setting == NotificationSettingOptionValues.NEVER or (
-                        not project_setting
-                        and user_setting == NotificationSettingOptionValues.NEVER
-                    ):
-                        output[provider].add(user.id)
-        return output
-
     def get_send_to_team(self, project, target_identifier):
         if target_identifier is None:
-            return []
+            return {}
         try:
             team = Team.objects.get(id=int(target_identifier), projectteam__project=project)
         except Team.DoesNotExist:
-            return set()
+            return {}
 
-        disabled_users = self.disabled_users_from_project(project).get(ExternalProviders.EMAIL)
-        if disabled_users:
-            return set(team.member_set.values_list("user_id", flat=True)) - disabled_users
-        else:
-            return set(team.member_set.values_list("user_id", flat=True))
+        member_list = team.member_set.values_list("user_id", flat=True)
+        users = User.objects.filter(id__in=member_list)
+        team_members_by_provider = NotificationSetting.objects.filter_to_subscribed_users(
+            project, users
+        )
+        return {
+            provider: [user.id for user in team_members]
+            for provider, team_members in team_members_by_provider.items()
+        }
 
     def get_send_to_member(self, project, target_identifier):
         """
         No checking for disabled users is done. If a user explicitly specifies a member
-        as a target to send to, it should overwrite the user's personal mail settings.
+        as a target to send to, it should overwrite the user's personal notification settings.
         :param target_identifier:
-        :return: Iterable[int] id of member that should be sent to.
+        :return: Mapping[ExternalProvider, Iterable[int]]
+        Mapping of provider to id of member that a notification should be sent to as a list.
         """
         if target_identifier is None:
-            return []
+            return {}
         try:
             user = (
                 User.objects.filter(
@@ -311,8 +275,18 @@ class MailAdapter:
                 .get()
             )
         except User.DoesNotExist:
-            return set()
-        return {user.id}
+            return {}
+
+        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+            NotificationSettingTypes.ISSUE_ALERTS, parent=project, users=[user]
+        )
+        if notification_settings:
+            return {
+                ExternalProviders(notification_setting.provider): [user.id]
+                for notification_setting in notification_settings
+            }
+        # fall back to email if there are no settings
+        return {ExternalProviders.EMAIL: [user.id]}
 
     def get_send_to_all_in_project(self, project):
         cache_key = f"mail:send_to:{project.pk}"
@@ -479,6 +453,8 @@ class MailAdapter:
         user_ids = self.get_send_to(project, target_type, target_identifier).get(
             ExternalProviders.EMAIL
         )
+        if not user_ids:
+            return
 
         logger.info(
             "mail.adapter.notify_digest",
