@@ -65,17 +65,24 @@ def can_users_unsubscribe(notification: BaseNotification) -> bool:
 
 
 def log_message(notification: BaseNotification, user: User) -> None:
+    extra = {
+        "project_id": notification.project.id,
+        "user_id": user.id,
+    }
+    if notification.group:
+        extra.update({"group": notification.group.id})
+
     if isinstance(notification, AlertRuleNotification):
-        logger.info(
-            "mail.adapter.notify.mail_user",
-            extra={
+        extra.update(
+            {
                 "target_type": notification.target_type,
                 "target_identifier": notification.target_identifier,
-                "group": notification.group.id,
-                "project_id": notification.project.id,
-                "user_id": user.id,
-            },
+            }
         )
+    elif isinstance(notification, ActivityNotification):
+        extra.update({"activity": notification.activity})
+
+    logger.info("mail.adapter.notify.mail_user", extra=extra)
 
 
 def get_context(
