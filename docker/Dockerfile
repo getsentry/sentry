@@ -14,7 +14,7 @@ RUN groupadd -r sentry && useradd -r -m -g sentry sentry
 ENV GOSU_VERSION=1.12 \
   GOSU_SHA256=0f25a21cf64e58078057adc78f38705163c1d564a959ff30a891c31917011a54 \
   TINI_VERSION=0.19.0 \
-  TINI_SHA256=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82b
+  TINI_SHA256=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c
 
 
 RUN set -x \
