@@ -69,7 +69,6 @@ class App extends React.Component<Props, State> {
     error: false,
     needsUpgrade: ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
     newsletterConsentPrompt: ConfigStore.get('user')?.flags?.newsletter_consent_prompt,
-    organization: undefined,
   };
 
   getChildContext() {
