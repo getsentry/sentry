@@ -353,7 +353,6 @@ export default class DetailsBody extends React.Component<Props> {
                     selectedIncident={selectedIncident}
                     organization={organization}
                     projects={projects}
-                    metricText={this.getMetricText()}
                     interval={this.getInterval()}
                     filter={this.getFilter()}
                     query={queryWithTypeFilter}
