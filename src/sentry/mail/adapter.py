@@ -49,11 +49,10 @@ class MailAdapter:
         for future in futures:
             rules.append(future.rule)
             extra["rule_id"] = future.rule.id
-            if not future.kwargs:
-                continue
-            raise NotImplementedError(
-                "The default behavior for notification de-duplication does not support args"
-            )
+            if future.kwargs:
+                raise NotImplementedError(
+                    "The default behavior for notification de-duplication does not support args"
+                )
 
         project = event.group.project
         extra["project_id"] = project.id
