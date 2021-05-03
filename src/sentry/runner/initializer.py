@@ -346,6 +346,8 @@ def initialize_app(config, skip_service_validation=False):
     if getattr(settings, "SENTRY_DEBUGGER", None) is None:
         settings.SENTRY_DEBUGGER = settings.DEBUG
 
+    monkeypatch_drf_jsonrenderer_encoder_class()
+
     monkeypatch_drf_listfield_serializer_errors()
 
     monkeypatch_model_unpickle()
@@ -472,6 +474,20 @@ def monkeypatch_django_migrations():
     from sentry.new_migrations.monkey import monkey_migrations
 
     monkey_migrations()
+
+
+def monkeypatch_drf_jsonrenderer_encoder_class():
+    # We'd like to keep the default STRICT_JSON=True for DRF parsers,
+    # but rather than error on nan/inf for rendering or pass them through,
+    # we'd like to coerce to null to give to frontend.
+    # It isn't possible with DRF's JSONRenderer, but our simplejson encoder is configured
+    # for this with ignore_nan=True which overrides the allow_nan set by DRF's JSONRenderer
+    # if STRICT_JSON=True.
+    from rest_framework.renderers import JSONRenderer
+
+    from sentry.utils.json import _default_encoder
+
+    JSONRenderer.encoder_class = _default_encoder
 
 
 def monkeypatch_drf_listfield_serializer_errors():

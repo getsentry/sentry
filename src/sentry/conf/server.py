@@ -826,6 +826,8 @@ LOGGING = {
 # django-rest-framework
 
 REST_FRAMEWORK = {
+    # NOTE: We patch DRF's JSONRenderer to use our simplejson encoder,
+    #       search for monkeypatch_drf_jsonrenderer_encoder_class.
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
