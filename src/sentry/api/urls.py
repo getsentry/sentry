@@ -350,6 +350,7 @@ from .endpoints.sentry_app_installation_external_requests import (
     SentryAppInstallationExternalRequestsEndpoint,
 )
 from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
+from .endpoints.sentry_app_integrationfeatures import SentryAppIntegrationFeaturesEndpoint
 from .endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
 from .endpoints.sentry_app_publish_request import SentryAppPublishRequestEndpoint
 from .endpoints.sentry_app_requests import SentryAppRequestsEndpoint
@@ -1826,6 +1827,11 @@ urlpatterns = [
         r"^sentry-apps-stats/$",
         SentryAppsStatsEndpoint.as_view(),
         name="sentry-api-0-sentry-apps-stats",
+    ),
+    url(
+        r"^sentry-apps/integration-features/$",
+        SentryAppIntegrationFeaturesEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-integrationfeatures",
     ),
     url(
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/$",
