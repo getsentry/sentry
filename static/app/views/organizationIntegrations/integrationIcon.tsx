@@ -19,7 +19,7 @@ const StyledIcon = styled('img')<IconProps>`
 `;
 
 class Icon extends React.Component<Props> {
-  state = {
+  state: State = {
     imgSrc: this.props.integration.icon,
   };
 

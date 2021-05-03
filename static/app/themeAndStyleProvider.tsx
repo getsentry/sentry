@@ -19,7 +19,7 @@ type State = {
 };
 
 class Main extends React.Component<Props, State> {
-  state = {
+  state: State = {
     theme: this.themeName === 'dark' ? darkTheme : lightTheme,
   };
 

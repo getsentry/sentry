@@ -103,7 +103,7 @@ class GridEditable<
     };
   }
 
-  state = {
+  state: State = {
     numColumn: 0,
   };
 

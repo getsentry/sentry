@@ -17,7 +17,7 @@ type State = {
 };
 
 class ProjectItem extends React.Component<Props, State> {
-  state = {
+  state: State = {
     isBookmarked: this.props.project.isBookmarked,
   };
 

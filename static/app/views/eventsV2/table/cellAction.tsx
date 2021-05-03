@@ -138,7 +138,7 @@ class CellAction extends React.Component<Props, State> {
     this.menuEl = null;
   }
 
-  state = {
+  state: State = {
     isHovering: false,
     isOpen: false,
   };

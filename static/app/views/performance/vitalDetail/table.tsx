@@ -88,7 +88,7 @@ type State = {
 };
 
 class Table extends React.Component<Props, State> {
-  state = {
+  state: State = {
     widths: [],
   };
 

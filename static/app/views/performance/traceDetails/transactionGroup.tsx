@@ -31,7 +31,7 @@ type State = {
 };
 
 class TransactionGroup extends React.Component<Props, State> {
-  state = {
+  state: State = {
     isExpanded: true,
   };
 
