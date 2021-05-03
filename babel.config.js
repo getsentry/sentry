@@ -5,6 +5,7 @@ module.exports = {
       '@babel/preset-react',
       {
         runtime: 'automatic',
+        importSource: '@emotion/react',
       },
     ],
     [
@@ -15,17 +16,9 @@ module.exports = {
       },
     ],
     '@babel/preset-typescript',
-    [
-      '@emotion/babel-preset-css-prop',
-      {
-        autoLabel: 'always',
-        sourceMap: false,
-        labelFormat: '[local]',
-      },
-    ],
   ],
   plugins: [
-    ['@babel/plugin-transform-react-jsx', {runtime: 'automatic'}],
+    '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',
     // NOTE: The order of the decorator and class-property plugins is important
     // here. Decorators must be processed first before class properties, see:
@@ -54,16 +47,8 @@ module.exports = {
       ],
     },
     development: {
-      presets: [
-        [
-          '@emotion/babel-preset-css-prop',
-          {
-            autoLabel: 'always',
-            sourceMap: false,
-          },
-        ],
-      ],
       plugins: [
+        '@emotion/babel-plugin',
         '@babel/plugin-transform-react-jsx-source',
         !!process.env.SENTRY_UI_HOT_RELOAD ? 'react-refresh/babel' : null,
       ].filter(Boolean),
