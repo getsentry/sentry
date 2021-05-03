@@ -25,22 +25,3 @@ class ExternalTeam(DefaultFieldsModel):
         app_label = "sentry"
         db_table = "sentry_externalteam"
         unique_together = (("team", "provider", "external_name"),)
-
-
-class ExternalUser(DefaultFieldsModel):
-    __core__ = False
-
-    organizationmember = FlexibleForeignKey("sentry.OrganizationMember", db_constraint=False)
-    provider = BoundedPositiveIntegerField(
-        choices=(
-            (ExternalProviders.UNUSED_GH, "github"),
-            (ExternalProviders.UNUSED_GL, "gitlab"),
-        ),
-    )
-    # external_name => the Github/Gitlab username. Column name is vague to be reused for more external user identities.
-    external_name = models.TextField()
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_externaluser"
-        unique_together = (("organizationmember", "provider", "external_name"),)
