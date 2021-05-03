@@ -1,5 +1,5 @@
-from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry import features
+from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 
 
 class ActiveDirectorySAML2Provider(GenericSAML2Provider):

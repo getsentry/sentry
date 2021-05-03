@@ -1,3 +1,6 @@
+# from sentry.models import SentryAppInstallationForProvider, SentryAppInstallation
+import logging
+
 from django.db import models
 from django.utils import timezone
 
@@ -9,9 +12,6 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-
-# from sentry.models import SentryAppInstallationForProvider, SentryAppInstallation
-import logging
 from sentry.mediators.sentry_apps import Destroyer, InternalCreator
 
 logger = logging.getLogger("sentry.auth.scim")
