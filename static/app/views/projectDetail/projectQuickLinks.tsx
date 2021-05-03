@@ -51,7 +51,7 @@ function ProjectQuickLinks({organization, project, location}: Props) {
       },
     },
     {
-      title: t('Key Transactions'),
+      title: t('View Transactions'),
       to: {
         pathname: getPerformanceLandingUrl(organization),
         query: {project: project?.id},
