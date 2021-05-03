@@ -30,7 +30,7 @@ class ExternalTeam(DefaultFieldsModel):
 class ExternalUser(DefaultFieldsModel):
     __core__ = False
 
-    organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
+    organizationmember = FlexibleForeignKey("sentry.OrganizationMember", db_constraint=False)
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.UNUSED_GH, "github"),
