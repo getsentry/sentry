@@ -8,7 +8,7 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import DateTime from 'app/components/dateTime';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {DateString, Organization} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
 import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
@@ -155,12 +155,22 @@ class AlertRuleDetails extends React.Component<Props, State> {
     }
   };
 
-  handleTimePeriodChange = async (value: string) => {
+  handleTimePeriodChange = (value: string) => {
+    browserHistory.push({
+      pathname: this.props.location.pathname,
+      query: {
+        period: value,
+      },
+    });
+  };
+
+  handleZoom = async (start: DateString, end: DateString) => {
     const {location} = this.props;
     await browserHistory.push({
       pathname: location.pathname,
       query: {
-        period: value,
+        start,
+        end,
       },
     });
   };
@@ -185,6 +195,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
             timePeriod={timePeriod}
             selectedIncident={selectedIncident}
             handleTimePeriodChange={this.handleTimePeriodChange}
+            handleZoom={this.handleZoom}
           />
         </Feature>
       </React.Fragment>
