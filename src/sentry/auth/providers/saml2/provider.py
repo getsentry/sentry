@@ -10,7 +10,7 @@ from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry import options
+from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
@@ -264,9 +264,6 @@ class SAML2Provider(Provider):
     def get_setup_pipeline(self):
         return self.get_saml_setup_pipeline() + self.get_auth_pipeline()
 
-    def is_scim_enabled(self):
-        return False
-
     def get_saml_setup_pipeline(self):
         """
         Return a list of AuthViews to setup the SAML provider.
@@ -324,6 +321,13 @@ class SAML2Provider(Provider):
     def refresh_identity(self, auth_identity):
         # Nothing to refresh
         return
+
+
+class SCIMMixin:
+    def can_use_scim(self, organization, user):
+        if features.has("organizations:sso-scim", organization, actor=user):
+            return True
+        return False
 
 
 def build_saml_config(provider_config, org):

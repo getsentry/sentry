@@ -1,11 +1,6 @@
-from sentry import features
 from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
+from sentry.auth.providers.saml2.provider import SCIMMixin
 
 
-class ActiveDirectorySAML2Provider(GenericSAML2Provider):
+class ActiveDirectorySAML2Provider(SCIMMixin, GenericSAML2Provider):
     name = "Active Directory"
-
-    def can_use_scim(self, organization, user):
-        if features.has("organizations:sso-scim", organization, actor=user):
-            return True
-        return False
