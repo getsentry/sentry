@@ -268,9 +268,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return (
       <AnchorLinkManager.Consumer>
         {({registerScrollFn}) => {
-          const startScroll = isGapSpan(span)
-            ? undefined
-            : registerScrollFn(`#span-${span.span_id}`, this.scrollIntoView);
+          if (!isGapSpan(span)) {
+            registerScrollFn(`#span-${span.span_id}`, this.scrollIntoView);
+          }
 
           if (!this.state.showDetail || !isVisible) {
             return null;
@@ -288,7 +288,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               spanErrors={spanErrors}
               childTransactions={transactions}
               relatedErrors={errors}
-              scrollFn={startScroll ?? (() => undefined)}
             />
           );
         }}

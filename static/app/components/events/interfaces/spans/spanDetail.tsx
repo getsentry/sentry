@@ -1,4 +1,5 @@
 import React from 'react';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import map from 'lodash/map';
@@ -51,7 +52,7 @@ type TransactionResult = {
   id: string;
 };
 
-type Props = {
+type Props = WithRouterProps & {
   api: Client;
   orgId: string;
   organization: Organization;
@@ -63,7 +64,6 @@ type Props = {
   spanErrors: TableDataRow[];
   childTransactions: QuickTraceEvent[];
   relatedErrors: TraceError[];
-  scrollFn: () => void;
 };
 
 type State = {
@@ -462,11 +462,23 @@ class SpanDetail extends React.Component<Props, State> {
     };
   }
 
-  scrollBarIntoView = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  scrollBarIntoView = (spanId: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
     // do not use the default anchor behaviour
     // because it will be hidden behind the minimap
     e.preventDefault();
-    this.props.scrollFn();
+
+    // TODO(txiao): This is causing a rerender of the whole page,
+    // which can be slow.
+    //
+    // make sure to update the location
+    browserHistory.push({
+      ...this.props.location,
+      hash: `#span-${spanId}`,
+    });
+
+    // pushing to browser history does not trigger a hashchange event
+    // so fire one manually
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
   };
 
   renderSpanDetails() {
@@ -509,10 +521,14 @@ class SpanDetail extends React.Component<Props, State> {
             <tbody>
               <Row
                 title={
-                  <SpanIdTitle onClick={this.scrollBarIntoView}>
-                    Span ID
-                    <StyledIconAnchor />
-                  </SpanIdTitle>
+                  isGapSpan(span) ? (
+                    <SpanIdTitle>Span ID</SpanIdTitle>
+                  ) : (
+                    <SpanIdTitle onClick={this.scrollBarIntoView(span.span_id)}>
+                      Span ID
+                      <StyledIconAnchor />
+                    </SpanIdTitle>
+                  )
                 }
                 extra={this.renderTraversalButton()}
               >
@@ -731,4 +747,4 @@ function generateSlug(result: TransactionResult): string {
   });
 }
 
-export default withApi(SpanDetail);
+export default withApi(withRouter(SpanDetail));
