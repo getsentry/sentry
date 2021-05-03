@@ -199,6 +199,7 @@ class AuthLoginView(BaseView):
                         and request.user
                         and not is_active_superuser(request)
                     ):
+                        # set activeorg to ensure correct redirect upon logging in
                         request.session["activeorg"] = organization.slug
 
                     if settings.SENTRY_SINGLE_ORGANIZATION:

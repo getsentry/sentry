@@ -159,7 +159,8 @@ def handle_existing_identity(
         sample_rate=1.0,
     )
 
-    if request.user and not is_active_superuser(request):
+    if not is_active_superuser(request):
+        # set activeorg to ensure correct redirect upon logging in
         request.session["activeorg"] = organization.slug
     return HttpResponseRedirect(auth.get_login_redirect(request))
 
@@ -488,6 +489,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
     state.clear()
 
     if not is_active_superuser(request):
+        # set activeorg to ensure correct redirect upon logging in
         request.session["activeorg"] = organization.slug
     return post_login_redirect(request)
 
