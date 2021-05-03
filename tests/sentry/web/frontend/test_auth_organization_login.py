@@ -722,7 +722,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 403
         self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
 
-    def test_multiorg_login_correct_redirect(self):
+    def test_multiorg_login_correct_redirect_basic_auth(self):
         self.user.update(is_superuser=False)
         org1 = self.create_organization(name="bar", owner=self.user)
         # create a second org that the user belongs to
@@ -735,6 +735,31 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             {"username": self.user.username, "password": "admin", "op": "login"},
             follow=True,
         )
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            (f"/organizations/{org1.slug}/issues/", 302),
+        ]
+
+    def test_multiorg_login_correct_redirect_sso(self):
+        user = self.create_user("bar@example.com")
+        user.update(is_superuser=False)
+
+        org1 = self.create_organization(name="bar", owner=user)
+        path = reverse("sentry-auth-organization", args=[org1.slug])
+
+        # create a second org that the user belongs to
+        self.create_organization(name="zap", owner=user)
+
+        auth_provider = AuthProvider.objects.create(organization=org1, provider="dummy")
+        AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
+
+        resp = self.client.post(path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        path = reverse("sentry-auth-sso")
+        resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
         assert resp.redirect_chain == [
             (reverse("sentry-login"), 302),
             (f"/organizations/{org1.slug}/issues/", 302),
