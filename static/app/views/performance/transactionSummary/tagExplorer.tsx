@@ -14,6 +14,7 @@ import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {fromSorts, isFieldSortable} from 'app/utils/discover/eventView';
 import {formatPercentage} from 'app/utils/formatters';
 import SegmentExplorerQuery, {
@@ -161,22 +162,6 @@ const getColumnsWithReplacedDuration = (
   return columns;
 };
 
-const handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
-  const queryString = decodeScalar(location.query.query);
-  const conditions = tokenizeSearch(queryString || '');
-
-  conditions.addTagValues(tagKey, [tagValue]);
-
-  const query = stringifyQueryObject(conditions);
-  browserHistory.push({
-    pathname: location.pathname,
-    query: {
-      ...location.query,
-      query: String(query).trim(),
-    },
-  });
-};
-
 type TagValueProps = {
   row: TableDataRow;
 };
@@ -220,6 +205,17 @@ class _TagExplorer extends React.Component<Props> {
     });
   };
 
+  onSortClick(currentSortKind?: string, currentSortField?: string) {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.tag_explorer.sort',
+      eventName: 'Performance Views: Tag Explorer Sorted',
+      organization_id: parseInt(organization.id, 10),
+      field: currentSortField,
+      direction: currentSortKind,
+    });
+  }
+
   renderHeadCell(
     sortedEventView: EventView,
     tableMeta: TableData['meta'],
@@ -245,13 +241,17 @@ class _TagExplorer extends React.Component<Props> {
     const currentSort = sortedEventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
 
+    const currentSortKind = currentSort ? currentSort.kind : undefined;
+    const currentSortField = currentSort ? currentSort.field : undefined;
+
     return (
       <SortLink
         align="left"
         title={columnInfo.name}
-        direction={currentSort ? currentSort.kind : undefined}
+        direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
+        onClick={() => this.onSortClick(currentSortKind, currentSortField)}
       />
     );
   }
@@ -261,13 +261,41 @@ class _TagExplorer extends React.Component<Props> {
       this.renderHeadCell(sortedEventView, tableMeta, column, COLUMN_ORDER[index]);
   };
 
+  handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.tag_explorer.tag_value',
+      eventName: 'Performance Views: Tag Explorer Value Clicked',
+      organization_id: parseInt(organization.id, 10),
+    });
+
+    const queryString = decodeScalar(location.query.query);
+    const conditions = tokenizeSearch(queryString || '');
+
+    conditions.addTagValues(tagKey, [tagValue]);
+
+    const query = stringifyQueryObject(conditions);
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: String(query).trim(),
+      },
+    });
+  };
+
   handleCellAction = (
     column: TableColumn<ColumnKeys>,
     tagValue: React.ReactText,
     actionRow: any
   ) => {
     return (action: Actions) => {
-      const {eventView, location} = this.props;
+      const {eventView, location, organization} = this.props;
+      trackAnalyticsEvent({
+        eventKey: 'performance_views.summary.tag_explorer.cell_action',
+        eventName: 'Performance Views: Tag Explorer Cell Action Clicked',
+        organization_id: parseInt(organization.id, 10),
+      });
 
       const searchConditions = tokenizeSearch(eventView.query);
 
@@ -313,7 +341,7 @@ class _TagExplorer extends React.Component<Props> {
           <Link
             to=""
             onClick={() =>
-              handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value)
+              this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value)
             }
           >
             <TagValue row={dataRow} />
@@ -393,7 +421,7 @@ class _TagExplorer extends React.Component<Props> {
         {({isLoading, tableData, pageLinks}) => {
           return (
             <React.Fragment>
-              <TagsHeader pageLinks={pageLinks} />
+              <TagsHeader organization={organization} pageLinks={pageLinks} />
               <GridEditable
                 isLoading={isLoading}
                 data={tableData && tableData.data ? tableData.data : []}
@@ -418,11 +446,18 @@ class _TagExplorer extends React.Component<Props> {
 }
 
 type HeaderProps = {
+  organization: Organization;
   pageLinks: string | null;
 };
 function TagsHeader(props: HeaderProps) {
-  const {pageLinks} = props;
+  const {pageLinks, organization} = props;
   const handleCursor = (cursor: string, pathname: string, query: Query) => {
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.tag_explorer.change_page',
+      eventName: 'Performance Views: Tag Explorer Change Page',
+      organization_id: parseInt(organization.id, 10),
+    });
+
     browserHistory.push({
       pathname,
       query: {...query, [TAGS_CURSOR_NAME]: cursor},
