@@ -3,8 +3,10 @@ from urllib.parse import parse_qs
 import pytest
 import responses
 from django.utils import timezone
+from exam import fixture
 
 from sentry.integrations.slack.notifications import send_notification_as_slack
+from sentry.mail import mail_adapter
 from sentry.models import (
     Activity,
     Deploy,
@@ -57,6 +59,10 @@ def get_attachment():
 
 
 class SlackActivityNotificationTest(ActivityTestCase, TestCase):
+    @fixture
+    def adapter(self):
+        return mail_adapter
+
     def setUp(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
@@ -402,7 +408,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert attachment["footer"] == event.group.qualified_short_id
 
     @responses.activate
-    @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_issue_alert_team(self, mock_func):
         """Test that issue alerts are sent to members of a Sentry team in Slack."""
 
@@ -466,7 +472,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
     @pytest.mark.skip(reason="will be needed soon but not yet")
     @responses.activate
-    @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     @mock.patch("sentry.mail.adapter.digests")
     def test_digest_enabled(self, digests, mock_func):
         """
