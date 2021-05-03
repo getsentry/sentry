@@ -425,9 +425,10 @@ class File(Model):
             offset = 0
             for blob in file_blobs:
                 FileBlobIndex.objects.create(file=self, blob=blob, offset=offset)
-                for chunk in blob.getfile().chunks():
-                    new_checksum.update(chunk)
-                    tf.write(chunk)
+                with blob.getfile() as blobfile:
+                    for chunk in blobfile.chunks():
+                        new_checksum.update(chunk)
+                        tf.write(chunk)
                 offset += blob.size
 
             self.size = offset
