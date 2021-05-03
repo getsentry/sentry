@@ -25,26 +25,35 @@ OK_REMINDERS_SENT = _(
 )
 
 
-class AuthProviderSettingsForm(forms.Form):
-    require_link = forms.BooleanField(
-        label=_("Require SSO"),
-        help_text=_("Require members use a valid linked SSO account to access this organization"),
-        required=False,
-    )
+def auth_provider_settings_form(provider, organization, user):
+    class AuthProviderSettingsForm(forms.Form):
+        require_link = forms.BooleanField(
+            label=_("Require SSO"),
+            help_text=_(
+                "Require members use a valid linked SSO account to access this organization"
+            ),
+            required=False,
+        )
 
-    enable_scim = forms.BooleanField(
-        label=_("Enable SCIM"),
-        help_text=_("Enable SCIM to manage Users and Groups via your Provider"),
-        required=False,
-    )
+        enable_scim = (
+            forms.BooleanField(
+                label=_("Enable SCIM"),
+                help_text=_("Enable SCIM to manage Memberships and Teams via your Provider"),
+                required=False,
+            )
+            if provider.can_use_scim(organization, user)
+            else None
+        )
 
-    default_role = forms.ChoiceField(
-        label=_("Default Role"),
-        choices=roles.get_choices(),
-        help_text=_(
-            "The default role new members will receive when logging in for the first time."
-        ),
-    )
+        default_role = forms.ChoiceField(
+            label=_("Default Role"),
+            choices=roles.get_choices(),
+            help_text=_(
+                "The default role new members will receive when logging in for the first time."
+            ),
+        )
+
+    return AuthProviderSettingsForm
 
 
 class OrganizationAuthSettingsView(OrganizationView):
@@ -95,19 +104,21 @@ class OrganizationAuthSettingsView(OrganizationView):
                 )
                 return self.redirect(next_uri)
 
+        AuthProviderSettingsForm = auth_provider_settings_form(provider, organization, request.user)
         form = AuthProviderSettingsForm(
             data=request.POST if request.POST.get("op") == "settings" else None,
             initial={
                 "require_link": not auth_provider.flags.allow_unlinked,
-                "enable_scim": bool(auth_provider.flags.scim_enabled),
+                "enable_scim": None,
                 "default_role": organization.default_role,
             },
         )
 
         if form.is_valid():
             auth_provider.flags.allow_unlinked = not form.cleaned_data["require_link"]
-            if auth_provider.flags.scim_enabled != form.cleaned_data["enable_scim"]:
-                if form.cleaned_data["enable_scim"] is True:
+
+            if auth_provider.flags.scim_enabled != form.cleaned_data.get("enable_scim", False):
+                if form.cleaned_data.get("enable_scim", False) is True:
                     auth_provider.enable_scim(request.user)
                 else:
                     auth_provider.disable_scim(request.user)
@@ -156,9 +167,9 @@ class OrganizationAuthSettingsView(OrganizationView):
             "login_url": absolute_uri(organization.get_url()),
             "auth_provider": auth_provider,
             "provider_name": provider.name,
+            "scim_api_token": auth_provider.get_scim_token(),
             "content": response,
         }
-        print(form)
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
     @transaction.atomic

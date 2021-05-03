@@ -1,7 +1,7 @@
+from sentry import features
 from sentry.auth.providers.saml2.forms import URLMetadataForm
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.auth.providers.saml2.views import make_simple_setup
-from sentry import features
 
 SelectIdP = make_simple_setup(URLMetadataForm, "sentry_auth_okta/select-idp.html")
 
@@ -15,6 +15,7 @@ class OktaSAML2Provider(SAML2Provider):
     def can_use_scim(self, organization, user):
         if features.has("organizations:sso-scim", organization, actor=user):
             return True
+
         return False
 
     def attribute_mapping(self):

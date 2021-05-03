@@ -1,4 +1,3 @@
-# from sentry.models import SentryAppInstallationForProvider, SentryAppInstallation
 import logging
 
 from django.db import models
@@ -12,7 +11,6 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.mediators.sentry_apps import Destroyer, InternalCreator
 
 logger = logging.getLogger("sentry.auth.scim")
 
@@ -64,6 +62,8 @@ class AuthProvider(Model):
         return manager.get(self.provider, **self.config)
 
     def get_scim_token(self):
+        from sentry.models import SentryAppInstallationForProvider
+
         if self.flags.scim_enabled:
             sentry_app_installation = SentryAppInstallationForProvider.objects.get(
                 organization=self.organization, provider=f"{self.provider}_scim"
@@ -76,6 +76,9 @@ class AuthProvider(Model):
             return None
 
     def enable_scim(self, user):
+        from sentry.mediators.sentry_apps import InternalCreator
+        from sentry.models import SentryAppInstallation, SentryAppInstallationForProvider
+
         if not self.get_provider().can_use_scim(self.organization, user):
             return
 
@@ -109,6 +112,9 @@ class AuthProvider(Model):
         self.flags.scim_enabled = True
 
     def disable_scim(self, user):
+        from sentry.mediators.sentry_apps import Destroyer
+        from sentry.models import SentryAppInstallationForProvider
+
         install = SentryAppInstallationForProvider.objects.get(
             organization=self.organization, provider="okta_scim"
         )
