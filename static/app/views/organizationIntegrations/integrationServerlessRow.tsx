@@ -28,7 +28,7 @@ type State = {
 };
 
 class IntegrationServerlessRow extends React.Component<Props, State> {
-  state = {
+  state: State = {
     submitting: false,
   };
   get enabled() {

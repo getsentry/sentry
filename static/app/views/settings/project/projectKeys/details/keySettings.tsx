@@ -48,7 +48,7 @@ type State = {
 };
 
 class KeySettings extends React.Component<Props, State> {
-  state = {
+  state: State = {
     loading: false,
     error: false,
   };
