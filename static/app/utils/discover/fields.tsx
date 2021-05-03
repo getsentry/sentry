@@ -824,6 +824,19 @@ export function isSpanOperationBreakdownField(field: string) {
   return field.startsWith('spans.');
 }
 
+export const SPAN_OP_RELATIVE_BREAKDOWN_FIELD = 'span_ops_breakdown.relative';
+
+export function isRelativeSpanOperationBreakdownField(field: string) {
+  return field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
+}
+
+export const SPAN_OP_BREAKDOWN_FIELDS = [
+  'spans.http',
+  'spans.db',
+  'spans.browser',
+  'spans.resource',
+];
+
 export function getSpanOperationName(field: string): string | null {
   const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);
   if (results && results.length >= 2) {
