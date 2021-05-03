@@ -1,13 +1,15 @@
-import React from 'react';
+import React, {useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Client} from 'app/api';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import {SectionHeading} from 'app/components/charts/styles';
 import GroupList from 'app/components/issues/groupList';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -27,12 +29,20 @@ type Props = {
 };
 
 function ProjectIssues({organization, location, projectId, api}: Props) {
+  const [pageLinks, setPageLinks] = useState<string | undefined>();
+  const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
+
   function handleOpenClick() {
     trackAnalyticsEvent({
       eventKey: 'project_detail.open_issues',
       eventName: 'Project Detail: Open issues from project detail',
       organization_id: parseInt(organization.id, 10),
     });
+  }
+
+  function handleFetchSuccess(groupListState, cursorHandler) {
+    setPageLinks(groupListState.pageLinks);
+    setOnCursor(() => cursorHandler);
   }
 
   const endpointPath = `/organizations/${organization.slug}/issues/`;
@@ -81,28 +91,32 @@ function ProjectIssues({organization, location, projectId, api}: Props) {
     <React.Fragment>
       <ControlsWrapper>
         <SectionHeading>{t('Frequent Unhandled Issues')}</SectionHeading>
-        <Button
-          data-test-id="issues-open"
-          size="small"
-          to={issueSearch}
-          onClick={handleOpenClick}
-        >
-          {t('Open in Issues')}
-        </Button>
+        <ButtonBar gap={1}>
+          <div>
+            <Button
+              data-test-id="issues-open"
+              size="small"
+              to={issueSearch}
+              onClick={handleOpenClick}
+            >
+              {t('Open in Issues')}
+            </Button>
+          </div>
+          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
+        </ButtonBar>
       </ControlsWrapper>
 
-      <TableWrapper>
-        <GroupList
-          orgId={organization.slug}
-          endpointPath={endpointPath}
-          queryParams={queryParams}
-          query=""
-          canSelectGroups={false}
-          renderEmptyMessage={renderEmptyMessage}
-          withChart={false}
-          withPagination
-        />
-      </TableWrapper>
+      <GroupList
+        orgId={organization.slug}
+        endpointPath={endpointPath}
+        queryParams={queryParams}
+        query=""
+        canSelectGroups={false}
+        renderEmptyMessage={renderEmptyMessage}
+        withChart={false}
+        withPagination={false}
+        onFetchSuccess={handleFetchSuccess}
+      />
     </React.Fragment>
   );
 }
@@ -112,14 +126,13 @@ const ControlsWrapper = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(1)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+  }
 `;
 
-const TableWrapper = styled('div')`
-  margin-bottom: ${space(4)};
-  ${Panel} {
-    /* smaller space between table and pagination */
-    margin-bottom: -${space(1)};
-  }
+const StyledPagination = styled(Pagination)`
+  margin: 0;
 `;
 
 export default ProjectIssues;

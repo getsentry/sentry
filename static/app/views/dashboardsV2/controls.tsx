@@ -39,6 +39,7 @@ class Controls extends React.Component<Props> {
       dashboardState,
       dashboards,
       dashboard,
+      organization,
       onEdit,
       onCreate,
       onCancel,
@@ -114,14 +115,14 @@ class Controls extends React.Component<Props> {
     if (dashboard) {
       currentOption = {
         label: dashboard.title,
-        value: dashboard,
+        value: {...dashboard, widgetDisplay: dashboard.widgets.map(w => w.displayType)},
       };
     } else if (dropdownOptions.length) {
       currentOption = dropdownOptions[0];
     }
 
     return (
-      <OverviewControls gap={1} key="controls">
+      <StyledButtonBar gap={1} key="controls">
         <DashboardSelect>
           <SelectControl
             key="select"
@@ -130,7 +131,6 @@ class Controls extends React.Component<Props> {
             options={dropdownOptions}
             value={currentOption}
             onChange={({value}: {value: DashboardListItem}) => {
-              const {organization} = this.props;
               browserHistory.push({
                 pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
                 // TODO(mark) should this retain global selection?
@@ -139,6 +139,16 @@ class Controls extends React.Component<Props> {
             }}
           />
         </DashboardSelect>
+        <Feature features={['organizations:dashboards-manage']}>
+          <Button
+            data-test-id="dashboard-manage"
+            to={{
+              pathname: `/organizations/${organization.slug}/dashboards/manage/`,
+            }}
+          >
+            {t('Manage Dashboards')}
+          </Button>
+        </Feature>
         <DashboardEditFeature>
           {hasFeature => (
             <Button
@@ -170,7 +180,7 @@ class Controls extends React.Component<Props> {
             </Button>
           )}
         </DashboardEditFeature>
-      </OverviewControls>
+      </StyledButtonBar>
     );
   }
 }
@@ -214,10 +224,6 @@ const DashboardSelect = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  flex-shrink: 0;
-`;
-
-const OverviewControls = styled(StyledButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};

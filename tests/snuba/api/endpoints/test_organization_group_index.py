@@ -743,7 +743,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
-    def test_assigned_me_or_none(self):
+    def test_assigned_me_none(self):
         self.login_as(user=self.user)
         groups = []
         for i in range(5):
@@ -767,7 +767,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 5
 
         GroupAssignee.objects.assign(assigned_groups[1], self.create_user("other@user.com"))
-        response = self.get_response(limit=10, query="assigned:[me_or_none]")
+        response = self.get_response(limit=10, query="assigned:[me, none]")
         assert len(response.data) == 4
 
     def test_seen_stats(self):
@@ -867,60 +867,58 @@ class GroupListTest(APITestCase, SnubaTestCase):
         ).replace(tzinfo=timezone.utc)
 
     def test_inbox_search(self):
-        with self.feature("organizations:inbox"):
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=200)),
-                    "fingerprint": ["group-1"],
-                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=200)),
+                "fingerprint": ["group-1"],
+                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
 
-            event = self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=200)),
-                    "fingerprint": ["group-2"],
-                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=200)),
+                "fingerprint": ["group-2"],
+                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
 
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=200)),
-                    "fingerprint": ["group-3"],
-                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=200)),
+                "fingerprint": ["group-3"],
+                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
 
-            add_group_to_inbox(event.group, GroupInboxReason.NEW)
+        add_group_to_inbox(event.group, GroupInboxReason.NEW)
 
-            self.login_as(user=self.user)
-            response = self.get_response(
-                sort_by="date", limit=10, query="is:unresolved is:for_review", expand=["inbox"]
-            )
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == event.group.id
-            assert response.data[0]["inbox"] is not None
-            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved is:for_review", expand=["inbox"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["inbox"] is not None
+        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
     def test_inbox_search_outside_retention(self):
-        with self.feature("organizations:inbox"):
-            self.login_as(user=self.user)
-            response = self.get_response(
-                sort="inbox",
-                limit=10,
-                query="is:unresolved is:for_review",
-                collapse="stats",
-                expand=["inbox", "owners"],
-                start=iso_format(before_now(days=20)),
-                end=iso_format(before_now(days=15)),
-            )
-            assert response.status_code == 200
-            assert len(response.data) == 0
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort="inbox",
+            limit=10,
+            query="is:unresolved is:for_review",
+            collapse="stats",
+            expand=["inbox", "owners"],
+            start=iso_format(before_now(days=20)),
+            end=iso_format(before_now(days=15)),
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
     def test_assigned_or_suggested_search(self):
         event = self.store_event(
@@ -1144,56 +1142,54 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["filtered"] is not None
 
     def test_inbox_fields(self):
-        with self.feature("organizations:inbox"):
-            event = self.store_event(
-                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
-                project_id=self.project.id,
-            )
-            add_group_to_inbox(event.group, GroupInboxReason.NEW)
-            query = "status:unresolved"
-            self.login_as(user=self.user)
-            response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        add_group_to_inbox(event.group, GroupInboxReason.NEW)
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
 
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == event.group.id
-            assert response.data[0]["inbox"] is not None
-            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
-            assert response.data[0]["inbox"]["reason_details"] is None
-            remove_group_from_inbox(event.group)
-            snooze_details = {
-                "until": None,
-                "count": 3,
-                "window": None,
-                "user_count": None,
-                "user_window": 5,
-            }
-            add_group_to_inbox(event.group, GroupInboxReason.UNIGNORED, snooze_details)
-            response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["inbox"] is not None
+        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+        assert response.data[0]["inbox"]["reason_details"] is None
+        remove_group_from_inbox(event.group)
+        snooze_details = {
+            "until": None,
+            "count": 3,
+            "window": None,
+            "user_count": None,
+            "user_window": 5,
+        }
+        add_group_to_inbox(event.group, GroupInboxReason.UNIGNORED, snooze_details)
+        response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
 
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == event.group.id
-            assert response.data[0]["inbox"] is not None
-            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
-            assert response.data[0]["inbox"]["reason_details"] == snooze_details
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["inbox"] is not None
+        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
+        assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
     def test_expand_string(self):
-        with self.feature("organizations:inbox"):
-            event = self.store_event(
-                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
-                project_id=self.project.id,
-            )
-            add_group_to_inbox(event.group, GroupInboxReason.NEW)
-            query = "status:unresolved"
-            self.login_as(user=self.user)
-            response = self.get_response(sort_by="date", limit=10, query=query, expand="inbox")
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == event.group.id
-            assert response.data[0]["inbox"] is not None
-            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
-            assert response.data[0]["inbox"]["reason_details"] is None
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        add_group_to_inbox(event.group, GroupInboxReason.NEW)
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query=query, expand="inbox")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["inbox"] is not None
+        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+        assert response.data[0]["inbox"]["reason_details"] is None
 
     def test_expand_owners(self):
         event = self.store_event(
@@ -1349,12 +1345,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "lifetime" in response.data[0]
         assert "filtered" in response.data[0]
 
-    def test_has_unhandled_flag_bug(self):
-        # There was a bug where we tried to access attributes on seen_stats if this feature is active
-        # but seen_stats could be null when we collapse stats.
-        with self.feature(["organizations:inbox"]):
-            self.test_collapse_stats()
-
     def test_collapse_stats_group_snooze_bug(self):
         # There was a bug where we tried to access attributes on seen_stats if this feature is active
         # but seen_stats could be null when we collapse stats.
@@ -1411,7 +1401,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(
             qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
         )
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         # the previously resolved entry should not be included
         new_group1 = Group.objects.get(id=group1.id)
@@ -1453,7 +1443,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(
             qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
         )
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
         assert response.status_code == 200
 
     def test_bulk_resolve(self):
@@ -1472,7 +1462,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 100
 
         response = self.get_valid_response(qs_params={"status": "unresolved"}, status="resolved")
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         response = self.get_valid_response(query="is:unresolved", sort_by="date", method="get")
         assert len(response.data) == 0
@@ -1931,7 +1921,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.IGNORED
 
-        assert response.data == {"status": "ignored", "statusDetails": {}}
+        assert response.data == {"status": "ignored", "statusDetails": {}, "inbox": None}
 
     def test_snooze_duration(self):
         group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
@@ -2293,16 +2283,14 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group2 = self.create_group(checksum="b" * 32)
 
         self.login_as(user=self.user)
-        with self.feature("organizations:inbox"):
-            response = self.get_valid_response(
-                qs_params={"id": [group1.id, group2.id]}, status="resolved"
-            )
+        response = self.get_valid_response(
+            qs_params={"id": [group1.id, group2.id]}, status="resolved"
+        )
         assert response.data["inbox"] is None
         assert not GroupInbox.objects.filter(group=group1).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
 
-        with self.feature("organizations:inbox"):
-            response = self.get_valid_response(qs_params={"id": [group2.id]}, status="unresolved")
+        response = self.get_valid_response(qs_params={"id": [group2.id]}, status="unresolved")
         assert not GroupInbox.objects.filter(group=group1).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
 

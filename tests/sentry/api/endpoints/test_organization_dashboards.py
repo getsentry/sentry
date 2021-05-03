@@ -1,6 +1,11 @@
 from django.urls import reverse
 
-from sentry.models import Dashboard, DashboardTombstone
+from sentry.models import (
+    Dashboard,
+    DashboardTombstone,
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
+)
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 from sentry.utils.compat import zip
 
@@ -16,11 +21,25 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self.dashboard_2 = Dashboard.objects.create(
             title="Dashboard 2", created_by=self.user, organization=self.organization
         )
+        DashboardWidget.objects.create(
+            dashboard=self.dashboard_2,
+            order=0,
+            title="Widget 1",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            interval="1d",
+        )
 
     def assert_equal_dashboards(self, dashboard, data):
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
-        assert data["createdBy"] == str(dashboard.created_by.id)
+        assert data["createdBy"]["id"] == str(dashboard.created_by.id)
+
+        widgets = self.get_widgets(dashboard.id)
+        widget_displays = []
+        for widget in widgets:
+            widget_displays.append(DashboardWidgetDisplayTypes.get_type_name(widget.display_type))
+
+        assert data["widgetDisplay"] == widget_displays
         assert "widgets" not in data
 
     def test_get(self):
@@ -128,3 +147,20 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"title": self.dashboard.title})
         assert response.status_code == 409
         assert response.data == "Dashboard title already taken"
+
+    def test_duplicate_dashboard(self):
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": self.dashboard.title, "duplicate": True},
+        )
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == f"{self.dashboard.title} copy"
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": self.dashboard.title, "duplicate": True},
+        )
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == f"{self.dashboard.title} copy 1"

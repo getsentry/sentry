@@ -285,10 +285,12 @@ class MailAdapter:
             team = Team.objects.get(id=int(target_identifier), projectteam__project=project)
         except Team.DoesNotExist:
             return set()
-        return (
-            set(team.member_set.values_list("user_id", flat=True))
-            - self.disabled_users_from_project(project)[ExternalProviders.EMAIL]
-        )
+
+        disabled_users = self.disabled_users_from_project(project).get(ExternalProviders.EMAIL)
+        if disabled_users:
+            return set(team.member_set.values_list("user_id", flat=True)) - disabled_users
+        else:
+            return set(team.member_set.values_list("user_id", flat=True))
 
     def get_send_to_member(self, project, target_identifier):
         """
@@ -474,9 +476,10 @@ class MailAdapter:
 
     def notify_digest(self, project, digest, target_type, target_identifier=None):
         metrics.incr("mail_adapter.notify_digest")
-        user_ids = self.get_send_to(project, target_type, target_identifier)[
+        user_ids = self.get_send_to(project, target_type, target_identifier).get(
             ExternalProviders.EMAIL
-        ]
+        )
+
         logger.info(
             "mail.adapter.notify_digest",
             extra={
@@ -547,9 +550,9 @@ class MailAdapter:
         metrics.incr("mail_adapter.handle_user_report")
         group = Group.objects.get(id=payload["report"]["issue"]["id"])
 
-        participants = GroupSubscription.objects.get_participants(group=group)
-        if participants:
-            participants = participants[ExternalProviders.EMAIL]
+        participants = GroupSubscription.objects.get_participants(group=group).get(
+            ExternalProviders.EMAIL
+        )
 
         if not participants:
             return

@@ -281,7 +281,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         values, save them to the DB. This does not execute as a transaction.
         """
 
-        for (type, scope_type, scope_identifier, provider, value) in notification_settings:
+        for (provider, type, scope_type, scope_identifier, value) in notification_settings:
             # A missing DB row is equivalent to DEFAULT.
             if value == NotificationSettingOptionValues.DEFAULT:
                 self._filter(provider, type, scope_type, scope_identifier, [target_id]).delete()

@@ -1,6 +1,5 @@
-// XXX(epurkhiser): When we switch to the new React JSX runtime (enabled in
-// React 17) we will no longer need this import and can drop
-// babel-preset-css-prop for babel-preset.
+// XXX(epurkhiser): When we switch to the new React JSX runtime we will no
+// longer need this import and can drop babel-preset-css-prop for babel-preset.
 /// <reference types="@emotion/react/types/css-prop" />
 
 import u2f from 'u2f-api';
@@ -310,6 +309,7 @@ export type Team = {
   isPending: boolean;
   memberCount: number;
   avatar: Avatar;
+  externalTeams: ExternalTeam[];
 };
 
 export type TeamWithProjects = Team & {projects: Project[]};
@@ -967,6 +967,11 @@ type BaseGroupStatusResolution = {
   statusDetails: ResolutionStatusDetails;
 };
 
+export type GroupRelease = {
+  firstRelease: Release;
+  lastRelease: Release;
+};
+
 // TODO(ts): incomplete
 export type BaseGroup = {
   id: string;
@@ -975,14 +980,12 @@ export type BaseGroup = {
   annotations: string[];
   assignedTo: Actor;
   culprit: string;
-  firstRelease: Release;
   firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  lastRelease: Release;
   lastSeen: string;
   level: Level;
   logger: string;
@@ -1005,11 +1008,13 @@ export type BaseGroup = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
-};
+} & GroupRelease;
 
 export type GroupReprocessing = BaseGroup & GroupStats & BaseGroupStatusReprocessing;
 export type GroupResolution = BaseGroup & GroupStats & BaseGroupStatusResolution;
 export type Group = GroupResolution | GroupReprocessing;
+export type GroupCollapseRelease = Omit<Group, keyof GroupRelease> &
+  Partial<GroupRelease>;
 
 export type GroupTombstone = {
   id: string;
@@ -2030,3 +2035,25 @@ export type KeyValueListData = {
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
 }[];
+
+export type ExternalActorMapping = {
+  id: string;
+  externalName: string;
+  memberId?: string;
+  teamId?: string;
+  sentryName: string;
+};
+
+export type ExternalUser = {
+  id: string;
+  memberId: string;
+  externalName: string;
+  provider: string;
+};
+
+export type ExternalTeam = {
+  id: string;
+  teamId: string;
+  externalName: string;
+  provider: string;
+};

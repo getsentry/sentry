@@ -325,5 +325,52 @@ describe('Dashboards > Detail', function () {
 
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
     });
+
+    it('hides and shows manage dashboards based on feature', async function () {
+      wrapper = mountWithTheme(
+        <DashboardDetail
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(
+        wrapper.find('Controls Button[data-test-id="dashboard-manage"]').exists()
+      ).toBe(false);
+
+      const newOrg = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboards-manage',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <DashboardDetail
+          organization={newOrg.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={newOrg.router}
+          location={newOrg.router.location}
+        />,
+        newOrg.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(
+        wrapper.find('Controls Button[data-test-id="dashboard-manage"]').exists()
+      ).toBe(true);
+    });
   });
 });
