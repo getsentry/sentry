@@ -120,15 +120,13 @@ class IssueQuickTrace extends React.Component<Props, State> {
                 </ExternalLink>
               ),
             })}
-            <Actions>
-              <Button
-                priority="link"
-                title={t('Dismiss for a month')}
-                onClick={this.snoozePrompt}
-              >
-                <IconClose />
-              </Button>
-            </Actions>
+            <Button
+              priority="link"
+              title={t('Dismiss for a month')}
+              onClick={this.snoozePrompt}
+            >
+              <IconClose />
+            </Button>
           </AlertContent>
         </StyledAlert>
       );
@@ -198,12 +196,6 @@ const AlertContent = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     justify-content: space-between;
   }
-`;
-
-const Actions = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
-  grid-gap: ${space(1)};
 `;
 
 export default withApi(IssueQuickTrace);
