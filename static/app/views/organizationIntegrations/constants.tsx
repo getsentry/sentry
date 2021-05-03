@@ -38,6 +38,7 @@ export const POPULARITY_WEIGHT: {
   amixr: 9,
   clickup: 9,
   clubhouse: 9,
+  komodor: 9,
   linear: 9,
   quill: 9,
   rookout: 9,
