@@ -197,11 +197,11 @@ class ManageDashboards extends AsyncView<Props, State> {
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
   margin-right: ${space(2)};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
 `;
 
 const StyledDropdownControl = styled(DropdownControl)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
 `;
 
 const StyledActions = styled('div')`
@@ -213,6 +213,7 @@ const StyledActions = styled('div')`
     grid-template-columns: auto;
   }
 
+  margin-bottom: ${space(1)};
   align-items: center;
 `;
 
