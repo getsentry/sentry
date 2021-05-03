@@ -86,6 +86,7 @@ class RelatedIssues extends React.Component<Props> {
             withPagination={false}
             useFilteredStats
             customStatsPeriod={timePeriod}
+            useTintRow={false}
           />
         </TableWrapper>
       </React.Fragment>
