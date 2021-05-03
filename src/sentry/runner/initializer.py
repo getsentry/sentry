@@ -485,9 +485,9 @@ def monkeypatch_drf_jsonrenderer_encoder_class():
     # if STRICT_JSON=True.
     from rest_framework.renderers import JSONRenderer
 
-    from sentry.utils.json import _default_encoder
+    from sentry.utils.json import DefaultJSONEncoder
 
-    JSONRenderer.encoder_class = _default_encoder
+    JSONRenderer.encoder_class = DefaultJSONEncoder
 
 
 def monkeypatch_drf_listfield_serializer_errors():

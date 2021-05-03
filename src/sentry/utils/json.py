@@ -50,6 +50,19 @@ def better_default_encoder(o):
     raise TypeError(repr(o) + " is not JSON serializable")
 
 
+class DefaultJSONEncoder(JSONEncoder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            # upstream: (', ', ': ')
+            # Ours eliminates whitespace.
+            separators=(",", ":"),
+            # upstream: False
+            # True makes nan, inf, -inf serialize as null in compliance with ECMA-262.
+            ignore_nan=True,
+            default=better_default_encoder,
+        )
+
+
 class JSONEncoderForHTML(JSONEncoder):
     # Our variant of JSONEncoderForHTML that also accounts for apostrophes
     # See: https://github.com/simplejson/simplejson/blob/master/simplejson/encoder.py
@@ -69,15 +82,7 @@ class JSONEncoderForHTML(JSONEncoder):
             yield chunk
 
 
-_default_encoder = JSONEncoder(
-    # upstream: (', ', ': ')
-    # Ours eliminates whitespace.
-    separators=(",", ":"),
-    # upstream: False
-    # True makes nan, inf, -inf serialize as null in compliance with ECMA-262.
-    ignore_nan=True,
-    default=better_default_encoder,
-)
+_default_encoder = DefaultJSONEncoder()
 
 _default_escaped_encoder = JSONEncoderForHTML(
     separators=(",", ":"),
