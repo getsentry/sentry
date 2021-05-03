@@ -326,12 +326,11 @@ def parse_sources(config):
 
 
 def get_options_for_project(project):
-    rate = options.get("symbolicator.compare_stackwalking_methods_rate")
-    compare_stackwalking = True if random.random() < rate else False
+    compare_rate = options.get("symbolicator.compare_stackwalking_methods_rate")
     return {
         # Symbolicators who do not support options will ignore this field entirely.
         "dif_candidates": features.has("organizations:images-loaded-v2", project.organization),
-        "compare_stackwalking_methods": compare_stackwalking,
+        "compare_stackwalking_methods": random.random() < compare_rate,
     }
 
 
