@@ -33,7 +33,7 @@ type State = {
 class ProjectKeyCredentials extends React.Component<Props, State> {
   static defaultProps = DEFAULT_PROPS;
 
-  state = {
+  state: State = {
     showDeprecatedDsn: false,
   };
 

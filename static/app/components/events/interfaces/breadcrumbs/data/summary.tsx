@@ -17,7 +17,7 @@ type State = {
 };
 
 class Summary extends React.Component<Props, State> {
-  state = {
+  state: State = {
     isExpanded: false,
     hasOverflow: false,
   };

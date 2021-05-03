@@ -34,7 +34,7 @@ type State = {
 };
 
 class RuleRow extends React.Component<Props, State> {
-  state = {loading: false, error: false};
+  state: State = {loading: false, error: false};
 
   renderIssueRule(data: IssueAlertRule) {
     const {params, routes, location, canEdit} = this.props;

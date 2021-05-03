@@ -32,7 +32,7 @@ type State = {
 };
 
 class ColumnEditModal extends React.Component<Props, State> {
-  state = {
+  state: State = {
     columns: this.props.columns,
   };
 
