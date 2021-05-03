@@ -1,11 +1,11 @@
 import re
-from typing import Any, List, Mapping
+from typing import Any, Mapping
 from urllib.parse import urljoin
 
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.utils import LEVEL_TO_COLOR
-from sentry.models import Group, Rule
 from sentry.notifications.base import BaseNotification
+from sentry.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.avatar import get_sentry_avatar_url
 from sentry.utils.http import absolute_uri
 
@@ -40,6 +40,15 @@ def build_notification_footer(notification: BaseNotification) -> str:
 def build_notification_attachment(
     notification: BaseNotification, context: Mapping[str, Any]
 ) -> Mapping[str, str]:
+    if isinstance(notification, AlertRuleNotification):
+        return build_group_attachment(
+            notification.group,
+            notification.event,
+            context["tags"],
+            notification.rules,
+            issue_alert=True,
+        )
+
     footer = build_notification_footer(notification)
     return {
         "title": notification.get_title(),
@@ -49,13 +58,3 @@ def build_notification_attachment(
         "footer": footer,
         "color": LEVEL_TO_COLOR["info"],
     }
-
-
-def build_issue_notification_attachment(
-    group: Group,
-    event=None,
-    tags: Mapping[str, str] = None,
-    rules: List[Rule] = None,
-):
-
-    return build_group_attachment(group, event, tags, rules, issue_alert=True)

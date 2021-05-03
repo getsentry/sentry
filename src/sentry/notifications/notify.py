@@ -7,6 +7,7 @@ from sentry.types.integrations import ExternalProviders
 Notifiable = Callable[
     [Any, Set[User], Mapping[str, Any], Optional[Mapping[int, Mapping[str, Any]]]], None
 ]
+
 # Global notifier registry.
 registry: MutableMapping[ExternalProviders, Notifiable] = {}
 

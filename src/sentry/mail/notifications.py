@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Mapping, Optional, Set
 
 from sentry import options
@@ -5,10 +6,13 @@ from sentry.models import ProjectOption, User
 from sentry.notifications.activity.base import ActivityNotification
 from sentry.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
+from sentry.notifications.rules import AlertRuleNotification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_link
+
+logger = logging.getLogger(__name__)
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
@@ -43,6 +47,8 @@ def get_subject_with_prefix(
 def get_email_type(notification: BaseNotification) -> str:
     if isinstance(notification, ActivityNotification):
         return f"notify.activity.{notification.activity.get_type_display()}"
+    elif isinstance(notification, AlertRuleNotification):
+        return "notify.error"
     return ""
 
 
@@ -59,7 +65,24 @@ def can_users_unsubscribe(notification: BaseNotification) -> bool:
 
 
 def log_message(notification: BaseNotification, user: User) -> None:
-    pass
+    extra = {
+        "project_id": notification.project.id,
+        "user_id": user.id,
+    }
+    if notification.group:
+        extra.update({"group": notification.group.id})
+
+    if isinstance(notification, AlertRuleNotification):
+        extra.update(
+            {
+                "target_type": notification.target_type,
+                "target_identifier": notification.target_identifier,
+            }
+        )
+    elif isinstance(notification, ActivityNotification):
+        extra.update({"activity": notification.activity})
+
+    logger.info("mail.adapter.notify.mail_user", extra=extra)
 
 
 def get_context(
@@ -104,7 +127,7 @@ def send_notification_as_email(
             html_template=notification.get_html_template(),
             headers=headers,
             reference=notification.get_reference(),
-            reply_reference=notification.group,
+            reply_reference=notification.get_reply_reference(),
             type=type,
         )
         msg.add_users([user.id], project=notification.project)

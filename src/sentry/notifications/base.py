@@ -1,4 +1,4 @@
-from typing import Any, Mapping, MutableMapping, Set
+from typing import Any, Mapping, MutableMapping, Optional, Set
 
 from sentry.models import Group, Project, User
 from sentry.types.integrations import ExternalProviders
@@ -28,6 +28,9 @@ class BaseNotification:
 
     def get_reference(self) -> Any:
         raise NotImplementedError
+
+    def get_reply_reference(self) -> Optional[Any]:
+        return None
 
     def should_email(self) -> bool:
         return True
