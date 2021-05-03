@@ -32,12 +32,19 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="externalactor",
-            name="integration",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                default=1, on_delete=django.db.models.deletion.CASCADE, to="sentry.Integration"
-            ),
-            preserve_default=False,
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterField(
+                    model_name="externalactor",
+                    name="integration",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        default=1,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Integration",
+                    ),
+                    preserve_default=False,
+                ),
+            ],
+            database_operations=[],
         ),
     ]
