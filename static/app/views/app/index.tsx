@@ -64,7 +64,7 @@ class App extends React.Component<Props, State> {
     location: PropTypes.object,
   };
 
-  state = {
+  state: State = {
     loading: false,
     error: false,
     needsUpgrade: ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
