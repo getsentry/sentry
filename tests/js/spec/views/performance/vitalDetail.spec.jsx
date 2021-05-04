@@ -8,12 +8,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import VitalDetail from 'app/views/performance/vitalDetail/';
 
 function initializeData({features: additionalFeatures = []} = {}) {
-  const features = [
-    'discover-basic',
-    'performance-view',
-    'performance-vitals-overview',
-    ...additionalFeatures,
-  ];
+  const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],

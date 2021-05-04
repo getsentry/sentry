@@ -11,10 +11,7 @@ from sentry.utils.samples import load_data
 
 from .page_objects.base import BasePage
 
-FEATURE_NAMES = (
-    "organizations:performance-view",
-    "organizations:performance-vitals-overview",
-)
+FEATURE_NAMES = ("organizations:performance-view",)
 
 
 class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):

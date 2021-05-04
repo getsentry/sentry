@@ -78,6 +78,10 @@ describe('Performance > Landing', function () {
       body: {data: [[123, []]]},
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-histogram/',
+      body: {'transaction.duration': [{bin: 0, count: 1000}]},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
     });
@@ -334,7 +338,7 @@ describe('Performance > Landing', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           transaction: '/apple/cart',
-          query: 'sentry:yes',
+          query: 'sentry:yes transaction.duration:<15m event.type:transaction',
         }),
       })
     );
@@ -480,7 +484,7 @@ describe('Performance > Landing', function () {
     const data = initializeData(
       projects,
       {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},
-      [...FEATURES, 'performance-vitals-overview']
+      [...FEATURES]
     );
 
     const wrapper = mountWithTheme(
@@ -508,7 +512,7 @@ describe('Performance > Landing', function () {
     const data = initializeData(
       projects,
       {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},
-      [...FEATURES, 'performance-vitals-overview']
+      [...FEATURES]
     );
 
     const wrapper = mountWithTheme(

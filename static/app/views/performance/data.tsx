@@ -497,10 +497,7 @@ function generateFrontendOtherPerformanceEventView(
 export function generatePerformanceEventView(organization, location, projects) {
   const eventView = generateGenericPerformanceEventView(organization, location);
   const currentPerformanceView = getCurrentPerformanceView(location);
-  if (
-    !organization.features.includes('performance-landing-v2') ||
-    currentPerformanceView === FilterViews.TRENDS
-  ) {
+  if (currentPerformanceView === FilterViews.TRENDS) {
     return eventView;
   }
 
