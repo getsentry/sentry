@@ -1,4 +1,3 @@
-import React from 'react';
 import * as Sentry from '@sentry/react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';

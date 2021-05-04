@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -57,7 +56,7 @@ function EventInputName({api, organization, eventView, savedQuery}: Props) {
 
   return (
     <StyledTitle data-test-id={`discover2-query-name-${value}`}>
-      <StyledEditableText
+      <EditableText
         value={value}
         onChange={handleChange}
         isDisabled={!eventView.id}
@@ -67,15 +66,8 @@ function EventInputName({api, organization, eventView, savedQuery}: Props) {
   );
 }
 
-export default withApi(EventInputName);
-
 const StyledTitle = styled(Title)`
-  margin-left: -22px;
-  position: relative;
-  height: 40px;
+  overflow: unset;
 `;
 
-const StyledEditableText = styled(EditableText)`
-  position: absolute;
-  width: calc(100% + 10px);
-`;
+export default withApi(EventInputName);

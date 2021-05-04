@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {GuidesContent} from 'app/components/assistant/types';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
@@ -248,6 +246,31 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Transactions Details'),
           target: 'trace_view_guide_row_details',
           description: t(`Click on any transaction to see more details.`),
+        },
+      ],
+    },
+    {
+      guide: 'span_op_breakdowns_and_tag_explorer',
+      requiredTargets: ['span_op_breakdowns_filter', 'span_op_relative_breakdowns'],
+      steps: [
+        {
+          title: t('Filter by Span Operation'),
+          target: 'span_op_breakdowns_filter',
+          description: t(
+            'You can now filter these transaction events based on http, db, browser or resource operation.'
+          ),
+        },
+        {
+          title: t('Span Operation Breakdown'),
+          target: 'span_op_relative_breakdowns',
+          description: tct(
+            'By default, you can now see how each transaction is broken down by operation. Click the spans to filter. [link:Learn more]',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/performance/event-detail/#operations-breakdown" />
+              ),
+            }
+          ),
         },
       ],
     },

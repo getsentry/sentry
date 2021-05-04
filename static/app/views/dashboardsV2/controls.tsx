@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -122,7 +122,7 @@ class Controls extends React.Component<Props> {
     }
 
     return (
-      <OverviewControls gap={1} key="controls">
+      <StyledButtonBar gap={1} key="controls">
         <DashboardSelect>
           <SelectControl
             key="select"
@@ -180,7 +180,7 @@ class Controls extends React.Component<Props> {
             </Button>
           )}
         </DashboardEditFeature>
-      </OverviewControls>
+      </StyledButtonBar>
     );
   }
 }
@@ -224,10 +224,6 @@ const DashboardSelect = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  flex-shrink: 0;
-`;
-
-const OverviewControls = styled(StyledButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};

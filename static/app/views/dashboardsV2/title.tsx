@@ -1,10 +1,5 @@
-import React from 'react';
-import styled from '@emotion/styled';
-
 import EditableText from 'app/components/editableText';
 import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
 
 import {DashboardDetails} from './types';
 
@@ -16,11 +11,11 @@ type Props = {
 
 function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
   return (
-    <Container>
+    <div>
       {!dashboard ? (
         t('Dashboards')
       ) : (
-        <StyledEditableText
+        <EditableText
           isDisabled={!isEditing}
           value={dashboard.title}
           onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
@@ -28,23 +23,8 @@ function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
           successMessage={t('Dashboard title updated successfully')}
         />
       )}
-    </Container>
+    </div>
   );
 }
 
 export default DashboardTitle;
-
-const Container = styled('div')`
-  ${overflowEllipsis};
-  margin-right: ${space(1)};
-  margin-left: -11px;
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    margin-bottom: ${space(2)};
-  }
-`;
-
-const StyledEditableText = styled(EditableText)`
-  position: absolute;
-  width: calc(100% + 11px);
-`;

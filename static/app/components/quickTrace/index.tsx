@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'app/components/dropdownLink';

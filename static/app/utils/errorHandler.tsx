@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import RouteError from 'app/views/routeError';
 
@@ -17,7 +17,7 @@ export default function errorHandler<P>(Component: React.ComponentType<P>) {
       };
     }
 
-    state = {
+    state: State = {
       // we are explicit if an error has been thrown since errors thrown are not guaranteed
       // to be truthy (e.g. throw null).
       hasError: false,

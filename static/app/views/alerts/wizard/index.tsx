@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -15,6 +15,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 
@@ -41,13 +42,20 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 type State = {
   alertOption: AlertType;
 };
-class AlertWizard extends React.Component<Props, State> {
+class AlertWizard extends Component<Props, State> {
   state: State = {
     alertOption: 'issues',
   };
 
   handleChangeAlertOption = (alertOption: AlertType) => {
+    const {organization} = this.props;
     this.setState({alertOption});
+    trackAnalyticsEvent({
+      eventKey: 'alert_wizard.option_viewed',
+      eventName: 'Alert Wizard: Option Viewed',
+      organization_id: organization.id,
+      alert_type: alertOption,
+    });
   };
 
   renderCreateAlertButton() {
@@ -97,7 +105,16 @@ class AlertWizard extends React.Component<Props, State> {
         renderDisabled={renderNoAccess}
       >
         {({hasFeature}) => (
-          <WizardButtonContainer>
+          <WizardButtonContainer
+            onClick={() =>
+              trackAnalyticsEvent({
+                eventKey: 'alert_wizard.option_selected',
+                eventName: 'Alert Wizard: Option Selected',
+                organization_id: organization.id,
+                alert_type: alertOption,
+              })
+            }
+          >
             <CreateAlertButton
               organization={organization}
               projectSlug={project.slug}
@@ -124,7 +141,7 @@ class AlertWizard extends React.Component<Props, State> {
     const title = t('Alert Creation Wizard');
     const panelContent = AlertWizardPanelContent[alertOption];
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
 
         <Feature features={['organizations:alert-wizard']}>
@@ -187,7 +204,7 @@ class AlertWizard extends React.Component<Props, State> {
             </Layout.Main>
           </StyledLayoutBody>
         </Feature>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

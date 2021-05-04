@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -96,7 +96,7 @@ class ResultsHeader extends React.Component<Props, State> {
     const {savedQuery, loading} = this.state;
 
     return (
-      <StyledLayoutHeader>
+      <Layout.Header>
         <StyledHeaderContent>
           <DiscoverBreadcrumb
             eventView={eventView}
@@ -110,7 +110,7 @@ class ResultsHeader extends React.Component<Props, State> {
           />
           {this.renderAuthor()}
         </StyledHeaderContent>
-        <StyledHeaderActions>
+        <Layout.HeaderActions>
           <SavedQueryButtonGroup
             location={location}
             organization={organization}
@@ -121,8 +121,8 @@ class ResultsHeader extends React.Component<Props, State> {
             updateCallback={() => this.fetchData()}
             onIncompatibleAlertQuery={onIncompatibleAlertQuery}
           />
-        </StyledHeaderActions>
-      </StyledLayoutHeader>
+        </Layout.HeaderActions>
+      </Layout.Header>
     );
   }
 }
@@ -130,31 +130,12 @@ class ResultsHeader extends React.Component<Props, State> {
 const Subtitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
-  line-height: 1.4;
   color: ${p => p.theme.gray300};
-  margin: 0;
-  margin-top: ${space(2)};
-`;
-
-const StyledLayoutHeader = styled(Layout.Header)`
-  padding-left: 0;
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    padding-left: 0;
-  }
+  margin: ${space(0.5)} 0 0 0;
 `;
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`
-  padding-left: ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    padding-left: ${space(4)};
-  }
-`;
-
-const StyledHeaderActions = styled(Layout.HeaderActions)`
-  padding-left: ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    padding-left: 0;
-  }
+  overflow: unset;
 `;
 
 export default withApi(ResultsHeader);

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
@@ -52,6 +52,7 @@ function GroupByField({metricTags, groupBy = [], onChange}: Props) {
       }))}
       style={{
         width: '100%',
+        borderRadius: 0,
       }}
       maxHeight={110}
     >

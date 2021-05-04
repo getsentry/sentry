@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -118,7 +118,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     disabled: false,
   };
 
-  state = {
+  state: State = {
     isNewQuery: true,
     isEditingQuery: false,
 

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {Organization, Project} from 'app/types';
 import withProject from 'app/utils/withProject';
 import SettingsNavigation from 'app/views/settings/components/settingsNavigation';

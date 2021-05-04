@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
@@ -19,7 +19,7 @@ type State = {
   submitSuccess: boolean | null;
 };
 
-class OrganizationJoinRequest extends React.Component<Props, State> {
+class OrganizationJoinRequest extends Component<Props, State> {
   state: State = {
     submitSuccess: null,
   };

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -70,7 +70,7 @@ const ExternalIssueActions = ({configurations, group, onChange, api}: Props) => 
     ));
 
   return (
-    <React.Fragment>
+    <Fragment>
       {linked.map(config => {
         const {provider, externalIssues} = config;
         const issue = externalIssues[0];
@@ -112,7 +112,7 @@ const ExternalIssueActions = ({configurations, group, onChange, api}: Props) => 
           onOpen={unlinked.length === 1 ? () => doOpenModal(unlinked[0]) : undefined}
         />
       )}
-    </React.Fragment>
+    </Fragment>
   );
 };
 

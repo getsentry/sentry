@@ -1,10 +1,9 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import ExternalLink from 'app/components/links/externalLink';
-import {IconSentryFull} from 'app/icons';
+import LogoSentry from 'app/components/logoSentry';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
@@ -12,7 +11,7 @@ import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 export default function DemoHeader() {
   return (
     <Wrapper>
-      <LogoSvg />
+      <StyledLogoSentry />
       <ButtonBar gap={4}>
         <StyledExternalLink
           onClick={() => trackAdvancedAnalyticsEvent('growth.demo_click_docs', {}, null)}
@@ -62,7 +61,7 @@ const Wrapper = styled('div')`
   }
 `;
 
-const LogoSvg = styled(IconSentryFull)`
+const StyledLogoSentry = styled(LogoSentry)`
   margin-top: auto;
   margin-bottom: auto;
   margin-left: 20px;

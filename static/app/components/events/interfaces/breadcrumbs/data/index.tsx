@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {Breadcrumb, BreadcrumbType} from 'app/types/breadcrumbs';
 import {Event} from 'app/types/event';
 

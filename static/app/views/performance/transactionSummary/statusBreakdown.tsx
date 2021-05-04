@@ -1,4 +1,5 @@
-import React from 'react';
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -13,6 +14,7 @@ import {t} from 'app/locale';
 import {LightWeightOrganization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = {
@@ -30,7 +32,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
     .withSorts([{kind: 'desc', field: 'count'}]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <SectionHeading>
         {t('Status Breakdown')}
         <QuestionTooltip
@@ -64,11 +66,25 @@ function StatusBreakdown({eventView, location, organization}: Props) {
           const points = tableData.data.map(row => ({
             label: String(row['transaction.status']),
             value: parseInt(String(row.count), 10),
+            onClick: () => {
+              const query = tokenizeSearch(eventView.query);
+              query
+                .removeTag('!transaction.status')
+                .setTagValues('transaction.status', [row['transaction.status']]);
+              browserHistory.push({
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  cursor: undefined,
+                  query: stringifyQueryObject(query),
+                },
+              });
+            },
           }));
           return <BreakdownBars data={points} />;
         }}
       </DiscoverQuery>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

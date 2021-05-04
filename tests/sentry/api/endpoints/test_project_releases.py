@@ -593,8 +593,14 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         )
 
         assert response.status_code == 400
-        assert dict(response.data) == {
-            "commits": {"patch_set": {"type": ["Commit patch_set type Z is not supported."]}}
+        assert response.json() == {
+            "commits": {
+                "patch_set": {
+                    "type": [
+                        "Commit patch_set type Z is not supported.",
+                    ]
+                }
+            }
         }
 
 

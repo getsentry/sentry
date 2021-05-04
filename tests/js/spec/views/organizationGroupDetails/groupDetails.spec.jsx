@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -94,6 +93,10 @@ describe('groupDetails', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/first-last-release/`,
+      body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
     });
   });
   afterEach(async function () {
@@ -219,6 +222,7 @@ describe('groupDetails', function () {
       expect.objectContaining({
         query: {
           environment: ['staging'],
+          collapse: 'release',
         },
       })
     );

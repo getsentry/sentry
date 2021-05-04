@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
