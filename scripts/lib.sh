@@ -217,7 +217,7 @@ reset-db() {
 
 direnv-help() {
     cat >&2 <<EOF
-If you're a Sentry employee, if you're stuck or have questions, ask in #discuss-dev-tooling.
+If you're a Sentry employee and you're stuck or have questions, ask in #discuss-dev-tooling.
 If you're not, please file an issue under https://github.com/getsentry/sentry/issues/new/ and mention @owners-sentry-dev
 
 You can configure the behaviour of direnv by adding the following variables to a .env file:
