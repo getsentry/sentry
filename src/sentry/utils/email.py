@@ -7,7 +7,7 @@ from email.utils import parseaddr
 from functools import partial
 from operator import attrgetter
 from random import randrange
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Optional
 
 import lxml
 import toronado
@@ -301,7 +301,7 @@ class MessageBuilder:
             return render_to_string(self.template, self.context)
         return self._txt_body
 
-    def add_users(self, user_ids, project=None):
+    def add_users(self, user_ids: Iterable[int], project: Optional[Project] = None) -> None:
         self._send_to.update(list(get_email_addresses(user_ids, project).values()))
 
     def build(self, to, reply_to=None, cc=None, bcc=None):

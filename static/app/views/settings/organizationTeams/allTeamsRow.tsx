@@ -27,7 +27,7 @@ type State = {
 };
 
 class AllTeamsRow extends React.Component<Props, State> {
-  state = {
+  state: State = {
     loading: false,
     error: false,
   };

@@ -32,7 +32,7 @@ type State = {
  * render one of those states.
  */
 class NoGroupsHandler extends React.Component<Props, State> {
-  state = {
+  state: State = {
     fetchingSentFirstEvent: true,
     sentFirstEvent: false,
     firstEventProjects: null,

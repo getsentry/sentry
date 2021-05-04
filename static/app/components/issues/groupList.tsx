@@ -29,6 +29,7 @@ const defaultProps = {
   withChart: true,
   withPagination: true,
   useFilteredStats: true,
+  useTintRow: true,
 };
 
 type Props = WithRouterProps & {
@@ -192,6 +193,7 @@ class GroupList extends React.Component<Props, State> {
       renderEmptyMessage,
       withPagination,
       useFilteredStats,
+      useTintRow,
       customStatsPeriod,
       queryParams,
     } = this.props;
@@ -243,6 +245,7 @@ class GroupList extends React.Component<Props, State> {
                   withChart={withChart}
                   memberList={members}
                   useFilteredStats={useFilteredStats}
+                  useTintRow={useTintRow}
                   customStatsPeriod={customStatsPeriod}
                   statsPeriod={statsPeriod}
                 />

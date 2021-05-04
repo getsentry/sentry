@@ -54,7 +54,7 @@ type State = {
 };
 
 class OrganizationStats extends React.Component<Props, State> {
-  state = {
+  state: State = {
     isCalendarOpen: false,
   };
 

@@ -239,7 +239,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         self,
         project: Any,
         users: List[Any],
-    ) -> Mapping[ExternalProviders, List[Any]]:
+    ) -> Mapping[ExternalProviders, Iterable[Any]]:
         """
         Filters a list of users down to the users by provider who are subscribed to alerts.
         We check both the project level settings and global default settings.
@@ -250,14 +250,16 @@ class NotificationsManager(BaseManager):  # type: ignore
         notification_settings_by_user = transform_to_notification_settings_by_user(
             notification_settings, users
         )
-        mapping = defaultdict(list)
+        mapping = defaultdict(set)
         for user in users:
             providers = where_should_user_be_notified(notification_settings_by_user, user)
             for provider in providers:
-                mapping[provider].append(user)
+                mapping[provider].add(user)
         return mapping
 
-    def get_notification_recipients(self, project: Any) -> Mapping[ExternalProviders, List[Any]]:
+    def get_notification_recipients(
+        self, project: Any
+    ) -> Mapping[ExternalProviders, Iterable[Any]]:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of

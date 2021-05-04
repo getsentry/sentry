@@ -51,7 +51,7 @@ async function latestEventAvailable(
 }
 
 class CreateSampleEventButton extends React.Component<Props, State> {
-  state = {
+  state: State = {
     creating: false,
   };
 

@@ -20,7 +20,7 @@ type State = {
 
 const TimePicker = styled(
   class TimePicker extends React.Component<Props, State> {
-    state = {
+    state: State = {
       focused: false,
     };
 
