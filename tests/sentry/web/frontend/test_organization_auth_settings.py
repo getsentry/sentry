@@ -404,6 +404,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         auth_provider = AuthProvider.objects.get(organization=organization)
         assert getattr(auth_provider.flags, "scim_enabled")
         assert auth_provider.get_scim_token() is not None
+        assert auth_provider.get_scim_url() is not None
 
         with self.feature({"organizations:sso-basic": True, "organizations:sso-scim": True}):
             resp = self.client.post(
@@ -421,6 +422,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert not getattr(auth_provider.flags, "scim_enabled")
         assert auth_provider.get_scim_token() is None
+        assert auth_provider.get_scim_url() is None
         with pytest.raises(SentryAppInstallationForProvider.DoesNotExist):
             SentryAppInstallationForProvider.objects.get(
                 organization=self.organization, provider="dummy_scim"
