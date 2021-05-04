@@ -15,7 +15,7 @@ type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
   children: React.ReactNode;
 };
 
-class EditDashboard extends React.Component<Props> {
+class ViewEditDashboard extends React.Component<Props> {
   render() {
     const {organization, params, api, location} = this.props;
     return (
@@ -29,7 +29,7 @@ class EditDashboard extends React.Component<Props> {
           return (
             <DashboardsContainer
               {...this.props}
-              initialState="edit"
+              initialState="view"
               dashboard={dashboard}
               dashboards={dashboards}
               error={error}
@@ -41,4 +41,4 @@ class EditDashboard extends React.Component<Props> {
   }
 }
 
-export default withApi(withOrganization(EditDashboard));
+export default withApi(withOrganization(ViewEditDashboard));

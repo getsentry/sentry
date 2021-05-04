@@ -22,7 +22,7 @@ type Props = {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
-  paramDashboardId: string;
+  paramDashboardId?: string;
   selection: GlobalSelection;
   isEditing: boolean;
   router: InjectedRouter;
@@ -70,13 +70,23 @@ class Dashboard extends React.Component<Props> {
 
   handleOpenWidgetBuilder = () => {
     const {router, paramDashboardId, organization, location} = this.props;
-    router.push({
-      pathname: `/organizations/${organization.slug}/dashboards/${paramDashboardId}/widget/new/`,
-      query: {
-        ...location.query,
-        dataSet: DataSet.EVENTS,
-      },
-    });
+    if (paramDashboardId) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/${paramDashboardId}/edit/widget/new/`,
+        query: {
+          ...location.query,
+          dataSet: DataSet.EVENTS,
+        },
+      });
+    } else {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        query: {
+          ...location.query,
+          dataSet: DataSet.EVENTS,
+        },
+      });
+    }
   };
 
   handleAddComplete = (widget: Widget) => {
@@ -109,13 +119,23 @@ class Dashboard extends React.Component<Props> {
     if (organization.features.includes('metrics')) {
       onSetWidgetToBeUpdated(widget);
 
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/${paramDashboardId}/widget/${index}/edit/`,
-        query: {
-          ...location.query,
-          dataSet: DataSet.EVENTS,
-        },
-      });
+      if (paramDashboardId) {
+        router.push({
+          pathname: `/organizations/${organization.slug}/dashboards/${paramDashboardId}/edit/widget/${index}/edit/`,
+          query: {
+            ...location.query,
+            dataSet: DataSet.EVENTS,
+          },
+        });
+      } else {
+        router.push({
+          pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
+          query: {
+            ...location.query,
+            dataSet: DataSet.EVENTS,
+          },
+        });
+      }
       return;
     }
 
