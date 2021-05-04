@@ -1,11 +1,14 @@
 import hashlib
 import logging
-from os import path
+import tempfile
+import zipfile
+from io import FileIO
 
 from django.db import IntegrityError, transaction
 
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
+from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.files import get_max_file_size
@@ -156,20 +159,44 @@ class AssembleArtifactsError(Exception):
     pass
 
 
+def _upsert_release_file(file: File, **kwargs):
+
+    release_file = None
+
+    # Release files must have unique names within their release
+    # and dist. If a matching file already exists, replace its
+    # file with the new one; otherwise create it.
+    try:
+        release_file = ReleaseFile.objects.get(**kwargs)
+    except ReleaseFile.DoesNotExist:
+        try:
+            with transaction.atomic():
+                release_file = ReleaseFile.objects.create(file=file, **kwargs)
+        except IntegrityError:
+            # NB: This indicates a race, where another assemble task or
+            # file upload job has just created a conflicting file. Since
+            # we're upserting here anyway, yield to the faster actor and
+            # do not try again.
+            file.delete()
+    else:
+        old_file = release_file.file
+        release_file.update(file=file)
+        old_file.delete()
+
+
+def _read_manifest(bundle: FileIO) -> dict:
+    with tempfile.TemporaryDirectory() as scratchpad:
+        with zipfile.ZipFile(bundle) as archive:
+            manifest_path = archive.extract("manifest.json", path=scratchpad)
+        with open(manifest_path) as manifest_file:
+            return json.load(manifest_file)
+
+
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
 def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     """
     Creates release files from an uploaded artifact bundle.
     """
-
-    import shutil
-    import tempfile
-
-    from sentry.models import File, Organization, Release, ReleaseFile
-    from sentry.utils.zip import safe_extract_zip
-
-    scratchpad = None
-    delete_bundle = False
 
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
@@ -194,21 +221,9 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             return
 
         bundle, temp_file = rv
-        scratchpad = tempfile.mkdtemp()
-
-        # Initially, always delete the bundle file. Later on, we can start to store
-        # the artifact bundle as a release file.
-        delete_bundle = True
 
         try:
-            safe_extract_zip(temp_file, scratchpad, strip_toplevel=False)
-        except BaseException:
-            raise AssembleArtifactsError("failed to extract bundle")
-
-        try:
-            manifest_path = path.join(scratchpad, "manifest.json")
-            with open(manifest_path, "rb") as manifest:
-                manifest = json.loads(manifest.read())
+            manifest = _read_manifest(temp_file)
         except BaseException:
             raise AssembleArtifactsError("failed to open release manifest")
 
@@ -230,45 +245,16 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
         if dist_name:
             dist = release.add_dist(dist_name)
 
-        artifacts = manifest.get("files", {})
-        for rel_path, artifact in artifacts.items():
-            artifact_url = artifact.get("url", rel_path)
-            artifact_basename = artifact_url.rsplit("/", 1)[-1]
+        artifact_url = "release-artifacts.zip"
 
-            file = File.objects.create(
-                name=artifact_basename, type="release.file", headers=artifact.get("headers", {})
-            )
+        kwargs = {
+            "organization_id": organization.id,
+            "release": release,
+            "name": artifact_url,
+            "dist": dist,
+        }
 
-            full_path = path.join(scratchpad, rel_path)
-            with open(full_path, "rb") as fp:
-                file.putfile(fp, logger=logger)
-
-            kwargs = {
-                "organization_id": organization.id,
-                "release": release,
-                "name": artifact_url,
-                "dist": dist,
-            }
-
-            # Release files must have unique names within their release
-            # and dist. If a matching file already exists, replace its
-            # file with the new one; otherwise create it.
-            try:
-                release_file = ReleaseFile.objects.get(**kwargs)
-            except ReleaseFile.DoesNotExist:
-                try:
-                    with transaction.atomic():
-                        ReleaseFile.objects.create(file=file, **kwargs)
-                except IntegrityError:
-                    # NB: This indicates a race, where another assemble task or
-                    # file upload job has just created a conflicting file. Since
-                    # we're upserting here anyway, yield to the faster actor and
-                    # do not try again.
-                    file.delete()
-            else:
-                old_file = release_file.file
-                release_file.update(file=file)
-                old_file.delete()
+        _upsert_release_file(bundle, **kwargs)
 
     except AssembleArtifactsError as e:
         set_assemble_status(
@@ -285,11 +271,6 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
         )
     else:
         set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.OK)
-    finally:
-        if scratchpad:
-            shutil.rmtree(scratchpad)
-        if delete_bundle:
-            bundle.delete()
 
 
 def assemble_file(task, org_or_project, name, checksum, chunks, file_type):
