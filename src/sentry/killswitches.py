@@ -46,8 +46,7 @@ def _value_matches(option_value: Any, context: Context) -> bool:
     if not option_value:
         return False
 
-    for field in option_value:
-        matching_values = option_value.get(field)
+    for field, matching_values in option_value.items():
 
         value = context.get(field)
         if value is None:
