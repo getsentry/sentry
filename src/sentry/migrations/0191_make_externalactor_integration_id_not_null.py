@@ -2,6 +2,8 @@
 
 from django.db import migrations
 
+import sentry.db.models.fields.foreignkey
+
 
 class Migration(migrations.Migration):
     # This flag is used to mark that a migration shouldn't be automatically run in
@@ -50,6 +52,14 @@ class Migration(migrations.Migration):
                     """,
                 ),
             ],
-            state_operations=[],
+            state_operations=[
+                migrations.AlterField(
+                    model_name="externalactor",
+                    name="integration_id",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        to="sentry.Integration"
+                    ),
+                ),
+            ],
         )
     ]
