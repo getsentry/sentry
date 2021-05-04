@@ -21,6 +21,7 @@ import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {
   getAggregateAlias,
+  isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
@@ -306,9 +307,11 @@ class SummaryContent extends React.Component<Props, State> {
                     // Remove the extra field columns
                     ...sortedEventView.fields.slice(0, transactionsListTitles.length),
                   ];
+
                   // omit "Operation Duration" column
-                  fields.splice(2, 1);
-                  sortedEventView.fields = fields;
+                  sortedEventView.fields = fields.filter(({field}) => {
+                    return !isRelativeSpanOperationBreakdownField(field);
+                  });
                 }
                 return sortedEventView;
               }}
