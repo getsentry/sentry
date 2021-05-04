@@ -8,6 +8,7 @@ import * as globalSelection from 'app/actionCreators/globalSelection';
 import ProjectsStore from 'app/stores/projectsStore';
 import PerformanceLanding, {FilterViews} from 'app/views/performance/landing';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
+import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
 
 const FEATURES = ['transaction-event', 'performance-view'];
 
@@ -75,6 +76,10 @@ describe('Performance > Landing', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {data: [[123, []]]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-histogram/',
+      body: {'transaction.duration': [{bin: 0, count: 1000}]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
@@ -472,6 +477,66 @@ describe('Performance > Landing', function () {
         },
       })
     );
+  });
+
+  it('Vitals cards are not shown with overview feature without frontend platform', async function () {
+    const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
+    const data = initializeData(
+      projects,
+      {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},
+      [...FEATURES]
+    );
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const vitalsContainer = wrapper.find('VitalsContainer');
+    expect(vitalsContainer).toHaveLength(0);
+  });
+
+  it('Vitals cards are shown with overview feature with frontend platform project', async function () {
+    const projects = [
+      TestStubs.Project({
+        id: '1',
+        firstTransactionEvent: true,
+        platform: 'javascript-react',
+      }),
+    ];
+    const data = initializeData(
+      projects,
+      {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},
+      [...FEATURES]
+    );
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const vitalsContainer = wrapper.find('VitalsContainer');
+    expect(vitalsContainer).toHaveLength(1);
+
+    const vitalTestIds = Object.values(vitalAbbreviations).map(
+      abbr => `vitals-linked-card-${abbr}`
+    );
+
+    for (const testId of vitalTestIds) {
+      const selector = `a[data-test-id="${testId}"]`;
+      const link = wrapper.find(selector);
+      expect(link).toHaveLength(1);
+    }
   });
 
   it('Navigating away from trends will remove extra tags from query', async function () {
