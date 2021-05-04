@@ -1,8 +1,8 @@
 import React from 'react';
 
 type Props = {
-  showWordmark: boolean;
-  height: string;
+  showWordmark?: boolean;
+  height?: string;
 };
 
 function LogoSentry({showWordmark = true, height = '32px'}: Props) {
