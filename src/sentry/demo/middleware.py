@@ -9,8 +9,8 @@ prompt_route = reverse("sentry-api-0-prompts-activity")
 org_creation_route = reverse("sentry-api-0-organizations")
 login_route = reverse("sentry-login")
 
-# redirect to the welcome page for Sentry
-login_redirect_route = "https://sentry.io/welcome/"
+# redirect to the sandbox page
+login_redirect_route = "https://sentry.io/demo/sandbox/"
 
 
 class DemoMiddleware:
