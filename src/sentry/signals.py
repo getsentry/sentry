@@ -53,7 +53,7 @@ buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra",
 pending_delete = BetterSignal(providing_args=["instance", "actor"])
 event_processed = BetterSignal(providing_args=["project", "event"])
 
-# This singal should eventually be removed as we should not send
+# This signal should eventually be removed as we should not send
 # transactions through post processing
 transaction_processed = BetterSignal(providing_args=["project", "event"])
 
