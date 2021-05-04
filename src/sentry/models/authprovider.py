@@ -12,7 +12,7 @@ from sentry.db.models import (
     sane_repr,
 )
 
-logger = logging.getLogger("sentry.auth.scim")
+logger = logging.getLogger("sentry.authprovider")
 
 SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
     "This internal integration was auto-generated during the installation process of your SCIM "
@@ -65,13 +65,16 @@ class AuthProvider(Model):
         from sentry.models import SentryAppInstallationForProvider
 
         if self.flags.scim_enabled:
-            sentry_app_installation = SentryAppInstallationForProvider.objects.get(
-                organization=self.organization, provider=f"{self.provider}_scim"
+            return SentryAppInstallationForProvider.get_token(
+                self.organization, f"{self.provider}_scim"
             )
-            scim_auth_token = sentry_app_installation.get_token(
-                self.organization_id, provider=f"{self.provider}_scim"
-            )
-            return scim_auth_token
+        else:
+            return None
+
+    def get_scim_url(self):
+        if self.flags.scim_enabled:
+            return f"https://sentry.io/scim/{self.organization.slug}/scim/v2"
+            # TODO: make dynamic once URL routes are added
         else:
             return None
 
@@ -79,7 +82,10 @@ class AuthProvider(Model):
         from sentry.mediators.sentry_apps import InternalCreator
         from sentry.models import SentryAppInstallation, SentryAppInstallationForProvider
 
-        if not self.get_provider().can_use_scim(self.organization, user):
+        if (
+            not self.get_provider().can_use_scim(self.organization, user)
+            or self.flags.scim_enabled is True
+        ):
             return
 
         # check if we have a scim app already
@@ -122,11 +128,12 @@ class AuthProvider(Model):
         from sentry.mediators.sentry_apps import Destroyer
         from sentry.models import SentryAppInstallationForProvider
 
-        install = SentryAppInstallationForProvider.objects.get(
-            organization=self.organization, provider="okta_scim"
-        )
-        Destroyer.run(sentry_app=install.sentry_app_installation.sentry_app, user=user)
-        self.flags.scim_enabled = False
+        if self.flags.scim_enabled:
+            install = SentryAppInstallationForProvider.objects.get(
+                organization=self.organization, provider=f"{self.provider}_scim"
+            )
+            Destroyer.run(sentry_app=install.sentry_app_installation.sentry_app, user=user)
+            self.flags.scim_enabled = False
 
     def get_audit_log_data(self):
         return {"provider": self.provider, "config": self.config}
