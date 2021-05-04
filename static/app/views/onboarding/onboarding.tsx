@@ -6,7 +6,8 @@ import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion'
 
 import Button from 'app/components/button';
 import Hook from 'app/components/hook';
-import {IconChevron, IconSentryFull} from 'app/icons';
+import LogoSentry from 'app/components/logoSentry';
+import {IconChevron} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -250,7 +251,7 @@ const Header = styled('header')`
   justify-content: space-between;
 `;
 
-const LogoSvg = styled(IconSentryFull)`
+const LogoSvg = styled(LogoSentry)`
   width: 130px;
   height: 30px;
   color: ${p => p.theme.textColor};
