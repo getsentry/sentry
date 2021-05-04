@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -18,11 +18,11 @@ function renderTraceFull({isLoading, error, type}) {
     return error;
   } else {
     return (
-      <React.Fragment>
+      <Fragment>
         <div key="type" data-test-id="type">
           {type}
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
