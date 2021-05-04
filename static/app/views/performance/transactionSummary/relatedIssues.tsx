@@ -30,6 +30,7 @@ type Props = {
 class RelatedIssues extends React.Component<Props> {
   getIssuesEndpoint() {
     const {transaction, organization, start, end, statsPeriod, location} = this.props;
+
     const queryParams = {
       start,
       end,
@@ -53,6 +54,9 @@ class RelatedIssues extends React.Component<Props> {
       }
     });
     currentFilter.addQuery('is:unresolved').setTagValues('transaction', [transaction]);
+
+    // Filter out key_transaction from being passed to issues as it will cause an error.
+    currentFilter.removeTag('key_transaction');
 
     return {
       path: `/organizations/${organization.slug}/issues/`,
@@ -102,11 +106,6 @@ class RelatedIssues extends React.Component<Props> {
       pathname: `/organizations/${organization.slug}/issues/`,
       query: queryParams,
     };
-
-    // Filter out key_transaction from being passed to issues as it will cause an error.
-    const conditions = tokenizeSearch(queryParams.query);
-    conditions.removeTag('key_transaction');
-    queryParams.query = stringifyQueryObject(conditions);
 
     return (
       <React.Fragment>
