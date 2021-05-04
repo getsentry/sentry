@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import AccountDetails from 'app/views/settings/account/accountDetails';
