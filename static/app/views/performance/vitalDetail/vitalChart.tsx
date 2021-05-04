@@ -31,7 +31,7 @@ import withApi from 'app/utils/withApi';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
-import {getMaxOfSeries, vitalNameFromLocation, webVitalMeh, webVitalPoor} from './utils';
+import {vitalNameFromLocation, webVitalMeh, webVitalPoor} from './utils';
 
 const QUERY_KEYS = [
   'environment',
@@ -87,7 +87,7 @@ class VitalChart extends React.Component<Props> {
 
     const vitalName = vitalNameFromLocation(location);
 
-    const yAxis = [`p75(${vitalName})`];
+    const yAxis = `p75(${vitalName})`;
 
     const legend = {
       right: 10,
@@ -166,7 +166,7 @@ class VitalChart extends React.Component<Props> {
       tooltip: {
         trigger: 'axis' as const,
         valueFormatter: (value: number, seriesName?: string) =>
-          tooltipFormatter(value, vitalName === WebVital.CLS ? seriesName : 'p75()'),
+          tooltipFormatter(value, vitalName === WebVital.CLS ? seriesName : yAxis),
       },
       yAxis: {
         min: 0,
@@ -174,7 +174,7 @@ class VitalChart extends React.Component<Props> {
         axisLabel: {
           color: theme.chartLabel,
           // coerces the axis to be time based
-          formatter: (value: number) => axisLabelFormatter(value, 'p75()'),
+          formatter: (value: number) => axisLabelFormatter(value, yAxis),
         },
       },
     };
@@ -210,7 +210,7 @@ class VitalChart extends React.Component<Props> {
                 showLoading={false}
                 query={query}
                 includePrevious={false}
-                yAxis={yAxis}
+                yAxis={[yAxis]}
                 partial
               >
                 {({timeseriesData: results, errored, loading, reloading}) => {
@@ -240,10 +240,6 @@ class VitalChart extends React.Component<Props> {
                         };
                       })
                     : [];
-
-                  const seriesMax = getMaxOfSeries(smoothedSeries);
-                  const yAxisMax = Math.max(seriesMax, vitalPoor);
-                  chartOptions.yAxis.max = yAxisMax * 1.1;
 
                   return (
                     <ReleaseSeries
