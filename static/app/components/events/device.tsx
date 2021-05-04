@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ContextData from 'app/components/contextData';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {t} from 'app/locale';

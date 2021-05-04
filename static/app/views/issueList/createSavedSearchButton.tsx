@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {openModal} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';

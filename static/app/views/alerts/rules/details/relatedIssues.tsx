@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -23,7 +23,7 @@ type Props = {
   timePeriod: TimePeriodType;
 };
 
-class RelatedIssues extends React.Component<Props> {
+class RelatedIssues extends Component<Props> {
   renderEmptyMessage = () => {
     return (
       <Panel>
@@ -61,7 +61,7 @@ class RelatedIssues extends React.Component<Props> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ControlsWrapper>
           <StyledSectionHeading>
             {t('Related Issues')}
@@ -89,7 +89,7 @@ class RelatedIssues extends React.Component<Props> {
             useTintRow={false}
           />
         </TableWrapper>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

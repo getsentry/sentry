@@ -1,5 +1,3 @@
-import React from 'react';
-
 import DeviceName from 'app/components/deviceName';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import Link from 'app/components/links/link';

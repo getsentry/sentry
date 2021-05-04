@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {Panel, PanelBody} from 'app/components/panels';

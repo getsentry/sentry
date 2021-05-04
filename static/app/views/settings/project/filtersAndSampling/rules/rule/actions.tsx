@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
@@ -36,7 +36,7 @@ function Actions({
   isMenuActionsOpen,
 }: Props) {
   return (
-    <React.Fragment>
+    <Fragment>
       <StyledButtonbar gap={1}>
         <Button
           label={t('Edit Rule')}
@@ -112,7 +112,7 @@ function Actions({
           </Tooltip>
         </MenuItemActionLink>
       </StyledDropdownLink>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

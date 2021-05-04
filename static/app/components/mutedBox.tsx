@@ -1,4 +1,4 @@
-import React from 'react';
+import {PureComponent} from 'react';
 
 import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
@@ -11,7 +11,7 @@ type Props = {
   statusDetails: ResolutionStatusDetails;
 };
 
-class MutedBox extends React.PureComponent<Props> {
+class MutedBox extends PureComponent<Props> {
   renderReason = () => {
     const {
       ignoreUntil,

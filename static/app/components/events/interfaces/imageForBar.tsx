@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import FunctionName from 'app/components/events/interfaces/frame/functionName';

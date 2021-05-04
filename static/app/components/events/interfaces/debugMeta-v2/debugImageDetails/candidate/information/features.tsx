@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Tag from 'app/components/tag';
@@ -28,7 +28,7 @@ function Features({download}: Props) {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       {Object.keys(ImageFeature).map(imageFeature => {
         const {label, description} = getImageFeatureDescription(
           imageFeature as ImageFeature
@@ -46,7 +46,7 @@ function Features({download}: Props) {
           </StyledTag>
         );
       })}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

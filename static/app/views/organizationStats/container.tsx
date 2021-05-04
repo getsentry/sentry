@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 
@@ -45,7 +45,7 @@ type State = {
   pageLinks: null | string;
 };
 
-class OrganizationStatsContainer extends React.Component<Props, State> {
+class OrganizationStatsContainer extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     const until = Math.floor(new Date().getTime() / 1000);

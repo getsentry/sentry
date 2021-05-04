@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -27,7 +27,7 @@ type State = {
   submitting: boolean;
 };
 
-class IntegrationServerlessRow extends React.Component<Props, State> {
+class IntegrationServerlessRow extends Component<Props, State> {
   state: State = {
     submitting: false,
   };
@@ -119,9 +119,7 @@ class IntegrationServerlessRow extends React.Component<Props, State> {
     const {version} = serverlessFunction;
     //during optimistic update, we might be enabled without a version
     const versionText =
-      this.enabled && version > 0 ? (
-        <React.Fragment>&nbsp;|&nbsp;v{version}</React.Fragment>
-      ) : null;
+      this.enabled && version > 0 ? <Fragment>&nbsp;|&nbsp;v{version}</Fragment> : null;
     return (
       <Item>
         <NameWrapper>

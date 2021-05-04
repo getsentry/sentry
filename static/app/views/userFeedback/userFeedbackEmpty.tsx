@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -21,7 +21,7 @@ type Props = {
   projectIds?: string[];
 };
 
-class UserFeedbackEmpty extends React.Component<Props> {
+class UserFeedbackEmpty extends Component<Props> {
   componentDidMount() {
     const {organization, projectIds} = this.props;
 

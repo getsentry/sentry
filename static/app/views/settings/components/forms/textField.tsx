@@ -1,5 +1,3 @@
-import React from 'react';
-
 import InputField from 'app/views/settings/components/forms/inputField';
 
 type Props = InputField['props'];

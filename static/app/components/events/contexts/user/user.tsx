@@ -1,5 +1,3 @@
-import React from 'react';
-
 import UserAvatar from 'app/components/avatar/userAvatar';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ContextBlock from 'app/components/events/contexts/contextBlock';

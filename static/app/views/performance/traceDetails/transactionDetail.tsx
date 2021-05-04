@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
@@ -39,7 +39,7 @@ type State = {
   errorsOpened: boolean;
 };
 
-class TransactionDetail extends React.Component<Props, State> {
+class TransactionDetail extends Component<Props, State> {
   state: State = {
     errorsOpened: false,
   };
@@ -72,7 +72,7 @@ class TransactionDetail extends React.Component<Props, State> {
         {errorsOpened && (
           <ErrorMessageContent>
             {errors.map(error => (
-              <React.Fragment key={error.event_id}>
+              <Fragment key={error.event_id}>
                 <ErrorDot level={error.level} />
                 <ErrorLevel>{error.level}</ErrorLevel>
                 <ErrorTitle>
@@ -80,7 +80,7 @@ class TransactionDetail extends React.Component<Props, State> {
                     {error.title}
                   </Link>
                 </ErrorTitle>
-              </React.Fragment>
+              </Fragment>
             ))}
           </ErrorMessageContent>
         )}
@@ -140,7 +140,7 @@ class TransactionDetail extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {measurementKeys.map(measurement => (
           <Row
             key={measurement}
@@ -149,7 +149,7 @@ class TransactionDetail extends React.Component<Props, State> {
             {`${Number(measurements[measurement].value.toFixed(3)).toLocaleString()}ms`}
           </Row>
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -177,10 +177,10 @@ class TransactionDetail extends React.Component<Props, State> {
               {getDynamicText({
                 fixed: 'Mar 19, 2021 11:06:27 AM UTC',
                 value: (
-                  <React.Fragment>
+                  <Fragment>
                     <DateTime date={startTimestamp * 1000} />
                     {` (${startTimestamp})`}
-                  </React.Fragment>
+                  </Fragment>
                 ),
               })}
             </Row>
@@ -188,10 +188,10 @@ class TransactionDetail extends React.Component<Props, State> {
               {getDynamicText({
                 fixed: 'Mar 19, 2021 11:06:28 AM UTC',
                 value: (
-                  <React.Fragment>
+                  <Fragment>
                     <DateTime date={endTimestamp * 1000} />
                     {` (${endTimestamp})`}
-                  </React.Fragment>
+                  </Fragment>
                 ),
               })}
             </Row>

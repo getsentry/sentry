@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {Link, WithRouterProps} from 'react-router';
 
 import {
@@ -112,7 +112,7 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
     const {orgId, projectId} = this.props.params;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
         <PanelBody key="body">
           <PanelAlert type="info" icon={<IconFlag size="md" />}>
@@ -130,7 +130,7 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
             />
           ))}
         </PanelBody>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -143,7 +143,7 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
     const access = new Set(this.props.organization.access);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={t('Service Hooks')}
           action={
@@ -161,7 +161,7 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
           }
         />
         <Panel>{body}</Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
