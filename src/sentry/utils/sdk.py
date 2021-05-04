@@ -41,6 +41,7 @@ SAMPLED_URL_NAMES = {
     "sentry-extensions-vercel-configure",
     "sentry-extensions-vercel-ui-hook",
     "sentry-api-0-group-integration-details",
+    "integration-details",
     # releases
     "sentry-api-0-organization-releases",
     "sentry-api-0-organization-release-details",
