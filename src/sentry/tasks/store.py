@@ -675,7 +675,7 @@ def create_failed_event(
             type=issue["type"],
             data=issue["data"],
         )
-    event_processing_store.delete_by_key(cache_key)
+
     event_processing_store.delete_by_key(cache_key)
 
     return True
