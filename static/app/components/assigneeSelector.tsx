@@ -297,37 +297,29 @@ class AssigneeSelector extends React.Component<Props, State> {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
     const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
-    const assigneeIds = new Set();
-    const filteredTeams: ItemsBeforeFilter = [];
-    const filteredMembers: ItemsBeforeFilter = [];
-
+    const assigneeIds = new Set(
+      suggestedAssignees.map(
+        assignee => `${assignee.value.type}:${assignee.value.assignee.id}`
+      )
+    );
     // filter out duplicates of Team/Member if also a Suggested Assignee
-    if (suggestedAssignees.length) {
-      suggestedAssignees.filter(assignee =>
-        assigneeIds.add(`${assignee.value.type}:${assignee.value.assignee.id}`)
-      );
-      teams.filter(team => {
-        return assigneeIds.has(`${team.value.type}:${team.value.assignee.id}`)
-          ? null
-          : filteredTeams.push(team);
-      });
-      members.filter(member => {
-        return assigneeIds.has(`${member.value.type}:${member.value.assignee.id}`)
-          ? null
-          : filteredMembers.push(member);
-      });
-    }
+    const filteredTeams: ItemsBeforeFilter = teams.filter(team => {
+      return !assigneeIds.has(`${team.value.type}:${team.value.assignee.id}`);
+    });
+    const filteredMembers: ItemsBeforeFilter = members.filter(member => {
+      return !assigneeIds.has(`${member.value.type}:${member.value.assignee.id}`);
+    });
 
     const dropdownItems: ItemsBeforeFilter = [
       {
         label: this.renderDropdownGroupLabel(t('Teams')),
         id: 'team-header',
-        items: filteredTeams.length ? filteredTeams : teams,
+        items: filteredTeams,
       },
       {
         label: this.renderDropdownGroupLabel(t('People')),
         id: 'members-header',
-        items: filteredMembers.length ? filteredMembers : members,
+        items: filteredMembers,
       },
     ];
 
