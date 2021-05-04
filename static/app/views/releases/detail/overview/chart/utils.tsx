@@ -109,11 +109,11 @@ export function getReleaseEventView(
     default:
       return EventView.fromSavedQuery({
         ...baseQuery,
-        fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
+        fields: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
         query: stringifyQueryObject(
           new QueryResults([`release:${version}`, '!event.type:transaction'])
         ),
-        orderby: '-last_seen',
+        orderby: '-count',
       });
   }
 }
