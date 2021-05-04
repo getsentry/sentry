@@ -54,7 +54,7 @@ function ReleaseStats({
   hasHealthData,
   getHealthData,
 }: Props) {
-  const {lastDeploy, dateCreated, version} = release;
+  const {lastDeploy, dateCreated, dateReleased, version} = release;
 
   const crashCount = getHealthData.getCrashCount(
     version,
@@ -104,10 +104,10 @@ function ReleaseStats({
     <Container>
       <div>
         <SectionHeading>
-          {lastDeploy?.dateFinished ? t('Date Deployed') : t('Date Created')}
+          {dateReleased ? t('Date Released') : t('Date Created')}
         </SectionHeading>
         <SectionContent>
-          <TimeSince date={lastDeploy?.dateFinished ?? dateCreated} />
+          <TimeSince date={dateReleased ?? dateCreated} />
         </SectionContent>
       </div>
 

@@ -19,7 +19,7 @@ type Props = {
 };
 
 const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Props) => {
-  const {version, dateCreated, firstEvent, lastEvent} = release;
+  const {version, dateCreated, dateReleased, firstEvent, lastEvent} = release;
 
   return (
     <Wrapper>
@@ -28,6 +28,12 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
         <KeyValueTableRow
           keyName={t('Created')}
           value={<DateTime date={dateCreated} seconds={false} />}
+        />
+        <KeyValueTableRow
+          keyName={t('Released')}
+          value={
+            dateReleased ? <DateTime date={dateReleased} seconds={false} /> : '\u2014'
+          }
         />
         <KeyValueTableRow
           keyName={t('Version')}

@@ -59,7 +59,14 @@ const ReleaseCard = ({
   isTopRelease,
   getHealthData,
 }: Props) => {
-  const {version, commitCount, lastDeploy, dateCreated, versionInfo} = release;
+  const {
+    version,
+    commitCount,
+    lastDeploy,
+    dateCreated,
+    dateReleased,
+    versionInfo,
+  } = release;
 
   return (
     <StyledPanel reloading={reloading ? 1 : 0}>
@@ -85,7 +92,7 @@ const ReleaseCard = ({
           {versionInfo?.package && (
             <PackageName ellipsisDirection="left">{versionInfo.package}</PackageName>
           )}
-          <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
+          <TimeSince date={dateReleased || dateCreated} />
           {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
         </ReleaseInfoSubheader>
       </ReleaseInfo>

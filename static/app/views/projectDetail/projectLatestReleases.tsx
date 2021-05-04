@@ -138,11 +138,11 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
 
   renderReleaseRow = (release: Release) => {
     const {projectId} = this.props;
-    const {lastDeploy, dateCreated} = release;
+    const {dateCreated, dateReleased} = release;
 
     return (
       <React.Fragment key={release.version}>
-        <DateTime date={lastDeploy?.dateFinished || dateCreated} seconds={false} />
+        <DateTime date={dateReleased || dateCreated} seconds={false} />
         <TextOverflow>
           <StyledVersion
             version={release.version}
