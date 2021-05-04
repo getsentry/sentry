@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import * as ReactRouter from 'react-router';
 import {browserHistory} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';

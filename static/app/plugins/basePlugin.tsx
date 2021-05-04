@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Settings from 'app/plugins/components/settings';
 import {Organization, Plugin, Project} from 'app/types';
 

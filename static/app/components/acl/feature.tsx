@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import HookStore from 'app/stores/hookStore';
 import {Config, Organization, Project} from 'app/types';

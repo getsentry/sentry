@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -158,7 +158,7 @@ class RelayWrapper extends AsyncView<Props, State> {
     const {organization} = this.props;
     const disabled = !organization.access.includes('org:write');
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={t('Relay')}
           action={
@@ -188,7 +188,7 @@ class RelayWrapper extends AsyncView<Props, State> {
           })}
         </TextBlock>
         {this.renderContent(disabled)}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

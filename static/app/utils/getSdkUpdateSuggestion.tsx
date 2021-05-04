@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'app/components/links/externalLink';
@@ -61,7 +61,7 @@ function getSdkUpdateSuggestion({sdk, suggestion, shortStyle = false}: Props) {
     return <ExternalLink href={href}>{content}</ExternalLink>;
   };
 
-  const title = <React.Fragment>{getTitle()}</React.Fragment>;
+  const title = <Fragment>{getTitle()}</Fragment>;
 
   if (!suggestion.enables.length) {
     return title;
@@ -76,7 +76,7 @@ function getSdkUpdateSuggestion({sdk, suggestion, shortStyle = false}: Props) {
       if (!subSuggestionContent) {
         return null;
       }
-      return <React.Fragment key={index}>{subSuggestionContent}</React.Fragment>;
+      return <Fragment key={index}>{subSuggestionContent}</Fragment>;
     })
     .filter(content => !!content);
 

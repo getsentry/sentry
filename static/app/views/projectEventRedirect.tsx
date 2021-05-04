@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import DetailedError from 'app/components/errors/detailedError';
@@ -21,7 +21,7 @@ type State = {
  * See:
  * https://github.com/getsentry/sentry/blob/824c03089907ad22a9282303a5eaca33989ce481/src/sentry/web/urls.py#L578
  */
-class ProjectEventRedirect extends React.Component<Props, State> {
+class ProjectEventRedirect extends Component<Props, State> {
   state: State = {
     error: null,
   };

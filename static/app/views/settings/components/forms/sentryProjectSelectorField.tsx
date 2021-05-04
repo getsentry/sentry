@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {components} from 'react-select';
 
 import SelectControl from 'app/components/forms/selectControl';

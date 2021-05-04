@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import capitalize from 'lodash/capitalize';
 import pick from 'lodash/pick';
 
@@ -18,7 +18,7 @@ type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> &
     baseEndpoint?: string;
   };
 
-export default class IntegrationExternalMappingForm extends React.Component<Props> {
+export default class IntegrationExternalMappingForm extends Component<Props> {
   get initialData() {
     const {integration, mapping} = this.props;
 

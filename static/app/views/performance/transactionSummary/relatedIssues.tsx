@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
@@ -27,7 +27,7 @@ type Props = {
   end?: string;
 };
 
-class RelatedIssues extends React.Component<Props> {
+class RelatedIssues extends Component<Props> {
   getIssuesEndpoint() {
     const {transaction, organization, start, end, statsPeriod, location} = this.props;
     const queryParams = {
@@ -104,7 +104,7 @@ class RelatedIssues extends React.Component<Props> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ControlsWrapper>
           <SectionHeading>{t('Related Issues')}</SectionHeading>
           <Button
@@ -129,7 +129,7 @@ class RelatedIssues extends React.Component<Props> {
             withPagination={false}
           />
         </TableWrapper>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

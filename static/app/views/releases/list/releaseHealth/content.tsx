@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -51,7 +51,7 @@ const Content = ({
   getHealthData,
 }: Props) => {
   return (
-    <React.Fragment>
+    <Fragment>
       <Header>
         <Layout>
           <Column>{t('Project Name')}</Column>
@@ -229,7 +229,7 @@ const Content = ({
           })}
         </Collapsible>
       </ProjectRows>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

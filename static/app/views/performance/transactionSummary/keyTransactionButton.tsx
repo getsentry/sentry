@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {toggleKeyTransaction} from 'app/actionCreators/performance';
 import {Client} from 'app/api';
@@ -25,7 +25,7 @@ type State = {
   isKeyTransaction: boolean;
 };
 
-class KeyTransactionButton extends React.Component<Props, State> {
+class KeyTransactionButton extends Component<Props, State> {
   state: State = {
     isLoading: true,
     keyFetchID: undefined,

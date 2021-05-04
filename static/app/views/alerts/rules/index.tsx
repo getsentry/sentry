@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
@@ -98,7 +98,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <IconWrapper>
           <IconCheckmark isCircled size="48" />
         </IconWrapper>
@@ -109,7 +109,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             link: <ExternalLink href={DOCS_URL} />,
           })}
         </Description>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -368,7 +368,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 }
 
-class AlertRulesListContainer extends React.Component<Props> {
+class AlertRulesListContainer extends Component<Props> {
   componentDidMount() {
     this.trackView();
   }

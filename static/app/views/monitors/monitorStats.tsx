@@ -1,5 +1,3 @@
-import React from 'react';
-
 import AsyncComponent from 'app/components/asyncComponent';
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import {Panel, PanelBody} from 'app/components/panels';

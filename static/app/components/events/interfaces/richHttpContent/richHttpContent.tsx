@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -15,7 +15,7 @@ type Props = {
 };
 
 const RichHttpContent = ({data}: Props) => (
-  <React.Fragment>
+  <Fragment>
     {defined(data.query) && (
       <RichHttpContentClippedBoxKeyValueList
         title={t('Query String')}
@@ -61,6 +61,6 @@ const RichHttpContent = ({data}: Props) => (
         meta={getMeta(data, 'env')}
       />
     )}
-  </React.Fragment>
+  </Fragment>
 );
 export default RichHttpContent;
