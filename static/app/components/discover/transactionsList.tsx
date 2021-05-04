@@ -19,7 +19,12 @@ import {Organization} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias, Sort} from 'app/utils/discover/fields';
+import {
+  Alignments,
+  fieldAlignment,
+  getAggregateAlias,
+  Sort,
+} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {getDuration} from 'app/utils/formatters';
 import BaselineQuery, {
@@ -32,6 +37,7 @@ import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {GridCell, GridCellNumber} from 'app/views/performance/styles';
+import {spanOperationBreakdownSingleColumns} from 'app/views/performance/transactionSummary/filter';
 import {
   TrendChangeType,
   TrendsDataEvents,
@@ -410,7 +416,13 @@ class TransactionsTable extends React.PureComponent<TableProps> {
 
     const headers = tableTitles.map((title, index) => {
       const column = columnOrder[index];
-      const align = fieldAlignment(column.name, column.type, tableMeta);
+
+      const isIndividualSpanColumn = !!spanOperationBreakdownSingleColumns.find(
+        c => c === column.name
+      );
+      const align: Alignments = isIndividualSpanColumn
+        ? 'left'
+        : fieldAlignment(column.name, column.type, tableMeta);
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
