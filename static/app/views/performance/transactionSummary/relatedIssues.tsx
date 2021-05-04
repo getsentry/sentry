@@ -103,11 +103,10 @@ class RelatedIssues extends React.Component<Props> {
       query: queryParams,
     };
 
-    // Don't show related issues if key_transaction tag is present as it's not valid for the issues endpoint
+    // Filter out key_transaction from being passed to issues as it will cause an error.
     const conditions = tokenizeSearch(queryParams.query);
-    if (conditions.hasTag('key_transaction')) {
-      return null;
-    }
+    conditions.removeTag('key_transaction');
+    queryParams.query = stringifyQueryObject(conditions);
 
     return (
       <React.Fragment>
