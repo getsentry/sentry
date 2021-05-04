@@ -7,12 +7,13 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import eventstore, features, options
+from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
+from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
@@ -135,11 +136,6 @@ def _do_process_event(message, projects):
         )
         return  # message already processed do not reprocess
 
-    if project_id in (options.get("store.load-shed-pipeline-projects") or ()):
-        # This killswitch is for the worst of scenarios and should probably not
-        # cause additional load on our logging infrastructure
-        return
-
     try:
         project = projects[project_id]
     except KeyError:
@@ -152,6 +148,21 @@ def _do_process_event(message, projects):
     # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
     # which assumes that data passed in is a raw dictionary.
     data = json.loads(payload)
+
+    if killswitch_matches_context(
+        "store.load-shed-pipeline-projects",
+        {
+            "project_id": project_id,
+            "event_id": event_id,
+            "organization_id": project.organization_id,
+            "platform": data.get("platform"),
+            "event_type": data.get("type") or "error",
+            "has_attachments": bool(attachments),
+        },
+    ):
+        # This killswitch is for the worst of scenarios and should probably not
+        # cause additional load on our logging infrastructure
+        return
 
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(

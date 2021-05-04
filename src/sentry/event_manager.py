@@ -13,7 +13,7 @@ from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
 
-from sentry import buffer, eventstore, eventstream, eventtypes, features, options, quotas, tsdb
+from sentry import buffer, eventstore, eventstream, eventtypes, features, quotas, tsdb
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
@@ -32,6 +32,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models import (
     CRASH_REPORT_TYPES,
@@ -944,7 +945,13 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
 
     if existing_group_id is None:
 
-        if project.id in (options.get("store.load-shed-group-creation-projects") or ()):
+        if killswitch_matches_context(
+            "store.load-shed-group-creation-projects",
+            {
+                "project_id": project.id,
+                "platform": event.platform,
+            },
+        ):
             raise HashDiscarded("Load shedding group creation")
 
         with sentry_sdk.start_span(

@@ -681,9 +681,9 @@ class CliTestCase(TestCase):
 
     default_args = []
 
-    def invoke(self, *args):
+    def invoke(self, *args, **kwargs):
         args += tuple(self.default_args)
-        return self.runner.invoke(self.command, args, obj={})
+        return self.runner.invoke(self.command, args, obj={}, **kwargs)
 
 
 @pytest.mark.usefixtures("browser")
