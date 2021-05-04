@@ -1,4 +1,3 @@
-import datetime
 from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
@@ -206,12 +205,7 @@ def _get_group_filters(group: Group):
     return [
         Condition(Column("project_id"), Op.EQ, group.project_id),
         Condition(Column("group_id"), Op.EQ, group.id),
-        # XXX(markus): Those conditions are cargo-culted. Need to verify if
-        # they bring any kind of perf-boost at all. We have seen
-        # last_seen/first_seen be wrong in Postgres so it may alter query
-        # results for the worse even.
         Condition(Column("timestamp"), Op.GTE, group.first_seen),
-        Condition(Column("timestamp"), Op.LT, group.last_seen + datetime.timedelta(seconds=1)),
     ]
 
 
