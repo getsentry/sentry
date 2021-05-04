@@ -89,7 +89,7 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
           </SidebarDropdownActor>
 
           {isOpen && (
-            <OrgAndUserMenu {...getMenuProps({})}>
+            <OrgUserAndMarketingMenu {...getMenuProps({})}>
               {hasOrganization && (
                 <React.Fragment>
                   <SidebarOrgSummary organization={org} />
@@ -153,7 +153,13 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                   </React.Fragment>
                 )}
               </DemoModeGate>
-            </OrgAndUserMenu>
+
+              <Divider />
+
+              <SidebarMenuItem href="https://sentry.io/welcome/">
+                {t('Homepage')}
+              </SidebarMenuItem>
+            </OrgUserAndMarketingMenu>
           )}
         </SidebarDropdownRoot>
       )}
@@ -231,11 +237,11 @@ const StyledAvatar = styled(Avatar)<{collapsed: boolean}>`
   border-radius: 6px; /* Fixes background bleeding on corners */
 `;
 
-const OrgAndUserMenu = styled('div')`
+const OrgUserAndMarketingMenu = styled('div')`
   ${SidebarDropdownMenu};
   top: 42px;
   min-width: 180px;
-  z-index: ${p => p.theme.zIndex.orgAndUserMenu};
+  z-index: ${p => p.theme.zIndex.orgUserAndMarketingMenu};
 `;
 
 const StyledIconChevron = styled(IconChevron)`
