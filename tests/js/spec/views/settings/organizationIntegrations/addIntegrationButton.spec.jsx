@@ -1,6 +1,4 @@
 /*global global*/
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
