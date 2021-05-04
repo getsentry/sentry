@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -8,7 +9,6 @@ import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -18,6 +18,7 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
+import space from 'app/styles/space';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
@@ -39,6 +40,7 @@ import {
   DEFAULT_TRENDS_STATS_PERIOD,
   modifyTrendsViewDefaultPeriod,
 } from './trends/utils';
+import Breadcrumb from './breadcrumb';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import Onboarding from './onboarding';
 import {addRoutePerformanceContext, getCurrentPerformanceView} from './utils';
@@ -151,17 +153,6 @@ class PerformanceLanding extends React.Component<Props, State> {
     });
   };
 
-  getViewLabel(currentView: FilterViews): string {
-    switch (currentView) {
-      case FilterViews.ALL_TRANSACTIONS:
-        return t('By Transaction');
-      case FilterViews.TRENDS:
-        return t('By Trend');
-      default:
-        throw Error(`Unknown view: ${currentView}`);
-    }
-  }
-
   getCurrentView(): string {
     const {location} = this.props;
     return getCurrentPerformanceView(location);
@@ -245,22 +236,22 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   renderHeaderButtons() {
-    const views: FilterViews[] = [FilterViews.ALL_TRANSACTIONS, FilterViews.TRENDS];
-    return (
-      <ButtonBar merged active={this.getCurrentView()}>
-        {views.map(viewKey => (
-          <Button
-            key={viewKey}
-            barId={viewKey}
-            size="small"
-            data-test-id={'landing-header-' + viewKey.toLowerCase()}
-            onClick={() => this.handleViewChange(viewKey)}
-          >
-            {this.getViewLabel(viewKey)}
-          </Button>
-        ))}
-      </ButtonBar>
-    );
+    const currentView = this.getCurrentView();
+    if (currentView === FilterViews.ALL_TRANSACTIONS) {
+      const viewKey = FilterViews.TRENDS;
+      return (
+        <Button
+          priority="primary"
+          key={viewKey}
+          barId={viewKey}
+          data-test-id={'landing-header-' + viewKey.toLowerCase()}
+          onClick={() => this.handleViewChange(viewKey)}
+        >
+          {t('View Trends')}
+        </Button>
+      );
+    }
+    return null;
   }
 
   shouldShowOnboarding() {
@@ -317,8 +308,21 @@ class PerformanceLanding extends React.Component<Props, State> {
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <PageHeader>
-                <PageHeading>{t('Performance')}</PageHeading>
-                {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
+                {isTrendsView ? (
+                  <TrendsHeader>
+                    <Breadcrumb
+                      organization={organization}
+                      location={location}
+                      isTrendsView
+                    />
+                    <PageHeading>{t('Trends')}</PageHeading>
+                  </TrendsHeader>
+                ) : (
+                  <React.Fragment>
+                    <PageHeading>{t('Performance')}</PageHeading>
+                    {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
+                  </React.Fragment>
+                )}
               </PageHeader>
               <GlobalSdkUpdateAlert />
               {this.renderError()}
@@ -347,6 +351,12 @@ class PerformanceLanding extends React.Component<Props, State> {
     );
   }
 }
+
+const TrendsHeader = styled('div')`
+  display: flex;
+  gap: ${space(3)};
+  flex-direction: column;
+`;
 
 export default withApi(
   withOrganization(withProjects(withGlobalSelection(PerformanceLanding)))

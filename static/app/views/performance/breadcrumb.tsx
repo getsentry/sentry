@@ -9,6 +9,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import {vitalDetailRouteWithQuery} from './vitalDetail/utils';
+import {FilterViews} from './landing';
 import {getPerformanceLandingUrl} from './utils';
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
   traceSlug?: string;
   transactionComparison?: boolean;
   realUserMonitoring?: boolean;
+  isTrendsView?: boolean;
 };
 
 class Breadcrumb extends React.Component<Props> {
@@ -34,6 +36,7 @@ class Breadcrumb extends React.Component<Props> {
       traceSlug,
       transactionComparison,
       realUserMonitoring,
+      isTrendsView,
     } = this.props;
 
     const performanceTarget: LocationDescriptor = {
@@ -50,6 +53,16 @@ class Breadcrumb extends React.Component<Props> {
       label: t('Performance'),
       preserveGlobalSelection: true,
     });
+
+    if (isTrendsView) {
+      if (performanceTarget.query) {
+        performanceTarget.query.view = FilterViews.ALL_TRANSACTIONS;
+      }
+      crumbs.push({
+        label: t('Trends'),
+        preserveGlobalSelection: true,
+      });
+    }
 
     if (vitalName) {
       const rumTarget = vitalDetailRouteWithQuery({
