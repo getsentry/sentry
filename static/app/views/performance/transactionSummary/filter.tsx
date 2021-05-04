@@ -33,6 +33,8 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
   SpanOperationBreakdownFilter.Resource,
 ];
 
+export const spanOperationBreakdownSingleColumns = OPTIONS.map(o => `spans.${o}`);
+
 type Props = {
   organization: OrganizationSummary;
   currentFilter: SpanOperationBreakdownFilter;
