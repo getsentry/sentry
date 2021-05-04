@@ -30,6 +30,7 @@ class ExternalUserTest(APITestCase):
             **self.data,
             "id": str(response.data["id"]),
             "userId": str(self.user.id),
+            "integrationId": str(self.integration.id),
         }
 
     def test_without_feature_flag(self):
@@ -77,4 +78,5 @@ class ExternalUserTest(APITestCase):
             **self.data,
             "id": str(self.external_user.id),
             "userId": str(self.user.id),
+            "integrationId": str(self.integration.id),
         }
