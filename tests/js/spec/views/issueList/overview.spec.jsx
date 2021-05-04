@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 import cloneDeep from 'lodash/cloneDeep';
 import range from 'lodash/range';

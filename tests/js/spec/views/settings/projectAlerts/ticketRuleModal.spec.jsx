@@ -1,4 +1,3 @@
-import React from 'react';
 import fetchMock from 'jest-fetch-mock';
 
 import {mountWithTheme} from 'sentry-test/enzyme';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DashboardList from 'app/views/dashboardsV2/manage/dashboardList';

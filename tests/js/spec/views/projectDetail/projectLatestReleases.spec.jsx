@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -90,7 +90,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     });
 
     const wrapper = mountWithTheme(
-      <React.Fragment>
+      <Fragment>
         <GlobalModal />
         <ProjectLatestReleases
           organization={organization}
@@ -99,7 +99,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
           projectId={project.slug}
           isProjectStabilized
         />
-      </React.Fragment>
+      </Fragment>
     );
 
     await tick();

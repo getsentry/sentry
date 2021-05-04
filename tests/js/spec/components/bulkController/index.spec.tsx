@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
 
@@ -26,7 +26,7 @@ function renderedComponent(
       }) => {
         renderProp(isAllSelected, isPageSelected, selectedIds);
         return (
-          <React.Fragment>
+          <Fragment>
             {isPageSelected && 'whole page selected'}
             {isAllSelected && 'everything selected'}
             <button data-test-id="selectAll" onClick={() => onAllRowsToggle(true)} />
@@ -34,7 +34,7 @@ function renderedComponent(
             <button data-test-id="unselectAll" onClick={() => onAllRowsToggle(false)} />
             <button data-test-id="deselectPage" onClick={() => onPageRowsToggle(false)} />
             <button data-test-id="toggleRow" onClick={() => onRowToggle('2')} />
-          </React.Fragment>
+          </Fragment>
         );
       }}
     </BulkController>

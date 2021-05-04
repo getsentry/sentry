@@ -1,4 +1,3 @@
-import React from 'react';
 import Cookies from 'js-cookie';
 
 import {mountWithTheme} from 'sentry-test/enzyme';

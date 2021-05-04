@@ -1,4 +1,3 @@
-import React from 'react';
 import sortBy from 'lodash/sortBy';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
