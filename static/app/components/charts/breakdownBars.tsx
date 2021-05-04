@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -7,6 +7,7 @@ import {formatPercentage} from 'app/utils/formatters';
 type Point = {
   label: string;
   value: number;
+  onClick?: () => void;
 };
 
 type Props = {
@@ -22,13 +23,17 @@ function BreakdownBars({data}: Props) {
   return (
     <BreakdownGrid>
       {data.map((point, i) => (
-        <React.Fragment key={`${i}:${point.label}`}>
+        <Fragment key={`${i}:${point.label}`}>
           <Percentage>{formatPercentage(point.value / total, 0)}</Percentage>
-          <BarContainer>
+          <BarContainer
+            data-test-id={`status-${point.label}`}
+            cursor={point.onClick ? 'pointer' : 'default'}
+            onClick={point.onClick}
+          >
             <Bar style={{width: `${((point.value / total) * 100).toFixed(2)}%`}} />
             <Label>{point.label}</Label>
           </BarContainer>
-        </React.Fragment>
+        </Fragment>
       ))}
     </BreakdownGrid>
   );
@@ -48,10 +53,11 @@ const Percentage = styled('div')`
   text-align: right;
 `;
 
-const BarContainer = styled('div')`
+const BarContainer = styled('div')<{cursor: 'pointer' | 'default'}>`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
   position: relative;
+  cursor: ${p => p.cursor};
 `;
 
 const Label = styled('span')`

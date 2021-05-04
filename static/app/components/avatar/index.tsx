@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import ProjectAvatar from 'app/components/avatar/projectAvatar';

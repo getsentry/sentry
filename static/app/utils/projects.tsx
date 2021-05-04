@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
@@ -127,7 +127,7 @@ class Projects extends React.Component<Props, State> {
     passthroughPlaceholderProject: true,
   };
 
-  state = {
+  state: State = {
     fetchedProjects: [],
     projectsFromStore: [],
     initiallyLoaded: false,

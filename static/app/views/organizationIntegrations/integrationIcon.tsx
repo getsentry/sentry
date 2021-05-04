@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import PluginIcon, {DEFAULT_ICON, ICON_PATHS} from 'app/plugins/components/pluginIcon';
@@ -7,6 +7,10 @@ import {Integration} from 'app/types';
 type Props = {
   integration: Integration;
   size?: number;
+};
+
+type State = {
+  imgSrc: Integration['icon'];
 };
 
 type IconProps = Pick<Props, 'size'>;
@@ -18,8 +22,8 @@ const StyledIcon = styled('img')<IconProps>`
   display: block;
 `;
 
-class Icon extends React.Component<Props> {
-  state = {
+class Icon extends Component<Props, State> {
+  state: State = {
     imgSrc: this.props.integration.icon,
   };
 

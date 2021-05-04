@@ -947,10 +947,6 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
-    # Enable the new Performance Landing page
-    "organizations:performance-landing-v2": False,
-    # Enable the views for performance vitals
-    "organizations:performance-vitals-overview": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer

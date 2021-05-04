@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {IconEdit} from 'app/icons';
@@ -60,7 +60,7 @@ class InputInline extends React.Component<Props, State> {
     return event as React.FormEvent<HTMLInputElement>;
   }
 
-  state = {
+  state: State = {
     isFocused: false,
     isHovering: false,
   };

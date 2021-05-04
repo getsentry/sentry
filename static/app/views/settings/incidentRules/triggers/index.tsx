@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import {Organization, Project} from 'app/types';
@@ -43,7 +43,7 @@ type Props = {
 /**
  * A list of forms to add, edit, and delete triggers.
  */
-class Triggers extends React.Component<Props> {
+class Triggers extends Component<Props> {
   handleDeleteTrigger = (index: number) => {
     const {triggers, onChange} = this.props;
     const updatedTriggers = removeAtArrayIndex(triggers, index);
@@ -103,7 +103,7 @@ class Triggers extends React.Component<Props> {
 
     // Note we only support 2 triggers max
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           <PanelBody>
             <TriggerForm
@@ -133,7 +133,7 @@ class Triggers extends React.Component<Props> {
           onChange={this.handleChangeActions}
           onAdd={this.handleAddAction}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

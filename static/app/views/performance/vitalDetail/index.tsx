@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
@@ -41,7 +41,7 @@ type State = {
   eventView: EventView | undefined;
 };
 
-class VitalDetail extends React.Component<Props, State> {
+class VitalDetail extends Component<Props, State> {
   state: State = {
     eventView: generatePerformanceVitalDetailView(
       this.props.organization,

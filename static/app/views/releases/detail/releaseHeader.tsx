@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
@@ -50,18 +50,18 @@ const ReleaseHeader = ({
     {title: t('Overview'), to: releasePath},
     {
       title: (
-        <React.Fragment>
+        <Fragment>
           {t('Commits')} <NavTabsBadge text={formatAbbreviatedNumber(commitCount)} />
-        </React.Fragment>
+        </Fragment>
       ),
       to: `${releasePath}commits/`,
     },
     {
       title: (
-        <React.Fragment>
+        <Fragment>
           {t('Files Changed')}
           <NavTabsBadge text={formatAbbreviatedNumber(commitFilesChanged)} />
-        </React.Fragment>
+        </Fragment>
       ),
       to: `${releasePath}files-changed/`,
     },
@@ -119,7 +119,7 @@ const ReleaseHeader = ({
         />
       </Layout.HeaderActions>
 
-      <React.Fragment>
+      <Fragment>
         <StyledNavTabs>
           {tabs.map(tab => (
             <ListLink
@@ -131,7 +131,7 @@ const ReleaseHeader = ({
             </ListLink>
           ))}
         </StyledNavTabs>
-      </React.Fragment>
+      </Fragment>
     </Layout.Header>
   );
 };

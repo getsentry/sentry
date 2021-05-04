@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -27,7 +27,7 @@ type State = {
 };
 
 class AllTeamsRow extends React.Component<Props, State> {
-  state = {
+  state: State = {
     loading: false,
     error: false,
   };

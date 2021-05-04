@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -34,7 +34,7 @@ type State = {
   shouldShow: boolean | null;
 };
 
-class IssueQuickTrace extends React.Component<Props, State> {
+class IssueQuickTrace extends Component<Props, State> {
   state: State = {
     shouldShow: null,
   };
@@ -120,15 +120,13 @@ class IssueQuickTrace extends React.Component<Props, State> {
                 </ExternalLink>
               ),
             })}
-            <Actions>
-              <Button
-                priority="link"
-                title={t('Dismiss for a month')}
-                onClick={this.snoozePrompt}
-              >
-                <IconClose />
-              </Button>
-            </Actions>
+            <Button
+              priority="link"
+              title={t('Dismiss for a month')}
+              onClick={this.snoozePrompt}
+            >
+              <IconClose />
+            </Button>
           </AlertContent>
         </StyledAlert>
       );
@@ -155,10 +153,10 @@ class IssueQuickTrace extends React.Component<Props, State> {
         <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
           {results => {
             return (
-              <React.Fragment>
+              <Fragment>
                 {this.renderTraceLink(results)}
                 <QuickTraceWrapper>{this.renderQuickTrace(results)}</QuickTraceWrapper>
-              </React.Fragment>
+              </Fragment>
             );
           }}
         </QuickTraceQuery>
@@ -198,12 +196,6 @@ const AlertContent = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     justify-content: space-between;
   }
-`;
-
-const Actions = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
-  grid-gap: ${space(1)};
 `;
 
 export default withApi(IssueQuickTrace);

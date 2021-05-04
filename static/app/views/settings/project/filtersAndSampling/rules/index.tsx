@@ -1,4 +1,4 @@
-import React from 'react';
+import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -25,7 +25,7 @@ type State = {
   rules: Array<DynamicSamplingRule>;
 };
 
-class Rules extends React.PureComponent<Props, State> {
+class Rules extends PureComponent<Props, State> {
   state: State = {rules: []};
 
   componentDidMount() {

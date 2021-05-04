@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import ReactDOM from 'react-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react'; // This is needed to set "speedy" = false (for percy)
@@ -18,8 +18,8 @@ type State = {
   theme: Theme;
 };
 
-class Main extends React.Component<Props, State> {
-  state = {
+class Main extends Component<Props, State> {
+  state: State = {
     theme: this.themeName === 'dark' ? darkTheme : lightTheme,
   };
 

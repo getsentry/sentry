@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
 import {withTheme} from '@emotion/react';
@@ -52,7 +52,7 @@ type Props = ReactRouter.WithRouterProps &
     organization: OrganizationSummary;
   };
 
-class VitalChart extends React.Component<Props> {
+class VitalChart extends Component<Props> {
   handleLegendSelectChanged = legendChange => {
     const {location} = this.props;
     const {selected} = legendChange;

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -21,6 +21,7 @@ import Version from 'app/components/version';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {
   AGGREGATIONS,
   getAggregateAlias,
@@ -46,10 +47,12 @@ import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
   Container,
+  FlexContainer,
   NumberContainer,
   OverflowLink,
   StyledDateTime,
   StyledShortId,
+  UserIcon,
   VersionContainer,
 } from './styles';
 
@@ -192,6 +195,7 @@ type SpecialFields = {
   project: SpecialField;
   user: SpecialField;
   'user.display': SpecialField;
+  'count_unique(user)': SpecialField;
   'issue.id': SpecialField;
   'error.handled': SpecialField;
   issue: SpecialField;
@@ -326,6 +330,24 @@ const SPECIAL_FIELDS: SpecialFields = {
 
         const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
         return <Container>{badge}</Container>;
+      }
+
+      return <Container>{emptyValue}</Container>;
+    },
+  },
+  'count_unique(user)': {
+    sortField: 'count_unique(user)',
+    renderFunc: data => {
+      const count = data.count_unique_user;
+      if (typeof count === 'number') {
+        return (
+          <FlexContainer>
+            <NumberContainer>
+              <Count value={count} />
+            </NumberContainer>
+            <UserIcon size="20" />
+          </FlexContainer>
+        );
       }
 
       return <Container>{emptyValue}</Container>;
@@ -533,7 +555,7 @@ const spanOperationBreakdownRenderer = (field: string) => (
 
 const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location}: RenderFunctionBaggage
+  {location, organization}: RenderFunctionBaggage
 ): React.ReactNode => {
   const cumulativeSpanOpBreakdown = data['spans.total.time'];
 
@@ -576,6 +598,12 @@ const spanOperationRelativeBreakdownRenderer = (
                   if (filter === SpanOperationBreakdownFilter.None) {
                     return;
                   }
+                  trackAnalyticsEvent({
+                    eventName: 'Performance Views: Select Relative Breakdown',
+                    eventKey: 'performance_views.relative_breakdown.selection',
+                    organization_id: parseInt(organization.id, 10),
+                    action: filter as string,
+                  });
                   browserHistory.push({
                     pathname: location.pathname,
                     query: {

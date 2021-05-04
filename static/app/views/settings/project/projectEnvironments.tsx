@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -32,7 +32,7 @@ type State = {
   environments: null | Environment[];
 };
 
-class ProjectEnvironments extends React.Component<Props, State> {
+class ProjectEnvironments extends Component<Props, State> {
   state: State = {
     project: null,
     environments: null,
@@ -148,7 +148,7 @@ class ProjectEnvironments extends React.Component<Props, State> {
     const buttonText = isHidden ? t('Show') : t('Hide');
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderAllEnvironmentsSystemRow()}
         {envs.map(env => (
           <EnvironmentRow
@@ -161,7 +161,7 @@ class ProjectEnvironments extends React.Component<Props, State> {
             shouldShowAction
           />
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -237,7 +237,7 @@ function EnvironmentRow({
       <Name>{isSystemRow ? t('All Environments') : name}</Name>
       <Access access={['project:write']}>
         {({hasAccess}) => (
-          <React.Fragment>
+          <Fragment>
             {shouldShowAction && onHide && (
               <EnvironmentButton
                 size="xsmall"
@@ -247,7 +247,7 @@ function EnvironmentRow({
                 {actionText}
               </EnvironmentButton>
             )}
-          </React.Fragment>
+          </Fragment>
         )}
       </Access>
     </EnvironmentItem>

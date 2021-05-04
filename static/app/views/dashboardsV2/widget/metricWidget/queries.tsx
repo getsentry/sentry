@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -63,7 +63,7 @@ function Queries({
               required
             />
             {queries.length > 1 && (
-              <React.Fragment>
+              <Fragment>
                 <ButtonDeleteWrapper>
                   <Button
                     onClick={() => {
@@ -81,7 +81,7 @@ function Queries({
                 >
                   <IconDelete aria-label={t('Delete Query')} />
                 </IconDeleteWrapper>
-              </React.Fragment>
+              </Fragment>
             )}
           </Fields>
         );
