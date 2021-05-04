@@ -22,6 +22,13 @@ import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
 import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
+export enum SentryInitRenderReactComponent {
+  INDICATORS = 'Indicators',
+  SETUP_WIZARD = 'SetupWizard',
+  SYSTEM_ALERTS = 'SystemAlerts',
+  U2F_SIGN = 'U2fSign',
+}
+
 export type OnSentryInitConfiguration =
   | {
       name: 'passwordStrength';
@@ -30,8 +37,8 @@ export type OnSentryInitConfiguration =
     }
   | {
       name: 'renderReact';
-      component: 'Indicators' | 'SetupWizard' | 'SystemAlerts';
       container: string;
+      component: SentryInitRenderReactComponent;
       props?: Record<string, any>;
     }
   | {

@@ -1,17 +1,18 @@
 import exportGlobals from 'app/bootstrap/exportGlobals';
-import {OnSentryInitConfiguration} from 'app/types';
+import {OnSentryInitConfiguration, SentryInitRenderReactComponent} from 'app/types';
 
 import {renderDom} from './renderDom';
 import {renderOnDomReady} from './renderOnDomReady';
 
 const COMPONENT_MAP = {
-  Indicators: () =>
+  [SentryInitRenderReactComponent.INDICATORS]: () =>
     import(/* webpackChunkName: "Indicators" */ 'app/components/indicators'),
-  SystemAlerts: () =>
+  [SentryInitRenderReactComponent.SYSTEM_ALERTS]: () =>
     import(/* webpackChunkName: "SystemAlerts" */ 'app/views/app/systemAlerts'),
-  SetupWizard: () =>
+  [SentryInitRenderReactComponent.SETUP_WIZARD]: () =>
     import(/* webpackChunkName: "SetupWizard" */ 'app/views/setupWizard'),
-  U2fSign: () => import(/* webpackChunkName: "U2fSign" */ 'app/components/u2f/u2fsign'),
+  [SentryInitRenderReactComponent.U2F_SIGN]: () =>
+    import(/* webpackChunkName: "U2fSign" */ 'app/components/u2f/u2fsign'),
 };
 
 async function processItem(initConfig: OnSentryInitConfiguration) {
@@ -49,7 +50,10 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
     }
     const {default: Component} = await COMPONENT_MAP[initConfig.component]();
 
-    renderOnDomReady(() => renderDom(Component, initConfig.container, initConfig.props));
+    renderOnDomReady(() =>
+      // TODO(ts): Unsure how to type this, complains about u2fsign's required props
+      renderDom(Component as any, initConfig.container, initConfig.props)
+    );
   }
 
   /**
