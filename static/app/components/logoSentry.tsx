@@ -19,7 +19,11 @@ function LogoSentry({showWordmark = true, height = '32px'}: Props) {
       {showWordmark ? wordmarkSvg : glyphSvg}
     </svg>
   );
-};
+}
 
+LogoSentry.defaultProps = {
+  showWordmark: true,
+  height: '32px',
+};
 
 export default LogoSentry;
