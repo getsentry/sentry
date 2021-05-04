@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.utils import fernet_encrypt as encrypt
+from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
@@ -14,8 +15,47 @@ def credentials_key_name():
     return "sentry:appleconnect_key"
 
 
-def credentials_name():
-    return "sentry:appleconnect_credentials"
+def symbol_sources_prop_name():
+    return "sentry:symbol_sources"
+
+
+def app_store_connect_feature_name():
+    return "organizations:app-store-connect"
+
+
+def save_app_store_credentials(project, credentials):
+    """
+    Saves app store credentials with the other symbol_sources
+    :param project:
+    :param credentials:
+    :return:
+    """
+    sources_config = project.get_option(symbol_sources_prop_name())
+    try:
+        if sources_config is not None:
+            sources = json.loads(sources_config)
+            # remove any existing app store connect configuration (we support only one)
+            sources = list(filter(lambda src: src.get("type") != "AppStoreConnect", sources))
+            # add the new configuration
+            sources.append(credentials)
+        else:
+            sources = [credentials]
+        sources_string = json.dumps(sources)
+        project.update_option(symbol_sources_prop_name(), sources_string)
+    except BaseException as e:
+        raise ValueError("bad sources") from e
+
+
+def get_app_store_credentials(project):
+    sources_config = project.get_option(symbol_sources_prop_name())
+    try:
+        sources = json.loads(sources_config)
+        for source in sources:
+            if source.get("type") == "AppStoreConnect":
+                return source
+        return None
+    except BaseException as e:
+        raise ValueError("bad sources") from e
 
 
 class AppStoreConnectCredentialsSerializer(serializers.Serializer):
@@ -41,7 +81,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         if not features.has(
-            "organizations:app-store-connect", project.organization, actor=request.user
+            app_store_connect_feature_name(), project.organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -85,6 +125,7 @@ class AppStoreFullCredentialsSerializer(serializers.Serializer):
     appName = serializers.CharField(max_length=512, min_length=1, required=True)
     appId = serializers.CharField(max_length=512, min_length=1, required=True)
     sessionContext = serializers.CharField(min_length=1, required=True)
+    # this is the ITunes organization the user is a member of ( known as providers in Itunes terminology)
     orgId = serializers.IntegerField(required=True)
     orgName = serializers.CharField(max_length=100, required=True)
 
@@ -94,7 +135,7 @@ class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         if not features.has(
-            "organizations:app-store-connect", project.organization, actor=request.user
+            app_store_connect_feature_name(), project.organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -118,36 +159,34 @@ class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
         try:
             validation_context = encrypt.decrypt_object(encrypted_context, key)
             itunes_session = validation_context.get("itunes_session")
-            credentials["itunes_session"] = itunes_session
-            encrypted_credentials = encrypt.encrypt_object(credentials, key)
-            project.update_option(credentials_name(), encrypted_credentials)
+            encrypted = {
+                "itunesSession": itunes_session,
+                "itunesPassword": credentials.pop("itunesPassword"),
+                "appconnectPrivateKey": credentials.pop("appconnectPrivateKey"),
+            }
+            credentials["encrypted"] = encrypt.encrypt_object(encrypted, key)
+            credentials["type"] = "AppStoreConnect"
+            credentials["id"] = "AppStoreConnect"
+            credentials["name"] = "Apple App Store Connect"
+
+            save_app_store_credentials(project, credentials)
         except ValueError:
             return Response("Invalid validation context passed.", status=400)
         return Response(status=204)
 
     def get(self, request, project):
         if not features.has(
-            "organizations:app-store-connect", project.organization, actor=request.user
+            app_store_connect_feature_name(), project.organization, actor=request.user
         ):
             return Response("", status=404)
 
-        key = project.get_option(credentials_key_name())
-        encrypted_credentials = project.get_option(credentials_name())
-        if key is None or encrypted_credentials is None:
-            return Response({}, status=200)
+        credentials = get_app_store_credentials(project)
 
-        try:
-            cred_dict = encrypt.decrypt_object(encrypted_credentials, key)
-            user_credentials = {
-                "itunesUser": cred_dict.get("itunesUser"),
-                "appName": cred_dict.get("appName"),
-                "appId": cred_dict.get("appId"),
-                "orgId": cred_dict.get("orgId"),
-                "orgName": cred_dict.get("orgName"),
-            }
-            return Response(user_credentials, status=200)
-        except ValueError:
-            return Response(status=500)
+        if credentials is None:
+            return Response({}, status=200)
+        else:
+            credentials.pop("encrypted", None)
+            return Response(credentials, status=200)
 
 
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
@@ -162,32 +201,35 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
         if not features.has(
-            "organizations:app-store-connect", project.organization, actor=request.user
+            app_store_connect_feature_name(), project.organization, actor=request.user
         ):
             return Response(status=404)
 
+        credentials = get_app_store_credentials(project)
         key = project.get_option(credentials_key_name())
-        encrypted_credentials = project.get_option(credentials_name())
-        if key is None or encrypted_credentials is None:
+
+        if key is None or credentials is None:
             return Response(self.get_result(False, False, False), status=200)
 
         try:
-            cred_dict = encrypt.decrypt_object(encrypted_credentials, key)
+            secrets = encrypt.decrypt_object(credentials.get("encrypted"), key)
         except ValueError:
             return Response(status=500)
 
         credentials = appstore_connect.AppConnectCredentials(
-            key_id=cred_dict.get("appconnectKey"),
-            key=cred_dict.get("appconnectPrivateKey"),
-            issuer_id=cred_dict.get("appconnectIssuer"),
+            key_id=credentials.get("appconnectKey"),
+            key=secrets.get("appconnectPrivateKey"),
+            issuer_id=credentials.get("appconnectIssuer"),
         )
 
         session = requests.Session()
         apps = appstore_connect.get_apps(session, credentials)
 
         appstore_valid = apps is not None
-        itunes_connect.load_session_cookie(session, cred_dict.get("itunes_session"))
-        itunes_session_valid = itunes_connect.is_session_valid(session)
+        itunes_connect.load_session_cookie(session, secrets.get("itunesSession"))
+        itunes_session_info = itunes_connect.get_session_info(session)
+
+        itunes_session_valid = itunes_session_info is not None
 
         return Response(
             self.get_result(configured=True, app_store=appstore_valid, itunes=itunes_session_valid)
@@ -208,7 +250,7 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         if not features.has(
-            "organizations:app-store-connect", project.organization, actor=request.user
+            app_store_connect_feature_name(), project.organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -231,17 +273,17 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
             if user_name is None or password is None:
                 # credentials not supplied use saved credentials
 
-                encrypted_credentials = project.get_option(credentials_name())
-                if key is None or encrypted_credentials is None:
+                credentials = get_app_store_credentials(project)
+                if key is None or credentials is None:
                     return Response("No credentials provided.", status=400)
 
                 try:
-                    cred_dict = encrypt.decrypt_object(encrypted_credentials, key)
+                    secrets = encrypt.decrypt_object(credentials.get("encrypted"), key)
                 except ValueError:
                     return Response("Invalid credentials state.", status=500)
 
-                user_name = cred_dict.get("itunes_user")
-                password = cred_dict.get("itunes_password")
+                user_name = credentials.get("itunesUser")
+                password = secrets.get("itunesPassword")
 
                 if user_name is None or password is None:
                     return Response("Invalid credentials.", status=500)
@@ -285,7 +327,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         if not features.has(
-            "organizations:app-store-connect", project.organization, actor=request.user
+            app_store_connect_feature_name(), project.organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -351,7 +393,7 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         if not features.has(
-            "organizations:app-store-connect", project.organization, actor=request.user
+            app_store_connect_feature_name(), project.organization, actor=request.user
         ):
             return Response(status=404)
 

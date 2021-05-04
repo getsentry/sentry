@@ -55,7 +55,6 @@ function DebugFileCustomRepository({
           closeModal={closeModal}
           orgSlug={orgId}
           projectSlug={projectId}
-          onSubmit={handleSave}
         />
       );
     }

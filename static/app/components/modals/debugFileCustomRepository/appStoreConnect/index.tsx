@@ -43,18 +43,9 @@ type Props = Pick<ModalRenderProps, 'Body' | 'Footer' | 'closeModal'> & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  onSubmit: (data: Record<string, string>) => void;
 };
 
-function AppStoreConnect({
-  Body,
-  Footer,
-  closeModal,
-  api,
-  orgSlug,
-  projectSlug,
-  onSubmit,
-}: Props) {
+function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [stepHeights, setStepHeights] = useState<number[]>([]);
@@ -219,14 +210,6 @@ function AppStoreConnect({
         },
       });
       addSuccessMessage('App Store Connect repository was successfully added');
-      onSubmit({
-        itunesUser: stepTwoData.username,
-        appName: stepFourData.app.name,
-        appId: stepFourData.app.appId,
-        orgId: String(stepFourData.org.organizationId),
-        orgName: stepFourData.org.name,
-        name: 'App Store Connect',
-      });
       closeModal();
     } catch (error) {
       setIsLoading(false);
