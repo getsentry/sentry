@@ -30,6 +30,7 @@ type Props = {
 class RelatedIssues extends Component<Props> {
   getIssuesEndpoint() {
     const {transaction, organization, start, end, statsPeriod, location} = this.props;
+
     const queryParams = {
       start,
       end,
@@ -53,6 +54,9 @@ class RelatedIssues extends Component<Props> {
       }
     });
     currentFilter.addQuery('is:unresolved').setTagValues('transaction', [transaction]);
+
+    // Filter out key_transaction from being passed to issues as it will cause an error.
+    currentFilter.removeTag('key_transaction');
 
     return {
       path: `/organizations/${organization.slug}/issues/`,
