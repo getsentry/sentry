@@ -339,11 +339,12 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
 
     @staticmethod
     def record_analytics(
-        transactions: Sequence[SnubaTransaction], user_id: int, org_id: int
+        transactions: Sequence[SnubaTransaction], trace_id: str, user_id: int, org_id: int
     ) -> None:
         with sentry_sdk.start_span(op="recording.analytics"):
             len_transactions = len(transactions)
 
+            sentry_sdk.set_tag("trace_view.trace", trace_id)
             sentry_sdk.set_tag("trace_view.transactions", len_transactions)
             sentry_sdk.set_tag("trace_view.transactions.grouped", group_length(len_transactions))
             projects: Set[int] = set()
@@ -354,6 +355,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             if len_projects > 1:
                 analytics.record(
                     "quick_trace.connected_services",
+                    trace_id=trace_id,
                     projects=len_projects,
                     organization_id=org_id,
                 )
@@ -381,7 +383,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             transactions, errors = query_trace_data(trace_id, params)
             if len(transactions) == 0:
                 return Response(status=404)
-            self.record_analytics(transactions, self.request.user.id, organization.id)
+            self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
 
         warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization}
 
