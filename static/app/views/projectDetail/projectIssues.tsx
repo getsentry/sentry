@@ -7,6 +7,7 @@ import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {SectionHeading} from 'app/components/charts/styles';
+import DiscoverButton from 'app/components/discoverButton';
 import GroupList from 'app/components/issues/groupList';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Pagination from 'app/components/pagination';
@@ -32,7 +33,7 @@ function ProjectIssues({organization, location, projectId, api}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
 
-  function handleOpenClick() {
+  function handleOpenInIssuesClick() {
     trackAnalyticsEvent({
       eventKey: 'project_detail.open_issues',
       eventName: 'Project Detail: Open issues from project detail',
@@ -40,9 +41,31 @@ function ProjectIssues({organization, location, projectId, api}: Props) {
     });
   }
 
+  function handleOpenInDiscoverClick() {
+    trackAnalyticsEvent({
+      eventKey: 'project_detail.open_discover',
+      eventName: 'Project Detail: Open discover from project detail',
+      organization_id: parseInt(organization.id, 10),
+    });
+  }
+
   function handleFetchSuccess(groupListState, cursorHandler) {
     setPageLinks(groupListState.pageLinks);
     setOnCursor(() => cursorHandler);
+  }
+
+  function getDiscoverUrl() {
+    return {
+      pathname: `/organizations/${organization.slug}/discover/results/`,
+      query: {
+        name: t('Frequent Unhandled Issues'),
+        field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
+        sort: ['-count'],
+        query: 'event.type:error error.unhandled:true',
+        display: 'top5',
+        ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
+      },
+    };
   }
 
   const endpointPath = `/organizations/${organization.slug}/issues/`;
@@ -92,16 +115,21 @@ function ProjectIssues({organization, location, projectId, api}: Props) {
       <ControlsWrapper>
         <SectionHeading>{t('Frequent Unhandled Issues')}</SectionHeading>
         <ButtonBar gap={1}>
-          <div>
-            <Button
-              data-test-id="issues-open"
-              size="small"
-              to={issueSearch}
-              onClick={handleOpenClick}
-            >
-              {t('Open in Issues')}
-            </Button>
-          </div>
+          <Button
+            data-test-id="issues-open"
+            size="small"
+            to={issueSearch}
+            onClick={handleOpenInIssuesClick}
+          >
+            {t('Open in Issues')}
+          </Button>
+          <DiscoverButton
+            onClick={handleOpenInDiscoverClick}
+            to={getDiscoverUrl()}
+            size="small"
+          >
+            {t('Open in Discover')}
+          </DiscoverButton>
           <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
         </ButtonBar>
       </ControlsWrapper>
@@ -126,6 +154,7 @@ const ControlsWrapper = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(1)};
+  flex-wrap: wrap;
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
   }
