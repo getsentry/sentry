@@ -12,7 +12,6 @@ import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 
 import {decodeHistogramZoom} from './latencyChart';
@@ -95,12 +94,6 @@ class Filter extends React.Component<Props> {
               <Header
                 onClick={event => {
                   event.stopPropagation();
-                  trackAnalyticsEvent({
-                    eventName: 'Performance Views: Filter Dropdown',
-                    eventKey: 'performance_views.filter_dropdown.selection',
-                    organization_id: parseInt(organization.id, 10),
-                    action: SpanOperationBreakdownFilter.None as string,
-                  });
                   onChangeFilter(SpanOperationBreakdownFilter.None);
                 }}
               >
@@ -119,12 +112,6 @@ class Filter extends React.Component<Props> {
                       isChecked={false}
                       onClick={event => {
                         event.stopPropagation();
-                        trackAnalyticsEvent({
-                          eventName: 'Performance Views: Filter Dropdown',
-                          eventKey: 'performance_views.filter_dropdown.selection',
-                          organization_id: parseInt(organization.id, 10),
-                          action: filterOption as string,
-                        });
                         onChangeFilter(filterOption);
                       }}
                     >
