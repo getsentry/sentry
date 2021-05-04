@@ -31,7 +31,7 @@ import withApi from 'app/utils/withApi';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
-import {vitalNameFromLocation, webVitalMeh, webVitalPoor} from './utils';
+import {getMaxOfSeries, vitalNameFromLocation, webVitalMeh, webVitalPoor} from './utils';
 
 const QUERY_KEYS = [
   'environment',
@@ -173,6 +173,7 @@ class VitalChart extends React.Component<Props> {
         max: vitalPoor,
         axisLabel: {
           color: theme.chartLabel,
+          showMaxLabel: false,
           // coerces the axis to be time based
           formatter: (value: number) => axisLabelFormatter(value, yAxis),
         },
@@ -240,6 +241,10 @@ class VitalChart extends React.Component<Props> {
                         };
                       })
                     : [];
+
+                  const seriesMax = getMaxOfSeries(smoothedSeries);
+                  const yAxisMax = Math.max(seriesMax, vitalPoor);
+                  chartOptions.yAxis.max = yAxisMax * 1.1;
 
                   return (
                     <ReleaseSeries
