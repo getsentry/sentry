@@ -14,24 +14,17 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 logger = logging.getLogger(__name__)
 
 
-def enum(**named_values):
-    """Creates an enum type."""
-    return type("Enum", (), named_values)
+class ChunkFileState:
+    OK = "ok"  # File in database
+    NOT_FOUND = "not_found"  # File not found in database
+    CREATED = "created"  # File was created in the request and send to the worker for assembling
+    ASSEMBLING = "assembling"  # File still being processed by worker
+    ERROR = "error"  # Error happened during assembling
 
 
-ChunkFileState = enum(
-    OK="ok",  # File in database
-    NOT_FOUND="not_found",  # File not found in database
-    CREATED="created",  # File was created in the request and send to the worker for assembling
-    ASSEMBLING="assembling",  # File still being processed by worker
-    ERROR="error",  # Error happened during assembling
-)
-
-
-AssembleTask = enum(
-    DIF="project.dsym",  # Debug file upload
-    ARTIFACTS="organization.artifacts",  # Release file upload
-)
+class AssembleTask:
+    DIF = "project.dsym"  # Debug file upload
+    ARTIFACTS = "organization.artifacts"  # Release file upload
 
 
 def _get_cache_key(task, scope, checksum):
