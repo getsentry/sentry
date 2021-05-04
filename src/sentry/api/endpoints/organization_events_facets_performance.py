@@ -76,10 +76,10 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
                     return {"data": []}
 
                 for row in results["data"]:
-                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
                     row["tags_value"] = tagstore.get_tag_value_label(
                         row["tags_key"], row["tags_value"]
                     )
+                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
 
                 return results
 
