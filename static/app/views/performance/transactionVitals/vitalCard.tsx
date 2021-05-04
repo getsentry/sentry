@@ -84,7 +84,7 @@ type State = {
 };
 
 class VitalCard extends React.Component<Props, State> {
-  state = {
+  state: State = {
     refDataRect: null,
     refPixelRect: null,
   };
@@ -108,10 +108,6 @@ class VitalCard extends React.Component<Props, State> {
     }
 
     return {...prevState};
-  }
-
-  showVitalColours() {
-    return this.props.organization.features.includes('performance-vitals-overview');
   }
 
   trackOpenInDiscoverClicked = () => {
@@ -345,12 +341,9 @@ class VitalCard extends React.Component<Props, State> {
     const {theme, chartData, precision, vitalDetails, vital} = this.props;
 
     const additionalFieldsFn = bucket => {
-      if (this.showVitalColours()) {
-        return {
-          itemStyle: {color: theme[this.getVitalsColor(vital, bucket)]},
-        };
-      }
-      return {};
+      return {
+        itemStyle: {color: theme[this.getVitalsColor(vital, bucket)]},
+      };
     };
 
     const data = formatHistogramData(chartData, {

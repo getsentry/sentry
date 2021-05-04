@@ -194,6 +194,7 @@ class WidgetQueries extends React.Component<Props, State> {
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
         per_page: 5,
+        noPagination: true,
       };
       if (widget.displayType === 'table') {
         url = `/organizations/${organization.slug}/eventsv2/`;

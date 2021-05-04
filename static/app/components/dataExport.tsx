@@ -42,7 +42,7 @@ class DataExport extends React.Component<Props, State> {
     if (!isEqual(prevPayload, payload)) this.resetState();
   }
 
-  get initialState() {
+  get initialState(): State {
     return {
       inProgress: false,
     };

@@ -18,11 +18,7 @@ type Props = {
   onDelete: (data: any) => void;
 };
 
-type State = {};
-
-class CodeOwnersPanel extends React.Component<Props, State> {
-  state = {};
-
+class CodeOwnersPanel extends React.Component<Props> {
   handleDelete = async (codeowner: CodeOwners) => {
     const {api, organization, project, onDelete} = this.props;
     const endpoint = `/api/0/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`;
