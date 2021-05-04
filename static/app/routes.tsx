@@ -1884,15 +1884,6 @@ function routes() {
             component={errorHandler(LazyLoad)}
           >
             <Route
-              path="/organizations/:orgId/dashboards/new/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "DashboardsV2" */ 'app/views/dashboardsV2/create'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
               path="widget/:widgetId/edit/"
               componentPromise={() =>
                 import(
@@ -1918,15 +1909,6 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           >
-            <Route
-              path="/organizations/:orgId/dashboards/:dashboardId/edit/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "DashboardsV2" */ 'app/views/dashboardsV2/edit'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
             <Route
               path="widget/:widgetId/edit/"
               componentPromise={() =>

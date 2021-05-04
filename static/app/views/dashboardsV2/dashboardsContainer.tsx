@@ -3,7 +3,11 @@ import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {createDashboard, updateDashboard} from 'app/actionCreators/dashboards';
+import {
+  createDashboard,
+  deleteDashboard,
+  updateDashboard,
+} from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
@@ -52,21 +56,6 @@ class DashboardsContainer extends React.Component<Props> {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.initialModifiedDashboard(),
   };
-
-  // componentDidUpdate(prevProps, prevState) {
-  //   Object.entries(this.props).forEach(
-  //     ([key, val]) =>
-  //       prevProps[key] !== val &&
-  //       console.log(`Prop '${key}' changed`, prevProps[key], val)
-  //   );
-  //   if (this.state) {
-  //     Object.entries(this.state).forEach(
-  //       ([key, val]) =>
-  //         prevState[key] !== val &&
-  //         console.log(`State '${key}' changed`, prevState[key], val)
-  //     );
-  //   }
-  // }
 
   initialModifiedDashboard() {
     const {initialState, dashboard} = this.props;
@@ -242,16 +231,63 @@ class DashboardsContainer extends React.Component<Props> {
   };
 
   onCancel = () => {
+    const {organization, location, params} = this.props;
+    if (params.dashboardId) {
+      browserHistory.replace({
+        pathname: `/organizations/${organization.slug}/dashboards/${params.dashboardId}/`,
+        query: {
+          ...location.query,
+        },
+      });
+    } else {
+      browserHistory.replace({
+        pathname: `/organizations/${organization.slug}/dashboards/`,
+        query: {
+          ...location.query,
+        },
+      });
+    }
+  };
+
+  onDelete = (dashboard: State['modifiedDashboard']) => () => {
+    const {api, organization, location} = this.props;
+    if (!dashboard?.id) {
+      return;
+    }
+
+    const previousDashboardState = this.state.dashboardState;
+
+    this.setState({dashboardState: 'pending_delete'}, () => {
+      deleteDashboard(api, organization.slug, dashboard.id)
+        .then(() => {
+          addSuccessMessage(t('Dashboard deleted'));
+
+          browserHistory.replace({
+            pathname: `/organizations/${organization.slug}/dashboards/`,
+            query: {
+              ...location.query,
+            },
+          });
+        })
+        .catch(() => {
+          this.setState({
+            dashboardState: previousDashboardState,
+          });
+        });
+    });
+  };
+
+  onCreate = () => {
     const {organization, location} = this.props;
     browserHistory.replace({
-      pathname: `/organizations/${organization.slug}/dashboards/`,
+      pathname: `/organizations/${organization.slug}/dashboards/new/`,
       query: {
         ...location.query,
       },
     });
   };
 
-  renderWidgetBuilder(dashboard: DashboardDetails | null) {
+  renderWidgetBuilder(dashboard: DashboardDetails) {
     const {children} = this.props;
     const {modifiedDashboard, widgetToBeUpdated} = this.state;
 
@@ -299,10 +335,10 @@ class DashboardsContainer extends React.Component<Props> {
                   dashboards={[]}
                   dashboard={dashboard}
                   onEdit={this.onEdit}
-                  onCreate={() => {}}
+                  onCreate={this.onCreate}
                   onCancel={this.onCancel}
                   onCommit={this.onCommit}
-                  onDelete={() => {}}
+                  onDelete={this.onDelete(dashboard)}
                   dashboardState={dashboardState}
                 />
               </StyledPageHeader>
