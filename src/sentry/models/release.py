@@ -140,6 +140,7 @@ class Release(Model):
     authors = ArrayField(null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
+    semver = ArrayField(null=True)
 
     # HACK HACK HACK
     # As a transitionary step we permit release rows to exist multiple times
