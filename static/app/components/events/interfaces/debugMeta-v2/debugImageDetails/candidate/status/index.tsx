@@ -14,9 +14,11 @@ function Status({status}: Props) {
     case CandidateDownloadStatus.OK: {
       return <Tag type="success">{t('Ok')}</Tag>;
     }
-    case CandidateDownloadStatus.ERROR:
-    case CandidateDownloadStatus.MALFORMED: {
+    case CandidateDownloadStatus.ERROR: {
       return <Tag type="error">{t('Failed')}</Tag>;
+    }
+    case CandidateDownloadStatus.MALFORMED: {
+      return <Tag type="error">{t('Malformed')}</Tag>;
     }
     case CandidateDownloadStatus.NOT_FOUND: {
       return <Tag>{t('Not Found')}</Tag>;
