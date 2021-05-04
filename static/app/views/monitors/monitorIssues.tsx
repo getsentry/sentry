@@ -1,5 +1,3 @@
-import React from 'react';
-
 import IssueList from 'app/components/issueList';
 import {t} from 'app/locale';
 

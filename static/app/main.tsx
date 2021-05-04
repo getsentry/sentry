@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory, Router} from 'react-router';
 
 import DemoHeader from 'app/components/demo/demoHeader';

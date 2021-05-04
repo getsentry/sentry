@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -28,7 +28,7 @@ type State = {
   sourceCodeInput: string;
 };
 
-class StacktraceLinkModal extends React.Component<Props, State> {
+class StacktraceLinkModal extends Component<Props, State> {
   state: State = {
     sourceCodeInput: '',
   };
@@ -112,7 +112,7 @@ class StacktraceLinkModal extends React.Component<Props, State> {
     const baseUrl = `/settings/${organization.slug}/integrations`;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{t('Link Stack Trace To Source Code')}</Header>
         <Body>
           <ModalContainer>
@@ -179,7 +179,7 @@ class StacktraceLinkModal extends React.Component<Props, State> {
             </FeedbackAlert>
           </ModalContainer>
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

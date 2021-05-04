@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import PropTypes from 'prop-types';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -23,7 +23,7 @@ type State = {
   events: WebhookEvent[];
 };
 
-export default class PermissionsObserver extends React.Component<Props, State> {
+export default class PermissionsObserver extends Component<Props, State> {
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,
@@ -67,7 +67,7 @@ export default class PermissionsObserver extends React.Component<Props, State> {
   render() {
     const {permissions, events} = this.state;
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           <PanelHeader>{t('Permissions')}</PanelHeader>
           <PanelBody>
@@ -89,7 +89,7 @@ export default class PermissionsObserver extends React.Component<Props, State> {
             />
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

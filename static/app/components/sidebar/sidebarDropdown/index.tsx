@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'app/actionCreators/account';
@@ -91,7 +91,7 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
           {isOpen && (
             <OrgAndUserMenu {...getMenuProps({})}>
               {hasOrganization && (
-                <React.Fragment>
+                <Fragment>
                   <SidebarOrgSummary organization={org} />
                   {hasOrgRead && (
                     <SidebarMenuItem to={`/settings/${org.slug}/`}>
@@ -117,14 +117,14 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                       <SwitchOrganization canCreateOrganization={canCreateOrg} />
                     </SidebarMenuItem>
                   )}
-                </React.Fragment>
+                </Fragment>
               )}
 
               {hasOrganization && user && <Divider />}
 
               <DemoModeGate>
                 {!!user && (
-                  <React.Fragment>
+                  <Fragment>
                     <UserSummary to="/settings/account/details/">
                       <UserBadgeNoOverflow user={user} avatarSize={32} />
                     </UserSummary>
@@ -150,7 +150,7 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                         {t('Sign out')}
                       </SidebarMenuItem>
                     </div>
-                  </React.Fragment>
+                  </Fragment>
                 )}
               </DemoModeGate>
             </OrgAndUserMenu>

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -20,14 +20,14 @@ function Conditions({condition}: Props) {
   function getConvertedValue(value: DynamicSamplingConditionLogicalInner['value']) {
     if (Array.isArray(value)) {
       return (
-        <React.Fragment>
+        <Fragment>
           {[...value].map((v, index) => (
-            <React.Fragment key={v}>
+            <Fragment key={v}>
               <Value>{v}</Value>
               {index !== value.length - 1 && <Separator>{'\u002C'}</Separator>}
-            </React.Fragment>
+            </Fragment>
           ))}
-        </React.Fragment>
+        </Fragment>
       );
     }
 

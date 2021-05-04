@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import Breadcrumbs from 'app/components/events/interfaces/breadcrumbs';
 import Csp from 'app/components/events/interfaces/csp';

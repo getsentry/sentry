@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {updateUser} from 'app/actionCreators/account';
 import {APIRequestMethod} from 'app/api';
 import AvatarChooser from 'app/components/avatarChooser';

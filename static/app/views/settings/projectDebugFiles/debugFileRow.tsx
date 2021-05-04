@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
@@ -49,7 +49,7 @@ const DebugFileRow = ({
   const {features} = data || {};
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Column>
         <div>
           <DebugId>{debugId || uuid}</DebugId>
@@ -140,7 +140,7 @@ const DebugFileRow = ({
           </Access>
         </ButtonBar>
       </RightColumn>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

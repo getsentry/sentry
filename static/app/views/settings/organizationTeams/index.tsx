@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {loadStats} from 'app/actionCreators/projects';
@@ -17,7 +17,7 @@ type Props = {
   teams: Team[];
 } & RouteComponentProps<{orgId: string}, {}>;
 
-class OrganizationTeamsContainer extends React.Component<Props> {
+class OrganizationTeamsContainer extends Component<Props> {
   componentDidMount() {
     this.fetchStats();
   }

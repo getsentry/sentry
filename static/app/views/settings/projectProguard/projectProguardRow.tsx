@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
@@ -29,7 +29,7 @@ const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Prop
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <NameColumn>
         <Name>{debugId || uuid || `(${t('empty')})`}</Name>
         <TimeWrapper>
@@ -83,7 +83,7 @@ const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Prop
           </Access>
         </ButtonBar>
       </ActionsColumn>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

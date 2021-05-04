@@ -1,5 +1,3 @@
-import React from 'react';
-
 import EventDataSection from 'app/components/events/eventDataSection';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import Annotated from 'app/components/events/meta/annotated';

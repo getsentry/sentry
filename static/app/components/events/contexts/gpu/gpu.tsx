@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 
@@ -32,12 +32,12 @@ const GPU = ({data}: Props) => {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <ContextBlock data={getOperatingSystemKnownData(data, gpuKnownDataValues)} />
       <ContextBlock
         data={getUnknownData(data, [...gpuKnownDataValues, ...gpuIgnoredDataValues])}
       />
-    </React.Fragment>
+    </Fragment>
   );
 };
 

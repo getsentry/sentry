@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
 import {convertMultilineFieldValue, extractMultilineFields} from 'app/utils';

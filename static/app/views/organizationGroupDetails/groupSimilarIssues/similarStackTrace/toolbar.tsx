@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -21,7 +21,7 @@ const inititalState = {
 
 type State = typeof inititalState;
 
-class SimilarToolbar extends React.Component<Props, State> {
+class SimilarToolbar extends Component<Props, State> {
   state: State = inititalState;
 
   componentWillUnmount() {
@@ -63,10 +63,10 @@ class SimilarToolbar extends React.Component<Props, State> {
           {v2 ? (
             <StyledToolbarHeader>{t('Score')}</StyledToolbarHeader>
           ) : (
-            <React.Fragment>
+            <Fragment>
               <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
               <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
-            </React.Fragment>
+            </Fragment>
           )}
         </Columns>
       </PanelHeader>

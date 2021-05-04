@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -30,25 +30,25 @@ class AdminWarnings extends AsyncView<{}, State> {
         {!warnings && !groups && t('There are no warnings at this time')}
 
         {groups.map(([groupName, groupedWarnings]) => (
-          <React.Fragment key={groupName}>
+          <Fragment key={groupName}>
             <h4>{groupName}</h4>
             <ul>
               {groupedWarnings.map((warning, i) => (
                 <li key={i}>{warning}</li>
               ))}
             </ul>
-          </React.Fragment>
+          </Fragment>
         ))}
 
         {warnings.length > 0 && (
-          <React.Fragment>
+          <Fragment>
             <h4>Miscellaneous</h4>
             <ul>
               {warnings.map((warning, i) => (
                 <li key={i}>{warning}</li>
               ))}
             </ul>
-          </React.Fragment>
+          </Fragment>
         )}
       </div>
     );

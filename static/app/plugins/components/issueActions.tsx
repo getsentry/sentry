@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import GroupActions from 'app/actions/groupActions';
 import PluginComponentBase from 'app/components/bases/pluginComponentBase';

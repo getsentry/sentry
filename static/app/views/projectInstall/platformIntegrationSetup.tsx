@@ -1,6 +1,6 @@
 import 'prism-sentry/index.css';
 
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -128,7 +128,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
         </StyledPageHeader>
         <InnerWrapper>
           {!installed ? (
-            <React.Fragment>
+            <Fragment>
               <AddInstallationInstructions />
               <StyledButtonBar gap={1}>
                 <AddIntegrationButton
@@ -151,16 +151,16 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
                   {t('Manual Setup')}
                 </Button>
               </StyledButtonBar>
-            </React.Fragment>
+            </Fragment>
           ) : (
-            <React.Fragment>
+            <Fragment>
               <PostInstallCodeSnippet provider={provider} />
               <FirstEventFooter
                 project={project}
                 organization={organization}
                 docsLink={docsLink}
               />
-            </React.Fragment>
+            </Fragment>
           )}
         </InnerWrapper>
       </OuterWrapper>
