@@ -23,7 +23,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
-from sentry import analytics, eventstore, features
+from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
@@ -352,13 +352,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
                 projects.add(transaction["project.id"])
 
             len_projects = len(projects)
-            if len_projects > 1:
-                analytics.record(
-                    "quick_trace.connected_services",
-                    trace_id=trace_id,
-                    projects=len_projects,
-                    organization_id=org_id,
-                )
             sentry_sdk.set_tag("trace_view.projects", len_projects)
             sentry_sdk.set_tag("trace_view.projects.grouped", group_length(len_projects))
 
