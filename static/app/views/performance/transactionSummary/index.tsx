@@ -13,6 +13,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {Column, isAggregateField, WebVital} from 'app/utils/discover/fields';
@@ -98,7 +99,14 @@ class TransactionSummary extends React.Component<Props, State> {
   }
 
   onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventName: 'Performance Views: Filter Dropdown',
+      eventKey: 'performance_views.filter_dropdown.selection',
+      organization_id: parseInt(organization.id, 10),
+      action: newFilter as string,
+    });
 
     const nextQuery: Location['query'] = {
       ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
