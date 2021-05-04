@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
@@ -22,7 +22,7 @@ type Props = DefaultProps & {
   onChange: (events: WebhookEvent[]) => void;
 };
 
-export default class Subscriptions extends React.Component<Props> {
+export default class Subscriptions extends Component<Props> {
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,
@@ -76,7 +76,7 @@ export default class Subscriptions extends React.Component<Props> {
           const disabledFromPermissions =
             permissions[PERMISSIONS_MAP[choice]] === 'no-access';
           return (
-            <React.Fragment key={choice}>
+            <Fragment key={choice}>
               <SubscriptionBox
                 key={choice}
                 disabledFromPermissions={disabledFromPermissions}
@@ -85,7 +85,7 @@ export default class Subscriptions extends React.Component<Props> {
                 resource={choice}
                 onChange={this.onChange}
               />
-            </React.Fragment>
+            </Fragment>
           );
         })}
       </SubscriptionGrid>

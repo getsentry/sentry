@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -12,7 +12,7 @@ type State = {
   expanded: boolean;
 };
 
-class ArrayValue extends React.Component<Props, State> {
+class ArrayValue extends Component<Props, State> {
   state: State = {
     expanded: false,
   };

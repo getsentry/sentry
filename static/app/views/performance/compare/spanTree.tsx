@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
@@ -31,8 +31,8 @@ type Props = {
   regressionEvent: EventTransaction;
 };
 
-class SpanTree extends React.Component<Props> {
-  traceViewRef = React.createRef<HTMLDivElement>();
+class SpanTree extends Component<Props> {
+  traceViewRef = createRef<HTMLDivElement>();
 
   renderSpan({
     span,
@@ -90,9 +90,7 @@ class SpanTree extends React.Component<Props> {
           generateBounds,
         });
 
-        acc.renderedSpanChildren.push(
-          <React.Fragment key={key}>{results.spanTree}</React.Fragment>
-        );
+        acc.renderedSpanChildren.push(<Fragment key={key}>{results.spanTree}</Fragment>);
 
         acc.nextSpanNumber = results.nextSpanNumber;
 
@@ -105,7 +103,7 @@ class SpanTree extends React.Component<Props> {
     );
 
     const spanTree = (
-      <React.Fragment>
+      <Fragment>
         <SpanGroup
           spanNumber={spanNumber}
           span={span}
@@ -117,7 +115,7 @@ class SpanTree extends React.Component<Props> {
           numOfSpanChildren={spanChildren.length}
           generateBounds={generateBounds}
         />
-      </React.Fragment>
+      </Fragment>
     );
 
     return {
@@ -141,7 +139,7 @@ class SpanTree extends React.Component<Props> {
     let nextSpanNumber = 1;
 
     const spanTree = (
-      <React.Fragment key="root-spans-tree">
+      <Fragment key="root-spans-tree">
         {rootSpans.map((rootSpan, index) => {
           const renderedRootSpan = this.renderSpan({
             isLast: index + 1 === rootSpans.length,
@@ -156,13 +154,9 @@ class SpanTree extends React.Component<Props> {
 
           nextSpanNumber = renderedRootSpan.nextSpanNumber;
 
-          return (
-            <React.Fragment key={String(index)}>
-              {renderedRootSpan.spanTree}
-            </React.Fragment>
-          );
+          return <Fragment key={String(index)}>{renderedRootSpan.spanTree}</Fragment>;
         })}
-      </React.Fragment>
+      </Fragment>
     );
 
     return {

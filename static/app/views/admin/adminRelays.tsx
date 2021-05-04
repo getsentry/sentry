@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import moment from 'moment';
 
@@ -24,7 +24,7 @@ type RelayRow = {
   lastSeen: string;
 };
 
-class AdminRelays extends React.Component<Props, State> {
+class AdminRelays extends Component<Props, State> {
   state: State = {
     loading: false,
   };

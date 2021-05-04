@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import isNil from 'lodash/isNil';
 
 import CrashContent from 'app/components/events/interfaces/crashContent';

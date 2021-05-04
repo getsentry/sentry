@@ -1,4 +1,5 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
+import * as React from 'react';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 

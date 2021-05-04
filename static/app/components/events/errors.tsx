@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -36,7 +36,7 @@ type State = {
   releaseArtifacts?: Array<Artifact>;
 };
 
-class Errors extends React.Component<Props, State> {
+class Errors extends Component<Props, State> {
   state: State = {
     isOpen: false,
   };

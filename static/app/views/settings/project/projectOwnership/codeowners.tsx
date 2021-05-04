@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
@@ -18,7 +18,7 @@ type Props = {
   onDelete: (data: any) => void;
 };
 
-class CodeOwnersPanel extends React.Component<Props> {
+class CodeOwnersPanel extends Component<Props> {
   handleDelete = async (codeowner: CodeOwners) => {
     const {api, organization, project, onDelete} = this.props;
     const endpoint = `/api/0/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`;
@@ -44,7 +44,7 @@ class CodeOwnersPanel extends React.Component<Props> {
         codeMapping: {repoName},
       } = codeowner;
       return (
-        <React.Fragment key={codeowner.id}>
+        <Fragment key={codeowner.id}>
           <RulesPanel
             data-test-id="codeowners-panel"
             type="codeowners"
@@ -63,7 +63,7 @@ class CodeOwnersPanel extends React.Component<Props> {
               </Confirm>,
             ]}
           />
-        </React.Fragment>
+        </Fragment>
       );
     });
   }

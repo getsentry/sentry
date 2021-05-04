@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import * as queryString from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';

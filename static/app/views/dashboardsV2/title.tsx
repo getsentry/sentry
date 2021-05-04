@@ -1,5 +1,3 @@
-import React from 'react';
-
 import EditableText from 'app/components/editableText';
 import {t} from 'app/locale';
 

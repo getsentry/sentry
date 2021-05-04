@@ -1,4 +1,3 @@
-import React from 'react';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import Duration from 'app/components/duration';

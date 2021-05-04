@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {OptionsType, ValueType} from 'react-select';
 
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';

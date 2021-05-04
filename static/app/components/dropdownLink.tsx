@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {css, withTheme} from '@emotion/react';
 import classNames from 'classnames';
 
