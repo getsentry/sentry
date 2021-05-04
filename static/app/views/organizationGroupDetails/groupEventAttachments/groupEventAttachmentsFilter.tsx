@@ -1,4 +1,3 @@
-import React from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';

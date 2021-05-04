@@ -5,7 +5,7 @@
  * This is unconnected to any Form state
  */
 
-import React from 'react';
+import * as React from 'react';
 
 import QuestionTooltip from 'app/components/questionTooltip';
 import ControlState from 'app/views/settings/components/forms/field/controlState';

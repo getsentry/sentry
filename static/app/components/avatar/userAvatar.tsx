@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import {Actor, AvatarUser} from 'app/types';

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import Pagination from 'app/components/pagination';
@@ -41,7 +41,7 @@ export default class OrganizationRepositoriesContainer extends AsyncView<Props, 
     const {itemList, itemListPageLinks} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <OrganizationRepositories
           {...this.props}
           itemList={itemList!}
@@ -51,7 +51,7 @@ export default class OrganizationRepositoriesContainer extends AsyncView<Props, 
         {itemListPageLinks && (
           <Pagination pageLinks={itemListPageLinks} {...this.props} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

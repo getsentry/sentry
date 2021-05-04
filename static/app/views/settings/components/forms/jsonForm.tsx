@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import PropTypes from 'prop-types';

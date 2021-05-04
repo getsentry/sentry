@@ -1,5 +1,3 @@
-import React from 'react';
-
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import {Panel} from 'app/components/panels';
 import {IconWarning} from 'app/icons';

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -18,7 +18,7 @@ type State = {
   contentHeight?: string;
 };
 
-class OrganizationRules extends React.Component<Props, State> {
+class OrganizationRules extends Component<Props, State> {
   state: State = {
     isCollapsed: true,
   };
@@ -27,7 +27,7 @@ class OrganizationRules extends React.Component<Props, State> {
     this.loadContentHeight();
   }
 
-  rulesRef = React.createRef<HTMLUListElement>();
+  rulesRef = createRef<HTMLUListElement>();
 
   loadContentHeight() {
     if (!this.state.contentHeight) {

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -116,7 +116,7 @@ const getFullActionTitle = ({
 /**
  * Lists saved actions as well as control to add a new action
  */
-class ActionsPanel extends React.PureComponent<Props> {
+class ActionsPanel extends PureComponent<Props> {
   handleChangeTargetIdentifier(triggerIndex: number, index: number, value: string) {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex];
@@ -248,7 +248,7 @@ class ActionsPanel extends React.PureComponent<Props> {
       .sort((a, b) => a.dateCreated - b.dateCreated);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <PerformActionsListItem>
           {t('Perform actions')}
           <AlertParagraph>
@@ -343,7 +343,7 @@ class ActionsPanel extends React.PureComponent<Props> {
             {t('Add Action')}
           </Button>
         </ActionSection>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

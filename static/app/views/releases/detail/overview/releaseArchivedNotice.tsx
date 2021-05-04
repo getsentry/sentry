@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
@@ -19,12 +19,12 @@ function ReleaseArchivedNotice({onRestore, multi}: Props) {
         : t('This release has been archived.')}
 
       {!multi && onRestore && (
-        <React.Fragment>
+        <Fragment>
           {' '}
           <UnarchiveButton size="zero" priority="link" onClick={onRestore}>
             {t('Restore this release')}
           </UnarchiveButton>
-        </React.Fragment>
+        </Fragment>
       )}
     </Alert>
   );

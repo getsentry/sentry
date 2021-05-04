@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -18,14 +18,14 @@ const CreateOwnershipRuleModal = ({Body, Header, closeModal, ...props}: Props) =
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Header closeButton onHide={closeModal}>
         {t('Create Ownership Rule')}
       </Header>
       <Body>
         <ProjectOwnershipModal {...props} onSave={handleSuccess} />
       </Body>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

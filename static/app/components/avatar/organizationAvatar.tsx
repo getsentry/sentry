@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import {OrganizationSummary} from 'app/types';
@@ -8,7 +8,7 @@ type Props = {
   organization?: OrganizationSummary;
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
-class OrganizationAvatar extends React.Component<Props> {
+class OrganizationAvatar extends Component<Props> {
   render() {
     const {organization, ...props} = this.props;
     if (!organization) {

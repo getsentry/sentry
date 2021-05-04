@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -47,7 +47,7 @@ type State = {
   isLoading: boolean;
 };
 
-class List extends React.Component<Props, State> {
+class List extends Component<Props, State> {
   state: State = {
     groups: [],
     hasError: false,
@@ -174,13 +174,13 @@ class List extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledPanel>
           <GroupListHeader withChart={false} />
           <PanelBody>{this.renderContent()}</PanelBody>
         </StyledPanel>
         <StyledPagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {Location, LocationDescriptor, Query} from 'history';
 

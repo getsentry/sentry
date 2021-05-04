@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import Role from 'app/components/acl/role';
 import {EventAttachment, Organization} from 'app/types';

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {PlainRoute} from 'react-router/lib/Route';
 import styled from '@emotion/styled';
@@ -103,7 +103,7 @@ function OrganizationApiKeysList({
             });
 
             return (
-              <React.Fragment key={key}>
+              <Fragment key={key}>
                 <Cell>
                   <Link to={apiDetailsUrl}>{label}</Link>
                 </Cell>
@@ -123,7 +123,7 @@ function OrganizationApiKeysList({
                     <IconDelete size="xs" css={{position: 'relative', top: '2px'}} />
                   </LinkWithConfirmation>
                 </Cell>
-              </React.Fragment>
+              </Fragment>
             );
           })}
       </PanelTable>

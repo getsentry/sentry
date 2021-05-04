@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
@@ -147,7 +147,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     }
 
     const actions = (
-      <React.Fragment>
+      <Fragment>
         <Button size="small" external href={DOCS_URL}>
           {t('View Features')}
         </Button>
@@ -160,7 +160,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         >
           {t('Create Alert Rule')}
         </CreateAlertButton>
-      </React.Fragment>
+      </Fragment>
     );
 
     return <Onboarding actions={actions} />;
@@ -214,7 +214,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const status = getQueryStatus(this.props.location.query.status);
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.tryRenderOnboarding() ?? (
           <Panel>
             {!loading && (
@@ -257,7 +257,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           </Panel>
         )}
         <Pagination pageLinks={incidentListPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -278,7 +278,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
-                <React.Fragment>
+                <Fragment>
                   <Feature
                     features={['alert-details-redesign']}
                     organization={organization}
@@ -303,7 +303,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                       {t('Resolved')}
                     </Button>
                   </StyledButtonBar>
-                </React.Fragment>
+                </Fragment>
               )}
               {this.renderList()}
             </Layout.Main>
@@ -314,7 +314,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 }
 
-class IncidentsListContainer extends React.Component<Props> {
+class IncidentsListContainer extends Component<Props> {
   componentDidMount() {
     this.trackView();
   }

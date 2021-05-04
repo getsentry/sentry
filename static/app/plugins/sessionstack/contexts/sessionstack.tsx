@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import ReactDOM from 'react-dom';
 
 const ASPECT_RATIO = 16 / 9;
@@ -15,7 +15,7 @@ type State = {
   height?: number;
 };
 
-class SessionStackContextType extends React.Component<Props, State> {
+class SessionStackContextType extends Component<Props, State> {
   state: State = {
     showIframe: false,
   };

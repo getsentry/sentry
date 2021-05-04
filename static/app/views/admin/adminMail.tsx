@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import {t} from 'app/locale';

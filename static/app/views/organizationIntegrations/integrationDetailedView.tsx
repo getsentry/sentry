@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -202,7 +202,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     }
 
     // This should never happen but we can't return undefined without some refactoring.
-    return <React.Fragment />;
+    return <Fragment />;
   }
 
   renderConfigurations() {

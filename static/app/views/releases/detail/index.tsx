@@ -1,4 +1,4 @@
-import React from 'react';
+import {createContext} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -52,7 +52,7 @@ type ReleaseContext = {
   isHealthLoading: ReleaseHealthRequestRenderProps['isHealthLoading'];
   hasHealthData: boolean;
 };
-const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
+const ReleaseContext = createContext<ReleaseContext>({} as ReleaseContext);
 
 type RouteParams = {
   orgId: string;

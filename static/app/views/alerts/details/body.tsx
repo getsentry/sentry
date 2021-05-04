@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -44,7 +44,7 @@ type Props = {
   stats?: IncidentStats;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
-export default class DetailsBody extends React.Component<Props> {
+export default class DetailsBody extends Component<Props> {
   get metricPreset() {
     const {incident} = this.props;
     return incident ? getIncidentMetricPreset(incident) : undefined;

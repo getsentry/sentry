@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
@@ -11,7 +11,7 @@ type Props = {
   organization: Organization;
 };
 
-class PerformanceContainer extends React.Component<Props> {
+class PerformanceContainer extends Component<Props> {
   renderNoAccess() {
     return (
       <PageContent>

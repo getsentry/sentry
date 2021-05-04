@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -42,7 +42,7 @@ type State = {
   SplitDiffAsync?: typeof SplitDiff;
 };
 
-class IssueDiff extends React.Component<Props, State> {
+class IssueDiff extends Component<Props, State> {
   static defaultProps: DefaultProps = defaultProps;
 
   state: State = {

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
 import {LocationDescriptor} from 'history';
 import * as qs from 'query-string';

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import pick from 'lodash/pick';
 
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';

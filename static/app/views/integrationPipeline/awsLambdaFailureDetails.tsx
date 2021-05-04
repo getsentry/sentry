@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'app/components/links/externalLink';
@@ -22,7 +22,7 @@ export default function AwsLambdaFailureDetails({
 }: Props) {
   const baseDocsUrl = 'https://docs.sentry.io/product/integrations/aws-lambda/';
   return (
-    <React.Fragment>
+    <Fragment>
       <HeaderWithHelp docsUrl={baseDocsUrl} />
       <Wrapper>
         <div>
@@ -53,7 +53,7 @@ export default function AwsLambdaFailureDetails({
         <StyledPanel>{lambdaFunctionFailures.map(SingleFailure)}</StyledPanel>
       </Wrapper>
       <FooterWithButtons buttonText={t('Finish Setup')} href="?finish_pipeline=1" />
-    </React.Fragment>
+    </Fragment>
   );
 }
 

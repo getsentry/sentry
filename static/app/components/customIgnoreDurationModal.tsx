@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import moment from 'moment';
 import {sprintf} from 'sprintf-js';
 
@@ -22,16 +22,16 @@ type State = {
   dateWarning: boolean;
 };
 
-export default class CustomIgnoreDurationModal extends React.Component<Props, State> {
+export default class CustomIgnoreDurationModal extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
     dateWarning: false,
   };
 
-  snoozeDateInputRef = React.createRef<HTMLInputElement>();
+  snoozeDateInputRef = createRef<HTMLInputElement>();
 
-  snoozeTimeInputRef = React.createRef<HTMLInputElement>();
+  snoozeTimeInputRef = createRef<HTMLInputElement>();
 
   selectedIgnoreMinutes = () => {
     const dateStr = this.snoozeDateInputRef.current?.value; // YYYY-MM-DD
@@ -78,7 +78,7 @@ export default class CustomIgnoreDurationModal extends React.Component<Props, St
     const {Header, Body, Footer, label} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>{label}</Header>
         <Body>
           <form className="form-horizontal">
@@ -123,7 +123,7 @@ export default class CustomIgnoreDurationModal extends React.Component<Props, St
             </Button>
           </ButtonBar>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

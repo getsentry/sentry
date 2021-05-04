@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/releases-empty-state.svg';
@@ -113,7 +113,7 @@ type PromoProps = {
   projectId?: number;
 };
 
-class Promo extends React.Component<PromoProps> {
+class Promo extends Component<PromoProps> {
   componentDidMount() {
     const {organization, projectId} = this.props;
 

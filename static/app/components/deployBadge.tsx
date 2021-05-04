@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Link from 'app/components/links/link';
 import Tag from 'app/components/tag';
 import {IconOpen} from 'app/icons';

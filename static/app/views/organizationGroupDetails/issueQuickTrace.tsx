@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -34,7 +34,7 @@ type State = {
   shouldShow: boolean | null;
 };
 
-class IssueQuickTrace extends React.Component<Props, State> {
+class IssueQuickTrace extends Component<Props, State> {
   state: State = {
     shouldShow: null,
   };
@@ -153,10 +153,10 @@ class IssueQuickTrace extends React.Component<Props, State> {
         <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
           {results => {
             return (
-              <React.Fragment>
+              <Fragment>
                 {this.renderTraceLink(results)}
                 <QuickTraceWrapper>{this.renderQuickTrace(results)}</QuickTraceWrapper>
-              </React.Fragment>
+              </Fragment>
             );
           }}
         </QuickTraceQuery>

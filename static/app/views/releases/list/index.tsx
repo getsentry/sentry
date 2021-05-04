@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {forceCheck} from 'react-lazyload';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
@@ -264,7 +264,7 @@ class ReleasesList extends AsyncView<Props, State> {
         healthStatsPeriod={location.query.healthStatsPeriod}
       >
         {({isHealthLoading, getHealthData}) => (
-          <React.Fragment>
+          <Fragment>
             {releases.map((release, index) => (
               <ReleaseCard
                 key={`${release.version}-${release.projects[0].slug}`}
@@ -280,7 +280,7 @@ class ReleasesList extends AsyncView<Props, State> {
               />
             ))}
             <Pagination pageLinks={releasesPageLinks} />
-          </React.Fragment>
+          </Fragment>
         )}
       </ReleaseHealthRequest>
     );

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import EventDataSection from 'app/components/events/eventDataSection';
 import Line from 'app/components/events/interfaces/frame/line';
 import {t} from 'app/locale';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 

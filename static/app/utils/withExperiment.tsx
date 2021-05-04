@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {experimentConfig, unassignedValue} from 'app/data/experimentConfig';
 import ConfigStore from 'app/stores/configStore';

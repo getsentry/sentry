@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupingConfigItem} from 'app/components/events/groupingInfo';
@@ -68,7 +68,7 @@ export const fields: Record<string, Field> = {
     ),
     formatMessageValue: false,
     help: () => (
-      <React.Fragment>
+      <Fragment>
         <RuleDescription>
           {tct(
             `This can be used to modify the fingerprint rules on the server with custom rules.
@@ -87,7 +87,7 @@ error.type:DatabaseUnavailable -> system-down
 # force all memory allocation errors to be grouped together
 stack.function:malloc -> memory-allocation-error`}
         </RuleExample>
-      </React.Fragment>
+      </Fragment>
     ),
     visible: true,
   },
@@ -111,7 +111,7 @@ stack.function:malloc -> memory-allocation-error`}
     ),
     formatMessageValue: false,
     help: () => (
-      <React.Fragment>
+      <Fragment>
         <RuleDescription>
           {tct(
             `This can be used to enhance the grouping algorithm with custom rules.
@@ -130,7 +130,7 @@ stack.function:panic_handler ^-group
 # mark all functions following a prefix in-app
 stack.function:mylibrary_* +app`}
         </RuleExample>
-      </React.Fragment>
+      </Fragment>
     ),
     validate: () => [],
     visible: true,

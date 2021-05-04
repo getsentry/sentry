@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 import * as qs from 'query-string';
@@ -154,7 +154,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     );
 
     openModal(({Body, Header, closeModal}) => (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{t('Configure code path mapping')}</Header>
         <Body>
           <RepositoryProjectPathConfigForm
@@ -170,7 +170,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
             onCancel={closeModal}
           />
         </Body>
-      </React.Fragment>
+      </Fragment>
     ));
   };
 
@@ -179,7 +179,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     const {integration} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Alert type="info" icon={<IconInfo />}>
           {tct('Got feedback? Email [email:ecosystem-feedback@sentry.io].', {
             email: <a href="mailto:ecosystem-feedback@sentry.io" />,
@@ -263,7 +263,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               .filter(item => !!item)}
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {EventQuery} from 'app/actionCreators/events';
 import {LocationQuery} from 'app/utils/discover/eventView';

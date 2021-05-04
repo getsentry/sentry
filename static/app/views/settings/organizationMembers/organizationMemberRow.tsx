@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment, PureComponent} from 'react';
 import {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -34,7 +34,7 @@ type State = {
   busy: boolean;
 };
 
-export default class OrganizationMemberRow extends React.PureComponent<Props, State> {
+export default class OrganizationMemberRow extends PureComponent<Props, State> {
   state: State = {
     busy: false,
   };
@@ -126,7 +126,7 @@ export default class OrganizationMemberRow extends React.PureComponent<Props, St
 
         <div data-test-id="member-status">
           {showResendButton ? (
-            <React.Fragment>
+            <Fragment>
               {isInviting && (
                 <LoadingContainer>
                   <LoadingIndicator mini />
@@ -143,7 +143,7 @@ export default class OrganizationMemberRow extends React.PureComponent<Props, St
                   {pending ? t('Resend invite') : t('Resend SSO link')}
                 </Button>
               )}
-            </React.Fragment>
+            </Fragment>
           ) : (
             <AuthStatus>
               {has2fa ? (

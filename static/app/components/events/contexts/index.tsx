@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {Group} from 'app/types';
 import {Event} from 'app/types/event';
@@ -15,7 +15,7 @@ function Contexts({event, group}: Props) {
   const {user, contexts} = event;
 
   return (
-    <React.Fragment>
+    <Fragment>
       {!objectIsEmpty(user) && (
         <Chunk
           key="user"
@@ -36,7 +36,7 @@ function Contexts({event, group}: Props) {
           value={value}
         />
       ))}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

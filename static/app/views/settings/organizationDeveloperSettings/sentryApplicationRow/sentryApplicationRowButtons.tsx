@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Access from 'app/components/acl/access';
 import {t} from 'app/locale';
 import {Organization, SentryApp} from 'app/types';

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
@@ -32,7 +32,7 @@ type Props = DefaultProps & {
   to?: string;
 };
 
-class Pagination extends React.Component<Props> {
+class Pagination extends Component<Props> {
   static contextTypes = {
     location: PropTypes.object,
   };

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ErrorBoundary from 'app/components/errorBoundary';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import {KeyValueListData} from 'app/types';

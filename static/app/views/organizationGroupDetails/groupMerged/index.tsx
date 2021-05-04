@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as queryString from 'query-string';
 
@@ -30,7 +30,7 @@ type State = {
   mergedLinks?: string;
 };
 
-class GroupMergedView extends React.Component<Props, State> {
+class GroupMergedView extends Component<Props, State> {
   state: State = {
     mergedItems: [],
     loading: true,
@@ -130,7 +130,7 @@ class GroupMergedView extends React.Component<Props, State> {
     const isLoadedSuccessfully = !isError && !isLoading;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Alert type="warning">
           {t(
             'This is an experimental feature. Data may not be immediately available while we process unmerges.'
@@ -156,7 +156,7 @@ class GroupMergedView extends React.Component<Props, State> {
             onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
           />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

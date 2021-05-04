@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
@@ -54,13 +54,13 @@ function renderReason(statusDetails: ResolutionStatusDetails, projectId: string)
   } else if (!!statusDetails.inCommit) {
     return tct('This issue has been marked as resolved by [commit]', {
       commit: (
-        <React.Fragment>
+        <Fragment>
           <CommitLink
             commitId={statusDetails.inCommit.id}
             repository={statusDetails.inCommit.repository}
           />
           <StyledTimeSince date={statusDetails.inCommit.dateCreated} />
-        </React.Fragment>
+        </Fragment>
       ),
     });
   }

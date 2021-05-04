@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
@@ -6,7 +6,7 @@ import {t, tct} from 'app/locale';
 //TODO: Make dyanmic for other platforms/integrations
 export default function AddInstallationInstructions() {
   return (
-    <React.Fragment>
+    <Fragment>
       <p>
         {tct(
           'The automated AWS Lambda setup will instrument your Lambda functions with Sentry error and performance monitoring without any code changes. We use CloudFormation Stack ([learnMore]) to create the Sentry role which gives us access to your AWS account.',
@@ -31,6 +31,6 @@ export default function AddInstallationInstructions() {
           {manualSetup: <strong>{t('Manual Setup')}</strong>}
         )}
       </p>
-    </React.Fragment>
+    </Fragment>
   );
 }

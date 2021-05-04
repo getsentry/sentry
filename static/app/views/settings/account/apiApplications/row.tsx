@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -28,7 +28,7 @@ type State = {
   loading: boolean;
 };
 
-class Row extends React.Component<Props, State> {
+class Row extends Component<Props, State> {
   state: State = {
     loading: false,
   };

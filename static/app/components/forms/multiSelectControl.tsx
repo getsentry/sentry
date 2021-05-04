@@ -1,4 +1,4 @@
-import React from 'react';
+import {forwardRef} from 'react';
 import ReactSelect from 'react-select';
 
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
@@ -11,8 +11,9 @@ export type MultiControlProps = Omit<ControlProps, 'onChange'> & {
   onChange?: (value?: SelectValue<any>[] | null) => void;
 };
 
-export default React.forwardRef<ReactSelect, MultiControlProps>(
-  function MultiSelectControl(props, ref) {
-    return <SelectControl forwardedRef={ref} {...props} multiple />;
-  }
-);
+export default forwardRef<ReactSelect, MultiControlProps>(function MultiSelectControl(
+  props,
+  ref
+) {
+  return <SelectControl forwardedRef={ref} {...props} multiple />;
+});

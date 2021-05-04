@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
 import {EditOwnershipRulesModalOptions, ModalRenderProps} from 'app/actionCreators/modal';
@@ -10,14 +10,14 @@ type Props = ModalRenderProps & EditOwnershipRulesModalOptions;
 
 const EditOwnershipRulesModal = ({Body, Header, closeModal, onSave, ...props}: Props) => {
   return (
-    <React.Fragment>
+    <Fragment>
       <Header closeButton onHide={closeModal}>
         {t('Edit Ownership Rules')}
       </Header>
       <Body>
         <OwnershipModal {...props} onSave={onSave} />
       </Body>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

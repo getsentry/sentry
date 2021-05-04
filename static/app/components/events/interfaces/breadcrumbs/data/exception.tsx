@@ -1,4 +1,3 @@
-import React from 'react';
 import omit from 'lodash/omit';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';

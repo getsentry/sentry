@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {addLoadingMessage} from 'app/actionCreators/indicator';
@@ -28,7 +28,7 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-class OrganizationGeneralSettings extends React.Component<Props> {
+class OrganizationGeneralSettings extends Component<Props> {
   handleRemoveOrganization = () => {
     const {api, organization, params} = this.props;
     if (!organization) {
@@ -64,7 +64,7 @@ class OrganizationGeneralSettings extends React.Component<Props> {
     const hasProjects = organization.projects && !!organization.projects.length;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={t('General Settings')} orgSlug={orgId} />
         <div>
           <SettingsPageHeader title={t('Organization Settings')} />
@@ -134,7 +134,7 @@ class OrganizationGeneralSettings extends React.Component<Props> {
             </Panel>
           )}
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

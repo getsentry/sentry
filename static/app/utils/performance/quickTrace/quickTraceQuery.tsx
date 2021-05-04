@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {Event} from 'app/types/event';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';

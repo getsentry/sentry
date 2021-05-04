@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import moment from 'moment';

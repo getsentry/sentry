@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'app/components/charts/styles';

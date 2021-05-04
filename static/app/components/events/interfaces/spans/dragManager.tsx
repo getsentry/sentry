@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {clamp, rectOfContent} from 'app/components/performance/waterfall/utils';
 import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import BooleanField from 'app/components/forms/booleanField';
 import EmailField from 'app/components/forms/emailField';
 import FormField from 'app/components/forms/formField';

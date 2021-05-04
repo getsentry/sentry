@@ -8,7 +8,7 @@
  * This component handles logic like when the dropdown menu should be displayed, as well as handling keyboard input, how
  * it is rendered should be left to the child.
  */
-import React from 'react';
+import * as React from 'react';
 
 import DropdownMenu, {GetActorArgs, GetMenuArgs} from 'app/components/dropdownMenu';
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
@@ -451,10 +451,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
   renderComponent() {
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderCards()}
         <ChartWrapper>{this.renderChart()}</ChartWrapper>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

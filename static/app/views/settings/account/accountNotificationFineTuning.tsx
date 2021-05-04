@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -72,7 +72,7 @@ const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
   }));
 
   return (
-    <React.Fragment>
+    <Fragment>
       {data.map(({name, projects: projectFields}) => (
         <div key={name}>
           <PanelHeader>{name}</PanelHeader>
@@ -88,7 +88,7 @@ const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
           ))}
         </div>
       ))}
-    </React.Fragment>
+    </Fragment>
   );
 };
 
@@ -111,7 +111,7 @@ const AccountNotificationsByOrganization = ({organizations, field}: ANBOProps) =
   }));
 
   return (
-    <React.Fragment>
+    <Fragment>
       {data.map(f => (
         <PanelBodyLineItem key={f.name}>
           <SelectField
@@ -122,7 +122,7 @@ const AccountNotificationsByOrganization = ({organizations, field}: ANBOProps) =
           />
         </PanelBodyLineItem>
       ))}
-    </React.Fragment>
+    </Fragment>
   );
 };
 

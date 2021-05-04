@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Count from 'app/components/count';
 import DateTime from 'app/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';

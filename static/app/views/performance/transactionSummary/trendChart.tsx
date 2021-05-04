@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import * as ReactRouter from 'react-router';
 import {browserHistory} from 'react-router';
 import {withTheme} from '@emotion/react';
@@ -50,7 +50,7 @@ type Props = ReactRouter.WithRouterProps &
     trendDisplay: string;
   };
 
-class TrendChart extends React.Component<Props> {
+class TrendChart extends Component<Props> {
   handleLegendSelectChanged = legendChange => {
     const {location} = this.props;
     const {selected} = legendChange;
@@ -122,7 +122,7 @@ class TrendChart extends React.Component<Props> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <HeaderTitleLegend>
           {t('Trend')}
           <QuestionTooltip
@@ -229,7 +229,7 @@ class TrendChart extends React.Component<Props> {
             </EventsRequest>
           )}
         </ChartZoom>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

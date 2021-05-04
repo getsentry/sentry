@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {Client} from 'app/api';
 import MiniBarChart from 'app/components/charts/miniBarChart';
@@ -21,7 +21,7 @@ type State = {
   data: [number, number][] | null;
 };
 
-class InternalStatChart extends React.Component<Props, State> {
+class InternalStatChart extends Component<Props, State> {
   state: State = {
     error: false,
     loading: true,

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 
 import {Client} from 'app/api';

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import round from 'lodash/round';
 
 import AsyncComponent from 'app/components/asyncComponent';

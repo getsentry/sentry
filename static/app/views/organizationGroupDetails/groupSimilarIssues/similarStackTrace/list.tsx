@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -45,7 +45,7 @@ type State = {
   showAllItems: boolean;
 };
 
-class List extends React.Component<Props, State> {
+class List extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     filteredItems: [],
   };
@@ -90,7 +90,7 @@ class List extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <SimilarSpectrum />
         </Header>
@@ -120,7 +120,7 @@ class List extends React.Component<Props, State> {
           </PanelBody>
         </Panel>
         <Pagination pageLinks={pageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

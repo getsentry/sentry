@@ -1,5 +1,3 @@
-import React from 'react';
-
 import InputField from 'app/components/forms/inputField';
 
 type State = InputField['state'] & {

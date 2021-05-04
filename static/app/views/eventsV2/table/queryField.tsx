@@ -1,4 +1,5 @@
-import React, {CSSProperties} from 'react';
+import {CSSProperties} from 'react';
+import * as React from 'react';
 import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';

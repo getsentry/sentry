@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -96,7 +96,7 @@ type State = {
   shouldShow: boolean | undefined;
 };
 
-class EventCauseEmpty extends React.Component<Props, State> {
+class EventCauseEmpty extends Component<Props, State> {
   state: State = {
     shouldShow: undefined,
   };

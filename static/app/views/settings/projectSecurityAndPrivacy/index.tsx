@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -22,7 +22,7 @@ export type ProjectSecurityAndPrivacyProps = RouteComponentProps<
   project: Project;
 };
 
-class ProjectSecurityAndPrivacy extends React.Component<ProjectSecurityAndPrivacyProps> {
+class ProjectSecurityAndPrivacy extends Component<ProjectSecurityAndPrivacyProps> {
   handleUpdateProject = (data: Project) => {
     // This will update our project global state
     ProjectActions.updateSuccess(data);
@@ -40,7 +40,7 @@ class ProjectSecurityAndPrivacy extends React.Component<ProjectSecurityAndPrivac
     const title = t('Security & Privacy');
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} projectSlug={projectSlug} />
         <SettingsPageHeader title={title} />
         <Form
@@ -81,7 +81,7 @@ class ProjectSecurityAndPrivacy extends React.Component<ProjectSecurityAndPrivac
           projectId={project.id}
           onSubmitSuccess={this.handleUpdateProject}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {BannerContainer, BannerSummary} from 'app/components/events/styles';
@@ -21,7 +21,7 @@ type State = {
   isBannerHidden: boolean;
 };
 
-class ReprocessedBox extends React.Component<Props, State> {
+class ReprocessedBox extends Component<Props, State> {
   state: State = {
     isBannerHidden: localStorage.getItem(this.getBannerUniqueId()) === 'true',
   };

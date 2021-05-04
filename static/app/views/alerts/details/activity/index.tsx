@@ -1,4 +1,4 @@
-import React from 'react';
+import {PureComponent} from 'react';
 import {Params} from 'react-router/lib/Router';
 
 import {
@@ -51,7 +51,7 @@ type State = {
  * Allows user to leave a comment on an alertId as well as
  * fetch and render existing activity items.
  */
-class ActivityContainer extends React.PureComponent<Props, State> {
+class ActivityContainer extends PureComponent<Props, State> {
   state: State = {
     loading: true,
     error: false,

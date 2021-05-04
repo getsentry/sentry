@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
@@ -253,7 +253,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {selectedOrgSlug && organization && !this.hasAccess() && (
           <Alert type="error" icon={<IconFlag size="md" />}>
             <p>
@@ -269,7 +269,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
         )}
 
         {provider && organization && this.hasAccess() && FeatureList && (
-          <React.Fragment>
+          <Fragment>
             <p>
               {tct(
                 'The following features will be available for [organization] when installed.',
@@ -281,11 +281,11 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
               features={provider.metadata.features}
               provider={provider}
             />
-          </React.Fragment>
+          </Fragment>
         )}
 
         <div className="form-actions">{this.renderAddButton()}</div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

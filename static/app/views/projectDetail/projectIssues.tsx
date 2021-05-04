@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
@@ -88,7 +88,7 @@ function ProjectIssues({organization, location, projectId, api}: Props) {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <ControlsWrapper>
         <SectionHeading>{t('Frequent Unhandled Issues')}</SectionHeading>
         <ButtonBar gap={1}>
@@ -117,7 +117,7 @@ function ProjectIssues({organization, location, projectId, api}: Props) {
         withPagination={false}
         onFetchSuccess={handleFetchSuccess}
       />
-    </React.Fragment>
+    </Fragment>
   );
 }
 

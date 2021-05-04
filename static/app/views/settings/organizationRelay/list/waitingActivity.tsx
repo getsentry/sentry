@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Button from 'app/components/button';
 import CommandLine from 'app/components/commandLine';
 import {Panel} from 'app/components/panels';

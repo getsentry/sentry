@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
 import {Link, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
@@ -35,7 +35,7 @@ type Props = {
   error: Error | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-class Dashboard extends React.Component<Props> {
+class Dashboard extends Component<Props> {
   componentWillUnmount() {
     ProjectsStatsStore.reset();
   }
@@ -77,7 +77,7 @@ class Dashboard extends React.Component<Props> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle
           title={t('Projects Dashboard')}
           orgSlug={organization.slug}
@@ -127,7 +127,7 @@ class Dashboard extends React.Component<Props> {
         })}
 
         {showResources && <Resources organization={organization} />}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,3 @@
-import React from 'react';
 import {Link, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 

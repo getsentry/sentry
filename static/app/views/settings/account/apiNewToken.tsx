@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 import {browserHistory} from 'react-router';
 
@@ -16,7 +16,7 @@ const SORTED_DEFAULT_API_ACCESS_SCOPES = DEFAULT_API_ACCESS_SCOPES.sort();
 const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
-export default class ApiNewToken extends React.Component {
+export default class ApiNewToken extends Component {
   onCancel = () => {
     browserHistory.push(API_INDEX_ROUTE);
   };

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {EditOwnershipRulesModalOptions} from 'app/actionCreators/modal';
@@ -9,11 +9,11 @@ import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 type Props = EditOwnershipRulesModalOptions;
 type State = {};
 
-class EditOwnershipRulesModal extends React.Component<Props, State> {
+class EditOwnershipRulesModal extends Component<Props, State> {
   render() {
     const {ownership} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         <Block>
           {t('Rules follow the pattern: ')} <code>type:glob owner owner</code>
         </Block>
@@ -35,7 +35,7 @@ class EditOwnershipRulesModal extends React.Component<Props, State> {
           </CodeBlock>
         </Block>
         {ownership && <OwnerInput {...this.props} initialText={ownership.raw || ''} />}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

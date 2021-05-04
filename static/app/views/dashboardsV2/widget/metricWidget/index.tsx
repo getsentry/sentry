@@ -1,4 +1,3 @@
-import React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import {components, OptionProps, SingleValueProps} from 'react-select';
 import {withTheme} from '@emotion/react';

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {createFilter} from 'react-select';
 
 import Alert from 'app/components/alert';

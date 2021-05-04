@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';

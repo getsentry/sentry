@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
@@ -57,7 +57,7 @@ function Actions({
       {({hasRole}) => (
         <Access access={['project:write']} organization={organization}>
           {({hasAccess}) => (
-            <React.Fragment>
+            <Fragment>
               <StyledDropdownLink
                 caret={false}
                 customTitle={
@@ -124,7 +124,7 @@ function Actions({
                   </Confirm>
                 </Tooltip>
               </StyledButtonBar>
-            </React.Fragment>
+            </Fragment>
           )}
         </Access>
       )}

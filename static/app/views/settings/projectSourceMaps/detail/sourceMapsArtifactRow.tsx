@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
@@ -35,7 +35,7 @@ const SourceMapsArtifactRow = ({
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <NameColumn>
         <Name>{name || `(${t('empty')})`}</Name>
         <TimeAndDistWrapper>
@@ -97,7 +97,7 @@ const SourceMapsArtifactRow = ({
           </Access>
         </ButtonBar>
       </ActionsColumn>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

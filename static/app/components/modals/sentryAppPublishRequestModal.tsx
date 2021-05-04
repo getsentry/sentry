@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
 
@@ -60,7 +60,7 @@ type Props = ModalRenderProps & {
   app: SentryApp;
 };
 
-export default class SentryAppPublishRequestModal extends React.Component<Props> {
+export default class SentryAppPublishRequestModal extends Component<Props> {
   form = new PublishRequestFormModel();
 
   get formFields() {
@@ -74,15 +74,15 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     )}.`;
 
     const permissionLabel = (
-      <React.Fragment>
+      <Fragment>
         <PermissionLabel>{permissionQuestionBaseText}</PermissionLabel>
         {permissions.map((permission, i) => (
-          <React.Fragment key={permission}>
+          <Fragment key={permission}>
             {i > 0 && ', '} <Permission>{permission}</Permission>
-          </React.Fragment>
+          </Fragment>
         ))}
         .
-      </React.Fragment>
+      </Fragment>
     );
 
     //No translations since we need to be able to read this email :)
@@ -157,7 +157,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
       },
     ];
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>{t('Publish Request Questionnaire')}</Header>
         <Body>
           <Explanation>
@@ -179,7 +179,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
             <JsonForm forms={forms} />
           </Form>
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

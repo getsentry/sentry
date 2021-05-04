@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 import moment from 'moment';
@@ -39,7 +39,7 @@ type State = {
   selectedIncident?: Incident | null;
 };
 
-class AlertRuleDetails extends React.Component<Props, State> {
+class AlertRuleDetails extends Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
@@ -76,11 +76,11 @@ class AlertRuleDetails extends React.Component<Props, State> {
         period,
         label: t('Custom time'),
         display: (
-          <React.Fragment>
+          <Fragment>
             <DateTime date={moment.utc(location.query.start)} timeAndDate />
             {' — '}
             <DateTime date={moment.utc(location.query.end)} timeAndDate />
-          </React.Fragment>
+          </Fragment>
         ),
         custom: true,
       };
@@ -94,11 +94,11 @@ class AlertRuleDetails extends React.Component<Props, State> {
         period,
         label: t('Custom time'),
         display: (
-          <React.Fragment>
+          <Fragment>
             <DateTime date={moment.utc(start)} timeAndDate />
             {' — '}
             <DateTime date={moment.utc(end)} timeAndDate />
-          </React.Fragment>
+          </Fragment>
         ),
         custom: true,
       };
@@ -181,7 +181,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
     const timePeriod = this.getTimePeriod();
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Feature organization={organization} features={['alert-details-redesign']}>
           <DetailsHeader
             hasIncidentRuleDetailsError={hasError}
@@ -198,7 +198,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
             handleZoom={this.handleZoom}
           />
         </Feature>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {createPortal} from 'react-dom';
 import {DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
@@ -26,7 +26,7 @@ type State = {
   activeId?: string;
 };
 
-class DraggableList extends React.Component<Props, State> {
+class DraggableList extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     disabled: false,
     wrapperStyle: () => ({}),

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {fetchAnyReleaseExistence} from 'app/actionCreators/projects';
 import AsyncComponent from 'app/components/asyncComponent';

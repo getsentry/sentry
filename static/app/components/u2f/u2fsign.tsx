@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {t} from 'app/locale';
 
@@ -20,7 +20,7 @@ type Props = Omit<InterfaceProps, 'silentIfUnsupported' | 'flowMode'> & {
   displayMode: 'signin' | 'enroll' | 'sudo';
 };
 
-class U2fSign extends React.Component<Props> {
+class U2fSign extends Component<Props> {
   static defaultProps = {
     displayMode: 'signin',
   };

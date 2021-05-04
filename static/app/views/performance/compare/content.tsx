@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -25,7 +25,7 @@ type Props = {
   regressionEvent: Event;
 };
 
-class TransactionComparisonContent extends React.Component<Props> {
+class TransactionComparisonContent extends Component<Props> {
   getTransactionName() {
     const {baselineEvent, regressionEvent} = this.props;
 
@@ -59,7 +59,7 @@ class TransactionComparisonContent extends React.Component<Props> {
         : undefined;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumb
@@ -85,7 +85,7 @@ class TransactionComparisonContent extends React.Component<Props> {
             <TraceView baselineEvent={baselineEvent} regressionEvent={regressionEvent} />
           </StyledPanel>
         </Layout.Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

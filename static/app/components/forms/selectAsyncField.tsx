@@ -1,5 +1,3 @@
-import React from 'react';
-
 import SelectAsyncControl from './selectAsyncControl';
 import SelectField from './selectField';
 

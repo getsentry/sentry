@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import moment from 'moment-timezone';

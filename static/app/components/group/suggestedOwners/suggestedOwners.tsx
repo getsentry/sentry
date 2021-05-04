@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {assignToActor, assignToUser} from 'app/actionCreators/group';
 import {Client} from 'app/api';

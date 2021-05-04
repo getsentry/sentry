@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -127,7 +127,7 @@ class ProjectProguard extends AsyncView<Props, State> {
     const {loading, mappings, mappingsPageLinks} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={t('ProGuard Mappings')}
           action={
@@ -164,7 +164,7 @@ class ProjectProguard extends AsyncView<Props, State> {
           {this.renderMappings()}
         </StyledPanelTable>
         <Pagination pageLinks={mappingsPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

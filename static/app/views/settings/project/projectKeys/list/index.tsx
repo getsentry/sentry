@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {
@@ -140,7 +140,7 @@ class ProjectKeys extends AsyncView<Props, State> {
     const access = new Set(organization.access);
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.state.keyList.map(key => (
           <KeyRow
             api={this.api}
@@ -157,7 +157,7 @@ class ProjectKeys extends AsyncView<Props, State> {
           />
         ))}
         <Pagination pageLinks={this.state.keyListPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 

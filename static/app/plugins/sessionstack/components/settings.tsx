@@ -1,4 +1,3 @@
-import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {Form, FormState} from 'app/components/forms';

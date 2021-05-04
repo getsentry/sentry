@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {Link, RouteComponentProps} from 'react-router';
 
 import NavTabs from 'app/components/navTabs';
@@ -17,7 +17,7 @@ type Props = {
   project: Project;
 } & RouteComponentProps<{projectId: string; orgId: string; filterType: string}, {}>;
 
-class ProjectFilters extends React.Component<Props> {
+class ProjectFilters extends Component<Props> {
   render() {
     const {project, params, location} = this.props;
     const {orgId, projectId, filterType} = params;
@@ -28,7 +28,7 @@ class ProjectFilters extends React.Component<Props> {
     const features = new Set(project.features);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={t('Inbound Filters')} projectSlug={projectId} />
         <SettingsPageHeader title={t('Inbound Data Filters')} />
         <PermissionAlert />
@@ -69,7 +69,7 @@ class ProjectFilters extends React.Component<Props> {
             />
           )}
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

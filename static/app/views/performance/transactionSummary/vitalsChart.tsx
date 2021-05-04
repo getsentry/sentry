@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
 import {withTheme} from '@emotion/react';
@@ -56,7 +56,7 @@ const YAXIS_VALUES = [
   'p75(measurements.fid)',
 ];
 
-class VitalsChart extends React.Component<Props> {
+class VitalsChart extends Component<Props> {
   handleLegendSelectChanged = legendChange => {
     const {location} = this.props;
     const {selected} = legendChange;
@@ -137,7 +137,7 @@ class VitalsChart extends React.Component<Props> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <HeaderTitleLegend>
           {t('Web Vitals Breakdown')}
           <QuestionTooltip
@@ -226,7 +226,7 @@ class VitalsChart extends React.Component<Props> {
             </EventsRequest>
           )}
         </ChartZoom>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

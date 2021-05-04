@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import DetailedError from 'app/components/errors/detailedError';
 import {t} from 'app/locale';

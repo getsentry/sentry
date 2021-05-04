@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {Client} from 'app/api';
 import MiniBarChart from 'app/components/charts/miniBarChart';
@@ -30,7 +30,7 @@ type State = {
   rawData: Record<string, TimeseriesValue[]>;
 };
 
-class ApiChart extends React.Component<Props, State> {
+class ApiChart extends Component<Props, State> {
   state: State = initialState;
 
   componentWillMount() {

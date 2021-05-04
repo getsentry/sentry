@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withTheme} from '@emotion/react';
 
 import BaseChart from 'app/components/charts/baseChart';

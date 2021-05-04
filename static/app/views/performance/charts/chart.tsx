@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import * as ReactRouter from 'react-router';
 import {withTheme} from '@emotion/react';
 import max from 'lodash/max';
@@ -54,7 +54,7 @@ function computeAxisMax(data) {
   return Math.round(Math.ceil(maxValue / step) * step);
 }
 
-class Chart extends React.Component<Props> {
+class Chart extends Component<Props> {
   render() {
     const {
       theme,

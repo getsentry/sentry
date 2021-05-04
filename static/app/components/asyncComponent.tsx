@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import * as Sentry from '@sentry/react';

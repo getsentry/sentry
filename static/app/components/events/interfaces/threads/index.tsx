@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
@@ -49,7 +49,7 @@ function getIntendedStackView(thread: Thread, event: Event) {
   return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
-class Threads extends React.Component<Props, State> {
+class Threads extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = this.getInitialState();

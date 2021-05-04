@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -113,11 +113,11 @@ tags.sku_class:enterprise #enterprise`;
     const disabled = !organization.access.includes('project:write');
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={t('Issue Owners')}
           action={
-            <React.Fragment>
+            <Fragment>
               <Button
                 to={{
                   pathname: `/organizations/${organization.slug}/issues/`,
@@ -137,7 +137,7 @@ tags.sku_class:enterprise #enterprise`;
                   {t('Add Codeowner File')}
                 </CodeOwnerButton>
               </Feature>
-            </React.Fragment>
+            </Fragment>
           }
         />
         <PermissionAlert />
@@ -224,7 +224,7 @@ tags.sku_class:enterprise #enterprise`;
             ]}
           />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

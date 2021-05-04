@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -36,7 +36,7 @@ type CodeOwnerFile = {
   html_url: string;
 };
 
-class AddCodeOwnerModal extends React.Component<Props, State> {
+class AddCodeOwnerModal extends Component<Props, State> {
   state: State = {
     codeownerFile: null,
     codeMappingId: null,
@@ -138,10 +138,10 @@ class AddCodeOwnerModal extends React.Component<Props, State> {
       <Panel>
         <NoSourceFileBody>
           {codeMappingId ? (
-            <React.Fragment>
+            <Fragment>
               <IconNot size="md" color="red200" />
               {t('No codeowner file found.')}
-            </React.Fragment>
+            </Fragment>
           ) : null}
         </NoSourceFileBody>
       </Panel>
@@ -153,7 +153,7 @@ class AddCodeOwnerModal extends React.Component<Props, State> {
     const {codeownerFile, error, errorJSON} = this.state;
     const {codeMappings} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton onHide={closeModal}>
           <h4>{t('Add Code Owner File')}</h4>
         </Header>
@@ -196,7 +196,7 @@ class AddCodeOwnerModal extends React.Component<Props, State> {
             {t('Add File')}
           </Button>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

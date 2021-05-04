@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import createReactClass from 'create-react-class';
 import assign from 'lodash/assign';
 import Reflux from 'reflux';

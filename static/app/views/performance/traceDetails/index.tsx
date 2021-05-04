@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -28,7 +28,7 @@ type Props = {
   params: Params;
 };
 
-class TraceSummary extends React.Component<Props> {
+class TraceSummary extends Component<Props> {
   getDocumentTitle(): string {
     return [t('Trace Details'), t('Performance')].join(' - ');
   }

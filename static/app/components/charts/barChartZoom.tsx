@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {EChartOption} from 'echarts/lib/echarts';
 import {Location} from 'history';

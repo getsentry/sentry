@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -55,7 +55,7 @@ type DeployProps = Props & {
 };
 
 const Deploy = ({deploy, project}: DeployProps) => (
-  <React.Fragment>
+  <Fragment>
     <IconReleases size="sm" />
     <TextOverflow>
       <Environment>{deploy.environment}</Environment>
@@ -73,7 +73,7 @@ const Deploy = ({deploy, project}: DeployProps) => (
         value: <TimeSince date={deploy.dateFinished} />,
       })}
     </DeployTime>
-  </React.Fragment>
+  </Fragment>
 );
 
 const NoDeploys = () => (

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {Modal as BoostrapModal} from 'react-bootstrap';
 import {css} from '@emotion/react';

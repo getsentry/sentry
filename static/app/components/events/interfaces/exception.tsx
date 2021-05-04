@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import CrashContent from 'app/components/events/interfaces/crashContent';
@@ -27,7 +27,7 @@ type State = {
   newestFirst: boolean;
 };
 
-class Exception extends React.Component<Props, State> {
+class Exception extends Component<Props, State> {
   static defaultProps = {
     hideGuide: false,
   };

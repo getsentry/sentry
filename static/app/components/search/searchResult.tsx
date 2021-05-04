@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -17,7 +17,7 @@ type Props = WithRouterProps<{orgId: string}> & {
   matches: Result['matches'];
 };
 
-class SearchResult extends React.Component<Props> {
+class SearchResult extends Component<Props> {
   renderContent() {
     const {highlighted, item, matches, params} = this.props;
     const {sourceType, model, extra} = item;
@@ -60,13 +60,13 @@ class SearchResult extends React.Component<Props> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <div>
           <SearchTitle>{title}</SearchTitle>
         </div>
         {description && <SearchDetail>{description}</SearchDetail>}
         {extra && <ExtraDetail>{extra}</ExtraDetail>}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

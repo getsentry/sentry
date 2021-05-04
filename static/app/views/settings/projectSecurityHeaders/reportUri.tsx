@@ -1,4 +1,3 @@
-import React from 'react';
 import {Link} from 'react-router';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';

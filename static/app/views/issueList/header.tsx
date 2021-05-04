@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {InjectedRouter, Link} from 'react-router';
 import styled from '@emotion/styled';
 

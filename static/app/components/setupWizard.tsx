@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {Client} from 'app/api';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -14,7 +14,7 @@ type State = {
   finished: boolean;
 };
 
-class SetupWizard extends React.Component<Props, State> {
+class SetupWizard extends Component<Props, State> {
   static defaultProps = {
     hash: false,
   };

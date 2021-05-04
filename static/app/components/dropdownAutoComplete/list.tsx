@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {AutoSizer, List as ReactVirtualizedList, ListRowProps} from 'react-virtualized';
 import styled from '@emotion/styled';
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -251,7 +251,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   hasTransactions={hasTransactions}
                 />
                 {isProjectStabilized && (
-                  <React.Fragment>
+                  <Fragment>
                     {visibleCharts.map((id, index) => (
                       <ProjectCharts
                         location={location}
@@ -272,7 +272,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                       projectId={selection.projects[0]}
                       api={this.api}
                     />
-                  </React.Fragment>
+                  </Fragment>
                 )}
               </Layout.Main>
               <Layout.Side>

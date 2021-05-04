@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -105,7 +105,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
   )
     .map(preset => ({...preset, selected: preset.match.test(aggregate)}))
     .map((preset, i, list) => (
-      <React.Fragment key={preset.name}>
+      <Fragment key={preset.name}>
         <Tooltip title={t('This preset is selected')} disabled={!preset.selected}>
           <PresetButton
             type="button"
@@ -116,7 +116,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
           </PresetButton>
         </Tooltip>
         {i + 1 < list.length && ', '}
-      </React.Fragment>
+      </Fragment>
     ));
 
   return tct(
@@ -163,7 +163,7 @@ const MetricField = ({
         numParameters - (hideParameterSelector ? 1 : 0) - (hidePrimarySelector ? 1 : 0);
 
       return (
-        <React.Fragment>
+        <Fragment>
           <StyledQueryField
             filterPrimaryOptions={option => option.value.kind === FieldValueKind.FUNCTION}
             fieldOptions={fieldOptions}
@@ -177,7 +177,7 @@ const MetricField = ({
             hideParameterSelector={hideParameterSelector}
             hidePrimarySelector={hidePrimarySelector}
           />
-        </React.Fragment>
+        </Fragment>
       );
     }}
   </FormField>

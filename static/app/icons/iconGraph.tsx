@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {IconGraphBar} from './iconGraphBar';
 import {IconGraphCircle} from './iconGraphCircle';

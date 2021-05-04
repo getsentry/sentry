@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
 import DateTime from 'app/components/dateTime';

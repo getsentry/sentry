@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -42,7 +42,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 type State = {
   alertOption: AlertType;
 };
-class AlertWizard extends React.Component<Props, State> {
+class AlertWizard extends Component<Props, State> {
   state: State = {
     alertOption: 'issues',
   };
@@ -141,7 +141,7 @@ class AlertWizard extends React.Component<Props, State> {
     const title = t('Alert Creation Wizard');
     const panelContent = AlertWizardPanelContent[alertOption];
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
 
         <Feature features={['organizations:alert-wizard']}>
@@ -204,7 +204,7 @@ class AlertWizard extends React.Component<Props, State> {
             </Layout.Main>
           </StyledLayoutBody>
         </Feature>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,3 @@
-import React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import {Location} from 'history';
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
@@ -53,7 +53,7 @@ type State = {
   isCalendarOpen: boolean;
 };
 
-class OrganizationStats extends React.Component<Props, State> {
+class OrganizationStats extends Component<Props, State> {
   state: State = {
     isCalendarOpen: false,
   };
@@ -232,7 +232,7 @@ class OrganizationStats extends React.Component<Props, State> {
     const {start, end, period, utc} = this.dataDatetime;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <DropdownDate isCalendarOpen={isCalendarOpen}>
           <TimeRangeSelector
             organization={organization}
@@ -269,7 +269,7 @@ class OrganizationStats extends React.Component<Props, State> {
             </DropdownItem>
           ))}
         </DropdownDataCategory>
-      </React.Fragment>
+      </Fragment>
     );
   };
 

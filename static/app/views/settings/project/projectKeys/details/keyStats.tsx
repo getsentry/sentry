@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {Client} from 'app/api';
@@ -46,7 +46,7 @@ const getInitialState = (): State => {
   };
 };
 
-class KeyStats extends React.Component<Props, State> {
+class KeyStats extends Component<Props, State> {
   state = getInitialState();
 
   componentDidMount() {

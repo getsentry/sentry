@@ -1,4 +1,3 @@
-import React from 'react';
 import isUndefined from 'lodash/isUndefined';
 
 import {ApiForm} from 'app/components/forms';

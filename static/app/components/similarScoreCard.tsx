@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -35,7 +35,7 @@ const SimilarScoreCard = ({scoreList = []}: Props) => {
   let numOtherScores = 0;
 
   return (
-    <React.Fragment>
+    <Fragment>
       {scoreList.map(([key, score]) => {
         const title =
           scoreComponents[key.replace(/similarity:\d\d\d\d-\d\d-\d\d/, 'similarity:*')];
@@ -62,7 +62,7 @@ const SimilarScoreCard = ({scoreList = []}: Props) => {
           <Score score={Math.round((sumOtherScores * 4) / numOtherScores)} />
         </Wrapper>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 };
 

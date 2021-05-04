@@ -1,4 +1,3 @@
-import React from 'react';
 import LazyLoad from 'react-lazyload';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';

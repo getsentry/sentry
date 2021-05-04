@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'app/actionCreators/account';
@@ -11,7 +11,7 @@ type Props = {
   maxWidth?: string;
 };
 
-class NarrowLayout extends React.Component<Props> {
+class NarrowLayout extends Component<Props> {
   UNSAFE_componentWillMount() {
     document.body.classList.add('narrow');
   }

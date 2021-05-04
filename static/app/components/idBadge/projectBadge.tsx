@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';

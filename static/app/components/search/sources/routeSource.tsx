@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {WithRouterProps} from 'react-router';
 import {FuseOptions} from 'fuse.js';
 import flattenDepth from 'lodash/flattenDepth';

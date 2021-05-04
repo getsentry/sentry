@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -23,7 +23,7 @@ type Props = {
   regressionEvent: Event;
 };
 
-class TransactionSummary extends React.Component<Props> {
+class TransactionSummary extends Component<Props> {
   render() {
     const {baselineEvent, regressionEvent, organization, location, params} = this.props;
     const {baselineEventSlug, regressionEventSlug} = params;

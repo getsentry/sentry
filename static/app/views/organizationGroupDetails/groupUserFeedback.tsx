@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 
@@ -32,7 +32,7 @@ type State = {
   pageLinks?: string | null;
 };
 
-class GroupUserFeedback extends React.Component<Props, State> {
+class GroupUserFeedback extends Component<Props, State> {
   state: State = {
     loading: true,
     error: false,

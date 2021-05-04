@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {Panel, PanelHeader} from 'app/components/panels';
@@ -42,7 +42,7 @@ class MonitorDetails extends AsyncView<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <MonitorHeader
           monitor={monitor}
           orgId={this.props.params.orgId}
@@ -62,7 +62,7 @@ class MonitorDetails extends AsyncView<Props, State> {
 
           <MonitorCheckIns monitor={monitor} />
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 const Checkbox = (props: React.HTMLProps<HTMLInputElement>) => (
   <input type="checkbox" {...props} />

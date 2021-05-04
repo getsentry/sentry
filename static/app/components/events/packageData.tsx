@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -12,7 +12,7 @@ type Props = {
   event: Event;
 };
 
-class EventPackageData extends React.Component<Props> {
+class EventPackageData extends Component<Props> {
   shouldComponentUpdate(nextProps: Props) {
     return this.props.event.id !== nextProps.event.id;
   }
