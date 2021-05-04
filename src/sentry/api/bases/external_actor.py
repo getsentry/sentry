@@ -10,7 +10,7 @@ from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.external_actor import (
     validate_external_id_option,
-    validate_integration_id_option,
+    validate_integration_id,
 )
 from sentry.api.validators.integrations import validate_provider
 from sentry.models import ExternalActor, Organization, Team, User
@@ -34,7 +34,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         return self.context["organization"]
 
     def validate_integration_id(self, integration_id: str) -> str:
-        return validate_integration_id_option(integration_id, self.organization)
+        return validate_integration_id(integration_id, self.organization)
 
     def validate_external_id(self, external_id: str) -> Optional[str]:
         return validate_external_id_option(external_id)
