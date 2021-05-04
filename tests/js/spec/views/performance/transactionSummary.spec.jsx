@@ -232,6 +232,7 @@ describe('Performance > TransactionSummary', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
+    jest.clearAllMocks();
   });
 
   it('renders basic UI elements', async function () {
@@ -267,6 +268,9 @@ describe('Performance > TransactionSummary', function () {
 
     // Ensure create alert from discover is hidden without metric alert
     expect(wrapper.find('CreateAlertFromViewButton')).toHaveLength(0);
+
+    // Ensure status breakdown exists
+    expect(wrapper.find('StatusBreakdown')).toHaveLength(1);
   });
 
   it('renders feature flagged UI elements', async function () {
@@ -454,5 +458,31 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     expect(issueGet).toHaveBeenCalled();
+  });
+
+  it('adds search condition on transaction status when clicking on status breakdown', async function () {
+    const initialData = initializeData();
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    wrapper.find('BarContainer[data-test-id="status-ok"]').at(0).simulate('click');
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: expect.stringContaining('transaction.status:ok'),
+        }),
+      })
+    );
   });
 });
