@@ -69,6 +69,10 @@ class AuthProvider(Model):
                 self.organization, f"{self.provider}_scim"
             )
         else:
+            logger.warning(
+                "SCIM disabled but tried to access token",
+                extra={"organization_id": self.organization.id},
+            )
             return None
 
     def get_scim_url(self):
@@ -86,6 +90,10 @@ class AuthProvider(Model):
             not self.get_provider().can_use_scim(self.organization, user)
             or self.flags.scim_enabled is True
         ):
+            logger.warning(
+                "SCIM already enabled",
+                extra={"organization_id": self.organization.id},
+            )
             return
 
         # check if we have a scim app already
@@ -93,8 +101,8 @@ class AuthProvider(Model):
         if SentryAppInstallationForProvider.objects.filter(
             organization=self.organization, provider="okta_scim"
         ).exists():
-            logger.info(
-                "scim_installation_exists",
+            logger.warning(
+                "SCIM instillation already exists",
                 extra={"organization_id": self.organization.id},
             )
             return
