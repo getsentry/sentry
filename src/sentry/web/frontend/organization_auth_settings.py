@@ -126,7 +126,7 @@ class OrganizationAuthSettingsView(OrganizationView):
 
             form_scim_enabled = form.cleaned_data.get("enable_scim", False)
             if auth_provider.flags.scim_enabled != form_scim_enabled:
-                if form_scim_enabled is True:
+                if form_scim_enabled:
                     auth_provider.enable_scim(request.user)
                 else:
                     auth_provider.disable_scim(request.user)
