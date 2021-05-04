@@ -1,4 +1,4 @@
-import React from 'react';
+import {lazy, Suspense} from 'react';
 import type {OnChangeProps} from 'react-date-range';
 import styled from '@emotion/styled';
 import moment from 'moment';
@@ -27,7 +27,7 @@ function handleChangeDate(
   close();
 }
 
-const Calendar = React.lazy(
+const Calendar = lazy(
   () => import(/* webpackChunkName: "CalendarField" */ './calendarField')
 );
 
@@ -53,7 +53,7 @@ export default function DatePickerField(props: Props) {
 
                 {isOpen && (
                   <CalendarMenu {...getMenuProps()}>
-                    <React.Suspense
+                    <Suspense
                       fallback={
                         <Placeholder width="332px" height="282px">
                           <LoadingIndicator />
@@ -66,7 +66,7 @@ export default function DatePickerField(props: Props) {
                           handleChangeDate(onChange, onBlur, date, actions.close)
                         }
                       />
-                    </React.Suspense>
+                    </Suspense>
                   </CalendarMenu>
                 )}
               </div>

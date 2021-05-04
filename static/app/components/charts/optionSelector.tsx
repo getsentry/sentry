@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -26,7 +26,7 @@ type State = {
   menuContainerWidth?: number;
 };
 
-class OptionSelector extends React.Component<Props, State> {
+class OptionSelector extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {};
@@ -52,7 +52,7 @@ class OptionSelector extends React.Component<Props, State> {
     }
   }
 
-  menuContainerRef = React.createRef<HTMLDivElement>();
+  menuContainerRef = createRef<HTMLDivElement>();
 
   render() {
     const {menuContainerWidth} = this.state;
@@ -65,7 +65,7 @@ class OptionSelector extends React.Component<Props, State> {
         <MenuContainer ref={this.menuContainerRef}>
           <DropdownMenu alwaysRenderMenu={false}>
             {({isOpen, getMenuProps, getActorProps}) => (
-              <React.Fragment>
+              <Fragment>
                 <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
                   {selectedOption.label}
                 </StyledDropdownButton>
@@ -93,7 +93,7 @@ class OptionSelector extends React.Component<Props, State> {
                     </StyledDropdownItem>
                   ))}
                 </StyledDropdownBubble>
-              </React.Fragment>
+              </Fragment>
             )}
           </DropdownMenu>
         </MenuContainer>

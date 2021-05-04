@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
@@ -132,6 +132,11 @@ type Props = {
    * Show a loading indicator instead of the table, used for transaction summary p95.
    */
   forceLoading?: boolean;
+  /**
+   * Optional callback function to generate an alternative EventView object to be used
+   * for generating the Discover query.
+   */
+  generateDiscoverEventView?: () => EventView;
 };
 
 class TransactionsList extends React.Component<Props> {
@@ -159,6 +164,14 @@ class TransactionsList extends React.Component<Props> {
     }
 
     return sortedEventView;
+  }
+
+  generateDiscoverEventView(): EventView {
+    const {generateDiscoverEventView} = this.props;
+    if (typeof generateDiscoverEventView === 'function') {
+      return generateDiscoverEventView();
+    }
+    return this.getEventView();
   }
 
   renderHeader(): React.ReactNode {
@@ -203,7 +216,9 @@ class TransactionsList extends React.Component<Props> {
           <GuideAnchor target="release_transactions_open_in_discover">
             <DiscoverButton
               onClick={handleOpenInDiscoverClick}
-              to={this.getEventView().getResultsViewUrlTarget(organization.slug)}
+              to={this.generateDiscoverEventView().getResultsViewUrlTarget(
+                organization.slug
+              )}
               size="small"
               data-test-id="discover-open"
             >

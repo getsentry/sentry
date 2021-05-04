@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import isNil from 'lodash/isNil';
 
 import ErrorBoundary from 'app/components/errorBoundary';

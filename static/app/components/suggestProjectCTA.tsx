@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'app/actionCreators/modal';
@@ -46,7 +46,7 @@ type State = {
   mobileEventResult?: MobileEventResult;
 };
 
-class SuggestProjectCTA extends React.Component<Props, State> {
+class SuggestProjectCTA extends Component<Props, State> {
   state: State = {};
   componentDidMount() {
     this.fetchData();

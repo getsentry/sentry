@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import DeviceName from 'app/components/deviceName';
 import FileSize from 'app/components/fileSize';

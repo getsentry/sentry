@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
 import {preloadIcons} from 'platformicons';
@@ -41,7 +41,7 @@ const fadeAway: MotionProps = {
   transition: testableTransition({duration: 0.8}),
 };
 
-class OnboardingWelcome extends React.Component<Props> {
+class OnboardingWelcome extends Component<Props> {
   componentDidMount() {
     // Next step will render the platform picker (using both large and small
     // icons). Keep things smooth by prefetching them. Preload a bit late to

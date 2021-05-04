@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
@@ -11,7 +11,7 @@ type Props = Form['props'] & {
   apiEndpoint: string;
 };
 
-export default class ApiForm extends React.Component<Props> {
+export default class ApiForm extends Component<Props> {
   componentWillUnmount() {
     this.api.clear();
   }

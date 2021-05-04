@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -39,7 +39,7 @@ type State = {
   progressing: boolean;
 };
 
-class OnboardingPlatform extends React.Component<Props, State> {
+class OnboardingPlatform extends Component<Props, State> {
   state: State = {
     firstProjectCreated: false,
     progressing: false,

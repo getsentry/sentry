@@ -1,7 +1,7 @@
 // Import to ensure echarts components are loaded.
 import './components/markPoint';
 
-import React from 'react';
+import * as React from 'react';
 import set from 'lodash/set';
 
 import {getFormattedDate} from 'app/utils/dates';

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
@@ -275,9 +275,9 @@ function ChangedTransactions(props: Props) {
                   }}
                 />
               ) : (
-                <React.Fragment>
+                <Fragment>
                   {transactionsList.length ? (
-                    <React.Fragment>
+                    <Fragment>
                       <ChartContainer>
                         <Chart
                           statsData={statsData}
@@ -313,13 +313,13 @@ function ChangedTransactions(props: Props) {
                           )}
                         />
                       ))}
-                    </React.Fragment>
+                    </Fragment>
                   ) : (
                     <StyledEmptyStateWarning small>
                       {t('No results')}
                     </StyledEmptyStateWarning>
                   )}
-                </React.Fragment>
+                </Fragment>
               )}
             </TrendsTransactionPanel>
             <Pagination pageLinks={pageLinks} onCursor={onCursor} />
@@ -431,10 +431,10 @@ function TrendsListItem(props: TrendsListItemProps) {
       <TransactionSummaryLink {...props} />
       <ItemTransactionPercentage>
         <Tooltip title={percentChangeExplanation}>
-          <React.Fragment>
+          <Fragment>
             {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
             {formatPercentage(transaction.trend_percentage - 1, 0)}
-          </React.Fragment>
+          </Fragment>
         </Tooltip>
       </ItemTransactionPercentage>
       <DropdownLink
@@ -484,9 +484,9 @@ function TrendsListItem(props: TrendsListItemProps) {
         <CompareDurations {...props} />
       </ItemTransactionDurationChange>
       <ItemTransactionStatus color={color}>
-        <React.Fragment>
+        <Fragment>
           {transformValueDelta(transaction.trend_difference, trendChangeType)}
-        </React.Fragment>
+        </Fragment>
       </ItemTransactionStatus>
     </ListItemContainer>
   );

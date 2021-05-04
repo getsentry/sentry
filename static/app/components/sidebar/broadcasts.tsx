@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 import {Client} from 'app/api';
@@ -30,7 +30,7 @@ type State = {
   error: boolean;
 };
 
-class Broadcasts extends React.Component<Props, State> {
+class Broadcasts extends Component<Props, State> {
   state: State = {
     broadcasts: [],
     loading: true,
@@ -123,7 +123,7 @@ class Broadcasts extends React.Component<Props, State> {
 
     return (
       <DemoModeGate>
-        <React.Fragment>
+        <Fragment>
           <SidebarItem
             data-test-id="sidebar-broadcasts"
             orientation={orientation}
@@ -165,7 +165,7 @@ class Broadcasts extends React.Component<Props, State> {
               )}
             </SidebarPanel>
           )}
-        </React.Fragment>
+        </Fragment>
       </DemoModeGate>
     );
   }

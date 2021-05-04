@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import DocumentTitle from 'react-document-title';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -13,7 +13,7 @@ const AdminOverview = () => {
 
   return (
     <DocumentTitle title="Admin Overview - Sentry">
-      <React.Fragment>
+      <Fragment>
         <h3>{t('System Overview')}</h3>
 
         <Panel key="events">
@@ -29,7 +29,7 @@ const AdminOverview = () => {
             <ApiChart since={since} resolution={resolution} />
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     </DocumentTitle>
   );
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -59,7 +59,7 @@ class TeamSettings extends AsyncView<Props, State> {
     const access = new Set<Scope>(organization.access);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Form
           model={this.model}
           apiMethod="PUT"
@@ -102,7 +102,7 @@ class TeamSettings extends AsyncView<Props, State> {
             </div>
           </Field>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

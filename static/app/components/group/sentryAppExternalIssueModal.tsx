@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
@@ -27,7 +27,7 @@ type State = {
   action: 'create' | 'link';
 };
 
-class SentryAppExternalIssueModal extends React.Component<Props, State> {
+class SentryAppExternalIssueModal extends Component<Props, State> {
   state: State = {
     action: 'create',
   };
@@ -52,7 +52,7 @@ class SentryAppExternalIssueModal extends React.Component<Props, State> {
     const config = sentryAppComponent.schema[action];
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{tct('[name] Issue', {name})}</Header>
         <NavTabs underlined>
           <li className={action === 'create' ? 'active create' : 'create'}>
@@ -73,7 +73,7 @@ class SentryAppExternalIssueModal extends React.Component<Props, State> {
             event={this.props.event}
           />
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

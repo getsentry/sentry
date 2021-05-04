@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {ApiForm, BooleanField, TextField} from 'app/components/forms';
 import NarrowLayout from 'app/components/narrowLayout';
 import {t, tct} from 'app/locale';
