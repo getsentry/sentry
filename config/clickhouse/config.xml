@@ -1,3 +1,16 @@
 <yandex>
     <max_server_memory_usage_to_ram_ratio from_env="MAX_MEMORY_USAGE_RATIO" />
+
+    <zookeeper>
+        <node>
+            <host>f934d2b52573</host>
+            <port>2181</port>
+        </node>
+    </zookeeper>
+
+    <macros>
+        <shard>1</shard>
+        <replica>1</replica>
+    </macros>
+
 </yandex>
