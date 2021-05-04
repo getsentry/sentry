@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
     # You'll also usually want to set this to `False` if you're writing a data
     # migration, since we don't want the entire migration to run in one long-running
     # transaction.
-    atomic = True
+    atomic = False
 
     dependencies = [
         ("sentry", "0190_drop_external_user_table"),
@@ -33,10 +33,22 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" SET DATA TYPE integer USING coalesce("integration_id", 1);
-                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" SET NOT NULL;
+                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" SET DEFAULT 1;
+                    UPDATE "sentry_externalactor" SET "integration_id" = 1 where "integration_id" is NULL;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" DROP DEFAULT;
+                    """,
+                ),
+                migrations.RunSQL(
                     """
-                )
+                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" SET NOT NULL;
+                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" DROP DEFAULT;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" DROP NOT NULL;
+                    """,
+                ),
             ],
             state_operations=[],
         )
