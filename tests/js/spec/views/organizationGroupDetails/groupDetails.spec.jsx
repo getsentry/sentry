@@ -95,6 +95,10 @@ describe('groupDetails', function () {
       url: '/organizations/org-slug/users/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/first-last-release/`,
+      body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
+    });
   });
   afterEach(async function () {
     if (wrapper) {
@@ -220,6 +224,7 @@ describe('groupDetails', function () {
         query: {
           environment: ['staging'],
           expand: 'inbox',
+          collapse: 'release',
         },
       })
     );

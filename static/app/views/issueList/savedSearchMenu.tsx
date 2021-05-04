@@ -141,7 +141,6 @@ const SearchTitle = styled('div')`
 
 const SearchQueryContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  line-height: 1;
   ${overflowEllipsis}
 `;
 
@@ -183,26 +182,24 @@ const DeleteButton = styled(Button)`
 const MenuHeader = styled('div')`
   align-items: center;
   color: ${p => p.theme.gray400};
-  font-weight: 400;
   background: ${p => p.theme.backgroundSecondary};
   line-height: 0.75;
-  padding: ${space(1.5)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  padding: ${space(1.5)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 `;
 
 const SecondaryMenuHeader = styled(MenuHeader)`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   border-radius: 0;
 `;
 
 const StyledMenuItem = styled(MenuItem)<{isActive: boolean; isLast: boolean}>`
   border-bottom: ${p => (!p.isLast ? `1px solid ${p.theme.innerBorder}` : null)};
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: 0;
 
-  & > span > a {
-    padding: ${space(0.75)} 0 ${space(1)} 0;
+  & > span {
+    padding: ${space(1)} ${space(2)};
   }
 
   ${p =>
@@ -228,7 +225,6 @@ const StyledMenuItem = styled(MenuItem)<{isActive: boolean; isLast: boolean}>`
 const MenuItemLink = styled('a')`
   display: block;
   flex-grow: 1;
-  padding: ${space(0.5)} 0;
   /* Nav tabs style override */
   border: 0;
 

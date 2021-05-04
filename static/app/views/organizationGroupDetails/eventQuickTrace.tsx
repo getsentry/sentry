@@ -10,25 +10,29 @@ import ButtonBar from 'app/components/buttonBar';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Organization, PromptActivity} from 'app/types';
+import {Group, Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getDocsPlatform} from 'app/utils/docs';
-import {snoozedDays} from 'app/utils/promptsActivity';
+import {promptCanShow, promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
+
+const DISTRIBUTED_TRACING_FEATURE = 'distributed_tracing';
 
 type Props = {
   api: Client;
   group: Group;
   organization: Organization;
+  event: Event;
 };
 
 type State = {
-  shouldShow: boolean | undefined;
+  shouldShow: boolean | null;
 };
 
 class EventQuickTrace extends React.Component<Props, State> {
   state: State = {
-    shouldShow: undefined,
+    shouldShow: null,
   };
 
   componentDidMount() {
@@ -36,26 +40,21 @@ class EventQuickTrace extends React.Component<Props, State> {
   }
 
   async fetchData() {
-    const {api, group, organization} = this.props;
+    const {api, event, group, organization} = this.props;
     const {project} = group;
+
+    if (!promptCanShow(DISTRIBUTED_TRACING_FEATURE, event.eventID)) {
+      this.setState({shouldShow: false});
+      return;
+    }
 
     const data = await promptsCheck(api, {
       projectId: project.id,
       organizationId: organization.id,
-      feature: 'distributed_tracing',
+      feature: DISTRIBUTED_TRACING_FEATURE,
     });
 
-    this.setState({shouldShow: this.shouldShow(data ?? {})});
-  }
-
-  shouldShow({snoozedTime, dismissedTime}: PromptActivity) {
-    if (dismissedTime) {
-      return false;
-    }
-    if (snoozedTime) {
-      return snoozedDays(snoozedTime) > 7;
-    }
-    return true;
+    this.setState({shouldShow: !promptIsDismissed(data ?? {}, 30)});
   }
 
   trackAnalytics({eventKey, eventName}) {
@@ -77,7 +76,7 @@ class EventQuickTrace extends React.Component<Props, State> {
     const data = {
       projectId: project.id,
       organizationId: organization.id,
-      feature: 'distributed_tracing',
+      feature: DISTRIBUTED_TRACING_FEATURE,
       status: action,
     };
     promptsUpdate(api, data).then(() => this.setState({shouldShow: false}));
@@ -99,14 +98,13 @@ class EventQuickTrace extends React.Component<Props, State> {
     }
 
     const docsLink = this.createDocsLink();
-
     // if the platform does not support performance, do not show this prompt
     if (docsLink === null) {
       return null;
     }
 
     return (
-      <StyledPanel dashedBorder>
+      <ExampleQuickTracePanel dashedBorder>
         <div>
           <Header>{t('Configure Distributed Tracing')}</Header>
           <Description>
@@ -130,7 +128,7 @@ class EventQuickTrace extends React.Component<Props, State> {
           </Button>
           <ButtonBar merged>
             <Button
-              title={t('Remind me next week')}
+              title={t('Remind me next month')}
               size="small"
               onClick={() =>
                 this.handleClick({
@@ -157,12 +155,12 @@ class EventQuickTrace extends React.Component<Props, State> {
             </Button>
           </ButtonBar>
         </ActionButtons>
-      </StyledPanel>
+      </ExampleQuickTracePanel>
     );
   }
 }
 
-const StyledPanel = styled(Panel)`
+const ExampleQuickTracePanel = styled(Panel)`
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   grid-template-rows: auto max-content;

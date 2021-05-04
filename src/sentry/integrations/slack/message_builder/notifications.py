@@ -2,26 +2,29 @@ import re
 from typing import Any, Mapping
 from urllib.parse import urljoin
 
+from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.utils import LEVEL_TO_COLOR
-from sentry.notifications.activity.base import ActivityNotification
+from sentry.notifications.base import BaseNotification
+from sentry.notifications.rules import AlertRuleNotification
+from sentry.notifications.utils.avatar import get_sentry_avatar_url
 from sentry.utils.http import absolute_uri
 
 
-def get_referrer_qstring(notification: ActivityNotification) -> str:
+def get_referrer_qstring(notification: BaseNotification) -> str:
     return "?referrer=" + re.sub("Notification$", "Slack", notification.__class__.__name__)
 
 
-def get_settings_url(notification: ActivityNotification) -> str:
+def get_settings_url(notification: BaseNotification) -> str:
     return urljoin(
         absolute_uri("/settings/account/notifications/"), get_referrer_qstring(notification)
     )
 
 
-def get_group_url(notification: ActivityNotification) -> str:
+def get_group_url(notification: BaseNotification) -> str:
     return urljoin(notification.group.get_absolute_url(), get_referrer_qstring(notification))
 
 
-def build_notification_footer(notification: ActivityNotification) -> str:
+def build_notification_footer(notification: BaseNotification) -> str:
     settings_url = get_settings_url(notification)
 
     if not notification.group:
@@ -35,14 +38,23 @@ def build_notification_footer(notification: ActivityNotification) -> str:
 
 
 def build_notification_attachment(
-    notification: ActivityNotification, context: Mapping[str, Any]
+    notification: BaseNotification, context: Mapping[str, Any]
 ) -> Mapping[str, str]:
+    if isinstance(notification, AlertRuleNotification):
+        return build_group_attachment(
+            notification.group,
+            notification.event,
+            context["tags"],
+            notification.rules,
+            issue_alert=True,
+        )
+
     footer = build_notification_footer(notification)
     return {
         "title": notification.get_title(),
         "text": context["text_description"],
         "mrkdwn_in": ["text"],
-        "footer_icon": notification.get_sentry_avatar_url(),
+        "footer_icon": get_sentry_avatar_url(),
         "footer": footer,
         "color": LEVEL_TO_COLOR["info"],
     }

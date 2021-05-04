@@ -112,7 +112,7 @@ class JSONField(models.TextField):
         return json.dumps(value, default=default, **self.encoder_kwargs)
 
     def value_to_string(self, obj):
-        return self._get_val_from_obj(obj)
+        return self.value_from_object(obj)
 
 
 class NoPrepareMixin:

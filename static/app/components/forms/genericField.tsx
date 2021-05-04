@@ -98,7 +98,7 @@ const GenericField = ({
     case 'text':
     case 'url':
       if (fieldProps.choices) {
-        return <SelectCreatableField deprecatedSelectControl {...fieldProps} />;
+        return <SelectCreatableField {...fieldProps} />;
       }
       return <TextField {...fieldProps} />;
     case 'number':
@@ -117,9 +117,9 @@ const GenericField = ({
           ...config,
           ...selectProps,
         };
-        return <SelectAsyncField deprecatedSelectControl {...selectFieldProps} />;
+        return <SelectAsyncField {...selectFieldProps} />;
       }
-      return <SelectField deprecatedSelectControl {...selectProps} />;
+      return <SelectField {...selectProps} />;
     default:
       return null;
   }

@@ -63,7 +63,7 @@ type State = {
 };
 
 class Note extends React.Component<Props, State> {
-  state = {
+  state: State = {
     editing: false,
   };
 

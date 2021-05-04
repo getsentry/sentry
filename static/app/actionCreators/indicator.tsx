@@ -116,7 +116,7 @@ const prettyFormString = (val: ChangeValue, model: FormModel, fieldName: string)
     return PRETTY_VALUES.get(val);
   }
 
-  return `${val}`;
+  return typeof val === 'object' ? val : String(val);
 };
 
 // Some fields have objects in them.

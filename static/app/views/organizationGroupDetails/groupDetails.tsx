@@ -125,6 +125,10 @@ class GroupDetails extends React.Component<Props, State> {
     return `/issues/${this.props.params.groupId}/`;
   }
 
+  get groupReleaseEndpoint() {
+    return `/issues/${this.props.params.groupId}/first-last-release/`;
+  }
+
   async getEvent(group?: Group) {
     if (group) {
       this.setState({loadingEvent: true, eventError: false});
@@ -248,6 +252,7 @@ class GroupDetails extends React.Component<Props, State> {
     const query: Record<string, string | string[]> = {
       ...(environments ? {environment: environments} : {}),
       expand: 'inbox',
+      collapse: 'release',
     };
 
     return query;
@@ -315,6 +320,12 @@ class GroupDetails extends React.Component<Props, State> {
     }
   };
 
+  async fetchGroupReleases() {
+    const {api} = this.props;
+    const releases = await api.requestPromise(this.groupReleaseEndpoint);
+    GroupStore.onPopulateReleases(this.props.params.groupId, releases);
+  }
+
   async fetchData() {
     const {api, isGlobalSelectionReady, params} = this.props;
 
@@ -333,6 +344,7 @@ class GroupDetails extends React.Component<Props, State> {
       });
 
       const [data] = await Promise.all([groupPromise, eventPromise]);
+      this.fetchGroupReleases();
 
       const reprocessingNewRoute = this.getReprocessingNewRoute(data);
 

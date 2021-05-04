@@ -25,7 +25,7 @@ from sentry.utils.json import JSONData
 
 def get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
     """Get memberships the user has in the provided team list"""
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return []
 
     team_ids: Iterable[int] = OrganizationMemberTeam.objects.filter(
@@ -36,7 +36,7 @@ def get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]
 
 def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int]:
     """Get the total number of members in each team"""
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return {}
 
     query = (
@@ -52,7 +52,7 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
 
 def get_org_roles(org_ids: Set[int], user: User) -> Mapping[int, str]:
     """Get the role the user has in each org"""
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return {}
 
     # map of org id to role
@@ -65,7 +65,7 @@ def get_org_roles(org_ids: Set[int], user: User) -> Mapping[int, str]:
 
 
 def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Team]:
-    if user.is_authenticated():
+    if user.is_authenticated:
         return frozenset(
             OrganizationAccessRequest.objects.filter(
                 team__in=item_list, member__user=user
@@ -174,7 +174,7 @@ class TeamWithProjectsSerializer(TeamSerializer):
         result = super().get_attrs(item_list, user)
         for team in item_list:
             result[team]["projects"] = project_map[team.id]
-            result[team]["externalTeams"] = external_teams_map[team.id]
+            result[team]["externalTeams"] = external_teams_map[str(team.id)]
         return result
 
     def serialize(

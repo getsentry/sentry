@@ -1168,6 +1168,15 @@ function routes() {
           />
 
           <Route
+            path="/organizations/:orgId/dashboards/manage/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "ManageDashboards" */ 'app/views/dashboardsV2/manage'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
               import(
@@ -1877,7 +1886,16 @@ function routes() {
               path="widget/new/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget/new'
+                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="widget/:widgetId/edit/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "WidgetEdit" */ 'app/views/dashboardsV2/widget'
                 )
               }
               component={errorHandler(LazyLoad)}

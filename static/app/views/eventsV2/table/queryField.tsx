@@ -558,7 +558,7 @@ class BufferedInput extends React.Component<InputProps, InputState> {
     this.input = React.createRef();
   }
 
-  state = {
+  state: InputState = {
     value: this.props.value,
   };
 

@@ -33,7 +33,7 @@ type State = {
 };
 
 class ReleaseChartContainer extends React.Component<Props, State> {
-  state = {
+  state: State = {
     shouldRecalculateVisibleSeries: true,
   };
 

@@ -65,6 +65,7 @@ const defaultProps = {
   canSelect: true,
   withChart: true,
   useFilteredStats: false,
+  useTintRow: true,
 };
 
 type Props = {
@@ -145,7 +146,7 @@ class StreamGroup extends React.Component<Props, State> {
       return;
     }
 
-    const actionTaken = this.state.data.status === 'unresolved' ? false : true;
+    const actionTaken = this.state.data.status !== 'unresolved';
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
       // When searching is:for_review and the inbox reason is removed
@@ -346,6 +347,7 @@ class StreamGroup extends React.Component<Props, State> {
       displayReprocessingLayout,
       showInboxTime,
       useFilteredStats,
+      useTintRow,
       customStatsPeriod,
     } = this.props;
 
@@ -377,6 +379,7 @@ class StreamGroup extends React.Component<Props, State> {
         reviewed={reviewed}
         unresolved={unresolved}
         actionTaken={actionTaken}
+        useTintRow={useTintRow ?? true}
       >
         {canSelect && (
           <GroupCheckBoxWrapper>
@@ -566,12 +569,14 @@ const Wrapper = styled(PanelItem)<{
   reviewed: boolean;
   unresolved: boolean;
   actionTaken: boolean;
+  useTintRow: boolean;
 }>`
   position: relative;
   padding: ${space(1.5)} 0;
   line-height: 1.1;
 
   ${p =>
+    p.useTintRow &&
     (p.reviewed || !p.unresolved) &&
     !p.actionTaken &&
     css`

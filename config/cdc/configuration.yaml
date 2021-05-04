@@ -42,7 +42,7 @@ snapshot:
                 options:
                     topic: cdc_control
                     options:
-                        bootstrap.servers: 'sentry_kafka:9092'
+                        bootstrap.servers: 'sentry_kafka:9093'
 
 producer:
     backend:
@@ -50,7 +50,7 @@ producer:
         options:
             topic: cdc
             options:
-                bootstrap.servers: 'sentry_kafka:9092'
+                bootstrap.servers: 'sentry_kafka:9093'
 
 dogstatsd:
     host: localhost

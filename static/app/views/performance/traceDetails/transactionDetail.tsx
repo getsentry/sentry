@@ -7,6 +7,13 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
+import {
+  ErrorDot,
+  ErrorLevel,
+  ErrorMessageContent,
+  ErrorMessageTitle,
+  ErrorTitle,
+} from 'app/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {IconChevron, IconWarning} from 'app/icons';
@@ -20,17 +27,7 @@ import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {getTransactionDetailsUrl} from 'app/views/performance/utils';
 
-import {
-  ErrorDot,
-  ErrorLevel,
-  ErrorMessageContent,
-  ErrorMessageTitle,
-  ErrorTitle,
-  Row,
-  Tags,
-  TransactionDetails,
-  TransactionDetailsContainer,
-} from './styles';
+import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';
 
 type Props = {
   location: Location;

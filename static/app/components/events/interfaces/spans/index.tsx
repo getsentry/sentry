@@ -14,6 +14,7 @@ import {EventTransaction} from 'app/types/event';
 import {objectIsEmpty} from 'app/utils';
 import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
+import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -154,52 +155,58 @@ class SpansInterface extends React.Component<Props, State> {
 
     return (
       <Container hasErrors={!objectIsEmpty(event.errors)}>
-        <DiscoverQuery
-          location={location}
-          eventView={traceErrorsEventView}
-          orgSlug={orgSlug}
-          referrer="api.trace-view.errors-view"
-        >
-          {({isLoading, tableData}) => {
-            const spansWithErrors = filterSpansWithErrors(parsedTrace, tableData);
+        <QuickTraceContext.Consumer>
+          {quickTrace => (
+            // TODO: remove this extra discover query once quick trace is the default
+            <DiscoverQuery
+              location={location}
+              eventView={traceErrorsEventView}
+              orgSlug={orgSlug}
+              referrer="api.trace-view.errors-view"
+            >
+              {({isLoading, tableData}) => {
+                const spansWithErrors = filterSpansWithErrors(parsedTrace, tableData);
+                const numOfErrors = spansWithErrors?.data.length || 0;
 
-            const numOfErrors = spansWithErrors?.data.length || 0;
-
-            return (
-              <React.Fragment>
-                {this.renderTraceErrorsAlert({
-                  isLoading,
-                  numOfErrors,
-                })}
-                <Search>
-                  <Filter
-                    parsedTrace={parsedTrace}
-                    operationNameFilter={this.state.operationNameFilters}
-                    toggleOperationNameFilter={this.toggleOperationNameFilter}
-                    toggleAllOperationNameFilters={this.toggleAllOperationNameFilters}
-                  />
-                  <StyledSearchBar
-                    defaultQuery=""
-                    query={this.state.searchQuery || ''}
-                    placeholder={t('Search for spans')}
-                    onSearch={this.handleSpanFilter}
-                  />
-                </Search>
-                <Panel>
-                  <TraceView
-                    event={event}
-                    searchQuery={this.state.searchQuery}
-                    orgId={orgSlug}
-                    organization={organization}
-                    parsedTrace={parsedTrace}
-                    spansWithErrors={spansWithErrors}
-                    operationNameFilters={this.state.operationNameFilters}
-                  />
-                </Panel>
-              </React.Fragment>
-            );
-          }}
-        </DiscoverQuery>
+                return (
+                  <React.Fragment>
+                    {this.renderTraceErrorsAlert({
+                      isLoading: quickTrace ? quickTrace.isLoading : isLoading,
+                      numOfErrors: quickTrace
+                        ? quickTrace?.currentEvent?.errors?.length ?? 0
+                        : numOfErrors,
+                    })}
+                    <Search>
+                      <Filter
+                        parsedTrace={parsedTrace}
+                        operationNameFilter={this.state.operationNameFilters}
+                        toggleOperationNameFilter={this.toggleOperationNameFilter}
+                        toggleAllOperationNameFilters={this.toggleAllOperationNameFilters}
+                      />
+                      <StyledSearchBar
+                        defaultQuery=""
+                        query={this.state.searchQuery || ''}
+                        placeholder={t('Search for spans')}
+                        onSearch={this.handleSpanFilter}
+                      />
+                    </Search>
+                    <Panel>
+                      <TraceView
+                        event={event}
+                        searchQuery={this.state.searchQuery}
+                        orgId={orgSlug}
+                        organization={organization}
+                        parsedTrace={parsedTrace}
+                        spansWithErrors={spansWithErrors}
+                        operationNameFilters={this.state.operationNameFilters}
+                      />
+                    </Panel>
+                  </React.Fragment>
+                );
+              }}
+            </DiscoverQuery>
+          )}
+        </QuickTraceContext.Consumer>
       </Container>
     );
   }

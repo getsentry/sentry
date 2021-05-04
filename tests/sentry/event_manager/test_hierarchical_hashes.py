@@ -31,6 +31,17 @@ def fast_save(default_project):
     return inner
 
 
+def _group_hashes(group_id):
+    return {gh.hash for gh in GroupHash.objects.filter(group_id=group_id)}
+
+
+def _assoc_hash(group, hash):
+    gh = GroupHash.objects.get_or_create(project=group.project, hash=hash)[0]
+    assert gh.group is None or gh.group.id != group.id
+    gh.group = group
+    gh.save()
+
+
 @pytest.mark.django_db
 def test_move_all_events(default_project, fast_save):
     group, is_new, is_regression = fast_save("f")
@@ -43,7 +54,10 @@ def test_move_all_events(default_project, fast_save):
     assert not is_regression
     assert new_group.id == group.id
 
-    assert {g.hash for g in GroupHash.objects.filter(group=group)} == {"a" * 32, "b" * 32, "c" * 32}
+    _assoc_hash(group, "a" * 32)
+    _assoc_hash(group, "b" * 32)
+
+    assert _group_hashes(group.id) == {"a" * 32, "b" * 32, "c" * 32}
 
     # simulate split operation where all events of group are moved into a more specific hash
     GroupHash.objects.filter(group=group).delete()
@@ -66,14 +80,7 @@ def test_move_all_events(default_project, fast_save):
     assert not is_regression
     assert new_group.id != group.id
 
-    assert {g.hash for g in GroupHash.objects.filter(group=new_group)} == {
-        # Since this is the "root group" again (primary hash is c), it's fine
-        # to associate flat hashes w it
-        "a" * 32,
-        "b" * 32,
-        # one hierarchical hash associated
-        "c" * 32,
-    }
+    assert _group_hashes(new_group.id) == {"c" * 32}
 
 
 @pytest.mark.django_db
@@ -87,7 +94,7 @@ def test_partial_move(default_project, fast_save):
     assert not is_regression
     assert new_group.id == group.id
 
-    assert {g.hash for g in GroupHash.objects.filter(group=group)} == {"a" * 32, "b" * 32, "c" * 32}
+    assert _group_hashes(group.id) == {"c" * 32}
 
     # simulate split operation where event "f" of group is moved into a more specific hash
     group2 = Group.objects.create(project=default_project)
@@ -98,7 +105,7 @@ def test_partial_move(default_project, fast_save):
     assert not is_regression
     assert new_group.id == group2.id
 
-    assert {g.hash for g in GroupHash.objects.filter(group=new_group)} == {
+    assert _group_hashes(new_group.id) == {
         # one hierarchical hash associated
         # no flat hashes associated when sorting into split group!
         "f"
@@ -110,12 +117,7 @@ def test_partial_move(default_project, fast_save):
     assert not is_regression
     assert new_group.id == group.id
 
-    assert {g.hash for g in GroupHash.objects.filter(group=new_group)} == {
-        # Since this is the "root group" again (primary hash is c), it's fine
-        # to associate flat hashes w it
-        "a" * 32,
-        "b" * 32,
-        # one hierarchical hash associated
+    assert _group_hashes(new_group.id) == {
         "c" * 32,
     }
 
