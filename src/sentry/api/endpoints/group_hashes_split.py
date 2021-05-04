@@ -206,10 +206,13 @@ def _get_group_filters(group: Group):
     return [
         Condition(Column("project_id"), Op.EQ, group.project_id),
         Condition(Column("group_id"), Op.EQ, group.id),
-        # XXX(markus): Those conditions are cargo-culted. Need to verify if
-        # they bring any kind of perf-boost at all. We have seen
-        # last_seen/first_seen be wrong in Postgres so it may alter query
-        # results for the worse even.
+        # XXX(markus): Those conditions are subject to last_seen being totally
+        # in sync with max(timestamp) of Snuba which can be false. In fact we
+        # know that during merge/unmerge last_seen can become permanently
+        # wrong: https://github.com/getsentry/sentry/issues/25673
+        #
+        # We add both conditions because Snuba query API requires us to, and
+        # because it does bring a significant performance boost.
         Condition(Column("timestamp"), Op.GTE, group.first_seen),
         Condition(Column("timestamp"), Op.LT, group.last_seen + datetime.timedelta(seconds=1)),
     ]
