@@ -77,7 +77,7 @@ class DashboardDetail extends React.Component<Props, State> {
     const {router, organization, params} = this.props;
     const {dashboardId} = params;
 
-    const dashboardDetailsRoute = `/organizations/${organization.slug}/dashboards/${dashboardId}/`;
+    const dashboardDetailsRoute = `/organizations/${organization.slug}/dashboard/${dashboardId}/`;
 
     if (this.isWidgetBuilderRouter && !this.isEditing) {
       router.replace(dashboardDetailsRoute);
@@ -92,7 +92,7 @@ class DashboardDetail extends React.Component<Props, State> {
     if (this.isWidgetBuilderRouter) {
       const {router, organization, params} = this.props;
       const {dashboardId} = params;
-      router.replace(`/organizations/${organization.slug}/dashboards/${dashboardId}/`);
+      router.replace(`/organizations/${organization.slug}/dashboard/${dashboardId}/`);
     }
   }
 
@@ -107,7 +107,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
     return (
       location.pathname ===
-        `/organizations/${organization.slug}/dashboards/${dashboardId}/widget/new/` ||
+        `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/` ||
       this.isWidgetBuilderEditRouter
     );
   }
@@ -117,7 +117,7 @@ class DashboardDetail extends React.Component<Props, State> {
     const {dashboardId, widgetId} = params;
     return (
       location.pathname ===
-      `/organizations/${organization.slug}/dashboards/${dashboardId}/widget/${widgetId}/edit/`
+      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetId}/edit/`
     );
   }
 
@@ -252,7 +252,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
               // redirect to new dashboard
               browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
+                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                 query: {
                   ...location.query,
                 },
@@ -290,7 +290,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
               if (dashboard && newDashboard.id !== dashboard.id) {
                 browserHistory.replace({
-                  pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
+                  pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                   query: {
                     ...location.query,
                   },

@@ -132,7 +132,7 @@ class Controls extends React.Component<Props> {
             value={currentOption}
             onChange={({value}: {value: DashboardListItem}) => {
               browserHistory.push({
-                pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
+                pathname: `/organizations/${organization.slug}/dashboard/${value.id}/`,
                 // TODO(mark) should this retain global selection?
                 query: {},
               });

@@ -131,7 +131,7 @@ describe('Dashboards > Detail', function () {
       // Should redirect to the new dashboard.
       expect(browserHistory.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/dashboards/8/',
+          pathname: '/organizations/org-slug/dashboard/8/',
         })
       );
     });
