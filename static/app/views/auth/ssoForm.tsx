@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
@@ -16,7 +16,7 @@ type State = {
   errorMessage: string | null;
 };
 
-class SsoForm extends React.Component<Props, State> {
+class SsoForm extends Component<Props, State> {
   state: State = {
     errorMessage: null,
   };

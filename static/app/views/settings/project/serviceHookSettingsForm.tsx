@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -19,7 +19,7 @@ type Props = {
   hookId?: string;
 };
 
-export default class ServiceHookSettingsForm extends React.Component<Props> {
+export default class ServiceHookSettingsForm extends Component<Props> {
   onSubmitSuccess = () => {
     const {orgId, projectId} = this.props;
     browserHistory.push(`/settings/${orgId}/projects/${projectId}/hooks/`);

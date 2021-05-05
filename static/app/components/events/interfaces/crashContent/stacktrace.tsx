@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ErrorBoundary from 'app/components/errorBoundary';
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';

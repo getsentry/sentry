@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
@@ -87,7 +87,7 @@ type Props = {
   currentFilter: SpanOperationBreakdownFilter;
 };
 
-class TransactionSummaryCharts extends React.Component<Props> {
+class TransactionSummaryCharts extends Component<Props> {
   handleDisplayChange = (value: string) => {
     const {location} = this.props;
     browserHistory.push({

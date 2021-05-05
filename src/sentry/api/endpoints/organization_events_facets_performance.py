@@ -5,7 +5,7 @@ import sentry_sdk
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, tagstore
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.snuba import discover
@@ -74,6 +74,12 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
 
                 if not results:
                     return {"data": []}
+
+                for row in results["data"]:
+                    row["tags_value"] = tagstore.get_tag_value_label(
+                        row["tags_key"], row["tags_value"]
+                    )
+                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
 
                 return results
 

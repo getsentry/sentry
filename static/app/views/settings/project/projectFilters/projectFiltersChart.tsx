@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {Client} from 'app/api';
 import MiniBarChart from 'app/components/charts/miniBarChart';
@@ -41,7 +41,7 @@ const STAT_OPS = {
   'web-crawlers': {title: t('Web Crawler'), color: theme.red300},
 };
 
-class ProjectFiltersChart extends React.Component<Props, State> {
+class ProjectFiltersChart extends Component<Props, State> {
   state: State = {
     loading: true,
     error: false,

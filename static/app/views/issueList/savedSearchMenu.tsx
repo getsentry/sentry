@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
@@ -31,13 +31,13 @@ function SavedSearchMenuItem({
   return (
     <Tooltip
       title={
-        <React.Fragment>
+        <Fragment>
           {`${search.name} \u2022 `}
           <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
           {` \u2022 `}
           {t('Sort: ')}
           {getSortLabel(search.sort)}
-        </React.Fragment>
+        </Fragment>
       }
       containerDisplayMode="block"
       delay={1000}
@@ -103,7 +103,7 @@ function SavedSearchMenu({savedSearchList, ...props}: Props) {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <MenuHeader>{t('Saved Searches')}</MenuHeader>
       {savedSearches.length === 0 ? (
         <EmptyItem>{t('No saved searches yet.')}</EmptyItem>
@@ -131,7 +131,7 @@ function SavedSearchMenu({savedSearchList, ...props}: Props) {
           />
         ))
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

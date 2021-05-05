@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import MemberListStore from 'app/stores/memberListStore';

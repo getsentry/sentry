@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -21,6 +21,7 @@ import Version from 'app/components/version';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {
   AGGREGATIONS,
   getAggregateAlias,
@@ -554,7 +555,7 @@ const spanOperationBreakdownRenderer = (field: string) => (
 
 const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location}: RenderFunctionBaggage
+  {location, organization}: RenderFunctionBaggage
 ): React.ReactNode => {
   const cumulativeSpanOpBreakdown = data['spans.total.time'];
 
@@ -597,6 +598,12 @@ const spanOperationRelativeBreakdownRenderer = (
                   if (filter === SpanOperationBreakdownFilter.None) {
                     return;
                   }
+                  trackAnalyticsEvent({
+                    eventName: 'Performance Views: Select Relative Breakdown',
+                    eventKey: 'performance_views.relative_breakdown.selection',
+                    organization_id: parseInt(organization.id, 10),
+                    action: filter as string,
+                  });
                   browserHistory.push({
                     pathname: location.pathname,
                     query: {

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
@@ -19,7 +19,7 @@ type Props = WithRouterProps & {
   project?: Project;
 };
 
-class PermissionDenied extends React.Component<Props> {
+class PermissionDenied extends Component<Props> {
   componentDidMount() {
     const {organization, project, routes} = this.props;
 

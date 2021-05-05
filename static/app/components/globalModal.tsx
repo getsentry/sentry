@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 // eslint-disable-next-line no-restricted-imports
 import Modal from 'react-bootstrap/lib/Modal';
 import {browserHistory} from 'react-router';

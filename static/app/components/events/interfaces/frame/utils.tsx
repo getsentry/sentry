@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {IconQuestion, IconWarning} from 'app/icons';
 import {t} from 'app/locale';

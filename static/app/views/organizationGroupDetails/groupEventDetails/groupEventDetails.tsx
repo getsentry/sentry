@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -58,7 +58,7 @@ type State = {
   releasesCompletion: any;
 };
 
-class GroupEventDetails extends React.Component<Props, State> {
+class GroupEventDetails extends Component<Props, State> {
   state: State = {
     eventNavLinks: '',
     releasesCompletion: null,
@@ -264,7 +264,7 @@ class GroupEventDetails extends React.Component<Props, State> {
               }
             />
           ) : (
-            <React.Fragment>
+            <Fragment>
               <div className="primary">
                 {eventWithMeta && (
                   <GroupEventToolbar
@@ -298,7 +298,7 @@ class GroupEventDetails extends React.Component<Props, State> {
                   environments={environments}
                 />
               </div>
-            </React.Fragment>
+            </Fragment>
           )}
         </div>
       </div>

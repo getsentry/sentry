@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
@@ -31,7 +31,7 @@ type State = {
   expanded: boolean;
 };
 
-class EventCause extends React.Component<Props, State> {
+class EventCause extends Component<Props, State> {
   state: State = {
     expanded: false,
   };
@@ -72,13 +72,13 @@ class EventCause extends React.Component<Props, State> {
           {commits.length > 1 && (
             <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
               {expanded ? (
-                <React.Fragment>
+                <Fragment>
                   {t('Show less')} <IconSubtract isCircled size="md" />
-                </React.Fragment>
+                </Fragment>
               ) : (
-                <React.Fragment>
+                <Fragment>
                   {t('Show more')} <IconAdd isCircled size="md" />
-                </React.Fragment>
+                </Fragment>
               )}
             </ExpandButton>
           )}

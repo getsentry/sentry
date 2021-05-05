@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject, Query} from 'history';
@@ -157,6 +157,7 @@ const getColumnsWithReplacedDuration = (
   const performanceType = platformToPerformanceType(projects, projectIds);
   if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
     durationColumn.name = 'Avg LCP';
+    return columns;
   }
 
   return columns;
@@ -256,9 +257,13 @@ class _TagExplorer extends React.Component<Props> {
     );
   }
 
-  renderHeadCellWithMeta = (sortedEventView: EventView, tableMeta: TableData['meta']) => {
+  renderHeadCellWithMeta = (
+    sortedEventView: EventView,
+    tableMeta: TableData['meta'],
+    columns: TagColumn[]
+  ) => {
     return (column: TableColumn<ColumnKeys>, index: number): React.ReactNode =>
-      this.renderHeadCell(sortedEventView, tableMeta, column, COLUMN_ORDER[index]);
+      this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]);
   };
 
   handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
@@ -402,9 +407,13 @@ class _TagExplorer extends React.Component<Props> {
       projects,
       sortedEventView.project
     );
-    const columns = this.getColumnOrder(
-      getColumnsWithReplacedDuration(currentFilter, projects, sortedEventView.project)
+
+    const adjustedColumns = getColumnsWithReplacedDuration(
+      currentFilter,
+      projects,
+      sortedEventView.project
     );
+    const columns = this.getColumnOrder(adjustedColumns);
 
     const columnSortBy = sortedEventView.getSorts();
 
@@ -430,7 +439,8 @@ class _TagExplorer extends React.Component<Props> {
                 grid={{
                   renderHeadCell: this.renderHeadCellWithMeta(
                     sortedEventView,
-                    tableData?.meta || {}
+                    tableData?.meta || {},
+                    adjustedColumns
                   ) as any,
                   renderBodyCell: this.renderBodyCellWithData(this.props) as any,
                   onResizeColumn: this.handleResizeColumn as any,
