@@ -323,7 +323,7 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
   let countArg = 0;
 
   if (args.length > 0) {
-    countArg = (args[0] as number) || 0;
+    countArg = Math.abs(args[0] as number) || 0;
 
     // `toLocaleString` will render `999` as `"999"` but `9999` as `"9,999"`. This means that any call with `tn` or `ngettext` cannot use `%d` in the codebase but has to use `%s`.
     // This means a string is always being passed in as an argument, but `sprintf-js` implicitly coerces strings that can be parsed as integers into an integer.

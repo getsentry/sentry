@@ -5,7 +5,11 @@ import ProjectIssues from 'app/views/projectDetail/projectIssues';
 
 describe('ProjectDetail > ProjectIssues', function () {
   let endpointMock, filteredEndpointMock;
-  const {organization, router, routerContext} = initializeOrg();
+  const {organization, router, routerContext} = initializeOrg({
+    organization: {
+      features: ['discover-basic'],
+    },
+  });
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
@@ -44,12 +48,35 @@ describe('ProjectDetail > ProjectIssues', function () {
       routerContext
     );
 
-    expect(wrapper.find('ControlsWrapper Link').prop('to')).toEqual({
+    expect(
+      wrapper.find('ControlsWrapper Link[aria-label="Open in Issues"]').prop('to')
+    ).toEqual({
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
         limit: 5,
         query: 'is:unresolved error.unhandled:true',
         sort: 'freq',
+        statsPeriod: '14d',
+      },
+    });
+  });
+
+  it('renders a link to Discover', function () {
+    const wrapper = mountWithTheme(
+      <ProjectIssues organization={organization} location={router.location} />,
+      routerContext
+    );
+
+    expect(
+      wrapper.find('ControlsWrapper Link[aria-label="Open in Discover"]').prop('to')
+    ).toEqual({
+      pathname: `/organizations/${organization.slug}/discover/results/`,
+      query: {
+        display: 'top5',
+        field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
+        name: 'Frequent Unhandled Issues',
+        query: 'event.type:error error.unhandled:true',
+        sort: ['-count'],
         statsPeriod: '14d',
       },
     });
@@ -69,7 +96,9 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(endpointMock).toHaveBeenCalledTimes(0);
     expect(filteredEndpointMock).toHaveBeenCalledTimes(1);
 
-    expect(wrapper.find('ControlsWrapper Link').prop('to')).toEqual({
+    expect(
+      wrapper.find('ControlsWrapper Link[aria-label="Open in Issues"]').prop('to')
+    ).toEqual({
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
         limit: 5,

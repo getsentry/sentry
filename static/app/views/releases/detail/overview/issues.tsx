@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -224,17 +223,15 @@ class Issues extends Component<Props, State> {
               {t('Open in Issues')}
             </Button>
 
-            <Feature features={['discover-basic']}>
-              <GuideAnchor target="release_issues_open_in_discover">
-                <DiscoverButton
-                  to={this.getDiscoverUrl()}
-                  size="small"
-                  data-test-id="discover-button"
-                >
-                  {t('Open in Discover')}
-                </DiscoverButton>
-              </GuideAnchor>
-            </Feature>
+            <GuideAnchor target="release_issues_open_in_discover">
+              <DiscoverButton
+                to={this.getDiscoverUrl()}
+                size="small"
+                data-test-id="discover-button"
+              >
+                {t('Open in Discover')}
+              </DiscoverButton>
+            </GuideAnchor>
             <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
           </OpenInButtonBar>
         </ControlsWrapper>

@@ -189,5 +189,4 @@ export default withApi(withTags(Table));
 
 const Container = styled('div')`
   min-width: 0;
-  overflow: hidden;
 `;

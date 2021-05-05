@@ -1,7 +1,10 @@
+import styled from '@emotion/styled';
+
 import Count from 'app/components/count';
 import DateTime from 'app/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import Link from 'app/components/links/link';
+import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import {t, tn} from 'app/locale';
@@ -17,7 +20,7 @@ type Props = {
 };
 
 const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Props) => {
-  const {version, dateCreated, firstEvent, lastEvent} = release;
+  const {version, versionInfo, dateCreated, firstEvent, lastEvent} = release;
 
   return (
     <Wrapper>
@@ -32,12 +35,20 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
           value={<Version version={version} anchor={false} />}
         />
         <KeyValueTableRow
+          keyName={t('Package')}
+          value={
+            <StyledTextOverflow ellipsisDirection="left">
+              {versionInfo.package ?? '\u2014'}
+            </StyledTextOverflow>
+          }
+        />
+        <KeyValueTableRow
           keyName={t('First Event')}
-          value={firstEvent ? <TimeSince date={firstEvent} /> : '-'}
+          value={firstEvent ? <TimeSince date={firstEvent} /> : '\u2014'}
         />
         <KeyValueTableRow
           keyName={t('Last Event')}
-          value={lastEvent ? <TimeSince date={lastEvent} /> : '-'}
+          value={lastEvent ? <TimeSince date={lastEvent} /> : '\u2014'}
         />
         <KeyValueTableRow
           keyName={t('Source Maps')}
@@ -56,5 +67,10 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
     </Wrapper>
   );
 };
+
+const StyledTextOverflow = styled(TextOverflow)`
+  line-height: inherit;
+  text-align: right;
+`;
 
 export default ProjectReleaseDetails;
