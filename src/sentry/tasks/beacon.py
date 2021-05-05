@@ -27,7 +27,7 @@ def send_beacon():
     See the documentation for more details.
     """
     from sentry import options
-    from sentry.models import Organization, Project, Team, User
+    from sentry.models import Broadcast, Organization, Project, Team, User
 
     install_id = options.get("sentry:install-id")
     if not install_id:
@@ -87,29 +87,23 @@ def send_beacon():
         options.set("sentry:latest_version", data["version"]["stable"])
 
     if "notices" in data:
-        create_broadcasts(data["notices"])
+        upstream_ids = set()
+        for notice in data["notices"]:
+            upstream_ids.add(notice["id"])
+            defaults = {
+                "title": notice["title"],
+                "link": notice.get("link"),
+                "message": notice["message"],
+            }
+            # XXX(dcramer): we're missing a unique constraint on upstream_id
+            # so we're using a lock to work around that. In the future we'd like
+            # to have a data migration to clean up the duplicates and add the constraint
+            lock = locks.get("broadcasts:{}".format(notice["id"]), duration=60)
+            with lock.acquire():
+                affected = Broadcast.objects.filter(upstream_id=notice["id"]).update(**defaults)
+                if not affected:
+                    Broadcast.objects.create(upstream_id=notice["id"], **defaults)
 
-
-def create_broadcasts(notices):
-    from sentry.models import Broadcast
-
-    upstream_ids = set()
-    for notice in notices:
-        upstream_ids.add(notice["id"])
-        defaults = {
-            "title": notice["title"],
-            "link": notice.get("link"),
-            "message": notice["message"],
-        }
-        # XXX(dcramer): we're missing a unique constraint on upstream_id
-        # so we're using a lock to work around that. In the future we'd like
-        # to have a data migration to clean up the duplicates and add the constraint
-        lock = locks.get("broadcasts:{}".format(notice["id"]), duration=60)
-        with lock.acquire():
-            affected = Broadcast.objects.filter(upstream_id=notice["id"]).update(**defaults)
-            if not affected:
-                Broadcast.objects.create(upstream_id=notice["id"], **defaults)
-
-    Broadcast.objects.filter(upstream_id__isnull=False).exclude(
-        upstream_id__in=upstream_ids
-    ).update(is_active=False)
+        Broadcast.objects.filter(upstream_id__isnull=False).exclude(
+            upstream_id__in=upstream_ids
+        ).update(is_active=False)
