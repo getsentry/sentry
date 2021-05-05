@@ -1853,7 +1853,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 3
         result = [r["user.display"] for r in data]
         # because we're ordering by `user.display`, we expect the results in sorted order
-        assert result == ["catherine", "cathy@example.com", "cath1234"]
+        assert result == ["cath1234", "catherine", "cathy@example.com"]
 
     @pytest.mark.skip(
         """
