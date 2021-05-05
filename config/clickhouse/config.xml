@@ -3,7 +3,7 @@
 
     <zookeeper>
         <node>
-            <host>f934d2b52573</host>
+            <host>sentry_zookeeper</host>
             <port>2181</port>
         </node>
     </zookeeper>
