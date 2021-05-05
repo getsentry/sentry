@@ -10,7 +10,7 @@ import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal'
 import DropdownLink from 'app/components/dropdownLink';
 import Duration from 'app/components/duration';
 import Tooltip from 'app/components/tooltip';
-import {IconChevron, IconMute, IconNot} from 'app/icons';
+import {IconChevron, IconMute} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -75,7 +75,7 @@ const IgnoreActions = ({
           priority="primary"
           onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
           label={t('Unignore')}
-          icon={<IconNot size="xs" />}
+          icon={<IconMute size="xs" />}
         />
       </Tooltip>
     );
@@ -123,7 +123,7 @@ const IgnoreActions = ({
           type="button"
           title={t('Ignore')}
           onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
-          icon={<IconNot size="xs" />}
+          icon={<IconMute size="xs" />}
         >
           {t('Ignore')}
         </ActionLink>
