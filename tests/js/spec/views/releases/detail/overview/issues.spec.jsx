@@ -123,9 +123,9 @@ describe('Release Issues', function () {
       query: {
         id: undefined,
         name: `Release ${props.version}`,
-        field: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
+        field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
         widths: [-1, -1, -1, -1, -1],
-        sort: ['-last_seen'],
+        sort: ['-count'],
         environment: [],
         project: [],
         query: `release:${props.version} !event.type:transaction`,
