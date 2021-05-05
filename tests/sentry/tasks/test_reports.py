@@ -8,11 +8,14 @@ from django.core import mail
 from django.utils import timezone
 
 from sentry.app import tsdb
+from sentry.constants import DataCategory
 from sentry.models import GroupStatus, Project, UserOption
 from sentry.tasks.reports import (
     DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
+    DummyReportBackend,
     Report,
     Skipped,
+    build_message,
     change,
     clean_series,
     colorize,
@@ -31,11 +34,12 @@ from sentry.tasks.reports import (
     safe_add,
     user_subscribed_to_organization_reports,
 )
-from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.compat import map, mock
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
+from sentry.utils.outcomes import Outcome
 
 
 @pytest.yield_fixture(scope="module")
@@ -355,3 +359,86 @@ class ReportTestCase(TestCase, SnubaTestCase):
         assert any(
             map(lambda x: x[1] == (2, 0), response)
         ), "must show two issues resolved in one rollup window"
+
+
+class ReportAcceptanceTest(OutcomesSnubaTest, SnubaTestCase):
+    @mock.patch("sentry.tasks.reports.backend", DummyReportBackend())
+    def test_deliver_organization_user_report(self):
+        now = timezone.now()
+        seven_days = timedelta(days=7)
+        two_days_ago = now - timedelta(days=2)
+        three_days_ago = now - timedelta(days=3)
+
+        timestamp = to_timestamp(floor_to_utc_day(now))
+
+        for outcome, category, num in [
+            (Outcome.ACCEPTED, DataCategory.ERROR, 1),
+            (Outcome.RATE_LIMITED, DataCategory.ERROR, 2),
+            (Outcome.ACCEPTED, DataCategory.TRANSACTION, 3),
+            (Outcome.RATE_LIMITED, DataCategory.TRANSACTION, 4),
+            # Filtered should be ignored in these emails
+            (Outcome.FILTERED, DataCategory.TRANSACTION, 5),
+        ]:
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome,
+                    "category": category,
+                    "timestamp": two_days_ago,
+                    "key_id": 1,
+                },
+                num_times=num,
+            )
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": iso_format(three_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        group1 = event1.group
+
+        group1.status = GroupStatus.RESOLVED
+        group1.resolved_at = two_days_ago
+        group1.save()
+
+        messages = []
+
+        def wrapped_build_message(*args, **kwargs):
+            rt = build_message(*args, **kwargs)
+            messages.append(rt)
+            return rt
+
+        mock_build_message = mock.Mock(wraps=wrapped_build_message)
+        with mock.patch("sentry.tasks.reports.build_message", mock_build_message):
+            deliver_organization_user_report(
+                timestamp,
+                seven_days.total_seconds(),
+                self.organization.id,
+                self.user.id,
+            )
+
+        ctx = messages[0].context
+
+        projects = ctx["report"]["projects"]["series"]["legend"]
+
+        # Validate projects list
+        assert len(projects["rows"]) == 1
+        assert projects["rows"][0].data == {
+            "accepted_errors": 1,
+            "dropped_errors": 2,
+            "accepted_transactions": 3,
+            "dropped_transactions": 4,
+        }
+
+        # Validate issue distribution
+        assert ctx["report"]["distribution"]["types"][0][1] == 1
+        assert ctx["report"]["distribution"]["types"][1][1] == 0
+        assert ctx["report"]["distribution"]["types"][2][1] == 0
+        assert ctx["report"]["distribution"]["total"] == 1
