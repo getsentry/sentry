@@ -42,7 +42,7 @@ class AuthProvider(Model):
     flags = BitField(
         flags=(
             ("allow_unlinked", "Grant access to members who have not linked SSO accounts."),
-            ("scim_enabled", "Enable SCIM for user and group provisioning and syncing"),
+            ("scim_enabled", "Enable SCIM for member and team provisioning and syncing"),
         ),
         default=0,
     )
