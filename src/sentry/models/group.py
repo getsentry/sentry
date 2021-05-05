@@ -379,7 +379,7 @@ class Group(Model):
         event_id: Optional[int] = None,
         organization_slug: Optional[str] = None,
     ) -> str:
-        # Built manually in preference to django.core.urlresolvers.reverse,
+        # Built manually in preference to django.urls.reverse,
         # because reverse has a measured performance impact.
         event_path = f"events/{event_id}/" if event_id else ""
         url = "organizations/{org}/issues/{id}/{event_path}{params}".format(
