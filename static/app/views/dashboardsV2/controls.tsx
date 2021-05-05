@@ -143,7 +143,7 @@ class Controls extends React.Component<Props> {
           <Button
             data-test-id="dashboard-manage"
             to={{
-              pathname: `/organizations/${organization.slug}/dashboards/manage/`,
+              pathname: `/organizations/${organization.slug}/dashboards/`,
             }}
           >
             {t('Manage Dashboards')}

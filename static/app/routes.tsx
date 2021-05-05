@@ -1183,15 +1183,6 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
-            <Route
-              path="/organizations/:orgId/dashboards/manage/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ManageDashboards" */ 'app/views/dashboardsV2/manage'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
           </Route>
 
           <Route
@@ -1903,9 +1894,9 @@ function routes() {
             />
           </Route>
           <Route
-            path="/organizations/:orgId/dashboard/:dashboardId/edit/"
+            path="/organizations/:orgId/dashboard/:dashboardId/"
             componentPromise={() =>
-              import(/* webpackChunkName: "DashboardsV2" */ 'app/views/dashboardsV2/edit')
+              import(/* webpackChunkName: "DashboardsV2" */ 'app/views/dashboardsV2/view')
             }
             component={errorHandler(LazyLoad)}
           >
@@ -1928,16 +1919,6 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
-          <Route
-            path="/organizations/:orgId/dashboard/:dashboardId/"
-            componentPromise={() =>
-              import(
-                /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/view'
-              )
-            }
-            component={errorHandler(LazyLoad)}
-          />
 
           {/* Admin/manage routes */}
           <Route

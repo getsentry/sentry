@@ -4,8 +4,8 @@ import {RouteComponentProps} from 'react-router';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
-import DashboardsContainer from './dashboardsContainer';
 import {EMPTY_DASHBOARD} from './data';
+import DashboardDetail from './detail';
 import {cloneDashboard} from './utils';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
@@ -18,11 +18,12 @@ class CreateDashboard extends React.Component<Props> {
     const {organization, route, ...props} = this.props;
     const dashboard = cloneDashboard(EMPTY_DASHBOARD);
     return (
-      <DashboardsContainer
+      <DashboardDetail
         {...props}
         organization={organization}
         initialState="create"
         dashboard={dashboard}
+        dashboards={[]}
         route={route}
       />
     );
