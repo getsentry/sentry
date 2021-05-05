@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -34,7 +34,7 @@ type State = {
   askTeammate: boolean;
 };
 
-class SuggestProjectModal extends React.Component<Props, State> {
+class SuggestProjectModal extends Component<Props, State> {
   state: State = {
     askTeammate: false,
   };
@@ -125,7 +125,7 @@ class SuggestProjectModal extends React.Component<Props, State> {
     const newProjectLink = `/organizations/${organization.slug}/projects/new/?${paramString}`;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Body>
           <ModalContainer>
             <SmallP>
@@ -187,7 +187,7 @@ class SuggestProjectModal extends React.Component<Props, State> {
             )}
           </Access>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -196,13 +196,13 @@ class SuggestProjectModal extends React.Component<Props, State> {
     const {askTeammate} = this.state;
     const header = askTeammate ? t('Tell a Teammate') : t('Try Sentry for Mobile');
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <PatternHeader />
           <Title>{header}</Title>
         </Header>
         {this.state.askTeammate ? this.renderAskTeammate() : this.renderMain()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

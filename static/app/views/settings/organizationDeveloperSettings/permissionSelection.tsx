@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import find from 'lodash/find';
 import flatMap from 'lodash/flatMap';
 import PropTypes from 'prop-types';
@@ -88,13 +88,13 @@ type State = {
   permissions: Permissions;
 };
 
-export default class PermissionSelection extends React.Component<Props, State> {
+export default class PermissionSelection extends Component<Props, State> {
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,
   };
 
-  state = {
+  state: State = {
     permissions: this.props.permissions,
   };
 
@@ -130,7 +130,7 @@ export default class PermissionSelection extends React.Component<Props, State> {
     const {permissions} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {SENTRY_APP_PERMISSIONS.map(config => {
           const toChoice = ([value, opt]) => [value, opt.label];
           const choices = Object.entries(config.choices).map(toChoice);
@@ -155,7 +155,7 @@ export default class PermissionSelection extends React.Component<Props, State> {
             />
           );
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

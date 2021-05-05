@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -21,7 +21,7 @@ type Props = {
   className?: string;
 };
 
-class SimpleTableChart extends React.Component<Props> {
+class SimpleTableChart extends Component<Props> {
   renderRow(
     index: number,
     row: TableDataRow,
@@ -42,7 +42,7 @@ class SimpleTableChart extends React.Component<Props> {
     const meta = metadata ?? {};
     const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
-      <React.Fragment>
+      <Fragment>
         {title && <h4>{title}</h4>}
         <StyledPanelTable
           className={className}
@@ -58,7 +58,7 @@ class SimpleTableChart extends React.Component<Props> {
         >
           {data?.map((row, index) => this.renderRow(index, row, meta, columns))}
         </StyledPanelTable>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

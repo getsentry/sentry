@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -162,7 +162,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       results?: QuickTraceQueryChildrenProps,
       metaResults?: TraceMetaQueryChildrenProps
     ) => (
-      <React.Fragment>
+      <Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
             <DiscoverBreadcrumb
@@ -254,7 +254,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           {isSidebarVisible && (
             <Layout.Side>
               {results === undefined && (
-                <React.Fragment>
+                <Fragment>
                   <EventMetadata
                     event={event}
                     organization={organization}
@@ -262,7 +262,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                   />
                   <RootSpanStatus event={event} />
                   <OpsBreakdown event={event} />
-                </React.Fragment>
+                </Fragment>
               )}
               <EventVitals event={event} />
               {event.groupID && (
@@ -276,7 +276,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             </Layout.Side>
           )}
         </Layout.Body>
-      </React.Fragment>
+      </Fragment>
     );
 
     const hasQuickTraceView =

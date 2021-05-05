@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';

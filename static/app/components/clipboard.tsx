@@ -1,4 +1,4 @@
-import React from 'react';
+import {cloneElement, Component, isValidElement} from 'react';
 import ReactDOM from 'react-dom';
 import copy from 'copy-text-to-clipboard';
 
@@ -28,7 +28,7 @@ function isSupported() {
   return support && !!document.queryCommandSupported('copy');
 }
 
-class Clipboard extends React.Component<Props> {
+class Clipboard extends Component<Props> {
   static defaultProps: DefaultProps = {
     hideMessages: false,
     successMessage: t('Copied to clipboard'),
@@ -84,11 +84,11 @@ class Clipboard extends React.Component<Props> {
       return null;
     }
 
-    if (!React.isValidElement(children)) {
+    if (!isValidElement(children)) {
       return null;
     }
 
-    return React.cloneElement(children, {
+    return cloneElement(children, {
       ref: this.handleMount,
     });
   }

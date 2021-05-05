@@ -1,15 +1,14 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/actions/button';
-import {IconSentryFull} from 'app/icons';
+import LogoSentry from 'app/components/logoSentry';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 export default function HeaderWithHelp({docsUrl}: {docsUrl: string}) {
   return (
     <Header>
-      <StyledIconSentryFull />
+      <StyledLogoSentry />
       <Button external href={docsUrl} size="xsmall">
         {t('Need Help?')}
       </Button>
@@ -29,7 +28,7 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
 
-const StyledIconSentryFull = styled(IconSentryFull)`
+const StyledLogoSentry = styled(LogoSentry)`
   width: 130px;
   height: 30px;
   color: ${p => p.theme.textColor};
