@@ -149,22 +149,21 @@ const SidebarItem = ({
 
 export default ReactRouter.withRouter(SidebarItem);
 
-type LinkProps = React.ComponentProps<typeof Link>;
-
 type ExternalOrLinkProps =
-  | Omit<LinkProps, 'to'>
+  | React.ComponentProps<typeof Link>
   | React.ComponentProps<typeof ExternalLink>;
 
 type SidebarLinkProps = {
   active?: string;
   to: string;
   external?: boolean;
-} & Omit<ExternalOrLinkProps, 'ref'>;
+} & Omit<ExternalOrLinkProps, 'ref' | 'to'>;
 
+//A shim to wrap internal and external links
 function SidebarLink({external, to, active, children, ...rest}: SidebarLinkProps) {
   if (external) {
     return (
-      <StyledSidebarItemExternal href={to as string} {...rest}>
+      <StyledSidebarItemExternal href={to} {...rest}>
         {children}
       </StyledSidebarItemExternal>
     );
@@ -195,119 +194,71 @@ const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
   `;
 };
 
+const getLinkStyles = ({theme}: {theme: Theme}) => {
+  return css`
+    display: flex;
+    color: inherit;
+    position: relative;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 32px;
+    height: 34px;
+    flex-shrink: 0;
+
+    transition: 0.15s color linear;
+
+    &:before {
+      display: block;
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: -20px;
+      bottom: 6px;
+      width: 5px;
+      border-radius: 0 3px 3px 0;
+      background-color: transparent;
+      transition: 0.15s background-color linear;
+    }
+
+    @media (max-width: ${theme.breakpoints[1]}) {
+      margin: 0 4px;
+
+      &:before {
+        top: auto;
+        left: 5px;
+        bottom: -10px;
+        height: 5px;
+        width: auto;
+        right: 5px;
+        border-radius: 3px 3px 0 0;
+      }
+    }
+
+    &:hover,
+    &:focus {
+      color: ${theme.gray200};
+    }
+
+    &.focus-visible {
+      outline: none;
+      background: #584c66;
+      padding: 0 19px;
+      margin: 0 -19px;
+
+      &:before {
+        left: 0;
+      }
+    }
+  `;
+};
+
 const StyledSidebarItem = styled(Link)`
-  display: flex;
-  color: inherit;
-  position: relative;
-  cursor: pointer;
-  font-size: 15px;
-  line-height: 32px;
-  height: 34px;
-  flex-shrink: 0;
-
-  transition: 0.15s color linear;
-
-  &:before {
-    display: block;
-    content: '';
-    position: absolute;
-    top: 4px;
-    left: -20px;
-    bottom: 6px;
-    width: 5px;
-    border-radius: 0 3px 3px 0;
-    background-color: transparent;
-    transition: 0.15s background-color linear;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    margin: 0 4px;
-
-    &:before {
-      top: auto;
-      left: 5px;
-      bottom: -10px;
-      height: 5px;
-      width: auto;
-      right: 5px;
-      border-radius: 3px 3px 0 0;
-    }
-  }
-
-  &:hover,
-  &:focus {
-    color: ${p => p.theme.gray200};
-  }
-
-  &.focus-visible {
-    outline: none;
-    background: #584c66;
-    padding: 0 19px;
-    margin: 0 -19px;
-
-    &:before {
-      left: 0;
-    }
-  }
-
+  ${getLinkStyles}
   ${getActiveStyle};
 `;
 
 const StyledSidebarItemExternal = styled(ExternalLink)`
-  display: flex;
-  color: inherit;
-  position: relative;
-  cursor: pointer;
-  font-size: 15px;
-  line-height: 32px;
-  height: 34px;
-  flex-shrink: 0;
-
-  transition: 0.15s color linear;
-
-  &:before {
-    display: block;
-    content: '';
-    position: absolute;
-    top: 4px;
-    left: -20px;
-    bottom: 6px;
-    width: 5px;
-    border-radius: 0 3px 3px 0;
-    background-color: transparent;
-    transition: 0.15s background-color linear;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    margin: 0 4px;
-
-    &:before {
-      top: auto;
-      left: 5px;
-      bottom: -10px;
-      height: 5px;
-      width: auto;
-      right: 5px;
-      border-radius: 3px 3px 0 0;
-    }
-  }
-
-  &:hover,
-  &:focus {
-    color: ${p => p.theme.gray200};
-  }
-
-  &.focus-visible {
-    outline: none;
-    background: #584c66;
-    padding: 0 19px;
-    margin: 0 -19px;
-
-    &:before {
-      left: 0;
-    }
-  }
-
+  ${getLinkStyles}
   ${getActiveStyle};
 `;
 

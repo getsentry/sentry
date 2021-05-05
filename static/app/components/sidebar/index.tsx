@@ -413,6 +413,7 @@ class Sidebar extends React.Component<Props, State> {
       />
     );
 
+    // TODO: move to sidebar:bottom-items hook
     const referFriend = (
       <SidebarItem
         {...sidebarItemProps}
