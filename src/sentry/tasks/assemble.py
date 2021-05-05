@@ -16,6 +16,10 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 logger = logging.getLogger(__name__)
 
 
+#: Name for the bundle stored as a release file
+RELEASE_ARCHIVE_FILENAME = "release-artifacts.zip"
+
+
 class ChunkFileState:
     OK = "ok"  # File in database
     NOT_FOUND = "not_found"  # File not found in database
@@ -206,7 +210,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
         rv = assemble_file(
             AssembleTask.ARTIFACTS,
             organization,
-            "release-artifacts.zip",
+            RELEASE_ARCHIVE_FILENAME,
             checksum,
             chunks,
             file_type="release.bundle",
@@ -243,12 +247,10 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
         if dist_name:
             dist = release.add_dist(dist_name)
 
-        artifact_url = "release-artifacts.zip"
-
         kwargs = {
             "organization_id": organization.id,
             "release": release,
-            "name": artifact_url,
+            "name": RELEASE_ARCHIVE_FILENAME,
             "dist": dist,
         }
 

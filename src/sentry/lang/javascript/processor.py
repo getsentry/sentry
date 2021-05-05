@@ -1,4 +1,9 @@
+import zipfile
+from io import BytesIO
+
 from django.utils.encoding import force_bytes, force_text
+
+from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME
 
 __all__ = ["JavaScriptStacktraceProcessor"]
 
@@ -341,6 +346,31 @@ def fetch_release_file(filename, release, dist=None):
     return result
 
 
+def fetch_release_artifact(url, release, dist):
+    """
+    Get a release artifact either by extracting it or fetching it directly.
+
+    If a release archive was saved, the individual file will be extracted
+    from the archive.
+
+    """
+
+    release_file = fetch_release_file(RELEASE_ARCHIVE_FILENAME, release, dist)
+
+    if release_file is None:
+        # Fall back to maintain compatibility with old releases and versions of
+        # sentry-cli which upload files individually
+        return fetch_release_file(url, release, dist)
+
+    # FIXME: error handling
+    zipobj = BytesIO(release_file.body)
+    with zipfile.ZipFile(zipobj, mode="r") as archive:
+        body = archive.read(url)  # FIXME: use normalized name or something
+
+    # TODO: not sure if it is a good idea to pass the same headers here
+    return http.UrlResult(url, release_file.headers, body, 200, release_file.encoding)
+
+
 def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
     """
     Pull down a URL, returning a UrlResult object.
@@ -359,7 +389,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
     # if we've got a release to look on, try that first (incl associated cache)
     if release:
         with metrics.timer("sourcemaps.release_file"):
-            result = fetch_release_file(url, release, dist)
+            result = fetch_release_artifact(url, release, dist)
     else:
         result = None
 

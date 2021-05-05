@@ -1,6 +1,7 @@
 import errno
 import re
 import unittest
+import zipfile
 from copy import deepcopy
 from io import BytesIO
 
@@ -476,8 +477,15 @@ class FetchFileTest(TestCase):
     @responses.activate
     @patch("sentry.lang.javascript.processor.fetch_release_file")
     def test_non_url_with_release(self, mock_fetch_release_file):
+        compressed = BytesIO()
+        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+            zip_file.writestr("/example.js", b"foo")
         mock_fetch_release_file.return_value = http.UrlResult(
-            "/example.js", {"content-type": "application/json"}, b"foo", 200, None
+            "release-archive.zip",
+            {"content-type": "application/json"},
+            compressed.getvalue(),
+            200,
+            None,
         )
 
         release = Release.objects.create(version="1", organization_id=self.project.organization_id)
