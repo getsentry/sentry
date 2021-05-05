@@ -76,8 +76,8 @@ class NotificationSettingOptionValues(Enum):
 
 NOTIFICATION_SETTING_OPTION_VALUES = {
     NotificationSettingOptionValues.DEFAULT: "default",
-    NotificationSettingOptionValues.NEVER: "off",
-    NotificationSettingOptionValues.ALWAYS: "on",
+    NotificationSettingOptionValues.NEVER: "never",
+    NotificationSettingOptionValues.ALWAYS: "always",
     NotificationSettingOptionValues.SUBSCRIBE_ONLY: "subscribe_only",
     NotificationSettingOptionValues.COMMITTED_ONLY: "committed_only",
 }
