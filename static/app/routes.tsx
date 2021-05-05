@@ -1869,7 +1869,7 @@ function routes() {
             path="/organizations/:orgId/dashboards/new/"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "DashboardsV2" */ 'app/views/dashboardsV2/create'
+                /* webpackChunkName: "DashboardsCreate" */ 'app/views/dashboardsV2/create'
               )
             }
             component={errorHandler(LazyLoad)}
@@ -1878,7 +1878,7 @@ function routes() {
               path="widget/:widgetId/edit/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "WidgetEdit" */ 'app/views/dashboardsV2/widget'
+                  /* webpackChunkName: "DashboardsCreateWidgetEdit" */ 'app/views/dashboardsV2/widget'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1887,7 +1887,7 @@ function routes() {
               path="widget/new/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget'
+                  /* webpackChunkName: "DashboardsCreateWidgetNew" */ 'app/views/dashboardsV2/widget'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1896,7 +1896,9 @@ function routes() {
           <Route
             path="/organizations/:orgId/dashboard/:dashboardId/"
             componentPromise={() =>
-              import(/* webpackChunkName: "DashboardsV2" */ 'app/views/dashboardsV2/view')
+              import(
+                /* webpackChunkName: "DashboardsView" */ 'app/views/dashboardsV2/view'
+              )
             }
             component={errorHandler(LazyLoad)}
           >
@@ -1904,7 +1906,7 @@ function routes() {
               path="widget/:widgetId/edit/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "WidgetEdit" */ 'app/views/dashboardsV2/widget'
+                  /* webpackChunkName: "DashboardsViewWidgetEdit" */ 'app/views/dashboardsV2/widget'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1913,7 +1915,7 @@ function routes() {
               path="widget/new/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget'
+                  /* webpackChunkName: "DashboardsViewWidgetNew" */ 'app/views/dashboardsV2/widget'
                 )
               }
               component={errorHandler(LazyLoad)}

@@ -6,6 +6,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import {EMPTY_DASHBOARD} from './data';
 import DashboardDetail from './detail';
+import {DashboardState} from './types';
 import {cloneDashboard} from './utils';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
@@ -21,7 +22,7 @@ class CreateDashboard extends React.Component<Props> {
       <DashboardDetail
         {...props}
         organization={organization}
-        initialState="create"
+        initialState={DashboardState.CREATE}
         dashboard={dashboard}
         dashboards={[]}
         route={route}

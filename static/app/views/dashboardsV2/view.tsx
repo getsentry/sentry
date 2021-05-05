@@ -10,6 +10,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
+import {DashboardState} from './types';
 
 type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
   api: Client;
@@ -33,7 +34,7 @@ class ViewEditDashboard extends React.Component<Props> {
           ) : dashboard ? (
             <DashboardDetail
               {...this.props}
-              initialState="view"
+              initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
               reloadData={reloadData}

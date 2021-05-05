@@ -76,7 +76,11 @@ class DashboardDetail extends React.Component<Props> {
   }
 
   onUnload = (event: BeforeUnloadEvent) => {
-    if (['view', 'pending_delete'].includes(this.state.dashboardState)) {
+    if (
+      [DashboardState.VIEW, DashboardState.PENDING_DELETE].includes(
+        this.state.dashboardState
+      )
+    ) {
       return;
     }
     event.preventDefault();
@@ -101,9 +105,9 @@ class DashboardDetail extends React.Component<Props> {
   updateModifiedDashboard(dashboardState: DashboardState) {
     const {dashboard} = this.props;
     switch (dashboardState) {
-      case 'create':
+      case DashboardState.CREATE:
         return cloneDashboard(EMPTY_DASHBOARD);
-      case 'edit':
+      case DashboardState.EDIT:
         return cloneDashboard(dashboard);
       default: {
         return null;
@@ -112,7 +116,11 @@ class DashboardDetail extends React.Component<Props> {
   }
 
   onRouteLeave = () => {
-    if (!['view', 'pending_delete'].includes(this.state.dashboardState)) {
+    if (
+      ![DashboardState.VIEW, DashboardState.PENDING_DELETE].includes(
+        this.state.dashboardState
+      )
+    ) {
       return UNSAVED_MESSAGE;
     }
     return undefined;
@@ -120,7 +128,11 @@ class DashboardDetail extends React.Component<Props> {
 
   get isEditing() {
     const {dashboardState} = this.state;
-    return ['edit', 'create', 'pending_delete'].includes(dashboardState);
+    return [
+      DashboardState.EDIT,
+      DashboardState.CREATE,
+      DashboardState.PENDING_DELETE,
+    ].includes(dashboardState);
   }
 
   get isWidgetBuilderEditRouter() {
@@ -198,7 +210,7 @@ class DashboardDetail extends React.Component<Props> {
     });
 
     this.setState({
-      dashboardState: 'edit',
+      dashboardState: DashboardState.EDIT,
       modifiedDashboard: cloneDashboard(dashboard),
     });
   };
@@ -208,7 +220,7 @@ class DashboardDetail extends React.Component<Props> {
     const {modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
-      case 'create': {
+      case DashboardState.CREATE: {
         if (modifiedDashboard) {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
@@ -219,7 +231,7 @@ class DashboardDetail extends React.Component<Props> {
                 organization_id: parseInt(organization.id, 10),
               });
               this.setState({
-                dashboardState: 'view',
+                dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
               });
 
@@ -233,15 +245,14 @@ class DashboardDetail extends React.Component<Props> {
             }
           );
         }
-
         break;
       }
-      case 'edit': {
+      case DashboardState.EDIT: {
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
           if (isEqual(dashboard, modifiedDashboard)) {
             this.setState({
-              dashboardState: 'view',
+              dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
             });
             return;
@@ -255,7 +266,7 @@ class DashboardDetail extends React.Component<Props> {
                 organization_id: parseInt(organization.id, 10),
               });
               this.setState({
-                dashboardState: 'view',
+                dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
               });
 
@@ -277,15 +288,15 @@ class DashboardDetail extends React.Component<Props> {
           return;
         }
         this.setState({
-          dashboardState: 'view',
+          dashboardState: DashboardState.VIEW,
           modifiedDashboard: null,
         });
         break;
       }
-      case 'view':
+      case DashboardState.VIEW:
       default: {
         this.setState({
-          dashboardState: 'view',
+          dashboardState: DashboardState.VIEW,
           modifiedDashboard: null,
         });
         break;
@@ -302,7 +313,7 @@ class DashboardDetail extends React.Component<Props> {
         organization_id: parseInt(this.props.organization.id, 10),
       });
       this.setState({
-        dashboardState: 'view',
+        dashboardState: DashboardState.VIEW,
         modifiedDashboard: null,
       });
     } else {
@@ -328,7 +339,7 @@ class DashboardDetail extends React.Component<Props> {
 
     const previousDashboardState = this.state.dashboardState;
 
-    this.setState({dashboardState: 'pending_delete'}, () => {
+    this.setState({dashboardState: DashboardState.PENDING_DELETE}, () => {
       deleteDashboard(api, organization.slug, dashboard.id)
         .then(() => {
           addSuccessMessage(t('Dashboard deleted'));

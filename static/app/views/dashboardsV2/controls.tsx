@@ -59,7 +59,7 @@ class Controls extends React.Component<Props> {
       </Button>
     );
 
-    if (['edit', 'pending_delete'].includes(dashboardState)) {
+    if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
       return (
         <StyledButtonBar gap={1} key="edit-controls">
           {cancelButton}
