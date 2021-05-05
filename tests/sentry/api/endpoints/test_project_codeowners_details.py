@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import ProjectCodeOwners
+from sentry.models import Integration, ProjectCodeOwners
 from sentry.testutils import APITestCase
 
 
@@ -17,9 +17,16 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         self.project = self.project = self.create_project(
             organization=self.organization, teams=[self.team], slug="bengal"
         )
+        self.integration = Integration.objects.create(
+            provider="github", name="GitHub", external_id="github:1"
+        )
+
+        self.integration.add_organization(self.organization, self.user)
         self.code_mapping = self.create_code_mapping(project=self.project)
-        self.external_user = self.create_external_user(external_name="@NisanthanNanthakumar")
-        self.external_team = self.create_external_team()
+        self.external_user = self.create_external_user(
+            external_name="@NisanthanNanthakumar", integration=self.integration
+        )
+        self.external_team = self.create_external_team(integration=self.integration)
         self.data = {
             "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n",
         }
@@ -42,8 +49,8 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert not ProjectCodeOwners.objects.filter(id=str(self.codeowners.id)).exists()
 
     def test_basic_update(self):
-        self.create_external_team(external_name="@getsentry/frontend")
-        self.create_external_team(external_name="@getsentry/docs")
+        self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)
+        self.create_external_team(external_name="@getsentry/docs", integration=self.integration)
         data = {
             "raw": "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\n\n"
         }
