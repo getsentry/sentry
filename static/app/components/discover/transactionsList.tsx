@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
@@ -19,7 +19,12 @@ import {Organization} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias, Sort} from 'app/utils/discover/fields';
+import {
+  Alignments,
+  fieldAlignment,
+  getAggregateAlias,
+  Sort,
+} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {getDuration} from 'app/utils/formatters';
 import BaselineQuery, {
@@ -32,6 +37,7 @@ import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {GridCell, GridCellNumber} from 'app/views/performance/styles';
+import {spanOperationBreakdownSingleColumns} from 'app/views/performance/transactionSummary/filter';
 import {
   TrendChangeType,
   TrendsDataEvents,
@@ -126,6 +132,11 @@ type Props = {
    * Show a loading indicator instead of the table, used for transaction summary p95.
    */
   forceLoading?: boolean;
+  /**
+   * Optional callback function to generate an alternative EventView object to be used
+   * for generating the Discover query.
+   */
+  generateDiscoverEventView?: () => EventView;
 };
 
 class TransactionsList extends React.Component<Props> {
@@ -153,6 +164,14 @@ class TransactionsList extends React.Component<Props> {
     }
 
     return sortedEventView;
+  }
+
+  generateDiscoverEventView(): EventView {
+    const {generateDiscoverEventView} = this.props;
+    if (typeof generateDiscoverEventView === 'function') {
+      return generateDiscoverEventView();
+    }
+    return this.getEventView();
   }
 
   renderHeader(): React.ReactNode {
@@ -197,7 +216,9 @@ class TransactionsList extends React.Component<Props> {
           <GuideAnchor target="release_transactions_open_in_discover">
             <DiscoverButton
               onClick={handleOpenInDiscoverClick}
-              to={this.getEventView().getResultsViewUrlTarget(organization.slug)}
+              to={this.generateDiscoverEventView().getResultsViewUrlTarget(
+                organization.slug
+              )}
               size="small"
               data-test-id="discover-open"
             >
@@ -410,7 +431,13 @@ class TransactionsTable extends React.PureComponent<TableProps> {
 
     const headers = tableTitles.map((title, index) => {
       const column = columnOrder[index];
-      const align = fieldAlignment(column.name, column.type, tableMeta);
+
+      const isIndividualSpanColumn = !!spanOperationBreakdownSingleColumns.find(
+        c => c === column.name
+      );
+      const align: Alignments = isIndividualSpanColumn
+        ? 'left'
+        : fieldAlignment(column.name, column.type, tableMeta);
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (

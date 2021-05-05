@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import PlatformList from 'app/components/platformList';
@@ -9,7 +9,7 @@ type Props = {
   project: AvatarProject;
 } & BaseAvatar['props'];
 
-class ProjectAvatar extends React.Component<Props> {
+class ProjectAvatar extends Component<Props> {
   getPlatforms = (project: AvatarProject) => {
     // `platform` is a user selectable option that is performed during the onboarding process. The reason why this
     // is not the default is because there currently is no way to update it. Fallback to this if project does not

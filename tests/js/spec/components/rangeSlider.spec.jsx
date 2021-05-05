@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';

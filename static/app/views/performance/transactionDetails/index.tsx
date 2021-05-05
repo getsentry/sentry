@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -18,7 +18,7 @@ type Props = {
   params: Params;
 };
 
-class EventDetails extends React.Component<Props> {
+class EventDetails extends Component<Props> {
   getEventSlug = (): string => {
     const {eventSlug} = this.props.params;
     return typeof eventSlug === 'string' ? eventSlug.trim() : '';

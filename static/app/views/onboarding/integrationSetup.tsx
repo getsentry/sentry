@@ -1,6 +1,6 @@
 import 'prism-sentry/index.css';
 
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -54,7 +54,7 @@ type State = {
   installed: boolean;
 };
 
-class IntegrationSetup extends React.Component<Props, State> {
+class IntegrationSetup extends Component<Props, State> {
   state: State = {
     loadedPlatform: null,
     hasError: false,
@@ -151,7 +151,7 @@ class IntegrationSetup extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderSetupInstructions()}
         <motion.p
           variants={{
@@ -200,7 +200,7 @@ class IntegrationSetup extends React.Component<Props, State> {
             </Button>
           </StyledButtonBar>
         </DocsWrapper>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -211,7 +211,7 @@ class IntegrationSetup extends React.Component<Props, State> {
       return null;
     }
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderSetupInstructions()}
         <PostInstallCodeSnippet provider={provider} platform={platform} isOnboarding />
         <FirstEventFooter
@@ -220,7 +220,7 @@ class IntegrationSetup extends React.Component<Props, State> {
           docsLink={this.platformDocs}
           docsOnClick={this.handleFullDocsClick}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -242,7 +242,7 @@ class IntegrationSetup extends React.Component<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.state.installed
           ? this.renderPostInstallInstructions()
           : this.renderIntegrationInstructions()}
@@ -250,7 +250,7 @@ class IntegrationSetup extends React.Component<Props, State> {
           value: !hasError ? null : loadingError,
           fixed: testOnlyAlert,
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

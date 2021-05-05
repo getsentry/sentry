@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 

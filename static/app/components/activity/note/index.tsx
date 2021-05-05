@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import ActivityItem, {ActivityAuthorType} from 'app/components/activity/item';
@@ -62,7 +62,7 @@ type State = {
   editing: boolean;
 };
 
-class Note extends React.Component<Props, State> {
+class Note extends Component<Props, State> {
   state: State = {
     editing: false,
   };

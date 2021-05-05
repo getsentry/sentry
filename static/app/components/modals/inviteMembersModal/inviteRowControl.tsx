@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {MultiValueProps} from 'react-select';
 import {withTheme} from '@emotion/react';
 

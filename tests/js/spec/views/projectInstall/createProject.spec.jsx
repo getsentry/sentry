@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {MOCK_RESP_VERBOSE} from 'sentry-test/fixtures/ruleConditions';
 

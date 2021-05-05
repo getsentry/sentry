@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
@@ -28,7 +28,7 @@ type HeaderProps = {
   eventId?: string;
 };
 
-class CompactIssueHeader extends React.Component<HeaderProps> {
+class CompactIssueHeader extends Component<HeaderProps> {
   render() {
     const {data, organization, projectId, eventId} = this.props;
 
@@ -44,7 +44,7 @@ class CompactIssueHeader extends React.Component<HeaderProps> {
         : 'textColor';
 
     return (
-      <React.Fragment>
+      <Fragment>
         <IssueHeaderMetaWrapper>
           <StyledErrorLevel size="12px" level={data.level} title={data.level} />
           <h3 className="truncate">
@@ -69,7 +69,7 @@ class CompactIssueHeader extends React.Component<HeaderProps> {
           )}
           <span className="culprit">{getMessage(data)}</span>
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

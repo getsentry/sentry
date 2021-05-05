@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import CrashContent from 'app/components/events/interfaces/crashContent';

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, createRef, lazy, Suspense} from 'react';
 import keydown from 'react-keydown';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
@@ -15,6 +15,7 @@ import AlertActions from 'app/actions/alertActions';
 import {Client, initApiClientErrorHandling} from 'app/api';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
+import HookOrDefault from 'app/components/hookOrDefault';
 import Indicators from 'app/components/indicators';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
@@ -22,12 +23,18 @@ import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
-import {Config} from 'app/types';
+import OrganizationStore from 'app/stores/organizationStore';
+import {Config, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 import NewsletterConsent from 'app/views/newsletterConsent';
 
 import SystemAlerts from './systemAlerts';
+
+const GlobalNotifications = HookOrDefault({
+  hookName: 'component:global-notifications',
+  defaultComponent: () => null,
+});
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
@@ -49,9 +56,10 @@ type State = {
   needsUpgrade: boolean;
   newsletterConsentPrompt: boolean;
   user?: Config['user'];
+  organization?: Organization;
 };
 
-class App extends React.Component<Props, State> {
+class App extends Component<Props, State> {
   static childContextTypes = {
     location: PropTypes.object,
   };
@@ -137,9 +145,14 @@ class App extends React.Component<Props, State> {
 
   componentWillUnmount() {
     OrganizationsStore.load([]);
+    this.unlistener?.();
   }
 
-  mainContainerRef = React.createRef<HTMLDivElement>();
+  mainContainerRef = createRef<HTMLDivElement>();
+  unlistener = OrganizationStore.listen(
+    state => this.setState({organization: state.organization}),
+    undefined
+  );
 
   handleConfigStoreChange(config) {
     const newState = {} as State;
@@ -187,15 +200,15 @@ class App extends React.Component<Props, State> {
     const {needsUpgrade, newsletterConsentPrompt} = this.state;
 
     if (needsUpgrade) {
-      const InstallWizard = React.lazy(
+      const InstallWizard = lazy(
         () =>
           import(/* webpackChunkName: "InstallWizard" */ 'app/views/admin/installWizard')
       );
 
       return (
-        <React.Suspense fallback={null}>
+        <Suspense fallback={null}>
           <InstallWizard onConfigured={this.onConfigured} />;
-        </React.Suspense>
+        </Suspense>
       );
     }
 
@@ -219,6 +232,10 @@ class App extends React.Component<Props, State> {
       <MainContainer tabIndex={-1} ref={this.mainContainerRef}>
         <GlobalModal onClose={this.handleGlobalModalClose} />
         <SystemAlerts className="messages-container" />
+        <GlobalNotifications
+          className="notifications-container messages-container"
+          organization={this.state.organization}
+        />
         <Indicators className="indicators-container" />
         <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
       </MainContainer>

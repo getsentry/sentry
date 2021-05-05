@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {shallow} from 'sentry-test/enzyme';
 
 import AwsLambdaProjectSelect from 'app/views/integrationPipeline/awsLambdaProjectSelect';

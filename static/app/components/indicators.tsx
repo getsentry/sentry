@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
@@ -20,7 +20,7 @@ type Props = {
   className?: string;
 };
 
-class Indicators extends React.Component<Props> {
+class Indicators extends Component<Props> {
   static defaultProps = {
     items: [],
   };
@@ -56,7 +56,7 @@ type State = {
   items: Indicator[];
 };
 
-class IndicatorsContainer extends React.Component<Omit<Props, 'items'>, State> {
+class IndicatorsContainer extends Component<Omit<Props, 'items'>, State> {
   state: State = {items: IndicatorStore.get()};
   componentWillUnmount() {
     this.unlistener?.();

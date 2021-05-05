@@ -1,5 +1,3 @@
-import React from 'react';
-
 import marked from 'app/utils/marked';
 
 type Props = {

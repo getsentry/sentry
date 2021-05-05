@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {Location} from 'history';
 
 import {Panel} from 'app/components/panels';
@@ -24,7 +24,7 @@ type Props = {
   dataFilter?: DataFilter;
 };
 
-class VitalsPanel extends React.Component<Props> {
+class VitalsPanel extends Component<Props> {
   renderVitalCard(
     vital: WebVital,
     isLoading: boolean,
@@ -117,14 +117,14 @@ class VitalsPanel extends React.Component<Props> {
           const error =
             summaryResults.error !== null || multiHistogramResults.error !== null;
           return (
-            <React.Fragment>
+            <Fragment>
               {vitals.map((vital, index) => {
                 const data = summaryResults?.vitalsData?.[vital] ?? null;
                 const histogram = multiHistogramResults.histograms?.[vital] ?? [];
                 const {start, end} = bounds[vital] ?? {};
 
                 return (
-                  <React.Fragment key={vital}>
+                  <Fragment key={vital}>
                     {this.renderVitalCard(
                       vital,
                       isLoading,
@@ -136,10 +136,10 @@ class VitalsPanel extends React.Component<Props> {
                       parseBound(end, precision),
                       precision
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 );
               })}
-            </React.Fragment>
+            </Fragment>
           );
         }}
       </HistogramQuery>
@@ -162,13 +162,13 @@ class VitalsPanel extends React.Component<Props> {
           vitals={allVitals}
         >
           {results => (
-            <React.Fragment>
+            <Fragment>
               {VITAL_GROUPS.map(vitalGroup => (
-                <React.Fragment key={vitalGroup.vitals.join('')}>
+                <Fragment key={vitalGroup.vitals.join('')}>
                   {this.renderVitalGroup(vitalGroup, results)}
-                </React.Fragment>
+                </Fragment>
               ))}
-            </React.Fragment>
+            </Fragment>
           )}
         </VitalsCardDiscoverQuery>
       </Panel>

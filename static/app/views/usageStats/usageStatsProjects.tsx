@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
@@ -395,7 +395,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     const {headers, tableStats} = this.tableData;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <GridRow>
           <SearchBar
             defaultQuery=""
@@ -417,7 +417,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           />
           <Pagination pageLinks={this.pageLink} />
         </GridRow>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

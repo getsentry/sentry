@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as incidentActions from 'app/actionCreators/serviceIncidents';
@@ -124,7 +122,7 @@ describe('Sidebar', function () {
     it('can open Sidebar org/name dropdown menu', function () {
       wrapper = createWrapper();
       wrapper.find('SidebarDropdownActor').simulate('click');
-      expect(wrapper.find('OrgAndUserMenu')).toHaveLength(1);
+      expect(wrapper.find('OrgUserAndMarketingMenu')).toHaveLength(1);
       expect(wrapper).toSnapshot();
     });
 
@@ -139,7 +137,7 @@ describe('Sidebar', function () {
         organization: org,
       });
       wrapper.find('SidebarDropdownActor').simulate('click');
-      expect(wrapper.find('OrgAndUserMenu')).toHaveLength(1);
+      expect(wrapper.find('OrgUserAndMarketingMenu')).toHaveLength(1);
       expect(
         wrapper.find('SidebarMenuItem[to="/settings/org-slug/members/"]')
       ).toHaveLength(1);
