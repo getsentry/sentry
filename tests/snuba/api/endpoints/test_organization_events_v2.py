@@ -1676,6 +1676,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_user_display(self):
         project1 = self.create_project()
         project2 = self.create_project()
+        project3 = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -1696,6 +1697,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             },
             project_id=project2.id,
         )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"id": "cath1234"},
+            },
+            project_id=project3.id,
+        )
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
@@ -1706,9 +1717,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 2
+        assert len(data) == 3
         result = {r["user.display"] for r in data}
-        assert result == {"catherine", "cathy@example.com"}
+        assert result == {"cath1234", "catherine", "cathy@example.com"}
 
     def test_user_display_with_aggregates(self):
         self.login_as(user=self.user)
@@ -1747,6 +1758,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_orderby_user_display(self):
         project1 = self.create_project()
         project2 = self.create_project()
+        project3 = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -1766,6 +1778,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "user": {"username": "catherine"},
             },
             project_id=project2.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"id": "cath1234"},
+            },
+            project_id=project3.id,
         )
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -1778,14 +1800,15 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 2
+        assert len(data) == 3
         result = [r["user.display"] for r in data]
         # because we're ordering by `-user.display`, we expect the results in reverse sorted order
-        assert result == ["cathy@example.com", "catherine"]
+        assert result == ["cathy@example.com", "catherine", "cath1234"]
 
     def test_orderby_user_display_with_aggregates(self):
         project1 = self.create_project()
         project2 = self.create_project()
+        project3 = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -1805,6 +1828,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "user": {"username": "catherine"},
             },
             project_id=project2.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"id": "cath1234"},
+            },
+            project_id=project3.id,
         )
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -1820,7 +1853,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 2
         result = [r["user.display"] for r in data]
         # because we're ordering by `user.display`, we expect the results in sorted order
-        assert result == ["catherine", "cathy@example.com"]
+        assert result == ["catherine", "cathy@example.com", "cath1234"]
 
     @pytest.mark.skip(
         """

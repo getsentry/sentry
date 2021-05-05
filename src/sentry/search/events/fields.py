@@ -130,7 +130,7 @@ FIELD_ALIASES = {
         PseudoField(
             USER_DISPLAY_ALIAS,
             USER_DISPLAY_ALIAS,
-            expression=["coalesce", ["user.email", "user.username", "user.ip"]],
+            expression=["coalesce", ["user.email", "user.username", "user.ip", "user.id"]],
         ),
         # the key transaction field is intentially not added to the discover/fields list yet
         # because there needs to be some work on the front end to integrate this into discover

@@ -315,7 +315,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == [
             "title",
             "issue.id",
-            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            ["coalesce", ["user.email", "user.username", "user.ip", "user.id"], "user.display"],
             "message",
             ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
             ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
@@ -333,7 +333,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "issue.id",
-            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            ["coalesce", ["user.email", "user.username", "user.ip", "user.id"], "user.display"],
             "message",
             "timestamp.to_hour",
             "timestamp.to_day",
@@ -345,12 +345,12 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == [
             "event.type",
-            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            ["coalesce", ["user.email", "user.username", "user.ip", "user.id"], "user.display"],
         ]
         assert result["aggregations"] == [["uniq", "title", "count_unique_title"]]
         assert result["groupby"] == [
             "event.type",
-            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            ["coalesce", ["user.email", "user.username", "user.ip", "user.id"], "user.display"],
         ]
 
     def test_aggregate_function_expansion(self):
@@ -372,7 +372,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "uniq",
-                [["coalesce", ["user.email", "user.username", "user.ip"]]],
+                [["coalesce", ["user.email", "user.username", "user.ip", "user.id"]]],
                 "count_unique_user_display",
             ],
         ]
@@ -1190,7 +1190,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["user.display"]
         result = resolve_field_list(fields, eventstore.Filter(orderby="-user.display"))
         assert result["selected_columns"] == [
-            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            ["coalesce", ["user.email", "user.username", "user.ip", "user.id"], "user.display"],
             "id",
             "project.id",
             [
