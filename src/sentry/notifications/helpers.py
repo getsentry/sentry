@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_DEFAULTS,
@@ -305,21 +305,3 @@ def get_user_subscriptions_for_groups(
             results[group.id] = (is_disabled, is_active, subscription)
 
     return results
-
-
-def get_settings_by_provider(
-    settings: Mapping[
-        NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]
-    ]
-) -> MutableMapping[
-    ExternalProviders, MutableMapping[NotificationScopeType, NotificationSettingOptionValues]
-]:
-    output: MutableMapping[
-        ExternalProviders, MutableMapping[NotificationScopeType, NotificationSettingOptionValues]
-    ] = defaultdict(dict)
-
-    for scope_type in settings:
-        for provider, value in settings[scope_type].items():
-            output[provider][scope_type] = value
-
-    return output
