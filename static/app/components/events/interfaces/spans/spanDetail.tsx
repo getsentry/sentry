@@ -67,6 +67,7 @@ type Props = WithRouterProps & {
   spanErrors: TableDataRow[];
   childTransactions: QuickTraceEvent[];
   relatedErrors: TraceError[];
+  scrollToHash: (hash: string) => void;
 };
 
 type State = {
@@ -440,18 +441,18 @@ class SpanDetail extends React.Component<Props, State> {
     // because it will be hidden behind the minimap
     e.preventDefault();
 
+    const hash = `#span-${spanId}`;
+
+    this.props.scrollToHash(hash);
+
     // TODO(txiao): This is causing a rerender of the whole page,
     // which can be slow.
     //
     // make sure to update the location
     browserHistory.push({
       ...this.props.location,
-      hash: `#span-${spanId}`,
+      hash,
     });
-
-    // pushing to browser history does not trigger a hashchange event
-    // so fire one manually
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
   };
 
   renderSpanDetails() {

@@ -2,10 +2,12 @@ import React from 'react';
 
 export type AnchorLinkManagerChildrenProps = {
   registerScrollFn: (id: string, fn: () => void) => void;
+  scrollToHash: (hash: string) => void;
 };
 
 const AnchorLinkManagerContext = React.createContext<AnchorLinkManagerChildrenProps>({
   registerScrollFn: () => () => undefined,
+  scrollToHash: () => undefined,
 });
 
 type Props = {
@@ -15,7 +17,6 @@ type Props = {
 export class Provider extends React.Component<Props> {
   componentDidMount() {
     this.scrollToHash(location.hash);
-    window.addEventListener('hashchange', () => this.scrollToHash(location.hash), false);
   }
 
   scrollFns: Map<string, () => void> = new Map();
@@ -31,6 +32,7 @@ export class Provider extends React.Component<Props> {
   render() {
     const childrenProps: AnchorLinkManagerChildrenProps = {
       registerScrollFn: this.registerScrollFn,
+      scrollToHash: this.scrollToHash,
     };
 
     return (

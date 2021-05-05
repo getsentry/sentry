@@ -9,7 +9,6 @@ import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
-import * as AnchorLinkManager from './anchorLinkManager';
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
 import SpanGroup from './spanGroup';
@@ -399,7 +398,7 @@ class SpanTree extends React.Component<PropType> {
 
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
-        <AnchorLinkManager.Provider>{spanTree}</AnchorLinkManager.Provider>
+        {spanTree}
         <GuideAnchorWrapper>
           <GuideAnchor target="span_tree" position="bottom" />
         </GuideAnchorWrapper>
