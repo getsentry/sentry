@@ -13,6 +13,7 @@ import {
   ACCOUNT_NOTIFICATION_FIELDS,
   FineTuneField,
 } from 'app/views/settings/account/notifications/fields';
+import NotificationSettings from 'app/views/settings/account/notifications/notificationSettings';
 import {
   groupByOrganization,
   isGroupedByProject,
@@ -113,7 +114,10 @@ const AccountNotificationsByOrganizationContainer = withOrganizations(
   AccountNotificationsByOrganization
 );
 
-type Props = AsyncView['props'] & RouteComponentProps<{fineTuneType: string}, {}>;
+type Props = AsyncView['props'] &
+  RouteComponentProps<{fineTuneType: string}, {}> & {
+    organizations: Organization[];
+  };
 
 type State = AsyncView['state'] & {
   emails: UserEmail[] | null;
@@ -122,7 +126,7 @@ type State = AsyncView['state'] & {
   fineTuneData: Record<string, any> | null;
 };
 
-export default class AccountNotificationFineTuning extends AsyncView<Props, State> {
+class AccountNotificationFineTuning extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {fineTuneType} = this.props.params;
     const endpoints = [
@@ -161,7 +165,18 @@ export default class AccountNotificationFineTuning extends AsyncView<Props, Stat
   }
 
   renderBody() {
-    const {fineTuneType} = this.props.params;
+    const {params, organizations} = this.props;
+    const {fineTuneType} = params;
+
+    if (
+      ['alerts', 'deploy', 'workflow'].includes(fineTuneType) &&
+      organizations.some(organization =>
+        organization.features.includes('notification-platform')
+      )
+    ) {
+      return <NotificationSettings notificationType={fineTuneType} />;
+    }
+
     const {notifications, projects, fineTuneData, projectsPageLinks} = this.state;
 
     const isProject = isGroupedByProject(fineTuneType);
@@ -245,3 +260,5 @@ export default class AccountNotificationFineTuning extends AsyncView<Props, Stat
 const Heading = styled('div')`
   flex: 1;
 `;
+
+export default withOrganizations(AccountNotificationFineTuning);
