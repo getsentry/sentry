@@ -19,11 +19,15 @@ class InternalBeaconEndpoint(Endpoint):
         install_id = options.get("sentry:install-id")
 
         if not settings.SENTRY_BEACON:
-            logger.info("beacon.skipped", extra={"install_id": install_id, "reason": "disabled"})
+            logger.info(
+                "beacon_metric.skipped", extra={"install_id": install_id, "reason": "disabled"}
+            )
             return Response(status=204)
 
         if settings.DEBUG:
-            logger.info("beacon.skipped", extra={"install_id": install_id, "reason": "debug"})
+            logger.info(
+                "beacon_metric.skipped", extra={"install_id": install_id, "reason": "debug"}
+            )
             return Response(status=204)
 
         anonymous = options.get("beacon.anonymous") is not False
@@ -44,7 +48,7 @@ class InternalBeaconEndpoint(Endpoint):
             beacon_request = safe_urlopen(BEACON_URL, json=payload, timeout=5)
             response = safe_urlread(beacon_request)
         except Exception:
-            logger.warning("beacon.failed", exc_info=True, extra={"install_id": install_id})
+            logger.warning("beacon_metric.failed", exc_info=True, extra={"install_id": install_id})
             return Response({"error": "Request failed"}, status=500)
 
         data = json.loads(response)
