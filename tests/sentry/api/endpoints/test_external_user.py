@@ -1,3 +1,4 @@
+from sentry.models import Integration
 from sentry.testutils import APITestCase
 
 
@@ -10,10 +11,16 @@ class ExternalUserTest(APITestCase):
         self.login_as(self.user)
 
         self.org_slug = self.organization.slug  # force creation
+        self.integration = Integration.objects.create(
+            provider="github", name="GitHub", external_id="github:1"
+        )
+
+        self.integration.add_organization(self.organization, self.user)
         self.data = {
             "externalName": "@NisanthanNanthakumar",
             "provider": "github",
             "userId": self.user.id,
+            "integrationId": self.integration.id,
         }
 
     def test_basic_post(self):
@@ -23,6 +30,7 @@ class ExternalUserTest(APITestCase):
             **self.data,
             "id": str(response.data["id"]),
             "userId": str(self.user.id),
+            "integrationId": str(self.integration.id),
         }
 
     def test_without_feature_flag(self):
@@ -47,6 +55,12 @@ class ExternalUserTest(APITestCase):
             response = self.get_error_response(self.org_slug, status_code=400, **self.data)
         assert response.data == {"userId": ["This field is required."]}
 
+    def test_missing_integrationId(self):
+        self.data.pop("integrationId")
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.get_error_response(self.org_slug, status_code=400, **self.data)
+        assert response.data == {"integrationId": ["This field is required."]}
+
     def test_invalid_provider(self):
         self.data.update(provider="unknown")
         with self.feature({"organizations:import-codeowners": True}):
@@ -55,13 +69,14 @@ class ExternalUserTest(APITestCase):
 
     def test_create_existing_association(self):
         self.external_user = self.create_external_user(
-            self.user, self.organization, external_name=self.data["externalName"]
+            self.user, self.organization, self.integration, external_name=self.data["externalName"]
         )
 
         with self.feature({"organizations:import-codeowners": True}):
-            response = self.get_success_response(self.org_slug, **self.data)
+            response = self.get_success_response(self.org_slug, status_code=200, **self.data)
         assert response.data == {
             **self.data,
             "id": str(self.external_user.id),
             "userId": str(self.user.id),
+            "integrationId": str(self.integration.id),
         }

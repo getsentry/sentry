@@ -56,6 +56,7 @@ class ExternalActorSerializer(Serializer):  # type: ignore
             "id": str(obj.id),
             "provider": provider,
             "externalName": obj.external_name,
+            "integrationId": str(obj.integration_id),
         }
 
         if obj.external_id:
