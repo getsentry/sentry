@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ExternalLink from 'app/components/links/externalLink';
 import {
   AWS_REGIONS,

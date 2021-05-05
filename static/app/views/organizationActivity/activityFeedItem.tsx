@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, createRef} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -34,10 +34,10 @@ type State = {
   clipped: Props['defaultClipped'];
 };
 
-class ActivityItem extends React.Component<Props, State> {
+class ActivityItem extends Component<Props, State> {
   static defaultProps = defaultProps;
 
-  state = {
+  state: State = {
     clipped: this.props.defaultClipped,
   };
 
@@ -54,7 +54,7 @@ class ActivityItem extends React.Component<Props, State> {
     }
   }
 
-  activityBubbleRef = React.createRef<HTMLDivElement>();
+  activityBubbleRef = createRef<HTMLDivElement>();
 
   formatProjectActivity = (author, item) => {
     const data = item.data;

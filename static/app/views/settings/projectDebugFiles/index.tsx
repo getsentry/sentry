@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -184,7 +184,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={t('Debug Information Files')} />
 
         <TextBlock>
@@ -196,7 +196,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         </TextBlock>
 
         {features.includes('symbol-sources') && (
-          <React.Fragment>
+          <Fragment>
             <PermissionAlert />
 
             <Form
@@ -221,7 +221,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
                 additionalFieldProps={fieldProps}
               />
             </Form>
-          </React.Fragment>
+          </Fragment>
         )}
 
         <Wrapper>
@@ -259,7 +259,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           {this.renderDebugFiles()}
         </StyledPanelTable>
         <Pagination pageLinks={debugFilesPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

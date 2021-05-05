@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {getTraceContext} from 'app/components/events/interfaces/spans/utils';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';

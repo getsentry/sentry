@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import * as ReactRouter from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
@@ -57,7 +57,7 @@ type State = {
   widths: number[];
 };
 class Table extends React.Component<Props, State> {
-  state = {
+  state: State = {
     widths: [],
   };
 

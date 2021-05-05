@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
@@ -8,12 +8,10 @@ import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
 import Tag from 'app/components/tag';
-import {IconStar, IconUser} from 'app/icons';
+import {IconStar} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {
@@ -22,6 +20,10 @@ import {
   Sort,
   WebVital,
 } from 'app/utils/discover/fields';
+import VitalsDetailsTableQuery, {
+  TableData,
+  TableDataRow,
+} from 'app/utils/performance/vitals/vitalsDetailsTableQuery';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
@@ -89,7 +91,7 @@ type State = {
 };
 
 class Table extends React.Component<Props, State> {
-  state = {
+  state: State = {
     widths: [],
   };
 
@@ -170,15 +172,6 @@ class Table extends React.Component<Props, State> {
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
     ];
-
-    if (field === 'count_unique(user)') {
-      return (
-        <UniqueUserCell>
-          {rendered}
-          <StyledUserIcon size="20" />
-        </UniqueUserCell>
-      );
-    }
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
@@ -376,7 +369,7 @@ class Table extends React.Component<Props, State> {
 
     return (
       <div>
-        <DiscoverQuery
+        <VitalsDetailsTableQuery
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
@@ -411,16 +404,11 @@ class Table extends React.Component<Props, State> {
               <Pagination pageLinks={pageLinks} />
             </React.Fragment>
           )}
-        </DiscoverQuery>
+        </VitalsDetailsTableQuery>
       </div>
     );
   }
 }
-
-const UniqueUserCell = styled('span')`
-  display: flex;
-  align-items: center;
-`;
 
 const UniqueTagCell = styled('div')`
   text-align: right;
@@ -451,11 +439,6 @@ const PoorTag = styled(Tag)`
   span {
     color: ${p => p.theme.white};
   }
-`;
-
-const StyledUserIcon = styled(IconUser)`
-  margin-left: ${space(1)};
-  color: ${p => p.theme.gray400};
 `;
 
 export default Table;

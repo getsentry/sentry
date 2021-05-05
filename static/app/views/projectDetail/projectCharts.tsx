@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import * as ReactRouter from 'react-router';
 import {browserHistory} from 'react-router';
 import {withTheme} from '@emotion/react';
@@ -72,7 +72,7 @@ type State = {
   totalValues: number | null;
 };
 
-class ProjectCharts extends React.Component<Props, State> {
+class ProjectCharts extends Component<Props, State> {
   state: State = {
     totalValues: null,
   };
@@ -283,7 +283,7 @@ class ProjectCharts extends React.Component<Props, State> {
           {!defined(hasSessions) ? (
             <LoadingPanel />
           ) : (
-            <React.Fragment>
+            <Fragment>
               {displayMode === DisplayModes.APDEX && (
                 <ProjectBaseEventsChart
                   title={t('Apdex')}
@@ -389,13 +389,13 @@ class ProjectCharts extends React.Component<Props, State> {
                   disablePrevious
                 />
               )}
-            </React.Fragment>
+            </Fragment>
           )}
         </ChartContainer>
         <ChartControls>
           {/* if hasSessions is not yet defined, it means that request is still in progress and we can't decide what default chart to show */}
           {defined(hasSessions) ? (
-            <React.Fragment>
+            <Fragment>
               <InlineContainer>
                 <SectionHeading>{this.summaryHeading}</SectionHeading>
                 <SectionValue>
@@ -412,7 +412,7 @@ class ProjectCharts extends React.Component<Props, State> {
                   onChange={this.handleDisplayModeChange}
                 />
               </InlineContainer>
-            </React.Fragment>
+            </Fragment>
           ) : (
             <Placeholder height="34px" />
           )}

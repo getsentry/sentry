@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
@@ -18,7 +18,7 @@ type Props = DefaultProps & {
   format?: string;
 };
 
-class DateTime extends React.Component<Props> {
+class DateTime extends Component<Props> {
   static defaultProps: DefaultProps = {
     seconds: true,
   };

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {openModal} from 'app/actionCreators/modal';
 import ActionLink from 'app/components/actions/actionLink';

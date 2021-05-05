@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {loadStatsForProject} from 'app/actionCreators/projects';
@@ -26,7 +26,7 @@ type Props = {
   hasProjectAccess: boolean;
 };
 
-class ProjectCard extends React.Component<Props> {
+class ProjectCard extends Component<Props> {
   componentDidMount() {
     const {organization, project, api} = this.props;
 
@@ -83,7 +83,7 @@ class ProjectCard extends React.Component<Props> {
                   {tn('%s error', '%s errors', totalErrors)}
                 </Link>
                 {this.hasPerformance && (
-                  <React.Fragment>
+                  <Fragment>
                     <em>|</em>
                     <TransactionsLink
                       data-test-id="project-transactions"
@@ -101,7 +101,7 @@ class ProjectCard extends React.Component<Props> {
                         />
                       )}
                     </TransactionsLink>
-                  </React.Fragment>
+                  </Fragment>
                 )}
               </SummaryLinks>
             </CardHeader>
@@ -133,7 +133,7 @@ type ContainerState = {
   projectDetails: Project | null;
 };
 
-class ProjectCardContainer extends React.Component<ContainerProps, ContainerState> {
+class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
   state = this.getInitialState();
 
   getInitialState(): ContainerState {

@@ -1,4 +1,4 @@
-import React from 'react';
+import {createRef, PureComponent} from 'react';
 import pick from 'lodash/pick';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -51,7 +51,7 @@ type State = {
   filterSpans: FilterSpans | undefined;
 };
 
-class TraceView extends React.PureComponent<Props, State> {
+class TraceView extends PureComponent<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -68,9 +68,9 @@ class TraceView extends React.PureComponent<Props, State> {
     }
   }
 
-  traceViewRef = React.createRef<HTMLDivElement>();
-  virtualScrollBarContainerRef = React.createRef<HTMLDivElement>();
-  minimapInteractiveRef = React.createRef<HTMLDivElement>();
+  traceViewRef = createRef<HTMLDivElement>();
+  virtualScrollBarContainerRef = createRef<HTMLDivElement>();
+  minimapInteractiveRef = createRef<HTMLDivElement>();
 
   async filterOnSpans(searchQuery: string | undefined) {
     if (!searchQuery) {

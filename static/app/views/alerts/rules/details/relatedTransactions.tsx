@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -47,7 +47,7 @@ type TableState = {
   widths: number[];
 };
 class Table extends React.Component<TableProps, TableState> {
-  state = {
+  state: TableState = {
     widths: [],
   };
 

@@ -1,6 +1,6 @@
 import 'intersection-observer'; // this is a polyfill
 
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'app/components/count';

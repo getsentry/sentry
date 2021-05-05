@@ -1,4 +1,3 @@
-import React from 'react';
 import {css, Global} from '@emotion/react';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';

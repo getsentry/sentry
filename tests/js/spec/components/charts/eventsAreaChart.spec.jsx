@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mockZoomRange} from 'sentry-test/charts';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';

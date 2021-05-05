@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
@@ -33,7 +33,7 @@ type State = {
   showSpanTree: boolean;
 };
 
-class SpanGroup extends React.Component<PropType, State> {
+class SpanGroup extends Component<PropType, State> {
   state: State = {
     showSpanTree: true,
   };
@@ -106,7 +106,7 @@ class SpanGroup extends React.Component<PropType, State> {
     } = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SpanBar
           organization={organization}
           event={event}
@@ -129,7 +129,7 @@ class SpanGroup extends React.Component<PropType, State> {
           spanErrors={this.getSpanErrors()}
         />
         {this.renderSpanChildren()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

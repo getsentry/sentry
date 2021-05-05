@@ -4,7 +4,7 @@
  *
  * Also displays 2fa method specific details.
  */
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -36,10 +36,10 @@ type AuthenticatorDateProps = {
 
 function AuthenticatorDate({label, date}: AuthenticatorDateProps) {
   return (
-    <React.Fragment>
+    <Fragment>
       <DateLabel>{label}</DateLabel>
       <div>{date ? <DateTime date={date} /> : t('never')}</div>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -100,13 +100,13 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
     const {deleteDisabled, onRegenerateBackupCodes} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={
-            <React.Fragment>
+            <Fragment>
               <span>{authenticator.name}</span>
               <AuthenticatorStatus enabled={authenticator.isEnrolled} />
-            </React.Fragment>
+            </Fragment>
           }
           action={
             authenticator.isEnrolled &&
@@ -151,7 +151,7 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
           isEnrolled={authenticator.isEnrolled}
           codes={authenticator.codes}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

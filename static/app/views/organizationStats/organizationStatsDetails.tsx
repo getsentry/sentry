@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import LoadingError from 'app/components/loadingError';
@@ -33,7 +33,7 @@ type Props = {
   pageLinks: null | string;
 };
 
-class OrganizationStats extends React.Component<Props> {
+class OrganizationStats extends Component<Props> {
   renderContent() {
     const {
       statsLoading,
