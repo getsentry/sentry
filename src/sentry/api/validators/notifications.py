@@ -108,7 +108,7 @@ def validate_value(
     except KeyError:
         raise ParameterValidationError(f"Unknown value: {value_param}", context)
 
-    if not helper_validate(type, value):
+    if value != NotificationSettingOptionValues.DEFAULT and not helper_validate(type, value):
         raise ParameterValidationError(f"Invalid value for type {type}: {value}", context)
     return value
 
