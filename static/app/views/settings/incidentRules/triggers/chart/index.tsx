@@ -286,10 +286,11 @@ class TriggersChart extends React.PureComponent<Props, State> {
                           options={statsPeriodOptions.map(timePeriod => ({
                             label: TIME_PERIOD_MAP[timePeriod],
                             value: timePeriod,
+                            disabled: loading || reloading,
                           }))}
                           selected={period}
                           onChange={this.handleStatsPeriodChange}
-                          title="Display"
+                          title={t('Display')}
                         />
                       </InlineContainer>
                     </ChartControls>
