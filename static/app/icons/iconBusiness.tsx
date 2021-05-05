@@ -2,6 +2,8 @@ import * as React from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import theme from 'app/utils/theme';
+
 import SvgIcon from './svgIcon';
 
 type WrappedProps = {
@@ -24,8 +26,8 @@ const IconBusinessComponent = function IconBusinessComponent({
         />
       </mask>
       <linearGradient id="icon-power-features-gradient">
-        <stop offset="0%" stopColor="#EA5BC2" />
-        <stop offset="100%" stopColor="#6148CE" />
+        <stop offset="0%" stopColor={theme.pink200} />
+        <stop offset="100%" stopColor={theme.pink300} />
       </linearGradient>
       <linearGradient id="icon-power-features-shine" gradientTransform="rotate(35)">
         <stop offset="0%" stopColor="rgba(255, 255, 255, 0)" />
