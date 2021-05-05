@@ -1,6 +1,5 @@
 import hashlib
 import logging
-import tempfile
 import zipfile
 from io import FileIO
 
@@ -185,11 +184,10 @@ def _upsert_release_file(file: File, **kwargs):
 
 
 def _read_manifest(bundle: FileIO) -> dict:
-    with tempfile.TemporaryDirectory() as scratchpad:
-        with zipfile.ZipFile(bundle) as archive:
-            manifest_path = archive.extract("manifest.json", path=scratchpad)
-        with open(manifest_path) as manifest_file:
-            return json.load(manifest_file)
+    with zipfile.ZipFile(bundle) as archive:
+        manifest_bytes = archive.read("manifest.json")
+    # TODO: what is encoding of manifest_bytes?
+    return json.loads(manifest_bytes.decode())
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
