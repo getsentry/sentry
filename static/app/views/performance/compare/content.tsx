@@ -11,7 +11,7 @@ import {Event} from 'app/types/event';
 import {decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 
-import {FilterViews} from '../landing';
+import {FilterViews} from '../utils';
 
 import TraceView from './traceView';
 import TransactionSummary from './transactionSummary';

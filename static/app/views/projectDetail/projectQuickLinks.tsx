@@ -12,9 +12,8 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
-import {FilterViews} from 'app/views/performance/landing';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
-import {getPerformanceLandingUrl} from 'app/views/performance/utils';
+import {FilterViews, getPerformanceLandingUrl} from 'app/views/performance/utils';
 
 import {SidebarSection} from './styles';
 

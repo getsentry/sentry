@@ -10,7 +10,10 @@ import {statsPeriodToDays} from 'app/utils/dates';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
 
-import {FilterViews} from './landing';
+export enum FilterViews {
+  ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
+  TRENDS = 'TRENDS',
+}
 
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages

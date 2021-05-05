@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {updateDateTime} from 'app/actionCreators/globalSelection';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
@@ -34,21 +33,10 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import LandingContent from './landing/content';
-import TrendsContent from './trends/content';
-import {
-  DEFAULT_MAX_DURATION,
-  DEFAULT_TRENDS_STATS_PERIOD,
-  modifyTrendsViewDefaultPeriod,
-} from './trends/utils';
-import Breadcrumb from './breadcrumb';
+import {DEFAULT_MAX_DURATION} from './trends/utils';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import Onboarding from './onboarding';
-import {addRoutePerformanceContext, getCurrentPerformanceView} from './utils';
-
-export enum FilterViews {
-  ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
-  TRENDS = 'TRENDS',
-}
+import {addRoutePerformanceContext, FilterViews} from './utils';
 
 type Props = {
   api: Client;
@@ -65,15 +53,7 @@ type State = {
   eventView: EventView;
   error: string | undefined;
 };
-
-function isStatsPeriodDefault(
-  statsPeriod: string | undefined,
-  defaultPeriod: string
-): boolean {
-  return !statsPeriod || defaultPeriod === statsPeriod;
-}
-
-class PerformanceLanding extends React.Component<Props, State> {
+class PerformanceContent extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
@@ -153,12 +133,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     });
   };
 
-  getCurrentView(): string {
-    const {location} = this.props;
-    return getCurrentPerformanceView(location);
-  }
-
-  handleViewChange(viewKey: FilterViews) {
+  handleTrendsClick() {
     const {location, organization} = this.props;
 
     const newQuery = {
@@ -166,92 +141,46 @@ class PerformanceLanding extends React.Component<Props, State> {
     };
 
     const query = decodeScalar(location.query.query, '');
-    const statsPeriod = decodeScalar(location.query.statsPeriod);
     const conditions = tokenizeSearch(query);
-
-    const currentView = location.query.view;
-
-    const newDefaultPeriod =
-      viewKey === FilterViews.TRENDS ? DEFAULT_TRENDS_STATS_PERIOD : DEFAULT_STATS_PERIOD;
-
-    const hasStartAndEnd = newQuery.start && newQuery.end;
-
-    if (!hasStartAndEnd && isStatsPeriodDefault(statsPeriod, newDefaultPeriod)) {
-      /**
-       * Resets stats period to default of the tab you are navigating to
-       * on tab change as tabs have different default periods.
-       */
-      updateDateTime({
-        start: null,
-        end: null,
-        utc: false,
-        period: newDefaultPeriod,
-      });
-    }
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.change_view',
       eventName: 'Performance Views: Change View',
       organization_id: parseInt(organization.id, 10),
-      view_name: viewKey,
+      view_name: FilterViews.TRENDS,
     });
 
-    if (viewKey === FilterViews.TRENDS) {
-      const modifiedConditions = new QueryResults([]);
+    const modifiedConditions = new QueryResults([]);
 
-      if (conditions.hasTag('tpm()')) {
-        modifiedConditions.setTagValues('tpm()', conditions.getTagValues('tpm()'));
-      } else {
-        modifiedConditions.setTagValues('tpm()', ['>0.01']);
-      }
-      if (conditions.hasTag('transaction.duration')) {
-        modifiedConditions.setTagValues(
-          'transaction.duration',
-          conditions.getTagValues('transaction.duration')
-        );
-      } else {
-        modifiedConditions.setTagValues('transaction.duration', [
-          '>0',
-          `<${DEFAULT_MAX_DURATION}`,
-        ]);
-      }
-      newQuery.query = stringifyQueryObject(modifiedConditions);
+    if (conditions.hasTag('tpm()')) {
+      modifiedConditions.setTagValues('tpm()', conditions.getTagValues('tpm()'));
+    } else {
+      modifiedConditions.setTagValues('tpm()', ['>0.01']);
     }
-
-    const isNavigatingAwayFromTrends = viewKey !== FilterViews.TRENDS && currentView;
-
-    if (isNavigatingAwayFromTrends) {
-      // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
-      conditions.removeTag('tpm()');
-      conditions.removeTag('confidence()');
-      conditions.removeTag('transaction.duration');
-
-      newQuery.query = stringifyQueryObject(conditions);
+    if (conditions.hasTag('transaction.duration')) {
+      modifiedConditions.setTagValues(
+        'transaction.duration',
+        conditions.getTagValues('transaction.duration')
+      );
+    } else {
+      modifiedConditions.setTagValues('transaction.duration', [
+        '>0',
+        `<${DEFAULT_MAX_DURATION}`,
+      ]);
     }
+    newQuery.query = stringifyQueryObject(modifiedConditions);
+
+    // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
+    conditions.removeTag('tpm()');
+    conditions.removeTag('confidence()');
+    conditions.removeTag('transaction.duration');
+
+    newQuery.query = stringifyQueryObject(conditions);
 
     browserHistory.push({
-      pathname: location.pathname,
-      query: {...newQuery, view: viewKey},
+      pathname: `/organizations/${organization.slug}/performance/trends`,
+      query: {...newQuery},
     });
-  }
-
-  renderHeaderButtons() {
-    const currentView = this.getCurrentView();
-    if (currentView === FilterViews.ALL_TRANSACTIONS) {
-      const viewKey = FilterViews.TRENDS;
-      return (
-        <Button
-          priority="primary"
-          key={viewKey}
-          barId={viewKey}
-          data-test-id={'landing-header-' + viewKey.toLowerCase()}
-          onClick={() => this.handleViewChange(viewKey)}
-        >
-          {t('View Trends')}
-        </Button>
-      );
-    }
-    return null;
   }
 
   shouldShowOnboarding() {
@@ -284,14 +213,47 @@ class PerformanceLanding extends React.Component<Props, State> {
     );
   }
 
-  render() {
-    const {organization, location, projects} = this.props;
-    const currentView = this.getCurrentView();
-    const isTrendsView = currentView === FilterViews.TRENDS;
-    const eventView = isTrendsView
-      ? modifyTrendsViewDefaultPeriod(this.state.eventView, location)
-      : this.state.eventView;
+  renderBody() {
+    const {organization, projects} = this.props;
+    const eventView = this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
+    const viewKey = FilterViews.TRENDS;
+
+    return (
+      <PageContent>
+        <LightWeightNoProjectMessage organization={organization}>
+          <PageHeader>
+            <PageHeading>{t('Performance')}</PageHeading>
+            {!showOnboarding && (
+              <Button
+                priority="primary"
+                data-test-id={'landing-header-' + viewKey.toLowerCase()}
+                onClick={() => this.handleTrendsClick()}
+              >
+                {t('View Trends')}
+              </Button>
+            )}
+          </PageHeader>
+          <GlobalSdkUpdateAlert />
+          {this.renderError()}
+          {showOnboarding ? (
+            <Onboarding organization={organization} />
+          ) : (
+            <LandingContent
+              eventView={eventView}
+              projects={projects}
+              organization={organization}
+              setError={this.setError}
+              handleSearch={this.handleSearch}
+            />
+          )}
+        </LightWeightNoProjectMessage>
+      </PageContent>
+    );
+  }
+
+  render() {
+    const {organization} = this.props;
 
     return (
       <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
@@ -301,63 +263,17 @@ class PerformanceLanding extends React.Component<Props, State> {
               start: null,
               end: null,
               utc: false,
-              period: isTrendsView ? DEFAULT_TRENDS_STATS_PERIOD : DEFAULT_STATS_PERIOD,
+              period: DEFAULT_STATS_PERIOD,
             },
           }}
         >
-          <PageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <PageHeader>
-                {isTrendsView ? (
-                  <TrendsHeader>
-                    <Breadcrumb
-                      organization={organization}
-                      location={location}
-                      isTrendsView
-                    />
-                    <PageHeading>{t('Trends')}</PageHeading>
-                  </TrendsHeader>
-                ) : (
-                  <React.Fragment>
-                    <PageHeading>{t('Performance')}</PageHeading>
-                    {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
-                  </React.Fragment>
-                )}
-              </PageHeader>
-              <GlobalSdkUpdateAlert />
-              {this.renderError()}
-              {showOnboarding ? (
-                <Onboarding organization={organization} />
-              ) : currentView === FilterViews.TRENDS ? (
-                <TrendsContent
-                  organization={organization}
-                  location={location}
-                  eventView={eventView}
-                  setError={this.setError}
-                />
-              ) : (
-                <LandingContent
-                  eventView={eventView}
-                  projects={projects}
-                  organization={organization}
-                  setError={this.setError}
-                  handleSearch={this.handleSearch}
-                />
-              )}
-            </LightWeightNoProjectMessage>
-          </PageContent>
+          {this.renderBody()}
         </GlobalSelectionHeader>
       </SentryDocumentTitle>
     );
   }
 }
 
-const TrendsHeader = styled('div')`
-  display: flex;
-  gap: ${space(3)};
-  flex-direction: column;
-`;
-
 export default withApi(
-  withOrganization(withProjects(withGlobalSelection(PerformanceLanding)))
+  withOrganization(withProjects(withGlobalSelection(PerformanceContent)))
 );

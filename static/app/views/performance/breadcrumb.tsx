@@ -9,8 +9,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import {vitalDetailRouteWithQuery} from './vitalDetail/utils';
-import {FilterViews} from './landing';
-import {getPerformanceLandingUrl} from './utils';
+import {FilterViews, getPerformanceLandingUrl} from './utils';
 
 type Props = {
   organization: Organization;
