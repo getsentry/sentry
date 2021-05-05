@@ -20,11 +20,11 @@ class InternalBeaconEndpoint(Endpoint):
 
         if not settings.SENTRY_BEACON:
             logger.info("beacon.skipped", extra={"install_id": install_id, "reason": "disabled"})
-            return
+            return Response(status=204)
 
         if settings.DEBUG:
             logger.info("beacon.skipped", extra={"install_id": install_id, "reason": "debug"})
-            return
+            return Response(status=204)
 
         anonymous = options.get("beacon.anonymous") is not False
 
