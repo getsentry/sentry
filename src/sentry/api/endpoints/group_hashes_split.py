@@ -259,6 +259,28 @@ def _add_hash(
         sentry_sdk.capture_exception()
 
 
+def _construct_arraymax(elements):
+    # XXX(markus): This is quite horrible but Snuba SDK does not allow us to do
+    # arrayMax([<other function call>, ...]), i.e. it does not allow function
+    # calls in array literals. So instead of arrayMax([1, 2, 3]) we do
+    # greatest(1, greatest(2, 3)).
+    assert elements
+
+    if len(elements) == 1:
+        return elements[0]
+
+    # Attempt to build well-balanced 'tree' of greatest() such that
+    # we don't run into ClickHouse recursion limits.
+
+    return Function(
+        "greatest",
+        [
+            _construct_arraymax(elements[: len(elements) // 2]),
+            _construct_arraymax(elements[len(elements) // 2 :]),
+        ],
+    )
+
+
 def _render_trees(group: Group, user):
     materialized_hashes = list(
         {gh.hash for gh in GroupHash.objects.filter(project=group.project, group=group)}
@@ -266,16 +288,13 @@ def _render_trees(group: Group, user):
 
     # Evaluates to the index of the last hash that is in materialized_hashes,
     # or 1 otherwise.
-    #
-    # XXX(markus): This is quite horrible but Snuba SDK does not allow us to do
-    # arrayMax([<other function call>, ...]), i.e. it does not allow function
-    # calls in array literals. So instead of arrayMax([1, 2, 3]) we do
-    # greatest(1, greatest(2, 3)).
-    find_hash_expr = 1
-    for hash in materialized_hashes:
-        find_hash_expr = Function(
-            "greatest", [find_hash_expr, Function("indexOf", [Column("hierarchical_hashes"), hash])]
-        )
+    find_hash_expr = _construct_arraymax(
+        [1]
+        + [  # type: ignore
+            Function("indexOf", [Column("hierarchical_hashes"), hash])
+            for hash in materialized_hashes
+        ]
+    )
 
     # After much deliberation I (markus) decided that it would be best to
     # render the entire tree using one large Snuba query. A previous
