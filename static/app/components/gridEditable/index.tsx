@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Location} from 'history';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -103,7 +103,7 @@ class GridEditable<
     };
   }
 
-  state = {
+  state: GridEditableState = {
     numColumn: 0,
   };
 

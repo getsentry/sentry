@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -32,7 +32,7 @@ type State = {
  * render one of those states.
  */
 class NoGroupsHandler extends React.Component<Props, State> {
-  state = {
+  state: State = {
     fetchingSentFirstEvent: true,
     sentFirstEvent: false,
     firstEventProjects: null,

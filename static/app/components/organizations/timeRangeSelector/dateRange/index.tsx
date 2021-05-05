@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import type {OnChangeProps, RangeWithKey} from 'react-date-range';
 import * as ReactRouter from 'react-router';
 import {withTheme} from '@emotion/react';

@@ -1,6 +1,6 @@
-import React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
+import {LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
@@ -14,11 +14,13 @@ type Props = {
   /**
    * Path used on the redirect router if the user did not select a project
    */
-  noProjectRedirectPath: string;
+  noProjectRedirectPath: LocationDescriptor;
   /**
    * Path used on the redirect router if the user did select a project
    */
-  nextPath: string;
+  nextPath: Pick<LocationDescriptorObject, 'query'> & {
+    pathname: NonNullable<LocationDescriptorObject['pathname']>;
+  };
   router: ReactRouter.InjectedRouter;
   projects: Project[];
 };
@@ -29,9 +31,19 @@ function PickProjectToContinue({
   router,
   projects,
 }: Props) {
+  const nextPathQuery = nextPath.query;
   let navigating = false;
+  let path = `${nextPath.pathname}?project=`;
 
-  const path = nextPath.includes('?') ? `${nextPath}&project=` : `${nextPath}?project=`;
+  if (nextPathQuery) {
+    const filteredQuery = Object.entries(nextPathQuery)
+      .filter(([key, _value]) => key !== 'project')
+      .map(([key, value]) => `${key}=${value}`);
+
+    const newPathQuery = [...filteredQuery, 'project='].join('&');
+
+    path = `${nextPath.pathname}?${newPathQuery}`;
+  }
 
   // if the project in URL is missing, but this release belongs to only one project, redirect there
   if (projects.length === 1) {

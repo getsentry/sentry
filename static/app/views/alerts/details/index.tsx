@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 
@@ -45,7 +45,7 @@ export const alertDetailsLink = (organization: Organization, incident: Incident)
       : incident?.alertRule.id
   }/`;
 
-class IncidentDetails extends React.Component<Props, State> {
+class IncidentDetails extends Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
@@ -173,7 +173,7 @@ class IncidentDetails extends React.Component<Props, State> {
     const project = incident?.projects?.[0];
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle
           title={t('Alert %s', alertId)}
           orgSlug={organization.slug}
@@ -188,7 +188,7 @@ class IncidentDetails extends React.Component<Props, State> {
           onStatusChange={this.handleStatusChange}
         />
         <DetailsBody {...this.props} incident={incident} stats={stats} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

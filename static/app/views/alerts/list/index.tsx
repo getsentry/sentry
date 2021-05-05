@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
@@ -18,7 +18,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconCheckmark} from 'app/icons';
+import {IconCheckmark, IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -147,7 +147,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     }
 
     const actions = (
-      <React.Fragment>
+      <Fragment>
         <Button size="small" external href={DOCS_URL}>
           {t('View Features')}
         </Button>
@@ -160,7 +160,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         >
           {t('Create Alert Rule')}
         </CreateAlertButton>
-      </React.Fragment>
+      </Fragment>
     );
 
     return <Onboarding actions={actions} />;
@@ -214,7 +214,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const status = getQueryStatus(this.props.location.query.status);
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.tryRenderOnboarding() ?? (
           <Panel>
             {!loading && (
@@ -257,7 +257,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           </Panel>
         )}
         <Pagination pageLinks={incidentListPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -278,22 +278,32 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
-                <StyledButtonBar merged active={status}>
-                  <Button
-                    to={{pathname, query: openIncidentsQuery}}
-                    barId="open"
-                    size="small"
+                <Fragment>
+                  <Feature
+                    features={['alert-details-redesign']}
+                    organization={organization}
                   >
-                    {t('Unresolved')}
-                  </Button>
-                  <Button
-                    to={{pathname, query: closedIncidentsQuery}}
-                    barId="closed"
-                    size="small"
-                  >
-                    {t('Resolved')}
-                  </Button>
-                </StyledButtonBar>
+                    <Alert icon={<IconInfo />}>
+                      {t('This page only shows metric alerts that have been triggered.')}
+                    </Alert>
+                  </Feature>
+                  <StyledButtonBar merged active={status}>
+                    <Button
+                      to={{pathname, query: openIncidentsQuery}}
+                      barId="open"
+                      size="small"
+                    >
+                      {t('Unresolved')}
+                    </Button>
+                    <Button
+                      to={{pathname, query: closedIncidentsQuery}}
+                      barId="closed"
+                      size="small"
+                    >
+                      {t('Resolved')}
+                    </Button>
+                  </StyledButtonBar>
+                </Fragment>
               )}
               {this.renderList()}
             </Layout.Main>
@@ -304,7 +314,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 }
 
-class IncidentsListContainer extends React.Component<Props> {
+class IncidentsListContainer extends Component<Props> {
   componentDidMount() {
     this.trackView();
   }

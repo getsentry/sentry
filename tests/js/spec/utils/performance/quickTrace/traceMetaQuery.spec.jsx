@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -14,7 +14,7 @@ function renderMeta({isLoading, error, meta}) {
     return error;
   } else {
     return (
-      <React.Fragment>
+      <Fragment>
         <div key="projects" data-test-id="projects">
           {meta.projects}
         </div>
@@ -24,7 +24,7 @@ function renderMeta({isLoading, error, meta}) {
         <div key="errors" data-test-id="errors">
           {meta.errors}
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import map from 'lodash/map';
@@ -22,7 +22,10 @@ import {
 } from 'app/components/performance/waterfall/rowDetails';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
-import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
+import {
+  generateIssueEventTarget,
+  generateTraceTarget,
+} from 'app/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconChevron, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
@@ -257,44 +260,14 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderTraceButton() {
-    const {span, orgId, organization, trace, event} = this.props;
-
-    const {start, end} = getTraceDateTimeRange({
-      start: trace.traceStartTimestamp,
-      end: trace.traceEndTimestamp,
-    });
+    const {span, organization, event} = this.props;
 
     if (isGapSpan(span)) {
       return null;
     }
 
-    const orgFeatures = new Set(organization.features);
-
-    const traceEventView = EventView.fromSavedQuery({
-      id: undefined,
-      name: `Transactions with Trace ID ${span.trace_id}`,
-      fields: [
-        'transaction',
-        'project',
-        'trace.span',
-        'transaction.duration',
-        'timestamp',
-      ],
-      orderby: '-timestamp',
-      query: `event.type:transaction trace:${span.trace_id}`,
-      projects: orgFeatures.has('global-views')
-        ? [ALL_ACCESS_PROJECTS]
-        : [Number(event.projectID)],
-      version: 2,
-      start,
-      end,
-    });
-
     return (
-      <StyledDiscoverButton
-        size="xsmall"
-        to={traceEventView.getResultsViewUrlTarget(orgId)}
-      >
+      <StyledDiscoverButton size="xsmall" to={generateTraceTarget(event, organization)}>
         {t('Search by Trace')}
       </StyledDiscoverButton>
     );

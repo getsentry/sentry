@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';

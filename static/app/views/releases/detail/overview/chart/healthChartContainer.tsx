@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import * as ReactRouter from 'react-router';
 
 import ChartZoom from 'app/components/charts/chartZoom';
@@ -32,8 +32,8 @@ type State = {
   shouldRecalculateVisibleSeries: boolean;
 };
 
-class ReleaseChartContainer extends React.Component<Props, State> {
-  state = {
+class ReleaseChartContainer extends Component<Props, State> {
+  state: State = {
     shouldRecalculateVisibleSeries: true,
   };
 

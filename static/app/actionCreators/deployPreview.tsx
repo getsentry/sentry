@@ -1,5 +1,3 @@
-import React from 'react';
-
 import AlertActions from 'app/actions/alertActions';
 import ExternalLink from 'app/components/links/externalLink';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';

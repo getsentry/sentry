@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'app/actionCreators/account';
@@ -89,9 +89,9 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
           </SidebarDropdownActor>
 
           {isOpen && (
-            <OrgAndUserMenu {...getMenuProps({})}>
+            <OrgUserAndMarketingMenu {...getMenuProps({})}>
               {hasOrganization && (
-                <React.Fragment>
+                <Fragment>
                   <SidebarOrgSummary organization={org} />
                   {hasOrgRead && (
                     <SidebarMenuItem to={`/settings/${org.slug}/`}>
@@ -117,14 +117,14 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                       <SwitchOrganization canCreateOrganization={canCreateOrg} />
                     </SidebarMenuItem>
                   )}
-                </React.Fragment>
+                </Fragment>
               )}
 
               {hasOrganization && user && <Divider />}
 
               <DemoModeGate>
                 {!!user && (
-                  <React.Fragment>
+                  <Fragment>
                     <UserSummary to="/settings/account/details/">
                       <UserBadgeNoOverflow user={user} avatarSize={32} />
                     </UserSummary>
@@ -150,10 +150,16 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                         {t('Sign out')}
                       </SidebarMenuItem>
                     </div>
-                  </React.Fragment>
+                  </Fragment>
                 )}
               </DemoModeGate>
-            </OrgAndUserMenu>
+
+              <Divider />
+
+              <SidebarMenuItem href="https://sentry.io/welcome/">
+                {t('Homepage')}
+              </SidebarMenuItem>
+            </OrgUserAndMarketingMenu>
           )}
         </SidebarDropdownRoot>
       )}
@@ -231,11 +237,11 @@ const StyledAvatar = styled(Avatar)<{collapsed: boolean}>`
   border-radius: 6px; /* Fixes background bleeding on corners */
 `;
 
-const OrgAndUserMenu = styled('div')`
+const OrgUserAndMarketingMenu = styled('div')`
   ${SidebarDropdownMenu};
   top: 42px;
   min-width: 180px;
-  z-index: ${p => p.theme.zIndex.orgAndUserMenu};
+  z-index: ${p => p.theme.zIndex.orgUserAndMarketingMenu};
 `;
 
 const StyledIconChevron = styled(IconChevron)`

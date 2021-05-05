@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import ProjectActions from 'app/actions/projectActions';
@@ -70,7 +70,7 @@ function UpgradeGrouping({
 
   function getModalMessage() {
     return (
-      <React.Fragment>
+      <Fragment>
         <TextBlock>
           <strong>{t('Upgrade Grouping Strategy')}</strong>
         </TextBlock>
@@ -86,7 +86,7 @@ function UpgradeGrouping({
         <TextBlock>
           <Alert type={alertType}>{riskNote}</Alert>
         </TextBlock>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

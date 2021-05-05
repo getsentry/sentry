@@ -1,5 +1,6 @@
 import re
-from typing import Any, Mapping, MutableMapping, Tuple
+from abc import ABC
+from typing import Any, Mapping, MutableMapping, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.html import escape
@@ -17,7 +18,7 @@ from sentry.notifications.utils.participants import (
 from sentry.types.integrations import ExternalProviders
 
 
-class ActivityNotification(BaseNotification):
+class ActivityNotification(BaseNotification, ABC):
     def __init__(self, activity: Activity) -> None:
         self.activity = activity
         super().__init__(activity.project, activity.group)
@@ -57,6 +58,7 @@ class ActivityNotification(BaseNotification):
         activity_link = urlunparse(parts)
 
         return {
+            "organization": self.group.project.organization,
             "group": self.group,
             "link": group_link,
             "activity_link": activity_link,
@@ -137,6 +139,9 @@ class ActivityNotification(BaseNotification):
 
     def get_reference(self) -> Any:
         return self.activity
+
+    def get_reply_reference(self) -> Optional[Any]:
+        return self.group
 
     def send(self) -> None:
         if not self.should_email():
