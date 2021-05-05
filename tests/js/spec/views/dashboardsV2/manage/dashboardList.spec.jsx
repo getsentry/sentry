@@ -157,7 +157,7 @@ describe('Dashboards > DashboardList', function () {
     );
     const card = wrapper.find('DashboardCard').last();
     const link = card.find('Link').last().prop('to');
-    expect(link.pathname).toEqual(`/organizations/org-slug/dashboards/2/`);
+    expect(link.pathname).toEqual(`/organizations/org-slug/dashboard/2/`);
   });
 
   it('persists global selection headers', function () {
@@ -171,7 +171,7 @@ describe('Dashboards > DashboardList', function () {
     );
     const card = wrapper.find('DashboardCard').last();
     const link = card.find('Link').last().prop('to');
-    expect(link.pathname).toEqual(`/organizations/org-slug/dashboards/2/`);
+    expect(link.pathname).toEqual(`/organizations/org-slug/dashboard/2/`);
     expect(link.query).toEqual({statsPeriod: '7d'});
   });
 

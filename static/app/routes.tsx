@@ -1903,7 +1903,7 @@ function routes() {
             />
           </Route>
           <Route
-            path="/organizations/:orgId/dashboards/:dashboardId/edit/"
+            path="/organizations/:orgId/dashboard/:dashboardId/edit/"
             componentPromise={() =>
               import(/* webpackChunkName: "DashboardsV2" */ 'app/views/dashboardsV2/edit')
             }
@@ -1930,7 +1930,7 @@ function routes() {
           </Route>
 
           <Route
-            path="/organizations/:orgId/dashboards/:dashboardId/"
+            path="/organizations/:orgId/dashboard/:dashboardId/"
             componentPromise={() =>
               import(
                 /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/view'

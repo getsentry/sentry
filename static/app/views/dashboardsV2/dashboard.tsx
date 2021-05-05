@@ -72,7 +72,7 @@ class Dashboard extends React.Component<Props> {
     const {router, paramDashboardId, organization, location} = this.props;
     if (paramDashboardId) {
       router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/${paramDashboardId}/edit/widget/new/`,
+        pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/edit/widget/new/`,
         query: {
           ...location.query,
           dataSet: DataSet.EVENTS,
@@ -121,7 +121,7 @@ class Dashboard extends React.Component<Props> {
 
       if (paramDashboardId) {
         router.push({
-          pathname: `/organizations/${organization.slug}/dashboards/${paramDashboardId}/edit/widget/${index}/edit/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/edit/widget/${index}/edit/`,
           query: {
             ...location.query,
             dataSet: DataSet.EVENTS,

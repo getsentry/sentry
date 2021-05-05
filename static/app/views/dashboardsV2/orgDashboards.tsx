@@ -50,7 +50,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   };
 
   componentDidUpdate(prevProps: Props) {
-    if (!isEqual(prevProps.params, this.props.params)) {
+    if (!isEqual(prevProps.params.dashboardId, this.props.params.dashboardId)) {
       this.remountComponent();
     }
   }

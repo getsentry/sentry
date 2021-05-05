@@ -84,7 +84,7 @@ class DashboardsContainer extends React.Component<Props> {
       `/organizations/${organization.slug}/dashboards/new/widget/${widgetId}/edit/`;
     return (
       location.pathname ===
-        `/organizations/${organization.slug}/dashboards/${dashboardId}/edit/widget/${widgetId}/edit/` ||
+        `/organizations/${organization.slug}/dashboard/${dashboardId}/edit/widget/${widgetId}/edit/` ||
       isNewDashboardEditRouter
     );
   }
@@ -99,7 +99,7 @@ class DashboardsContainer extends React.Component<Props> {
 
     return (
       location.pathname ===
-        `/organizations/${organization.slug}/dashboards/${dashboardId}/edit/widget/new/` ||
+        `/organizations/${organization.slug}/dashboard/${dashboardId}/edit/widget/new/` ||
       newWidget ||
       this.isWidgetBuilderEditRouter
     );
@@ -111,7 +111,7 @@ class DashboardsContainer extends React.Component<Props> {
       const {dashboardId} = params;
       if (dashboardId) {
         router.replace(
-          `/organizations/${organization.slug}/dashboards/${dashboardId}/edit/`
+          `/organizations/${organization.slug}/dashboard/${dashboardId}/edit/`
         );
       } else {
         router.replace(`/organizations/${organization.slug}/dashboards/new/`);
@@ -152,7 +152,7 @@ class DashboardsContainer extends React.Component<Props> {
     const {dashboard, organization, location} = this.props;
 
     browserHistory.replace({
-      pathname: `/organizations/${organization.slug}/dashboards/${dashboard.id}/edit/`,
+      pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/edit/`,
       query: {
         ...location.query,
       },
@@ -175,7 +175,7 @@ class DashboardsContainer extends React.Component<Props> {
 
               // redirect to new dashboard
               browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
+                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                 query: {
                   ...location.query,
                 },
@@ -194,7 +194,7 @@ class DashboardsContainer extends React.Component<Props> {
               (newDashboard: DashboardDetails) => {
                 addSuccessMessage(t('Dashboard updated'));
                 browserHistory.replace({
-                  pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
+                  pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                   query: {
                     ...location.query,
                   },
@@ -203,7 +203,7 @@ class DashboardsContainer extends React.Component<Props> {
               }
             );
             browserHistory.replace({
-              pathname: `/organizations/${organization.slug}/dashboards/${dashboard.id}/`,
+              pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
               query: {
                 ...location.query,
               },
@@ -212,7 +212,7 @@ class DashboardsContainer extends React.Component<Props> {
           }
         }
         browserHistory.replace({
-          pathname: `/organizations/${organization.slug}/dashboards/${dashboard.id}/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
           query: {
             ...location.query,
           },
@@ -234,7 +234,7 @@ class DashboardsContainer extends React.Component<Props> {
     const {organization, location, params} = this.props;
     if (params.dashboardId) {
       browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/dashboards/${params.dashboardId}/`,
+        pathname: `/organizations/${organization.slug}/dashboard/${params.dashboardId}/`,
         query: {
           ...location.query,
         },
