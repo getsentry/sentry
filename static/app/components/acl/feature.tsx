@@ -77,7 +77,7 @@ type FeatureRenderProps = {
 
 /**
  * When a feature is disabled the caller of Feature may provide a `renderDisabled`
- * prop. This prop can be overriden by getsentry via hooks. Often getsentry will
+ * prop. This prop can be overridden by getsentry via hooks. Often getsentry will
  * call the original children function  but override the `renderDisabled`
  * with another function/component.
  */
