@@ -28,6 +28,8 @@ import DashboardTitle from './title';
 import {DashboardDetails, DashboardListItem, DashboardState, Widget} from './types';
 import {cloneDashboard} from './utils';
 
+const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
+
 type RouteParams = {
   orgId: string;
   dashboardId?: string;
@@ -56,6 +58,46 @@ class DashboardDetail extends React.Component<Props> {
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
   };
 
+  componentDidMount() {
+    const {route, router} = this.props;
+    this.checkStateRoute();
+    router.setRouteLeaveHook(route, this.onRouteLeave);
+    window.addEventListener('beforeunload', this.onUnload);
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.location.pathname !== this.props.location.pathname) {
+      this.checkStateRoute();
+    }
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('beforeunload', this.onUnload);
+  }
+
+  onUnload = (event: BeforeUnloadEvent) => {
+    if (['view', 'pending_delete'].includes(this.state.dashboardState)) {
+      return;
+    }
+    event.preventDefault();
+    event.returnValue = UNSAVED_MESSAGE;
+  };
+
+  checkStateRoute() {
+    const {router, organization, params} = this.props;
+    const {dashboardId} = params;
+
+    const dashboardDetailsRoute = `/organizations/${organization.slug}/dashboard/${dashboardId}/`;
+
+    if (this.isWidgetBuilderRouter && !this.isEditing) {
+      router.replace(dashboardDetailsRoute);
+    }
+
+    if (location.pathname === dashboardDetailsRoute && !!this.state.widgetToBeUpdated) {
+      this.onSetWidgetToBeUpdated(undefined);
+    }
+  }
+
   updateModifiedDashboard(dashboardState: DashboardState) {
     const {dashboard} = this.props;
     switch (dashboardState) {
@@ -69,6 +111,13 @@ class DashboardDetail extends React.Component<Props> {
     }
   }
 
+  onRouteLeave = () => {
+    if (!['view', 'pending_delete'].includes(this.state.dashboardState)) {
+      return UNSAVED_MESSAGE;
+    }
+    return undefined;
+  };
+
   get isEditing() {
     const {dashboardState} = this.state;
     return ['edit', 'create', 'pending_delete'].includes(dashboardState);
@@ -78,30 +127,24 @@ class DashboardDetail extends React.Component<Props> {
     const {location, params, organization} = this.props;
     const {dashboardId, widgetId} = params;
 
-    const isNewDashboardEditRouter =
-      location.pathname ===
-      `/organizations/${organization.slug}/dashboards/new/widget/${widgetId}/edit/`;
-    return (
-      location.pathname ===
-        `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetId}/edit/` ||
-      isNewDashboardEditRouter
-    );
+    const widgetEditRoutes = [
+      `/organizations/${organization.slug}/dashboards/new/widget/${widgetId}/edit/`,
+      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetId}/edit/`,
+    ];
+
+    return widgetEditRoutes.includes(location.pathname);
   }
 
   get isWidgetBuilderRouter() {
     const {location, params, organization} = this.props;
     const {dashboardId} = params;
 
-    const newWidget =
-      location.pathname ===
-      `/organizations/${organization.slug}/dashboards/new/widget/new/`;
+    const newWidgetRoutes = [
+      `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
+    ];
 
-    return (
-      location.pathname ===
-        `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/` ||
-      newWidget ||
-      this.isWidgetBuilderEditRouter
-    );
+    return newWidgetRoutes.includes(location.pathname) || this.isWidgetBuilderEditRouter;
   }
 
   updateRouteAfterSavingWidget() {
@@ -254,11 +297,9 @@ class DashboardDetail extends React.Component<Props> {
         eventName: 'Dashboards2: Edit cancel',
         organization_id: parseInt(this.props.organization.id, 10),
       });
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/dashboard/${params.dashboardId}/`,
-        query: {
-          ...location.query,
-        },
+      this.setState({
+        dashboardState: 'view',
+        modifiedDashboard: null,
       });
     } else {
       trackAnalyticsEvent({
