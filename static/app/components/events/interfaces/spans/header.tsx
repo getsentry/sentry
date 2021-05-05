@@ -361,16 +361,24 @@ class TraceViewHeader extends React.Component<PropType, State> {
 
           return (
             <SecondaryHeader>
-              <ScrollbarContainer
-                ref={this.props.virtualScrollBarContainerRef}
-                style={{
-                  // the width of this component is shrunk to compensate for half of the width of the divider line
-                  width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                }}
-              >
-                <ScrollbarManager.Consumer>
-                  {({virtualScrollbarRef, onDragStart}) => {
-                    return (
+              <ScrollbarManager.Consumer>
+                {({virtualScrollbarRef, scrollBarAreaRef, onDragStart, onScroll}) => {
+                  return (
+                    <ScrollbarContainer
+                      ref={this.props.virtualScrollBarContainerRef}
+                      style={{
+                        // the width of this component is shrunk to compensate for half of the width of the divider line
+                        width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                      }}
+                      onScroll={onScroll}
+                    >
+                      <div
+                        style={{
+                          width: 0,
+                          height: '1px',
+                        }}
+                        ref={scrollBarAreaRef}
+                      />
                       <VirtualScrollbar
                         data-type="virtual-scrollbar"
                         ref={virtualScrollbarRef}
@@ -378,10 +386,10 @@ class TraceViewHeader extends React.Component<PropType, State> {
                       >
                         <VirtualScrollbarGrip />
                       </VirtualScrollbar>
-                    );
-                  }}
-                </ScrollbarManager.Consumer>
-              </ScrollbarContainer>
+                    </ScrollbarContainer>
+                  );
+                }}
+              </ScrollbarManager.Consumer>
               <DividerSpacer />
               {hasMeasurements ? (
                 <MeasurementsPanel
@@ -868,6 +876,7 @@ export const SecondaryHeader = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
+  overflow: hidden;
 `;
 
 const OperationsBreakdown = styled('div')`
