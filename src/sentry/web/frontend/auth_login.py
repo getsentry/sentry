@@ -185,6 +185,7 @@ class AuthLoginView(BaseView):
                 )
             elif login_form.is_valid():
                 user = login_form.get_user()
+
                 auth.login(request, user, organization_id=organization.id if organization else None)
                 metrics.incr(
                     "login.attempt", instance="success", skip_internal=True, sample_rate=1.0
