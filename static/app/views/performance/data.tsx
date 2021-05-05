@@ -13,7 +13,6 @@ import {
   getVitalDetailTablePoorStatusFunction,
   vitalNameFromLocation,
 } from './vitalDetail/utils';
-import {FilterViews, getCurrentPerformanceView} from './utils';
 
 export const DEFAULT_STATS_PERIOD = '24h';
 

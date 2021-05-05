@@ -1,4 +1,3 @@
-import React from 'react';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import Duration from 'app/components/duration';
@@ -9,11 +8,6 @@ import {defined} from 'app/utils';
 import {statsPeriodToDays} from 'app/utils/dates';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
-
-export enum FilterViews {
-  ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
-  TRENDS = 'TRENDS',
-}
 
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages
@@ -63,16 +57,12 @@ export function getPerformanceLandingUrl(organization: OrganizationSummary): str
   return `/organizations/${organization.slug}/performance/`;
 }
 
-export function getTransactionSearchQuery(location: Location, query: string = '') {
-  return decodeScalar(location.query.query, query).trim();
+export function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
+  return `/organizations/${organization.slug}/performance/trends/`;
 }
 
-export function getCurrentPerformanceView(location: Location): string {
-  const currentView = location.query.view as FilterViews;
-  if (Object.values(FilterViews).includes(currentView)) {
-    return currentView;
-  }
-  return FilterViews.ALL_TRANSACTIONS;
+export function getTransactionSearchQuery(location: Location, query: string = '') {
+  return decodeScalar(location.query.query, query).trim();
 }
 
 export function getTransactionDetailsUrl(

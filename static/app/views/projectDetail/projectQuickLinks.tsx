@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -13,7 +12,10 @@ import {Organization, Project} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
-import {FilterViews, getPerformanceLandingUrl} from 'app/views/performance/utils';
+import {
+  getPerformanceLandingUrl,
+  getPerformanceTrendsUrl,
+} from 'app/views/performance/utils';
 
 import {SidebarSection} from './styles';
 
@@ -31,12 +33,11 @@ function ProjectQuickLinks({organization, project, location}: Props) {
     conditions.setTagValues('transaction.duration', ['>0', `<${DEFAULT_MAX_DURATION}`]);
 
     return {
-      pathname: getPerformanceLandingUrl(organization),
+      pathname: getPerformanceTrendsUrl(organization),
       query: {
         project: project?.id,
         cursor: undefined,
         query: stringifyQueryObject(conditions),
-        view: FilterViews.TRENDS,
       },
     };
   }

@@ -21,7 +21,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-import {FilterViews, getTransactionSearchQuery} from '../utils';
+import {getTransactionSearchQuery} from '../utils';
 
 import ChangedTransactions from './changedTransactions';
 import {TrendChangeType, TrendFunctionField, TrendView} from './types';
@@ -306,7 +306,6 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
         ...location.query,
         cursor: undefined,
         query: String(query).trim() || undefined,
-        view: FilterViews.TRENDS,
       },
     });
     return null;

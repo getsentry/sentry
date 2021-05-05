@@ -4,13 +4,11 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
-import Alert from 'app/components/alert';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconFlag} from 'app/icons/iconFlag';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
-import {Organization, Project} from 'app/types';
+import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -24,6 +22,7 @@ import TrendsContent from './content';
 type Props = {
   api: Client;
   location: Location;
+  selection: GlobalSelection;
   organization: Organization;
   projects: Project[];
   params: Params;

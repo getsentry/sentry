@@ -1,6 +1,5 @@
 import React from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -17,7 +16,6 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
@@ -36,7 +34,7 @@ import LandingContent from './landing/content';
 import {DEFAULT_MAX_DURATION} from './trends/utils';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import Onboarding from './onboarding';
-import {addRoutePerformanceContext, FilterViews} from './utils';
+import {addRoutePerformanceContext, getPerformanceTrendsUrl} from './utils';
 
 type Props = {
   api: Client;
@@ -147,7 +145,7 @@ class PerformanceContent extends React.Component<Props, State> {
       eventKey: 'performance_views.change_view',
       eventName: 'Performance Views: Change View',
       organization_id: parseInt(organization.id, 10),
-      view_name: FilterViews.TRENDS,
+      view_name: 'TRENDS',
     });
 
     const modifiedConditions = new QueryResults([]);
@@ -178,7 +176,7 @@ class PerformanceContent extends React.Component<Props, State> {
     newQuery.query = stringifyQueryObject(conditions);
 
     browserHistory.push({
-      pathname: `/organizations/${organization.slug}/performance/trends`,
+      pathname: getPerformanceTrendsUrl(organization),
       query: {...newQuery},
     });
   }
@@ -217,7 +215,6 @@ class PerformanceContent extends React.Component<Props, State> {
     const {organization, projects} = this.props;
     const eventView = this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
-    const viewKey = FilterViews.TRENDS;
 
     return (
       <PageContent>
@@ -227,7 +224,7 @@ class PerformanceContent extends React.Component<Props, State> {
             {!showOnboarding && (
               <Button
                 priority="primary"
-                data-test-id={'landing-header-' + viewKey.toLowerCase()}
+                data-test-id="landing-header-trends"
                 onClick={() => this.handleTrendsClick()}
               >
                 {t('View Trends')}
