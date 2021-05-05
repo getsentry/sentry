@@ -19,6 +19,7 @@ import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -151,6 +152,12 @@ class DashboardsContainer extends React.Component<Props> {
   onEdit = () => {
     const {dashboard, organization, location} = this.props;
 
+    trackAnalyticsEvent({
+      eventKey: 'dashboards2.edit.start',
+      eventName: 'Dashboards2: Edit start',
+      organization_id: parseInt(this.props.organization.id, 10),
+    });
+
     browserHistory.replace({
       pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/edit/`,
       query: {
@@ -169,8 +176,10 @@ class DashboardsContainer extends React.Component<Props> {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
-              this.setState({
-                dashboardState: 'view',
+              trackAnalyticsEvent({
+                eventKey: 'dashboards2.create.complete',
+                eventName: 'Dashboards2: Create complete',
+                organization_id: parseInt(organization.id, 10),
               });
 
               // redirect to new dashboard
@@ -193,6 +202,11 @@ class DashboardsContainer extends React.Component<Props> {
             updateDashboard(api, organization.slug, modifiedDashboard).then(
               (newDashboard: DashboardDetails) => {
                 addSuccessMessage(t('Dashboard updated'));
+                trackAnalyticsEvent({
+                  eventKey: 'dashboards2.edit.complete',
+                  eventName: 'Dashboards2: Edit complete',
+                  organization_id: parseInt(organization.id, 10),
+                });
                 browserHistory.replace({
                   pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                   query: {
@@ -233,6 +247,11 @@ class DashboardsContainer extends React.Component<Props> {
   onCancel = () => {
     const {organization, location, params} = this.props;
     if (params.dashboardId) {
+      trackAnalyticsEvent({
+        eventKey: 'dashboards2.edit.cancel',
+        eventName: 'Dashboards2: Edit cancel',
+        organization_id: parseInt(this.props.organization.id, 10),
+      });
       browserHistory.replace({
         pathname: `/organizations/${organization.slug}/dashboard/${params.dashboardId}/`,
         query: {
@@ -240,6 +259,11 @@ class DashboardsContainer extends React.Component<Props> {
         },
       });
     } else {
+      trackAnalyticsEvent({
+        eventKey: 'dashboards2.create.cancel',
+        eventName: 'Dashboards2: Create cancel',
+        organization_id: parseInt(this.props.organization.id, 10),
+      });
       browserHistory.replace({
         pathname: `/organizations/${organization.slug}/dashboards/`,
         query: {
@@ -261,7 +285,11 @@ class DashboardsContainer extends React.Component<Props> {
       deleteDashboard(api, organization.slug, dashboard.id)
         .then(() => {
           addSuccessMessage(t('Dashboard deleted'));
-
+          trackAnalyticsEvent({
+            eventKey: 'dashboards2.delete',
+            eventName: 'Dashboards2: Delete',
+            organization_id: parseInt(this.props.organization.id, 10),
+          });
           browserHistory.replace({
             pathname: `/organizations/${organization.slug}/dashboards/`,
             query: {
@@ -279,6 +307,11 @@ class DashboardsContainer extends React.Component<Props> {
 
   onCreate = () => {
     const {organization, location} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'dashboards2.create.start',
+      eventName: 'Dashboards2: Create start',
+      organization_id: parseInt(this.props.organization.id, 10),
+    });
     browserHistory.replace({
       pathname: `/organizations/${organization.slug}/dashboards/new/`,
       query: {
@@ -301,7 +334,15 @@ class DashboardsContainer extends React.Component<Props> {
   }
 
   render() {
-    const {organization, dashboard, params, router, location, error} = this.props;
+    const {
+      organization,
+      dashboard,
+      dashboards,
+      params,
+      router,
+      location,
+      error,
+    } = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
@@ -332,7 +373,7 @@ class DashboardsContainer extends React.Component<Props> {
                 />
                 <Controls
                   organization={organization}
-                  dashboards={[]}
+                  dashboards={dashboards}
                   dashboard={dashboard}
                   onEdit={this.onEdit}
                   onCreate={this.onCreate}
