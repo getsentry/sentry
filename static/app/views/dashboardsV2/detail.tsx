@@ -1,5 +1,5 @@
-import React from 'react';
-import {browserHistory, PlainRoute, WithRouterProps} from 'react-router';
+import {cloneElement, Component, isValidElement} from 'react';
+import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -32,18 +32,25 @@ import {cloneDashboard} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
-type Props = {
+type RouteParams = {
+  orgId: string;
+  dashboardId: string;
+  widgetId?: number;
+};
+
+type Props = RouteComponentProps<RouteParams, {}> & {
   api: Client;
   organization: Organization;
   route: PlainRoute;
-} & WithRouterProps<{orgId: string; dashboardId: string}, {}>;
+};
 
 type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
+  widgetToBeUpdated?: Widget;
 };
 
-class DashboardDetail extends React.Component<Props, State> {
+class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: 'view',
     modifiedDashboard: null,
@@ -56,15 +63,28 @@ class DashboardDetail extends React.Component<Props, State> {
     window.addEventListener('beforeunload', this.onUnload);
   }
 
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.location.pathname !== this.props.location.pathname) {
+      this.checkStateRoute();
+    }
+  }
+
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onUnload);
   }
 
   checkStateRoute() {
+    const {router, organization, params} = this.props;
+    const {dashboardId} = params;
+
+    const dashboardDetailsRoute = `/organizations/${organization.slug}/dashboards/${dashboardId}/`;
+
     if (this.isWidgetBuilderRouter && !this.isEditing) {
-      const {router, organization, params} = this.props;
-      const {dashboardId} = params;
-      router.replace(`/organizations/${organization.slug}/dashboards/${dashboardId}/`);
+      router.replace(dashboardDetailsRoute);
+    }
+
+    if (location.pathname === dashboardDetailsRoute && !!this.state.widgetToBeUpdated) {
+      this.onSetWidgetToBeUpdated(undefined);
     }
   }
 
@@ -87,7 +107,17 @@ class DashboardDetail extends React.Component<Props, State> {
 
     return (
       location.pathname ===
-      `/organizations/${organization.slug}/dashboards/${dashboardId}/widget/new/`
+        `/organizations/${organization.slug}/dashboards/${dashboardId}/widget/new/` ||
+      this.isWidgetBuilderEditRouter
+    );
+  }
+
+  get isWidgetBuilderEditRouter() {
+    const {location, params, organization} = this.props;
+    const {dashboardId, widgetId} = params;
+    return (
+      location.pathname ===
+      `/organizations/${organization.slug}/dashboards/${dashboardId}/widget/${widgetId}/edit/`
     );
   }
 
@@ -291,31 +321,17 @@ class DashboardDetail extends React.Component<Props, State> {
     }
   };
 
-  onWidgetChange = (widgets: Widget[]) => {
-    const {modifiedDashboard} = this.state;
-
-    if (modifiedDashboard === null) {
-      return;
-    }
-
-    this.setState((prevState: State) => {
-      return {
-        ...prevState,
-        modifiedDashboard: {
-          ...prevState.modifiedDashboard!,
-          widgets,
-        },
-      };
-    });
-  };
-
   setModifiedDashboard = (dashboard: DashboardDetails) => {
     this.setState({
       modifiedDashboard: dashboard,
     });
   };
 
-  onSaveWidget = (widgets: Widget[]) => {
+  onSetWidgetToBeUpdated = (widget?: Widget) => {
+    this.setState({widgetToBeUpdated: widget});
+  };
+
+  onUpdateWidget = (widgets: Widget[]) => {
     const {modifiedDashboard} = this.state;
 
     if (modifiedDashboard === null) {
@@ -325,6 +341,7 @@ class DashboardDetail extends React.Component<Props, State> {
     this.setState(
       (state: State) => ({
         ...state,
+        widgetToBeUpdated: undefined,
         modifiedDashboard: {
           ...state.modifiedDashboard!,
           widgets,
@@ -340,7 +357,7 @@ class DashboardDetail extends React.Component<Props, State> {
     reloadData,
     error,
   }: Parameters<OrgDashboards['props']['children']>[0]) {
-    const {organization, params} = this.props;
+    const {organization, params, router, location} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
@@ -380,11 +397,14 @@ class DashboardDetail extends React.Component<Props, State> {
               <NotFound />
             ) : dashboard ? (
               <Dashboard
-                dashboard={modifiedDashboard || dashboard}
                 paramDashboardId={dashboardId}
+                dashboard={modifiedDashboard || dashboard}
                 organization={organization}
                 isEditing={this.isEditing}
-                onUpdate={this.onWidgetChange}
+                onUpdate={this.onUpdateWidget}
+                onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+                router={router}
+                location={location}
               />
             ) : (
               <LoadingIndicator />
@@ -397,12 +417,13 @@ class DashboardDetail extends React.Component<Props, State> {
 
   renderWidgetBuilder(dashboard: DashboardDetails | null) {
     const {children} = this.props;
-    const {modifiedDashboard} = this.state;
+    const {modifiedDashboard, widgetToBeUpdated} = this.state;
 
-    return React.isValidElement(children)
-      ? React.cloneElement(children, {
+    return isValidElement(children)
+      ? cloneElement(children, {
           dashboard: modifiedDashboard || dashboard,
-          onSave: this.onSaveWidget,
+          onSave: this.onUpdateWidget,
+          widget: widgetToBeUpdated,
         })
       : children;
   }
@@ -429,18 +450,18 @@ class DashboardDetail extends React.Component<Props, State> {
 }
 
 const StyledPageHeader = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-row-gap: ${space(2)};
   align-items: center;
-  justify-content: space-between;
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.textColor};
-  height: 40px;
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    flex-direction: column;
-    align-items: flex-start;
-    height: auto;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-column-gap: ${space(2)};
+    height: 40px;
   }
 `;
 

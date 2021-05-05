@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -19,6 +19,7 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'app/views/alerts/utils';
+import {AlertType, getFunctionHelpText} from 'app/views/alerts/wizard/options';
 import FormField from 'app/views/settings/components/forms/formField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
@@ -43,8 +44,9 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
-  thresholdChart: (props: {footer: React.ReactNode}) => React.ReactElement;
+  thresholdChart: React.ReactElement;
   onFilterSearch: (query: string) => void;
+  alertType: AlertType;
   allowChangeEventTypes?: boolean;
 };
 
@@ -80,7 +82,13 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled, onFilterSearch, allowChangeEventTypes} = this.props;
+    const {
+      organization,
+      disabled,
+      onFilterSearch,
+      allowChangeEventTypes,
+      alertType,
+    } = this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] =
@@ -129,31 +137,12 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
       border: 'none',
     };
 
+    const {labelText: intervalLabelText, timeWindowText} = getFunctionHelpText(alertType);
+
     return (
       <React.Fragment>
         <ChartPanel>
-          <StyledPanelBody>
-            {this.props.thresholdChart({
-              footer: (
-                <ChartFooter>
-                  <MetricField
-                    name="aggregate"
-                    help={null}
-                    organization={organization}
-                    disabled={disabled}
-                    style={{
-                      ...formElemBaseStyle,
-                    }}
-                    inline={false}
-                    flexibleControlStateSize
-                    columnWidth={200}
-                    inFieldLabels
-                    required
-                  />
-                </ChartFooter>
-              ),
-            })}
-          </StyledPanelBody>
+          <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
         <StyledListItem>{t('Filter events')}</StyledListItem>
         <FormRow>
@@ -284,7 +273,7 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
         </FormRow>
         <StyledListItem>
           <StyledListTitle>
-            <div>{t('Select time interval')}</div>
+            <div>{intervalLabelText}</div>
             <Tooltip
               title={t(
                 'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
@@ -294,23 +283,41 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
             </Tooltip>
           </StyledListTitle>
         </StyledListItem>
-        <ThresholdSelectField
-          name="timeWindow"
-          style={{
-            ...formElemBaseStyle,
-            flex: '0 150px 0',
-            minWidth: 130,
-            maxWidth: 300,
-            marginBottom: 20,
-          }}
-          choices={Object.entries(TIME_WINDOW_MAP)}
-          required
-          isDisabled={disabled}
-          getValue={value => Number(value)}
-          setValue={value => `${value}`}
-          inline={false}
-          flexibleControlStateSize
-        />
+        <FormRow>
+          {timeWindowText && (
+            <MetricField
+              name="aggregate"
+              help={null}
+              organization={organization}
+              disabled={disabled}
+              style={{
+                ...formElemBaseStyle,
+              }}
+              inline={false}
+              flexibleControlStateSize
+              columnWidth={200}
+              alertType={alertType}
+              required
+            />
+          )}
+          {timeWindowText && <FormRowText>{timeWindowText}</FormRowText>}
+          <SelectField
+            name="timeWindow"
+            style={{
+              ...formElemBaseStyle,
+              flex: '0 150px 0',
+              minWidth: 130,
+              maxWidth: 300,
+            }}
+            choices={Object.entries(TIME_WINDOW_MAP)}
+            required
+            isDisabled={disabled}
+            getValue={value => Number(value)}
+            setValue={value => `${value}`}
+            inline={false}
+            flexibleControlStateSize
+          />
+        </FormRow>
       </React.Fragment>
     );
   }
@@ -325,12 +332,6 @@ const StyledListTitle = styled('div')`
 
 const ChartPanel = styled(Panel)`
   margin-bottom: ${space(4)};
-  min-height: 335px;
-`;
-
-const ThresholdSelectField = styled(SelectField)`
-  margin-bottom: ${space(2)} !important;
-  padding-top: 0 !important;
 `;
 
 const StyledPanelBody = styled(PanelBody)`
@@ -357,13 +358,13 @@ const StyledListItem = styled(ListItem)`
 const FormRow = styled('div')`
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: center;
   flex-wrap: wrap;
   margin-bottom: ${space(4)};
 `;
 
-const ChartFooter = styled(FormRow)`
-  margin: 0;
+const FormRowText = styled('div')`
+  margin: ${space(1)};
 `;
 
 export default RuleConditionsFormForWizard;

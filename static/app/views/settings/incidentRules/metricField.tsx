@@ -1,11 +1,10 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {
   Aggregation,
@@ -16,10 +15,10 @@ import {
   generateFieldAsString,
 } from 'app/utils/discover/fields';
 import {
+  AlertType,
   hideParameterSelectorSet,
   hidePrimarySelectorSet,
 } from 'app/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import {QueryField} from 'app/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'app/views/eventsV2/table/types';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
@@ -28,9 +27,9 @@ import FormModel from 'app/views/settings/components/forms/model';
 
 import {
   errorFieldConfig,
+  getWizardAlertFieldConfig,
   OptionConfig,
   transactionFieldConfig,
-  wizardAlertFieldConfig,
 } from './constants';
 import {PRESET_AGGREGATES} from './presets';
 import {Dataset} from './types';
@@ -42,23 +41,23 @@ type Props = Omit<FormField['props'], 'children'> & {
    */
   columnWidth?: number;
   inFieldLabels?: boolean;
+  alertType?: AlertType;
 };
 
 const getFieldOptionConfig = ({
   dataset,
-  aggregate,
   organization,
+  alertType,
 }: {
   dataset: Dataset;
-  aggregate: string;
   organization: Organization;
+  alertType?: AlertType;
 }) => {
   let config: OptionConfig;
   let hidePrimarySelector = false;
   let hideParameterSelector = false;
-  if (organization.features.includes('alert-wizard')) {
-    const alertType = getAlertTypeFromAggregateDataset({dataset, aggregate});
-    config = wizardAlertFieldConfig;
+  if (organization.features.includes('alert-wizard') && alertType) {
+    config = getWizardAlertFieldConfig(alertType);
     hidePrimarySelector = hidePrimarySelectorSet.has(alertType);
     hideParameterSelector = hideParameterSelectorSet.has(alertType);
   } else {
@@ -106,7 +105,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
   )
     .map(preset => ({...preset, selected: preset.match.test(aggregate)}))
     .map((preset, i, list) => (
-      <React.Fragment key={preset.name}>
+      <Fragment key={preset.name}>
         <Tooltip title={t('This preset is selected')} disabled={!preset.selected}>
           <PresetButton
             type="button"
@@ -117,7 +116,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
           </PresetButton>
         </Tooltip>
         {i + 1 < list.length && ', '}
-      </React.Fragment>
+      </Fragment>
     ));
 
   return tct(
@@ -126,11 +125,16 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
   );
 };
 
-const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props) => (
+const MetricField = ({
+  organization,
+  columnWidth,
+  inFieldLabels,
+  alertType,
+  ...props
+}: Props) => (
   <FormField help={help} {...props}>
     {({onChange, value, model, disabled}) => {
       const dataset = model.getValue('dataset');
-      const aggregate = model.getValue('aggregate');
 
       const {
         fieldOptionsConfig,
@@ -138,8 +142,8 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
         hideParameterSelector,
       } = getFieldOptionConfig({
         dataset: dataset as Dataset,
-        aggregate,
         organization,
+        alertType,
       });
       const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
       const fieldValue = explodeFieldString(value ?? '');
@@ -159,14 +163,7 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
         numParameters - (hideParameterSelector ? 1 : 0) - (hidePrimarySelector ? 1 : 0);
 
       return (
-        <React.Fragment>
-          {!inFieldLabels && (
-            <AggregateHeader>
-              <div>{t('Function')}</div>
-              {numParameters > 0 && <div>{t('Parameter')}</div>}
-              {numParameters > 1 && <div>{t('Value')}</div>}
-            </AggregateHeader>
-          )}
+        <Fragment>
           <StyledQueryField
             filterPrimaryOptions={option => option.value.kind === FieldValueKind.FUNCTION}
             fieldOptions={fieldOptions}
@@ -180,7 +177,7 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
             hideParameterSelector={hideParameterSelector}
             hidePrimarySelector={hidePrimarySelector}
           />
-        </React.Fragment>
+        </Fragment>
       );
     }}
   </FormField>
@@ -192,18 +189,6 @@ const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: 
     css`
       width: ${p.gridColumns * p.columnWidth}px;
     `}
-`;
-
-const AggregateHeader = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  grid-gap: ${space(1)};
-  text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
-  font-weight: bold;
-  margin-bottom: ${space(1)};
 `;
 
 const PresetButton = styled(Button)<{disabled: boolean}>`

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -11,6 +11,7 @@ import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {OrganizationSummary, Project} from 'app/types';
+import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 import {TimePeriodType} from './constants';
@@ -22,7 +23,7 @@ type Props = {
   timePeriod: TimePeriodType;
 };
 
-class RelatedIssues extends React.Component<Props> {
+class RelatedIssues extends Component<Props> {
   renderEmptyMessage = () => {
     return (
       <Panel>
@@ -46,7 +47,12 @@ class RelatedIssues extends React.Component<Props> {
       groupStatsPeriod: 'auto',
       limit: 5,
       sort: rule.aggregate === 'count_unique(user)' ? 'user' : 'freq',
-      query: rule.query,
+      query: [
+        rule.query,
+        rule.eventTypes?.length
+          ? `event.type:[${rule.eventTypes.join(`, `)}]`
+          : DATASET_EVENT_TYPE_FILTERS[rule.dataset],
+      ],
       project: projects.map(project => project.id),
     };
     const issueSearch = {
@@ -55,7 +61,7 @@ class RelatedIssues extends React.Component<Props> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ControlsWrapper>
           <StyledSectionHeading>
             {t('Related Issues')}
@@ -80,9 +86,10 @@ class RelatedIssues extends React.Component<Props> {
             withPagination={false}
             useFilteredStats
             customStatsPeriod={timePeriod}
+            useTintRow={false}
           />
         </TableWrapper>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

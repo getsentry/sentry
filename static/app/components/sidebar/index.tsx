@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -171,6 +171,8 @@ class Sidebar extends React.Component<Props, State> {
     evt: React.MouseEvent<HTMLAnchorElement>
   ) => {
     const globalSelectionRoutes = [
+      'alerts',
+      'alerts/rules',
       'dashboards',
       'issues',
       'releases',

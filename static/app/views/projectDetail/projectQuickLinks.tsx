@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -49,6 +48,14 @@ function ProjectQuickLinks({organization, project, location}: Props) {
         pathname: `/organizations/${organization.slug}/user-feedback/`,
         query: {project: project?.id},
       },
+    },
+    {
+      title: t('View Transactions'),
+      to: {
+        pathname: getPerformanceLandingUrl(organization),
+        query: {project: project?.id},
+      },
+      disabled: !organization.features.includes('performance-view'),
     },
     {
       title: t('Most Improved/Regressed Transactions'),

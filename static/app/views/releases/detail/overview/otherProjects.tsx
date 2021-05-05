@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -32,12 +31,12 @@ function OtherProjects({projects, location, version, organization}: Props) {
       </SectionHeading>
 
       <Collapsible
-        expandButton={({onExpand, numberOfCollapsedItems}) => (
+        expandButton={({onExpand, numberOfHiddenItems}) => (
           <Button priority="link" onClick={onExpand}>
             {tn(
               'Show %s collapsed project',
               'Show %s collapsed projects',
-              numberOfCollapsedItems
+              numberOfHiddenItems
             )}
           </Button>
         )}

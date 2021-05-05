@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
@@ -9,7 +9,10 @@ import {IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {
+  getAggregateAlias,
+  isRelativeSpanOperationBreakdownField,
+} from 'app/utils/discover/fields';
 import {getDuration} from 'app/utils/formatters';
 import {QueryResults} from 'app/utils/tokenizeSearch';
 
@@ -135,7 +138,7 @@ class CellAction extends React.Component<Props, State> {
     this.menuEl = null;
   }
 
-  state = {
+  state: State = {
     isHovering: false,
     isOpen: false,
   };
@@ -190,6 +193,12 @@ class CellAction extends React.Component<Props, State> {
 
   renderMenuButtons() {
     const {dataRow, column, handleCellAction, allowActions} = this.props;
+
+    // Do not render context menu buttons for the span op breakdown field.
+    if (isRelativeSpanOperationBreakdownField(column.name)) {
+      return null;
+    }
+
     const fieldAlias = getAggregateAlias(column.name);
 
     let value = dataRow[fieldAlias];

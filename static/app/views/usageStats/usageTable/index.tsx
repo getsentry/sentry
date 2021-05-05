@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import ErrorPanel from 'app/components/charts/errorPanel';
@@ -108,7 +108,11 @@ class UsageTable extends React.Component<Props> {
 export default UsageTable;
 
 export const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: auto repeat(4, 100px);
+  grid-template-columns: repeat(5, auto);
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto repeat(4, 100px);
+  }
 `;
 export const CellStat = styled('div')`
   flex-shrink: 1;

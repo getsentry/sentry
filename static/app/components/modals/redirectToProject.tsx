@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
@@ -17,8 +17,8 @@ type State = {
   timer: number;
 };
 
-class RedirectToProjectModal extends React.Component<Props, State> {
-  state = {
+class RedirectToProjectModal extends Component<Props, State> {
+  state: State = {
     timer: 5,
   };
 
@@ -50,7 +50,7 @@ class RedirectToProjectModal extends React.Component<Props, State> {
   render() {
     const {slug, Header, Body} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>{t('Redirecting to New Project...')}</Header>
 
         <Body>
@@ -75,7 +75,7 @@ class RedirectToProjectModal extends React.Component<Props, State> {
             </Text>
           </div>
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

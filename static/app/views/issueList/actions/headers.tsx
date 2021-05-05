@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ToolbarHeader from 'app/components/toolbarHeader';
@@ -24,15 +24,15 @@ function Headers({
   hasInbox,
 }: Props) {
   return (
-    <React.Fragment>
+    <Fragment>
       {isReprocessingQuery ? (
-        <React.Fragment>
+        <Fragment>
           <StartedColumn>{t('Started')}</StartedColumn>
           <EventsReprocessedColumn>{t('Events Reprocessed')}</EventsReprocessedColumn>
           <ProgressColumn>{t('Progress')}</ProgressColumn>
-        </React.Fragment>
+        </Fragment>
       ) : (
-        <React.Fragment>
+        <Fragment>
           <GraphHeaderWrapper
             className={`hidden-xs hidden-sm ${hasInbox ? 'hidden-md' : ''}`}
           >
@@ -59,9 +59,9 @@ function Headers({
           <AssigneesLabel className="hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
-        </React.Fragment>
+        </Fragment>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

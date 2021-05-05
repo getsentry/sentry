@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -278,7 +278,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   handleQueryRemove = (index: number) => {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      newState.queries.splice(index, index + 1);
+      newState.queries.splice(index, 1);
 
       return {...newState, errors: undefined};
     });

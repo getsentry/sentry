@@ -1,6 +1,5 @@
-import React from 'react';
-import {RouteComponentProps} from 'react-router';
-import PropTypes from 'prop-types';
+import {Fragment} from 'react';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'app/actionCreators/teams';
@@ -10,8 +9,8 @@ import {Panel, PanelHeader} from 'app/components/panels';
 import teamSettingsFields from 'app/data/forms/teamSettingsFields';
 import {IconDelete} from 'app/icons';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import {Scope, Team} from 'app/types';
+import {LightWeightOrganization, Scope, Team} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
@@ -20,19 +19,14 @@ import FormModel from 'app/views/settings/components/forms/model';
 
 import TeamModel from './model';
 
-type Props = {
+type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
+  organization: LightWeightOrganization;
   team: Team;
-} & RouteComponentProps<{orgId: string; teamId: string}, {}>;
+};
 
 type State = AsyncView['state'];
 
-export default class TeamSettings extends AsyncView<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-    location: PropTypes.object,
-    organization: SentryTypes.Organization,
-  };
-
+class TeamSettings extends AsyncView<Props, State> {
   model = new TeamModel(this.props.params.orgId, this.props.params.teamId);
 
   getTitle() {
@@ -47,7 +41,7 @@ export default class TeamSettings extends AsyncView<Props, State> {
     updateTeamSuccess(resp.slug, resp);
     if (id === 'slug') {
       addSuccessMessage(t('Team name changed'));
-      this.props.router.replace(
+      browserHistory.replace(
         `/settings/${this.props.params.orgId}/teams/${model.getValue(id)}/settings/`
       );
       this.setState({loading: true});
@@ -56,17 +50,16 @@ export default class TeamSettings extends AsyncView<Props, State> {
 
   handleRemoveTeam = async () => {
     await removeTeam(this.api, this.props.params);
-    this.props.router.replace(`/settings/${this.props.params.orgId}/teams/`);
+    browserHistory.replace(`/settings/${this.props.params.orgId}/teams/`);
   };
 
   renderBody() {
-    const {location, organization} = this.context;
-    const {team} = this.props;
+    const {location, organization, team} = this.props;
 
     const access = new Set<Scope>(organization.access);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Form
           model={this.model}
           apiMethod="PUT"
@@ -109,7 +102,8 @@ export default class TeamSettings extends AsyncView<Props, State> {
             </div>
           </Field>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
+export default withOrganization(TeamSettings);

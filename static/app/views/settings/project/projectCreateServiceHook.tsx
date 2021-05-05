@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 
@@ -13,14 +13,14 @@ function ProjectCreateServiceHook({params}: Props) {
   const title = t('Create Service Hook');
   return (
     <DocumentTitle title={`${title} - Sentry`}>
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={title} />
         <ServiceHookSettingsForm
           orgId={orgId}
           projectId={projectId}
           initialData={{events: [], isActive: true}}
         />
-      </React.Fragment>
+      </Fragment>
     </DocumentTitle>
   );
 }

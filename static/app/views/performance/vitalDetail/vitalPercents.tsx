@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
@@ -28,8 +27,8 @@ function getVitalStateText(vital, vitalState) {
         : tct('Poor: >[threshold]ms', {threshold: webVitalPoor[vital]});
     case VitalState.MEH:
       return Array.isArray(vital)
-        ? t('Needs improvement')
-        : tct('Needs improvement: >[threshold]ms', {threshold: webVitalMeh[vital]});
+        ? t('Meh')
+        : tct('Meh: >[threshold]ms', {threshold: webVitalMeh[vital]});
     case VitalState.GOOD:
       return Array.isArray(vital)
         ? t('Good')

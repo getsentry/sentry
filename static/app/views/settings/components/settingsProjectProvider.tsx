@@ -1,4 +1,4 @@
-import React from 'react';
+import {cloneElement, Component, isValidElement} from 'react';
 
 import SentryTypes from 'app/sentryTypes';
 import {Project} from 'app/types';
@@ -10,7 +10,7 @@ import {Project} from 'app/types';
  *
  * This is made because some components (e.g. ProjectPluginDetail) takes project as prop
  */
-class SettingsProjectProvider extends React.Component {
+class SettingsProjectProvider extends Component {
   static contextTypes = {
     project: SentryTypes.Project,
   };
@@ -19,8 +19,8 @@ class SettingsProjectProvider extends React.Component {
     const {children} = this.props;
     const {project}: {project: Project} = this.context;
 
-    if (React.isValidElement(children)) {
-      return React.cloneElement(children, {
+    if (isValidElement(children)) {
+      return cloneElement(children, {
         ...this.props,
         ...children.props,
         project,

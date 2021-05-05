@@ -1,14 +1,11 @@
-import React from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
 import {Organization} from 'app/types';
 
-import {DashboardDetails, DisplayType} from './types';
+import {DisplayType} from './types';
 import WidgetWrapper from './widgetWrapper';
 
 export const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';
@@ -21,13 +18,14 @@ const initialStyles = {
 };
 
 type Props = {
-  onClick: () => void;
+  onOpenWidgetBuilder: () => void;
+  onAddWidget: () => void;
   orgFeatures: Organization['features'];
-  orgSlug: Organization['slug'];
-  dashboardId: DashboardDetails['id'];
 };
 
-function AddWidget({onClick, orgFeatures, orgSlug, dashboardId}: Props) {
+function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
+  const onClick = orgFeatures.includes('metrics') ? onOpenWidgetBuilder : onAddWidget;
+
   const {setNodeRef, transform} = useSortable({
     disabled: true,
     id: ADD_WIDGET_BUTTON_DRAG_ID,
@@ -55,26 +53,13 @@ function AddWidget({onClick, orgFeatures, orgSlug, dashboardId}: Props) {
         duration: 0.25,
       }}
     >
-      {orgFeatures.includes('metrics') ? (
-        <InnerWrapper>
-          <ButtonBar gap={1}>
-            <Button
-              to={`/organizations/${orgSlug}/dashboards/${dashboardId}/widget/new/?dataSet=metrics`}
-            >
-              {t('Add metrics widget')}
-            </Button>
-            <Button onClick={onClick}>{t('Add events widget')}</Button>
-          </ButtonBar>
-        </InnerWrapper>
-      ) : (
-        <InnerWrapper onClick={onClick}>
-          <AddButton
-            data-test-id="widget-add"
-            onClick={onClick}
-            icon={<IconAdd size="lg" isCircled color="inactive" />}
-          />
-        </InnerWrapper>
-      )}
+      <InnerWrapper onClick={onClick}>
+        <AddButton
+          data-test-id="widget-add"
+          onClick={onClick}
+          icon={<IconAdd size="lg" isCircled color="inactive" />}
+        />
+      </InnerWrapper>
     </WidgetWrapper>
   );
 }

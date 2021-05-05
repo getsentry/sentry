@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -269,7 +269,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           // Grab the last part of something like 'sentry.mail.actions.NotifyEmailAction'
           const splitActionId = action.id.split('.');
           const actionName = splitActionId[splitActionId.length - 1];
-          if (actionName) {
+          if (actionName === 'SlackNotifyServiceAction') {
             transaction.setTag(actionName, true);
           }
         }

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import chunk from 'lodash/chunk';
 import maxBy from 'lodash/maxBy';
@@ -39,7 +39,6 @@ type Props = {
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
   header?: React.ReactNode;
-  footer?: React.ReactNode;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
@@ -195,7 +194,6 @@ class TriggersChart extends React.PureComponent<Props, State> {
       thresholdType,
       environment,
       header,
-      footer,
     } = this.props;
     const {statsPeriod, totalEvents} = this.state;
 
@@ -274,18 +272,14 @@ class TriggersChart extends React.PureComponent<Props, State> {
                     )}
                     <ChartControls>
                       <InlineContainer>
-                        {footer ? (
-                          footer
-                        ) : (
-                          <React.Fragment>
-                            <SectionHeading>{t('Total Events')}</SectionHeading>
-                            {totalEvents !== null ? (
-                              <SectionValue>{totalEvents.toLocaleString()}</SectionValue>
-                            ) : (
-                              <SectionValue>&mdash;</SectionValue>
-                            )}
-                          </React.Fragment>
-                        )}
+                        <React.Fragment>
+                          <SectionHeading>{t('Total Events')}</SectionHeading>
+                          {totalEvents !== null ? (
+                            <SectionValue>{totalEvents.toLocaleString()}</SectionValue>
+                          ) : (
+                            <SectionValue>&mdash;</SectionValue>
+                          )}
+                        </React.Fragment>
                       </InlineContainer>
                       <InlineContainer>
                         <SectionHeading>{t('Display')}</SectionHeading>
@@ -294,8 +288,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
                           styles={{
                             control: provided => ({
                               ...provided,
-                              minHeight: '25px',
-                              height: '25px',
+                              minHeight: '32px',
+                              height: '32px',
                             }),
                           }}
                           isSearchable={false}
@@ -344,5 +338,5 @@ const PeriodSelectControl = styled(SelectControl)`
   font-weight: normal;
   text-transform: none;
   border: 0;
-  margin-right: ${space(2)};
+  margin-right: ${space(0.5)};
 `;

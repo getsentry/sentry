@@ -1,5 +1,6 @@
 import os.path
 import random
+import time
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -303,3 +304,75 @@ def create_sample_event_basic(data, project_id, raw=True):
     manager = EventManager(data)
     manager.normalize()
     return manager.save(project_id, raw=raw)
+
+
+def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_id, data):
+    """ A recursive function that creates the events of a trace """
+    frontend = data.get("frontend")
+    current_span_id = uuid4().hex[:16]
+    spans = []
+    new_start = start_timestamp + timedelta(milliseconds=random_normal(50, 25, 10))
+    new_end = timestamp - timedelta(milliseconds=random_normal(50, 25, 10))
+    for child in data["children"]:
+        span_id = uuid4().hex[:16]
+        spans.append(
+            {
+                "same_process_as_parent": True,
+                "op": "http",
+                "description": f"GET {child['transaction']}",
+                "data": {
+                    "duration": random_normal((new_end - new_start).total_seconds(), 0.25, 0.01),
+                    "offset": 0.02,
+                },
+                "span_id": span_id,
+                "trace_id": trace_id,
+            }
+        )
+        create_trace(
+            slow,
+            start_timestamp + timedelta(milliseconds=random_normal(50, 25, 10)),
+            timestamp - timedelta(milliseconds=random_normal(50, 25, 10)),
+            user,
+            trace_id,
+            span_id,
+            child,
+        )
+    for _ in range(data.get("errors", 0)):
+        create_sample_event(
+            project=data["project"],
+            platform="javascript" if frontend else "python",
+            user=user,
+            transaction=data["transaction"],
+            contexts={
+                "trace": {
+                    "type": "trace",
+                    "trace_id": trace_id,
+                    "span_id": random.choice(spans + [{"span_id": current_span_id}])["span_id"],
+                }
+            },
+        )
+    create_sample_event(
+        project=data["project"],
+        platform="javascript-transaction" if frontend else "transaction",
+        transaction=data["transaction"],
+        event_id=uuid4().hex,
+        user=user,
+        timestamp=timestamp,
+        start_timestamp=start_timestamp,
+        measurements={
+            "fp": {"value": random_normal(1250 - 50, 200, 500)},
+            "fcp": {"value": random_normal(1250 - 50, 200, 500)},
+            "lcp": {"value": random_normal(2800 - 50, 400, 2000)},
+            "fid": {"value": random_normal(5 - 0.125, 2, 1)},
+        }
+        if frontend
+        else {},
+        # Root
+        parent_span_id=parent_span_id,
+        span_id=current_span_id,
+        trace=trace_id,
+        spans=spans,
+    )
+    # try to give clickhouse some breathing room
+    if slow:
+        time.sleep(0.05)

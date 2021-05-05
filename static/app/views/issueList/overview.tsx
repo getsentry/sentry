@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -45,7 +45,7 @@ import {
   TagCollection,
 } from 'app/types';
 import {defined} from 'app/utils';
-import {analytics, logExperiment, metric, trackAnalyticsEvent} from 'app/utils/analytics';
+import {analytics, metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
@@ -180,7 +180,6 @@ class IssueListOverview extends React.Component<Props, State> {
     this.fetchSavedSearches();
     this.fetchTags();
     this.fetchMemberList();
-    this.logInboxExperiment();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -285,7 +284,7 @@ class IssueListOverview extends React.Component<Props, State> {
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
-    const {savedSearch, organization, location} = this.props;
+    const {savedSearch, location} = this.props;
     if (savedSearch) {
       return savedSearch.query;
     }
@@ -294,13 +293,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (query !== undefined) {
       return query as string;
-    }
-
-    if (
-      organization.features.includes('inbox') &&
-      organization.features.includes('inbox-tab-default')
-    ) {
-      return Query.FOR_REVIEW;
     }
 
     return DEFAULT_QUERY;
@@ -314,15 +306,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (location.query.sort) {
       return location.query.sort as string;
-    }
-
-    const {organization} = this.props;
-    if (
-      organization.features.includes('inbox') &&
-      organization.features.includes('inbox-tab-default') &&
-      this.getQuery() === Query.FOR_REVIEW
-    ) {
-      return IssueSortOptions.INBOX;
     }
 
     return DEFAULT_SORT;
@@ -658,14 +641,6 @@ class IssueListOverview extends React.Component<Props, State> {
     const {orgId} = this.props.params;
 
     return `/organizations/${orgId}/issues-stats/`;
-  }
-
-  logInboxExperiment() {
-    const {organization} = this.props;
-    // Only log users in experiment
-    if ([0, 1].includes(organization.experiments?.InboxExperiment!)) {
-      logExperiment({organization, key: 'InboxExperiment'});
-    }
   }
 
   onRealtimeChange = (realtime: boolean) => {

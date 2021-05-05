@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import OpsBreakdown from 'app/components/events/opsBreakdown';
@@ -19,6 +19,12 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 
+import {
+  MINIMAP_CONTAINER_HEIGHT,
+  MINIMAP_HEIGHT,
+  TIME_AXIS_HEIGHT,
+  VIEW_HANDLE_HEIGHT,
+} from './constants';
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
@@ -37,15 +43,6 @@ import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
 } from './utils';
-
-export const MINIMAP_SPAN_BAR_HEIGHT = 4;
-const MINIMAP_HEIGHT = 120;
-export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
-const TIME_AXIS_HEIGHT = 20;
-const VIEW_HANDLE_HEIGHT = 18;
-const SECONDARY_HEADER_HEIGHT = 20;
-export const MINIMAP_CONTAINER_HEIGHT =
-  MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + SECONDARY_HEADER_HEIGHT + 1;
 
 type PropType = {
   organization: Organization;

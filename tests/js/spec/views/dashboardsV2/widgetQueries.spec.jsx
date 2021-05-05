@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -139,7 +137,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     const longSelection = {
       projects: [1],
-      environments: ['prod'],
+      environments: ['prod', 'dev'],
       datetime: {
         period: '90d',
       },
@@ -163,7 +161,12 @@ describe('Dashboards > WidgetQueries', function () {
     expect(errorMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
-        query: expect.objectContaining({interval: '4h'}),
+        query: expect.objectContaining({
+          interval: '4h',
+          statsPeriod: '90d',
+          environment: ['prod', 'dev'],
+          project: [1],
+        }),
       })
     );
   });
@@ -226,9 +229,22 @@ describe('Dashboards > WidgetQueries', function () {
     await tick();
     await tick();
 
-    // Child should be rendered and 2 requests should be sent.
+    // Child should be rendered and 1 requests should be sent.
     expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
     expect(tableMock).toHaveBeenCalledTimes(1);
+    expect(tableMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/eventsv2/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:error',
+          name: 'SDK',
+          field: ['sdk.name'],
+          statsPeriod: '14d',
+          environment: ['prod'],
+          project: [1],
+        }),
+      })
+    );
     expect(childProps.timeseriesResults).toBeUndefined();
     expect(childProps.tableResults[0].data).toHaveLength(1);
     expect(childProps.tableResults[0].meta).toBeDefined();
@@ -300,6 +316,114 @@ describe('Dashboards > WidgetQueries', function () {
     expect(childProps.tableResults).toHaveLength(2);
     expect(childProps.tableResults[0].data[0]['sdk.name']).toBeDefined();
     expect(childProps.tableResults[1].data[0].title).toBeDefined();
+  });
+
+  it('can send big number result queries', async function () {
+    const tableMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {'sdk.name': 'string'},
+        data: [{'sdk.name': 'python'}],
+      },
+    });
+
+    let childProps = undefined;
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={{
+          title: 'SDK',
+          interval: '5m',
+          displayType: 'big_number',
+          queries: [{conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'}],
+        }}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {props => {
+          childProps = props;
+          return <div data-test-id="child" />;
+        }}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(tableMock).toHaveBeenCalledTimes(1);
+    expect(tableMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/eventsv2/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          referrer: 'api.dashboards.bignumberwidget',
+          query: 'event.type:error',
+          name: 'SDK',
+          field: ['sdk.name'],
+          statsPeriod: '14d',
+          environment: ['prod'],
+          project: [1],
+        }),
+      })
+    );
+    expect(childProps.timeseriesResults).toBeUndefined();
+    expect(childProps.tableResults[0].data).toHaveLength(1);
+    expect(childProps.tableResults[0].meta).toBeDefined();
+  });
+
+  it('can send world map result queries', async function () {
+    const tableMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-geo/',
+      body: {
+        meta: {'sdk.name': 'string'},
+        data: [{'sdk.name': 'python'}],
+      },
+    });
+
+    let childProps = undefined;
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={{
+          title: 'SDK',
+          interval: '5m',
+          displayType: 'world_map',
+          queries: [{conditions: 'event.type:error', fields: ['count()'], name: 'sdk'}],
+        }}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {props => {
+          childProps = props;
+          return <div data-test-id="child" />;
+        }}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(tableMock).toHaveBeenCalledTimes(1);
+    expect(tableMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-geo/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          referrer: 'api.dashboards.worldmapwidget',
+          query: 'event.type:error',
+          name: 'SDK',
+          field: ['count()'],
+          statsPeriod: '14d',
+          environment: ['prod'],
+          project: [1],
+        }),
+      })
+    );
+    expect(childProps.timeseriesResults).toBeUndefined();
+    expect(childProps.tableResults[0].data).toHaveLength(1);
+    expect(childProps.tableResults[0].meta).toBeDefined();
   });
 
   it('stops loading state once all queries finish even if some fail', async function () {

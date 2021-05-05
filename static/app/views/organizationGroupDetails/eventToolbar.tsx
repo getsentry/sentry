@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -49,7 +49,7 @@ type Props = {
   location: Location;
 };
 
-class GroupEventToolbar extends React.Component<Props> {
+class GroupEventToolbar extends Component<Props> {
   shouldComponentUpdate(nextProps: Props) {
     return this.props.event.id !== nextProps.event.id;
   }
@@ -80,7 +80,7 @@ class GroupEventToolbar extends React.Component<Props> {
           {dateCreated.format(format)}
         </dd>
         {dateReceived && (
-          <React.Fragment>
+          <Fragment>
             <dt>Received</dt>
             <dd>
               {dateReceived.format('ll')}
@@ -89,7 +89,7 @@ class GroupEventToolbar extends React.Component<Props> {
             </dd>
             <dt>Latency</dt>
             <dd>{formatDateDelta(dateCreated, dateReceived)}</dd>
-          </React.Fragment>
+          </Fragment>
         )}
       </DescriptionList>
     );
@@ -147,6 +147,7 @@ class GroupEventToolbar extends React.Component<Props> {
         </Tooltip>
         {hasQuickTraceView && !hasTraceContext && (
           <DistributedTracingPrompt
+            event={evt}
             group={this.props.group}
             organization={organization}
           />

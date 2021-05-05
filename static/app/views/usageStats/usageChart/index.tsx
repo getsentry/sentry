@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
@@ -26,15 +26,11 @@ import {formatUsageWithUnits, GIGABYTE} from '../utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
 
-const COLOR_ERRORS = ChartPalette[4][3];
-const COLOR_ERRORS_DROPPED = Color(COLOR_ERRORS).lighten(0.25).string();
-
-const COLOR_TRANSACTIONS = ChartPalette[4][2];
-const COLOR_TRANSACTIONS_DROPPED = Color(COLOR_TRANSACTIONS).lighten(0.25).string();
-
-const COLOR_ATTACHMENTS = ChartPalette[4][1];
-const COLOR_ATTACHMENTS_DROPPED = Color(COLOR_ATTACHMENTS).lighten(0.5).string();
-const COLOR_PROJECTED = commonTheme.gray200;
+const COLOR_ERRORS = Color(ChartPalette[4][3]).lighten(0.25).string();
+const COLOR_TRANSACTIONS = Color(ChartPalette[4][2]).lighten(0.35).string();
+const COLOR_ATTACHMENTS = Color(ChartPalette[4][1]).lighten(0.65).string();
+const COLOR_DROPPED = commonTheme.red300;
+const COLOR_PROJECTED = commonTheme.gray100;
 
 export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
   {
@@ -80,6 +76,11 @@ export enum SeriesTypes {
 
 type DefaultProps = {
   /**
+   * Display datetime in UTC
+   */
+  usageDateShowUtc: boolean;
+
+  /**
    * Intervals between the x-axis values
    */
   usageDateInterval: IntervalPeriod;
@@ -111,6 +112,10 @@ type Props = DefaultProps & {
 
   usageDateStart: string;
   usageDateEnd: string;
+
+  /**
+   * Usage data to draw on chart
+   */
   usageStats: ChartStats;
 
   /**
@@ -136,6 +141,7 @@ export type ChartStats = {
 
 export class UsageChart extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
+    usageDateShowUtc: true,
     usageDateInterval: '1d',
     handleDataTransformation: (stats, transform) => {
       const chartData: ChartStats = {
@@ -175,11 +181,16 @@ export class UsageChart extends React.Component<Props, State> {
    * either covers day 16-30 or may not be available at all.
    */
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const {usageDateStart, usageDateEnd, usageDateInterval} = nextProps;
+    const {usageDateStart, usageDateEnd, usageDateShowUtc, usageDateInterval} = nextProps;
 
     return {
       ...prevState,
-      xAxisDates: getXAxisDates(usageDateStart, usageDateEnd, usageDateInterval),
+      xAxisDates: getXAxisDates(
+        usageDateStart,
+        usageDateEnd,
+        usageDateShowUtc,
+        usageDateInterval
+      ),
     };
   }
 
@@ -187,14 +198,14 @@ export class UsageChart extends React.Component<Props, State> {
     const {dataCategory} = this.props;
 
     if (dataCategory === DataCategory.ERRORS) {
-      return [COLOR_ERRORS, COLOR_ERRORS_DROPPED, COLOR_PROJECTED];
+      return [COLOR_ERRORS, COLOR_DROPPED, COLOR_PROJECTED];
     }
 
     if (dataCategory === DataCategory.ATTACHMENTS) {
-      return [COLOR_ATTACHMENTS, COLOR_ATTACHMENTS_DROPPED, COLOR_PROJECTED];
+      return [COLOR_ATTACHMENTS, COLOR_DROPPED, COLOR_PROJECTED];
     }
 
-    return [COLOR_TRANSACTIONS, COLOR_TRANSACTIONS_DROPPED, COLOR_PROJECTED];
+    return [COLOR_TRANSACTIONS, COLOR_DROPPED, COLOR_PROJECTED];
   }
 
   get chartMetadata(): {
@@ -245,7 +256,7 @@ export class UsageChart extends React.Component<Props, State> {
     // Use hours as common units
     const dataPeriod = statsPeriodToDays(undefined, usageDateStart, usageDateEnd) * 24;
     const barPeriod = parsePeriodToHours(usageDateInterval);
-    if (dataPeriod === 0 || barPeriod === -1) {
+    if (dataPeriod < 0 || barPeriod < 0) {
       throw new Error('UsageChart: Unable to parse data time period');
     }
 
@@ -289,7 +300,7 @@ export class UsageChart extends React.Component<Props, State> {
     const {chartSeries} = this.props;
     const {chartData} = this.chartMetadata;
 
-    const series: EChartOption.Series[] = [
+    let series: EChartOption.Series[] = [
       barSeries({
         name: SeriesTypes.ACCEPTED,
         data: chartData.accepted as any, // TODO(ts)
@@ -314,7 +325,7 @@ export class UsageChart extends React.Component<Props, State> {
 
     // Additional series passed by parent component
     if (chartSeries) {
-      series.concat(chartSeries as EChartOption.Series[]);
+      series = series.concat(chartSeries as EChartOption.Series[]);
     }
 
     return series;

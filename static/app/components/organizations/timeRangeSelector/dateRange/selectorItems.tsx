@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
 import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
@@ -9,6 +9,7 @@ type Props = {
   handleAbsoluteClick: (value: string, e: React.MouseEvent) => void;
   isAbsoluteSelected: boolean;
   relativeSelected: string;
+  relativePeriods?: Record<string, string>; // Override DEFAULT_RELATIVE_PERIODS
   shouldShowRelative?: boolean;
   shouldShowAbsolute?: boolean;
 };
@@ -19,11 +20,16 @@ const SelectorItems = ({
   handleSelectRelative,
   handleAbsoluteClick,
   relativeSelected,
+  relativePeriods,
   isAbsoluteSelected,
 }: Props) => (
   <React.Fragment>
     {shouldShowRelative && (
-      <RelativeSelector onClick={handleSelectRelative} selected={relativeSelected} />
+      <RelativeSelector
+        onClick={handleSelectRelative}
+        selected={relativeSelected}
+        relativePeriods={relativePeriods}
+      />
     )}
     {shouldShowAbsolute && (
       <SelectorItem

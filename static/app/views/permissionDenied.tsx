@@ -1,28 +1,27 @@
-import React from 'react';
+import {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingError from 'app/components/loadingError';
 import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
+import {LightWeightOrganization, Project} from 'app/types';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
 
 const ERROR_NAME = 'Permission Denied';
 
-type Props = WithRouterProps;
+type Props = WithRouterProps & {
+  organization: LightWeightOrganization;
+  project?: Project;
+};
 
-class PermissionDenied extends React.Component<Props> {
-  static contextTypes = {
-    organization: PropTypes.object,
-    project: PropTypes.object,
-  };
-
+class PermissionDenied extends Component<Props> {
   componentDidMount() {
-    const {routes} = this.props;
-    const {organization, project} = this.context;
+    const {organization, project, routes} = this.props;
 
     const route = getRouteStringFromRoutes(routes);
     Sentry.withScope(scope => {
@@ -56,4 +55,4 @@ class PermissionDenied extends React.Component<Props> {
   }
 }
 
-export default withRouter(PermissionDenied);
+export default withRouter(withOrganization(withProject(PermissionDenied)));

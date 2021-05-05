@@ -1,4 +1,4 @@
-import React from 'react';
+import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -140,10 +140,12 @@ describe('UsageStats', function () {
         organization={organization}
         location={{
           query: {
-            pagePeriod: ninetyDays,
+            pageStatsPeriod: ninetyDays,
             dataCategory: DataCategory.TRANSACTIONS,
-            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
             sort: '-project',
+            query: 'myProjectSlug',
+            cursor: '0:1:0',
           },
         }}
       />,
@@ -218,25 +220,38 @@ describe('UsageStats', function () {
         organization={organization}
         location={{
           query: {
-            pagePeriod: ninetyDays,
-            dataCategory: DataCategory.TRANSACTIONS,
-            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            pageStatsPeriod: ninetyDays,
+            dataCategory: DataCategory.ERRORS,
+            transform: CHART_OPTIONS_DATA_TRANSFORM[0].value,
             sort: '-project',
+            query: 'myProjectSlug',
+            cursor: '0:0:0',
           },
         }}
         router={router}
       />,
-      router
+      routerContext
     );
 
     await tick();
     wrapper.update();
 
-    const optionPagePeriod = wrapper.find(`DropdownItem[eventKey="90d"]`);
-    optionPagePeriod.props().onSelect('90d');
+    const optionpagePeriod = wrapper.find(`TimeRangeSelector`);
+    optionpagePeriod.props().onUpdate({relative: '30d'});
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        pagePeriod: '90d',
+        pageStatsPeriod: '30d',
+      }),
+    });
+
+    optionpagePeriod
+      .props()
+      .onUpdate({start: '2021-01-01', end: '2021-01-31', utc: true});
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        pageStart: '2021-01-01T00:00:00Z',
+        pageEnd: '2021-01-31T00:00:00Z',
+        pageUtc: true,
       }),
     });
 
@@ -250,8 +265,22 @@ describe('UsageStats', function () {
     optionChartTransform.props().onChange(CHART_OPTIONS_DATA_TRANSFORM[1].value);
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+        transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
       }),
+    });
+
+    const inputQuery = wrapper.find('SearchBar');
+    inputQuery.props().onSearch('someSearchQuery');
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        query: 'someSearchQuery',
+      }),
+    });
+
+    const paginate = wrapper.find('Pagination');
+    paginate.props().onCursor('0:100:0');
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({cursor: '0:100:0'}),
     });
   });
 
@@ -263,17 +292,19 @@ describe('UsageStats', function () {
           query: {
             pageStart: '2021-01-01T00:00:00Z',
             pageEnd: '2021-01-07T00:00:00Z',
-            pagePeriod: ninetyDays,
+            pageStatsPeriod: ninetyDays,
             pageUtc: true,
             dataCategory: DataCategory.TRANSACTIONS,
-            chartTransform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
+            transform: CHART_OPTIONS_DATA_TRANSFORM[1].value,
             sort: '-project',
+            query: 'myProjectSlug',
+            cursor: '0:1:0',
             notAPageKey: 'hello', // Should not be removed
           },
         }}
         router={router}
       />,
-      router
+      routerContext
     );
 
     await tick();

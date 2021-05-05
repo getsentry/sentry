@@ -1,10 +1,13 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Clipboard from 'app/components/clipboard';
 import DateTime from 'app/components/dateTime';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import TimeSince from 'app/components/timeSince';
+import Tooltip from 'app/components/tooltip';
+import {IconCopy} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
@@ -108,7 +111,7 @@ class EventMetas extends React.Component<Props, State> {
         <MetaData
           headingText={t('Event ID')}
           tooltipText={t('The unique ID assigned to this %s.', type)}
-          bodyText={getShortEventId(event.eventID)}
+          bodyText={<EventID event={event} />}
           subtext={projectBadge}
         />
         {isTransaction(event) ? (
@@ -184,6 +187,29 @@ const QuickTraceContainer = styled('div')`
     min-width: 325px;
     grid-column: unset;
   }
+`;
+
+function EventID({event}: {event: Event}) {
+  return (
+    <Clipboard value={event.eventID}>
+      <EventIDContainer>
+        <EventIDWrapper>{getShortEventId(event.eventID)}</EventIDWrapper>
+        <Tooltip title={event.eventID} position="top">
+          <IconCopy color="subText" />
+        </Tooltip>
+      </EventIDContainer>
+    </Clipboard>
+  );
+}
+
+const EventIDContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+`;
+
+const EventIDWrapper = styled('span')`
+  margin-right: ${space(1)};
 `;
 
 function HttpStatus({event}: {event: Event}) {

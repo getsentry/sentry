@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as queryString from 'query-string';
 
@@ -10,6 +10,7 @@ import {t} from 'app/locale';
 import GroupingStore, {Fingerprint} from 'app/stores/groupingStore';
 import {Group, Organization, Project} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import withOrganization from 'app/utils/withOrganization';
 
 import MergedList from './mergedList';
 
@@ -18,6 +19,7 @@ type Props = RouteComponentProps<
   {}
 > & {
   project: Project;
+  organization: Organization;
 };
 
 type State = {
@@ -28,7 +30,7 @@ type State = {
   mergedLinks?: string;
 };
 
-class GroupMergedView extends React.Component<Props, State> {
+class GroupMergedView extends Component<Props, State> {
   state: State = {
     mergedItems: [],
     loading: true,
@@ -73,11 +75,18 @@ class GroupMergedView extends React.Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupingChange, undefined);
 
   getEndpoint() {
-    const {params} = this.props;
+    const {params, organization, location} = this.props;
     const {groupId} = params;
 
+    const hasGroupingTreeFeature = organization?.features?.includes('grouping-tree-ui');
+
+    if (hasGroupingTreeFeature) {
+      // TODO(markus): limits
+      return `/issues/${groupId}/hashes/split/`;
+    }
+
     const queryParams = {
-      ...this.props.location.query,
+      ...location.query,
       limit: 50,
       query: this.state.query,
     };
@@ -104,6 +113,15 @@ class GroupMergedView extends React.Component<Props, State> {
     });
   };
 
+  handleSplit = () => {
+    GroupingActions.split({
+      groupId: this.props.params.groupId,
+      loadingMessage: t('Splitting fingerprints\u2026'),
+      successMessage: t('Fingerprints successfully queued for splitting.'),
+      errorMessage: t('Unable to queue fingerprints for splitting.'),
+    });
+  };
+
   render() {
     const {project, params} = this.props;
     const {groupId} = params;
@@ -112,7 +130,7 @@ class GroupMergedView extends React.Component<Props, State> {
     const isLoadedSuccessfully = !isError && !isLoading;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Alert type="warning">
           {t(
             'This is an experimental feature. Data may not be immediately available while we process unmerges.'
@@ -134,14 +152,15 @@ class GroupMergedView extends React.Component<Props, State> {
             pageLinks={mergedLinks}
             groupId={groupId}
             onUnmerge={this.handleUnmerge}
+            onSplit={this.handleSplit}
             onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
           />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
 
 export {GroupMergedView};
 
-export default GroupMergedView;
+export default withOrganization(GroupMergedView);

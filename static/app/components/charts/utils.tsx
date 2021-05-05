@@ -75,6 +75,26 @@ export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
   return highFidelity ? '1m' : '5m';
 }
 
+/**
+ * Duplicate of getInterval, except that we do not support <1h granularity
+ * Used by SessionsV2 and OrgStatsV2 API
+ */
+export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
+  const diffInMinutes = getDiffInMinutes(datetimeObj);
+
+  if (diffInMinutes >= SIXTY_DAYS) {
+    // Greater than or equal to 60 days
+    return '1d';
+  }
+
+  if (diffInMinutes >= THIRTY_DAYS) {
+    // Greater than or equal to 30 days
+    return '4h';
+  }
+
+  return '1h';
+}
+
 export function getDiffInMinutes(datetimeObj: DateTimeObject): number {
   const {period, start, end} = datetimeObj;
 

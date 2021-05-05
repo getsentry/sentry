@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
@@ -13,6 +13,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {Column, isAggregateField, WebVital} from 'app/utils/discover/fields';
@@ -33,7 +34,6 @@ import {addRoutePerformanceContext, getTransactionName} from '../utils';
 import SummaryContent from './content';
 import {
   decodeFilterFromLocation,
-  filterToField,
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from './filter';
@@ -58,7 +58,7 @@ type State = {
 // as React.ReactText
 type TotalValues = Record<string, number>;
 
-class TransactionSummary extends React.Component<Props, State> {
+class TransactionSummary extends Component<Props, State> {
   state: State = {
     spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
     eventView: generateSummaryEventView(
@@ -99,7 +99,14 @@ class TransactionSummary extends React.Component<Props, State> {
   }
 
   onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventName: 'Performance Views: Filter Dropdown',
+      eventKey: 'performance_views.filter_dropdown.selection',
+      organization_id: parseInt(organization.id, 10),
+      action: newFilter as string,
+    });
 
     const nextQuery: Location['query'] = {
       ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
@@ -277,26 +284,13 @@ function generateSummaryEventView(
     .setTagValues('event.type', ['transaction'])
     .setTagValues('transaction', [transactionName]);
 
-  const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
-
   Object.keys(conditions.tagValues).forEach(field => {
     if (isAggregateField(field)) conditions.removeTag(field);
   });
 
-  let durationField = 'transaction.duration';
-
-  if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
-    durationField = filterToField(spanOperationBreakdownFilter)!;
-  }
-
   const fields = organization.features.includes('trace-view-summary')
-    ? ['id', 'user.display', durationField, 'trace', 'timestamp']
-    : ['id', 'user.display', durationField, 'timestamp'];
-
-  if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
-    // Add transaction.duration field so that the span op breakdown can be compared against it.
-    fields.push('transaction.duration');
-  }
+    ? ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp']
+    : ['id', 'user.display', 'transaction.duration', 'timestamp'];
 
   return EventView.fromNewQueryWithLocation(
     {
