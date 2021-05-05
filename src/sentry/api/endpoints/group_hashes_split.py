@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
 from django.db import transaction
@@ -113,29 +113,22 @@ class NoHierarchicalHash(Exception):
 
 
 def _split_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequence[str]] = None):
+    # Sanity check to see if what we're splitting here is a hierarchical hash.
     if hierarchical_hashes is None:
         hierarchical_hashes = _get_full_hierarchical_hashes(group, hash)
 
     if not hierarchical_hashes:
         raise NoHierarchicalHash()
 
-    hierarchical_grouphashes = {
-        grouphash.hash: grouphash
-        for grouphash in GroupHash.objects.filter(
-            project=group.project, group=group, hash__in=hierarchical_hashes
-        )
-    }
-
-    for hash in hierarchical_hashes:
-        grouphash = hierarchical_grouphashes.get(hash)
-        if grouphash is not None:
-            break
-    else:
-        raise NoHierarchicalHash()
-
     # Mark one hierarchical hash as SPLIT. Note this also prevents it from
     # being deleted in group deletion.
+    #
+    # We're upserting the hash here to make sure it exists. We have observed
+    # that the materialized hash in postgres is mysteriously lost, presumably
+    # because of secondary grouping or merge/unmerge.
+    grouphash, _created = GroupHash.objects.get_or_create(project_id=group.project_id, hash=hash)
     grouphash.state = GroupHash.State.SPLIT
+    grouphash.group_id = group.id
     grouphash.save()
 
 
@@ -211,123 +204,209 @@ def _unsplit_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequen
 
 def _get_group_filters(group: Group):
     return [
-        Condition(Column("timestamp"), Op.GTE, group.first_seen),
-        Condition(Column("timestamp"), Op.LT, group.last_seen + datetime.timedelta(seconds=1)),
         Condition(Column("project_id"), Op.EQ, group.project_id),
         Condition(Column("group_id"), Op.EQ, group.id),
+        # XXX(markus): Those conditions are subject to last_seen being totally
+        # in sync with max(timestamp) of Snuba which can be false. In fact we
+        # know that during merge/unmerge last_seen can become permanently
+        # wrong: https://github.com/getsentry/sentry/issues/25673
+        #
+        # We add both conditions because Snuba query API requires us to, and
+        # because it does bring a significant performance boost.
+        Condition(Column("timestamp"), Op.GTE, group.first_seen),
+        Condition(Column("timestamp"), Op.LT, group.last_seen + datetime.timedelta(seconds=1)),
     ]
 
 
-def _render_trees(group: Group, user):
-    materialized_hashes = {
-        gh.hash for gh in GroupHash.objects.filter(project=group.project, group=group)
+def _add_hash(
+    trees: List[Dict[str, Any]],
+    project_id: int,
+    user,
+    parent_hash: Optional[str],
+    hash: str,
+    child_hash: Optional[str],
+    event_count: int,
+    last_seen,
+    latest_event_id,
+):
+    event = eventstore.get_event_by_id(project_id, latest_event_id)
+
+    tree = {
+        "parentId": parent_hash,
+        "id": hash,
+        "childId": child_hash,
+        "eventCount": event_count,
+        "latestEvent": serialize(event, user, EventSerializer()),
     }
+
+    trees.append(tree)
+
+    try:
+        for variant in event.get_grouping_variants().values():
+            if not isinstance(variant, ComponentVariant):
+                continue
+
+            if variant.get_hash() == tree["parentId"]:
+                tree["parentLabel"] = variant.component.tree_label
+
+            if variant.get_hash() == tree["id"]:
+                tree["label"] = variant.component.tree_label
+
+            if variant.get_hash() == tree["childId"]:
+                tree["childLabel"] = variant.component.tree_label
+
+    except Exception:
+        sentry_sdk.capture_exception()
+
+
+def _construct_arraymax(elements):
+    # XXX(markus): This is quite horrible but Snuba SDK does not allow us to do
+    # arrayMax([<other function call>, ...]), i.e. it does not allow function
+    # calls in array literals. So instead of arrayMax([1, 2, 3]) we do
+    # greatest(1, greatest(2, 3)).
+    assert elements
+
+    if len(elements) == 1:
+        return elements[0]
+
+    # Attempt to build well-balanced 'tree' of greatest() such that
+    # we don't run into ClickHouse recursion limits.
+
+    return Function(
+        "greatest",
+        [
+            _construct_arraymax(elements[: len(elements) // 2]),
+            _construct_arraymax(elements[len(elements) // 2 :]),
+        ],
+    )
+
+
+def _render_trees(group: Group, user):
+    materialized_hashes = list(
+        {gh.hash for gh in GroupHash.objects.filter(project=group.project, group=group)}
+    )
+
+    # Evaluates to the index of the last hash that is in materialized_hashes,
+    # or 1 otherwise.
+    find_hash_expr = _construct_arraymax(
+        [1]
+        + [  # type: ignore
+            Function("indexOf", [Column("hierarchical_hashes"), hash])
+            for hash in materialized_hashes
+        ]
+    )
+
+    # After much deliberation I (markus) decided that it would be best to
+    # render the entire tree using one large Snuba query. A previous
+    # implementation incurred n+1 queries on Snuba (n = number of materialized
+    # hashes) and was very buggy when it came to missing materialized hashes
+    # (which can happen if fallback/secondary grouping is turned on), events
+    # were counted twice because those n+1 queries accidentally counted
+    # overlapping sets of events, and the endpoint response time was kind of
+    # bad because of n+1 query.
+    #
+    # It being one large query may also make it easier to add pagination down
+    # the road.
+
+    query = (
+        Query("events", Entity("events"))
+        .set_select(
+            [
+                Function("count", [], "event_count"),
+                Function("argMax", [Column("event_id"), Column("timestamp")], "event_id"),
+                Function("max", [Column("timestamp")], "latest_event_timestamp"),
+                # If hierarchical_hashes contains any of the materialized
+                # hashes, find_hash_expr evaluates to the last found index and
+                # arraySlice will give us this hash + the next child hash that
+                # we use in groupby
+                #
+                # If hierarchical_hashes does not contain any of those hashes,
+                # find_hash_expr will return 1 so we start slicing at the beginning.
+                # This can happen when hierarchical_hashes is empty (=>
+                # hash_slice = []), but we also try to recover gracefully from
+                # a hypothetical case where we are missing some hashes in
+                # postgres (unclear how this could be reached).
+                #
+                # We select some intermediate computation values here which we
+                # definetly don't need the results of. It's just temp vars.
+                Function(
+                    # First we find the materialized hash using find_hash_expr,
+                    # and subtract 1 which should be the parent hash if there
+                    # is one. If there isn't, this now can be an out-of-bounds
+                    # access by being 0 (arrays are indexed starting with 1)
+                    "minus",
+                    [find_hash_expr, 1],
+                    "parent_hash_i",
+                ),
+                # We clip the value to be at least 1, this will be where we
+                # start slicing hierarchical_hashes. 0 would be an out of
+                # bounds access.
+                Function("greatest", [Column("parent_hash_i"), 1], "slice_start"),
+                # This will return a slice of length 2 if the materialized hash
+                # has been found at the beginning of the array, but return a
+                # slice of length 3 if not.
+                Function(
+                    "arraySlice",
+                    [
+                        Column("hierarchical_hashes"),
+                        Column("slice_start"),
+                        Function(
+                            "minus",
+                            [
+                                Function(
+                                    "plus",
+                                    [Column("parent_hash_i"), 3],
+                                ),
+                                Column("slice_start"),
+                            ],
+                        ),
+                    ],
+                    "hash_slice",
+                ),
+                Column("primary_hash"),
+            ]
+        )
+        .set_where(_get_group_filters(group))
+        .set_groupby(
+            [
+                Column("parent_hash_i"),
+                Column("slice_start"),
+                Column("hash_slice"),
+                Column("primary_hash"),
+            ]
+        )
+        .set_orderby([OrderBy(Column("latest_event_timestamp"), Direction.DESC)])
+    )
 
     rv = []
 
-    common_where = _get_group_filters(group)
-
-    for materialized_hash in materialized_hashes:
-        # For every materialized hash we want to render parent and child
-        # hashes, a limited view of the entire tree. We fetch one sample event
-        # so we know how we need to slice hierarchical_hashes.
-        hierarchical_hashes = _get_full_hierarchical_hashes(group, materialized_hash)
-
-        if not hierarchical_hashes:
-            # No hierarchical_hashes found, the materialized hash is probably
-            # from flat grouping.
-            parent_pos = None
-            hash_pos = None
-            child_pos = None
-            slice_start = 0
+    for row in snuba.raw_snql_query(query, referrer="api.group_split.render_grouping_tree")["data"]:
+        if len(row["hash_slice"]) == 0:
+            hash = row["primary_hash"]
+            parent_hash = child_hash = None
+        elif len(row["hash_slice"]) == 1:
+            (hash,) = row["hash_slice"]
+            parent_hash = child_hash = None
+        elif len(row["hash_slice"]) == 2:
+            hash, child_hash = row["hash_slice"]
+            parent_hash = None
+        elif len(row["hash_slice"]) == 3:
+            parent_hash, hash, child_hash = row["hash_slice"]
         else:
-            materialized_pos = hierarchical_hashes.index(materialized_hash)
+            raise ValueError("unexpected length of hash_slice")
 
-            if materialized_pos == 0:
-                parent_pos = None
-                hash_pos = 0
-                child_pos = 1
-                slice_start = 1
-            else:
-                parent_pos = 0
-                hash_pos = 1
-                child_pos = 2
-                slice_start = materialized_pos
-
-        # Select sub-views of the trees that contain materialized_hash.
-        query = (
-            Query("events", Entity("events"))
-            .set_select(
-                [
-                    Function("count", [], "event_count"),
-                    Function("argMax", [Column("event_id"), Column("timestamp")], "event_id"),
-                    Function("max", [Column("timestamp")], "latest_event_timestamp"),
-                    Function(
-                        "arraySlice", [Column("hierarchical_hashes"), slice_start, 3], "hashes"
-                    ),
-                ]
-            )
-            .set_where(
-                common_where
-                + [
-                    Condition(
-                        Function(
-                            "has",
-                            [
-                                Column("hierarchical_hashes"),
-                                materialized_hash,
-                            ],
-                        ),
-                        Op.EQ,
-                        1,
-                    ),
-                ]
-            )
-            .set_groupby([Column("hashes")])
-            .set_orderby([OrderBy(Column("latest_event_timestamp"), Direction.DESC)])
+        _add_hash(
+            rv,
+            group.project_id,
+            user,
+            parent_hash,
+            hash,
+            child_hash,
+            row["event_count"],
+            row["latest_event_timestamp"],
+            row["event_id"],
         )
 
-        for row in snuba.raw_snql_query(query)["data"]:
-            assert not row["hashes"] or row["hashes"][hash_pos] == materialized_hash
-
-            event_id = row["event_id"]
-            event = eventstore.get_event_by_id(group.project_id, event_id)
-
-            tree = {
-                "parentId": _get_checked(row["hashes"], parent_pos),
-                "id": materialized_hash,
-                "childId": _get_checked(row["hashes"], child_pos),
-                "eventCount": row["event_count"],
-                "latestEvent": serialize(event, user, EventSerializer()),
-            }
-
-            rv.append(tree)
-
-            if not row["hashes"]:
-                continue
-
-            try:
-                for variant in event.get_grouping_variants().values():
-                    if not isinstance(variant, ComponentVariant):
-                        continue
-
-                    if variant.get_hash() == tree["parentId"]:
-                        tree["parentLabel"] = variant.component.tree_label
-
-                    if variant.get_hash() == tree["childId"]:
-                        tree["childLabel"] = variant.component.tree_label
-
-                    if variant.get_hash() == tree["id"]:
-                        tree["label"] = variant.component.tree_label
-            except Exception:
-                sentry_sdk.capture_exception()
-
-    rv.sort(key=lambda tree: (tree["parentId"] or "", tree["id"] or "", tree["childId"] or ""))
+    rv.sort(key=lambda tree: (tree["id"] or "", tree["childId"] or ""))
 
     return rv
-
-
-def _get_checked(list, pos):
-    if pos is not None and pos < len(list):
-        return list[pos]
-    return None
