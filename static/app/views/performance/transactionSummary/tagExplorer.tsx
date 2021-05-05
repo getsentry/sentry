@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject, Query} from 'history';
 
+import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
@@ -430,7 +431,9 @@ class _TagExplorer extends React.Component<Props> {
         {({isLoading, tableData, pageLinks}) => {
           return (
             <React.Fragment>
-              <TagsHeader organization={organization} pageLinks={pageLinks} />
+              <GuideAnchor target="tag_explorer">
+                <TagsHeader organization={organization} pageLinks={pageLinks} />
+              </GuideAnchor>
               <GridEditable
                 isLoading={isLoading}
                 data={tableData && tableData.data ? tableData.data : []}
