@@ -17,6 +17,7 @@ import {
   IconActivity,
   IconChevron,
   IconGraph,
+  IconGroup,
   IconIssues,
   IconLab,
   IconLightning,
@@ -412,6 +413,18 @@ class Sidebar extends React.Component<Props, State> {
       />
     );
 
+    const referFriend = (
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconGroup size="md" />}
+        label={t('Refer a friend')}
+        href="https://sentry.io/referrals/"
+        id="referr-friend"
+        onClick={() => {}}
+        external
+      />
+    );
+
     return (
       <StyledSidebar ref={this.sidebarRef} collapsed={collapsed}>
         <SidebarSectionGroupPrimary>
@@ -486,6 +499,7 @@ class Sidebar extends React.Component<Props, State> {
                 hidePanel={this.hidePanel}
                 organization={organization}
               />
+              {referFriend}
               <ServiceIncidents
                 orientation={orientation}
                 collapsed={collapsed}

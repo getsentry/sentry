@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'app/components/featureBadge';
 import HookOrDefault from 'app/components/hookOrDefault';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
@@ -65,6 +66,8 @@ type Props = ReactRouter.WithRouterProps & {
    * Sidebar is at "top" or "left" of screen
    */
   orientation: SidebarOrientation;
+
+  external?: boolean;
 };
 
 const SidebarItem = ({
@@ -83,6 +86,7 @@ const SidebarItem = ({
   className,
   orientation,
   onClick,
+  external,
   ...props
 }: Props) => {
   // label might be wrapped in a guideAnchor
@@ -109,7 +113,7 @@ const SidebarItem = ({
 
   return (
     <Tooltip disabled={!collapsed} title={label} position={placement}>
-      <StyledSidebarItem
+      <SidebarLink
         data-test-id={props['data-test-id']}
         active={isActive ? 'true' : undefined}
         to={(to ? to : href) || '#'}
@@ -119,6 +123,7 @@ const SidebarItem = ({
           typeof onClick === 'function' && onClick(id, event);
           showIsNew && localStorage.setItem(isNewSeenKey, 'true');
         }}
+        external={external}
       >
         <SidebarItemWrapper>
           <SidebarItemIcon>{icon}</SidebarItemIcon>
@@ -137,12 +142,39 @@ const SidebarItem = ({
             <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
           )}
         </SidebarItemWrapper>
-      </StyledSidebarItem>
+      </SidebarLink>
     </Tooltip>
   );
 };
 
 export default ReactRouter.withRouter(SidebarItem);
+
+type LinkProps = React.ComponentProps<typeof Link>;
+
+type ExternalOrLinkProps =
+  | Omit<LinkProps, 'to'>
+  | React.ComponentProps<typeof ExternalLink>;
+
+type SidebarLinkProps = {
+  active?: string;
+  to: string;
+  external?: boolean;
+} & Omit<ExternalOrLinkProps, 'ref'>;
+
+function SidebarLink({external, to, active, children, ...rest}: SidebarLinkProps) {
+  if (external) {
+    return (
+      <StyledSidebarItemExternal href={to as string} {...rest}>
+        {children}
+      </StyledSidebarItemExternal>
+    );
+  }
+  return (
+    <StyledSidebarItem to={to} active={active} {...rest}>
+      {children}
+    </StyledSidebarItem>
+  );
+}
 
 const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
   if (!active) {
@@ -164,6 +196,64 @@ const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
 };
 
 const StyledSidebarItem = styled(Link)`
+  display: flex;
+  color: inherit;
+  position: relative;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 32px;
+  height: 34px;
+  flex-shrink: 0;
+
+  transition: 0.15s color linear;
+
+  &:before {
+    display: block;
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: -20px;
+    bottom: 6px;
+    width: 5px;
+    border-radius: 0 3px 3px 0;
+    background-color: transparent;
+    transition: 0.15s background-color linear;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    margin: 0 4px;
+
+    &:before {
+      top: auto;
+      left: 5px;
+      bottom: -10px;
+      height: 5px;
+      width: auto;
+      right: 5px;
+      border-radius: 3px 3px 0 0;
+    }
+  }
+
+  &:hover,
+  &:focus {
+    color: ${p => p.theme.gray200};
+  }
+
+  &.focus-visible {
+    outline: none;
+    background: #584c66;
+    padding: 0 19px;
+    margin: 0 -19px;
+
+    &:before {
+      left: 0;
+    }
+  }
+
+  ${getActiveStyle};
+`;
+
+const StyledSidebarItemExternal = styled(ExternalLink)`
   display: flex;
   color: inherit;
   position: relative;
