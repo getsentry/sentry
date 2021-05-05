@@ -3,7 +3,6 @@
 set -e
 
 declare -a STORAGES=("groupedmessages"  "groupassignees")
-declare -a TABLES=("groupedmessage_local" "groupassignee_local")
 
 log_message() {
     GREEN='\033[0;32m'
@@ -54,7 +53,6 @@ do
     getsentry/snuba:nightly \
     snuba bulk-load --storage="${STORAGES[$i]}" \
     --source=/tmp/cdc-snapshot \
-    --dest-table="${TABLES[$i]}" \
     --ignore-existing-data \
     --pre-processed \
     --show-progress
