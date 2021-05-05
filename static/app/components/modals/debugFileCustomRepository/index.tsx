@@ -1,10 +1,14 @@
 import React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import ProjectActions from 'app/actions/projectActions';
+import {Client} from 'app/api';
 import {getDebugSourceName} from 'app/data/debugFileSources';
-import {tct} from 'app/locale';
-import {DebugFileSource} from 'app/types';
+import {t, tct} from 'app/locale';
+import {DebugFileSource, Project} from 'app/types';
+import withApi from 'app/utils/withApi';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 
@@ -17,6 +21,7 @@ type RouteParams = {
 };
 
 type Props = WithRouterProps<RouteParams, {}> & {
+  api: Client;
   /**
    * Callback invoked with the updated config value.
    */
@@ -40,10 +45,28 @@ function DebugFileCustomRepository({
   sourceConfig,
   sourceType,
   params: {orgId, projectId},
+  api,
 }: Props) {
-  function handleSave(data: Record<string, string>) {
+  function handleSave(data?: Record<string, string>) {
+    if (!data) {
+      fetchProject();
+      return;
+    }
     onSave({...data, type: sourceType});
     closeModal();
+  }
+
+  async function fetchProject() {
+    try {
+      const updatedProject: Project = await api.requestPromise(
+        `/projects/${orgId}/${projectId}/`
+      );
+      ProjectActions.updateSuccess(updatedProject);
+      onSave({});
+      closeModal();
+    } catch {
+      addErrorMessage(t('An error occured while fetching project data'));
+    }
   }
 
   function renderForm() {
@@ -55,6 +78,7 @@ function DebugFileCustomRepository({
           closeModal={closeModal}
           orgSlug={orgId}
           projectSlug={projectId}
+          onSubmit={handleSave}
         />
       );
     }
@@ -92,4 +116,4 @@ function DebugFileCustomRepository({
   );
 }
 
-export default withRouter(DebugFileCustomRepository);
+export default withRouter(withApi(DebugFileCustomRepository));

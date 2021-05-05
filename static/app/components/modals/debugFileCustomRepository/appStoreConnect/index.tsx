@@ -43,9 +43,18 @@ type Props = Pick<ModalRenderProps, 'Body' | 'Footer' | 'closeModal'> & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
+  onSubmit: () => void;
 };
 
-function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: Props) {
+function AppStoreConnect({
+  Body,
+  Footer,
+  closeModal,
+  api,
+  orgSlug,
+  projectSlug,
+  onSubmit,
+}: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [stepHeights, setStepHeights] = useState<number[]>([]);
@@ -210,7 +219,7 @@ function AppStoreConnect({Body, Footer, closeModal, api, orgSlug, projectSlug}: 
         },
       });
       addSuccessMessage('App Store Connect repository was successfully added');
-      closeModal();
+      onSubmit();
     } catch (error) {
       setIsLoading(false);
       addErrorMessage(t('An error occured while saving the repository'));

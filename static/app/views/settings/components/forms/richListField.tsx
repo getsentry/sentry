@@ -33,7 +33,11 @@ type DefaultProps = {
    *
    * The callback is expected to call `removeItem(item)`
    */
-  onRemoveItem: RichListCallback;
+  onRemoveItem: (
+    item: ListItem,
+    index: number,
+    callback: (item: UpdatedItem) => void
+  ) => void;
 };
 
 const defaultProps: DefaultProps = {
@@ -66,9 +70,6 @@ export type RichListProps = {
    */
   value: ListItem[];
 
-  onBlur: InputField['props']['onBlur'];
-  onChange: InputField['props']['onChange'];
-
   /**
    * Configuration for the add item dropdown.
    */
@@ -78,6 +79,9 @@ export type RichListProps = {
    * Disables all controls in the rich list.
    */
   disabled: boolean;
+
+  onBlur?: InputField['props']['onBlur'];
+  onChange?: InputField['props']['onChange'];
 
   /**
    * Properties for the confirm remove dialog. If missing, the item will be
@@ -134,7 +138,7 @@ class RichList extends React.PureComponent<RichListProps> {
 
   onRemoveItem = (item: ListItem, index: number) => {
     if (!this.props.disabled) {
-      this.props.onRemoveItem(item, () => this.removeItem(index));
+      this.props.onRemoveItem(item, index, () => this.removeItem(index));
     }
   };
 

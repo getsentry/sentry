@@ -2,26 +2,24 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import ProjectActions from 'app/actions/projectActions';
 import Checkbox from 'app/components/checkbox';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
-import {DEBUG_SOURCE_TYPES} from 'app/data/debugFileSources';
-import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 import DebugFileRow from './debugFileRow';
+import ExternalSources from './externalSources';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -31,6 +29,7 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 type State = AsyncView['state'] & {
   debugFiles: DebugFile[] | null;
   showDetails: boolean;
+  project: Project;
   builtinSymbolSources?: BuiltinSymbolSource[] | null;
 };
 
@@ -44,6 +43,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
+      project: this.props.project,
       showDetails: false,
     };
   }
@@ -95,6 +95,19 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     });
   };
 
+  async fetchProject() {
+    const {params} = this.props;
+    const {orgId, projectId} = params;
+    try {
+      const updatedProject = await this.api.requestPromise(
+        `/projects/${orgId}/${projectId}/`
+      );
+      ProjectActions.updateSuccess(updatedProject);
+    } catch {
+      addErrorMessage(t('An error occured while fetching project data'));
+    }
+  }
+
   getQuery() {
     const {query} = this.props.location.query;
 
@@ -138,34 +151,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     });
   }
 
-  getFieldsSymbolSources() {
-    const {organization} = this.props;
-
-    if (!organization.features?.includes('app-store-connect')) {
-      return fields.symbolSources;
-    }
-
-    const fieldsSymbolSources = fields.symbolSources as any;
-
-    if (
-      !!fieldsSymbolSources.addDropdown.items.find(
-        item => item.value === 'appStoreConnect'
-      )
-    ) {
-      return fields.symbolSources;
-    }
-
-    fieldsSymbolSources.addDropdown.items.push({
-      value: 'appStoreConnect',
-      label: t(DEBUG_SOURCE_TYPES.appStoreConnect),
-      searchKey: t('apple store connect'),
-    });
-
-    return fieldsSymbolSources;
-  }
-
   renderBody() {
-    const {organization, project, params} = this.props;
+    const {organization, project} = this.props;
     const {
       loading,
       showDetails,
@@ -173,15 +160,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       debugFiles,
       debugFilesPageLinks,
     } = this.state;
-    const {orgId, projectId} = params;
-    const {features, access} = organization;
-
-    const fieldsSymbolSources = this.getFieldsSymbolSources();
-
-    const fieldProps = {
-      organization,
-      builtinSymbolSources: builtinSymbolSources || [],
-    };
+    const {features} = organization;
 
     return (
       <Fragment>
@@ -198,29 +177,15 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         {features.includes('symbol-sources') && (
           <Fragment>
             <PermissionAlert />
-
-            <Form
-              saveOnBlur
-              allowUndo
-              initialData={project}
-              apiMethod="PUT"
-              apiEndpoint={`/projects/${orgId}/${projectId}/`}
-              onSubmitSuccess={ProjectActions.updateSuccess}
-              key={
-                [
-                  ...(project.builtinSymbolSources ?? []),
-                  ...(builtinSymbolSources ?? []),
-                ].join() || project.id
+            <ExternalSources
+              api={this.api}
+              projectSlug={project.slug}
+              organization={organization}
+              symbolSources={
+                project.symbolSources ? JSON.parse(project.symbolSources) : []
               }
-            >
-              <JsonForm
-                features={new Set(features)}
-                title={t('External Sources')}
-                disabled={!access.includes('project:write')}
-                fields={[fieldsSymbolSources, fields.builtinSymbolSources]}
-                additionalFieldProps={fieldProps}
-              />
-            </Form>
+              builtinSymbolSources={builtinSymbolSources || []}
+            />
           </Fragment>
         )}
 
