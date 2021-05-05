@@ -1,6 +1,7 @@
 import {Location, LocationDescriptor} from 'history';
 
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
@@ -135,6 +136,22 @@ export function generateTraceTarget(
 
   const dateSelection = getParams(getTraceTimeRangeFromEvent(event));
 
-  // TODO(txiao): Should this persist the current query when going to trace view?
-  return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+  if (organization.features.includes('performance-view')) {
+    // TODO(txiao): Should this persist the current query when going to trace view?
+    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+  }
+
+  const eventView = EventView.fromSavedQuery({
+    id: undefined,
+    name: `Events with Trace ID ${traceId}`,
+    fields: ['title', 'event.type', 'project', 'trace.span', 'timestamp'],
+    orderby: '-timestamp',
+    query: `trace:${traceId}`,
+    projects: organization.features.includes('global-views')
+      ? [ALL_ACCESS_PROJECTS]
+      : [Number(event.projectID)],
+    version: 2,
+    ...dateSelection,
+  });
+  return eventView.getResultsViewUrlTarget(organization.slug);
 }
