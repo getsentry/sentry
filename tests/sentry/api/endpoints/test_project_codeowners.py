@@ -9,6 +9,12 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.user = self.create_user("admin@sentry.io", is_superuser=True)
 
         self.login_as(user=self.user)
+
+        self.integration = Integration.objects.create(
+            provider="github", name="GitHub", external_id="github:1"
+        )
+        self.integration.add_organization(self.organization, self.user)
+
         self.team = self.create_team(
             organization=self.organization, slug="tiger-team", members=[self.user]
         )
@@ -17,8 +23,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             organization=self.organization, teams=[self.team], slug="bengal"
         )
         self.code_mapping = self.create_code_mapping(project=self.project)
-        self.external_user = self.create_external_user(external_name="@NisanthanNanthakumar")
-        self.external_team = self.create_external_team()
+        self.external_user = self.create_external_user(
+            external_name="@NisanthanNanthakumar", integration=self.integration
+        )
+        self.external_team = self.create_external_team(integration=self.integration)
         self.url = reverse(
             "sentry-api-0-project-codeowners",
             kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
@@ -147,7 +155,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         }
 
     def test_cannot_find_external_team_name_association(self):
-        self.data["raw"] = "docs/*  @getsentry/frontend"
+        self.data["raw"] = "docs/*  @getsentry/frontend\nstatic/* @getsentry/frontend"
         with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400

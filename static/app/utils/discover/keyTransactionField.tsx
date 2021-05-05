@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {toggleKeyTransaction} from 'app/actionCreators/performance';
@@ -25,7 +25,7 @@ type State = {
   isKeyTransaction: boolean;
 };
 
-class KeyTransactionField extends React.Component<Props, State> {
+class KeyTransactionField extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 

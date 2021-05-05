@@ -1,5 +1,5 @@
 ---
-created: '2021-03-12T14:08:31.120980Z'
+created: '2021-04-30T12:13:39.304957Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,18 +8,6 @@ app-depth-1:
   tree_label: "invoke"
   component:
     app-depth-1*
-      stacktrace*
-        frame*
-          module* (removed codegen marker)
-            "sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>"
-          function*
-            "invoke"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "353e05904b48bd3ae4fa9623934a70d0"
-  tree_label: "<entire stacktrace>"
-  component:
-    app-depth-2*
       stacktrace*
         frame*
           module* (removed codegen marker)

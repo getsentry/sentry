@@ -1,4 +1,3 @@
-import React from 'react';
 import {Observer} from 'mobx-react';
 
 import FormState from 'app/components/forms/state';

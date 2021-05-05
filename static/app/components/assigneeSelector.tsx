@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {assignToActor, assignToUser, clearAssignment} from 'app/actionCreators/group';
@@ -296,17 +296,33 @@ class AssigneeSelector extends React.Component<Props, State> {
   renderNewDropdownItems(): ItemsBeforeFilter {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
+    const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
+    const assigneeIds = new Set(
+      suggestedAssignees.map(
+        assignee => `${assignee.value.type}:${assignee.value.assignee.id}`
+      )
+    );
+    // filter out duplicates of Team/Member if also a Suggested Assignee
+    const filteredTeams: ItemsBeforeFilter = teams.filter(team => {
+      return !assigneeIds.has(`${team.value.type}:${team.value.assignee.id}`);
+    });
+    const filteredMembers: ItemsBeforeFilter = members.filter(member => {
+      return !assigneeIds.has(`${member.value.type}:${member.value.assignee.id}`);
+    });
 
     const dropdownItems: ItemsBeforeFilter = [
-      {label: this.renderDropdownGroupLabel(t('Teams')), id: 'team-header', items: teams},
+      {
+        label: this.renderDropdownGroupLabel(t('Teams')),
+        id: 'team-header',
+        items: filteredTeams,
+      },
       {
         label: this.renderDropdownGroupLabel(t('People')),
         id: 'members-header',
-        items: members,
+        items: filteredMembers,
       },
     ];
 
-    const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
     if (suggestedAssignees.length) {
       dropdownItems.unshift({
         label: this.renderDropdownGroupLabel(t('Suggested')),

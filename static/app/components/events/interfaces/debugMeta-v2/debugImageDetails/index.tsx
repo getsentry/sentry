@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
@@ -308,7 +308,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
       !!onReprocessEvent;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>
           <Title>
             {t('Image')}
@@ -365,7 +365,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
             )}
           </StyledButtonBar>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

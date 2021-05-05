@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
 import GroupReleaseChart from 'app/components/group/releaseChart';
@@ -52,7 +52,7 @@ const GroupReleaseStats = ({
       {!group || !allEnvironments ? (
         <Placeholder height="288px" />
       ) : (
-        <React.Fragment>
+        <Fragment>
           <GroupReleaseChart
             group={allEnvironments}
             environment={environmentLabel}
@@ -146,13 +146,13 @@ const GroupReleaseStats = ({
               {t(' to make issues easier to fix.')}
             </SidebarSection>
           ) : null}
-        </React.Fragment>
+        </Fragment>
       )}
     </SidebarSection>
   );
 };
 
-export default React.memo(GroupReleaseStats);
+export default memo(GroupReleaseStats);
 
 const TooltipWrapper = styled('span')`
   margin-left: ${space(0.5)};

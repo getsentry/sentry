@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {EventQuery} from 'app/actionCreators/events';
 import {LocationQuery} from 'app/utils/discover/eventView';
@@ -8,52 +8,27 @@ import GenericDiscoverQuery, {
 } from 'app/utils/discover/genericDiscoverQuery';
 import withApi from 'app/utils/withApi';
 
-type IncomingDataRow = {
-  id: string;
-  key: string;
-  value: TopValue;
-  [key: string]: string | number | IncomingTopValue;
-};
-
-type IncomingTopValue = {
-  name: string;
-  value: string;
-  aggregate: number;
-  count: number;
-  frequency: number;
-  comparison: number;
-  sumdelta: number;
-  isOther?: boolean;
-};
-
-type IncomingTableData = {
-  data: IncomingDataRow[];
-};
-
 /**
  * An individual row in a Segment explorer result
  */
-export type TableDataRow = IncomingDataRow & {
-  aggregate: number;
-  tagValue: TagHint;
+export type TableDataRow = {
+  tags_key: string;
+  tags_value: string;
+  sumdelta: number;
   count: number;
   frequency: number;
+  aggregate: number;
   comparison: number;
-  value: TopValue;
-  totalTimeLost: number;
 };
 
-export type TagHint = {
-  name: string;
-  value: string;
+export type TableData = {
+  data: TableDataRow[];
+  meta: {};
 };
-
-export type TopValue = IncomingTopValue & {};
 
 /**
  * A Segment Explorer result including rows and metadata.
  */
-export type TableData = TableDataRow[];
 
 type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
   tableData: TableData | null;
@@ -61,6 +36,7 @@ type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
 
 type QueryProps = DiscoverQueryProps & {
   aggregateColumn: string;
+  order?: string;
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
@@ -76,28 +52,17 @@ export function getRequestFunction(_props: QueryProps) {
     const {eventView} = props;
     const apiPayload: FacetQuery = eventView.getEventsAPIPayload(props.location);
     apiPayload.aggregateColumn = aggregateColumn;
-    apiPayload.order = '-sumdelta';
+    apiPayload.order = _props.order ? _props.order : '-sumdelta';
     return apiPayload;
   }
   return getTagExplorerRequestPayload;
 }
 
 function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
-  return prevProps.aggregateColumn !== nextProps.aggregateColumn;
-}
-
-function afterFetch(data: IncomingTableData) {
-  const newData = data.data as TableData;
-  return newData.map(row => {
-    const value = row.value;
-    row.tagValue = value;
-    row.aggregate = value.aggregate;
-    row.frequency = value.frequency;
-    row.count = value.count;
-    row.comparison = value.comparison;
-    row.totalTimeLost = value.sumdelta;
-    return row;
-  });
+  return (
+    prevProps.aggregateColumn !== nextProps.aggregateColumn ||
+    prevProps.order !== nextProps.order
+  );
 }
 
 function SegmentExplorerQuery(props: QueryProps) {
@@ -106,7 +71,6 @@ function SegmentExplorerQuery(props: QueryProps) {
       route="events-facets-performance"
       getRequestPayload={getRequestFunction(props)}
       shouldRefetchData={shouldRefetchData}
-      afterFetch={afterFetch}
       {...props}
     />
   );

@@ -293,10 +293,6 @@ class ParseQueryTest(TestCase):
         result = self.parse_query("assigned:me")
         assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
 
-    def test_assigned_me_or_none(self):
-        result = self.parse_query("assigned:me_or_none")
-        assert result == {"assigned_to": ["me_or_none", self.user], "tags": {}, "query": ""}
-
     def test_assigned_none(self):
         result = self.parse_query("assigned:none")
         assert result == {"assigned_to": None, "tags": {}, "query": ""}
@@ -531,14 +527,6 @@ class ParseQueryTest(TestCase):
     def test_assigned_or_suggested_me(self):
         result = self.parse_query("assigned_or_suggested:me")
         assert result == {"assigned_or_suggested": self.user, "tags": {}, "query": ""}
-
-    def test_assigned_or_suggested_me_or_none(self):
-        result = self.parse_query("assigned_or_suggested:me_or_none")
-        assert result == {
-            "assigned_or_suggested": ["me_or_none", self.user],
-            "tags": {},
-            "query": "",
-        }
 
     def test_assigned_or_suggested_none(self):
         result = self.parse_query("assigned_or_suggested:none")

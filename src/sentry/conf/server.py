@@ -881,6 +881,8 @@ SENTRY_FEATURES = {
     "organizations:trace-view-summary": False,
     # Enable multi project selection
     "organizations:global-views": False,
+    # Enable experimental new version of Merged Issues where sub-hashes are shown
+    "organizations:grouping-tree-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
@@ -943,10 +945,8 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable the new Performance Landing page
-    "organizations:performance-landing-v2": False,
-    # Enable the views for performance vitals
-    "organizations:performance-vitals-overview": False,
+    # Display a global dashboard notification for this org
+    "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
@@ -982,7 +982,7 @@ SENTRY_FEATURES = {
     # attachments
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
-    "organizations:inbox": False,
+    "organizations:inbox": True,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
@@ -991,10 +991,6 @@ SENTRY_FEATURES = {
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
     "organizations:alert-wizard": False,
-    # Enable new alert rules + incidents view
-    "organizations:alert-list": False,
-    # Enable App Store Connect in debug files settings
-    "projects:app-store-connect": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

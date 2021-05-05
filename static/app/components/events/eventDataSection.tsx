@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -31,11 +31,12 @@ class EventDataSection extends React.Component<Props> {
   static defaultProps = defaultProps;
 
   componentDidMount() {
-    if (location.hash) {
+    const dataSectionDOM = this.dataSectionDOMRef.current;
+    if (location.hash && dataSectionDOM) {
       const [, hash] = location.hash.split('#');
 
       try {
-        const anchorElement = hash && document.querySelector('div#' + hash);
+        const anchorElement = hash && dataSectionDOM.querySelector('div#' + hash);
         if (anchorElement) {
           anchorElement.scrollIntoView();
         }
@@ -49,6 +50,8 @@ class EventDataSection extends React.Component<Props> {
       }
     }
   }
+
+  dataSectionDOMRef = React.createRef<HTMLDivElement>();
 
   render() {
     const {
@@ -67,7 +70,7 @@ class EventDataSection extends React.Component<Props> {
     const titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
     return (
-      <DataSection className={className || ''}>
+      <DataSection ref={this.dataSectionDOMRef} className={className || ''}>
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
             <Title>

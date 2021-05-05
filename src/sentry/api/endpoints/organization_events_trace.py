@@ -11,6 +11,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     TypeVar,
     cast,
@@ -209,6 +210,17 @@ def child_sort_key(item: TraceEvent) -> List[int]:
         return [0]
 
 
+def group_length(length: int) -> str:
+    if length == 1:
+        return "1"
+    elif length < 10:
+        return "<10"
+    elif length < 100:
+        return "<100"
+    else:
+        return ">100"
+
+
 def query_trace_data(
     trace_id: str, params: Mapping[str, str]
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
@@ -325,6 +337,24 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             parent_map[item["trace.span"]].append(item)
         return parent_map
 
+    @staticmethod
+    def record_analytics(
+        transactions: Sequence[SnubaTransaction], trace_id: str, user_id: int, org_id: int
+    ) -> None:
+        with sentry_sdk.start_span(op="recording.analytics"):
+            len_transactions = len(transactions)
+
+            sentry_sdk.set_tag("trace_view.trace", trace_id)
+            sentry_sdk.set_tag("trace_view.transactions", len_transactions)
+            sentry_sdk.set_tag("trace_view.transactions.grouped", group_length(len_transactions))
+            projects: Set[int] = set()
+            for transaction in transactions:
+                projects.add(transaction["project.id"])
+
+            len_projects = len(projects)
+            sentry_sdk.set_tag("trace_view.projects", len_projects)
+            sentry_sdk.set_tag("trace_view.projects.grouped", group_length(len_projects))
+
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -346,12 +376,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             transactions, errors = query_trace_data(trace_id, params)
             if len(transactions) == 0:
                 return Response(status=404)
-            len_transactions = len(transactions)
-            sentry_sdk.set_tag("trace_view.transactions", len_transactions)
-            sentry_sdk.set_tag(
-                "trace_view.transactions.grouped",
-                "<10" if len_transactions < 10 else "<100" if len_transactions < 100 else ">100",
-            )
+            self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
 
         warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization}
 
@@ -550,10 +575,14 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # on python 3.7.
         results_map: Dict[Optional[str], List[TraceEvent]] = OrderedDict()
         to_check: Deque[SnubaTransaction] = deque()
-        results_map[None] = []
+        # The root of the orphan tree we're currently navigating through
+        orphan_root: Optional[SnubaTransaction] = None
+        if roots:
+            results_map[None] = []
         for root in roots:
-            parent_events[root["id"]] = TraceEvent(root, None, 0)
-            results_map[None].append(parent_events[root["id"]])
+            root_event = TraceEvent(root, None, 0)
+            parent_events[root["id"]] = root_event
+            results_map[None].append(root_event)
             to_check.append(root)
 
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
@@ -574,6 +603,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         current_event, None, 0
                     )
 
+                    # Used to avoid removing the orphan from results entirely if we loop
+                    orphan_root = current_event
                     # not using a defaultdict here as a DefaultOrderedDict isn't worth the effort
                     if parent_span_id in results_map:
                         results_map[parent_span_id].append(previous_event)
@@ -615,7 +646,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                             ]
                         )
                     # We need to connect back to an existing orphan trace
-                    if has_orphans and child["span_id"] in results_map:
+                    if (
+                        has_orphans
+                        and
+                        # The child event has already been checked
+                        child["span_id"] in results_map
+                        and orphan_root is not None
+                        and
+                        # In the case of a span loop popping the current root removes the orphan subtrace
+                        child["span_id"] != orphan_root["trace.parent_span"]
+                    ):
                         orphan_subtraces = results_map.pop(child["span_id"])
                         for orphan_subtrace in orphan_subtraces:
                             orphan_subtrace.parent_event_id = previous_event.event["id"]
@@ -652,9 +692,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         for index, result in enumerate(results_map.values()):
             for subtrace in result:
                 self.update_children(subtrace)
-            if index > 0 or root is None:
+            if index > 0 or len(roots) == 0:
                 orphans.extend(result)
-            elif root:
+            elif len(roots) > 0:
                 root_traces = result
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
         root_traces.sort(key=child_sort_key)

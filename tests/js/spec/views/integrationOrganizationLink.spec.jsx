@@ -1,4 +1,3 @@
-import React from 'react';
 import pick from 'lodash/pick';
 
 import {mountWithTheme} from 'sentry-test/enzyme';

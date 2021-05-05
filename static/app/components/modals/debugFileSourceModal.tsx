@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import ExternalLink from 'app/components/links/externalLink';
@@ -238,7 +238,7 @@ type Props = {
   sourceConfig?: Record<string, string>;
 } & Pick<ModalRenderProps, 'closeModal' | 'Header'>;
 
-class DebugFileSourceModal extends React.Component<Props> {
+class DebugFileSourceModal extends Component<Props> {
   handleSave = (data: Record<string, string>) => {
     const {sourceType, onSave, closeModal} = this.props;
     onSave({...data, type: sourceType});
@@ -276,13 +276,13 @@ class DebugFileSourceModal extends React.Component<Props> {
       : 'Add [name] Repository';
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton onHide={closeModal}>
           {tct(headerText, {name: getDebugSourceName(sourceType)})}
         </Header>
 
         {this.renderForm()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
