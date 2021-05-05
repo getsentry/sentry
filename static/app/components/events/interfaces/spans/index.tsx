@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
@@ -18,6 +18,7 @@ import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceC
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import withOrganization from 'app/utils/withOrganization';
 
+import * as AnchorLinkManager from './anchorLinkManager';
 import Filter, {
   ActiveOperationFilter,
   noFilter,
@@ -169,7 +170,7 @@ class SpansInterface extends Component<Props, State> {
                 const numOfErrors = spansWithErrors?.data.length || 0;
 
                 return (
-                  <Fragment>
+                  <AnchorLinkManager.Provider>
                     {this.renderTraceErrorsAlert({
                       isLoading: quickTrace ? quickTrace.isLoading : isLoading,
                       numOfErrors: quickTrace
@@ -201,7 +202,7 @@ class SpansInterface extends Component<Props, State> {
                         operationNameFilters={this.state.operationNameFilters}
                       />
                     </Panel>
-                  </Fragment>
+                  </AnchorLinkManager.Provider>
                 );
               }}
             </DiscoverQuery>
