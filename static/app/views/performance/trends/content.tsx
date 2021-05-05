@@ -183,7 +183,7 @@ class TrendsContent extends React.Component<Props, State> {
           },
         }}
       >
-        <StyledLayoutHeader>
+        <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[
@@ -198,73 +198,75 @@ class TrendsContent extends React.Component<Props, State> {
             />
             <Layout.Title>{t('Trends')}</Layout.Title>
           </Layout.HeaderContent>
-        </StyledLayoutHeader>
-        <StyledLayoutBody>
-          <DefaultTrends location={location} eventView={eventView}>
-            <StyledSearchContainer>
-              <StyledSearchBar
-                organization={organization}
-                projectIds={trendView.project}
-                query={query}
-                fields={fields}
-                onSearch={this.handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
-              <TrendsDropdown>
-                <DropdownControl
-                  buttonProps={{prefix: t('Display')}}
-                  label={currentTrendFunction.label}
-                >
-                  {TRENDS_FUNCTIONS.map(({label, field}) => (
-                    <DropdownItem
-                      key={field}
-                      onSelect={this.handleTrendFunctionChange}
-                      eventKey={field}
-                      data-test-id={field}
-                      isActive={field === currentTrendFunction.field}
-                    >
-                      {label}
-                    </DropdownItem>
-                  ))}
-                </DropdownControl>
-              </TrendsDropdown>
-              <TrendsDropdown>
-                <DropdownControl
-                  buttonProps={{prefix: t('Parameter')}}
-                  label={currentTrendParameter.label}
-                >
-                  {TRENDS_PARAMETERS.map(({label}) => (
-                    <DropdownItem
-                      key={label}
-                      onSelect={this.handleParameterChange}
-                      eventKey={label}
-                      data-test-id={label}
-                      isActive={label === currentTrendParameter.label}
-                    >
-                      {label}
-                    </DropdownItem>
-                  ))}
-                </DropdownControl>
-              </TrendsDropdown>
-            </StyledSearchContainer>
-            <TrendsLayoutContainer>
-              <ChangedTransactions
-                trendChangeType={TrendChangeType.IMPROVED}
-                previousTrendFunction={previousTrendFunction}
-                trendView={trendView}
-                location={location}
-                setError={this.setError}
-              />
-              <ChangedTransactions
-                trendChangeType={TrendChangeType.REGRESSION}
-                previousTrendFunction={previousTrendFunction}
-                trendView={trendView}
-                location={location}
-                setError={this.setError}
-              />
-            </TrendsLayoutContainer>
-          </DefaultTrends>
-        </StyledLayoutBody>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <DefaultTrends location={location} eventView={eventView}>
+              <StyledSearchContainer>
+                <StyledSearchBar
+                  organization={organization}
+                  projectIds={trendView.project}
+                  query={query}
+                  fields={fields}
+                  onSearch={this.handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+                <TrendsDropdown>
+                  <DropdownControl
+                    buttonProps={{prefix: t('Display')}}
+                    label={currentTrendFunction.label}
+                  >
+                    {TRENDS_FUNCTIONS.map(({label, field}) => (
+                      <DropdownItem
+                        key={field}
+                        onSelect={this.handleTrendFunctionChange}
+                        eventKey={field}
+                        data-test-id={field}
+                        isActive={field === currentTrendFunction.field}
+                      >
+                        {label}
+                      </DropdownItem>
+                    ))}
+                  </DropdownControl>
+                </TrendsDropdown>
+                <TrendsDropdown>
+                  <DropdownControl
+                    buttonProps={{prefix: t('Parameter')}}
+                    label={currentTrendParameter.label}
+                  >
+                    {TRENDS_PARAMETERS.map(({label}) => (
+                      <DropdownItem
+                        key={label}
+                        onSelect={this.handleParameterChange}
+                        eventKey={label}
+                        data-test-id={label}
+                        isActive={label === currentTrendParameter.label}
+                      >
+                        {label}
+                      </DropdownItem>
+                    ))}
+                  </DropdownControl>
+                </TrendsDropdown>
+              </StyledSearchContainer>
+              <TrendsLayoutContainer>
+                <ChangedTransactions
+                  trendChangeType={TrendChangeType.IMPROVED}
+                  previousTrendFunction={previousTrendFunction}
+                  trendView={trendView}
+                  location={location}
+                  setError={this.setError}
+                />
+                <ChangedTransactions
+                  trendChangeType={TrendChangeType.REGRESSION}
+                  previousTrendFunction={previousTrendFunction}
+                  trendView={trendView}
+                  location={location}
+                  setError={this.setError}
+                />
+              </TrendsLayoutContainer>
+            </DefaultTrends>
+          </Layout.Main>
+        </Layout.Body>
       </GlobalSelectionHeader>
     );
   }
@@ -314,16 +316,6 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
   margin-bottom: ${space(2)};
-`;
-
-const StyledLayoutHeader = styled(Layout.Header)`
-  border-bottom: 0;
-`;
-
-const StyledLayoutBody = styled('div')`
-  padding: ${space(3)} ${space(4)};
-  padding-top: 0;
-  background: none;
 `;
 
 const TrendsDropdown = styled('div')`
