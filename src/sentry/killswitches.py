@@ -8,11 +8,13 @@ features and more performant.
 """
 
 import copy
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from sentry import options
 
-KillswitchValue = Dict[str, List[str]]
+Condition = Dict[str, str]
+KillswitchConfig = List[Condition]
+LegacyKillswitchConfig = Union[KillswitchConfig, List[int]]
 Context = Dict[str, Any]
 
 ALL_KILLSWITCH_OPTIONS = [
@@ -21,17 +23,19 @@ ALL_KILLSWITCH_OPTIONS = [
 ]
 
 
-def _normalize_value(option_value: Any) -> KillswitchValue:
-    if isinstance(option_value, list):
-        if not option_value:
-            return {}
+def normalize_value(option_value: Any) -> KillswitchConfig:
+    rv = []
+    for condition in option_value:
+        if not condition:
+            continue
+        elif isinstance(condition, int):
+            rv.append({"project_id": str(condition)})
+        elif isinstance(condition, dict):
+            condition = {k: str(v) for k, v in condition.items() if v is not None}
+            if condition:
+                rv.append(condition)
 
-        return {"project_id": [str(x) for x in option_value]}
-
-    if isinstance(option_value, dict):
-        return {k: v for k, v in option_value.items() if v and isinstance(v, list)}
-
-    return {}
+    return rv
 
 
 def killswitch_matches_context(option_key: str, context: Context) -> bool:
@@ -40,41 +44,48 @@ def killswitch_matches_context(option_key: str, context: Context) -> bool:
     return _value_matches(option_value, context)
 
 
-def _value_matches(option_value: Any, context: Context) -> bool:
-    option_value = _normalize_value(option_value)
+def _value_matches(raw_option_value: LegacyKillswitchConfig, context: Context) -> bool:
+    option_value = normalize_value(raw_option_value)
 
-    if not option_value:
-        return False
+    for condition in option_value:
+        for field, matching_value in condition.items():
+            value = context.get(field)
+            if value is None:
+                break
 
-    for field, matching_values in option_value.items():
+            if str(value) != matching_value:
+                break
+        else:
+            return True
 
-        value = context.get(field)
-        if value is None:
-            return False
-
-        if str(value) not in matching_values:
-            return False
-
-    return True
+    return False
 
 
-def print_conditions(option_value: Any) -> str:
-    option_value = _normalize_value(option_value)
+def print_conditions(raw_option_value: LegacyKillswitchConfig) -> str:
+    option_value = normalize_value(raw_option_value)
 
     if not option_value:
         return "<disabled entirely>"
 
-    return "DROP DATA WHERE\n  " + " AND\n  ".join(f"{k} IN {v}" for k, v in option_value.items())
+    return "DROP DATA WHERE\n  " + " OR\n  ".join(
+        "("
+        + " AND ".join(f"{field} = {matching_value}" for field, matching_value in condition.items())
+        + ")"
+        for condition in option_value
+    )
 
 
-def add_condition(option_value: Any, context_field: str, context_value: str) -> KillswitchValue:
-    option_value = copy.deepcopy(_normalize_value(option_value))
-    option_value.setdefault(context_field, []).append(context_value)
-    return _normalize_value(option_value)
+def add_condition(
+    raw_option_value: LegacyKillswitchConfig, condition: Condition
+) -> KillswitchConfig:
+    option_value = copy.deepcopy(normalize_value(raw_option_value))
+    option_value.append(condition)
+    return normalize_value(option_value)
 
 
-def remove_condition(option_value: Any, context_field: str, context_value: str) -> KillswitchValue:
-    option_value = copy.deepcopy(_normalize_value(option_value))
-    if context_field in option_value:
-        option_value[context_field] = [x for x in option_value[context_field] if x != context_value]
-    return _normalize_value(option_value)
+def remove_condition(
+    raw_option_value: LegacyKillswitchConfig, condition: Condition
+) -> KillswitchConfig:
+    option_value = copy.deepcopy(normalize_value(raw_option_value))
+    option_value = [m for m in option_value if m != condition]
+    return normalize_value(option_value)

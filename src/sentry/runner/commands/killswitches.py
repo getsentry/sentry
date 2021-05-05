@@ -1,4 +1,5 @@
 import click
+import yaml
 
 from sentry.runner.decorators import configuration
 
@@ -28,83 +29,52 @@ def _safe_modify(killswitch_name, modify_func):
 
 
 @killswitches.command()
-@click.option("--killswitch", required=True)
-@click.option("--field", required=True)
-@click.option("--value", required=True)
+@click.argument("killswitch", required=True)
 @configuration
-def add_condition(killswitch, field, value):
+def edit(killswitch):
     """
-    Add another condition to the given killswitch.
+    Edit killswitch conditions all at once using $EDITOR.
 
-    For example, starting from a blank slate.
-
-        sentry killswitches add-condition --killswitch store.load-shed-pipeline-projects --field project_id --value 42
-
-        sentry killswitches add-condition --killswitch store.load-shed-pipeline-projects --field project_id --value 43
-
-        sentry killswitches add-condition --killswitch store.load-shed-pipeline-projects --field event_type --value transactions
-
-
-    ...will drop transaction events from projects 42 and 43 from within the ingest consumer.
-
-    For now, always check in-code which fields are actually available within
-    the killswitch! For example you can pass `--field username` and it will be
-    written to the sentry option, but then silently ignored in ingest consumer.
-
-    The command will print before/after state and ask for explicit confirmation.
-    """
-
-    from sentry import killswitches
-
-    _safe_modify(
-        killswitch, lambda option_value: killswitches.add_condition(option_value, field, value)
-    )
-
-
-@killswitches.command()
-@click.option("--killswitch", required=True)
-@click.option("--field", required=True)
-@click.option("--value", required=True)
-@configuration
-def remove_condition(killswitch, field, value):
-    """
-    Remove a specific condition from the given killswitch.
+    For a list of killswitches to edit, use `sentry killswitches list`.
 
     For example:
 
-        sentry killswitches add-condition --killswitch store.load-shed-pipeline-projects --field project_id --value 42
-
-        sentry killswitches add-condition --killswitch store.load-shed-pipeline-projects --field project_id --value 43
-
-        sentry killswitches add-condition --killswitch store.load-shed-pipeline-projects --field event_type --value transactions
-
-        sentry killswitches remove-condition --killswitch store.load-shed-pipeline-projects --field event_type --value transactions
-
-
-    ...will first drop transaction events from projects 42 and 43 from within
-    the ingest consumer, then the restriction on transaction events is lifted
-    and all events from those projects are dropped.
-
-    The command will print before/after state and ask for explicit confirmation.
+        sentry killswitches edit store.load-shed-pipeline-projects
     """
 
     from sentry import killswitches
 
-    _safe_modify(
-        killswitch, lambda option_value: killswitches.remove_condition(option_value, field, value)
-    )
+    def edit(option_value):
+        edit_text = (
+            "# Example, drops transaction events from project 42 and everything from project 43:\n"
+            "#\n"
+            "# - project_id: 42\n"
+            "#   event_type: transaction\n"
+            "# - project_id: 43\n"
+            "#\n"
+            "# For now, always check in-code which fields are actually available within\n"
+            "# the killswitch! For example you can write `- foo: bar` and it will be\n"
+            "# written to the sentry option, but then silently ignored in the killswitch.\n"
+            "#\n"
+            "# After saving and exiting, your killswitch conditions will be printed in faux-SQL\n"
+            "# for you to confirm. The above conditions' preview would be:"
+            "#\n"
+            "# DROP DATA WHERE\n"
+            "#   (project_id = 42 AND event_type = transaction) OR\n"
+            "#   (project_id = 43)\n"
+        )
 
+        if option_value:
+            edit_text += "\n"
+            edit_text += yaml.dump(option_value)
 
-@killswitches.command()
-@click.option("--killswitch", required=True)
-@click.option("--field", required=True)
-@configuration
-def clear_killswitch(killswitch):
-    """
-    Clear all conditions of a particular killswitch, disabling it.
-    """
+        edited_text = click.edit(edit_text)
+        if edited_text is None:
+            return option_value
 
-    _safe_modify(killswitch, lambda _: {})
+        return killswitches.normalize_value(yaml.safe_load(edited_text))
+
+    _safe_modify(killswitch, edit)
 
 
 @killswitches.command()
