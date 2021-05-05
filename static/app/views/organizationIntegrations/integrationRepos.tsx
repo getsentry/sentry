@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 
 import {addRepository, migrateRepository} from 'app/actionCreators/integrations';
 import RepositoryActions from 'app/actions/repositoryActions';
@@ -18,6 +17,7 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Integration, Repository} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = AsyncComponent['props'] & {
@@ -34,12 +34,7 @@ type State = AsyncComponent['state'] & {
   };
 };
 
-export default class IntegrationRepos extends AsyncComponent<Props, State> {
-  static contextTypes = {
-    organization: PropTypes.object.isRequired,
-    router: PropTypes.object,
-  };
-
+class IntegrationRepos extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -51,7 +46,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const orgId = this.context.organization.slug;
+    const orgId = this.props.organization.slug;
     return [
       ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
       [
@@ -84,7 +79,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
   );
 
   searchRepositoriesRequest = (searchQuery: string) => {
-    const orgId = this.context.organization.slug;
+    const orgId = this.props.organization.slug;
     const query = {search: searchQuery};
     const endpoint = `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`;
     return this.api.request(endpoint, {
@@ -107,7 +102,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
   addRepo(selection: {searchKey: string; value: string; label: JSX.Element}) {
     const {integration} = this.props;
     const {itemList} = this.state;
-    const orgId = this.context.organization.slug;
+    const orgId = this.props.organization.slug;
 
     this.setState({adding: true});
 
@@ -134,7 +129,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
   }
 
   renderDropdown() {
-    const access = new Set(this.context.organization.access);
+    const access = new Set(this.props.organization.access);
     if (!access.has('org:integrations')) {
       return (
         <DropdownButton
@@ -209,7 +204,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {itemListPageLinks} = this.state;
-    const orgId = this.context.organization.slug;
+    const orgId = this.props.organization.slug;
     const itemList = this.getIntegrationRepos() || [];
     const header = (
       <PanelHeader disablePadding hasButtons>
@@ -255,6 +250,8 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     );
   }
 }
+
+export default withOrganization(IntegrationRepos);
 
 const HeaderText = styled('div')`
   padding-left: ${space(2)};
