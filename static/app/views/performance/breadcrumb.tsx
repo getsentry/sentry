@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {Location, LocationDescriptor} from 'history';
 
 import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
@@ -23,7 +23,7 @@ type Props = {
   isTrendsView?: boolean;
 };
 
-class Breadcrumb extends React.Component<Props> {
+class Breadcrumb extends Component<Props> {
   getCrumbs() {
     const crumbs: Crumb[] = [];
     const {

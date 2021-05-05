@@ -2,7 +2,7 @@ import pytest
 from django.utils.functional import cached_property
 
 from sentry.incidents.models import IncidentActivityType
-from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
+from sentry.models import Activity, Integration, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -293,18 +293,31 @@ class Fixtures:
             alert_rule_trigger, target_identifier=target_identifier, **kwargs
         )
 
-    def create_external_user(self, user=None, organization=None, **kwargs):
+    def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
             user = self.user
         if not organization:
             organization = self.organization  # Force creation.
+        if not integration:
+            integration = Integration.objects.create(
+                provider="github", name="GitHub", external_id="github:1"
+            )
+            integration.add_organization(self.organization, self.user)
+        return Factories.create_external_user(
+            user=user, organization=organization, integration_id=integration.id, **kwargs
+        )
 
-        return Factories.create_external_user(user=user, organization=organization, **kwargs)
-
-    def create_external_team(self, team=None, **kwargs):
+    def create_external_team(self, team=None, integration=None, **kwargs):
         if not team:
             team = self.team
-        return Factories.create_external_team(team=team, organization=team.organization, **kwargs)
+        if not integration:
+            integration = Integration.objects.create(
+                provider="github", name="GitHub", external_id="github:1"
+            )
+            integration.add_organization(self.organization, self.user)
+        return Factories.create_external_team(
+            team=team, organization=team.organization, integration_id=integration.id, **kwargs
+        )
 
     def create_codeowners(self, project=None, code_mapping=None, **kwargs):
         if not project:

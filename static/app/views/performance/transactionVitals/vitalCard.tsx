@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -83,7 +83,7 @@ type State = {
   refPixelRect: Rectangle | null;
 };
 
-class VitalCard extends React.Component<Props, State> {
+class VitalCard extends Component<Props, State> {
   state: State = {
     refDataRect: null,
     refPixelRect: null,

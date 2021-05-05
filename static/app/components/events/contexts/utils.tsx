@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -56,10 +56,10 @@ export function getRelativeTimeFromEventDateCreated(
   )})`;
 
   return (
-    <React.Fragment>
+    <Fragment>
       {timestamp}
       <RelativeTime>{relativeTime}</RelativeTime>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

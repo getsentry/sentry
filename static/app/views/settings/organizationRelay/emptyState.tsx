@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';

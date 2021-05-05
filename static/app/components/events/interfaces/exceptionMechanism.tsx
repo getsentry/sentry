@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
@@ -20,7 +20,7 @@ type Props = {
   data: Mechanism;
 };
 
-class ExceptionMechanism extends React.Component<Props> {
+class ExceptionMechanism extends Component<Props> {
   render() {
     const mechanism = this.props.data;
     const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;

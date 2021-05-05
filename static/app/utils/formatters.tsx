@@ -60,16 +60,18 @@ export function getDuration(
   abbreviation: boolean = false,
   extraShort: boolean = false
 ): string {
-  const value = Math.abs(seconds * 1000);
+  // value in milliseconds
+  const msValue = seconds * 1000;
+  const value = Math.abs(msValue);
 
   if (value >= MONTH && !extraShort) {
-    const {label, result} = roundWithFixed(value / MONTH, fixedDigits);
+    const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
     return `${label}${
       abbreviation ? tn('mo', 'mos', result) : ` ${tn('month', 'months', result)}`
     }`;
   }
   if (value >= WEEK) {
-    const {label, result} = roundWithFixed(value / WEEK, fixedDigits);
+    const {label, result} = roundWithFixed(msValue / WEEK, fixedDigits);
     if (extraShort) {
       return `${label}${t('w')}`;
     }
@@ -79,13 +81,13 @@ export function getDuration(
     return `${label} ${tn('week', 'weeks', result)}`;
   }
   if (value >= 172800000) {
-    const {label, result} = roundWithFixed(value / DAY, fixedDigits);
+    const {label, result} = roundWithFixed(msValue / DAY, fixedDigits);
     return `${label}${
       abbreviation || extraShort ? t('d') : ` ${tn('day', 'days', result)}`
     }`;
   }
   if (value >= 7200000) {
-    const {label, result} = roundWithFixed(value / HOUR, fixedDigits);
+    const {label, result} = roundWithFixed(msValue / HOUR, fixedDigits);
     if (extraShort) {
       return `${label}${t('h')}`;
     }
@@ -95,7 +97,7 @@ export function getDuration(
     return `${label} ${tn('hour', 'hours', result)}`;
   }
   if (value >= 120000) {
-    const {label, result} = roundWithFixed(value / MINUTE, fixedDigits);
+    const {label, result} = roundWithFixed(msValue / MINUTE, fixedDigits);
     if (extraShort) {
       return `${label}${t('m')}`;
     }
@@ -105,24 +107,29 @@ export function getDuration(
     return `${label} ${tn('minute', 'minutes', result)}`;
   }
   if (value >= SECOND) {
-    const {label, result} = roundWithFixed(value / SECOND, fixedDigits);
+    const {label, result} = roundWithFixed(msValue / SECOND, fixedDigits);
     if (extraShort || abbreviation) {
       return `${label}${t('s')}`;
     }
     return `${label} ${tn('second', 'seconds', result)}`;
   }
 
-  const {label} = roundWithFixed(value, fixedDigits);
+  const {label} = roundWithFixed(msValue, fixedDigits);
 
   return label + t('ms');
 }
 
 export function getExactDuration(seconds: number, abbreviation: boolean = false) {
   const convertDuration = (secs: number, abbr: boolean) => {
+    // value in milliseconds
+    const msValue = round(secs * 1000);
     const value = round(Math.abs(secs * 1000));
 
     const divideBy = (time: number) => {
-      return {quotient: Math.floor(value / time), remainder: value % time};
+      return {
+        quotient: msValue < 0 ? Math.ceil(msValue / time) : Math.floor(msValue / time),
+        remainder: msValue % time,
+      };
     };
 
     if (value >= WEEK) {
@@ -165,7 +172,7 @@ export function getExactDuration(seconds: number, abbreviation: boolean = false)
       return '';
     }
 
-    return `${value}${abbr ? t('ms') : ` ${tn('millisecond', 'milliseconds', value)}`}`;
+    return `${msValue}${abbr ? t('ms') : ` ${tn('millisecond', 'milliseconds', value)}`}`;
   };
 
   const result = convertDuration(seconds, abbreviation).trim();

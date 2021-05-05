@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {disablePlugin, enablePlugin} from 'app/actionCreators/plugins';
 import InactivePlugins from 'app/components/inactivePlugins';
 import PluginConfig from 'app/components/pluginConfig';

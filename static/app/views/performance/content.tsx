@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -51,7 +51,7 @@ type State = {
   eventView: EventView;
   error: string | undefined;
 };
-class PerformanceContent extends React.Component<Props, State> {
+class PerformanceContent extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,

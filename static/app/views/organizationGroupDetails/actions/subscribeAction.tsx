@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import ActionButton from 'app/components/actions/button';
 import {IconBell} from 'app/icons';

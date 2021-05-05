@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -19,7 +19,7 @@ type State = {
   MD5?: any;
 };
 
-class Gravatar extends React.Component<Props, State> {
+class Gravatar extends Component<Props, State> {
   state: State = {
     MD5: undefined,
   };
