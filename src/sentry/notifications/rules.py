@@ -14,6 +14,7 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,17 @@ class AlertRuleNotification(BaseNotification):
 
     def send(self) -> None:
         from sentry.notifications.notify import notify
+
+        metrics.incr("mail_adapter.notify")
+        logger.info(
+            "mail.adapter.notify",
+            extra={
+                "target_type": self.target_type.value,
+                "target_identifier": self.target_identifier,
+                "group": self.group.id,
+                "project_id": self.project.id,
+            },
+        )
 
         participants_by_provider = self.get_participants()
         if not participants_by_provider:

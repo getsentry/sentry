@@ -5,13 +5,16 @@ from typing import Any, Optional, Sequence
 from django.utils import dateformat
 from django.utils.encoding import force_text
 
-from sentry import options
+from sentry import digests, options
+from sentry.digests import get_option_key as get_digest_option_key
+from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.models import Group, GroupSubscription, NotificationSetting, Project, ProjectOption
 from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.rules import AlertRuleNotification, get_send_to
 from sentry.notifications.types import ActionTargetType, GroupSubscriptionReason
 from sentry.plugins.base.structs import Notification
+from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
 from sentry.utils.email import MessageBuilder
@@ -35,15 +38,49 @@ class MailAdapter:
     ) -> None:
         metrics.incr("mail_adapter.rule_notify")
         rules = []
+        extra = {
+            "event_id": event.event_id,
+            "group_id": event.group_id,
+            "is_from_mail_action_adapter": True,
+            "target_type": target_type.value,
+            "target_identifier": target_identifier,
+        }
+        log_event = "dispatched"
         for future in futures:
             rules.append(future.rule)
-            if future.kwargs:
-                raise NotImplementedError(
-                    "The default behavior for notification de-duplication does not support args"
-                )
+            extra["rule_id"] = future.rule.id
+            if not future.kwargs:
+                continue
+            raise NotImplementedError(
+                "The default behavior for notification de-duplication does not support args"
+            )
 
-        notification = Notification(event=event, rules=rules)
-        self.notify(notification, target_type, target_identifier)
+        project = event.group.project
+        extra["project_id"] = project.id
+
+        if digests.enabled(project):
+
+            def get_digest_option(key):
+                return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
+
+            digest_key = unsplit_key(event.group.project, target_type, target_identifier)
+            extra["digest_key"] = digest_key
+            immediate_delivery = digests.add(
+                digest_key,
+                event_to_record(event, rules),
+                increment_delay=get_digest_option("increment_delay"),
+                maximum_delay=get_digest_option("maximum_delay"),
+            )
+            if immediate_delivery:
+                deliver_digest.delay(digest_key)
+            else:
+                log_event = "digested"
+
+        else:
+            notification = Notification(event=event, rules=rules)
+            self.notify(notification, target_type, target_identifier)
+
+        logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
 
     def _build_subject_prefix(self, project):
         subject_prefix = ProjectOption.objects.get_value(project, self.mail_option_key, None)
