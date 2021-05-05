@@ -401,10 +401,6 @@ class TraceViewHeader extends React.Component<PropType, State> {
   }
 
   render() {
-    const hasQuickTraceView =
-      this.props.organization.features.includes('trace-view-quick') ||
-      this.props.organization.features.includes('trace-view-summary');
-
     return (
       <HeaderContainer>
         <DividerHandlerManager.Consumer>
@@ -417,7 +413,7 @@ class TraceViewHeader extends React.Component<PropType, State> {
                     width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
                   }}
                 >
-                  {hasQuickTraceView && this.props.event && (
+                  {this.props.event && (
                     <OpsBreakdown event={this.props.event} topN={3} hideHeader />
                   )}
                 </OperationsBreakdown>
