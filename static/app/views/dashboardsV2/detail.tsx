@@ -218,6 +218,10 @@ class DashboardDetail extends React.Component<Props> {
                 eventName: 'Dashboards2: Create complete',
                 organization_id: parseInt(organization.id, 10),
               });
+              this.setState({
+                dashboardState: 'view',
+                modifiedDashboard: null,
+              });
 
               // redirect to new dashboard
               browserHistory.replace({
