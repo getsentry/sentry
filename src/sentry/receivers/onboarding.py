@@ -24,6 +24,7 @@ from sentry.signals import (
     member_joined,
     plugin_enabled,
     project_created,
+    transaction_processed,
 )
 from sentry.utils.javascript import has_sourcemap
 
@@ -245,7 +246,6 @@ def record_member_joined(member, organization, **kwargs):
         try_mark_onboarding_complete(member.organization_id)
 
 
-@event_processed.connect(weak=False)
 def record_release_received(project, event, **kwargs):
     if not event.get_tag("sentry:release"):
         return
@@ -275,7 +275,10 @@ def record_release_received(project, event, **kwargs):
         try_mark_onboarding_complete(project.organization_id)
 
 
-@event_processed.connect(weak=False)
+event_processed.connect(record_release_received, weak=False)
+transaction_processed.connect(record_release_received, weak=False)
+
+
 def record_user_context_received(project, event, **kwargs):
     user_context = event.data.get("user")
     if not user_context:
@@ -307,6 +310,10 @@ def record_user_context_received(project, event, **kwargs):
                 project_id=project.id,
             )
             try_mark_onboarding_complete(project.organization_id)
+
+
+event_processed.connect(record_user_context_received, weak=False)
+transaction_processed.connect(record_user_context_received, weak=False)
 
 
 @event_processed.connect(weak=False)

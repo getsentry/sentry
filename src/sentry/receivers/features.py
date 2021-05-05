@@ -38,6 +38,7 @@ from sentry.signals import (
     save_search_created,
     sso_enabled,
     team_created,
+    transaction_processed,
     user_feedback_received,
 )
 from sentry.utils import metrics
@@ -86,7 +87,6 @@ def record_first_event(project, **kwargs):
     )
 
 
-@event_processed.connect(weak=False)
 def record_event_processed(project, event, **kwargs):
     feature_slugs = []
 
@@ -130,6 +130,10 @@ def record_event_processed(project, event, **kwargs):
         return
 
     FeatureAdoption.objects.bulk_record(project.organization_id, feature_slugs)
+
+
+event_processed.connect(record_event_processed, weak=False)
+transaction_processed.connect(record_event_processed, weak=False)
 
 
 @user_feedback_received.connect(weak=False)

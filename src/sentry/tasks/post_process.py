@@ -3,7 +3,7 @@ import logging
 from sentry import analytics, features
 from sentry.app import locks
 from sentry.exceptions import PluginError
-from sentry.signals import event_processed, issue_unignored
+from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -223,7 +223,7 @@ def post_process_group(
         # This should eventually be completely removed and transactions
         # will not go through any post processing.
         if is_transaction_event:
-            event_processed.send_robust(
+            transaction_processed.send_robust(
                 sender=post_process_group,
                 project=event.project,
                 event=event,

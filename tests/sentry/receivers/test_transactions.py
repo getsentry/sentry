@@ -1,7 +1,7 @@
 from exam import fixture
 
 from sentry.models import OrganizationMember, Project
-from sentry.signals import event_processed
+from sentry.signals import event_processed, transaction_processed
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
@@ -24,7 +24,7 @@ class RecordFirstTransactionTest(TestCase):
             project_id=self.project.id,
         )
 
-        event_processed.send(project=self.project, event=event, sender=type(self.project))
+        transaction_processed.send(project=self.project, event=event, sender=type(self.project))
         project = Project.objects.get(id=self.project.id)
         assert project.flags.has_transactions
 
@@ -43,7 +43,7 @@ class RecordFirstTransactionTest(TestCase):
             project_id=self.project.id,
         )
 
-        event_processed.send(project=self.project, event=event, sender=type(self.project))
+        transaction_processed.send(project=self.project, event=event, sender=type(self.project))
         project = Project.objects.get(id=self.project.id)
         assert project.flags.has_transactions
 
@@ -70,7 +70,7 @@ class RecordFirstTransactionTest(TestCase):
             project_id=self.project.id,
         )
 
-        event_processed.send(project=self.project, event=event, sender=type(self.project))
+        transaction_processed.send(project=self.project, event=event, sender=type(self.project))
         assert self.project.flags.has_transactions
         mock_record.assert_called_with(
             "first_transaction.sent",
@@ -93,5 +93,5 @@ class RecordFirstTransactionTest(TestCase):
             project_id=self.project.id,
         )
 
-        event_processed.send(project=self.project, event=event, sender=type(self.project))
+        transaction_processed.send(project=self.project, event=event, sender=type(self.project))
         assert self.project.flags.has_transactions
