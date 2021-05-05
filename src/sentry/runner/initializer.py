@@ -491,8 +491,8 @@ def monkeypatch_drf_listfield_serializer_errors():
 
     def to_internal_value(self, data):
         if html.is_html_input(data):
-            data = html.parse_html_list(data)
-        if isinstance(data, type("")) or isinstance(data, Mapping) or not hasattr(data, "__iter__"):
+            data = html.parse_html_list(data, default=[])
+        if isinstance(data, (str, Mapping)) or not hasattr(data, "__iter__"):
             self.fail("not_a_list", input_type=type(data).__name__)
         if not self.allow_empty and len(data) == 0:
             self.fail("empty")
