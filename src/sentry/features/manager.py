@@ -98,6 +98,7 @@ class FeatureManager(RegisteredFeatureManager):
     def __init__(self):
         super().__init__()
         self._feature_registry = {}
+        self.entity_features = set()
         self._entity_handler = None
 
     def all(self, feature_type=Feature):
@@ -107,7 +108,7 @@ class FeatureManager(RegisteredFeatureManager):
         """
         return {k: v for k, v in self._feature_registry.items() if v == feature_type}
 
-    def add(self, name, cls=Feature):
+    def add(self, name, cls=Feature, entity_feature=False):
         """
         Register a feature.
 
@@ -116,6 +117,8 @@ class FeatureManager(RegisteredFeatureManager):
 
         >>> FeatureManager.has('my:feature', actor=request.user)
         """
+        if entity_feature:
+            self.entity_features.add(name)
         self._feature_registry[name] = cls
 
     def _get_feature_class(self, name):
