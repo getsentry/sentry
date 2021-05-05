@@ -20,3 +20,16 @@ export const groupByOrganization = (projects: Project[]) => {
     return acc;
   }, {});
 };
+
+export const getFallBackValue = (notificationType: string) => {
+  switch (notificationType) {
+    case 'alerts':
+      return 'always';
+    case 'deploy':
+      return 'committed_only';
+    case 'workflow':
+      return 'subscribed_only';
+    default:
+      return '';
+  }
+};
