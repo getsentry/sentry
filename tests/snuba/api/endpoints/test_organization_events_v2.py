@@ -1850,7 +1850,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 2
+        assert len(data) == 3
         result = [r["user.display"] for r in data]
         # because we're ordering by `user.display`, we expect the results in sorted order
         assert result == ["catherine", "cathy@example.com", "cath1234"]
