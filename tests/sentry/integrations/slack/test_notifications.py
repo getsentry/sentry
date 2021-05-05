@@ -1,6 +1,5 @@
 from urllib.parse import parse_qs
 
-import pytest
 import responses
 from django.utils import timezone
 from exam import fixture
@@ -470,10 +469,9 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert attachments[0]["text"] == ""
         assert attachments[0]["footer"] == event.group.qualified_short_id
 
-    @pytest.mark.skip(reason="will be needed soon but not yet")
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    @mock.patch("sentry.mail.adapter.digests")
+    @mock.patch("sentry.mail.notifications.digests")
     def test_digest_enabled(self, digests, mock_func):
         """
         Test that with digests enabled, but Slack notification settings
