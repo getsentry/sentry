@@ -68,7 +68,7 @@ const FooterLink = styled(ExternalLink)`
 `;
 
 const LogoLink = styled(props => (
-  <a href="/" tabIndex={-1} {...props}>
+  <a href="https://sentry.io/welcome/" target="_blank" tabIndex={-1} {...props}>
     <IconSentry size="xl" />
   </a>
 ))`
