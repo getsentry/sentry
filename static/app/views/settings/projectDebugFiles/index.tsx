@@ -59,7 +59,17 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         {
           query: {
             query: location.query.query,
-            // file_formats: ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle'],
+            file_formats: [
+              'breakpad',
+              'macho',
+              'elf',
+              'pe',
+              'pdb',
+              'sourcebundle',
+              'wasm',
+              'bcsymbolmap',
+              'plist',
+            ],
           },
         },
       ],
