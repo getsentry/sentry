@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -138,7 +138,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
       integration.dynamicDisplayInformation?.configure_integration?.instructions;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <BreadcrumbTitle routes={this.props.routes} title={integration.provider.name} />
 
         {integration.configOrganization.length > 0 && (
@@ -189,7 +189,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
         {provider.features.includes('serverless') && (
           <IntegrationServerlessFunctions integration={integration} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -208,10 +208,10 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         {header}
         {this.renderMainContent(provider)}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -230,7 +230,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     ];
 
     return (
-      <React.Fragment>
+      <Fragment>
         <NavTabs underlined>
           {tabs.map(tabTuple => (
             <li
@@ -243,7 +243,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           ))}
         </NavTabs>
         {this.renderTabContent(this.tab, provider)}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

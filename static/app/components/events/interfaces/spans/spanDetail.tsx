@@ -1,4 +1,5 @@
-import React from 'react';
+import * as React from 'react';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import map from 'lodash/map';
@@ -22,9 +23,12 @@ import {
 } from 'app/components/performance/waterfall/rowDetails';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
-import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
+import {
+  generateIssueEventTarget,
+  generateTraceTarget,
+} from 'app/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconChevron, IconWarning} from 'app/icons';
+import {IconAnchor, IconChevron, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -51,7 +55,7 @@ type TransactionResult = {
   id: string;
 };
 
-type Props = {
+type Props = WithRouterProps & {
   api: Client;
   orgId: string;
   organization: Organization;
@@ -63,6 +67,7 @@ type Props = {
   spanErrors: TableDataRow[];
   childTransactions: QuickTraceEvent[];
   relatedErrors: TraceError[];
+  scrollToHash: (hash: string) => void;
 };
 
 type State = {
@@ -257,44 +262,14 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderTraceButton() {
-    const {span, orgId, organization, trace, event} = this.props;
-
-    const {start, end} = getTraceDateTimeRange({
-      start: trace.traceStartTimestamp,
-      end: trace.traceEndTimestamp,
-    });
+    const {span, organization, event} = this.props;
 
     if (isGapSpan(span)) {
       return null;
     }
 
-    const orgFeatures = new Set(organization.features);
-
-    const traceEventView = EventView.fromSavedQuery({
-      id: undefined,
-      name: `Transactions with Trace ID ${span.trace_id}`,
-      fields: [
-        'transaction',
-        'project',
-        'trace.span',
-        'transaction.duration',
-        'timestamp',
-      ],
-      orderby: '-timestamp',
-      query: `event.type:transaction trace:${span.trace_id}`,
-      projects: orgFeatures.has('global-views')
-        ? [ALL_ACCESS_PROJECTS]
-        : [Number(event.projectID)],
-      version: 2,
-      start,
-      end,
-    });
-
     return (
-      <StyledDiscoverButton
-        size="xsmall"
-        to={traceEventView.getResultsViewUrlTarget(orgId)}
-      >
+      <StyledDiscoverButton size="xsmall" to={generateTraceTarget(event, organization)}>
         {t('Search by Trace')}
       </StyledDiscoverButton>
     );
@@ -461,6 +436,25 @@ class SpanDetail extends React.Component<Props, State> {
     };
   }
 
+  scrollBarIntoView = (spanId: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // do not use the default anchor behaviour
+    // because it will be hidden behind the minimap
+    e.preventDefault();
+
+    const hash = `#span-${spanId}`;
+
+    this.props.scrollToHash(hash);
+
+    // TODO(txiao): This is causing a rerender of the whole page,
+    // which can be slow.
+    //
+    // make sure to update the location
+    browserHistory.push({
+      ...this.props.location,
+      hash,
+    });
+  };
+
   renderSpanDetails() {
     const {span, event, organization} = this.props;
 
@@ -499,7 +493,19 @@ class SpanDetail extends React.Component<Props, State> {
         <SpanDetails>
           <table className="table key-value">
             <tbody>
-              <Row title="Span ID" extra={this.renderTraversalButton()}>
+              <Row
+                title={
+                  isGapSpan(span) ? (
+                    <SpanIdTitle>Span ID</SpanIdTitle>
+                  ) : (
+                    <SpanIdTitle onClick={this.scrollBarIntoView(span.span_id)}>
+                      Span ID
+                      <StyledIconAnchor />
+                    </SpanIdTitle>
+                  )
+                }
+                extra={this.renderTraversalButton()}
+              >
                 {span.span_id}
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
@@ -639,15 +645,29 @@ const Toggle = styled(Button)`
   }
 `;
 
+const SpanIdTitle = styled('a')`
+  display: flex;
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const StyledIconAnchor = styled(IconAnchor)`
+  display: block;
+  color: ${p => p.theme.gray300};
+  margin-left: ${space(1)};
+`;
+
 export const Row = ({
   title,
   keep,
   children,
   extra = null,
 }: {
-  title: string;
-  keep?: boolean;
+  title: JSX.Element | string | null;
   children: JSX.Element | string | null;
+  keep?: boolean;
   extra?: React.ReactNode;
 }) => {
   if (!keep && !children) {
@@ -701,4 +721,4 @@ function generateSlug(result: TransactionResult): string {
   });
 }
 
-export default withApi(SpanDetail);
+export default withApi(withRouter(SpanDetail));

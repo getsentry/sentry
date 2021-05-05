@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -162,7 +162,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     const {inviteRequestBusy, member} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {showInviteRequests && (
           <Panel>
             <PanelHeader>{t('Pending Invite Requests')}</PanelHeader>
@@ -192,7 +192,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
           requestList={requestList}
           onRemoveAccessRequest={onRemoveAccessRequest}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

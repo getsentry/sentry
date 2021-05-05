@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {ClassNames, css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,7 +14,7 @@ type Props = ModalRenderProps & {
   theme: Theme;
 };
 
-class CommandPalette extends React.Component<Props> {
+class CommandPalette extends Component<Props> {
   componentDidMount() {
     analytics('omnisearch.open', {});
   }

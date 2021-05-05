@@ -9,10 +9,7 @@ from sentry.utils.samples import load_data
 
 from .page_objects.transaction_summary import TransactionSummaryPage
 
-FEATURE_NAMES = (
-    "organizations:performance-view",
-    "organizations:measurements",
-)
+FEATURE_NAMES = ("organizations:performance-view",)
 
 
 def make_event(event_data):

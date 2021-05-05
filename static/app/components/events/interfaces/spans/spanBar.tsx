@@ -1,6 +1,6 @@
 import 'intersection-observer'; // this is a polyfill
 
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
@@ -44,13 +44,14 @@ import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/q
 import {QuickTraceEvent, TraceError} from 'app/utils/performance/quickTrace/types';
 import {isTraceFull} from 'app/utils/performance/quickTrace/utils';
 
-import * as CursorGuideHandler from './cursorGuideHandler';
-import * as DividerHandlerManager from './dividerHandlerManager';
+import * as AnchorLinkManager from './anchorLinkManager';
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
-} from './header';
+} from './constants';
+import * as CursorGuideHandler from './cursorGuideHandler';
+import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanDetail from './spanDetail';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
@@ -234,6 +235,16 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }));
   };
 
+  scrollIntoView = () => {
+    const element = this.spanRowDOMRef.current;
+    if (!element) {
+      return;
+    }
+    const boundingRect = element.getBoundingClientRect();
+    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT;
+    this.setState({showDetail: true}, () => window.scrollTo(0, offset));
+  };
+
   renderDetail({
     isVisible,
     transactions,
@@ -243,10 +254,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     transactions: QuickTraceEvent[];
     errors: TraceError[];
   }) {
-    if (!this.state.showDetail || !isVisible) {
-      return null;
-    }
-
     const {
       span,
       orgId,
@@ -259,18 +266,33 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     } = this.props;
 
     return (
-      <SpanDetail
-        span={span}
-        orgId={orgId}
-        organization={organization}
-        event={event}
-        isRoot={!!isRoot}
-        trace={trace}
-        totalNumberOfErrors={totalNumberOfErrors}
-        spanErrors={spanErrors}
-        childTransactions={transactions}
-        relatedErrors={errors}
-      />
+      <AnchorLinkManager.Consumer>
+        {({registerScrollFn, scrollToHash}) => {
+          if (!isGapSpan(span)) {
+            registerScrollFn(`#span-${span.span_id}`, this.scrollIntoView);
+          }
+
+          if (!this.state.showDetail || !isVisible) {
+            return null;
+          }
+
+          return (
+            <SpanDetail
+              span={span}
+              orgId={orgId}
+              organization={organization}
+              event={event}
+              isRoot={!!isRoot}
+              trace={trace}
+              totalNumberOfErrors={totalNumberOfErrors}
+              spanErrors={spanErrors}
+              childTransactions={transactions}
+              relatedErrors={errors}
+              scrollToHash={scrollToHash}
+            />
+          );
+        }}
+      </AnchorLinkManager.Consumer>
     );
   }
 

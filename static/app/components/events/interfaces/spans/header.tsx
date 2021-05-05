@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import OpsBreakdown from 'app/components/events/opsBreakdown';
@@ -19,6 +19,12 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 
+import {
+  MINIMAP_CONTAINER_HEIGHT,
+  MINIMAP_HEIGHT,
+  TIME_AXIS_HEIGHT,
+  VIEW_HANDLE_HEIGHT,
+} from './constants';
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
@@ -37,15 +43,6 @@ import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
 } from './utils';
-
-export const MINIMAP_SPAN_BAR_HEIGHT = 4;
-const MINIMAP_HEIGHT = 120;
-export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
-const TIME_AXIS_HEIGHT = 20;
-const VIEW_HANDLE_HEIGHT = 18;
-const SECONDARY_HEADER_HEIGHT = 20;
-export const MINIMAP_CONTAINER_HEIGHT =
-  MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + SECONDARY_HEADER_HEIGHT + 1;
 
 type PropType = {
   organization: Organization;
@@ -364,16 +361,24 @@ class TraceViewHeader extends React.Component<PropType, State> {
 
           return (
             <SecondaryHeader>
-              <ScrollbarContainer
-                ref={this.props.virtualScrollBarContainerRef}
-                style={{
-                  // the width of this component is shrunk to compensate for half of the width of the divider line
-                  width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                }}
-              >
-                <ScrollbarManager.Consumer>
-                  {({virtualScrollbarRef, onDragStart}) => {
-                    return (
+              <ScrollbarManager.Consumer>
+                {({virtualScrollbarRef, scrollBarAreaRef, onDragStart, onScroll}) => {
+                  return (
+                    <ScrollbarContainer
+                      ref={this.props.virtualScrollBarContainerRef}
+                      style={{
+                        // the width of this component is shrunk to compensate for half of the width of the divider line
+                        width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                      }}
+                      onScroll={onScroll}
+                    >
+                      <div
+                        style={{
+                          width: 0,
+                          height: '1px',
+                        }}
+                        ref={scrollBarAreaRef}
+                      />
                       <VirtualScrollbar
                         data-type="virtual-scrollbar"
                         ref={virtualScrollbarRef}
@@ -381,10 +386,10 @@ class TraceViewHeader extends React.Component<PropType, State> {
                       >
                         <VirtualScrollbarGrip />
                       </VirtualScrollbar>
-                    );
-                  }}
-                </ScrollbarManager.Consumer>
-              </ScrollbarContainer>
+                    </ScrollbarContainer>
+                  );
+                }}
+              </ScrollbarManager.Consumer>
               <DividerSpacer />
               {hasMeasurements ? (
                 <MeasurementsPanel
@@ -875,6 +880,7 @@ export const SecondaryHeader = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
+  overflow: hidden;
 `;
 
 const OperationsBreakdown = styled('div')`

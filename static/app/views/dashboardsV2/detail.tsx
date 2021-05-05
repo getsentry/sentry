@@ -1,4 +1,4 @@
-import React from 'react';
+import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -52,7 +52,7 @@ type State = {
   widgetToBeUpdated?: Widget;
 };
 
-class DashboardDetail extends React.Component<Props> {
+class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
@@ -382,8 +382,8 @@ class DashboardDetail extends React.Component<Props> {
     const {children} = this.props;
     const {modifiedDashboard, widgetToBeUpdated} = this.state;
 
-    return React.isValidElement(children)
-      ? React.cloneElement(children, {
+    return isValidElement(children)
+      ? cloneElement(children, {
           dashboard: modifiedDashboard || dashboard,
           onSave: this.onUpdateWidget,
           widget: widgetToBeUpdated,

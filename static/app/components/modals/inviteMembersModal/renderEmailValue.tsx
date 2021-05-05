@@ -1,4 +1,3 @@
-import React from 'react';
 import {components as selectComponents, MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
 
