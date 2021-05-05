@@ -13,6 +13,10 @@ import {
   ACCOUNT_NOTIFICATION_FIELDS,
   FineTuneField,
 } from 'app/views/settings/account/notifications/fields';
+import {
+  groupByOrganization,
+  isGroupedByProject,
+} from 'app/views/settings/account/notifications/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -26,27 +30,6 @@ const PanelBodyLineItem = styled(PanelBody)`
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 `;
-
-// Which fine tuning parts are grouped by project
-const isGroupedByProject = (type: string) =>
-  ['alerts', 'workflow', 'email'].indexOf(type) > -1;
-
-function groupByOrganization(projects: Project[]) {
-  return projects.reduce<
-    Record<string, {organization: Organization; projects: Project[]}>
-  >((acc, project) => {
-    const orgSlug = project.organization.slug;
-    if (acc.hasOwnProperty(orgSlug)) {
-      acc[orgSlug].projects.push(project);
-    } else {
-      acc[orgSlug] = {
-        organization: project.organization,
-        projects: [project],
-      };
-    }
-    return acc;
-  }, {});
-}
 
 type ANBPProps = {
   projects: Project[];
