@@ -21,7 +21,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-import {getTransactionSearchQuery} from '../utils';
+import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
 
 import ChangedTransactions from './changedTransactions';
 import {TrendChangeType, TrendFunctionField, TrendView} from './types';
@@ -31,6 +31,7 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getSelectedQueryKey,
+  modifyTrendsViewDefaultPeriod,
   resetCursors,
   TRENDS_FUNCTIONS,
   TRENDS_PARAMETERS,
@@ -139,11 +140,33 @@ class TrendsContent extends React.Component<Props, State> {
     });
   };
 
+  getPerformanceLink() {
+    const {location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+    };
+    const query = decodeScalar(location.query.query, '');
+    const conditions = tokenizeSearch(query);
+
+    // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
+    conditions.removeTag('tpm()');
+    conditions.removeTag('confidence()');
+    conditions.removeTag('transaction.duration');
+    newQuery.query = stringifyQueryObject(conditions);
+    return {
+      pathname: getPerformanceLandingUrl(this.props.organization),
+      query: newQuery,
+    };
+  }
+
   render() {
     const {organization, eventView, location} = this.props;
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
+    modifyTrendsViewDefaultPeriod(trendView, location);
+
     const fields = generateAggregateFields(
       organization,
       [
@@ -189,7 +212,7 @@ class TrendsContent extends React.Component<Props, State> {
               crumbs={[
                 {
                   label: 'Performance',
-                  to: `/organizations/${organization.slug}/performance/`,
+                  to: this.getPerformanceLink(),
                 },
                 {
                   label: 'Trends',
