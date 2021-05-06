@@ -1,6 +1,5 @@
 import responses
 
-import sentry
 from sentry import options
 from sentry.tasks.beacon import BEACON_URL
 from sentry.testutils import APITestCase
@@ -32,8 +31,6 @@ class InternalBeaconTest(APITestCase):
             json={
                 "type": "metric",
                 "install_id": install_id,
-                "version": sentry.get_version(),
-                "docker": sentry.is_docker(),
                 "data": {
                     "description": "SentryApp",
                     "component": "Form",
@@ -76,8 +73,6 @@ class InternalBeaconTest(APITestCase):
             json={
                 "type": "metric",
                 "install_id": install_id,
-                "version": sentry.get_version(),
-                "docker": sentry.is_docker(),
                 "data": {
                     "description": "SentryApp",
                     "component": "Foo",
@@ -92,8 +87,6 @@ class InternalBeaconTest(APITestCase):
             json={
                 "type": "metric",
                 "install_id": install_id,
-                "version": sentry.get_version(),
-                "docker": sentry.is_docker(),
                 "data": {
                     "description": "SentryApp",
                     "component": "Bar",
