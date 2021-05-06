@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -155,7 +155,7 @@ class Errors extends Component<Props, State> {
           </StyledButton>
         </BannerSummary>
         {isOpen && (
-          <React.Fragment>
+          <Fragment>
             <Divider />
             <ErrorList data-test-id="event-error-details" symbol="bullet">
               {errors.map((error, errorIdx) => {
@@ -185,7 +185,7 @@ class Errors extends Component<Props, State> {
                 return <ErrorItem key={errorIdx} error={{...error, data}} />;
               })}
             </ErrorList>
-          </React.Fragment>
+          </Fragment>
         )}
       </StyledBanner>
     );
