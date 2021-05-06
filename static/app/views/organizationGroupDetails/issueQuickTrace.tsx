@@ -43,6 +43,10 @@ class IssueQuickTrace extends Component<Props, State> {
     this.promptsCheck();
   }
 
+  shouldComponentUpdate(nextProps) {
+    return this.props.event !== nextProps.event;
+  }
+
   async promptsCheck() {
     const {api, event, organization} = this.props;
 
