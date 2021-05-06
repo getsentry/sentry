@@ -48,9 +48,7 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        <Header closeButton onHide={closeModal}>
-          {t('Two-Factor Authentication Enabled')}
-        </Header>
+        <Header closeButton>{t('Two-Factor Authentication Enabled')}</Header>
 
         <Body>
           <TextBlock>
