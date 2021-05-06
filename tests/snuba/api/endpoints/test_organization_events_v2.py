@@ -3244,3 +3244,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
         assert "Link" not in response
+
+    def test_nan_result(self):
+        query = {"field": ["apdex(300)"], "project": [self.project.id], "query": f"id:{'0' * 32}"}
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["apdex_300"] == 0
