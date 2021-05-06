@@ -17,24 +17,6 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 
 import {unflattenKeys} from './utils';
 
-const dropDownItems = [
-  {
-    value: 's3',
-    label: t(DEBUG_SOURCE_TYPES.s3),
-    searchKey: t('aws amazon s3 bucket'),
-  },
-  {
-    value: 'gcs',
-    label: t(DEBUG_SOURCE_TYPES.gcs),
-    searchKey: t('gcs google cloud storage bucket'),
-  },
-  {
-    value: 'http',
-    label: t(DEBUG_SOURCE_TYPES.http),
-    searchKey: t('http symbol server ssqp symstore symsrv'),
-  },
-];
-
 type Props = {
   api: Client;
   organization: Organization;
@@ -43,6 +25,24 @@ type Props = {
 };
 
 function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
+  const dropDownItems = [
+    {
+      value: 's3',
+      label: t(DEBUG_SOURCE_TYPES.s3),
+      searchKey: t('aws amazon s3 bucket'),
+    },
+    {
+      value: 'gcs',
+      label: t(DEBUG_SOURCE_TYPES.gcs),
+      searchKey: t('gcs google cloud storage bucket'),
+    },
+    {
+      value: 'http',
+      label: t(DEBUG_SOURCE_TYPES.http),
+      searchKey: t('http symbol server ssqp symstore symsrv'),
+    },
+  ];
+
   const hasSavedAppStoreConnect = symbolSources.find(
     symbolSource => symbolSource.type === 'AppStoreConnect'
   );

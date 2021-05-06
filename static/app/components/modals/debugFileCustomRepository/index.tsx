@@ -62,7 +62,6 @@ function DebugFileCustomRepository({
         `/projects/${orgId}/${projectId}/`
       );
       ProjectActions.updateSuccess(updatedProject);
-      onSave({});
       closeModal();
     } catch {
       addErrorMessage(t('An error occured while fetching project data'));
