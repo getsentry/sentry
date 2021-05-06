@@ -19,6 +19,7 @@ const validHookNames = new Set<HookName>([
   'component:global-notifications',
   'feature-disabled:alerts-page',
   'feature-disabled:alert-wizard-performance',
+  'feature-disabled:configure-distributed-tracing',
   'feature-disabled:custom-inbound-filters',
   'feature-disabled:custom-symbol-sources',
   'feature-disabled:data-forwarding',
