@@ -228,7 +228,7 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
             env_variables.update(
                 {"SENTRY_INITIAL_HANDLER": function["Handler"], **sentry_env_variables}
             )
-        updated_handler = "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler"
+        updated_handler = "init_serverless_sdk.sentry_lambda_handler"
 
     # Check if the sentry layer exists and update it or insert new layer to end
     if sentry_layer_index > -1:

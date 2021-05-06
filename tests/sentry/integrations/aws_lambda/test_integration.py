@@ -261,7 +261,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                 }
             },
-            Handler="sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+            Handler="init_serverless_sdk.sentry_lambda_handler",
         )
 
         integration = Integration.objects.get(provider=self.provider.key)

@@ -251,7 +251,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
                     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                 }
             },
-            Handler="sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+            Handler="init_serverless_sdk.sentry_lambda_handler",
         )
 
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
@@ -313,7 +313,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
                     "FunctionName": "lambdaF",
                     "Runtime": "python3.6",
                     "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaF",
-                    "Handler": "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+                    "Handler": "init_serverless_sdk.sentry_lambda_handler",
                     "Layers": [
                         {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
                         {"Arn": "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34"},
@@ -410,7 +410,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
                 "Configuration": {
                     "FunctionName": "lambdaG",
                     "Runtime": "python3.6",
-                    "Handler": "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+                    "Handler": "init_serverless_sdk.sentry_lambda_handler",
                     "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaG",
                     "Layers": [
                         {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
@@ -458,8 +458,8 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         Test that ensures that if sentry-sdk is already enabled, then
         re-enabling it should not override the env variables since it could be
         problematic since the SENTRY_INITIAL_HANDLER env variable could be overriden
-        the second time with "sentry_sdk.integrations.init_serverless_sdk.
-        sentry_lambda_handler" and then disabling the sentry-sdk, would break
+        the second time with "init_serverless_sdk.sentry_lambda_handler" and
+        then disabling the sentry-sdk, would break
         the function because the Handler will be updated with an incorrect
         SENTRY_INITIAL_HANDLER value
         """
@@ -471,7 +471,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
                 "Configuration": {
                     "FunctionName": "lambdaZ",
                     "Runtime": "python3.8",
-                    "Handler": "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+                    "Handler": "init_serverless_sdk.sentry_lambda_handler",
                     "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaZ",
                     "Layers": [
                         "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
@@ -514,5 +514,5 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
                     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                 }
             },
-            Handler="sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+            Handler="init_serverless_sdk.sentry_lambda_handler",
         )
