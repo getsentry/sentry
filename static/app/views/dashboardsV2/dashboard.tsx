@@ -78,15 +78,15 @@ class Dashboard extends Component<Props> {
           dataSet: DataSet.EVENTS,
         },
       });
-    } else {
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-        query: {
-          ...location.query,
-          dataSet: DataSet.EVENTS,
-        },
-      });
+      return;
     }
+    router.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+      query: {
+        ...location.query,
+        dataSet: DataSet.EVENTS,
+      },
+    });
   };
 
   handleAddComplete = (widget: Widget) => {
@@ -127,16 +127,15 @@ class Dashboard extends Component<Props> {
             dataSet: DataSet.EVENTS,
           },
         });
-      } else {
-        router.push({
-          pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
-          query: {
-            ...location.query,
-            dataSet: DataSet.EVENTS,
-          },
-        });
+        return;
       }
-      return;
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
+        query: {
+          ...location.query,
+          dataSet: DataSet.EVENTS,
+        },
+      });
     }
 
     openAddDashboardWidgetModal({

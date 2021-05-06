@@ -1,6 +1,11 @@
+import React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {GlobalSelection} from 'app/types';
+import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
+import {GlobalSelection, Organization} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 
@@ -32,3 +37,26 @@ export function eventViewFromWidget(
     environment: environments,
   });
 }
+
+type FeatureProps = {
+  organization: Organization;
+  children: React.ReactNode;
+};
+
+export const DashboardBasicFeature = ({organization, children}: FeatureProps) => {
+  const renderDisabled = () => (
+    <PageContent>
+      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+    </PageContent>
+  );
+
+  return (
+    <Feature
+      features={['organizations:dashboards-basic']}
+      organization={organization}
+      renderDisabled={renderDisabled}
+    >
+      {children}
+    </Feature>
+  );
+};

@@ -10,7 +10,6 @@ import {
 } from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {t} from 'app/locale';
@@ -96,9 +95,9 @@ class DashboardDetail extends Component<Props, State> {
       const {dashboardId} = params;
       if (dashboardId) {
         router.replace(`/organizations/${organization.slug}/dashboard/${dashboardId}/`);
-      } else {
-        router.replace(`/organizations/${organization.slug}/dashboards/new/`);
+        return;
       }
+      router.replace(`/organizations/${organization.slug}/dashboards/new/`);
     }
   }
 
@@ -195,9 +194,7 @@ class DashboardDetail extends Component<Props, State> {
     });
     browserHistory.replace({
       pathname: `/organizations/${organization.slug}/dashboards/new/`,
-      query: {
-        ...location.query,
-      },
+      query: location.query,
     });
   };
 
@@ -220,9 +217,7 @@ class DashboardDetail extends Component<Props, State> {
           });
           browserHistory.replace({
             pathname: `/organizations/${organization.slug}/dashboards/`,
-            query: {
-              ...location.query,
-            },
+            query: location.query,
           });
         })
         .catch(() => {
@@ -245,19 +240,17 @@ class DashboardDetail extends Component<Props, State> {
         dashboardState: DashboardState.VIEW,
         modifiedDashboard: null,
       });
-    } else {
-      trackAnalyticsEvent({
-        eventKey: 'dashboards2.create.cancel',
-        eventName: 'Dashboards2: Create cancel',
-        organization_id: parseInt(this.props.organization.id, 10),
-      });
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/dashboards/`,
-        query: {
-          ...location.query,
-        },
-      });
+      return;
     }
+    trackAnalyticsEvent({
+      eventKey: 'dashboards2.create.cancel',
+      eventName: 'Dashboards2: Create cancel',
+      organization_id: parseInt(this.props.organization.id, 10),
+    });
+    browserHistory.replace({
+      pathname: `/organizations/${organization.slug}/dashboards/`,
+      query: location.query,
+    });
   };
 
   onCommit = () => {
@@ -401,52 +394,50 @@ class DashboardDetail extends Component<Props, State> {
     }
 
     return (
-      <Feature features={['dashboards-basic']} organization={organization}>
-        <GlobalSelectionHeader
-          skipLoadLastUsed={organization.features.includes('global-views')}
-          defaultSelection={{
-            datetime: {
-              start: null,
-              end: null,
-              utc: false,
-              period: DEFAULT_STATS_PERIOD,
-            },
-          }}
-        >
-          <PageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <StyledPageHeader>
-                <DashboardTitle
-                  dashboard={modifiedDashboard || dashboard}
-                  onUpdate={this.setModifiedDashboard}
-                  isEditing={this.isEditing}
-                />
-                <Controls
-                  organization={organization}
-                  dashboards={dashboards}
-                  dashboard={dashboard}
-                  onEdit={this.onEdit}
-                  onCreate={this.onCreate}
-                  onCancel={this.onCancel}
-                  onCommit={this.onCommit}
-                  onDelete={this.onDelete(dashboard)}
-                  dashboardState={dashboardState}
-                />
-              </StyledPageHeader>
-              <Dashboard
-                paramDashboardId={dashboardId}
+      <GlobalSelectionHeader
+        skipLoadLastUsed={organization.features.includes('global-views')}
+        defaultSelection={{
+          datetime: {
+            start: null,
+            end: null,
+            utc: false,
+            period: DEFAULT_STATS_PERIOD,
+          },
+        }}
+      >
+        <PageContent>
+          <LightWeightNoProjectMessage organization={organization}>
+            <StyledPageHeader>
+              <DashboardTitle
                 dashboard={modifiedDashboard || dashboard}
-                organization={organization}
+                onUpdate={this.setModifiedDashboard}
                 isEditing={this.isEditing}
-                onUpdate={this.onUpdateWidget}
-                onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-                router={router}
-                location={location}
               />
-            </LightWeightNoProjectMessage>
-          </PageContent>
-        </GlobalSelectionHeader>
-      </Feature>
+              <Controls
+                organization={organization}
+                dashboards={dashboards}
+                dashboard={dashboard}
+                onEdit={this.onEdit}
+                onCreate={this.onCreate}
+                onCancel={this.onCancel}
+                onCommit={this.onCommit}
+                onDelete={this.onDelete(dashboard)}
+                dashboardState={dashboardState}
+              />
+            </StyledPageHeader>
+            <Dashboard
+              paramDashboardId={dashboardId}
+              dashboard={modifiedDashboard || dashboard}
+              organization={organization}
+              isEditing={this.isEditing}
+              onUpdate={this.onUpdateWidget}
+              onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+              router={router}
+              location={location}
+            />
+          </LightWeightNoProjectMessage>
+        </PageContent>
+      </GlobalSelectionHeader>
     );
   }
 }

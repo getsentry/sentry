@@ -162,7 +162,7 @@ class ManageDashboards extends AsyncView<Props, State> {
     const {organization, location} = this.props;
     browserHistory.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/`,
-      query: {...location.query},
+      query: location.query,
     });
   }
 

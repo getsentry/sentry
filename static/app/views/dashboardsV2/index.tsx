@@ -2,7 +2,6 @@ import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import NotFound from 'app/components/errors/notFound';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Organization} from 'app/types';
@@ -12,6 +11,7 @@ import withOrganization from 'app/utils/withOrganization';
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
 import {DashboardState} from './types';
+import {DashboardBasicFeature} from './utils';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   api: Client;
@@ -23,8 +23,11 @@ class DashboardsV2Container extends React.Component<Props> {
   render() {
     const {organization, params, api, location, children} = this.props;
 
-    if (!organization.features.includes('dashboards-manage')) {
-      return (
+    if (organization.features.includes('dashboards-manage')) {
+      return children;
+    }
+    return (
+      <DashboardBasicFeature organization={organization}>
         <OrgDashboards
           api={api}
           location={location}
@@ -47,13 +50,7 @@ class DashboardsV2Container extends React.Component<Props> {
             );
           }}
         </OrgDashboards>
-      );
-    }
-
-    return (
-      <Feature features={['dashboards-manage']} organization={organization}>
-        {children}
-      </Feature>
+      </DashboardBasicFeature>
     );
   }
 }
