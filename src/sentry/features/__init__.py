@@ -151,7 +151,7 @@ default_manager.add("projects:similarity-view-v2", ProjectFeature)  # NOQA
 default_manager.add("projects:plugins", ProjectPluginFeature)  # NOQA
 
 # Globally scoped features
-default_manager.add("symbolicator:compare-stackwalking-methods", Feature)  # NOQA
+default_manager.add("symbolicator:compare-stackwalking-methods", Feature, True)  # NOQA
 
 # This is a gross hardcoded list, but there's no
 # other sensible way to manage this right now without augmenting
