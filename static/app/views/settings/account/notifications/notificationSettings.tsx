@@ -219,9 +219,8 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         },
         NOTIFICATION_SETTING_FIELDS.provider
       ),
-    ];
-
-    return <JsonForm title={title} fields={fields} />;
+    ] as FieldObject[];
+    return [title, fields];
   };
 
   renderBody() {
@@ -229,6 +228,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
     const groupedParents = this.getGroupedParents();
+    const [formTitle, fields] = this.getDefaultSettings();
 
     return (
       <React.Fragment>
@@ -243,7 +243,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
             provider: 'email+slack',
           }}
         >
-          {this.getDefaultSettings()}
+          <JsonForm title={formTitle} fields={fields} />
         </Form>
         <Form
           saveOnBlur
