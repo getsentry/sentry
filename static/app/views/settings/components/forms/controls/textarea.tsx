@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';

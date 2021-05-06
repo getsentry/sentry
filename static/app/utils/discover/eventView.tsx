@@ -142,7 +142,7 @@ const parseSort = (sort: string): Sort => {
   };
 };
 
-const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => {
+export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => {
   if (sorts === undefined) {
     return [];
   }

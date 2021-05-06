@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -71,7 +71,7 @@ function isStatsPeriodDefault(
   return !statsPeriod || defaultPeriod === statsPeriod;
 }
 
-class PerformanceLanding extends React.Component<Props, State> {
+class PerformanceLanding extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,

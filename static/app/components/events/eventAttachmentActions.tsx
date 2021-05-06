@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
@@ -21,7 +21,7 @@ type Props = {
   onPreview?: (attachmentId: string) => void;
 };
 
-class EventAttachmentActions extends React.Component<Props> {
+class EventAttachmentActions extends Component<Props> {
   handleDelete = async () => {
     const {api, url, onDelete, attachmentId} = this.props;
 

@@ -1,4 +1,5 @@
-import React, {Component} from 'react';
+import {Component} from 'react';
+import * as React from 'react';
 import {WithRouterProps} from 'react-router';
 
 import Access from 'app/components/acl/access';

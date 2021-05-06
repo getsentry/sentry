@@ -1,12 +1,13 @@
-import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {InjectedRouter} from 'react-router/lib/Router';
+import {components, OptionProps, SingleValueProps} from 'react-select';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location, LocationDescriptor} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import * as Layout from 'app/components/layouts/thirds';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import PickProjectToContinue from 'app/components/pickProjectToContinue';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -18,6 +19,7 @@ import withProjects from 'app/utils/withProjects';
 import AsyncView from 'app/views/asyncView';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
+import {DashboardDetails} from '../../types';
 import BuildStep from '../buildStep';
 import BuildSteps from '../buildSteps';
 import ChooseDataSetStep from '../choseDataStep';
@@ -29,19 +31,18 @@ import Queries from './queries';
 import SearchQueryField from './searchQueryField';
 import {MetricMeta, MetricQuery} from './types';
 
-type RouteParams = {
-  dashboardId: string;
+type Props = AsyncView['props'] & {
+  dashboardTitle: DashboardDetails['title'];
+  theme: Theme;
+  organization: Organization;
+  projects: Project[];
+  router: InjectedRouter;
+  location: Location;
+  loadingProjects: boolean;
+  selection: GlobalSelection;
+  goBackLocation: LocationDescriptor;
+  onChangeDataSet: (dataSet: DataSet) => void;
 };
-
-type Props = RouteComponentProps<RouteParams, {}> &
-  AsyncView['props'] & {
-    theme: Theme;
-    organization: Organization;
-    projects: Project[];
-    loadingProjects: boolean;
-    selection: GlobalSelection;
-    onChangeDataSet: (dataSet: DataSet) => void;
-  };
 
 type State = AsyncView['state'] & {
   title: string;
@@ -56,8 +57,8 @@ class MetricWidget extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      title: t('Custom Widget'),
-      displayType: DisplayType.LINE,
+      title: t('Custom %s Widget', displayTypes[DisplayType.AREA]),
+      displayType: DisplayType.AREA,
       metricMetas: [],
       metricTags: [],
       queries: [{}],
@@ -101,7 +102,26 @@ class MetricWidget extends AsyncView<Props, State> {
   }
 
   handleFieldChange = <F extends keyof State>(field: F, value: State[F]) => {
-    this.setState(state => ({...state, [field]: value}));
+    this.setState(state => {
+      const newState = cloneDeep(state);
+
+      if (field === 'displayType') {
+        if (
+          state.title === t('Custom %s Widget', state.displayType) ||
+          state.title === t('Custom %s Widget', DisplayType.AREA)
+        ) {
+          return {
+            ...newState,
+            title: t('Custom %s Widget', displayTypes[value]),
+            widgetErrors: undefined,
+          };
+        }
+
+        set(newState, field, value);
+      }
+
+      return {...newState, widgetErrors: undefined};
+    });
   };
 
   handleRemoveQuery = (index: number) => {
@@ -135,22 +155,17 @@ class MetricWidget extends AsyncView<Props, State> {
     });
   };
 
-  handleProjectChange = (selectedProjects: number[]) => {
-    const {projects, router, location, organization} = this.props;
+  handleProjectChange = (projectId: number) => {
+    const {router, location} = this.props;
 
-    const newlySelectedProject = projects.find(p => p.id === String(selectedProjects[0]));
-
-    // if we change project in global header, we need to sync the project slug in the URL
-    if (newlySelectedProject?.id) {
-      router.replace({
-        pathname: `/organizations/${organization.slug}/dashboards/widget/new/`,
-        query: {
-          ...location.query,
-          project: newlySelectedProject.id,
-          environment: undefined,
-        },
-      });
-    }
+    // if we change project, we need to sync the project slug in the URL
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        project: projectId,
+      },
+    });
   };
 
   isProjectMissingInUrl() {
@@ -167,9 +182,9 @@ class MetricWidget extends AsyncView<Props, State> {
       selection,
       location,
       loadingProjects,
-      params,
+      goBackLocation,
+      dashboardTitle,
     } = this.props;
-    const {dashboardId} = params;
     const {
       title,
       metricTags,
@@ -184,15 +199,18 @@ class MetricWidget extends AsyncView<Props, State> {
       return this.renderLoading();
     }
 
-    const project = this.project;
+    const selectedProject = this.project;
 
-    if (this.isProjectMissingInUrl() || !project) {
+    if (this.isProjectMissingInUrl() || !selectedProject) {
       return (
         <PickProjectToContinue
           router={router}
-          projects={projects.map(p => ({id: p.id, slug: p.slug}))}
-          nextPath={`/organizations/${orgSlug}/dashboards/${dashboardId}/widget/new/?dataSet=metrics`}
-          noProjectRedirectPath={`/organizations/${orgSlug}/dashboards/`}
+          projects={projects.map(project => ({id: project.id, slug: project.slug}))}
+          nextPath={{
+            pathname: location.pathname,
+            query: location.query,
+          }}
+          noProjectRedirectPath={goBackLocation}
         />
       );
     }
@@ -202,91 +220,135 @@ class MetricWidget extends AsyncView<Props, State> {
     }
 
     return (
-      <GlobalSelectionHeader
-        onUpdateProjects={this.handleProjectChange}
-        disableMultipleProjectSelection
-        skipLoadLastUsed
-      >
-        <StyledPageContent>
-          <Header
-            orgSlug={orgSlug}
-            title={title}
-            onChangeTitle={newTitle => this.handleFieldChange('title', newTitle)}
-          />
-          <Layout.Body>
-            <BuildSteps>
-              <BuildStep
-                title={t('Choose your visualization')}
-                description={t(
-                  'This is a preview of how your widget will appear in the dashboard.'
-                )}
-              >
-                <VisualizationWrapper>
-                  <StyledSelectField
-                    name="displayType"
-                    choices={[
-                      DisplayType.LINE,
-                      DisplayType.BAR,
-                      DisplayType.AREA,
-                    ].map(value => [value, displayTypes[value]])}
-                    value={displayType}
-                    onChange={value => {
-                      this.handleFieldChange('displayType', value);
-                    }}
-                    inline={false}
-                    flexibleControlStateSize
-                    stacked
-                  />
-                  <Card
-                    router={router}
-                    location={location}
-                    selection={selection}
-                    organization={organization}
-                    api={this.api}
-                    project={project}
-                    widget={{
-                      title,
-                      searchQuery,
-                      displayType,
-                      groupings: queries,
-                    }}
-                  />
-                </VisualizationWrapper>
-              </BuildStep>
-              <ChooseDataSetStep value={DataSet.METRICS} onChange={onChangeDataSet} />
-              <BuildStep
-                title={t('Begin your search')}
-                description={t('Select a query to compare projects, tags, etc.')}
-              >
-                <SearchQueryField
+      <StyledPageContent>
+        <Header
+          orgSlug={orgSlug}
+          title={title}
+          dashboardTitle={dashboardTitle}
+          goBackLocation={goBackLocation}
+          onChangeTitle={newTitle => this.handleFieldChange('title', newTitle)}
+        />
+        <Layout.Body>
+          <BuildSteps>
+            <BuildStep
+              title={t('Choose your visualization')}
+              description={t(
+                'This is a preview of how your widget will appear in the dashboard.'
+              )}
+            >
+              <VisualizationWrapper>
+                <StyledSelectField
+                  name="displayType"
+                  choices={[
+                    DisplayType.LINE,
+                    DisplayType.BAR,
+                    DisplayType.AREA,
+                  ].map(value => [value, displayTypes[value]])}
+                  value={displayType}
+                  onChange={value => {
+                    this.handleFieldChange('displayType', value);
+                  }}
+                  inline={false}
+                  flexibleControlStateSize
+                  stacked
+                />
+                <Card
+                  router={router}
+                  location={location}
+                  selection={selection}
+                  organization={organization}
                   api={this.api}
-                  tags={metricTags}
-                  orgSlug={orgSlug}
-                  projectSlug={project.slug}
-                  query={searchQuery}
-                  onSearch={newQuery => this.handleFieldChange('searchQuery', newQuery)}
-                  onBlur={newQuery => this.handleFieldChange('searchQuery', newQuery)}
+                  project={selectedProject}
+                  widget={{
+                    title,
+                    searchQuery,
+                    displayType,
+                    groupings: queries,
+                  }}
                 />
-              </BuildStep>
-              <BuildStep
-                title={t('Choose your grouping')}
-                description={t(
-                  'We’ll use this to determine what gets graphed in the y-axis and any additional overlays.'
-                )}
-              >
-                <Queries
-                  metricMetas={metricMetas}
-                  metricTags={metricTags}
-                  queries={queries}
-                  onAddQuery={this.handleAddQuery}
-                  onRemoveQuery={this.handleRemoveQuery}
-                  onChangeQuery={this.handleChangeQuery}
-                />
-              </BuildStep>
-            </BuildSteps>
-          </Layout.Body>
-        </StyledPageContent>
-      </GlobalSelectionHeader>
+              </VisualizationWrapper>
+            </BuildStep>
+            <ChooseDataSetStep value={DataSet.METRICS} onChange={onChangeDataSet} />
+            <BuildStep
+              title={t('Choose your project')}
+              description={t('You’ll need to select a project to set metrics on.')}
+            >
+              <StyledSelectField
+                name="project"
+                choices={projects.map(project => [project, project.slug])}
+                onChange={project => this.handleProjectChange(project.id)}
+                value={selectedProject}
+                components={{
+                  Option: ({
+                    label,
+                    ...optionProps
+                  }: OptionProps<{
+                    label: string;
+                    value: Project;
+                  }>) => {
+                    const {data} = optionProps;
+                    return (
+                      <components.Option label={label} {...optionProps}>
+                        <ProjectBadge project={data.value} avatarSize={18} disableLink />
+                      </components.Option>
+                    );
+                  },
+                  SingleValue: ({
+                    data,
+                    ...props
+                  }: SingleValueProps<{
+                    label: string;
+                    value: Project;
+                  }>) => (
+                    <components.SingleValue data={data} {...props}>
+                      <ProjectBadge project={data.value} avatarSize={18} disableLink />
+                    </components.SingleValue>
+                  ),
+                }}
+                styles={{
+                  control: provided => ({
+                    ...provided,
+                    boxShadow: 'none',
+                  }),
+                }}
+                allowClear={false}
+                inline={false}
+                flexibleControlStateSize
+                stacked
+              />
+            </BuildStep>
+            <BuildStep
+              title={t('Begin your search')}
+              description={t('Select a tag to compare releases, session data, etc.')}
+            >
+              <SearchQueryField
+                api={this.api}
+                tags={metricTags}
+                orgSlug={orgSlug}
+                projectSlug={selectedProject.slug}
+                query={searchQuery}
+                onSearch={newQuery => this.handleFieldChange('searchQuery', newQuery)}
+                onBlur={newQuery => this.handleFieldChange('searchQuery', newQuery)}
+              />
+            </BuildStep>
+            <BuildStep
+              title={t('Add queries')}
+              description={t(
+                'We’ll use this to determine what gets graphed in the y-axis and any additional overlays.'
+              )}
+            >
+              <Queries
+                metricMetas={metricMetas}
+                metricTags={metricTags}
+                queries={queries}
+                onAddQuery={this.handleAddQuery}
+                onRemoveQuery={this.handleRemoveQuery}
+                onChangeQuery={this.handleChangeQuery}
+              />
+            </BuildStep>
+          </BuildSteps>
+        </Layout.Body>
+      </StyledPageContent>
     );
   }
 }

@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import requests
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -23,35 +25,12 @@ def app_store_connect_feature_name():
     return "organizations:app-store-connect"
 
 
-def save_app_store_credentials(project, credentials):
-    """
-    Saves app store credentials with the other symbol_sources
-    :param project:
-    :param credentials:
-    :return:
-    """
-    sources_config = project.get_option(symbol_sources_prop_name())
-    try:
-        if sources_config is not None:
-            sources = json.loads(sources_config)
-            # remove any existing app store connect configuration (we support only one)
-            sources = list(filter(lambda src: src.get("type") != "AppStoreConnect", sources))
-            # add the new configuration
-            sources.append(credentials)
-        else:
-            sources = [credentials]
-        sources_string = json.dumps(sources)
-        project.update_option(symbol_sources_prop_name(), sources_string)
-    except BaseException as e:
-        raise ValueError("bad sources") from e
-
-
 def get_app_store_credentials(project):
     sources_config = project.get_option(symbol_sources_prop_name())
     try:
         sources = json.loads(sources_config)
         for source in sources:
-            if source.get("type") == "AppStoreConnect":
+            if source.get("type") == "appStoreConnect":
                 return source
         return None
     except BaseException as e:
@@ -165,14 +144,13 @@ class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
                 "appconnectPrivateKey": credentials.pop("appconnectPrivateKey"),
             }
             credentials["encrypted"] = encrypt.encrypt_object(encrypted, key)
-            credentials["type"] = "AppStoreConnect"
-            credentials["id"] = "AppStoreConnect"
+            credentials["type"] = "appStoreConnect"
+            credentials["id"] = uuid4().hex
             credentials["name"] = "Apple App Store Connect"
 
-            save_app_store_credentials(project, credentials)
         except ValueError:
             return Response("Invalid validation context passed.", status=400)
-        return Response(status=204)
+        return Response(credentials, status=200)
 
     def get(self, request, project):
         if not features.has(

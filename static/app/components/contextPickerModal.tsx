@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import ReactDOM from 'react-dom';
 import {components, StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
@@ -79,7 +79,7 @@ const selectStyles = {
   }),
 };
 
-class ContextPickerModal extends React.Component<Props> {
+class ContextPickerModal extends Component<Props> {
   componentDidMount() {
     const {organization, projects, organizations} = this.props;
 
@@ -344,7 +344,7 @@ class ContextPickerModal extends React.Component<Props> {
       .map(({slug}) => ({label: slug, value: slug}));
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{this.headerText}</Header>
         <Body>
           {loading && <StyledLoadingIndicator overlay />}
@@ -370,7 +370,7 @@ class ContextPickerModal extends React.Component<Props> {
 
           {shouldShowProjectSelector && this.renderProjectSelectOrMessage()}
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -390,10 +390,7 @@ type ContainerState = {
   organizations: Organization[];
 };
 
-class ContextPickerModalContainer extends React.Component<
-  ContainerProps,
-  ContainerState
-> {
+class ContextPickerModalContainer extends Component<ContainerProps, ContainerState> {
   state = this.getInitialState();
 
   getInitialState(): ContainerState {

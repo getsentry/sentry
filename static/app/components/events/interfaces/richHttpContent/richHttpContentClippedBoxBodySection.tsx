@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ClippedBox from 'app/components/clippedBox';
 import ContextData from 'app/components/contextData';
 import ErrorBoundary from 'app/components/errorBoundary';

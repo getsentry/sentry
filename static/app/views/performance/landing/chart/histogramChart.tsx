@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -110,7 +110,7 @@ export function HistogramChart(props: Props) {
           };
 
           return (
-            <React.Fragment>
+            <Fragment>
               <BarChartZoom
                 minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
                 location={location}
@@ -149,7 +149,7 @@ export function HistogramChart(props: Props) {
                   );
                 }}
               </BarChartZoom>
-            </React.Fragment>
+            </Fragment>
           );
         }}
       </HistogramQuery>

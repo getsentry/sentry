@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -34,7 +34,7 @@ class SearchBar extends React.PureComponent<Props, State> {
     onSearch: function () {},
   };
 
-  state = {
+  state: State = {
     query: this.props.query || this.props.defaultQuery,
     dropdownVisible: false,
   };

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {DEFAULT_APP_ROUTE} from 'app/constants';
@@ -21,7 +21,7 @@ type Props = {
  * TODO: There might be an edge case where user does not have `lastOrganization` set,
  * in which case we should load their list of organizations and make a decision
  */
-class AppRoot extends React.Component<Props> {
+class AppRoot extends Component<Props> {
   componentDidMount() {
     const {config} = this.props;
 

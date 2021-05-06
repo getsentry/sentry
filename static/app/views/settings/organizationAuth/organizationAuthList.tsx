@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';

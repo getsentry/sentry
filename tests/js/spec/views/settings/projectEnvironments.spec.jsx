@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';

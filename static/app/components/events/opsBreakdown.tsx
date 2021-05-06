@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
@@ -49,7 +49,7 @@ type Props = DefaultProps & {
   event: Event;
 };
 
-class OpsBreakdown extends React.Component<Props> {
+class OpsBreakdown extends Component<Props> {
   static defaultProps: DefaultProps = {
     topN: TOP_N_SPANS,
     hideHeader: false,

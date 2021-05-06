@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
@@ -162,7 +162,7 @@ function DashboardList({
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       {renderDashboardGrid()}
       <PaginationRow
         pageLinks={pageLinks}
@@ -182,7 +182,7 @@ function DashboardList({
           });
         }}
       />
-    </React.Fragment>
+    </Fragment>
   );
 }
 
