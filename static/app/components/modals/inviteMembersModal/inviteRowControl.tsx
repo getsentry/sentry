@@ -61,7 +61,6 @@ class InviteRowControl extends React.Component<Props, State> {
     const {inputValue} = this.state;
     switch (event.key) {
       case 'Enter':
-      case 'Tab':
       case ',':
       case ' ':
         onChangeEmails([...mapToOptions(emails), {label: inputValue, value: inputValue}]);
