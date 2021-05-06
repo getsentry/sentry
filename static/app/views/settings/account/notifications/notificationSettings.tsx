@@ -40,8 +40,11 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {notificationType} = this.props;
+
+    const query = {type: notificationType};
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
-      ['notificationSettings', `/users/me/notification-settings/`],
+      ['notificationSettings', `/users/me/notification-settings/`, {query}],
     ];
     if (this.isGroupedByProject()) {
       endpoints.push(['projects', '/projects/']);
