@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import * as Layout from 'app/components/layouts/thirds';
@@ -53,6 +53,7 @@ class Create extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, location, project} = this.props;
+    const hasWizard = organization.features.includes('alert-wizard');
 
     trackAnalyticsEvent({
       eventKey: 'new_alert_rule.viewed',
@@ -83,6 +84,10 @@ class Create extends Component<Props, State> {
             alertType: 'issue',
           });
         }
+      } else if (hasWizard) {
+        browserHistory.replace(
+          `/organizations/${organization.slug}/alerts/${project.id}/wizard`
+        );
       }
     }
   }
