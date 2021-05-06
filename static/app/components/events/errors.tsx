@@ -155,34 +155,37 @@ class Errors extends Component<Props, State> {
           </StyledButton>
         </BannerSummary>
         {isOpen && (
-          <ErrorList data-test-id="event-error-details" symbol="bullet">
-            {errors.map((error, errorIdx) => {
-              const data = error.data ?? {};
-              if (
-                error.type === 'js_no_source' &&
-                data.url &&
-                !!releaseArtifacts?.length
-              ) {
-                const releaseArtifact = releaseArtifacts.find(releaseArt => {
-                  const pathname = data.url ? this.getURLPathname(data.url) : undefined;
+          <React.Fragment>
+            <Divider />
+            <ErrorList data-test-id="event-error-details" symbol="bullet">
+              {errors.map((error, errorIdx) => {
+                const data = error.data ?? {};
+                if (
+                  error.type === 'js_no_source' &&
+                  data.url &&
+                  !!releaseArtifacts?.length
+                ) {
+                  const releaseArtifact = releaseArtifacts.find(releaseArt => {
+                    const pathname = data.url ? this.getURLPathname(data.url) : undefined;
 
-                  if (pathname) {
-                    return releaseArt.name.includes(pathname);
+                    if (pathname) {
+                      return releaseArt.name.includes(pathname);
+                    }
+                    return false;
+                  });
+
+                  if (releaseArtifact && !releaseArtifact.dist) {
+                    error.message = t(
+                      'Source code was not found because the distribution did not match'
+                    );
+                    data['expected-distribution'] = dist;
+                    data['current-distribution'] = t('none');
                   }
-                  return false;
-                });
-
-                if (releaseArtifact && !releaseArtifact.dist) {
-                  error.message = t(
-                    'Source code was not found because the distribution did not match'
-                  );
-                  data['expected-distribution'] = dist;
-                  data['current-distribution'] = t('none');
                 }
-              }
-              return <ErrorItem key={errorIdx} error={{...error, data}} />;
-            })}
-          </ErrorList>
+                return <ErrorItem key={errorIdx} error={{...error, data}} />;
+              })}
+            </ErrorList>
+          </React.Fragment>
         )}
       </StyledBanner>
     );
@@ -215,14 +218,15 @@ const StyledIconWarning = styled(IconWarning)`
 // TODO(theme) don't use a custom pink
 const customPink = '#e7c0bc';
 
+const Divider = styled('div')`
+  height: 1px;
+  background-color: ${customPink};
+`;
+
 const ErrorList = styled(List)`
-  border-top: 1px solid ${customPink};
-  padding: ${space(1)} ${space(4)} ${space(0.5)} 40px;
-
-  > li:before {
-    top: 8px;
-  }
-
+  margin: 0 ${space(4)} 0 40px;
+  padding-top: ${space(1)};
+  padding-bottom: ${space(0.5)};
   pre {
     background: #f9eded;
     color: #381618;
