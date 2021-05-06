@@ -12,6 +12,7 @@ from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.grouping.variants import ComponentVariant
 from sentry.models import Group, GroupHash
+from sentry.tasks.unmerge import unmerge
 from sentry.utils import snuba
 
 
@@ -64,7 +65,7 @@ class GroupHashesSplitEndpoint(GroupEndpoint):
                 return self.respond({"error": "hash does not look like a grouphash"}, status=400)
 
         for hash in hashes:
-            _split_group(group, hash)
+            _split_group(group, hash, request=request)
 
         return self.respond(status=200)
 
@@ -112,7 +113,9 @@ class NoHierarchicalHash(Exception):
     pass
 
 
-def _split_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequence[str]] = None):
+def _split_group(
+    group: Group, hash: str, hierarchical_hashes: Optional[Sequence[str]] = None, request=None
+):
     # Sanity check to see if what we're splitting here is a hierarchical hash.
     if hierarchical_hashes is None:
         hierarchical_hashes = _get_full_hierarchical_hashes(group, hash)
@@ -130,6 +133,53 @@ def _split_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequence
     grouphash.state = GroupHash.State.SPLIT
     grouphash.group_id = group.id
     grouphash.save()
+
+    query = (
+        Query("events", Entity("events"))
+        .set_select(
+            [
+                Column("primary_hash"),
+                Function(
+                    "arraySlice",
+                    [Column("hierarchical_hashes"), hierarchical_hashes.index(hash) + 2, 1],
+                    "child_hash",
+                ),
+            ]
+        )
+        .set_where(
+            _get_group_filters(group)
+            + [
+                Condition(
+                    Function(
+                        "has",
+                        [Column("hierarchical_hashes"), hash],
+                    ),
+                    Op.EQ,
+                    1,
+                ),
+            ]
+        )
+        .set_groupby([Column("primary_hash"), Column("child_hash")])
+    )
+
+    for row in snuba.raw_snql_query(query, referrer="group_split.get_child_hashes")["data"]:
+        if not row["child_hash"]:
+            continue
+
+        grouphash, _ = GroupHash.objects.get_or_create(
+            hash=row["child_hash"][0], group_id=group.id, project_id=group.project_id
+        )
+        if grouphash.state == GroupHash.State.LOCKED_IN_MIGRATION:
+            continue
+
+        unmerge.delay(
+            group.project_id,
+            group.id,
+            None,
+            [],
+            request.user.id if request.user else None,
+            hierarchical_fingerprints={grouphash.hash: row["primary_hash"]},
+        )
 
 
 def _get_full_hierarchical_hashes(group: Group, hash: str) -> Optional[Sequence[str]]:

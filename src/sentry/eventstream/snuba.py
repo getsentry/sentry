@@ -169,8 +169,10 @@ class SnubaProtocolEventStream(EventStream):
         state["datetime"] = datetime.now(tz=pytz.utc)
         self._send(state["project_id"], "end_merge", extra_data=(state,), asynchronous=False)
 
-    def start_unmerge(self, project_id, hashes, previous_group_id, new_group_id):
-        if not hashes:
+    def start_unmerge(
+        self, project_id, hashes, hierarchical_hashes, previous_group_id, new_group_id
+    ):
+        if not hashes and not hierarchical_hashes:
             return
 
         state = {
@@ -179,6 +181,7 @@ class SnubaProtocolEventStream(EventStream):
             "previous_group_id": previous_group_id,
             "new_group_id": new_group_id,
             "hashes": list(hashes),
+            "hierarchical_hashes": dict(hierarchical_hashes),
             "datetime": datetime.now(tz=pytz.utc),
         }
 

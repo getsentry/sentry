@@ -83,7 +83,9 @@ class EventStream(Service):
     def end_merge(self, state):
         pass
 
-    def start_unmerge(self, project_id, hashes, previous_group_id, new_group_id):
+    def start_unmerge(
+        self, project_id, hashes, hierarchical_hashes, previous_group_id, new_group_id
+    ):
         pass
 
     def end_unmerge(self, state):

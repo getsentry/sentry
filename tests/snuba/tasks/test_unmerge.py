@@ -279,7 +279,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         with self.tasks():
             eventstream_state = eventstream.start_unmerge(
-                project.id, [list(events.keys())[0]], source.id, destination.id
+                project.id,
+                [list(events.keys())[0]],
+                {},
+                source.id,
+                destination.id,
             )
             unmerge.delay(
                 project.id, source.id, destination.id, [list(events.keys())[0]], None, batch_size=5

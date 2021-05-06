@@ -1,6 +1,7 @@
 import logging
 from collections import OrderedDict, defaultdict
 from functools import reduce
+from typing import Dict, List
 
 from django.db import transaction
 
@@ -145,13 +146,30 @@ def get_group_backfill_attributes(caches, group, events):
     }
 
 
-def get_fingerprint(event):
-    # TODO: This *might* need to be protected from an IndexError?
-    return event.get_primary_hash()
+def matches_fingerprints(event, fingerprints, hierarchical_fingerprints):
+    assert fingerprints or hierarchical_fingerprints
+
+    if fingerprints and event.get_primary_hash() not in fingerprints:
+        return False
+
+    if hierarchical_fingerprints and not set(event.data["hierarchical_hashes"]) & set(
+        hierarchical_fingerprints
+    ):
+        return False
+
+    return True
 
 
 def migrate_events(
-    caches, project, source_id, destination_id, fingerprints, events, actor_id, eventstream_state
+    caches,
+    project: Project,
+    source_id: int,
+    destination_id: int,
+    fingerprints: List[str],
+    hierarchical_fingerprints: Dict[str, str],
+    events,
+    actor_id,
+    eventstream_state,
 ):
     # XXX: This is only actually able to create a destination group and migrate
     # the group hashes if there are events that can be migrated. How do we
@@ -182,13 +200,13 @@ def migrate_events(
         destination_id = destination.id
 
         eventstream_state = eventstream.start_unmerge(
-            project.id, fingerprints, source_id, destination_id
+            project.id, fingerprints, hierarchical_fingerprints, source_id, destination_id
         )
 
         # Move the group hashes to the destination.
-        GroupHash.objects.filter(project_id=project.id, hash__in=fingerprints).update(
-            group=destination_id
-        )
+        GroupHash.objects.filter(
+            project_id=project.id, hash__in=fingerprints + list(hierarchical_fingerprints)
+        ).update(group=destination_id)
 
         # Create activity records for the source and destination group.
         Activity.objects.create(
@@ -196,7 +214,11 @@ def migrate_events(
             group_id=destination_id,
             type=Activity.UNMERGE_DESTINATION,
             user_id=actor_id,
-            data={"fingerprints": fingerprints, "source_id": source_id},
+            data={
+                "fingerprints": fingerprints,
+                "hierarchical_fingerprints": hierarchical_fingerprints,
+                "source_id": source_id,
+            },
         )
 
         Activity.objects.create(
@@ -418,7 +440,10 @@ def repair_denormalizations(caches, project, events):
         similarity.record(project, [event])
 
 
-def lock_hashes(project_id, source_id, fingerprints):
+def lock_hashes(project_id: int, source_id: int, fingerprints: List[str]) -> List[str]:
+    if not fingerprints:
+        return fingerprints
+
     with transaction.atomic():
         eligible_hashes = list(
             GroupHash.objects.filter(
@@ -452,18 +477,35 @@ def unmerge(
     batch_size=500,
     source_fields_reset=False,
     eventstream_state=None,
+    hierarchical_fingerprints: Dict[str, str] = None,
 ):
+    """
+    :param hierarchical_fingerprints:
+        A mapping from hierarchical fingerprint to unmerge to the primary hash
+        (=hierarchical_fingerprints[0]) that contains it. The `primary_hash` is
+        mostly needed to make Snuba queries faster.
+    """
     source = Group.objects.get(project_id=project_id, id=source_id)
 
     caches = get_caches()
 
     project = caches["Project"](project_id)
 
+    if hierarchical_fingerprints is None:
+        hierarchical_fingerprints = {}
+
     # On the first iteration of this loop, we clear out all of the
     # denormalizations from the source group so that we can have a clean slate
     # for the new, repaired data.
     if last_event is None:
+        # This is non-atomic, but realistically we will only have fingerprints
+        # or hierarchical_fingerprints, not both at the same time.
         fingerprints = lock_hashes(project_id, source_id, fingerprints)
+        hierarchical_fingerprints = {
+            h: hierarchical_fingerprints[h]
+            for h in lock_hashes(project_id, source_id, list(hierarchical_fingerprints))
+        }
+
         truncate_denormalizations(project, source)
 
     last_event, events = celery_run_batch_query(
@@ -475,7 +517,7 @@ def unmerge(
 
     # If there are no more events to process, we're done with the migration.
     if not events:
-        unlock_hashes(project_id, fingerprints)
+        unlock_hashes(project_id, fingerprints + list(hierarchical_fingerprints))
         logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
         if eventstream_state:
             eventstream.end_unmerge(eventstream_state)
@@ -486,9 +528,10 @@ def unmerge(
     destination_events = []
 
     for event in events:
-        (destination_events if get_fingerprint(event) in fingerprints else source_events).append(
-            event
-        )
+        if matches_fingerprints(event, fingerprints, hierarchical_fingerprints):
+            destination_events.append(event)
+        else:
+            source_events.append(event)
 
     if source_events:
         if not source_fields_reset:
@@ -503,6 +546,7 @@ def unmerge(
         source_id,
         destination_id,
         fingerprints,
+        hierarchical_fingerprints,
         destination_events,
         actor_id,
         eventstream_state,
@@ -520,4 +564,5 @@ def unmerge(
         batch_size=batch_size,
         source_fields_reset=source_fields_reset,
         eventstream_state=eventstream_state,
+        hierarchical_fingerprints=hierarchical_fingerprints,
     )

@@ -1,5 +1,6 @@
 import pytest
 
+from sentry import eventstore
 from sentry.models import GroupHash
 from sentry.testutils.helpers import Feature
 
@@ -38,7 +39,7 @@ def store_stacktrace(default_project, factories):
 
 @pytest.mark.django_db
 @pytest.mark.snuba
-def test_basic(client, default_project, store_stacktrace, reset_snuba):
+def test_basic(client, default_project, store_stacktrace, reset_snuba, task_runner):
     def _check_merged(seq):
         event1 = store_stacktrace(["foo", "bar", "baz"])
         event2 = store_stacktrace(["foo", "bam", "baz"])
@@ -69,20 +70,35 @@ def test_basic(client, default_project, store_stacktrace, reset_snuba):
             },
         ]
 
-        return event1.group_id
+        return event1, event2
 
-    group_id = _check_merged(1)
+    event1, event2 = _check_merged(1)
+    group_id = event1.group_id
 
-    response = client.put(
-        f"/api/0/issues/{group_id}/hashes/split/?id=dc6e6375dcdf74132537129e6a182de7",
-    )
+    with task_runner():
+        response = client.put(
+            f"/api/0/issues/{group_id}/hashes/split/?id=dc6e6375dcdf74132537129e6a182de7",
+        )
+
     assert response.status_code == 200
+
+    new_group_id1 = eventstore.get_event_by_id(default_project.id, event1.event_id).group_id
+    new_group_id2 = eventstore.get_event_by_id(default_project.id, event2.event_id).group_id
+    assert list(GroupHash.objects.filter(group_id=group_id).values_list("hash", flat=True)) == [
+        "dc6e6375dcdf74132537129e6a182de7"
+    ]
+    assert list(
+        GroupHash.objects.filter(group_id=new_group_id1).values_list("hash", flat=True)
+    ) == ["ce6d941a9829057608a96725c201e636"]
+    assert list(
+        GroupHash.objects.filter(group_id=new_group_id2).values_list("hash", flat=True)
+    ) == ["3d433234e3f52665a03e87b46e423534"]
 
     event1 = store_stacktrace(["foo", "bar", "baz"])
     event2 = store_stacktrace(["foo", "bam", "baz"])
 
-    assert event1.group_id != event2.group_id
-    assert event1.group_id != group_id
+    assert event1.group_id == new_group_id1
+    assert event2.group_id == new_group_id2
 
     response = client.get(f"/api/0/issues/{event1.group_id}/hashes/split/", format="json")
     assert response.status_code == 200
@@ -90,7 +106,7 @@ def test_basic(client, default_project, store_stacktrace, reset_snuba):
         {
             "childId": "eeb8cfaa8b792f5dc0abbd3bd30f5e39",
             "childLabel": "<entire stacktrace>",
-            "eventCount": 1,
+            "eventCount": 2,
             "id": "ce6d941a9829057608a96725c201e636",
             "label": "bar | ...",
             "latestEvent": response.data[0]["latestEvent"],
@@ -105,7 +121,7 @@ def test_basic(client, default_project, store_stacktrace, reset_snuba):
         {
             "childId": "e81cbeccec98c88097a40dd44ff20479",
             "childLabel": "<entire stacktrace>",
-            "eventCount": 1,
+            "eventCount": 2,
             "id": "3d433234e3f52665a03e87b46e423534",
             "label": "bam | ...",
             "latestEvent": response.data[0]["latestEvent"],
@@ -123,14 +139,14 @@ def test_basic(client, default_project, store_stacktrace, reset_snuba):
     )
     assert response.status_code == 200
 
-    # TODO: Once we start moving events, the old group should probably no
-    # longer exist.
-    assert _check_merged(2) == group_id
+    event1, event2 = _check_merged(1)
+    assert event1.group_id == group_id
+    assert event2.group_id == group_id
 
 
 @pytest.mark.django_db
 @pytest.mark.snuba
-def test_split_everything(client, default_project, store_stacktrace, reset_snuba):
+def test_split_everything(client, default_project, store_stacktrace, reset_snuba, task_runner):
     """
     We have two events in one group, one has a stacktrace that is a suffix of
     the other. This presents an edgecase where it is legitimate to split up the
@@ -168,9 +184,11 @@ def test_split_everything(client, default_project, store_stacktrace, reset_snuba
         },
     ]
 
-    response = client.put(
-        f"/api/0/issues/{event.group_id}/hashes/split/?id=bab925683e73afdb4dc4047397a7b36b",
-    )
+    with task_runner():
+        response = client.put(
+            f"/api/0/issues/{event.group_id}/hashes/split/?id=bab925683e73afdb4dc4047397a7b36b",
+        )
+
     assert response.status_code == 200
 
     event3 = store_stacktrace(["foo"])
@@ -211,7 +229,9 @@ def test_no_hash_twice(client, default_project, store_stacktrace, reset_snuba):
 
 @pytest.mark.django_db
 @pytest.mark.snuba
-def test_materialized_hashes_missing(client, default_project, store_stacktrace, reset_snuba):
+def test_materialized_hashes_missing(
+    client, default_project, store_stacktrace, reset_snuba, task_runner
+):
     """
     Test that we are able to show grouping breakdown if hashes are materialized
     improperly. This can happen if there's a fallback grouping strategy, or due
@@ -251,9 +271,10 @@ def test_materialized_hashes_missing(client, default_project, store_stacktrace, 
         },
     ]
 
-    response = client.put(
-        f"/api/0/issues/{event1.group_id}/hashes/split/?id=dc6e6375dcdf74132537129e6a182de7",
-    )
+    with task_runner():
+        response = client.put(
+            f"/api/0/issues/{event1.group_id}/hashes/split/?id=dc6e6375dcdf74132537129e6a182de7",
+        )
     assert response.status_code == 200
 
     # There should only be one grouphash associated with this group now, the
