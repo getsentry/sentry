@@ -8,9 +8,11 @@ import withOrganizations from 'app/utils/withOrganizations';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'app/views/settings/account/notifications/fields';
 import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
 import {
+  getChoiceString,
   getFallBackValue,
   groupByOrganization,
   isGroupedByProject,
+  providerListToString,
 } from 'app/views/settings/account/notifications/utils';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -82,6 +84,15 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     );
   };
 
+  getParentData = (): {[key: string]: string} => {
+    return Object.fromEntries(
+      this.getParents().map(parent => [
+        parent.id,
+        Object.values(this.getParentValues(parent.id))[0],
+      ])
+    );
+  };
+
   getStateToPutForProvider = changedData => {
     /**
      * I don't need to update the provider for EVERY once of the user's projects
@@ -114,6 +125,19 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     };
   };
 
+  getParentValues = (parentId: string): {[key: string]: string} => {
+    const {notificationType} = this.props;
+    const {notificationSettings} = this.state;
+
+    const parentKey = this.isGroupedByProject() ? 'project' : 'organization';
+
+    return (
+      notificationSettings[notificationType]?.[parentKey]?.[parentId] || {
+        email: 'default',
+      }
+    );
+  };
+
   getStateToPutForDefault = (changedData: {[key: string]: string}) => {
     /** This always updates "user:me". */
     const {notificationType} = this.props;
@@ -121,7 +145,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const newValue = Object.values(changedData)[0];
     const previousData = this.getUserDefaultValues();
 
-    return {
+    const notificationSettings = {
       [notificationType]: {
         user: {
           me: Object.fromEntries(
@@ -130,12 +154,15 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         },
       },
     };
+
+    this.setState({notificationSettings});
+
+    return notificationSettings;
   };
 
   getStateToPutForParent = (changedData: {[key: string]: string}, parentId: string) => {
     /** Get the diff of the Notification Settings for this parent ID. */
     const {notificationType} = this.props;
-    const {notificationSettings} = this.state;
 
     const parentKey = this.isGroupedByProject() ? 'project' : 'organization';
     const newValue = Object.values(changedData)[0];
@@ -187,7 +214,10 @@ class NotificationSettings extends AsyncComponent<Props, State> {
       getData: data => this.getStateToPutForParent(data, parent.id),
       name: parent.id,
       choices: defaultFields.choices?.concat([
-        ['default', `${currentDefault} (default)`],
+        [
+          'default',
+          `${getChoiceString(defaultFields.choices, currentDefault)} (default)`,
+        ],
       ]),
       defaultValue: 'default',
     }) as any;
@@ -221,6 +251,8 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
     const groupedParents = this.getGroupedParents();
+    const userData = this.getUserDefaultValues();
+    const parentData = this.getParentData();
     const [formTitle, fields] = this.getDefaultSettings();
 
     return (
@@ -232,8 +264,8 @@ class NotificationSettings extends AsyncComponent<Props, State> {
           apiMethod="PUT"
           apiEndpoint="/users/me/notification-settings/"
           initialData={{
-            [notificationType]: 'always',
-            provider: 'email+slack',
+            [notificationType]: Object.values(userData)[0],
+            provider: providerListToString(Object.keys(userData)),
           }}
         >
           <JsonForm title={formTitle} fields={fields} />
@@ -242,9 +274,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
           saveOnBlur
           apiMethod="PUT"
           apiEndpoint="/users/me/notification-settings/"
-          initialData={{
-            1: 'always',
-          }}
+          initialData={parentData}
         >
           {Object.entries(groupedParents).map(([groupTitle, parents]) => (
             <JsonForm

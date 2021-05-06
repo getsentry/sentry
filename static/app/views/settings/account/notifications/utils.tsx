@@ -33,3 +33,15 @@ export const getFallBackValue = (notificationType: string): string => {
       return '';
   }
 };
+
+export const providerListToString = (providers: string[]): string => {
+  return providers.sort().join('+');
+};
+
+export const getChoiceString = (choices: string[][], key: string): string => {
+  const found = choices.find(row => row[0] === key);
+  if (!found) {
+    throw new Error('Could not find choice');
+  }
+  return found[1];
+};
