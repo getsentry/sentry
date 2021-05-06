@@ -59,7 +59,7 @@ class ConfigureDistributedTracing extends Component<Props, State> {
     this.setState({shouldShow: !promptIsDismissed(data ?? {}, 30)});
   }
 
-  trackAnalytics = ({eventKey, eventName}) => {
+  trackAnalytics({eventKey, eventName}) {
     const {project, organization} = this.props;
 
     trackAnalyticsEvent({
@@ -69,7 +69,7 @@ class ConfigureDistributedTracing extends Component<Props, State> {
       project_id: parseInt(project.id, 10),
       platform: project.platform,
     });
-  };
+  }
 
   handleClick({action, eventKey, eventName}) {
     const {api, project, organization} = this.props;
