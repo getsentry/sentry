@@ -442,21 +442,21 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   flex: 1;
   grid-gap: ${space(0.5)};
   grid-template-columns: ${p =>
-    `minmax(${p.isFrameAfterLastNonApp ? '167px' : '117px'}, auto)  auto`};
+    `minmax(${p.isFrameAfterLastNonApp ? '167px' : '117px'}, auto)  1fr`};
   align-items: center;
   justify-content: flex-start;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     grid-template-columns:
       ${p => (p.isFrameAfterLastNonApp ? '200px' : '150px')} minmax(117px, auto)
-      auto;
+      1fr;
   }
 
   @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
       props.theme.breakpoints[3]}) {
     grid-template-columns:
       ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} minmax(117px, auto)
-      auto;
+      1fr;
   }
 `;
 
