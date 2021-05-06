@@ -8,15 +8,10 @@ log_message() {
     GREEN='\033[0;32m'
     NC='\033[0m'
 
-    echo -e "$GREEN"
-    echo "$1"
-    echo -e "$NC"
+    echo -e "${GREEN}${1}${NC}"
 }
 
 mkdir -p /tmp/cdc-snapshots/
-
-GREEN='\033[0;32m'
-NC='\033[0m'
 
 log_message "********* Taking the snapshot from Postgres *********"
 
