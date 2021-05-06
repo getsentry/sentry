@@ -24,10 +24,7 @@ import {Event, EventTag} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
-import TraceMetaQuery, {
-  TraceMetaQueryChildrenProps,
-} from 'app/utils/performance/quickTrace/traceMetaQuery';
-import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
+import TraceMetaQuery from 'app/utils/performance/quickTrace/traceMetaQuery';
 import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 import {appendTagCondition, decodeScalar} from 'app/utils/queryString';
@@ -125,131 +122,117 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const query = decodeScalar(location.query.query, '');
 
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
+    const traceId = event.contexts?.trace?.trace_id ?? '';
+    const {start, end} = getTraceTimeRangeFromEvent(event);
 
-    const renderContent = (
-      results?: QuickTraceQueryChildrenProps,
-      metaResults?: TraceMetaQueryChildrenProps
-    ) => (
-      <Fragment>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumb
-              organization={organization}
-              location={location}
-              transactionName={transactionName}
-              eventSlug={eventSlug}
-            />
-            <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <Button onClick={this.toggleSidebar}>
-                {isSidebarVisible ? 'Hide Details' : 'Show Details'}
-              </Button>
-              {results && (
-                <Button icon={<IconOpen />} href={eventJsonUrl} external>
-                  {t('JSON')} (<FileSize bytes={event.size} />)
-                </Button>
-              )}
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-        <Layout.Body>
-          {results && (
-            <Layout.Main fullWidth>
-              <EventMetas
-                quickTrace={results}
-                meta={metaResults?.meta ?? null}
-                event={event}
-                organization={organization}
-                projectId={this.projectId}
-                location={location}
-                errorDest="issue"
-                transactionDest="performance"
-              />
-            </Layout.Main>
-          )}
-          <Layout.Main fullWidth={!isSidebarVisible}>
-            <Projects orgId={organization.slug} slugs={[this.projectId]}>
-              {({projects}) => (
-                <SpanEntryContext.Provider
-                  value={{
-                    getViewChildTransactionTarget: childTransactionProps => {
-                      return getTransactionDetailsUrl(
-                        organization,
-                        childTransactionProps.eventSlug,
-                        childTransactionProps.transaction,
-                        location.query
-                      );
-                    },
-                  }}
-                >
-                  <QuickTraceContext.Provider value={results}>
-                    <BorderlessEventEntries
+    return (
+      <TraceMetaQuery
+        location={location}
+        orgSlug={organization.slug}
+        traceId={traceId}
+        start={start}
+        end={end}
+      >
+        {metaResults => (
+          <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+            {results => (
+              <Fragment>
+                <Layout.Header>
+                  <Layout.HeaderContent>
+                    <Breadcrumb
                       organization={organization}
-                      event={event}
-                      project={projects[0] as Project}
-                      showExampleCommit={false}
-                      showTagSummary={false}
                       location={location}
-                      api={this.api}
+                      transactionName={transactionName}
+                      eventSlug={eventSlug}
                     />
-                  </QuickTraceContext.Provider>
-                </SpanEntryContext.Provider>
-              )}
-            </Projects>
-          </Layout.Main>
-          {isSidebarVisible && (
-            <Layout.Side>
-              {results === undefined && (
-                <Fragment>
-                  <EventMetadata
-                    event={event}
-                    organization={organization}
-                    projectId={this.projectId}
-                  />
-                  <RootSpanStatus event={event} />
-                  <OpsBreakdown event={event} />
-                </Fragment>
-              )}
-              <EventVitals event={event} />
-              <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
-            </Layout.Side>
-          )}
-        </Layout.Body>
-      </Fragment>
+                    <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
+                  </Layout.HeaderContent>
+                  <Layout.HeaderActions>
+                    <ButtonBar gap={1}>
+                      <Button onClick={this.toggleSidebar}>
+                        {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+                      </Button>
+                      {results && (
+                        <Button icon={<IconOpen />} href={eventJsonUrl} external>
+                          {t('JSON')} (<FileSize bytes={event.size} />)
+                        </Button>
+                      )}
+                    </ButtonBar>
+                  </Layout.HeaderActions>
+                </Layout.Header>
+                <Layout.Body>
+                  {results && (
+                    <Layout.Main fullWidth>
+                      <EventMetas
+                        quickTrace={results}
+                        meta={metaResults?.meta ?? null}
+                        event={event}
+                        organization={organization}
+                        projectId={this.projectId}
+                        location={location}
+                        errorDest="issue"
+                        transactionDest="performance"
+                      />
+                    </Layout.Main>
+                  )}
+                  <Layout.Main fullWidth={!isSidebarVisible}>
+                    <Projects orgId={organization.slug} slugs={[this.projectId]}>
+                      {({projects}) => (
+                        <SpanEntryContext.Provider
+                          value={{
+                            getViewChildTransactionTarget: childTransactionProps => {
+                              return getTransactionDetailsUrl(
+                                organization,
+                                childTransactionProps.eventSlug,
+                                childTransactionProps.transaction,
+                                location.query
+                              );
+                            },
+                          }}
+                        >
+                          <QuickTraceContext.Provider value={results}>
+                            <BorderlessEventEntries
+                              organization={organization}
+                              event={event}
+                              project={projects[0] as Project}
+                              showExampleCommit={false}
+                              showTagSummary={false}
+                              location={location}
+                              api={this.api}
+                            />
+                          </QuickTraceContext.Provider>
+                        </SpanEntryContext.Provider>
+                      )}
+                    </Projects>
+                  </Layout.Main>
+                  {isSidebarVisible && (
+                    <Layout.Side>
+                      {results === undefined && (
+                        <Fragment>
+                          <EventMetadata
+                            event={event}
+                            organization={organization}
+                            projectId={this.projectId}
+                          />
+                          <RootSpanStatus event={event} />
+                          <OpsBreakdown event={event} />
+                        </Fragment>
+                      )}
+                      <EventVitals event={event} />
+                      <TagsTable
+                        event={event}
+                        query={query}
+                        generateUrl={this.generateTagUrl}
+                      />
+                    </Layout.Side>
+                  )}
+                </Layout.Body>
+              </Fragment>
+            )}
+          </QuickTraceQuery>
+        )}
+      </TraceMetaQuery>
     );
-
-    const hasQuickTraceView =
-      organization.features.includes('trace-view-quick') ||
-      organization.features.includes('trace-view-summary');
-
-    if (hasQuickTraceView) {
-      const traceId = event.contexts?.trace?.trace_id ?? '';
-      const {start, end} = getTraceTimeRangeFromEvent(event);
-
-      return (
-        <TraceMetaQuery
-          location={location}
-          orgSlug={organization.slug}
-          traceId={traceId}
-          start={start}
-          end={end}
-        >
-          {metaResults => (
-            <QuickTraceQuery
-              event={event}
-              location={location}
-              orgSlug={organization.slug}
-            >
-              {results => renderContent(results, metaResults)}
-            </QuickTraceQuery>
-          )}
-        </TraceMetaQuery>
-      );
-    }
-
-    return renderContent();
   }
 
   renderError(error: Error) {
