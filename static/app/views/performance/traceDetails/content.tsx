@@ -8,6 +8,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ButtonBar from 'app/components/buttonBar';
 import DiscoverFeature from 'app/components/discover/discoverFeature';
 import DiscoverButton from 'app/components/discoverButton';
+import * as AnchorLinkManager from 'app/components/events/interfaces/spans/anchorLinkManager';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import FeatureBadge from 'app/components/featureBadge';
@@ -533,28 +534,30 @@ class TraceDetailsContent extends React.Component<Props, State> {
                     <DividerSpacer />
                   </TraceViewHeaderContainer>
                   <TraceViewContainer ref={this.traceViewRef}>
-                    <TransactionGroup
-                      location={location}
-                      organization={organization}
-                      traceInfo={traceInfo}
-                      transaction={{
-                        traceSlug,
-                        generation: 0,
-                        'transaction.duration':
-                          traceInfo.endTimestamp - traceInfo.startTimestamp,
-                        children: traces,
-                        start_timestamp: traceInfo.startTimestamp,
-                        timestamp: traceInfo.endTimestamp,
-                      }}
-                      continuingDepths={[]}
-                      isOrphan={false}
-                      isLast={false}
-                      index={0}
-                      isVisible
-                      hasGuideAnchor={false}
-                      renderedChildren={transactionGroups}
-                      barColour={pickBarColour('')}
-                    />
+                    <AnchorLinkManager.Provider>
+                      <TransactionGroup
+                        location={location}
+                        organization={organization}
+                        traceInfo={traceInfo}
+                        transaction={{
+                          traceSlug,
+                          generation: 0,
+                          'transaction.duration':
+                            traceInfo.endTimestamp - traceInfo.startTimestamp,
+                          children: traces,
+                          start_timestamp: traceInfo.startTimestamp,
+                          timestamp: traceInfo.endTimestamp,
+                        }}
+                        continuingDepths={[]}
+                        isOrphan={false}
+                        isLast={false}
+                        index={0}
+                        isVisible
+                        hasGuideAnchor={false}
+                        renderedChildren={transactionGroups}
+                        barColour={pickBarColour('')}
+                      />
+                    </AnchorLinkManager.Provider>
                     {this.renderInfoMessage({
                       isVisible: true,
                       numberOfHiddenTransactionsAbove,

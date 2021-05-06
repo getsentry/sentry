@@ -3,6 +3,7 @@ import {Location} from 'history';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Count from 'app/components/count';
+import * as AnchorLinkManager from 'app/components/events/interfaces/spans/anchorLinkManager';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
@@ -68,6 +69,8 @@ class TransactionBar extends React.Component<Props, State> {
   state: State = {
     showDetail: false,
   };
+
+  transactionRowDOMRef = React.createRef<HTMLDivElement>();
 
   toggleDisplayDetail = () => {
     const {transaction} = this.props;
@@ -415,12 +418,53 @@ class TransactionBar extends React.Component<Props, State> {
     );
   }
 
-  render() {
+  scrollIntoView = () => {
+    const element = this.transactionRowDOMRef.current;
+    if (!element) {
+      return;
+    }
+    const boundingRect = element.getBoundingClientRect();
+    const offset = boundingRect.top + window.scrollY;
+    this.setState({showDetail: true}, () => window.scrollTo(0, offset));
+  };
+
+  renderDetail() {
     const {location, organization, isVisible, transaction} = this.props;
     const {showDetail} = this.state;
 
     return (
+      <AnchorLinkManager.Consumer>
+        {({registerScrollFn, scrollToHash}) => {
+          if (!isTraceFullDetailed(transaction)) {
+            return null;
+          }
+
+          registerScrollFn(`#txn-${transaction.event_id}`, this.scrollIntoView);
+
+          if (!isVisible || !showDetail) {
+            return null;
+          }
+
+          return (
+            <TransactionDetail
+              location={location}
+              organization={organization}
+              transaction={transaction}
+              scrollToHash={scrollToHash}
+            />
+          );
+        }}
+      </AnchorLinkManager.Consumer>
+    );
+  }
+
+  render() {
+    const {isVisible, transaction} = this.props;
+    const {showDetail} = this.state;
+
+    return (
       <Row
+        ref={this.transactionRowDOMRef}
         visible={isVisible}
         showBorder={showDetail}
         cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
@@ -437,13 +481,7 @@ class TransactionBar extends React.Component<Props, State> {
             </DividerHandlerManager.Consumer>
           )}
         </ScrollbarManager.Consumer>
-        {isTraceFullDetailed(transaction) && isVisible && showDetail && (
-          <TransactionDetail
-            location={location}
-            organization={organization}
-            transaction={transaction}
-          />
-        )}
+        {this.renderDetail()}
       </Row>
     );
   }
