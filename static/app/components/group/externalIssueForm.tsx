@@ -32,7 +32,7 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
   loadTransaction?: ReturnType<typeof Sentry.startTransaction>;
   submitTransaction?: ReturnType<typeof Sentry.startTransaction>;
 
-  componentDidMount() {
+  componentWillMount() {
     this.loadTransaction = this.startTransaction('load');
   }
 
