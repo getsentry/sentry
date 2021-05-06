@@ -28,8 +28,8 @@ function IconBusinessComponent({
         />
       </mask>
       <linearGradient id="icon-power-features-gradient">
-        <stop offset="0%" stopColor={theme.pink100} />
-        <stop offset="100%" stopColor={theme.pink300} />
+        <stop offset="0%" stopColor={theme.businessIconColors[0]} />
+        <stop offset="100%" stopColor={theme.businessIconColors[1]} />
       </linearGradient>
       <linearGradient id="icon-power-features-shine" gradientTransform="rotate(35)">
         <stop offset="0%" stopColor="rgba(255, 255, 255, 0)" />
