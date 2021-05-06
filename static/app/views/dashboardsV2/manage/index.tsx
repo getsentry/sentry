@@ -46,13 +46,15 @@ type State = {
 class ManageDashboards extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
+
     return [
       [
         'dashboards',
         `/organizations/${organization.slug}/dashboards/`,
         {
           query: {
-            ...pick(location.query, ['cursor', 'query', 'sort']),
+            ...pick(location.query, ['cursor', 'query']),
+            sort: this.getActiveSort().value,
             per_page: '9',
           },
         },
