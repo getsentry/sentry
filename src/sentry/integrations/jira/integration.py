@@ -140,6 +140,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "on_unresolve": _("When unresolved"),
                 },
                 "mappedColumnLabel": _("Jira Project"),
+                "formatMessageValue": False,
             },
             {
                 "name": self.outbound_assignee_key,
