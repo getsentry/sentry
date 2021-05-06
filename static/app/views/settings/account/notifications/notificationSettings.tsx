@@ -3,7 +3,7 @@ import React from 'react';
 import AsyncComponent from 'app/components/asyncComponent';
 import Avatar from 'app/components/avatar';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import withOrganizations from 'app/utils/withOrganizations';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'app/views/settings/account/notifications/fields';
 import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
@@ -14,6 +14,7 @@ import {
 } from 'app/views/settings/account/notifications/utils';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {FieldObject} from 'app/views/settings/components/forms/type';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
@@ -23,8 +24,10 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  notificationSettings: {[key: string]: any};
-  projects: any[];
+  notificationSettings: {
+    [key: string]: {[key: string]: {[key: string]: {[key: string]: string}}};
+  };
+  projects: Project[];
 } & AsyncComponent['state'];
 
 class NotificationSettings extends AsyncComponent<Props, State> {
@@ -52,7 +55,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return isGroupedByProject(notificationType);
   }
 
-  getParents() {
+  getParents(): Organization[] | Project[] {
     /** Use the `notificationType` key to decide which parent objects to use */
     const {organizations} = this.props;
     const {projects} = this.state;
@@ -88,25 +91,23 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
-    const providerList = changedData.provider.split('+');
+    const providerList: string[] = changedData.provider.split('+');
 
     return {
       [notificationType]: Object.fromEntries(
         Object.entries(notificationSettings[notificationType]).map(
-          ([scopeType, scopeTypeData]: [string, any]) => [
+          ([scopeType, scopeTypeData]) => [
             scopeType,
             Object.fromEntries(
-              Object.entries(scopeTypeData).map(
-                ([scopeId, scopeIdData]: [string, any]) => {
-                  const previousValue = Object.values(scopeIdData)[0];
-                  return [
-                    scopeId,
-                    Object.fromEntries(
-                      providerList.map(provider => [provider, previousValue])
-                    ),
-                  ];
-                }
-              )
+              Object.entries(scopeTypeData).map(([scopeId, scopeIdData]) => {
+                const previousValue = Object.values(scopeIdData)[0];
+                return [
+                  scopeId,
+                  Object.fromEntries(
+                    providerList.map(provider => [provider, previousValue])
+                  ),
+                ];
+              })
             ),
           ]
         )
@@ -132,7 +133,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     };
   };
 
-  getStateToPutForParent = (changedData: {[key: string]: string}, parentId: number) => {
+  getStateToPutForParent = (changedData: {[key: string]: string}, parentId: string) => {
     /** Get the diff of the Notification Settings for this parent ID. */
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
@@ -155,7 +156,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     };
   };
 
-  getGroupedParents = () => {
+  getGroupedParents = (): {[key: string]: Organization[] | Project[]} => {
     /**
      * The UI expects projects to be grouped by organization but can also use
      * this function to make a single group with all organizations.
@@ -172,7 +173,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
       : {organizations};
   };
 
-  getParentField = parent => {
+  getParentField = (parent: Organization | Project): FieldObject => {
     const {notificationType} = this.props;
 
     const defaultFields = NOTIFICATION_SETTING_FIELDS[notificationType];
@@ -193,14 +194,14 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         ['default', `${currentDefault} (default)`],
       ]),
       defaultValue: 'default',
-    });
+    }) as any;
   };
 
-  getDefaultSettings = () => {
+  getDefaultSettings = (): [string, FieldObject[]] => {
     const {notificationType} = this.props;
 
     const title = this.isGroupedByProject() ? t('All Projects') : t('All Organizations');
-    const fields: any[] = [
+    const fields = [
       Object.assign(
         {
           help: t('This is the default for all projects.'),

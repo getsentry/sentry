@@ -1,7 +1,7 @@
 import {Organization, Project} from 'app/types';
 
 // Which fine tuning parts are grouped by project
-export const isGroupedByProject = (type: string) =>
+export const isGroupedByProject = (type: string): boolean =>
   ['alerts', 'email', 'workflow'].includes(type);
 
 export const groupByOrganization = (projects: Project[]) => {
@@ -21,7 +21,7 @@ export const groupByOrganization = (projects: Project[]) => {
   }, {});
 };
 
-export const getFallBackValue = (notificationType: string) => {
+export const getFallBackValue = (notificationType: string): string => {
   switch (notificationType) {
     case 'alerts':
       return 'always';
