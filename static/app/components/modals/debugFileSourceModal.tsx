@@ -269,7 +269,7 @@ class DebugFileSourceModal extends Component<Props> {
   }
 
   render() {
-    const {closeModal, sourceType, sourceConfig, Header} = this.props;
+    const {sourceType, sourceConfig, Header} = this.props;
 
     const headerText = sourceConfig
       ? 'Update [name] Repository'
@@ -277,7 +277,7 @@ class DebugFileSourceModal extends Component<Props> {
 
     return (
       <Fragment>
-        <Header closeButton onHide={closeModal}>
+        <Header closeButton>
           {tct(headerText, {name: getDebugSourceName(sourceType)})}
         </Header>
 

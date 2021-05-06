@@ -142,13 +142,11 @@ class SudoModal extends React.Component<Props, State> {
   }
 
   render() {
-    const {closeModal, Header, Body} = this.props;
+    const {Header, Body} = this.props;
 
     return (
       <React.Fragment>
-        <Header closeButton onHide={closeModal}>
-          {t('Confirm Password to Continue')}
-        </Header>
+        <Header closeButton>{t('Confirm Password to Continue')}</Header>
         <Body>{this.renderBodyContent()}</Body>
       </React.Fragment>
     );

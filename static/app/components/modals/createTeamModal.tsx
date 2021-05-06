@@ -36,13 +36,11 @@ class CreateTeamModal extends Component<Props> {
   }
 
   render() {
-    const {Body, Header, closeModal, ...props} = this.props;
+    const {Body, Header, ...props} = this.props;
 
     return (
       <Fragment>
-        <Header closeButton onHide={closeModal}>
-          {t('Create Team')}
-        </Header>
+        <Header closeButton>{t('Create Team')}</Header>
         <Body>
           <CreateTeamForm {...props} onSubmit={this.handleSubmit} />
         </Body>

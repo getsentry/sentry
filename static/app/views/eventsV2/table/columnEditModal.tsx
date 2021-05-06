@@ -64,7 +64,6 @@ class ColumnEditModal extends Component<Props, State> {
       measurementKeys,
       spanOperationBreakdownKeys,
       organization,
-      closeModal,
     } = this.props;
     const fieldOptions = generateFieldOptions({
       organization,
@@ -74,7 +73,7 @@ class ColumnEditModal extends Component<Props, State> {
     });
     return (
       <Fragment>
-        <Header closeButton onHide={closeModal}>
+        <Header closeButton>
           <h4>{t('Edit Columns')}</h4>
         </Header>
         <Body>
@@ -118,11 +117,8 @@ const Instruction = styled('div')`
 
 const modalCss = css`
   @media (min-width: ${theme.breakpoints[0]}) {
-    .modal-dialog {
-      width: auto;
-      max-width: 750px;
-      margin-left: -375px;
-    }
+    width: auto;
+    max-width: 750px;
   }
 `;
 

@@ -70,7 +70,7 @@ describe('SentryAppExternalIssueActions', () => {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('Modal').first().prop('show')).toEqual(true);
+      expect(wrapper.find('GlobalModal[visible=true]').exists()).toEqual(true);
     });
 
     it('renders the Create Issue form fields, based on schema', async () => {

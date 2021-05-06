@@ -308,7 +308,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       Body,
       Header,
       api,
-      closeModal,
       organization,
       selection,
       tags,
@@ -329,7 +328,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        <Header closeButton onHide={closeModal}>
+        <Header closeButton>
           <h4>{isUpdatingWidget ? t('Edit Widget') : t('Add Widget')}</h4>
         </Header>
         <Body>
@@ -447,12 +446,9 @@ const DoubleFieldWrapper = styled('div')`
 `;
 
 export const modalCss = css`
-  .modal-dialog {
-    position: unset;
-    width: 100%;
-    max-width: 700px;
-    margin: 70px auto;
-  }
+  width: 100%;
+  max-width: 700px;
+  margin: 70px auto;
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));

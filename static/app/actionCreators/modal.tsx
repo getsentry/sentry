@@ -1,9 +1,7 @@
 import * as React from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {Modal as BoostrapModal} from 'react-bootstrap';
-import {css} from '@emotion/react';
 
 import ModalActions from 'app/actions/modalActions';
+import GlobalModal from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
 import {
@@ -17,21 +15,10 @@ import {
 } from 'app/types';
 import {Event} from 'app/types/event';
 
-export type ModalRenderProps = {
-  closeModal: () => void;
-  Header: typeof BoostrapModal.Header;
-  Body: typeof BoostrapModal.Body;
-  Footer: typeof BoostrapModal.Footer;
-};
+type ModalProps = Required<React.ComponentProps<typeof GlobalModal>>;
 
-export type ModalOptions = {
-  onClose?: () => void;
-  modalCss?: ReturnType<typeof css>;
-  modalClassName?: string;
-  dialogClassName?: string;
-  type?: string;
-  backdrop?: BoostrapModal['props']['backdrop'];
-};
+export type ModalOptions = ModalProps['options'];
+export type ModalRenderProps = Parameters<NonNullable<ModalProps['children']>>[0];
 
 /**
  * Show a modal
@@ -161,9 +148,7 @@ export async function openRecoveryOptions(options: RecoveryModalOptions) {
   );
   const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalClassName: 'recovery-options',
-  });
+  openModal(deps => <Modal {...deps} {...options} />);
 }
 
 export type TeamAccessRequestModalOptions = {
@@ -178,9 +163,7 @@ export async function openTeamAccessRequestModal(options: TeamAccessRequestModal
   );
   const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalClassName: 'confirm-team-request',
-  });
+  openModal(deps => <Modal {...deps} {...options} />);
 }
 
 export async function redirectToProject(newProjectSlug: string) {
@@ -226,9 +209,7 @@ export async function openDebugFileSourceModal(options: DebugFileSourceModalOpti
   );
   const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalClassName: 'debug-file-source',
-  });
+  openModal(deps => <Modal {...deps} {...options} />);
 }
 
 export async function openInviteMembersModal(options = {}) {

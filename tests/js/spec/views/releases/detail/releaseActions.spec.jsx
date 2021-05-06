@@ -48,7 +48,7 @@ describe('ReleaseActions', function () {
     expect(affectedProjects.length).toBe(2);
 
     // confirm modal
-    modal.find('ModalDialog Button[priority="primary"]').simulate('click');
+    modal.find('Modal Button[priority="primary"]').simulate('click');
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.anything(),

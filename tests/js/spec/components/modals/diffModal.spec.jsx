@@ -13,6 +13,7 @@ describe('DiffModal', function () {
         targetIssueId="234"
         project={project}
         Body={({children}) => <div>{children}</div>}
+        CloseButton={({children}) => <div>{children}</div>}
       />
     );
   });

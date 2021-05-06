@@ -54,7 +54,7 @@ class OrganizationExternalMappings(AcceptanceTestCase):
 
             # Create mapping
             self.browser.click('[data-test-id="add-mapping-button"]')
-            self.browser.wait_until(".modal-dialog")
+            self.browser.wait_until("[role='dialog']")
 
             # Add Mapping Modal
             externalName = self.browser.find_element_by_name("externalName")
@@ -88,7 +88,7 @@ class OrganizationExternalMappings(AcceptanceTestCase):
 
             # Create mapping
             self.browser.click('[data-test-id="add-mapping-button"]')
-            self.browser.wait_until(".modal-dialog")
+            self.browser.wait_until("[role='dialog']")
 
             # Add Mapping Modal
             externalName = self.browser.find_element_by_name("externalName")

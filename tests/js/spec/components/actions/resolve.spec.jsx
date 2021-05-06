@@ -178,10 +178,10 @@ describe('ResolveActions', function () {
       await tick();
       component.update();
 
-      const modal = component.find('Modal ModalDialog');
+      const modal = component.find('Modal');
       expect(modal.text()).toContain('Are you sure???');
       expect(spy).not.toHaveBeenCalled();
-      modal.find('.modal button[aria-label="Resolve"]').simulate('click');
+      modal.find('button[aria-label="Resolve"]').simulate('click');
 
       expect(spy).toHaveBeenCalled();
     });

@@ -5,43 +5,28 @@ import {DynamicSamplingInnerName, LegacyBrowser} from 'app/types/dynamicSampling
 import theme from 'app/utils/theme';
 
 export const modalCss = css`
-  .modal-content {
+  [role='document'] {
     overflow: initial;
   }
 
   @media (min-width: ${theme.breakpoints[0]}) {
-    .modal-dialog {
-      width: 95%;
-      margin-left: -47.5%;
-    }
+    width: 95%;
   }
 
   @media (min-width: ${theme.breakpoints[1]}) {
-    .modal-dialog {
-      width: 75%;
-      margin-left: -37.5%;
-    }
+    width: 75%;
   }
 
   @media (min-width: ${theme.breakpoints[2]}) {
-    .modal-dialog {
-      width: 65%;
-      margin-left: -37.5%;
-    }
+    width: 65%;
   }
 
   @media (min-width: ${theme.breakpoints[3]}) {
-    .modal-dialog {
-      width: 55%;
-      margin-left: -27.5%;
-    }
+    width: 55%;
   }
 
   @media (min-width: ${theme.breakpoints[4]}) {
-    .modal-dialog {
-      width: 45%;
-      margin-left: -22.5%;
-    }
+    width: 45%;
   }
 `;
 
