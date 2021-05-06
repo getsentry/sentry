@@ -32,7 +32,8 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
   loadTransaction?: ReturnType<typeof Sentry.startTransaction>;
   submitTransaction?: ReturnType<typeof Sentry.startTransaction>;
 
-  componentDidMount() {
+  constructor(props) {
+    super(props, {});
     this.loadTransaction = this.startTransaction('load');
   }
 
@@ -52,6 +53,7 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     const {group, integration} = this.props;
     const {action} = this.state;
     const transaction = Sentry.startTransaction({name: `externalIssueForm.${type}`});
+    Sentry.getCurrentHub().configureScope(scope => scope.setSpan(transaction));
     transaction.setTag('issueAction', action);
     transaction.setTag('groupID', group.id);
     transaction.setTag('projectID', group.project.id);
