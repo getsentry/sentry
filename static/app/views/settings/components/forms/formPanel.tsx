@@ -7,7 +7,11 @@ import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig
 
 import {FieldObject, JsonFormObject} from './type';
 
-type Props = {
+type DefaultProps = {
+  additionalFieldProps: {[key: string]: any};
+};
+
+type Props = DefaultProps & {
   /**
    * Panel title
    */
@@ -20,8 +24,6 @@ type Props = {
 
   access?: Set<Scope>;
   features?: Record<string, any>;
-
-  additionalFieldProps: {[key: string]: any};
 
   /**
    * The name of the field that should be highlighted
@@ -45,6 +47,10 @@ type Props = {
 };
 
 export default class FormPanel extends React.Component<Props> {
+  static defaultProps: DefaultProps = {
+    additionalFieldProps: {},
+  };
+
   render() {
     const {
       title,
