@@ -1824,7 +1824,7 @@ urlpatterns = [
                     name="sentry-api-0-project-appstoreconnect-apps",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/validate/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/validate/(?P<credentials_id>[^\/]+)$",
                     AppStoreConnectCredentialsValidateEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-validate",
                 ),

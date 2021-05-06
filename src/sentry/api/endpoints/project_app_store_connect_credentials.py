@@ -25,12 +25,16 @@ def app_store_connect_feature_name():
     return "organizations:app-store-connect"
 
 
-def get_app_store_credentials(project):
+def get_app_store_credentials(project, credentials_id):
     sources_config = project.get_option(symbol_sources_prop_name())
+    credentials_id = credentials_id or ""
     try:
         sources = json.loads(sources_config)
         for source in sources:
-            if source.get("type") == "appStoreConnect":
+            if (
+                source.get("type") == "appStoreConnect"
+                and source.get("id") == credentials_id.lower()
+            ):
                 return source
         return None
     except BaseException as e:
@@ -152,20 +156,6 @@ class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
             return Response("Invalid validation context passed.", status=400)
         return Response(credentials, status=200)
 
-    def get(self, request, project):
-        if not features.has(
-            app_store_connect_feature_name(), project.organization, actor=request.user
-        ):
-            return Response("", status=404)
-
-        credentials = get_app_store_credentials(project)
-
-        if credentials is None:
-            return Response({}, status=200)
-        else:
-            credentials.pop("encrypted", None)
-            return Response(credentials, status=200)
-
 
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
     permission_classes = [StrictProjectPermission]
@@ -177,13 +167,13 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
             "itunesSessionValid": itunes,
         }
 
-    def get(self, request, project):
+    def get(self, request, project, credentials_id):
         if not features.has(
             app_store_connect_feature_name(), project.organization, actor=request.user
         ):
             return Response(status=404)
 
-        credentials = get_app_store_credentials(project)
+        credentials = get_app_store_credentials(project, credentials_id)
         key = project.get_option(credentials_key_name())
 
         if key is None or credentials is None:
@@ -221,6 +211,7 @@ class AppStoreConnectStartAuthSerializer(serializers.Serializer):
 
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
     itunesPassword = serializers.CharField(max_length=100, min_length=1, required=False)
+    id = serializers.CharField(max_length=40, min_length=1, required=False)
 
 
 class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
@@ -238,6 +229,7 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
 
         user_name = serializer.validated_data.get("itunesUser")
         password = serializer.validated_data.get("itunesPassword")
+        credentials_id = serializer.validated_data.get("id")
 
         key = project.get_option(credentials_key_name())
 
@@ -251,7 +243,7 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
             if user_name is None or password is None:
                 # credentials not supplied use saved credentials
 
-                credentials = get_app_store_credentials(project)
+                credentials = get_app_store_credentials(project, credentials_id)
                 if key is None or credentials is None:
                     return Response("No credentials provided.", status=400)
 
