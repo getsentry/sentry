@@ -377,7 +377,7 @@ class DashboardDetail extends Component<Props, State> {
 
     return isValidElement(children)
       ? cloneElement(children, {
-          dashboard: modifiedDashboard || dashboard,
+          dashboard: modifiedDashboard ?? dashboard,
           onSave: this.onUpdateWidget,
           widget: widgetToBeUpdated,
         })
@@ -409,7 +409,7 @@ class DashboardDetail extends Component<Props, State> {
           <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
               <DashboardTitle
-                dashboard={modifiedDashboard || dashboard}
+                dashboard={modifiedDashboard ?? dashboard}
                 onUpdate={this.setModifiedDashboard}
                 isEditing={this.isEditing}
               />
@@ -427,7 +427,7 @@ class DashboardDetail extends Component<Props, State> {
             </StyledPageHeader>
             <Dashboard
               paramDashboardId={dashboardId}
-              dashboard={modifiedDashboard || dashboard}
+              dashboard={modifiedDashboard ?? dashboard}
               organization={organization}
               isEditing={this.isEditing}
               onUpdate={this.onUpdateWidget}

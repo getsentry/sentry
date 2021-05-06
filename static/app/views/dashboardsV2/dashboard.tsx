@@ -22,7 +22,6 @@ type Props = {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
-  paramDashboardId?: string;
   selection: GlobalSelection;
   isEditing: boolean;
   router: InjectedRouter;
@@ -32,6 +31,7 @@ type Props = {
    */
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
+  paramDashboardId?: string;
 };
 
 class Dashboard extends Component<Props> {

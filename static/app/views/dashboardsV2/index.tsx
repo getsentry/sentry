@@ -11,7 +11,7 @@ import withOrganization from 'app/utils/withOrganization';
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
 import {DashboardState} from './types';
-import {DashboardBasicFeature} from './utils';
+import {DashboardBasicFeature} from './view';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   api: Client;
