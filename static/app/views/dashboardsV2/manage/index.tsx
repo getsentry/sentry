@@ -46,7 +46,6 @@ type State = {
 class ManageDashboards extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
-
     return [
       [
         'dashboards',
