@@ -5,12 +5,15 @@ import quickTraceExample from 'sentry-images/spot/performance-quick-trace.svg';
 
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import Hovercard from 'app/components/hovercard';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getDocsPlatform} from 'app/utils/docs';
@@ -21,7 +24,7 @@ const DISTRIBUTED_TRACING_FEATURE = 'distributed_tracing';
 
 type Props = {
   api: Client;
-  group: Group;
+  project: Project;
   organization: Organization;
   event: Event;
 };
@@ -30,7 +33,7 @@ type State = {
   shouldShow: boolean | null;
 };
 
-class EventQuickTrace extends Component<Props, State> {
+class ConfigureDistributedTracing extends Component<Props, State> {
   state: State = {
     shouldShow: null,
   };
@@ -40,8 +43,7 @@ class EventQuickTrace extends Component<Props, State> {
   }
 
   async fetchData() {
-    const {api, event, group, organization} = this.props;
-    const {project} = group;
+    const {api, event, project, organization} = this.props;
 
     if (!promptCanShow(DISTRIBUTED_TRACING_FEATURE, event.eventID)) {
       this.setState({shouldShow: false});
@@ -57,9 +59,8 @@ class EventQuickTrace extends Component<Props, State> {
     this.setState({shouldShow: !promptIsDismissed(data ?? {}, 30)});
   }
 
-  trackAnalytics({eventKey, eventName}) {
-    const {group, organization} = this.props;
-    const {project} = group;
+  trackAnalytics = ({eventKey, eventName}) => {
+    const {project, organization} = this.props;
 
     trackAnalyticsEvent({
       eventKey,
@@ -68,11 +69,10 @@ class EventQuickTrace extends Component<Props, State> {
       project_id: parseInt(project.id, 10),
       platform: project.platform,
     });
-  }
+  };
 
   handleClick({action, eventKey, eventName}) {
-    const {api, group, organization} = this.props;
-    const {project} = group;
+    const {api, project, organization} = this.props;
     const data = {
       projectId: project.id,
       organizationId: organization.id,
@@ -84,11 +84,55 @@ class EventQuickTrace extends Component<Props, State> {
   }
 
   createDocsLink() {
-    const platform = this.props.group.project.platform ?? null;
+    const platform = this.props.project.platform ?? null;
     const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
     return docsPlatform === null
       ? null // this platform does not support performance
       : `https://docs.sentry.io/platforms/${docsPlatform}/performance/`;
+  }
+
+  renderActionButton(docsLink: string) {
+    const features = ['organizations:performance-view'];
+    const noFeatureMessage = t('Requires performance feature.');
+
+    const renderDisabled = p => (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            features={features}
+            hideHelpToggle
+            message={noFeatureMessage}
+            featureName={noFeatureMessage}
+          />
+        }
+      >
+        {p.children(p)}
+      </Hovercard>
+    );
+
+    return (
+      <Feature
+        hookName="feature-disabled:configure-distributed-tracing"
+        features={features}
+        renderDisabled={renderDisabled}
+      >
+        {() => (
+          <Button
+            size="small"
+            priority="primary"
+            href={docsLink}
+            onClick={() =>
+              this.trackAnalytics({
+                eventKey: 'quick_trace.missing_instrumentation.docs',
+                eventName: 'Quick Trace: Missing Instrumentation Docs',
+              })
+            }
+          >
+            {t('Read the docs')}
+          </Button>
+        )}
+      </Feature>
+    );
   }
 
   render() {
@@ -113,19 +157,7 @@ class EventQuickTrace extends Component<Props, State> {
         </div>
         <Image src={quickTraceExample} alt="configure distributed tracing" />
         <ActionButtons>
-          <Button
-            size="small"
-            priority="primary"
-            href={docsLink}
-            onClick={() =>
-              this.trackAnalytics({
-                eventKey: 'quick_trace.missing_instrumentation.docs',
-                eventName: 'Quick Trace: Missing Instrumentation Docs',
-              })
-            }
-          >
-            {t('Read the docs')}
-          </Button>
+          {this.renderActionButton(docsLink)}
           <ButtonBar merged>
             <Button
               title={t('Remind me next month')}
@@ -195,4 +227,4 @@ const ActionButtons = styled('div')`
   grid-column-gap: ${space(1)};
 `;
 
-export default withApi(EventQuickTrace);
+export default withApi(ConfigureDistributedTracing);
