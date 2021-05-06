@@ -203,30 +203,26 @@ function AppStoreConnect({
     }
     setIsLoading(true);
     try {
-      await api.requestPromise(`/projects/${orgSlug}/${projectSlug}/appstoreconnect/`, {
-        method: 'POST',
-        data: {
-          itunesUser: stepTwoData.username,
-          itunesPassword: stepTwoData.password,
-          appconnectIssuer: stepOneData.issuer,
-          appconnectKey: stepOneData.keyId,
-          appconnectPrivateKey: stepOneData.privateKey,
-          appName: stepFourData.app.name,
-          appId: stepFourData.app.appId,
-          orgId: stepFourData.org.organizationId,
-          orgName: stepFourData.org.name,
-          sessionContext,
-        },
-      });
+      const response = await api.requestPromise(
+        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/`,
+        {
+          method: 'POST',
+          data: {
+            itunesUser: stepTwoData.username,
+            itunesPassword: stepTwoData.password,
+            appconnectIssuer: stepOneData.issuer,
+            appconnectKey: stepOneData.keyId,
+            appconnectPrivateKey: stepOneData.privateKey,
+            appName: stepFourData.app.name,
+            appId: stepFourData.app.appId,
+            orgId: stepFourData.org.organizationId,
+            orgName: stepFourData.org.name,
+            sessionContext,
+          },
+        }
+      );
       addSuccessMessage('App Store Connect repository was successfully added');
-      onSubmit({
-        itunesUser: stepTwoData.username,
-        appName: stepFourData.app.name,
-        appId: stepFourData.app.appId,
-        orgId: String(stepFourData.org.organizationId),
-        orgName: stepFourData.org.name,
-        name: 'App Store Connect',
-      });
+      onSubmit(response);
       closeModal();
     } catch (error) {
       setIsLoading(false);
