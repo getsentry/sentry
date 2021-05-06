@@ -50,7 +50,7 @@ COMMON_SOURCE_PROPERTIES = {
 APP_STORE_CONNECT_SCHEMA = {
     "type": "object",
     "properties": {
-        "type": {"type": "string", "enum": ["AppStoreConnect"]},
+        "type": {"type": "string", "enum": ["appStoreConnect"]},
         "id": {"type": "string", "minLength": 1},
         "name": {"type": "string"},
         "appConnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
@@ -65,6 +65,7 @@ APP_STORE_CONNECT_SCHEMA = {
     "required": [
         "id",
         "name",
+        "type",
         "appConnectIssuer",
         "appConnectKey",
         "itunesUser",
