@@ -16,12 +16,13 @@ import {IconCommit, IconFlag} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Integration, Repository} from 'app/types';
+import {Integration, Organization, Repository} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = AsyncComponent['props'] & {
   integration: Integration;
+  organization: Organization;
 };
 
 type State = AsyncComponent['state'] & {
