@@ -1,19 +1,21 @@
 import * as React from 'react';
-import {keyframes} from '@emotion/react';
+import {keyframes, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 import SvgIcon from './svgIcon';
 
 type WrappedProps = {
   forwardRef: React.Ref<SVGSVGElement>;
+  theme: Theme;
 } & Props;
 
-const IconBusinessComponent = function IconBusinessComponent({
+function IconBusinessComponent({
   gradient = false,
   withShine = false,
   forwardRef,
+  theme,
   ...props
 }: WrappedProps) {
   return (
@@ -26,7 +28,7 @@ const IconBusinessComponent = function IconBusinessComponent({
         />
       </mask>
       <linearGradient id="icon-power-features-gradient">
-        <stop offset="0%" stopColor={theme.pink200} />
+        <stop offset="0%" stopColor={theme.pink100} />
         <stop offset="100%" stopColor={theme.pink300} />
       </linearGradient>
       <linearGradient id="icon-power-features-shine" gradientTransform="rotate(35)">
@@ -48,7 +50,9 @@ const IconBusinessComponent = function IconBusinessComponent({
       )}
     </SvgIcon>
   );
-};
+}
+
+const ThemedIconBusiness = withTheme(IconBusinessComponent);
 
 type Props = {
   /**
@@ -63,7 +67,7 @@ type Props = {
 } & React.ComponentProps<typeof SvgIcon>;
 
 const IconBusiness = React.forwardRef((props: Props, ref: React.Ref<SVGSVGElement>) => (
-  <IconBusinessComponent {...props} forwardRef={ref} />
+  <ThemedIconBusiness {...props} forwardRef={ref} />
 ));
 
 IconBusiness.displayName = 'IconBusiness';
