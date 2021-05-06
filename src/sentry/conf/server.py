@@ -1573,15 +1573,6 @@ SENTRY_USE_CDC_DEV = False
 #     }
 # }
 
-POSTGRES_INIT_DB_VOLUME = (
-    {
-        os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
-            "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
-        }
-    }
-    if SENTRY_USE_CDC_DEV
-    else {}
-)
 
 SENTRY_DEVSERVICES = {
     "redis": {
@@ -1610,7 +1601,9 @@ SENTRY_DEVSERVICES = {
             "postgres": {"bind": "/var/lib/postgresql/data"},
             "wal2json": {"bind": "/wal2json"},
             CDC_CONFIG_DIR: {"bind": "/cdc"},
-            **POSTGRES_INIT_DB_VOLUME,
+            os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
+                "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
+            },
         },
         "command": [
             "postgres",
@@ -1621,7 +1614,7 @@ SENTRY_DEVSERVICES = {
             "-c",
             "max_wal_senders=1",
         ],
-        "entrypoint": "/cdc/postgres-entrypoint.sh" if SENTRY_USE_CDC_DEV else None,
+        "entrypoint": "/cdc/postgres-entrypoint.sh",
         "healthcheck": {
             "test": ["CMD", "pg_isready", "-U", "postgres"],
             "interval": 30000000000,  # Test every 30 seconds (in ns).
