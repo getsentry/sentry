@@ -76,11 +76,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {notificationSettings} = this.state;
 
     return (
-      (notificationSettings &&
-        notificationSettings[notificationType] &&
-        notificationSettings[notificationType].user &&
-        Object.values(notificationSettings[notificationType].user).length &&
-        Object.values(notificationSettings[notificationType].user)[0]) || {
+      Object.values(notificationSettings[notificationType]?.user || {}).pop() || {
         email: getFallBackValue(notificationType),
       }
     );
@@ -143,10 +139,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 
     const parentKey = this.isGroupedByProject() ? 'project' : 'organization';
     const newValue = Object.values(changedData)[0];
-    const previousData: {[key: string]: string} = (notificationSettings &&
-      notificationSettings[notificationType] &&
-      notificationSettings[notificationType][parentKey] &&
-      notificationSettings[notificationType][parentKey][parentId]) || {email: ''};
+    const previousData = this.getParentValues(parentId);
 
     return {
       [notificationType]: {
