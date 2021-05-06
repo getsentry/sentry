@@ -3,7 +3,7 @@ import logging
 from django.conf import settings
 from rest_framework.response import Response
 
-from sentry import get_version, is_docker, options
+from sentry import options
 from sentry.api.base import Endpoint
 from sentry.http import safe_urlopen
 from sentry.tasks.beacon import BEACON_URL
@@ -35,8 +35,6 @@ class InternalBeaconEndpoint(Endpoint):
         payload = {
             "type": "metric",
             "install_id": install_id,
-            "version": get_version(),
-            "docker": is_docker(),
             "anonymous": anonymous,
         }
 
