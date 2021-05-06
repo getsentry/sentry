@@ -63,8 +63,7 @@ class TransactionSummary extends Component<Props, State> {
     spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
     eventView: generateSummaryEventView(
       this.props.location,
-      getTransactionName(this.props.location),
-      this.props.organization
+      getTransactionName(this.props.location)
     ),
   };
 
@@ -74,8 +73,7 @@ class TransactionSummary extends Component<Props, State> {
       spanOperationBreakdownFilter: decodeFilterFromLocation(nextProps.location),
       eventView: generateSummaryEventView(
         nextProps.location,
-        getTransactionName(nextProps.location),
-        nextProps.organization
+        getTransactionName(nextProps.location)
       ),
     };
   }
@@ -270,8 +268,7 @@ const StyledPageContent = styled(PageContent)`
 
 function generateSummaryEventView(
   location: Location,
-  transactionName: string | undefined,
-  organization: Organization
+  transactionName: string | undefined
 ): EventView | undefined {
   if (transactionName === undefined) {
     return undefined;
@@ -288,9 +285,7 @@ function generateSummaryEventView(
     if (isAggregateField(field)) conditions.removeTag(field);
   });
 
-  const fields = organization.features.includes('trace-view-summary')
-    ? ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp']
-    : ['id', 'user.display', 'transaction.duration', 'timestamp'];
+  const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
 
   return EventView.fromNewQueryWithLocation(
     {

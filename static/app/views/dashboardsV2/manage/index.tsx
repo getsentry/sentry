@@ -55,7 +55,8 @@ class ManageDashboards extends AsyncView<Props, State> {
         `/organizations/${organization.slug}/dashboards/`,
         {
           query: {
-            ...pick(location.query, ['cursor', 'query', 'sort']),
+            ...pick(location.query, ['cursor', 'query']),
+            sort: this.getActiveSort().value,
             per_page: '9',
           },
         },
