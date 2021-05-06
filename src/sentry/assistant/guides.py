@@ -34,7 +34,11 @@ GUIDES = {
     },
     "span_op_breakdowns_and_tag_explorer": {
         "id": 17,
-        "required_targets": ["span_op_breakdowns_filter", "span_op_relative_breakdowns"],
+        "required_targets": [
+            "span_op_breakdowns_filter",
+            "span_op_relative_breakdowns",
+            "tag_explorer",
+        ],
     },
 }
 
