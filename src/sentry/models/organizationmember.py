@@ -42,6 +42,14 @@ invite_status_names = {
 }
 
 
+class OrganizationMemberState(Enum):
+    INVITED = 0
+    INACTIVE_2FA = 1
+    INACTIVE_PLAN_DOWNGRADE = 2
+    INACTIVE_ADMIN_DISABLED = 3
+    ACTIVE = 100
+
+
 class OrganizationMemberTeam(BaseModel):
     """
     Identifies relationships between organization members and the teams they are on.
@@ -120,6 +128,24 @@ class OrganizationMember(Model):
         null=True,
     )
 
+    state = models.PositiveIntegerField(
+        choices=(
+            (OrganizationMemberState.ACTIVE_MEMBER.value, _("Active Member")),
+            (OrganizationMemberState.INVITED.value, _("Invited")),
+            (
+                OrganizationMemberState.INACTIVE_PLAN_DOWNGRADE.value,
+                _("Inactive - Plan Downgraded"),
+            ),
+            (OrganizationMemberState.INACTIVE_2FA.value, _("Inactive - 2FA Required")),
+            (
+                OrganizationMemberState.INACTIVE_ADMIN_DISABLED.value,
+                _("Inactive - Admin Disabled"),
+            ),
+        ),
+        default=OrganizationMemberState.INVITED.value,
+        null=False,
+    )
+
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
 
@@ -143,10 +169,12 @@ class OrganizationMember(Model):
         self.token = None
         self.token_expires_at = None
 
-    def remove_user(self):
+    def remove_user_2fa(self):
+        # TODO: eventually don't remove the user
         self.email = self.get_email()
         self.user = None
         self.token = self.generate_token()
+        self.state = OrganizationMemberState.INACTIVE_2FA
 
     def regenerate_token(self):
         self.token = self.generate_token()
@@ -164,6 +192,16 @@ class OrganizationMember(Model):
         if self.invite_status is None:
             return
         return invite_status_names[self.invite_status]
+
+    def get_member_status_name(self):
+        if self.invite_status is None:
+            return
+        return self.state.name.lower()
+
+    def deactivate(self):
+        self.token = None
+        self.token_expires_at = None
+        self.state = OrganizationMemberState.INACTIVE.value
 
     @property
     def invite_approved(self):

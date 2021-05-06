@@ -82,7 +82,7 @@ def _remove_2fa_non_compliant_member(member, org, actor=None, actor_key=None, ip
     logging_data = {"organization_id": org.id, "user_id": user.id, "member_id": member.id}
 
     try:
-        member.remove_user()
+        member.remove_user_2fa()
         member.save()
     except (AssertionError, IntegrityError):
         logger.warning("Could not remove 2FA noncompliant user from org", extra=logging_data)
