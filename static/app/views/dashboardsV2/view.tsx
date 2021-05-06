@@ -19,36 +19,34 @@ type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
   children: React.ReactNode;
 };
 
-class ViewEditDashboard extends React.Component<Props> {
-  render() {
-    const {organization, params, api, location} = this.props;
-    return (
-      <DashboardBasicFeature organization={organization}>
-        <OrgDashboards
-          api={api}
-          location={location}
-          params={params}
-          organization={organization}
-        >
-          {({dashboard, dashboards, error, reloadData}) => {
-            return error ? (
-              <NotFound />
-            ) : dashboard ? (
-              <DashboardDetail
-                {...this.props}
-                initialState={DashboardState.VIEW}
-                dashboard={dashboard}
-                dashboards={dashboards}
-                reloadData={reloadData}
-              />
-            ) : (
-              <LoadingIndicator />
-            );
-          }}
-        </OrgDashboards>
-      </DashboardBasicFeature>
-    );
-  }
+function ViewEditDashboard(props: Props) {
+  const {organization, params, api, location} = props;
+  return (
+    <DashboardBasicFeature organization={organization}>
+      <OrgDashboards
+        api={api}
+        location={location}
+        params={params}
+        organization={organization}
+      >
+        {({dashboard, dashboards, error, reloadData}) => {
+          return error ? (
+            <NotFound />
+          ) : dashboard ? (
+            <DashboardDetail
+              {...props}
+              initialState={DashboardState.VIEW}
+              dashboard={dashboard}
+              dashboards={dashboards}
+              reloadData={reloadData}
+            />
+          ) : (
+            <LoadingIndicator />
+          );
+        }}
+      </OrgDashboards>
+    </DashboardBasicFeature>
+  );
 }
 
 export default withApi(withOrganization(ViewEditDashboard));
