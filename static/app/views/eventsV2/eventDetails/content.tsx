@@ -279,9 +279,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       </Fragment>
     );
 
-    const hasQuickTraceView =
-      organization.features.includes('trace-view-quick') ||
-      organization.features.includes('trace-view-summary');
+    const hasQuickTraceView = organization.features.includes('performance-view');
 
     if (hasQuickTraceView) {
       const traceId = event.contexts?.trace?.trace_id ?? '';

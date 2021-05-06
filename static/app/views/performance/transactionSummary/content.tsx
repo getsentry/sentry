@@ -192,9 +192,13 @@ class SummaryContent extends React.Component<Props, State> {
         })
       );
 
-    const transactionsListTitles = organization.features.includes('trace-view-summary')
-      ? [t('event id'), t('user'), t('total duration'), t('trace id'), t('timestamp')]
-      : [t('event id'), t('user'), t('total duration'), t('timestamp')];
+    const transactionsListTitles = [
+      t('event id'),
+      t('user'),
+      t('total duration'),
+      t('trace id'),
+      t('timestamp'),
+    ];
 
     let transactionsListEventView = eventView.clone();
 

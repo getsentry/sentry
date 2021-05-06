@@ -8,10 +8,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
-FEATURE_NAMES = [
-    "organizations:performance-view",
-    "organizations:trace-view-summary",
-]
+FEATURE_NAMES = ["organizations:performance-view"]
 
 
 def make_span_id() -> str:

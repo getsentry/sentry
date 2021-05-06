@@ -269,9 +269,9 @@ class SpanDetail extends React.Component<Props, State> {
     }
 
     return (
-      <StyledDiscoverButton size="xsmall" to={generateTraceTarget(event, organization)}>
-        {t('Search by Trace')}
-      </StyledDiscoverButton>
+      <StyledButton size="xsmall" to={generateTraceTarget(event, organization)}>
+        {t('View Trace')}
+      </StyledButton>
     );
   }
 
@@ -598,6 +598,12 @@ class SpanDetail extends React.Component<Props, State> {
 }
 
 const StyledDiscoverButton = styled(DiscoverButton)`
+  position: absolute;
+  top: ${space(0.75)};
+  right: ${space(0.5)};
+`;
+
+const StyledButton = styled(Button)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};

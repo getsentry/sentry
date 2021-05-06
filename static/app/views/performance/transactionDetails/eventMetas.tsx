@@ -14,6 +14,7 @@ import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
 import {
   QuickTraceQueryChildrenProps,
   TraceMeta,
@@ -128,7 +129,10 @@ class EventMetas extends React.Component<Props, State> {
             headingText={t('Created')}
             tooltipText={t('The time at which this event was created.')}
             bodyText={timestamp}
-            subtext={<DateTime date={event.dateCreated} />}
+            subtext={getDynamicText({
+              value: <DateTime date={event.dateCreated} />,
+              fixed: 'May 6, 2021 3:27:01 UTC',
+            })}
           />
         )}
         {isTransaction(event) && (
