@@ -1893,6 +1893,10 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
+          <Redirect
+            from="/organizations/:orgId/dashboards/:dashboardId/"
+            to="/organizations/:orgId/dashboard/:dashboardId/"
+          />
           <Route
             path="/organizations/:orgId/dashboard/:dashboardId/"
             componentPromise={() =>
