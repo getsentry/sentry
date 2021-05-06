@@ -544,6 +544,9 @@ const commonTheme = {
 
   space: [0, 8, 16, 20, 30],
 
+  // used as a gradient,
+  businessIconColors: [colors.purple100, colors.purple300],
+
   demo: {
     headerSize: '70px',
   },
@@ -585,6 +588,7 @@ const darkAliases = {
   overlayBackgroundAlpha: 'rgba(18, 9, 23, 0.7)',
   tagBarHover: colors.purple300,
   tagBar: colors.gray400,
+  businessIconColors: [colors.pink100, colors.pink300],
 };
 
 export const lightTheme = {
