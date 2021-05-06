@@ -201,7 +201,7 @@ class ProjectDetail extends AsyncView<Props, State> {
       return this.renderProjectNotFound();
     }
 
-    if (!loadingProjects && project && !project?.hasAccess) {
+    if (!loadingProjects && project && !project.hasAccess) {
       return this.renderNoAccess(project);
     }
 
