@@ -555,7 +555,7 @@ const commonTheme = {
   space: [0, 8, 16, 20, 30],
 
   // used as a gradient,
-  businessIconColors: [colors.purple100, colors.purple300],
+  businessIconColors: ['#EA5BC2', '#6148CE'],
 
   demo: {
     headerSize: '70px',
