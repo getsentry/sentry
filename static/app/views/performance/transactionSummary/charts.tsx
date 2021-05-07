@@ -23,8 +23,8 @@ import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartContro
 import {TrendColumnField, TrendFunctionField} from '../trends/types';
 import {
   generateTrendFunctionAsString,
+  getTrendsParameters,
   TRENDS_FUNCTIONS,
-  TRENDS_PARAMETERS,
 } from '../trends/utils';
 
 import DurationChart from './durationChart';
@@ -72,12 +72,6 @@ const TREND_FUNCTIONS_OPTIONS: SelectValue<string>[] = TRENDS_FUNCTIONS.map(
     label,
   })
 );
-const TREND_PARAMETERS_OPTIONS: SelectValue<string>[] = TRENDS_PARAMETERS.map(
-  ({column, label}) => ({
-    value: column,
-    label,
-  })
-);
 
 type Props = {
   organization: OrganizationSummary;
@@ -117,6 +111,14 @@ class TransactionSummaryCharts extends Component<Props> {
 
   render() {
     const {totalValues, eventView, organization, location, currentFilter} = this.props;
+
+    const TREND_PARAMETERS_OPTIONS: SelectValue<string>[] = getTrendsParameters({
+      canSeeSpanOpTrends: organization.features.includes('performance-ops-breakdown'),
+    }).map(({column, label}) => ({
+      value: column,
+      label,
+    }));
+
     let display = decodeScalar(location.query.display, DisplayModes.DURATION);
     let trendFunction = decodeScalar(
       location.query.trendFunction,
