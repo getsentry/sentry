@@ -277,6 +277,7 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE_CLASSES = (
+    "sentry.middleware.health.HealthCheck",
     "sentry.middleware.proxy.DecompressBodyMiddleware",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
@@ -285,7 +286,6 @@ MIDDLEWARE_CLASSES = (
     "sentry.middleware.debug.NoIfModifiedSinceMiddleware",
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
-    "sentry.middleware.health.HealthCheck",  # Must exist before CommonMiddleware
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
