@@ -1,4 +1,7 @@
-class SecurityHeadersMiddleware:
+from django.utils.deprecation import MiddlewareMixin
+
+
+class SecurityHeadersMiddleware(MiddlewareMixin):
     """
     Ensure that we have proper security headers set.
     """

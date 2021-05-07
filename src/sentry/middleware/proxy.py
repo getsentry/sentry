@@ -1,8 +1,9 @@
 from django.conf import settings
 from django.core.exceptions import MiddlewareNotUsed
+from django.utils.deprecation import MiddlewareMixin
 
 
-class SetRemoteAddrFromForwardedFor:
+class SetRemoteAddrFromForwardedFor(MiddlewareMixin):
     def __init__(self):
         if not getattr(settings, "SENTRY_USE_X_FORWARDED_FOR", True):
             raise MiddlewareNotUsed
