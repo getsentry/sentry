@@ -475,6 +475,9 @@ class DashboardDetail extends Component<Props, State> {
                     label:
                       dashboardState === DashboardState.CREATE
                         ? t('Create Dashboard')
+                        : organization.features.includes('dashboards-manage') &&
+                          dashboard.id === 'default-overview'
+                        ? 'Default Dashboard'
                         : this.dashboardTitle,
                   },
                 ]}

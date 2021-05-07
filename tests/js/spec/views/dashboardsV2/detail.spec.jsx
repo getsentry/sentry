@@ -161,12 +161,6 @@ describe('Dashboards > Detail', function () {
         .find('Controls Button[data-test-id="dashboard-edit"]')
         .props();
       expect(editProps.disabled).toBe(true);
-
-      // Create should be disabled
-      const createProps = wrapper
-        .find('Controls Button[data-test-id="dashboard-create"]')
-        .props();
-      expect(createProps.disabled).toBe(true);
     });
   });
 
