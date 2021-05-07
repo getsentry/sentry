@@ -87,7 +87,6 @@ default_manager.add("organizations:integrations-issue-sync", OrganizationFeature
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)  # NOQA
-default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)  # NOQA
@@ -99,7 +98,6 @@ default_manager.add("organizations:minute-resolution-sessions", OrganizationFeat
 default_manager.add("organizations:monitors", OrganizationFeature)  # NOQA
 default_manager.add("organizations:notification-platform", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:onboarding", OrganizationFeature)  # NOQA
-default_manager.add("organizations:org-saved-searches", OrganizationFeature)  # NOQA
 default_manager.add("organizations:org-subdomains", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-tag-explorer", OrganizationFeature, True)  # NOQA
