@@ -54,7 +54,7 @@ class TeamSettings extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {location, organization, team} = this.props;
+    const {organization, team} = this.props;
 
     const access = new Set<Scope>(organization.access);
 
@@ -72,7 +72,7 @@ class TeamSettings extends AsyncView<Props, State> {
             slug: team.slug,
           }}
         >
-          <JsonForm access={access} location={location} forms={teamSettingsFields} />
+          <JsonForm access={access} forms={teamSettingsFields} />
         </Form>
 
         <Panel>
