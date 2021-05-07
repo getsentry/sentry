@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
 from django.db import transaction
+from django.db.models import Q
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Column, Entity, Function, Query
@@ -166,11 +167,15 @@ def _split_group(
         if not row["child_hash"]:
             continue
 
-        grouphash, _ = GroupHash.objects.get_or_create(
-            hash=row["child_hash"][0], group_id=group.id, project_id=group.project_id
+        grouphash, _ = (
+            GroupHash.objects.filter(Q(group_id__isnull=True) | Q(group_id=group.id))
+            .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
+            .update_or_create(
+                project_id=group.project_id,
+                hash=row["child_hash"][0],
+                defaults=dict(group_id=group.id),
+            )
         )
-        if grouphash.state == GroupHash.State.LOCKED_IN_MIGRATION:
-            continue
 
         unmerge.delay(
             group.project_id,
