@@ -94,6 +94,9 @@ const SidebarItem = ({
   const isActiveRouter =
     (!hasPanel && router && to && location.pathname.startsWith(to)) ||
     (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
+    (labelString === 'Dashboards' &&
+      (location.pathname.includes('/dashboards/') ||
+        location.pathname.includes('/dashboard/'))) ||
     // TODO: this won't be necessary once we remove settingsHome
     (labelString === 'Settings' && location.pathname.startsWith('/settings/')) ||
     (labelString === 'Alerts' &&
