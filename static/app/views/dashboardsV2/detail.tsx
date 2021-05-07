@@ -10,6 +10,8 @@ import {
 } from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
+import Breadcrumbs from 'app/components/breadcrumbs';
+import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {t} from 'app/locale';
@@ -145,6 +147,12 @@ class DashboardDetail extends Component<Props, State> {
     ];
 
     return widgetEditRoutes.includes(location.pathname);
+  }
+
+  get dashboardTitle() {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+    return modifiedDashboard ? modifiedDashboard.title : dashboard.title;
   }
 
   onEdit = () => {
@@ -384,14 +392,10 @@ class DashboardDetail extends Component<Props, State> {
       : children;
   }
 
-  render() {
+  renderDefaultDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
-
-    if (this.isEditing && this.isWidgetBuilderRouter) {
-      return this.renderWidgetBuilder(dashboard);
-    }
 
     return (
       <GlobalSelectionHeader
@@ -439,6 +443,98 @@ class DashboardDetail extends Component<Props, State> {
         </PageContent>
       </GlobalSelectionHeader>
     );
+  }
+
+  renderDashboardDetail() {
+    const {organization, dashboard, dashboards, params, router, location} = this.props;
+    const {modifiedDashboard, dashboardState} = this.state;
+    const {dashboardId} = params;
+
+    return (
+      <GlobalSelectionHeader
+        skipLoadLastUsed={organization.features.includes('global-views')}
+        defaultSelection={{
+          datetime: {
+            start: null,
+            end: null,
+            utc: false,
+            period: DEFAULT_STATS_PERIOD,
+          },
+        }}
+      >
+        <LightWeightNoProjectMessage organization={organization}>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  {
+                    label: t('Dashboards'),
+                    to: `/organizations/${organization.slug}/dashboards/`,
+                  },
+                  {
+                    label:
+                      dashboardState === DashboardState.CREATE
+                        ? t('Create Dashboard')
+                        : this.dashboardTitle,
+                  },
+                ]}
+              />
+              <Layout.Title>
+                <DashboardTitle
+                  dashboard={modifiedDashboard ?? dashboard}
+                  onUpdate={this.setModifiedDashboard}
+                  isEditing={this.isEditing}
+                />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <Controls
+                organization={organization}
+                dashboards={dashboards}
+                dashboard={dashboard}
+                onEdit={this.onEdit}
+                onCreate={this.onCreate}
+                onCancel={this.onCancel}
+                onCommit={this.onCommit}
+                onDelete={this.onDelete(dashboard)}
+                dashboardState={dashboardState}
+              />
+            </Layout.HeaderActions>
+          </Layout.Header>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <Dashboard
+                paramDashboardId={dashboardId}
+                dashboard={modifiedDashboard ?? dashboard}
+                organization={organization}
+                isEditing={this.isEditing}
+                onUpdate={this.onUpdateWidget}
+                onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+                router={router}
+                location={location}
+              />
+            </Layout.Main>
+          </Layout.Body>
+        </LightWeightNoProjectMessage>
+      </GlobalSelectionHeader>
+    );
+  }
+
+  render() {
+    const {organization, dashboard} = this.props;
+
+    if (this.isEditing && this.isWidgetBuilderRouter) {
+      return this.renderWidgetBuilder(dashboard);
+    }
+
+    if (
+      organization.features.includes('dashboards-manage') &&
+      organization.features.includes('dashboards-edit')
+    ) {
+      return this.renderDashboardDetail();
+    }
+
+    return this.renderDefaultDashboardDetail();
   }
 }
 
