@@ -309,7 +309,7 @@ class EventManager:
 
             if not project.flags.has_transactions:
                 first_transaction_received.send_robust(
-                    project=project, event=job["event"], sender=Project
+                    project=project, event=jobs[0]["event"], sender=Project
                 )
 
             return jobs[0]["event"]
