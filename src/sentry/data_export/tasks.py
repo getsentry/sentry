@@ -52,8 +52,8 @@ def assemble_download(
     offset=0,
     bytes_written=0,
     environment_id=None,
-    retries=3,
-    count_down=60,
+    export_retries=3,
+    countdown=60,
     **kwargs,
 ):
     with sentry_sdk.start_transaction(
@@ -148,7 +148,7 @@ def assemble_download(
                 new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
                 bytes_written += new_bytes_written
         except ExportError as error:
-            if error.recoverable and retries > 0:
+            if error.recoverable and export_retries > 0:
                 assemble_download.apply_async(
                     args=[data_export_id],
                     kwargs={
@@ -157,9 +157,9 @@ def assemble_download(
                         "offset": offset,
                         "bytes_written": base_bytes_written,
                         "environment_id": environment_id,
-                        "retries": retries - 1,
+                        "export_retries": export_retries - 1,
                     },
-                    count_down=count_down,
+                    countdown=countdown,
                 )
             else:
                 return data_export.email_failure(message=str(error))
@@ -195,7 +195,7 @@ def assemble_download(
                     offset=next_offset,
                     bytes_written=bytes_written,
                     environment_id=environment_id,
-                    retries=retries,
+                    export_retries=export_retries,
                 )
             else:
                 metrics.timing("dataexport.row_count", next_offset, sample_rate=1.0)
