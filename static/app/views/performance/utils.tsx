@@ -9,8 +9,6 @@ import {statsPeriodToDays} from 'app/utils/dates';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
 
-import {FilterViews} from './landing';
-
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages
  * where we don't want to wait for transaction data to return to determine how to display aspects of a page.
@@ -59,16 +57,12 @@ export function getPerformanceLandingUrl(organization: OrganizationSummary): str
   return `/organizations/${organization.slug}/performance/`;
 }
 
-export function getTransactionSearchQuery(location: Location, query: string = '') {
-  return decodeScalar(location.query.query, query).trim();
+export function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
+  return `/organizations/${organization.slug}/performance/trends/`;
 }
 
-export function getCurrentPerformanceView(location: Location): string {
-  const currentView = location.query.view as FilterViews;
-  if (Object.values(FilterViews).includes(currentView)) {
-    return currentView;
-  }
-  return FilterViews.ALL_TRANSACTIONS;
+export function getTransactionSearchQuery(location: Location, query: string = '') {
+  return decodeScalar(location.query.query, query).trim();
 }
 
 export function getTransactionDetailsUrl(
