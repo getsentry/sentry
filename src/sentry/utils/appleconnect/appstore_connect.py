@@ -20,7 +20,7 @@ def _get_authorization_header(credentials=AppConnectCredentials, expiry_sec=None
     All requests to app store connect require an "Authorization" header build as below.
 
     Note: Setting a very large expiry for the token will cause the authorization to fail,
-    the default
+    the default is one hour, which should be suitable for most cases.
 
     :return: the Bearer auth token to be added as the  "Authorization" header
     """
