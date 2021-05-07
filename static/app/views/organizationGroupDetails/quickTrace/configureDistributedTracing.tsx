@@ -134,7 +134,7 @@ class ConfigureDistributedTracing extends Component<Props, State> {
       return null;
     }
 
-    const docsLink = getConfigureTracingDocsLink(project.platform ?? null);
+    const docsLink = getConfigureTracingDocsLink(project);
     // if the platform does not support performance, do not show this prompt
     if (docsLink === null) {
       return null;

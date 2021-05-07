@@ -57,7 +57,7 @@ export default function QuickTraceMeta({
 
   const noFeatureMessage = t('Requires performance monitoring.');
 
-  const docsLink = getConfigureTracingDocsLink(project?.platform ?? null);
+  const docsLink = getConfigureTracingDocsLink(project);
 
   const traceId = event.contexts?.trace?.trace_id ?? null;
   const traceTarget = generateTraceTarget(event, organization);
