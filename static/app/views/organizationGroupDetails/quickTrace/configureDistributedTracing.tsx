@@ -16,7 +16,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {getDocsPlatform} from 'app/utils/docs';
+import {getConfigureTracingDocsLink} from 'app/utils/docs';
 import {promptCanShow, promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 
@@ -83,14 +83,6 @@ class ConfigureDistributedTracing extends Component<Props, State> {
     this.trackAnalytics({eventKey, eventName});
   }
 
-  createDocsLink() {
-    const platform = this.props.project.platform ?? null;
-    const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
-    return docsPlatform === null
-      ? null // this platform does not support performance
-      : `https://docs.sentry.io/platforms/${docsPlatform}/performance/`;
-  }
-
   renderActionButton(docsLink: string) {
     const features = ['organizations:performance-view'];
     const noFeatureMessage = t('Requires performance monitoring.');
@@ -136,12 +128,13 @@ class ConfigureDistributedTracing extends Component<Props, State> {
   }
 
   render() {
+    const {project} = this.props;
     const {shouldShow} = this.state;
     if (!shouldShow) {
       return null;
     }
 
-    const docsLink = this.createDocsLink();
+    const docsLink = getConfigureTracingDocsLink(project.platform ?? null);
     // if the platform does not support performance, do not show this prompt
     if (docsLink === null) {
       return null;
