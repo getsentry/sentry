@@ -63,6 +63,26 @@ describe('Dashboards > Detail', function () {
     const content = wrapper.find('DocumentTitle');
     expect(content.text()).toContain('You need at least one project to use this view');
   });
+
+  it('creates new dashboard', async function () {
+    const org = TestStubs.Organization({
+      features: FEATURES,
+      projects: [TestStubs.Project()],
+    });
+    const wrapper = mountWithTheme(
+      <ManageDashboards organization={org} location={{query: {}}} router={{}} />
+    );
+    await tick();
+
+    wrapper.find('Button[data-test-id="dashboard-create"]').simulate('click');
+    await tick();
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/dashboards/new/',
+      query: {},
+    });
+  });
+
   it('can sort', async function () {
     const org = TestStubs.Organization({
       features: FEATURES,
