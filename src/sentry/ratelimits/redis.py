@@ -40,5 +40,7 @@ class RedisRateLimiter(RateLimiter):
                 client.expire(key, window)
             return result.value > limit
         except RedisError as e:
+            # We don't want rate limited endpoints to fail when ratelimits
+            # can't be updated. We do want to know when that happens.
             capture_exception(e)
             return False
