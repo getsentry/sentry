@@ -200,10 +200,7 @@ class App extends Component<Props, State> {
     const {needsUpgrade, newsletterConsentPrompt} = this.state;
 
     if (needsUpgrade) {
-      const InstallWizard = lazy(
-        () =>
-          import(/* webpackChunkName: "InstallWizard" */ 'app/views/admin/installWizard')
-      );
+      const InstallWizard = lazy(() => import('app/views/admin/installWizard'));
 
       return (
         <Suspense fallback={null}>

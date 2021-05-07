@@ -48,9 +48,7 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
     return (
       <StyledEventDataSection type="context-replay" title={t('Replay')}>
         <LazyLoad
-          component={() =>
-            import(/* webpackChunkName: "rrwebReplayer" */ './rrwebReplayer')
-          }
+          component={() => import('./rrwebReplayer')}
           url={`/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`}
         />
       </StyledEventDataSection>

@@ -27,7 +27,7 @@ class Gravatar extends Component<Props, State> {
   componentDidMount() {
     this._isMounted = true;
 
-    import(/* webpackChunkName: "MD5" */ 'crypto-js/md5')
+    import('crypto-js/md5')
       .then(mod => mod.default)
       .then(MD5 => {
         if (!this._isMounted) {

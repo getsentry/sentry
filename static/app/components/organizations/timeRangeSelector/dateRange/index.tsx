@@ -23,9 +23,7 @@ import {
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {Theme} from 'app/utils/theme';
 
-const DateRangePicker = React.lazy(
-  () => import(/* webpackChunkName: "DateRangePicker" */ './dateRangeWrapper')
-);
+const DateRangePicker = React.lazy(() => import('./dateRangeWrapper'));
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
