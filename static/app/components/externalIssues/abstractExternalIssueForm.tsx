@@ -281,6 +281,7 @@ export default class AbstractExternalIssueForm<
               <Form initialData={initialData} {...this.getFormProps()}>
                 {(formFields || [])
                   .filter((field: FormField) => field.hasOwnProperty('name'))
+                  .map(fields => ({...fields, noOptionsMessage: () => 'Type to search'}))
                   .map(field => (
                     <FieldFromConfig
                       disabled={this.state.reloading}
