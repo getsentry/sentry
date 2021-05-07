@@ -21,7 +21,6 @@ from sentry.models import (
     Authenticator,
     Organization,
     OrganizationMember,
-    OrganizationMemberState,
     OrganizationStatus,
     Project,
     ProjectStatus,
@@ -107,11 +106,7 @@ class OrganizationMixin:
         return active_organization
 
     def _is_org_member(self, user, organization):
-        return OrganizationMember.objects.filter(
-            user=user,
-            organization=organization,
-            state=OrganizationMemberState.ACTIVE.value,
-        ).exists()
+        return OrganizationMember.objects.filter(user=user, organization=organization).exists()
 
     def is_not_2fa_compliant(self, request, organization):
         return (
@@ -216,6 +211,9 @@ class BaseView(View, OrganizationMixin):
         if not self.has_permission(request, *args, **kwargs):
             return self.handle_permission_required(request, *args, **kwargs)
 
+        if "organization" in kwargs and self.is_not_2fa_compliant(request, kwargs["organization"]):
+            return self.handle_not_2fa_compliant(request, *args, **kwargs)
+
         self.request = request
         self.default_context = self.get_context_data(request, *args, **kwargs)
 
@@ -259,10 +257,14 @@ class BaseView(View, OrganizationMixin):
         return self.redirect(redirect_uri)
 
     def handle_not_2fa_compliant(self, request, *args, **kwargs):
-        return self.redirect(reverse("sentry-account-settings-security"))
+        redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
+        return self.redirect(redirect_uri)
 
     def get_no_permission_url(self, request, *args, **kwargs):
         return reverse("sentry-login")
+
+    def get_not_2fa_compliant_url(self, request, *args, **kwargs):
+        return reverse("sentry-account-settings-security")
 
     def get_context_data(self, request, **kwargs):
         context = csrf(request)
@@ -320,10 +322,6 @@ class OrganizationView(BaseView):
                 return False
             if self.needs_sso(request, organization):
                 return False
-
-        if self.is_not_2fa_compliant(self, request, organization):
-            return False
-
         if self.required_scope and not request.access.has_scope(self.required_scope):
             logger.info(
                 "User %s does not have %s permission to access organization %s",
@@ -365,9 +363,6 @@ class OrganizationView(BaseView):
             )
             auth.initiate_login(request, next_url=request.get_full_path())
             redirect_uri = reverse("sentry-auth-organization", args=[organization.slug])
-        elif self.is_not_2fa_compliant(self, request, organization):
-            redirect_uri = reverse("sentry-account-settings-security")
-        # TODO: add other inactive cases here
         else:
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)

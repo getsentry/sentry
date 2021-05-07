@@ -96,7 +96,6 @@ class SentryPermission(ScopedPermission):
 
                     raise SsoRequired(organization)
 
-                # TODO: add other inactive states here
                 if self.is_not_2fa_compliant(request, organization):
                     logger.info(
                         "access.not-2fa-compliant",

@@ -43,11 +43,17 @@ invite_status_names = {
 
 
 class OrganizationMemberState(Enum):
-    INVITED = 0
-    INACTIVE_2FA = 1
-    INACTIVE_PLAN_DOWNGRADE = 2
-    INACTIVE_ADMIN_DISABLED = 3
-    ACTIVE = 100
+    INVITED = 0  # The member is created but does not have a user attached
+
+    DEACTIVATED = 1  # The member has been deactivated by an admin and has _no_ access
+
+    # The member and user are linked, but user has to take action to get access
+    RESTRICTED_2FA = 20
+    RESTRICTED_SSO = 21
+    RESTRICTED_EMAIL = 22
+    RESTRICTED_DOWNGRADED = 23
+
+    ACTIVE = 100  # The member is linked and able to access the organization
 
 
 class OrganizationMemberTeam(BaseModel):
@@ -99,7 +105,13 @@ class OrganizationMember(Model):
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=str(roles.get_default().id))
     flags = BitField(
-        flags=(("sso:linked", "sso:linked"), ("sso:invalid", "sso:invalid")), default=0
+        flags=(
+            ("sso:linked", "sso:linked"),
+            ("sso:invalid", "sso:invalid"),
+            ("inactive:plan-downgrade", "inactive:plan-downgrade"),
+            ("inactive:deactivated", "inactive:deactivated"),
+        ),
+        default=0,
     )
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -128,24 +140,6 @@ class OrganizationMember(Model):
         null=True,
     )
 
-    state = models.PositiveIntegerField(
-        choices=(
-            (OrganizationMemberState.ACTIVE_MEMBER.value, _("Active Member")),
-            (OrganizationMemberState.INVITED.value, _("Invited")),
-            (
-                OrganizationMemberState.INACTIVE_PLAN_DOWNGRADE.value,
-                _("Inactive - Plan Downgraded"),
-            ),
-            (OrganizationMemberState.INACTIVE_2FA.value, _("Inactive - 2FA Required")),
-            (
-                OrganizationMemberState.INACTIVE_ADMIN_DISABLED.value,
-                _("Inactive - Admin Disabled"),
-            ),
-        ),
-        default=OrganizationMemberState.INVITED.value,
-        null=False,
-    )
-
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
 
@@ -169,12 +163,10 @@ class OrganizationMember(Model):
         self.token = None
         self.token_expires_at = None
 
-    def remove_user_2fa(self):
-        # TODO: eventually don't remove the user
+    def remove_user(self):
         self.email = self.get_email()
         self.user = None
         self.token = self.generate_token()
-        self.state = OrganizationMemberState.INACTIVE_2FA
 
     def regenerate_token(self):
         self.token = self.generate_token()
@@ -193,14 +185,19 @@ class OrganizationMember(Model):
             return
         return invite_status_names[self.invite_status]
 
-    def get_member_status_name(self):
-        if self.invite_status is None:
-            return
-        return self.state.name.lower()
+    def get_member_status(self):
+        if self.is_pending():
+            return OrganizationMemberState.INVITED
+
+        elif self.flags["inactive:deactivated"]:
+            return OrganizationMemberState.DEACTIVATED
+
+        elif self.flags["inactive:plan-downgrade"]:
+            return OrganizationMemberState.RESTRICTED_DOWNGRADED
+
+        elif
 
     def deactivate(self):
-        self.token = None
-        self.token_expires_at = None
         self.state = OrganizationMemberState.INACTIVE.value
 
     @property
