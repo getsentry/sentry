@@ -89,9 +89,9 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     const {selection, isProjectStabilized, hasTransactions} = this.props;
 
     if (
-      (prevProps.selection !== selection ||
-        prevProps.hasTransactions !== hasTransactions) &&
-      isProjectStabilized
+      prevProps.selection !== selection ||
+      prevProps.hasTransactions !== hasTransactions ||
+      prevProps.isProjectStabilized !== isProjectStabilized
     ) {
       this.remountComponent();
     }

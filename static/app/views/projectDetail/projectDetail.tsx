@@ -105,9 +105,7 @@ class ProjectDetail extends AsyncView<Props, State> {
         hasSessions: response.groups[0].totals['sum(session)'] > 0,
       });
     } catch {
-      this.setState({
-        hasSessions: false,
-      });
+      // do nothing
     }
   }
 
