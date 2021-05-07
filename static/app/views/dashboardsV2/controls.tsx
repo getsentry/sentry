@@ -59,7 +59,7 @@ class Controls extends React.Component<Props> {
       </Button>
     );
 
-    if (['edit', 'pending_delete'].includes(dashboardState)) {
+    if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
       return (
         <StyledButtonBar gap={1} key="edit-controls">
           {cancelButton}
@@ -132,7 +132,7 @@ class Controls extends React.Component<Props> {
             value={currentOption}
             onChange={({value}: {value: DashboardListItem}) => {
               browserHistory.push({
-                pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
+                pathname: `/organizations/${organization.slug}/dashboard/${value.id}/`,
                 // TODO(mark) should this retain global selection?
                 query: {},
               });
@@ -143,7 +143,7 @@ class Controls extends React.Component<Props> {
           <Button
             data-test-id="dashboard-manage"
             to={{
-              pathname: `/organizations/${organization.slug}/dashboards/manage/`,
+              pathname: `/organizations/${organization.slug}/dashboards/`,
             }}
           >
             {t('Manage Dashboards')}
