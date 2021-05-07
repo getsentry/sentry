@@ -259,7 +259,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
     this.callCallback(onChange, newDateTime);
   };
 
-  handleSelectRelative = value => {
+  handleSelectRelative = (value: string) => {
     const {onChange} = this.props;
     const newDateTime: ChangeData = {
       relative: value,
