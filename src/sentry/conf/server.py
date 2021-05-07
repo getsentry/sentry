@@ -874,7 +874,7 @@ SENTRY_FEATURES = {
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
     # Enable Performance view
-    "organizations:performance-view": False,
+    "organizations:performance-view": True,
     # Enable the quick trace view on event details
     "organizations:trace-view-quick": False,
     # Enable the trace view summary
