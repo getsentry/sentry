@@ -5,7 +5,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import SelectorItem from './selectorItem';
 
 type Props = {
-  onClick: (value: string, e: React.MouseEvent) => void;
+  onClick: (value: string, e?: React.MouseEvent) => void;
   selected: string;
   relativePeriods?: Record<string, string>;
 };
