@@ -65,7 +65,7 @@ class IssueDiff extends Component<Props, State> {
 
     // Fetch component and event data
     Promise.all([
-      import(/* webpackChunkName: "splitDiff" */ '../splitDiff'),
+      import('../splitDiff'),
       this.fetchEventData(baseIssueId, baseEventId ?? 'latest'),
       this.fetchEventData(targetIssueId, targetEventId ?? 'latest'),
     ])
