@@ -478,7 +478,7 @@ const SelectorList = styled('div')<MenuProps>`
   flex: 1;
   flex-direction: column;
   flex-shrink: 0;
-  width: ${p => (p.isAbsoluteSelected ? '160px' : '220px')};
+  min-width: ${p => (p.isAbsoluteSelected ? '160px' : '220px')};
   min-height: 305px;
 `;
 
