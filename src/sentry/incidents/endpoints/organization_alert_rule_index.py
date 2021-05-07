@@ -47,6 +47,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             )
 
         teams = request.GET.getlist("team", [])
+        team_filter_query = None
         if len(teams) > 0:
             try:
                 teams_query, unassigned = parse_team_params(request, organization, teams)
