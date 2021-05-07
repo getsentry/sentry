@@ -160,9 +160,8 @@ class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
     permission_classes = [StrictProjectPermission]
 
-    def get_result(self, configured: bool, app_store: bool, itunes: bool):
+    def get_result(self, app_store: bool, itunes: bool):
         return {
-            "configured": configured,
             "appstoreCredentialsValid": app_store,
             "itunesSessionValid": itunes,
         }
@@ -177,7 +176,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
         key = project.get_option(credentials_key_name())
 
         if key is None or credentials is None:
-            return Response(self.get_result(False, False, False), status=200)
+            return Response(status=404)
 
         try:
             secrets = encrypt.decrypt_object(credentials.get("encrypted"), key)
@@ -200,7 +199,11 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
         itunes_session_valid = itunes_session_info is not None
 
         return Response(
-            self.get_result(configured=True, app_store=appstore_valid, itunes=itunes_session_valid)
+            {
+                "appstoreCredentialsValid": appstore_valid,
+                "itunesSessionValid": itunes_session_valid,
+            },
+            status=200,
         )
 
 
