@@ -1318,7 +1318,17 @@ function routes() {
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
-              componentPromise={() => import('app/views/performance/landing')}
+              componentPromise={() => import('app/views/performance/content')}
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
+            path="/organizations/:orgId/performance/trends/"
+            componentPromise={() => import('app/views/performance')}
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() => import('app/views/performance/trends')}
               component={errorHandler(LazyLoad)}
             />
           </Route>

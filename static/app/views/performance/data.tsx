@@ -13,8 +13,6 @@ import {
   getVitalDetailTablePoorStatusFunction,
   vitalNameFromLocation,
 } from './vitalDetail/utils';
-import {FilterViews} from './landing';
-import {getCurrentPerformanceView} from './utils';
 
 export const DEFAULT_STATS_PERIOD = '24h';
 
@@ -494,10 +492,14 @@ function generateFrontendOtherPerformanceEventView(
   return eventView;
 }
 
-export function generatePerformanceEventView(organization, location, projects) {
+export function generatePerformanceEventView(
+  organization,
+  location,
+  projects,
+  isTrends = false
+) {
   const eventView = generateGenericPerformanceEventView(organization, location);
-  const currentPerformanceView = getCurrentPerformanceView(location);
-  if (currentPerformanceView === FilterViews.TRENDS) {
+  if (isTrends) {
     return eventView;
   }
 
