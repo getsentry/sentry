@@ -1166,16 +1166,6 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
-
-          <Route
-            path="/organizations/:orgId/dashboards/manage/"
-            componentPromise={() =>
-              import(
-                /* webpackChunkName: "ManageDashboards" */ 'app/views/dashboardsV2/manage'
-              )
-            }
-            component={errorHandler(LazyLoad)}
-          />
           <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
@@ -1188,7 +1178,7 @@ function routes() {
             <IndexRoute
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
+                  /* webpackChunkName: "ManageDashboards" */ 'app/views/dashboardsV2/manage'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1876,26 +1866,60 @@ function routes() {
             />
           </Route>
           <Route
-            path="/organizations/:orgId/dashboards/:dashboardId/"
+            path="/organizations/:orgId/dashboards/new/"
             componentPromise={() =>
-              import(/* webpackChunkName: "DashboardsV2" */ 'app/views/dashboardsV2')
+              import(
+                /* webpackChunkName: "DashboardsCreate" */ 'app/views/dashboardsV2/create'
+              )
             }
             component={errorHandler(LazyLoad)}
           >
             <Route
-              path="widget/new/"
+              path="widget/:widgetId/edit/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget'
+                  /* webpackChunkName: "DashboardsCreateWidgetEdit" */ 'app/views/dashboardsV2/widget'
                 )
               }
               component={errorHandler(LazyLoad)}
             />
             <Route
+              path="widget/new/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "DashboardsCreateWidgetNew" */ 'app/views/dashboardsV2/widget'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Redirect
+            from="/organizations/:orgId/dashboards/:dashboardId/"
+            to="/organizations/:orgId/dashboard/:dashboardId/"
+          />
+          <Route
+            path="/organizations/:orgId/dashboard/:dashboardId/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "DashboardsView" */ 'app/views/dashboardsV2/view'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <Route
               path="widget/:widgetId/edit/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "WidgetEdit" */ 'app/views/dashboardsV2/widget'
+                  /* webpackChunkName: "DashboardsViewWidgetEdit" */ 'app/views/dashboardsV2/widget'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="widget/new/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "DashboardsViewWidgetNew" */ 'app/views/dashboardsV2/widget'
                 )
               }
               component={errorHandler(LazyLoad)}

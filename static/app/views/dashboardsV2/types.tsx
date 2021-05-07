@@ -47,4 +47,9 @@ export type DashboardDetails = {
   createdBy?: User;
 };
 
-export type DashboardState = 'view' | 'edit' | 'create' | 'pending_delete';
+export enum DashboardState {
+  VIEW = 'view',
+  EDIT = 'edit',
+  CREATE = 'create',
+  PENDING_DELETE = 'pending_delete',
+}

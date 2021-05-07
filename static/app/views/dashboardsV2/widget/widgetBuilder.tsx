@@ -41,7 +41,9 @@ function WidgetBuilder({
   const {widgetId, orgId, dashboardId} = params;
 
   const goBackLocation = {
-    pathname: `/organizations/${orgId}/dashboards/${dashboardId}/`,
+    pathname: dashboardId
+      ? `/organizations/${orgId}/dashboard/${dashboardId}/`
+      : `/organizations/${orgId}/dashboards/new/`,
     query: {...location.query, dataSet: undefined},
   };
 

@@ -22,7 +22,6 @@ type Props = {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
-  paramDashboardId: string;
   selection: GlobalSelection;
   isEditing: boolean;
   router: InjectedRouter;
@@ -32,6 +31,7 @@ type Props = {
    */
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
+  paramDashboardId?: string;
 };
 
 class Dashboard extends Component<Props> {
@@ -70,8 +70,18 @@ class Dashboard extends Component<Props> {
 
   handleOpenWidgetBuilder = () => {
     const {router, paramDashboardId, organization, location} = this.props;
+    if (paramDashboardId) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
+        query: {
+          ...location.query,
+          dataSet: DataSet.EVENTS,
+        },
+      });
+      return;
+    }
     router.push({
-      pathname: `/organizations/${organization.slug}/dashboards/${paramDashboardId}/widget/new/`,
+      pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
       query: {
         ...location.query,
         dataSet: DataSet.EVENTS,
@@ -109,14 +119,23 @@ class Dashboard extends Component<Props> {
     if (organization.features.includes('metrics')) {
       onSetWidgetToBeUpdated(widget);
 
+      if (paramDashboardId) {
+        router.push({
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
+          query: {
+            ...location.query,
+            dataSet: DataSet.EVENTS,
+          },
+        });
+        return;
+      }
       router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/${paramDashboardId}/widget/${index}/edit/`,
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
         query: {
           ...location.query,
           dataSet: DataSet.EVENTS,
         },
       });
-      return;
     }
 
     openAddDashboardWidgetModal({
