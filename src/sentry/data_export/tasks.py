@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.data_export.tasks.assemble_download",
     queue="data_export",
-    default_retry_delay=30,
+    default_retry_delay=60,
     max_retries=3,
     acks_late=True,
 )
