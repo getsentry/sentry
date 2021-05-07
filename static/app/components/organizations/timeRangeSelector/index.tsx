@@ -350,9 +350,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   handleOpen = () => {
     this.setState({isOpen: true});
     // Start loading react-date-picker
-    import(
-      /* webpackChunkName: "DateRangePicker" */ '../timeRangeSelector/dateRange/index'
-    );
+    import('../timeRangeSelector/dateRange/index');
   };
 
   render() {
