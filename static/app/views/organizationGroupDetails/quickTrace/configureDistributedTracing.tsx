@@ -93,7 +93,7 @@ class ConfigureDistributedTracing extends Component<Props, State> {
 
   renderActionButton(docsLink: string) {
     const features = ['organizations:performance-view'];
-    const noFeatureMessage = t('Requires performance feature.');
+    const noFeatureMessage = t('Requires performance monitoring.');
 
     const renderDisabled = p => (
       <Hovercard
