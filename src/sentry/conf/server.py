@@ -278,7 +278,6 @@ USE_TZ = True
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE_CLASSES = (
     "sentry.middleware.health.HealthCheck",
-    "sentry.middleware.proxy.DecompressBodyMiddleware",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
