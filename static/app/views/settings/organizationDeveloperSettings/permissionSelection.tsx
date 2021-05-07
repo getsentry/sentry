@@ -90,7 +90,6 @@ type State = {
 
 export default class PermissionSelection extends Component<Props, State> {
   static contextTypes = {
-    router: PropTypes.object.isRequired,
     form: PropTypes.object,
   };
 
