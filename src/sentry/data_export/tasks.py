@@ -52,6 +52,8 @@ def assemble_download(
     offset=0,
     bytes_written=0,
     environment_id=None,
+    retries=3,
+    count_down=60,
     **kwargs,
 ):
     with sentry_sdk.start_transaction(
@@ -89,6 +91,8 @@ def assemble_download(
             scope.set_tag("organization.slug", data_export.organization.slug)
             scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
             scope.set_extra("export.query", data_export.query_info)
+
+        base_bytes_written = bytes_written
 
         try:
             # ensure that the export limit is set and capped at EXPORTED_ROWS_LIMIT
@@ -144,7 +148,21 @@ def assemble_download(
                 new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
                 bytes_written += new_bytes_written
         except ExportError as error:
-            return data_export.email_failure(message=str(error))
+            if error.recoverable and retries > 0:
+                assemble_download.apply_async(
+                    args=[data_export_id],
+                    kwargs={
+                        "export_limit": export_limit,
+                        "batch_size": batch_size // 2,
+                        "offset": offset,
+                        "bytes_written": base_bytes_written,
+                        "environment_id": environment_id,
+                        "retries": retries - 1,
+                    },
+                    count_down=count_down,
+                )
+            else:
+                return data_export.email_failure(message=str(error))
         except Exception as error:
             metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
             logger.error(
@@ -177,6 +195,7 @@ def assemble_download(
                     offset=next_offset,
                     bytes_written=bytes_written,
                     environment_id=environment_id,
+                    retries=retries,
                 )
             else:
                 metrics.timing("dataexport.row_count", next_offset, sample_rate=1.0)
