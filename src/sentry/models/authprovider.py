@@ -102,7 +102,7 @@ class AuthProvider(Model):
             organization=self.organization, provider="okta_scim"
         ).exists():
             logger.warning(
-                "SCIM instillation already exists",
+                "SCIM installation already exists",
                 extra={"organization_id": self.organization.id},
             )
             return
