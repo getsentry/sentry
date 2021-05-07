@@ -20,7 +20,6 @@ type Props = {
   traceSlug?: string;
   transactionComparison?: boolean;
   realUserMonitoring?: boolean;
-  isTrendsView?: boolean;
 };
 
 class Breadcrumb extends Component<Props> {
