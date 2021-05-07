@@ -6,30 +6,33 @@ import IssueDiff from 'app/components/issueDiff';
 
 type Props = ModalRenderProps & React.ComponentProps<typeof IssueDiff>;
 
-const DiffModal = ({className, Body, ...props}: Props) => (
+const DiffModal = ({className, Body, CloseButton, ...props}: Props) => (
   <Body>
+    <CloseButton />
     <IssueDiff className={className} {...props} />
   </Body>
 );
 
 const modalCss = css`
-  .modal-dialog {
-    display: flex;
-    margin: 0;
-    left: 10px;
-    right: 10px;
-    top: 10px;
-    bottom: 10px;
-    width: auto;
-  }
-  .modal-content {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 20px;
+  bottom: 20px;
+  display: flex;
+  padding: 0;
+  width: auto;
+
+  [role='document'] {
+    overflow: scroll;
+    height: 100%;
     display: flex;
     flex: 1;
   }
-  .modal-body {
+
+  section {
     display: flex;
-    overflow: hidden;
-    flex: 1;
+    width: 100%;
   }
 `;
 

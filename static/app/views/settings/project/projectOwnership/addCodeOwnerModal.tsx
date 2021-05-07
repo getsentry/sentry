@@ -149,14 +149,12 @@ class AddCodeOwnerModal extends Component<Props, State> {
   }
 
   render() {
-    const {Header, Body, Footer, closeModal} = this.props;
+    const {Header, Body, Footer} = this.props;
     const {codeownerFile, error, errorJSON} = this.state;
     const {codeMappings} = this.props;
     return (
       <Fragment>
-        <Header closeButton onHide={closeModal}>
-          <h4>{t('Add Code Owner File')}</h4>
-        </Header>
+        <Header closeButton>{t('Add Code Owner File')}</Header>
         <Body>
           {codeMappings.length > 0 && (
             <Form
