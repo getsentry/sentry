@@ -27,7 +27,9 @@ def app_store_connect_feature_name():
 
 def get_app_store_credentials(project, credentials_id):
     sources_config = project.get_option(symbol_sources_prop_name())
-    credentials_id = credentials_id or ""
+
+    if credentials_id is None:
+        return None
     try:
         sources = json.loads(sources_config)
         for source in sources:
@@ -104,7 +106,7 @@ class AppStoreFullCredentialsSerializer(serializers.Serializer):
     # 512 should fit a private key
     appconnectPrivateKey = serializers.CharField(max_length=512, required=True)
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=True)
-    itunesPassword = serializers.CharField(max_length=100, min_length=1, required=True)
+    itunesPassword = serializers.CharField(max_length=512, min_length=1, required=True)
     appName = serializers.CharField(max_length=512, min_length=1, required=True)
     appId = serializers.CharField(max_length=512, min_length=1, required=True)
     sessionContext = serializers.CharField(min_length=1, required=True)
@@ -213,7 +215,7 @@ class AppStoreConnectStartAuthSerializer(serializers.Serializer):
     """
 
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
-    itunesPassword = serializers.CharField(max_length=100, min_length=1, required=False)
+    itunesPassword = serializers.CharField(max_length=512, min_length=1, required=False)
     id = serializers.CharField(max_length=40, min_length=1, required=False)
 
 

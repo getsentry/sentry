@@ -62,12 +62,11 @@ def _get_appstore_info(
     response = session.get(full_url, headers=headers)
     if not response.ok:
         raise ValueError("Request failed", full_url, response.status_code, response.text)
-
     try:
         return response.json()
     except Exception as e:
         raise ValueError(
-            "Request body not JSON", full_url, response.status_code, response.text
+            "Response body not JSON", full_url, response.status_code, response.text
         ) from e
 
 
@@ -147,7 +146,6 @@ def get_release_version_info(session: Session, credentials: AppConnectCredential
     """
     Get all release builds version information for an application
 
-
     The release build version information has the following structure:
     platform: str - the platform for the build (e.g. IOS, MAC_OS ...)
     short_version: str - the short version build info ( e.g. '1.0.1'), also called "train" in starship documentation
@@ -189,9 +187,6 @@ def get_release_version_info(session: Session, credentials: AppConnectCredential
 def get_build_info(session: Session, credentials: AppConnectCredentials, app_id: str):
     """
     Returns the build info for an application
-
-    The build info
-    :return:
     """
     return {
         "pre_releases": get_pre_release_version_info(session, credentials, app_id),
