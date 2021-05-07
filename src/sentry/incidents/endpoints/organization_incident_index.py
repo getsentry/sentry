@@ -43,6 +43,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         if envs:
             incidents = incidents.filter(alert_rule__snuba_query__environment__in=envs)
 
+        title = request.GET.get("title", None)
         expand = request.GET.getlist("expand", [])
         query_alert_rule = request.GET.get("alertRule")
         query_include_snapshots = request.GET.get("includeSnapshots")
@@ -94,6 +95,9 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
                 team_filter_query = team_filter_query | Q(alert_rule__owner_id=None)
 
             incidents = incidents.filter(team_filter_query)
+
+        if title:
+            incidents = incidents.filter(Q(title__icontains=title))
 
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alerts
