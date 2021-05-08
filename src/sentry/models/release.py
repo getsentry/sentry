@@ -141,6 +141,19 @@ class Release(Model):
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
 
+    # Denormalized semver columns. These will be filled if `version` matches at least
+    # part of our more permissive model of semver:
+    # `<major>.<minor>.<patch>.<revision>-<prerelease>+<build_code>
+    major = models.BigIntegerField(null=True)
+    minor = models.BigIntegerField(null=True)
+    patch = models.BigIntegerField(null=True)
+    revision = models.BigIntegerField(null=True)
+    prerelease = models.TextField(null=True)
+    build_code = models.TextField(null=True, db_index=True)
+    # If `build_code` can be parsed as a 64 bit int we'll store it here as well for
+    # sorting/comparison purposes
+    build_number = models.BigIntegerField(null=True, db_index=True)
+
     # HACK HACK HACK
     # As a transitionary step we permit release rows to exist multiple times
     # where they are "specialized" for a specific project.  The goal is to
@@ -152,6 +165,11 @@ class Release(Model):
         app_label = "sentry"
         db_table = "sentry_release"
         unique_together = (("organization", "version"),)
+        # TODO(django2.2): Note that we create this index with each column ordered
+        # descending, and as `nulls last` in our migrations. Django 2.2 allows us to
+        # specify functional indexes, which should allow us to specify this on the
+        # model.
+        index_together = (("organization", "major", "minor", "patch", "revision"),)
 
     __repr__ = sane_repr("organization_id", "version")
 
