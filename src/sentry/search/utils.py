@@ -39,29 +39,32 @@ def parse_status_value(value):
 
 def parse_duration(value, interval):
     try:
-        value = float(value)
+        duration = float(value)
     except ValueError:
         raise InvalidQuery(f"{value} is not a valid duration value")
 
     try:
         if interval == "ms":
-            delta = timedelta(milliseconds=value)
+            delta = timedelta(milliseconds=duration)
         elif interval == "s":
-            delta = timedelta(seconds=value)
+            delta = timedelta(seconds=duration)
         elif interval in ["min", "m"]:
-            delta = timedelta(minutes=value)
+            delta = timedelta(minutes=duration)
         elif interval in ["hr", "h"]:
-            delta = timedelta(hours=value)
+            delta = timedelta(hours=duration)
         elif interval in ["day", "d"]:
-            delta = timedelta(days=value)
+            delta = timedelta(days=duration)
         elif interval in ["wk", "w"]:
-            delta = timedelta(days=value * 7)
+            delta = timedelta(days=duration * 7)
         else:
             raise InvalidQuery(
                 f"{interval} is not a valid duration type, must be ms, s, min, m, hr, h, day, d, wk or w"
             )
     except OverflowError:
-        raise InvalidQuery(f"{value} is too large of a value, the maximum value is 999999999 days")
+        # don't use duration so we show the value the user entered, ie. 9 instead of 9.0
+        raise InvalidQuery(
+            f"{value}{interval} is too large of a value, the maximum value is 999999999 days"
+        )
 
     return delta.total_seconds() * 1000.0
 
