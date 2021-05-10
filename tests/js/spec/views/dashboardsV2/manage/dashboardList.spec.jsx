@@ -198,6 +198,40 @@ describe('Dashboards > DashboardList', function () {
     expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
+  it('cannot delete last dashboard', async function () {
+    const singleDashboard = [
+      TestStubs.Dashboard([], {
+        id: '1',
+        title: 'Dashboard 1',
+        dateCreated: '2021-04-19T13:13:23.962105Z',
+        createdBy: {id: '1'},
+        widgetDisplay: [],
+      }),
+    ];
+    const wrapper = mountWithTheme(
+      <DashboardList
+        organization={organization}
+        dashboards={singleDashboard}
+        pageLinks=""
+        location={{query: {}}}
+        onDashboardsChange={dashboardUpdateMock}
+      />
+    );
+    let card = wrapper.find('DashboardCard').last();
+    expect(card.find('Title').text()).toEqual(singleDashboard[0].title);
+
+    openContextMenu(card);
+    wrapper.update();
+
+    card = wrapper.find('DashboardCard').last();
+    const dashboardDelete = card.find(
+      `DropdownMenu MenuItem[data-test-id="dashboard-delete"]`
+    );
+    await tick();
+
+    expect(dashboardDelete.prop('disabled')).toBe(true);
+  });
+
   it('can duplicate dashboards', async function () {
     const wrapper = mountWithTheme(
       <DashboardList
