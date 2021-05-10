@@ -94,7 +94,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
         return Response(result, status=200)
 
 
-class AppStoreFullCredentialsSerializer(serializers.Serializer):
+class AppStoreCreateCredentialsSerializer(serializers.Serializer):
     """
     Serializer for the full Apple connect credentials AppStoreConnect + ITunes
     """
@@ -115,7 +115,7 @@ class AppStoreFullCredentialsSerializer(serializers.Serializer):
     orgName = serializers.CharField(max_length=100, required=True)
 
 
-class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
+class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
     permission_classes = [StrictProjectPermission]
 
     def post(self, request, project):
@@ -124,7 +124,7 @@ class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
-        serializer = AppStoreFullCredentialsSerializer(data=request.data)
+        serializer = AppStoreCreateCredentialsSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -153,6 +153,92 @@ class AppStoreConnectCredentialsEndpoint(ProjectEndpoint):
             credentials["type"] = "appStoreConnect"
             credentials["id"] = uuid4().hex
             credentials["name"] = "Apple App Store Connect"
+
+        except ValueError:
+            return Response("Invalid validation context passed.", status=400)
+        return Response(credentials, status=200)
+
+
+class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
+    """
+    Serializer for the full Apple connect credentials AppStoreConnect + ITunes
+    """
+
+    # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
+    appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=False)
+    # about 10 chars
+    appconnectKey = serializers.CharField(max_length=20, min_length=2, required=False)
+    # 512 should fit a private key
+    appconnectPrivateKey = serializers.CharField(max_length=512, required=False)
+    itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
+    itunesPassword = serializers.CharField(max_length=512, min_length=1, required=False)
+    appName = serializers.CharField(max_length=512, min_length=1, required=False)
+    appId = serializers.CharField(max_length=512, min_length=1, required=False)
+    sessionContext = serializers.CharField(min_length=1, required=False)
+    # this is the ITunes organization the user is a member of ( known as providers in Itunes terminology)
+    orgId = serializers.IntegerField(required=False)
+    orgName = serializers.CharField(max_length=100, required=False)
+
+
+class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
+    permission_classes = [StrictProjectPermission]
+
+    def post(self, request, project, credentials_id):
+        if not features.has(
+            app_store_connect_feature_name(), project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        serializer = AppStoreUpdateCredentialsSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        # get the existing credentials
+        credentials = get_app_store_credentials(project, credentials_id)
+        key = project.get_option(credentials_key_name())
+
+        if key is None or credentials is None:
+            return Response(status=404)
+
+        try:
+            secrets = encrypt.decrypt_object(credentials.pop("encrypted"), key)
+        except ValueError:
+            return Response(status=500)
+
+        # get the new credentials
+        new_credentials = serializer.validated_data
+        encrypted_context = new_credentials.get("sessionContext")
+
+        new_itunes_session = None
+        if encrypted_context is not None:
+            try:
+                validation_context = encrypt.decrypt_object(encrypted_context, key)
+                new_itunes_session = validation_context.get("itunes_session")
+            except ValueError:
+                return Response("Invalid validation context passed.", status=400)
+
+        new_secrets = {}
+
+        if new_itunes_session is not None:
+            new_secrets["itunesSession"] = new_itunes_session
+
+        new_itunes_password = new_credentials.get("itunesPassword")
+        if new_itunes_password is not None:
+            new_secrets["itunesPassword"] = new_itunes_password
+
+        new_appconnect_private_key = new_credentials.get("appconnectPrivateKey")
+        if new_appconnect_private_key is not None:
+            new_secrets["appconnectPrivateKey"] = new_appconnect_private_key
+
+        # merge the new and existing credentials
+
+        try:
+            secrets.update(new_secrets)
+            credentials.update(new_credentials)
+
+            credentials["encrypted"] = encrypt.encrypt_object(secrets, key)
+            credentials["id"] = uuid4().hex
 
         except ValueError:
             return Response("Invalid validation context passed.", status=400)

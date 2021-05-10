@@ -255,10 +255,11 @@ from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleCondi
 from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnect2FactorAuthEndpoint,
     AppStoreConnectAppsEndpoint,
-    AppStoreConnectCredentialsEndpoint,
+    AppStoreConnectCreateCredentialsEndpoint,
     AppStoreConnectCredentialsValidateEndpoint,
     AppStoreConnectRequestSmsEndpoint,
     AppStoreConnectStartAuthEndpoint,
+    AppStoreConnectUpdateCredentialsEndpoint,
 )
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
@@ -1815,8 +1816,8 @@ urlpatterns = [
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/$",
-                    AppStoreConnectCredentialsEndpoint.as_view(),
-                    name="sentry-api-0-project-appstoreconnect-credentials",
+                    AppStoreConnectCreateCredentialsEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-credentials-create",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/apps/$",
@@ -1842,6 +1843,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/2fa/$",
                     AppStoreConnect2FactorAuthEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-2fa",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
+                    AppStoreConnectUpdateCredentialsEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-credentials-update",
                 ),
             ]
         ),
