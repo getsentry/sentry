@@ -1,4 +1,3 @@
-import React from 'react';
 import {cache} from '@emotion/css'; // eslint-disable-line emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {mount, render, shallow} from 'enzyme'; // eslint-disable-line no-restricted-imports

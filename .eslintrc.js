@@ -11,7 +11,6 @@ module.exports = {
   },
 
   rules: {
-    "import/dynamic-import-chunkname": ['off'],
   },
 
   overrides: [
