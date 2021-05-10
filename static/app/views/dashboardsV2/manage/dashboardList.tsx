@@ -73,7 +73,7 @@ function DashboardList({
       .then(() => {
         trackAnalyticsEvent({
           eventKey: 'dashboards_manage.delete',
-          eventName: 'Dashboards2: Dashboard Deleted',
+          eventName: 'Dashboards Manager: Dashboard Deleted',
           organization_id: parseInt(organization.id, 10),
           dashboard_id: parseInt(dashboard.id, 10),
         });
@@ -93,7 +93,7 @@ function DashboardList({
         createDashboard(api, organization.slug, newDashboard, true).then(() => {
           trackAnalyticsEvent({
             eventKey: 'dashboards_manage.duplicate',
-            eventName: 'Dashboards2: Dashboard Duplicated',
+            eventName: 'Dashboards Manager: Dashboard Duplicated',
             organization_id: parseInt(organization.id, 10),
             dashboard_id: parseInt(dashboard.id, 10),
           });
@@ -107,7 +107,7 @@ function DashboardList({
   function handleClick(dashboard: DashboardListItem) {
     trackAnalyticsEvent({
       eventKey: 'dashboards_manage.change_sort',
-      eventName: 'Dashboards2: Sort By Changed',
+      eventName: 'Dashboards Manager: Sort By Changed',
       organization_id: parseInt(organization.id, 10),
       dashboard_id: parseInt(dashboard.id, 10),
     });
@@ -198,6 +198,12 @@ function DashboardList({
           if (offset <= 0 && isPrevious) {
             delete newQuery.cursor;
           }
+
+          trackAnalyticsEvent({
+            eventKey: 'dashboards_manage.paginate',
+            eventName: 'Dashboards Manager: Paginate',
+            organization_id: parseInt(organization.id, 10),
+          });
 
           browserHistory.push({
             pathname: path,

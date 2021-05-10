@@ -80,7 +80,7 @@ class ManageDashboards extends AsyncView<Props, State> {
     const {location, router} = this.props;
     trackAnalyticsEvent({
       eventKey: 'dashboards_manage.search',
-      eventName: 'Dashboards2: Search',
+      eventName: 'Dashboards Manager: Search',
       organization_id: parseInt(this.props.organization.id, 10),
     });
 
@@ -94,7 +94,7 @@ class ManageDashboards extends AsyncView<Props, State> {
     const {location} = this.props;
     trackAnalyticsEvent({
       eventKey: 'dashboards_manage.change_sort',
-      eventName: 'Dashboards2: Sort By Changed',
+      eventName: 'Dashboards Manager: Sort By Changed',
       organization_id: parseInt(this.props.organization.id, 10),
       sort: value,
     });
@@ -173,6 +173,11 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   onCreate() {
     const {organization, location} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'dashboards_manage.create.start',
+      eventName: 'Dashboards Manager: Dashboard Create Started',
+      organization_id: parseInt(organization.id, 10),
+    });
     browserHistory.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/`,
       query: location.query,
