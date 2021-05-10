@@ -7,7 +7,7 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {t, tn} from 'app/locale';
+import {t} from 'app/locale';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -47,18 +47,10 @@ class ProjectCard extends Component<Props> {
   render() {
     const {organization, project, hasProjectAccess} = this.props;
     const {stats, slug, transactionStats} = project;
-    const totalErrors =
-      stats !== undefined
-        ? formatAbbreviatedNumber(stats.reduce((sum, [_, value]) => sum + value, 0))
-        : '0';
-
+    const totalErrors = stats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
     const totalTransactions =
-      transactionStats !== undefined
-        ? formatAbbreviatedNumber(
-            transactionStats.reduce((sum, [_, value]) => sum + value, 0)
-          )
-        : '0';
-    const zeroTransactions = totalTransactions === '0';
+      transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
+    const zeroTransactions = totalTransactions === 0;
     const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
 
     return (
@@ -80,7 +72,9 @@ class ProjectCard extends Component<Props> {
                   data-test-id="project-errors"
                   to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
                 >
-                  {tn('%s error', '%s errors', totalErrors)}
+                  {totalErrors === 0 || totalErrors > 1
+                    ? t('%s errors', formatAbbreviatedNumber(totalErrors))
+                    : t('1 error')}
                 </Link>
                 {this.hasPerformance && (
                   <Fragment>
@@ -89,7 +83,9 @@ class ProjectCard extends Component<Props> {
                       data-test-id="project-transactions"
                       to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
                     >
-                      {tn('%s transaction', '%s transactions', totalTransactions)}
+                      {totalTransactions === 0 || totalTransactions > 1
+                        ? t('%s transactions', formatAbbreviatedNumber(totalTransactions))
+                        : t('1 transaction')}
 
                       {zeroTransactions && (
                         <QuestionTooltip
