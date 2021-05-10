@@ -64,7 +64,7 @@ jobs:
       - name: eslint logic
         id: eslint
         if: steps.changes.outputs.frontend == 'true' && (github.ref == 'refs/heads/master' || steps.changes.outputs.eslint_config == 'true' || steps.changes.outputs.yarn_lockfile == 'true')
-        run: echo "set-output name=all-files::true"
+        run: echo "::set-output name=all-files::true"
 
       # Lint entire frontend if:
       # - this is on main branch
