@@ -33,20 +33,20 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_grouprelease_group_id_release_id_first_seen_53fc35ds_uniq
-                    ON sentry_grouprelease USING btree (group_id, release_id, first_seen);
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_grouprelease_group_id_first_seen_53fc35ds_uniq
+                    ON sentry_grouprelease USING btree (group_id, first_seen);
                     """,
                     reverse_sql="""
-                    DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_release_id_first_seen_53fc35ds_uniq;
+                    DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_first_seen_53fc35ds_uniq;
                     """,
                 ),
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_grouprelease_group_id_release_id_last_seen_g8v2sk7c_uniq
-                    ON sentry_grouprelease USING btree (group_id, release_id, last_seen DESC);
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_grouprelease_group_id_last_seen_g8v2sk7c_uniq
+                    ON sentry_grouprelease USING btree (group_id, last_seen DESC);
                     """,
                     reverse_sql="""
-                    DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_release_id_last_seen_g8v2sk7c_uniq;
+                    DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_last_seen_g8v2sk7c_uniq;
                     """,
                 ),
             ],
