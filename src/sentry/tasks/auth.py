@@ -112,3 +112,17 @@ def _remove_2fa_non_compliant_member(member, org, actor=None, actor_key=None, ip
             context=email_context,
         )
         message.send_async([member.email])
+
+
+@instrumented_task(
+    name="sentry.tasks.remove_email_verification_non_compliant_members",
+    queue="auth",
+    default_retry_delay=60 * 5,
+    max_retries=5,
+)
+def remove_email_verification_non_compliant_members(
+    org_id, actor_id=None, actor_key_id=None, ip_address=None
+):
+    # TODO: Custom email as in _remove_2fa_non_compliant_member,
+    #  or dispatch directly to User.send_confirm_email_singular?
+    pass

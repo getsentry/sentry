@@ -127,6 +127,10 @@ class Organization(Model):
                 "disable_new_visibility_features",
                 "Temporarily opt out of new visibility features and ui",
             ),
+            (
+                "require_email_verification",
+                "Require and enforce email verification for all members.",
+            ),
         ),
         default=1,
     )
@@ -416,9 +420,8 @@ class Organization(Model):
             context=context,
         ).send_async([o.email for o in owners])
 
-    def handle_2fa_required(self, request):
+    def _handle_requirement_change(self, request, task):
         from sentry.models import ApiKey
-        from sentry.tasks.auth import remove_2fa_non_compliant_members
 
         actor_id = request.user.id if request.user and request.user.is_authenticated else None
         api_key_id = (
@@ -428,9 +431,17 @@ class Organization(Model):
         )
         ip_address = request.META["REMOTE_ADDR"]
 
-        remove_2fa_non_compliant_members.delay(
-            self.id, actor_id=actor_id, actor_key_id=api_key_id, ip_address=ip_address
-        )
+        task.delay(self.id, actor_id=actor_id, actor_key_id=api_key_id, ip_address=ip_address)
+
+    def handle_2fa_required(self, request):
+        from sentry.tasks.auth import remove_2fa_non_compliant_members
+
+        self._handle_requirement_change(request, remove_2fa_non_compliant_members)
+
+    def handle_email_verification_required(self, request):
+        from sentry.tasks.auth import remove_email_verification_non_compliant_members
+
+        self._handle_requirement_change(request, remove_email_verification_non_compliant_members)
 
     def get_url_viewname(self):
         return "sentry-organization-issue-list"
