@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import * as globalSelection from 'app/actionCreators/globalSelection';
 import ProjectsStore from 'app/stores/projectsStore';
-import PerformanceLanding, {FilterViews} from 'app/views/performance/landing';
+import PerformanceContent from 'app/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
 import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
 
@@ -59,7 +59,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
   return initialData;
 }
 
-describe('Performance > Landing', function () {
+describe('Performance > Content', function () {
   beforeEach(function () {
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
@@ -251,7 +251,7 @@ describe('Performance > Landing', function () {
     const data = initializeData(projects, {});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
+      <PerformanceContent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -261,7 +261,7 @@ describe('Performance > Landing', function () {
     wrapper.update();
 
     // Check number of rendered tab buttons
-    expect(wrapper.find('PageHeader ButtonBar Button')).toHaveLength(2);
+    expect(wrapper.find('PageHeader Button')).toHaveLength(1);
 
     // No onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(0);
@@ -279,7 +279,7 @@ describe('Performance > Landing', function () {
     const data = initializeData(projects, {project: [1]});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
+      <PerformanceContent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -304,7 +304,7 @@ describe('Performance > Landing', function () {
     const data = initializeData(projects, {project: ['-1']});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
+      <PerformanceContent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -321,7 +321,7 @@ describe('Performance > Landing', function () {
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
+      <PerformanceContent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -346,7 +346,7 @@ describe('Performance > Landing', function () {
   it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
     const wrapper = mountWithTheme(
-      <PerformanceLanding
+      <PerformanceContent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -359,12 +359,12 @@ describe('Performance > Landing', function () {
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
     const data = initializeTrendsData({
-      query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+      query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION} api`,
       statsPeriod: '24h',
     });
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
+      <PerformanceContent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -380,10 +380,10 @@ describe('Performance > Landing', function () {
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
+        pathname: '/organizations/org-slug/performance/trends/',
         query: {
           query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
           statsPeriod: '24h',
-          view: 'TRENDS',
         },
       })
     );
@@ -397,7 +397,7 @@ describe('Performance > Landing', function () {
     const data = initializeData(projects, {view: undefined});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
+      <PerformanceContent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -413,7 +413,7 @@ describe('Performance > Landing', function () {
     const data = initializeTrendsData({view: undefined}, false);
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
+      <PerformanceContent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -425,38 +425,11 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
   });
 
-  it('Visiting trends with trends feature will update filters if none are set', async function () {
-    const data = initializeTrendsData({view: FilterViews.TRENDS}, false);
-
-    const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(browserHistory.push).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        query: {
-          query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
-          view: 'TRENDS',
-        },
-      })
-    );
-  });
-
   it('Tags are replaced with trends default query if navigating to trends', async function () {
-    const data = initializeTrendsData(
-      {view: FilterViews.ALL_TRANSACTIONS, query: 'device.family:Mac'},
-      false
-    );
+    const data = initializeTrendsData({query: 'device.family:Mac'}, false);
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
+      <PerformanceContent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -470,9 +443,9 @@ describe('Performance > Landing', function () {
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
+        pathname: '/organizations/org-slug/performance/trends/',
         query: {
           query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
-          view: 'TRENDS',
         },
       })
     );
@@ -480,14 +453,12 @@ describe('Performance > Landing', function () {
 
   it('Vitals cards are not shown with overview feature without frontend platform', async function () {
     const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
-    const data = initializeData(
-      projects,
-      {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},
-      [...FEATURES]
-    );
+    const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'}, [
+      ...FEATURES,
+    ]);
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
+      <PerformanceContent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -508,14 +479,12 @@ describe('Performance > Landing', function () {
         platform: 'javascript-react',
       }),
     ];
-    const data = initializeData(
-      projects,
-      {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},
-      [...FEATURES]
-    );
+    const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'}, [
+      ...FEATURES,
+    ]);
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
+      <PerformanceContent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -536,42 +505,5 @@ describe('Performance > Landing', function () {
       const link = wrapper.find(selector);
       expect(link).toHaveLength(1);
     }
-  });
-
-  it('Navigating away from trends will remove extra tags from query', async function () {
-    const data = initializeTrendsData(
-      {
-        view: FilterViews.TRENDS,
-        query: `device.family:Mac tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
-      },
-      false
-    );
-
-    const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    browserHistory.push.mockReset();
-
-    const byTransactionLink = wrapper
-      .find('[data-test-id="landing-header-all_transactions"]')
-      .at(0);
-    byTransactionLink.simulate('click');
-
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          query: 'device.family:Mac',
-          view: 'ALL_TRANSACTIONS',
-        },
-      })
-    );
   });
 });

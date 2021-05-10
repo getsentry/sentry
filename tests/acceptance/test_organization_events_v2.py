@@ -311,6 +311,13 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             }
         )
+        if "contexts" not in event_data:
+            event_data["contexts"] = {}
+        event_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": "a" * 32,
+            "span_id": "b" * 16,
+        }
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=False)
 
         with self.feature(FEATURE_NAMES):
@@ -339,6 +346,11 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             }
         )
+        event_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": "a" * 32,
+            "span_id": "b" * 16,
+        }
         self.store_event(data=event_data, project_id=self.project.id)
         self.wait_for_event_count(self.project.id, 1)
 
