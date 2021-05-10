@@ -43,22 +43,25 @@ def parse_duration(value, interval):
     except ValueError:
         raise InvalidQuery(f"{value} is not a valid duration value")
 
-    if interval == "ms":
-        delta = timedelta(milliseconds=value)
-    elif interval == "s":
-        delta = timedelta(seconds=value)
-    elif interval in ["min", "m"]:
-        delta = timedelta(minutes=value)
-    elif interval in ["hr", "h"]:
-        delta = timedelta(hours=value)
-    elif interval in ["day", "d"]:
-        delta = timedelta(days=value)
-    elif interval in ["wk", "w"]:
-        delta = timedelta(days=value * 7)
-    else:
-        raise InvalidQuery(
-            f"{interval} is not a valid duration type, must be ms, s, min, m, hr, h, day, d, wk or w"
-        )
+    try:
+        if interval == "ms":
+            delta = timedelta(milliseconds=value)
+        elif interval == "s":
+            delta = timedelta(seconds=value)
+        elif interval in ["min", "m"]:
+            delta = timedelta(minutes=value)
+        elif interval in ["hr", "h"]:
+            delta = timedelta(hours=value)
+        elif interval in ["day", "d"]:
+            delta = timedelta(days=value)
+        elif interval in ["wk", "w"]:
+            delta = timedelta(days=value * 7)
+        else:
+            raise InvalidQuery(
+                f"{interval} is not a valid duration type, must be ms, s, min, m, hr, h, day, d, wk or w"
+            )
+    except OverflowError:
+        raise InvalidQuery(f"{value} is too large of a value, the maximum value is 999999999 days")
 
     return delta.total_seconds() * 1000.0
 
