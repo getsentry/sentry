@@ -32,6 +32,14 @@ GUIDES = {
         "id": 16,
         "required_targets": ["trace_view_guide_row", "trace_view_guide_row_details"],
     },
+    "span_op_breakdowns_and_tag_explorer": {
+        "id": 17,
+        "required_targets": [
+            "span_op_breakdowns_filter",
+            "span_op_relative_breakdowns",
+            "tag_explorer",
+        ],
+    },
 }
 
 # demo mode has different guides

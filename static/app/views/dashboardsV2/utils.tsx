@@ -16,7 +16,7 @@ export function eventViewFromWidget(
   selection: GlobalSelection
 ): EventView {
   const {start, end, period: statsPeriod} = selection.datetime;
-  const {projects} = selection;
+  const {projects, environments} = selection;
 
   return EventView.fromSavedQuery({
     id: undefined,
@@ -29,5 +29,6 @@ export function eventViewFromWidget(
     range: statsPeriod,
     start: start ? getUtcDateString(start) : undefined,
     end: end ? getUtcDateString(end) : undefined,
+    environment: environments,
   });
 }

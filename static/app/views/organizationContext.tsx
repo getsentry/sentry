@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 import {PlainRoute} from 'react-router/lib/Route';

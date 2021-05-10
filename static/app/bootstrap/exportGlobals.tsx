@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import * as Router from 'react-router';
 import * as Sentry from '@sentry/react';
@@ -15,9 +15,7 @@ import plugins from 'app/plugins';
 // it on demand.
 async function loadPasswordStrength(callback: Function) {
   try {
-    const module = await import(
-      /* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength'
-    );
+    const module = await import('app/components/passwordStrength');
     callback(module);
   } catch (err) {
     // Ignore if client can't load this, it enhances UX a bit, but is optional

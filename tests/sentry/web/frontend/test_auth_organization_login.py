@@ -2,6 +2,7 @@ from django.test import override_settings
 from django.urls import reverse
 from exam import fixture
 
+from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
@@ -700,6 +701,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         user = self.create_user("foor@example.com")
         self.create_member(organization=self.organization, user=user)
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member.email = "foor@example.com"
         member.save()
 
         self.session["_next"] = reverse(
@@ -708,7 +710,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.save_session()
 
         resp = self.client.post(
-            self.path, {"username": self.user, "password": "admin", "op": "login"}, follow=True
+            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
         assert resp.redirect_chain == [
             (reverse("sentry-organization-settings", args=[self.organization.slug]), 302),
@@ -766,3 +768,103 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             (reverse("sentry-login"), 302),
             (f"/organizations/{org1.slug}/issues/", 302),
         ]
+
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    @with_feature({"organizations:create": False})
+    def test_correct_redirect_as_2fa_user_single_org_invited(self):
+        user = self.create_user("foor@example.com")
+
+        RecoveryCodeInterface().enroll(user)
+        TotpInterface().enroll(user)
+
+        self.create_member(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member.email = "foor@example.com"
+        member.user = None
+        member.save()
+
+        resp = self.client.post(
+            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
+        )
+
+        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+
+    def test_correct_redirect_as_2fa_user_invited(self):
+        user = self.create_user("foor@example.com")
+
+        RecoveryCodeInterface().enroll(user)
+        TotpInterface().enroll(user)
+
+        self.create_member(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member.email = "foor@example.com"
+        member.user = None
+        member.save()
+
+        resp = self.client.post(
+            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
+        )
+
+        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    @with_feature({"organizations:create": False})
+    def test_correct_redirect_as_2fa_user_single_org_no_membership(self):
+        user = self.create_user("foor@example.com")
+
+        RecoveryCodeInterface().enroll(user)
+        TotpInterface().enroll(user)
+
+        resp = self.client.post(
+            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
+        )
+
+        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+
+    def test_correct_redirect_as_2fa_user_no_membership(self):
+        user = self.create_user("foor@example.com")
+
+        RecoveryCodeInterface().enroll(user)
+        TotpInterface().enroll(user)
+
+        resp = self.client.post(
+            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
+        )
+
+        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    @with_feature({"organizations:create": False})
+    def test_correct_redirect_as_2fa_user_single_org_member(self):
+        user = self.create_user("foor@example.com")
+
+        RecoveryCodeInterface().enroll(user)
+        TotpInterface().enroll(user)
+
+        self.create_member(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member.email = "foor@example.com"
+        member.save()
+
+        resp = self.client.post(
+            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
+        )
+
+        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+
+    def test_correct_redirect_as_2fa_user_invited_member(self):
+        user = self.create_user("foor@example.com")
+
+        RecoveryCodeInterface().enroll(user)
+        TotpInterface().enroll(user)
+
+        self.create_member(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member.email = "foor@example.com"
+        member.save()
+
+        resp = self.client.post(
+            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
+        )
+
+        assert resp.redirect_chain == [("/auth/2fa/", 302)]

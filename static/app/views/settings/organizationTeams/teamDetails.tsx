@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -37,7 +37,7 @@ type State = {
 class TeamDetails extends React.Component<Props, State> {
   state = this.getInitialState();
 
-  getInitialState() {
+  getInitialState(): State {
     const team = TeamStore.getBySlug(this.props.params.teamId);
 
     return {

@@ -172,6 +172,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.ISSUE_BASIC,
             IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
         ]
     )
 

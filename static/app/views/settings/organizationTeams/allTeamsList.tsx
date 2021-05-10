@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
@@ -61,7 +61,7 @@ function AllTeamsList({
     );
   }
 
-  return <React.Fragment>{teamNodes}</React.Fragment>;
+  return <Fragment>{teamNodes}</Fragment>;
 }
 
 export default AllTeamsList;

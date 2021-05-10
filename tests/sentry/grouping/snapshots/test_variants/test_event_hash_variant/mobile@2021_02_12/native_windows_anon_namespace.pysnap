@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:34.284492Z'
+created: '2021-04-30T12:13:39.925209Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -49,43 +49,6 @@ app-depth-3:
     app-depth-3*
       exception*
         stacktrace*
-          frame*
-            filename (discarded native filename for grouping stability)
-              "main.cpp"
-            function*
-              "main"
-          frame*
-            filename (discarded native filename for grouping stability)
-              "main.cpp"
-            function*
-              "`anonymous namespace'::start"
-          frame*
-            filename (discarded native filename for grouping stability)
-              "main.cpp"
-            function*
-              "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_WRITE"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
---------------------------------------------------------------------------
-app-depth-4:
-  hash: "3df8bc242dfdc7460b42fa529422630f"
-  tree_label: "<entire stacktrace>"
-  component:
-    app-depth-4*
-      exception*
-        stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
-              "exe_common.inl"
-            function*
-              "__scrt_common_main_seh"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
-              "exe_common.inl"
-            function*
-              "invoke_main"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"

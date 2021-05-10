@@ -3,7 +3,13 @@ from django.urls import reverse
 
 from sentry import roles
 from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
-from sentry.models import Authenticator, InviteStatus, OrganizationMember, OrganizationMemberTeam
+from sentry.models import (
+    Authenticator,
+    Integration,
+    InviteStatus,
+    OrganizationMember,
+    OrganizationMemberTeam,
+)
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers import Feature
 from sentry.utils.compat.mock import patch
@@ -475,10 +481,6 @@ class OrganizationMemberListTest(APITestCase):
         assert len(mail.outbox) == 1
 
     def test_user_has_external_user_association(self):
-        print("user.id", self.user.id)
-        print("user2.id", self.user_2.id)
-        print("external_user", self.external_user.id)
-
         response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
         assert len(response.data) == 2
         organization_member = next(
@@ -493,7 +495,13 @@ class OrganizationMemberListTest(APITestCase):
 
     def test_user_has_external_user_associations_across_multiple_orgs(self):
         self.org_2 = self.create_organization(owner=self.user_2)
-        self.external_user_2 = self.create_external_user(self.user_2, self.org_2)
+        self.integration_2 = Integration.objects.create(
+            provider="github", name="GitHub", external_id="github:2"
+        )
+        self.integration_2.add_organization(self.org_2, self.user_2)
+        self.external_user_2 = self.create_external_user(
+            self.user_2, self.org_2, integration=self.integration_2
+        )
         response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
         assert len(response.data) == 2
         organization_member = next(

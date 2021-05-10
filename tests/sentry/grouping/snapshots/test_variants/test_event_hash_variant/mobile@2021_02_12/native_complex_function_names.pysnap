@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:24.194436Z'
+created: '2021-04-30T12:13:38.988080Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -31,27 +31,6 @@ app-depth-2:
           frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-        type (ignored because exception is synthetic)
-          "log_demo"
-        value (ignored because stacktrace takes precedence)
-          "Holy shit everything is on fire!"
---------------------------------------------------------------------------
-app-depth-3:
-  hash: "9b78cced1eefcd0c655a0a3d8ce2cdd2"
-  tree_label: "<entire stacktrace>"
-  component:
-    app-depth-3*
-      exception*
-        stacktrace*
-          frame*
-            function*
-              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
-          frame*
-            function*
-              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (ignored by stack trace rule (category:indirection -group))
-            function*
-              "<lambda>::operator()"
         type (ignored because exception is synthetic)
           "log_demo"
         value (ignored because stacktrace takes precedence)

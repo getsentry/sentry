@@ -1,4 +1,3 @@
-import React from 'react';
 import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
 
@@ -7,7 +6,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import DashboardDetail from 'app/views/dashboardsV2/detail';
+import DashboardsV2Container from 'app/views/dashboardsV2/';
+import ViewEditDashboard from 'app/views/dashboardsV2/view';
 
 describe('Dashboards > Detail', function () {
   const organization = TestStubs.Organization({
@@ -54,7 +54,7 @@ describe('Dashboards > Detail', function () {
         method: 'DELETE',
       });
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
@@ -92,7 +92,7 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard([], {id: '8', title: 'Updated prebuilt'}),
       });
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
@@ -131,7 +131,7 @@ describe('Dashboards > Detail', function () {
       // Should redirect to the new dashboard.
       expect(browserHistory.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/dashboards/8/',
+          pathname: '/organizations/org-slug/dashboard/8/',
         })
       );
     });
@@ -145,7 +145,7 @@ describe('Dashboards > Detail', function () {
       });
 
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
@@ -246,7 +246,7 @@ describe('Dashboards > Detail', function () {
         method: 'PUT',
       });
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
@@ -294,7 +294,7 @@ describe('Dashboards > Detail', function () {
 
     it('can enter edit mode for widgets', async function () {
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
@@ -328,7 +328,7 @@ describe('Dashboards > Detail', function () {
 
     it('hides and shows manage dashboards based on feature', async function () {
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
@@ -357,7 +357,7 @@ describe('Dashboards > Detail', function () {
       });
 
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <ViewEditDashboard
           organization={newOrg.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={newOrg.router}

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';

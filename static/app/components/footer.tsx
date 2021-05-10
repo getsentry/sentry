@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Hook from 'app/components/hook';
@@ -19,7 +19,7 @@ function Footer({className}: Props) {
     <footer className={className}>
       <div>
         {config.isOnPremise && (
-          <React.Fragment>
+          <Fragment>
             {'Sentry '}
             {getDynamicText({
               fixed: 'Acceptance Test',
@@ -31,7 +31,7 @@ function Footer({className}: Props) {
                 value: config.version.build.substring(0, 7),
               })}
             </Build>
-          </React.Fragment>
+          </Fragment>
         )}
       </div>
       <LogoLink />
@@ -68,9 +68,9 @@ const FooterLink = styled(ExternalLink)`
 `;
 
 const LogoLink = styled(props => (
-  <a href="/" tabIndex={-1} {...props}>
+  <ExternalLink href="https://sentry.io/welcome/" tabIndex={-1} {...props}>
     <IconSentry size="xl" />
-  </a>
+  </ExternalLink>
 ))`
   color: ${p => p.theme.subText};
   display: block;

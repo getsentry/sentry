@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {ClassNames, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';

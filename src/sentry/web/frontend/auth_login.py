@@ -207,14 +207,13 @@ class AuthLoginView(BaseView):
                             om = OrganizationMember.objects.get(
                                 organization=organization, email=user.email
                             )
+                            # XXX(jferge): if user is removed / invited but has an acct,
+                            # pop _next so they aren't in infinite redirect on Single Org Mode
                         except OrganizationMember.DoesNotExist:
-                            pass
+                            request.session.pop("_next", None)
                         else:
-                            # XXX(jferge): if user is in 2fa removed state,
-                            # dont redirect to org login page instead redirect to general login where
-                            # they will be prompted to check their email
                             if om.user is None:
-                                return self.redirect(auth.get_login_url())
+                                request.session.pop("_next", None)
 
                 return self.redirect(auth.get_login_redirect(request))
             else:

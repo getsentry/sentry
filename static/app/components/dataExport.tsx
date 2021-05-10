@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
@@ -42,7 +42,7 @@ class DataExport extends React.Component<Props, State> {
     if (!isEqual(prevPayload, payload)) this.resetState();
   }
 
-  get initialState() {
+  get initialState(): State {
     return {
       inProgress: false,
     };

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
@@ -6,7 +6,7 @@ import moment from 'moment';
 import AsyncComponent from 'app/components/asyncComponent';
 import OptionSelector from 'app/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
-import {DateTimeObject, getInterval} from 'app/components/charts/utils';
+import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
 import NotAvailable from 'app/components/notAvailable';
 import ScoreCard from 'app/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -86,7 +86,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     return {
       ...queryDatetime,
-      interval: getInterval(dataDatetime),
+      interval: getSeriesApiInterval(dataDatetime),
       groupBy: ['category', 'outcome'],
       field: ['sum(quantity)'],
     };
@@ -143,10 +143,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     const {orgStats} = this.state;
     const {dataDatetime} = this.props;
 
-    const interval = getInterval(dataDatetime);
+    const interval = getSeriesApiInterval(dataDatetime);
 
     // Use fillers as loading/error states will not display datetime at all
-    if (!orgStats || !orgStats.intervals || orgStats.intervals.length < 2) {
+    if (!orgStats || !orgStats.intervals) {
       return {
         chartDateInterval: interval,
         chartDateStart: '',
@@ -163,7 +163,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     // Keep datetime in UTC until we want to display it to users
     const startTime = moment(intervals[0]).utc();
-    const endTime = moment(intervals[intervals.length - 1]).utc();
+    const endTime =
+      intervals.length < 2
+        ? moment(startTime) // when statsPeriod and interval is the same value
+        : moment(intervals[intervals.length - 1]).utc();
     const useUtc = isDisplayUtc(dataDatetime);
 
     // If interval is a day or more, use UTC to format date. Otherwise, the date
@@ -448,10 +451,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
   renderComponent() {
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderCards()}
         <ChartWrapper>{this.renderChart()}</ChartWrapper>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

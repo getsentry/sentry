@@ -1,4 +1,5 @@
 import re
+from abc import ABC
 from typing import Any, Mapping, MutableMapping, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
 
@@ -6,32 +7,24 @@ from django.utils.html import escape
 from django.utils.safestring import SafeString, mark_safe
 
 from sentry.models import Activity, User
+from sentry.notifications.base import BaseNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils.avatar import avatar_as_html
-from sentry.notifications.utils.participants import get_participants_for_group
+from sentry.notifications.utils.participants import (
+    get_participants_for_group,
+    split_participants_and_context,
+)
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 
-class ActivityNotification:
+class ActivityNotification(BaseNotification, ABC):
     def __init__(self, activity: Activity) -> None:
         self.activity = activity
-        self.project = activity.project
-        self.organization = self.project.organization
-        self.group = activity.group
+        super().__init__(activity.project, activity.group)
 
-    def should_email(self) -> bool:
-        return True
-
-    def get_template(self) -> str:
-        return "sentry/emails/activity/generic.txt"
-
-    def get_html_template(self) -> str:
-        return "sentry/emails/activity/generic.html"
-
-    def get_project_link(self) -> str:
-        return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))
+    def get_filename(self) -> str:
+        return "activity/generic"
 
     def get_group_link(self) -> str:
         referrer = re.sub("Notification$", "Email", self.__class__.__name__)
@@ -65,6 +58,7 @@ class ActivityNotification:
         activity_link = urlunparse(parts)
 
         return {
+            "organization": self.group.project.organization,
             "group": self.group,
             "link": group_link,
             "activity_link": activity_link,
@@ -86,17 +80,15 @@ class ActivityNotification:
         }
 
     def get_user_context(
-        self, user: User, reason: Optional[int] = None
+        self, user: User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         """ Get user-specific context. Do not call get_context() here. """
+        reason = extra_context.get("reason", 0)
         return {
             "reason": GroupSubscriptionReason.descriptions.get(
-                reason or 0, "are subscribed to this issue"
+                reason, "are subscribed to this issue"
             )
         }
-
-    def get_category(self) -> str:
-        raise NotImplementedError
 
     def get_subject(self) -> str:
         group = self.group
@@ -145,6 +137,12 @@ class ActivityNotification:
     def get_title(self) -> str:
         return self.get_activity_name()
 
+    def get_reference(self) -> Any:
+        return self.activity
+
+    def get_reply_reference(self) -> Optional[Any]:
+        return self.group
+
     def send(self) -> None:
         if not self.should_email():
             return
@@ -156,5 +154,6 @@ class ActivityNotification:
         # Only calculate shared context once.
         shared_context = self.get_context()
 
-        for provider, participants in participants_by_provider.items():
-            notify(provider, self, participants, shared_context)
+        for provider, participants_with_reasons in participants_by_provider.items():
+            participants, extra_context = split_participants_and_context(participants_with_reasons)
+            notify(provider, self, participants, shared_context, extra_context)

@@ -1,7 +1,9 @@
-import React from 'react';
+import {Component} from 'react';
+import {InjectedRouter} from 'react-router/lib/Router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
@@ -11,6 +13,7 @@ import {GlobalSelection, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
+import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
 import {DashboardDetails, Widget} from './types';
@@ -19,16 +22,19 @@ type Props = {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
-  paramDashboardId: string;
   selection: GlobalSelection;
   isEditing: boolean;
+  router: InjectedRouter;
+  location: Location;
   /**
    * Fired when widgets are added/removed/sorted.
    */
   onUpdate: (widgets: Widget[]) => void;
+  onSetWidgetToBeUpdated: (widget: Widget) => void;
+  paramDashboardId?: string;
 };
 
-class Dashboard extends React.Component<Props> {
+class Dashboard extends Component<Props> {
   componentDidMount() {
     const {isEditing} = this.props;
     // Load organization tags when in edit mode.
@@ -62,6 +68,27 @@ class Dashboard extends React.Component<Props> {
     });
   };
 
+  handleOpenWidgetBuilder = () => {
+    const {router, paramDashboardId, organization, location} = this.props;
+    if (paramDashboardId) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
+        query: {
+          ...location.query,
+          dataSet: DataSet.EVENTS,
+        },
+      });
+      return;
+    }
+    router.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+      query: {
+        ...location.query,
+        dataSet: DataSet.EVENTS,
+      },
+    });
+  };
+
   handleAddComplete = (widget: Widget) => {
     this.props.onUpdate([...this.props.dashboard.widgets, widget]);
   };
@@ -79,7 +106,38 @@ class Dashboard extends React.Component<Props> {
   };
 
   handleEditWidget = (widget: Widget, index: number) => () => {
-    const {organization, dashboard, selection} = this.props;
+    const {
+      organization,
+      dashboard,
+      selection,
+      router,
+      location,
+      paramDashboardId,
+      onSetWidgetToBeUpdated,
+    } = this.props;
+
+    if (organization.features.includes('metrics')) {
+      onSetWidgetToBeUpdated(widget);
+
+      if (paramDashboardId) {
+        router.push({
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
+          query: {
+            ...location.query,
+            dataSet: DataSet.EVENTS,
+          },
+        });
+        return;
+      }
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
+        query: {
+          ...location.query,
+          dataSet: DataSet.EVENTS,
+        },
+      });
+    }
+
     openAddDashboardWidgetModal({
       organization,
       dashboard,
@@ -123,7 +181,6 @@ class Dashboard extends React.Component<Props> {
       onUpdate,
       dashboard: {widgets},
       organization,
-      paramDashboardId,
     } = this.props;
 
     const items = this.getWidgetIds();
@@ -150,10 +207,9 @@ class Dashboard extends React.Component<Props> {
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && (
               <AddWidget
-                dashboardId={paramDashboardId}
-                orgSlug={organization.slug}
                 orgFeatures={organization.features}
-                onClick={this.handleStartAdd}
+                onAddWidget={this.handleStartAdd}
+                onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
               />
             )}
           </SortableContext>

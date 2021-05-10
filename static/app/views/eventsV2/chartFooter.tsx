@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import OptionSelector from 'app/components/charts/optionSelector';
 import {

@@ -1,4 +1,3 @@
-import React from 'react';
 import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
@@ -410,13 +409,12 @@ const StyledActions = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
   grid-template-columns: auto max-content min-content;
+  align-items: center;
+  margin-bottom: ${space(3)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: auto;
   }
-
-  align-items: center;
-  margin-bottom: ${space(3)};
 `;
 
 const StyledButton = styled(Button)`

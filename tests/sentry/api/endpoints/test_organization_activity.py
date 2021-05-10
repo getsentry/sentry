@@ -35,8 +35,9 @@ class OrganizationActivityTest(APITestCase):
             type=Activity.MARK_REVIEWED,
             user=self.user,
         )
-        response = self.get_success_response(org.slug)
-        assert len(response.data) == 0
+        with self.feature({"organizations:inbox": False}):
+            response = self.get_success_response(org.slug)
+            assert len(response.data) == 0
 
         with self.feature("organizations:inbox"):
             response = self.get_success_response(org.slug)

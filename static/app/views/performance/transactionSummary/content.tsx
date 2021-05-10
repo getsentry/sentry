@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
@@ -19,7 +19,12 @@ import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {
+  getAggregateAlias,
+  isRelativeSpanOperationBreakdownField,
+  SPAN_OP_BREAKDOWN_FIELDS,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
@@ -176,16 +181,6 @@ class SummaryContent extends React.Component<Props, State> {
     const query = decodeScalar(location.query.query, '');
     const totalCount = totalValues === null ? null : totalValues.count;
 
-    const spanOperationBreakdownConditions = filterToSearchConditions(
-      spanOperationBreakdownFilter,
-      location
-    );
-
-    if (spanOperationBreakdownConditions) {
-      eventView = eventView.clone();
-      eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
-    }
-
     // NOTE: This is not a robust check for whether or not a transaction is a front end
     // transaction, however it will suffice for now.
     const hasWebVitals =
@@ -197,10 +192,66 @@ class SummaryContent extends React.Component<Props, State> {
         })
       );
 
-    const durationTableTitle =
-      spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
-        ? t('total duration')
-        : `${spanOperationBreakdownFilter} duration`;
+    const transactionsListTitles = [
+      t('event id'),
+      t('user'),
+      t('total duration'),
+      t('trace id'),
+      t('timestamp'),
+    ];
+
+    let transactionsListEventView = eventView.clone();
+
+    if (organization.features.includes('performance-ops-breakdown')) {
+      // update search conditions
+
+      const spanOperationBreakdownConditions = filterToSearchConditions(
+        spanOperationBreakdownFilter,
+        location
+      );
+
+      if (spanOperationBreakdownConditions) {
+        eventView = eventView.clone();
+        eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
+        transactionsListEventView = eventView.clone();
+      }
+
+      // update header titles of transactions list
+
+      const operationDurationTableTitle =
+        spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
+          ? t('operation duration')
+          : `${spanOperationBreakdownFilter} duration`;
+
+      // add ops breakdown duration column as the 3rd column
+      transactionsListTitles.splice(2, 0, operationDurationTableTitle);
+
+      // span_ops_breakdown.relative is a preserved name and a marker for the associated
+      // field renderer to be used to generate the relative ops breakdown
+      let durationField = SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
+
+      if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
+        durationField = filterToField(spanOperationBreakdownFilter)!;
+      }
+
+      const fields = [...transactionsListEventView.fields];
+
+      // add ops breakdown duration column as the 3rd column
+      fields.splice(2, 0, {field: durationField});
+
+      if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+        // Add spans.total.time field so that the span op breakdown can be compared against it.
+        // This is used to generate the relative
+        fields.push({field: 'spans.total.time'});
+        fields.push(
+          ...SPAN_OP_BREAKDOWN_FIELDS.map(field => {
+            return {field};
+          })
+        );
+      }
+
+      transactionsListEventView.fields = fields;
+    }
 
     return (
       <React.Fragment>
@@ -245,18 +296,30 @@ class SummaryContent extends React.Component<Props, State> {
             <TransactionsList
               location={location}
               organization={organization}
-              eventView={eventView}
-              titles={
-                organization.features.includes('trace-view-summary')
-                  ? [
-                      t('event id'),
-                      t('user'),
-                      durationTableTitle,
-                      t('trace id'),
-                      t('timestamp'),
-                    ]
-                  : [t('event id'), t('user'), durationTableTitle, t('timestamp')]
-              }
+              eventView={transactionsListEventView}
+              generateDiscoverEventView={() => {
+                const {selected} = getTransactionsListSort(location, {
+                  p95: totalValues?.p95 ?? 0,
+                  spanOperationBreakdownFilter,
+                });
+                const sortedEventView = transactionsListEventView.withSorts([
+                  selected.sort,
+                ]);
+
+                if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+                  const fields = [
+                    // Remove the extra field columns
+                    ...sortedEventView.fields.slice(0, transactionsListTitles.length),
+                  ];
+
+                  // omit "Operation Duration" column
+                  sortedEventView.fields = fields.filter(({field}) => {
+                    return !isRelativeSpanOperationBreakdownField(field);
+                  });
+                }
+                return sortedEventView;
+              }}
+              titles={transactionsListTitles}
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
                 id: generateTransactionLink(transactionName),

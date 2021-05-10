@@ -1,4 +1,5 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
+import * as React from 'react';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
@@ -10,14 +11,14 @@ import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import {
-  fillChartDataFromSessionsResponse,
-  getInterval,
-} from 'app/views/releases/detail/overview/chart/utils';
+import {getInterval} from 'app/views/releases/detail/overview/chart/utils';
 import {roundDuration} from 'app/views/releases/utils';
 
 import {MetricQuery} from './types';
-import {getBreakdownChartData} from './utils';
+import {fillChartDataFromMetricsResponse, getBreakdownChartData} from './utils';
+
+type FilteredGrouping = Required<Pick<MetricQuery, 'metricMeta' | 'aggregation'>> &
+  Omit<MetricQuery, 'metricMeta' | 'aggregation'>;
 
 type RequestQuery = {
   field: string;
@@ -39,44 +40,43 @@ type Props = {
   api: Client;
   organization: Organization;
   projectSlug: Project['slug'];
-  queries: MetricQuery[];
   environments: GlobalSelection['environments'];
   datetime: GlobalSelection['datetime'];
   location: Location;
   children: (args: ChildrenArgs) => React.ReactElement;
-  yAxis?: string;
+  groupings: MetricQuery[];
+  searchQuery?: string;
 };
 
 function StatsRequest({
   api,
   organization,
   projectSlug,
-  queries,
+  groupings,
   environments,
   datetime,
   location,
   children,
-  yAxis,
+  searchQuery,
 }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [errored, setErrored] = useState(false);
   const [series, setSeries] = useState<Series[]>([]);
 
+  const filteredGroupings = groupings.filter(
+    ({aggregation, metricMeta}) => !!metricMeta?.name && !!aggregation
+  ) as FilteredGrouping[];
+
   useEffect(() => {
     fetchData();
-  }, [projectSlug, environments, datetime, queries, yAxis]);
+  }, [projectSlug, environments, datetime, groupings, searchQuery]);
 
   function fetchData() {
-    if (!yAxis) {
+    if (!filteredGroupings.length) {
       return;
     }
 
-    const queriesWithAggregation = queries.filter(({aggregation}) => !!aggregation);
-
-    if (!queriesWithAggregation.length) {
-      return;
-    }
-
+    setErrored(false);
     setIsLoading(true);
 
     const requestExtraParams = getParams(
@@ -86,15 +86,15 @@ function StatsRequest({
       )
     );
 
-    const promises = queriesWithAggregation.map(({aggregation, groupBy, tags}) => {
+    const promises = filteredGroupings.map(({metricMeta, aggregation, groupBy}) => {
       const query: RequestQuery = {
-        field: `${aggregation}(${yAxis})`,
+        field: `${aggregation}(${metricMeta.name})`,
         interval: getInterval(datetime),
         ...requestExtraParams,
       };
 
-      if (tags) {
-        const tagsWithDoubleQuotes = tags
+      if (searchQuery) {
+        const tagsWithDoubleQuotes = searchQuery
           .split(' ')
           .filter(tag => !!tag)
           .map(tag => {
@@ -138,28 +138,27 @@ function StatsRequest({
   }
 
   function getChartData(sessionReponses: SessionApiResponse[]) {
-    if (!sessionReponses.length || !yAxis) {
+    if (!sessionReponses.length) {
       setIsLoading(false);
       return;
     }
 
     const seriesData = sessionReponses.map((sessionResponse, index) => {
-      const {aggregation, groupBy, legend} = queries[index];
-      const field = `${aggregation}(${yAxis})`;
+      const {aggregation, legend, metricMeta} = filteredGroupings[index];
+      const field = `${aggregation}(${metricMeta.name})`;
 
       const breakDownChartData = getBreakdownChartData({
         response: sessionResponse,
-        legend: !!legend ? legend : `Query ${index + 1}`,
-        groupBy: !!groupBy?.length ? groupBy[0] : undefined,
+        sessionResponseIndex: index + 1,
+        legend,
       });
 
-      const chartData = fillChartDataFromSessionsResponse({
+      const chartData = fillChartDataFromMetricsResponse({
         response: sessionResponse,
         field,
-        groupBy: !!groupBy?.length ? groupBy[0] : null,
         chartData: breakDownChartData,
         valueFormatter:
-          yAxis === 'session.duration'
+          metricMeta.name === 'session.duration'
             ? duration => roundDuration(duration ? duration / 1000 : 0)
             : undefined,
       });

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import DropdownAutoCompleteMenu from 'app/components/dropdownAutoComplete/menu';
 import {Item} from 'app/components/dropdownAutoComplete/types';
